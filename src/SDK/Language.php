@@ -1,6 +1,6 @@
 <?php
 
-namespace SDK;
+namespace Appwrite\SDK;
 
 abstract class Language {
 

@@ -1,9 +1,9 @@
 <?php
 
-namespace SDK;
+namespace Appwrite\SDK;
 
 use Exception;
-use Spec\Spec;
+use Appwrite\Spec\Spec;
 use Twig_Environment;
 use Twig_Filter;
 use Twig_TemplateWrapper;

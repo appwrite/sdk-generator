@@ -1,6 +1,6 @@
 <?php
 
-namespace Spec;
+namespace Appwrite\Spec;
 
 class OpenAPI3 extends Swagger2
 {

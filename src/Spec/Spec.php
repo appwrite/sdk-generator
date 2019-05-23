@@ -1,6 +1,6 @@
 <?php
 
-namespace Spec;
+namespace Appwrite\Spec;
 
 use Exception;
 use ArrayObject;

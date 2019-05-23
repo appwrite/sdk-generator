@@ -11,8 +11,8 @@
     ],
     "autoload": {
         "psr-4": {
-            "SDK\\": "src/SDK",
-            "Spec\\": "src/Spec"
+            "Appwrite\\SDK\\": "src/SDK",
+            "Appwrite\\Spec\\": "src/Spec"
         }
     },
     "require": {

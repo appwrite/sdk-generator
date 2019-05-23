@@ -1,6 +1,6 @@
 <?php
 
-namespace Spec;
+namespace Appwrite\Spec;
 
 class Swagger2 extends Spec {
 

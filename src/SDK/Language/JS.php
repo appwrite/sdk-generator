@@ -1,8 +1,8 @@
 <?php
 
-namespace SDK\Language;
+namespace Appwrite\SDK\Language;
 
-use SDK\Language;
+use Appwrite\SDK\Language;
 
 class JS extends Language {
 

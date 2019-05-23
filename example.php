@@ -2,13 +2,13 @@
 
 include_once 'vendor/autoload.php';
 
-use Spec\OpenAPI3;
-use Spec\Swagger2;
-use SDK\SDK;
-use SDK\Language\PHP;
-use SDK\Language\JS;
-use SDK\Language\Ruby;
-use SDK\Language\Python;
+use Appwrite\Spec\OpenAPI3;
+use Appwrite\Spec\Swagger2;
+use Appwrite\SDK\SDK;
+use Appwrite\SDK\Language\PHP;
+use Appwrite\SDK\Language\JS;
+use Appwrite\SDK\Language\Ruby;
+use Appwrite\SDK\Language\Python;
 
 $languages  = ['php', 'js', 'node', 'python', 'ruby'];
 
