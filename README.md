@@ -83,3 +83,13 @@ The checklist aims to balance between consistency between language and follow ea
         * Arrays / Dictionaries / Lists Support (+concatenation type)
 * Usage Example Docs
 * Definitions / Models Classes - with setters and getters
+
+## Contributing
+
+All code contributions - including those of people having commit access - must go through a pull request and approved by a core developer before being merged. This is to ensure proper review of all the code.
+
+Fork the project, create a feature branch, and send us a pull request.
+
+## Copyright and license
+
+The MIT License (MIT) http://www.opensource.org/licenses/mit-license.php
