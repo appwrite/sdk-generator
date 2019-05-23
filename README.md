@@ -23,10 +23,10 @@ Currently the only spec supported is Swagger 2.0, but we intend to add support f
 | Language   |  Coding Standards   |  Package Manager   |   Maintainer   |
 |------------|------------------|-----------------|------------|
 | PHP   |   [PHP FIG](https://www.php-fig.org/)   |   Composer   |   @eldadfux   |
-| Javascript   |   |   NPM, Yarn, Bower   |   @eldadfux   |
-| NodeJS   |   |   NPM, Yarn   |   @eldadfux   |
+| Javascript   |   [NPM Coding Style](https://docs.npmjs.com/misc/coding-style)   |   NPM, Yarn, Bower   |   @eldadfux   |
+| NodeJS   |   [NPM Coding Style](https://docs.npmjs.com/misc/coding-style)   |   NPM, Yarn   |   @eldadfux   |
 | Ruby   |  [Ruby Style Guide](https://github.com/rubocop-hq/ruby-style-guide) |   GEM   |   @eldadfux   |
-| Python   |   PEP8   |   PIP   |   @eldadfux   |
+| Python   |   [PEP8](https://www.python.org/dev/peps/pep-0008/)   |   PIP   |   @eldadfux   |
 | Kotlin   |   |   ?   |   |
 | Swift   |   |   ?   |   |
 
