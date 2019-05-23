@@ -12,6 +12,13 @@ Currently the only spec supported is Swagger 2.0, but we intend to add support f
 
 You can view examples of generated code libraries in the [examples](examples) directory.
 
+## Getting Started
+
+Install using composer:
+```bash
+composer require appwrite/sdk-generator
+```
+
 ## Supported Specs
 
 * [OpenAPI 3](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md) (Not Ready)
