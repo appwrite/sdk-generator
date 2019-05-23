@@ -2,9 +2,9 @@
 
 **WORK IN PROGRESS - NOT READY FOR USAGE**
 
-Appwrite SDK generator is a PHP library for auto generating SDK library for multiple languages or platforms.
+[Appwrite](https://appwrite.io) SDK generator is a PHP library for auto generating SDK library for multiple languages or platforms.
 
-The SDK uses predefined language setting and Twig templates to generate code base on different API specs.
+The SDK uses predefined language setting and [Twig templates](https://twig.symfony.com/) to generate code base on different API specs.
 
 Currently the only spec supported is Swagger 2.0, but we intend to add support for more specification. 
 
