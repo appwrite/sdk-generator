@@ -19,6 +19,49 @@ Install using composer:
 composer require appwrite/sdk-generator
 ```
 
+Create language and SDK instances and generate code to target directory.
+
+```php
+<?php
+
+require_once 'vendor/autoload.php';
+
+use Appwrite\Spec\Swagger2;
+use Appwrite\SDK\SDK;
+use Appwrite\SDK\Language\PHP;
+
+$languages  = ['php', 'js', 'node', 'python', 'ruby'];
+
+try {
+
+    // Read API specification file (Swagger 2) anc create spec instance
+    $spec = new Swagger2(file_get_contents('https://appwrite.io/v1/open-api-2.json?extension=1'));
+    
+    // Create language instance
+    $lang = new PHP();
+    
+    $lang // Set language or platform specific options
+        ->setComposerPackage('my-api')
+        ->setComposerVendor('my-company')
+    ;
+    
+    // Create the SDK object with the language and spec instances
+    $sdk  = new SDK($lang, $spec);
+
+    $sdk
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('License content here.')
+        ->setVersion('v1.1.0')
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/php');
+}
+catch (Exception $exception) {
+    echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
+}
+
+```
+
 ## Supported Specs
 
 * [OpenAPI 3](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md) (Not Ready)
