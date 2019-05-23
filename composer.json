@@ -1,0 +1,30 @@
+{
+    "name": "appwrite/appwrite-sdk-generator",
+    "description": "Appwrite API SDKs generator",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Eldad Fux",
+            "email": "eldad@appwrite.io"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "SDK\\": "src/SDK",
+            "Spec\\": "src/Spec"
+        }
+    },
+    "require": {
+        "php": ">=7.2.0",
+        "ext-curl": "*",
+        "ext-mbstring": "*",
+        "ext-json": "*",
+        "twig/twig": "^2.0",
+        "matthiasmullie/minify": "^1.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "3.7.35"
+    },
+    "minimum-stability": "dev"
+}

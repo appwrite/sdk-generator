@@ -1,0 +1,3231 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "v0.0.0dev",
+    "title": "Appwrite",
+    "description": "Official Appwrite SDK. For full API documentation and tutorials go to [https://appwrite.io/docs](https://appwrite.io/docs)",
+    "termsOfService": "https://appwrite.io/policy/terms",
+    "contact": {
+      "name": "Appwrite Team",
+      "url": "https://appwrite.io/support",
+      "email": "team@appwrite.io"
+    },
+    "license": {
+      "name": "MIT"
+    }
+  },
+  "host": "appwrite.test",
+  "basePath": "/v1",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json",
+    "application/x-www-form-urlencoded"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "securityDefinitions": {
+    "AppwriteProject": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Project",
+      "description": "",
+      "in": "header"
+    },
+    "AppwriteKey": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Key",
+      "description": "",
+      "in": "header"
+    }
+  },
+  "paths": {
+    "/avatars/favicon": {
+      "get": {
+        "summary": "Get given domain favicon",
+        "operationId": "getFavicon",
+        "tags": [
+          "avatars"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "url",
+            "description": "Website URL",
+            "required": false,
+            "type": "string",
+            "format": "url",
+            "x-example": "https://example.com",
+            "default": "",
+            "in": "query"
+          }
+        ]
+      }
+    },
+    "/avatars/{type}/{code}": {
+      "get": {
+        "summary": "Get given browser avatar",
+        "operationId": "getBrowser",
+        "tags": [
+          "avatars"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "description": "Avatar Set",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "code",
+            "description": "Avatar Code",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "width",
+            "description": "",
+            "required": false,
+            "type": "string",
+            "default": 0,
+            "in": "query"
+          },
+          {
+            "name": "height",
+            "description": "",
+            "required": false,
+            "type": "string",
+            "default": 0,
+            "in": "query"
+          },
+          {
+            "name": "quality",
+            "description": "",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "query"
+          }
+        ]
+      }
+    },
+    "/billing/invoices": {
+      "get": {
+        "summary": "List Invoices",
+        "operationId": "listInvoices",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      }
+    },
+    "/billing/invoices/{id}/print": {
+      "get": {
+        "summary": "Get Invoice for Print",
+        "operationId": "getInvoicePrint",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Subscriptions ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "download",
+            "description": "Should file be downloaded?",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "query"
+          }
+        ]
+      }
+    },
+    "/billing/plans": {
+      "get": {
+        "summary": "List Plans",
+        "operationId": "listPlans",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Plan",
+        "operationId": "createPlan",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "description": "Plan Name",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "description",
+            "description": "Plan Description",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "amount",
+            "description": "Plan Amount",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          },
+          {
+            "name": "currency",
+            "description": "Plan Currency",
+            "required": false,
+            "type": "string",
+            "default": "USD",
+            "in": "formData"
+          },
+          {
+            "name": "frequency",
+            "description": "Plan Frequency",
+            "required": false,
+            "type": "string",
+            "default": "monthly",
+            "in": "formData"
+          },
+          {
+            "name": "interval",
+            "description": "Plan Interval",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 1,
+            "in": "formData"
+          },
+          {
+            "name": "tax-type",
+            "description": "Tax Type (ex: VAT)",
+            "required": false,
+            "type": "string",
+            "default": "Tax",
+            "in": "formData"
+          },
+          {
+            "name": "tax-percent",
+            "description": "Tax Percent",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 0,
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/billing/plans/{id}": {
+      "get": {
+        "summary": "Get Plan",
+        "operationId": "getPlan",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Plan ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update Plan",
+        "operationId": "updatePlan",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Plan ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "name",
+            "description": "Plan Name",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "description",
+            "description": "Plan Description",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "amount",
+            "description": "Plan Amount",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          },
+          {
+            "name": "currency",
+            "description": "Plan Currency",
+            "required": false,
+            "type": "string",
+            "default": "USD",
+            "in": "formData"
+          },
+          {
+            "name": "frequency",
+            "description": "Plan Frequency",
+            "required": false,
+            "type": "string",
+            "default": "monthly",
+            "in": "formData"
+          },
+          {
+            "name": "interval",
+            "description": "Plan Interval",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 1,
+            "in": "formData"
+          },
+          {
+            "name": "tax-type",
+            "description": "Tax Type (ex: VAT)",
+            "required": false,
+            "type": "string",
+            "default": "Tax",
+            "in": "formData"
+          },
+          {
+            "name": "tax-percent",
+            "description": "Tax Percent",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 0,
+            "in": "formData"
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Plan",
+        "operationId": "deletePlan",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Plan ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      }
+    },
+    "/billing/subscriptions": {
+      "get": {
+        "summary": "List Subscriptions",
+        "operationId": "listSubscriptions",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Subscription",
+        "operationId": "createSubscription",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "resource",
+            "description": "Resource Name",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "plan",
+            "description": "Plan ID",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "vault",
+            "description": "Vault ID",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "team",
+            "description": "Team ID",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/billing/subscriptions/{id}": {
+      "get": {
+        "summary": "Get Subscription",
+        "operationId": "getSubscription",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Subscriptions ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update Subscription",
+        "operationId": "updateSubscription",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Subscription ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "plan",
+            "description": "Plan ID",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "vault",
+            "description": "Vault ID",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Subscription",
+        "operationId": "deleteSubscription",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Subscription ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      }
+    },
+    "/billing/vaults": {
+      "get": {
+        "summary": "List Vaults",
+        "operationId": "listVaults",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Vault",
+        "operationId": "createVault",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "description": "Secret Token",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "number",
+            "description": "Card Number",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "type",
+            "description": "Card Type",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "expire-month",
+            "description": "Card Expiration Month",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          },
+          {
+            "name": "expire-year",
+            "description": "Credit Card Expiration Year",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          },
+          {
+            "name": "cvv2",
+            "description": "Card CVV Number",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "first-name",
+            "description": "First Name",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "last-name",
+            "description": "Last Name",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "address-line1",
+            "description": "Address",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "address-city",
+            "description": "City",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "address-country-code",
+            "description": "Country Code",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "address-postal-code",
+            "description": "Postal Code",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "address-state",
+            "description": "State",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "address-phone",
+            "description": "Phone Number",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/billing/vaults/token": {
+      "get": {
+        "summary": "List Vaults",
+        "operationId": "listVaultsToken",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      }
+    },
+    "/billing/vaults/{id}": {
+      "get": {
+        "summary": "Get Vault",
+        "operationId": "getVault",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Vault ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Vault",
+        "operationId": "deleteVault",
+        "tags": [
+          "billing"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Vault ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      }
+    },
+    "/database/{collectionId}": {
+      "get": {
+        "summary": "List Documents",
+        "operationId": "listDocuments",
+        "tags": [
+          "database"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collectionId",
+            "description": "Collection ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "filters[]",
+            "description": "List of Filters",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "Offset number",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 0,
+            "in": "query"
+          },
+          {
+            "name": "limit",
+            "description": "Number of documents to return",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 50,
+            "in": "query"
+          },
+          {
+            "name": "order-field",
+            "description": "The field that results will be sorted by",
+            "required": false,
+            "type": "string",
+            "default": "$id",
+            "in": "query"
+          },
+          {
+            "name": "order-type",
+            "description": "Order direction",
+            "required": false,
+            "type": "string",
+            "default": "ASC",
+            "in": "query"
+          },
+          {
+            "name": "order-cast",
+            "description": "Order type casting. same fields names on different nodes might have different casting",
+            "required": false,
+            "type": "string",
+            "default": "int",
+            "in": "query"
+          },
+          {
+            "name": "search",
+            "description": "Search query",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "query"
+          },
+          {
+            "name": "first",
+            "description": "Return only first document",
+            "required": false,
+            "type": "string",
+            "default": 0,
+            "in": "query"
+          },
+          {
+            "name": "last",
+            "description": "Return only last document",
+            "required": false,
+            "type": "string",
+            "default": 0,
+            "in": "query"
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Document",
+        "operationId": "createDocument",
+        "tags": [
+          "database"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collectionId",
+            "description": "Collection ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "data",
+            "description": "Document data",
+            "required": true,
+            "type": "object",
+            "in": "formData"
+          },
+          {
+            "name": "parentDocument",
+            "description": "Parent document ID",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "parentProperty",
+            "description": "Parent document property name",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/database/{collectionId}/{documentId}": {
+      "get": {
+        "summary": "Get Document",
+        "operationId": "getDocument",
+        "tags": [
+          "database"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collectionId",
+            "description": "Collection ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "documentId",
+            "description": "Document ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Document",
+        "operationId": "updateDocument",
+        "tags": [
+          "database"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collectionId",
+            "description": "Collection ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "documentId",
+            "description": "Document ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "data",
+            "description": "Document data",
+            "required": true,
+            "type": "object",
+            "in": "formData"
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Document",
+        "operationId": "deleteDocument",
+        "tags": [
+          "database"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collectionId",
+            "description": "Collection ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "documentId",
+            "description": "Document ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      }
+    },
+    "/geo": {
+      "get": {
+        "summary": "Current user GEO information",
+        "operationId": "current",
+        "tags": [
+          "geo"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      }
+    },
+    "/geo/countries": {
+      "get": {
+        "summary": "List of all countries",
+        "operationId": "countries",
+        "tags": [
+          "geo"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      }
+    },
+    "/geo/countries/eu": {
+      "get": {
+        "summary": "List countries that are members of the EU",
+        "operationId": "countriesEU",
+        "tags": [
+          "geo"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      }
+    },
+    "/geo/countries/phones": {
+      "get": {
+        "summary": "List of all countries phone codes",
+        "operationId": "countriesPhones",
+        "tags": [
+          "geo"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      }
+    },
+    "/projects": {
+      "get": {
+        "summary": "List Projects",
+        "operationId": "listProjects",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Project",
+        "operationId": "createProject",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "description": "Project name",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "description",
+            "description": "Project description",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "logo",
+            "description": "Project logo",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "url",
+            "description": "Project URL",
+            "required": false,
+            "type": "string",
+            "format": "url",
+            "x-example": "https://example.com",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "clients[]",
+            "description": "Project client domains",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "in": "formData"
+          },
+          {
+            "name": "legalName",
+            "description": "Project Legal Name",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "legalCountry",
+            "description": "Project Legal Country",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "legalState",
+            "description": "Project Legal State",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "legalCity",
+            "description": "Project Legal City",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "legalAddress",
+            "description": "Project Legal Address",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "legalTaxId",
+            "description": "Project Legal Tax ID",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "teamId",
+            "description": "Team ID",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "summary": "Get Project",
+        "operationId": "getProject",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Project",
+        "operationId": "updateProject",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "name",
+            "description": "Project name",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "description",
+            "description": "Project description",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "logo",
+            "description": "Project logo",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "url",
+            "description": "Project URL",
+            "required": false,
+            "type": "string",
+            "format": "url",
+            "x-example": "https://example.com",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "clients[]",
+            "description": "Project client  domains",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "in": "formData"
+          },
+          {
+            "name": "legalName",
+            "description": "Project Legal Name",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "legalCountry",
+            "description": "Project Legal Country",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "legalState",
+            "description": "Project Legal State",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "legalCity",
+            "description": "Project Legal City",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "legalAddress",
+            "description": "Project Legal Address",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "legalTaxId",
+            "description": "Project Legal Tax ID",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Project",
+        "operationId": "deleteProject",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      }
+    },
+    "/projects/{id}/keys": {
+      "get": {
+        "summary": "List Keys",
+        "operationId": "listKeys",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Key",
+        "operationId": "createKey",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "name",
+            "description": "Key name",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "scopes[]",
+            "description": "Key scopes list",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/projects/{id}/keys/{key}": {
+      "get": {
+        "summary": "Get Key",
+        "operationId": "getKey",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "key",
+            "description": "Key ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update Key",
+        "operationId": "updateKey",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "key",
+            "description": "Key ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "name",
+            "description": "Key name",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "scopes[]",
+            "description": "Key scopes list",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "in": "formData"
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Key",
+        "operationId": "deleteKey",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "key",
+            "description": "Key ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      }
+    },
+    "/projects/{id}/oauth": {
+      "patch": {
+        "summary": "Update Project OAuth",
+        "operationId": "updateProjectOAuth",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "provider",
+            "description": "Provider Name",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "appid",
+            "description": "Provider App ID",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "secret",
+            "description": "Provider Secret Key",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/projects/{id}/stats": {
+      "get": {
+        "summary": "Get Project Stats",
+        "operationId": "getProjectStats",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      }
+    },
+    "/projects/{id}/usage": {
+      "get": {
+        "summary": "Get Project",
+        "operationId": "getProjectUsage",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      }
+    },
+    "/projects/{id}/webhooks": {
+      "get": {
+        "summary": "List Webhooks",
+        "operationId": "listWebhooks",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Webhook",
+        "operationId": "createWebhook",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "name",
+            "description": "Webhook name",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "events[]",
+            "description": "Webhook events list",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "in": "formData"
+          },
+          {
+            "name": "url",
+            "description": "Webhook URL",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "security",
+            "description": "Certificate verification, 0 for disabled or 1 for enabled",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          },
+          {
+            "name": "httpUser",
+            "description": "Webhook HTTP user",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "httpPass",
+            "description": "Webhook HTTP password",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/projects/{id}/webhooks/{webhook}": {
+      "get": {
+        "summary": "Get Webhook",
+        "operationId": "getWebhook",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "webhook",
+            "description": "Webhook ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update Webhook",
+        "operationId": "updateWebhook",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "webhook",
+            "description": "Webhook ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "name",
+            "description": "Webhook name",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "events[]",
+            "description": "Webhook events list",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "in": "formData"
+          },
+          {
+            "name": "url",
+            "description": "Webhook URL",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "security",
+            "description": "Certificate verification, 0 for disabled or 1 for enabled",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          },
+          {
+            "name": "httpUser",
+            "description": "Webhook HTTP user",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "httpPass",
+            "description": "Webhook HTTP password",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Webhook",
+        "operationId": "deleteWebhook",
+        "tags": [
+          "projects"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "webhook",
+            "description": "Webhook ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      }
+    },
+    "/stats/events": {
+      "post": {
+        "summary": "Measure event",
+        "operationId": "events",
+        "tags": [
+          "stats"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      }
+    },
+    "/stats/events/pageview": {
+      "post": {
+        "summary": "Measure an page view event",
+        "operationId": "pageview",
+        "tags": [
+          "stats"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      }
+    },
+    "/storage/files": {
+      "get": {
+        "summary": "List Files",
+        "operationId": "listFiles",
+        "tags": [
+          "storage"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "query",
+            "description": "Search term",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "query"
+          },
+          {
+            "name": "page",
+            "description": "Page number",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 1,
+            "in": "query"
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create File",
+        "operationId": "createFile",
+        "tags": [
+          "storage"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "parameters": [
+          {
+            "name": "files",
+            "description": "Binary Files",
+            "required": true,
+            "type": "file",
+            "in": "formData"
+          },
+          {
+            "name": "read[]",
+            "description": "Read permissions",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "in": "formData"
+          },
+          {
+            "name": "write[]",
+            "description": "Write permissions",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "in": "formData"
+          },
+          {
+            "name": "folderId",
+            "description": "Folder to associate files with",
+            "required": false,
+            "type": "string",
+            "default": 0,
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/storage/files/{id}": {
+      "get": {
+        "summary": "Get File",
+        "operationId": "getFile",
+        "tags": [
+          "storage"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "File ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete File",
+        "operationId": "deleteFile",
+        "tags": [
+          "storage"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "File ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      }
+    },
+    "/storage/files/{id}/download": {
+      "get": {
+        "summary": "Download File",
+        "operationId": "getFileDownload",
+        "tags": [
+          "storage"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "File ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "storage",
+            "description": "",
+            "required": true,
+            "type": "string",
+            "in": "query"
+          }
+        ]
+      }
+    },
+    "/storage/files/{id}/preview": {
+      "get": {
+        "summary": "Preview File",
+        "operationId": "getFilePreview",
+        "tags": [
+          "storage"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "File ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "width",
+            "description": "",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 0,
+            "in": "query"
+          },
+          {
+            "name": "height",
+            "description": "",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 0,
+            "in": "query"
+          },
+          {
+            "name": "quality",
+            "description": "",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "query"
+          },
+          {
+            "name": "background",
+            "description": "",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "query"
+          },
+          {
+            "name": "storage",
+            "description": "",
+            "required": true,
+            "type": "string",
+            "in": "query"
+          },
+          {
+            "name": "output",
+            "description": "Output format type",
+            "required": false,
+            "type": "string",
+            "in": "query"
+          },
+          {
+            "name": "token",
+            "description": "Preview token",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "query"
+          }
+        ]
+      }
+    },
+    "/storage/files/{id}/view": {
+      "get": {
+        "summary": "View File",
+        "operationId": "getFileView",
+        "tags": [
+          "storage"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "File ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "as",
+            "description": "",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "query"
+          },
+          {
+            "name": "storage",
+            "description": "",
+            "required": true,
+            "type": "string",
+            "in": "query"
+          }
+        ]
+      }
+    },
+    "/storage/scan": {
+      "get": {
+        "summary": "Scan Storage",
+        "operationId": "scan",
+        "tags": [
+          "storage"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      }
+    },
+    "/teams": {
+      "get": {
+        "summary": "List Teams",
+        "operationId": "listTeams",
+        "tags": [
+          "teams"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "description": "Users Search",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "query"
+          },
+          {
+            "name": "limit",
+            "description": "Users Limit",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 25,
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "Users Offset",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 0,
+            "in": "query"
+          },
+          {
+            "name": "orderType",
+            "description": "Users Order Type",
+            "required": false,
+            "type": "string",
+            "default": "ASC",
+            "in": "query"
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Team",
+        "operationId": "createTeam",
+        "tags": [
+          "teams"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "description": "Team name",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "roles[]",
+            "description": "User roles in the team",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "default": [
+              "owner"
+            ],
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/teams/{teamId}": {
+      "get": {
+        "summary": "Get Team",
+        "operationId": "getTeam",
+        "tags": [
+          "teams"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "teamId",
+            "description": "Team ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update Team",
+        "operationId": "updateTeam",
+        "tags": [
+          "teams"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "teamId",
+            "description": "Team ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "name",
+            "description": "Team name",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Team",
+        "operationId": "deleteTeam",
+        "tags": [
+          "teams"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "teamId",
+            "description": "Team ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      }
+    },
+    "/teams/{teamId}/members": {
+      "get": {
+        "summary": "Get Team Members",
+        "operationId": "getTeamMembers",
+        "tags": [
+          "teams"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "teamId",
+            "description": "Team ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      }
+    },
+    "/users": {
+      "get": {
+        "summary": "List Users",
+        "operationId": "listUsers",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "description": "Users Search",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "query"
+          },
+          {
+            "name": "limit",
+            "description": "Users Limit",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 25,
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "Users Offset",
+            "required": false,
+            "type": "integer",
+            "format": "int32",
+            "default": 0,
+            "in": "query"
+          },
+          {
+            "name": "orderType",
+            "description": "Users Order Type",
+            "required": false,
+            "type": "string",
+            "default": "ASC",
+            "in": "query"
+          }
+        ]
+      }
+    },
+    "/users/account": {
+      "get": {
+        "summary": "Get Account",
+        "operationId": "getAccount",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Account",
+        "operationId": "deleteAccount",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      }
+    },
+    "/users/account/email": {
+      "patch": {
+        "summary": "Update Account Email",
+        "operationId": "updateAccountEmail",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "email",
+            "description": "Email Address",
+            "required": true,
+            "type": "string",
+            "format": "email",
+            "x-example": "email@example.com",
+            "in": "formData"
+          },
+          {
+            "name": "password",
+            "description": "User Password",
+            "required": true,
+            "type": "string",
+            "format": "format",
+            "x-example": "password",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/users/account/name": {
+      "patch": {
+        "summary": "Update Account Name",
+        "operationId": "updateAccountName",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "description": "User name",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/users/account/password": {
+      "patch": {
+        "summary": "Update Account Password",
+        "operationId": "updateAccountPassword",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "password",
+            "description": "New password",
+            "required": true,
+            "type": "string",
+            "format": "format",
+            "x-example": "password",
+            "in": "formData"
+          },
+          {
+            "name": "old-password",
+            "description": "Old password",
+            "required": true,
+            "type": "string",
+            "format": "format",
+            "x-example": "password",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/users/account/reset": {
+      "patch": {
+        "summary": "Reset Account Password",
+        "operationId": "resetAccount",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "User unique ID",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/users/account/security": {
+      "get": {
+        "summary": "Get Account Security Log",
+        "operationId": "getAccountSecurity",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      }
+    },
+    "/users/account/sessions": {
+      "get": {
+        "summary": "Get Account Active Sessions",
+        "operationId": "getAccountSessions",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      }
+    },
+    "/users/auth/invite": {
+      "post": {
+        "summary": "Invite Team",
+        "operationId": "inviteTeam",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "team",
+            "description": "Invite Team ID",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "email",
+            "description": "Invite Email",
+            "required": true,
+            "type": "string",
+            "format": "email",
+            "x-example": "email@example.com",
+            "in": "formData"
+          },
+          {
+            "name": "name",
+            "description": "Invite Name",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "roles[]",
+            "description": "Invite Role",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "in": "formData"
+          },
+          {
+            "name": "redirect",
+            "description": "Reset page to redirect user after success",
+            "required": true,
+            "type": "string",
+            "format": "url",
+            "x-example": "https://your-host.com",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/users/auth/invite/resend": {
+      "post": {
+        "summary": "Invite Team (resend)",
+        "operationId": "inviteTeamResend",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "inviteId",
+            "description": "Invite ID",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "redirect",
+            "description": "Reset page to redirect user after success",
+            "required": true,
+            "type": "string",
+            "format": "url",
+            "x-example": "https://your-host.com",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/users/auth/join": {
+      "post": {
+        "summary": "Join Team",
+        "operationId": "joinTeam",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "inviteId",
+            "description": "Invite ID",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "userId",
+            "description": "User ID",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "secret",
+            "description": "Secret Key",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/users/auth/leave/{inviteId}": {
+      "delete": {
+        "summary": "Leave Team",
+        "operationId": "leaveTeam",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "inviteId",
+            "description": "Invite ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      }
+    },
+    "/users/auth/login": {
+      "post": {
+        "summary": "Login User",
+        "operationId": "login",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "email",
+            "description": "",
+            "required": true,
+            "type": "string",
+            "format": "email",
+            "x-example": "email@example.com",
+            "in": "formData"
+          },
+          {
+            "name": "password",
+            "description": "",
+            "required": true,
+            "type": "string",
+            "format": "format",
+            "x-example": "password",
+            "in": "formData"
+          },
+          {
+            "name": "success",
+            "description": "",
+            "required": false,
+            "type": "string",
+            "format": "url",
+            "x-example": "https://your-host.com",
+            "in": "formData"
+          },
+          {
+            "name": "failure",
+            "description": "",
+            "required": false,
+            "type": "string",
+            "format": "url",
+            "x-example": "https://your-host.com",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/users/auth/logout": {
+      "delete": {
+        "summary": "Logout Current Session",
+        "operationId": "logout",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ]
+      }
+    },
+    "/users/auth/logout/{id}": {
+      "delete": {
+        "summary": "Logout Specific Session",
+        "operationId": "logoutBySession",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "User specific session ID number. if 0 delete all sessions",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          }
+        ]
+      }
+    },
+    "/users/auth/recovery": {
+      "post": {
+        "summary": "Recover User Password",
+        "operationId": "recovery",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "email",
+            "description": "User registration email address",
+            "required": true,
+            "type": "string",
+            "format": "email",
+            "x-example": "email@example.com",
+            "in": "formData"
+          },
+          {
+            "name": "redirect",
+            "description": "Reset page to redirect user after reset token has been sent to user email",
+            "required": true,
+            "type": "string",
+            "format": "url",
+            "x-example": "https://your-host.com",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/users/auth/recovery/reset": {
+      "put": {
+        "summary": "Reset Password",
+        "operationId": "recoveryReset",
+        "tags": [
+          "users"
+        ],
+        "description": "After user receives the secret temporary token by secure mail, The mail leads the user to a landing page in console UI which get the secret by URL and stores it in a hidden field. In this phase the user should also choose a new password and verify it. When all is ready the above request should be submitted. If all goes well. the reset action may create a login token for our user in-order to save him action and not making him retype his new password for the third time in the recovery process.",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "description": "User registration email address",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "token",
+            "description": "Valid reset token",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "password-a",
+            "description": "New password",
+            "required": true,
+            "type": "string",
+            "format": "format",
+            "x-example": "password",
+            "in": "formData"
+          },
+          {
+            "name": "password-b",
+            "description": "New password again",
+            "required": true,
+            "type": "string",
+            "format": "format",
+            "x-example": "password",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/users/auth/register": {
+      "post": {
+        "summary": "Register User",
+        "operationId": "register",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "email",
+            "description": "Account email",
+            "required": true,
+            "type": "string",
+            "format": "email",
+            "x-example": "email@example.com",
+            "in": "formData"
+          },
+          {
+            "name": "password",
+            "description": "User password",
+            "required": true,
+            "type": "string",
+            "format": "format",
+            "x-example": "password",
+            "in": "formData"
+          },
+          {
+            "name": "name",
+            "description": "User name",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "formData"
+          },
+          {
+            "name": "redirect",
+            "description": "Confirmation page to redirect user after confirm token has been sent to user email",
+            "required": true,
+            "type": "string",
+            "format": "url",
+            "x-example": "https://your-host.com",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/users/auth/register/confirm": {
+      "post": {
+        "summary": "Confirm User",
+        "operationId": "confirm",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "userId",
+            "description": "User ID",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          },
+          {
+            "name": "token",
+            "description": "Confirmation secret token",
+            "required": true,
+            "type": "string",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/users/auth/register/confirm/resend": {
+      "post": {
+        "summary": "Resend Confirmation",
+        "operationId": "confirmResend",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "redirect",
+            "description": "Confirmation page to redirect user after confirm token has been sent to user email",
+            "required": true,
+            "type": "string",
+            "format": "url",
+            "x-example": "https://your-host.com",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/users/oauth/callback/{provider}/{projectId}": {
+      "get": {
+        "summary": "OAuth Callback",
+        "operationId": "oauthCallback",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "description": "Project ID",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "provider",
+            "description": "OAuth provider",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "code",
+            "description": "OAuth code",
+            "required": true,
+            "type": "string",
+            "in": "query"
+          },
+          {
+            "name": "state",
+            "description": "Login state params",
+            "required": false,
+            "type": "string",
+            "default": "",
+            "in": "query"
+          }
+        ]
+      }
+    },
+    "/users/oauth/{provider}": {
+      "get": {
+        "summary": "OAuth Login",
+        "operationId": "oauth",
+        "tags": [
+          "users"
+        ],
+        "description": "",
+        "security": [
+          {
+            "AppwriteProject": [],
+            "AppwriteKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provider",
+            "description": "OAuth Provider",
+            "required": true,
+            "type": "string",
+            "in": "path"
+          },
+          {
+            "name": "success",
+            "description": "URL to redirect on success login",
+            "required": false,
+            "type": "string",
+            "format": "url",
+            "x-example": "https://your-host.com",
+            "default": "",
+            "in": "query"
+          },
+          {
+            "name": "failure",
+            "description": "URL to redirect on failed login",
+            "required": false,
+            "type": "string",
+            "format": "url",
+            "x-example": "https://your-host.com",
+            "default": "",
+            "in": "query"
+          }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "Pet": {
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "name": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        }
+      }
+    },
+    "Pets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Pet"
+      }
+    },
+    "Error": {
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

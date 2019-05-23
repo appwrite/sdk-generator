@@ -1,0 +1,28 @@
+# [{{ spec.title }} SDK for {{ language.name }}]({{ sdk.url }}) &nbsp; [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text={{ sdk.shareText|url_encode }}&url={{ sdk.shareURL|url_encode }}&via={{ sdk.shareVia|url_encode }}&hashtags={{ sdk.shareTags|url_encode }})
+
+![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?v=1)
+![Version](https://img.shields.io/badge/api%20version-{{ spec.version|url_encode }}-blue.svg?v=1)
+{% if sdk.warning %}
+
+{{ sdk.warning }}
+{% endif %}
+
+{{ spec.description }}
+
+
+
+![{{ spec.title }}]({{ sdk.logo }})
+
+**API Version: {{ spec.version }}**
+
+## Installation
+
+To install via [Gem](https://rubygems.org/):
+
+```bash
+gem install {{ language.params.gemPackage }} --save
+```
+
+## License
+
+Please see the [{{spec.licenseName}} license]({{spec.licenseURL}}) file for more information.

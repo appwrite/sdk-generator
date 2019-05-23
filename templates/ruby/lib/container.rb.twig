@@ -1,0 +1,20 @@
+require 'net/http'
+require 'uri'
+require 'json'
+require_relative '{{ spec.title | caseDash }}/client'
+require_relative '{{ spec.title | caseDash }}/service'
+{% for service in spec.services %}
+require_relative '{{ spec.title | caseDash }}/services/{{ service.name | caseDash }}'
+{% endfor %}
+
+module {{spec.title | caseUcfirst}}
+
+end
+
+client = {{spec.title | caseUcfirst}}::Client.new()  
+
+client
+    .set_endpoint('https://www.walla.co.il')
+    .add_header('x', 'y')
+    .add_header('z', 'i')
+    .call('get', '/info', {}, {'test': 'xxx'})

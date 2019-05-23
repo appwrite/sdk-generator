@@ -1,0 +1,35 @@
+from ..service import Service
+
+
+class {{ service.name | caseUcfirst }}(Service):
+{% for method in service.methods %}
+
+    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseSnake }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}):
+{% if method.title %}
+        """{{ method.title }}"""
+
+{% endif %}
+        params = {}
+        path = '{{ method.path }}'
+{% for parameter in method.parameters.path %}
+        path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseSnake }})                
+{% endfor %}
+{% for parameter in method.parameters.query %}
+        params['{{ parameter.name }}'] = {{ parameter.name | caseSnake }}
+{% endfor %}
+{% for parameter in method.parameters.body %}
+        params['{{ parameter.name }}'] = {{ parameter.name | caseSnake }}
+{% endfor %}
+{% for parameter in method.parameters.formData %}
+        params['{{ parameter.name }}'] = {{ parameter.name | caseSnake }}
+{% endfor %}
+
+        return self.client.call('{{ method.method | caseLower }}', path, {
+{% for parameter in method.parameters.header %}
+            '{{ parameter.name }}': {{ parameter.name | caseSnake }},
+{% endfor %}
+{% for key, header in method.headers %}
+            '{{ key }}': '{{ header }}',
+{% endfor %}
+        }, params)
+{% endfor %}

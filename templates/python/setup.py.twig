@@ -1,0 +1,31 @@
+from distutils.core import setup
+
+setup(
+  name = '{{spec.title | caseSnake}}',
+  packages = ['{{spec.title | caseSnake}}'],
+  version = '{{sdk.version}}',
+  license='{{spec.licenseName}}',
+  description = '{{spec.description}}',
+  author = '{{spec.contactName}}',
+  author_email = '{{spec.contactEmail}}',
+  maintainer = '{{spec.contactName}}',
+  maintainer_email = '{{spec.contactEmail}}',
+  url = '{{spec.contactURL}}',
+  download_url='https://github.com/{{sdk.gitUserName}}/{{sdk.gitRepoName}}/archive/{{sdk.version}}.tar.gz',
+  # keywords = ['SOME', 'MEANINGFULL', 'KEYWORDS'],
+  install_requires=[
+          'requests',
+      ],
+  classifiers=[
+    'Development Status :: 5 - PRODUCTION/STABLE',
+    'Intended Audience :: Developers',
+    'Environment :: Web Environment',
+    'Topic :: Software Development',
+    'License :: OSI Approved :: {{spec.licenseName}}',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.4',
+    'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
+  ],
+)

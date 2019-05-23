@@ -1,0 +1,15 @@
+<?php
+
+use {{ spec.title | caseUcfirst }}\Client;
+use {{ spec.title | caseUcfirst }}\Services\{{ service.name | caseUcfirst }};
+
+$client = new Client();
+
+$client
+{% for key,header in method.security[0]|keys %}
+    set{{header}}('')
+{% endfor %};
+
+${{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}($client);
+
+$result = ${{ service.name | caseCamel }}->{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});

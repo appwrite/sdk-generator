@@ -1,0 +1,35 @@
+module {{spec.title | caseUcfirst}}
+    class {{ service.name | caseUcfirst }} < Service
+
+{% for method in service.methods %}
+        def {{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %})
+            path = '{{ method.path }}'
+{% for parameter in method.parameters.path %}
+                .gsub('{{ '{' }}{{ parameter.name | caseSnake }}{{ '}' }}', {{ parameter.name | caseSnake }})
+{% endfor %}
+
+            params = {
+{% for parameter in method.parameters.query %}
+                '{{ parameter.name }}': {{ parameter.name | caseSnake }}{% if not loop.last %}, {% endif %}
+
+{% endfor %}
+{% for parameter in method.parameters.body %}
+                '{{ parameter.name }}': {{ parameter.name | caseSnake }}{% if not loop.last %}, {% endif %}
+
+{% endfor %}
+            }
+
+            return @client.call('{{ method.method | caseLower }}', path, {
+{% for parameter in method.parameters.header %}
+                '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},
+{% endfor %}
+            }, params);
+        end
+
+{% endfor %}
+
+        protected
+
+        private
+    end 
+end

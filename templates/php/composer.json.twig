@@ -1,0 +1,24 @@
+{
+    "name": "{{spec.title | caseLower}}/{{spec.title | caseLower}}",
+    "description": "{{ spec.description }}",
+    "type": "library",
+    "license": "{{ spec.licenseName }}",
+    "support": {
+        "url": "{{ spec.contactURL }}",
+        "email": "{{ spec.contactEmail }}"
+    },
+    "autoload": {
+        "psr-4": {
+            "{{spec.title | caseUcfirst}}\\": "src/{{spec.title | caseUcfirst}}"
+        }
+    },
+    "require": {
+        "php": ">=7.1.0",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "3.7.35"
+    },
+    "minimum-stability": "dev"
+}

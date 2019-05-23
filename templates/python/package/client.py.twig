@@ -1,0 +1,63 @@
+import requests
+
+
+class Client:
+    def __init__(self):
+        self._self_signed = False
+        self._endpoint = '{{spec.endpoint}}'
+        self._global_headers = {
+            'content-type': '',
+            'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
+        }
+
+    def set_self_signed(self, status=True):
+        self._self_signed = status
+        return self
+
+    def set_endpoint(self, endpoint):
+        self._endpoint = endpoint
+        return self
+
+    def add_header(self, key, value):
+        self._global_headers[key.lower()] = value.lower()
+        return self
+{% for header in spec.global.headers %}
+
+    def set_{{header.key | caseSnake}}(self, value):
+{% if header.description %}
+        """{{header.description}}"""
+
+{% endif %}
+        self._global_headers['{{header.name|lower}}'] = value.lower()
+        return self
+{% endfor %}
+
+    def call(self, method, path='', headers=None, params=None):
+        if headers is None:
+            headers = {}
+
+        if params is None:
+            params = {}
+
+        data = {}
+        json = {}
+        headers = {**self._global_headers, **headers}
+
+        if method != 'get':
+            data = params
+            params = {}
+
+        if headers['content-type'] == 'application/json':
+            json = data
+            data = {}
+
+        response = getattr(requests, method)(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
+            url=self._endpoint + path,
+            params=params,
+            data=data,
+            json=json,
+            headers=headers,
+            verify=self._self_signed,
+        )
+
+        return response
