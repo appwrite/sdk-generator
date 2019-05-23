@@ -1,6 +1,6 @@
 {
-    "name": "appwrite/appwrite-sdk-generator",
-    "description": "Appwrite API SDKs generator",
+    "name": "appwrite/sdk-generator",
+    "description": "Appwrite PHP library for generating API SDKs for multiple programming languages and platforms",
     "type": "library",
     "license": "MIT",
     "authors": [
