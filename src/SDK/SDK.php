@@ -4,10 +4,10 @@ namespace Appwrite\SDK;
 
 use Exception;
 use Appwrite\Spec\Spec;
-use Twig_Environment;
-use Twig_Filter;
-use Twig_TemplateWrapper;
-use Twig_Loader_Filesystem;
+use Twig\Environment;
+use Twig\Loader\FilesystemLoader;
+use Twig\TemplateWrapper;
+use Twig\TwigFilter;
 use MatthiasMullie\Minify;
 
 class SDK
@@ -23,7 +23,7 @@ class SDK
     protected $spec = null;
 
     /**
-     * @var Twig_Environment
+     * @var Environment
      */
     protected $twig = null;
 
@@ -58,55 +58,55 @@ class SDK
         $this->language = $language;
         $this->spec     = $spec;
 
-        $this->twig = new Twig_Environment(new Twig_Loader_Filesystem(__DIR__ . '/../../templates'));
-        $this->twig->addFilter(new Twig_Filter('caseLower', function ($value) {
+        $this->twig = new Environment(new FilesystemLoader(__DIR__ . '/../../templates'));
+        $this->twig->addFilter(new TwigFilter('caseLower', function ($value) {
             return strtolower((string)$value);
         }));
-        $this->twig->addFilter(new Twig_Filter('caseUpper', function ($value) {
+        $this->twig->addFilter(new TwigFilter('caseUpper', function ($value) {
             return strtoupper((string)$value);
         }));
-        $this->twig->addFilter(new Twig_Filter('caseUcfirst', function ($value) {
+        $this->twig->addFilter(new TwigFilter('caseUcfirst', function ($value) {
             return ucfirst((string)$this->helperCamelCase($value));
         }));
-        $this->twig->addFilter(new Twig_Filter('caseCamel', function ($value) {
+        $this->twig->addFilter(new TwigFilter('caseCamel', function ($value) {
             return (string)$this->helperCamelCase($value);
         }));
-        $this->twig->addFilter(new Twig_Filter('caseDash', function ($value) {
+        $this->twig->addFilter(new TwigFilter('caseDash', function ($value) {
             return str_replace([' ', '_'], '-', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
         }));
-        $this->twig->addFilter(new Twig_Filter('caseSnake', function ($value) {
+        $this->twig->addFilter(new TwigFilter('caseSnake', function ($value) {
             return str_replace([' ', '-'], '_', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1_', $value)));
         }));
-        $this->twig->addFilter(new Twig_Filter('caseJson', function ($value) {
+        $this->twig->addFilter(new TwigFilter('caseJson', function ($value) {
             return (is_array($value)) ? json_encode($value) : $value;
         }));
-        $this->twig->addFilter(new Twig_Filter('caseArray', function ($value) {
+        $this->twig->addFilter(new TwigFilter('caseArray', function ($value) {
             return (is_array($value)) ? json_encode($value) : '[]';
         }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new Twig_Filter('typeName', function ($value) {
+        $this->twig->addFilter(new TwigFilter('typeName', function ($value) {
             return $this->language->getTypeName($value);
         }));
-        $this->twig->addFilter(new Twig_Filter('paramDefault', function ($value) {
+        $this->twig->addFilter(new TwigFilter('paramDefault', function ($value) {
             return $this->language->getParamDefault($value);
         }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new Twig_Filter('paramExample', function ($value) {
+        $this->twig->addFilter(new TwigFilter('paramExample', function ($value) {
             return $this->language->getParamExample($value);
         }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new Twig_Filter('comment1', function ($value) {
+        $this->twig->addFilter(new TwigFilter('comment1', function ($value) {
             $value = explode("\n", $value);
             foreach ($value as $key => $line) {
                 $value[$key] = "     * " . wordwrap($value[$key], 75, "\n     * ");
             }
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new Twig_Filter('comment2', function ($value) {
+        $this->twig->addFilter(new TwigFilter('comment2', function ($value) {
             $value = explode("\n", $value);
             foreach ($value as $key => $line) {
                 $value[$key] = "         * " . wordwrap($value[$key], 75, "\n\         * ");
             }
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new Twig_Filter('comment3', function ($value) {
+        $this->twig->addFilter(new TwigFilter('comment3', function ($value) {
             $value = explode("\n", $value);
             foreach ($value as $key => $line) {
                 $value[$key] = "             * " . wordwrap($value[$key], 75, "\n             * ");
@@ -369,7 +369,7 @@ class SDK
     }
 
     /**
-     * @param Twig_TemplateWrapper $template
+     * @param TemplateWrapper $template
      * @param string $destination
      * @param string $block
      * @param array $params
@@ -379,7 +379,7 @@ class SDK
      * @throws \Twig_Error_Loader
      * @throws \Twig_Error_Syntax
      */
-    protected function render(Twig_TemplateWrapper $template, $destination, $block, $params = [], $minify = false)
+    protected function render(TemplateWrapper $template, $destination, $block, $params = [], $minify = false)
     {
         $destination    = $this->twig->createTemplate($destination);
         $destination    = $destination->render($params);
