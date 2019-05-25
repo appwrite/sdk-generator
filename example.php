@@ -2,7 +2,6 @@
 
 include_once 'vendor/autoload.php';
 
-use Appwrite\Spec\OpenAPI3;
 use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\PHP;
@@ -29,7 +28,6 @@ try {
     $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extension=1');
 
     // PHP
-
     $sdk  = new SDK(new PHP(), new Swagger2($spec));
 
     $sdk
@@ -41,7 +39,6 @@ try {
     $sdk->generate(__DIR__ . '/examples/php');
 
     // JS
-
     $sdk  = new SDK(new JS(), new Swagger2($spec));
 
     $sdk
@@ -53,7 +50,6 @@ try {
     $sdk->generate(__DIR__ . '/examples/js');
 
     // Ruby
-
     $sdk  = new SDK(new Ruby(), new Swagger2($spec));
 
     $sdk
@@ -65,7 +61,6 @@ try {
     $sdk->generate(__DIR__ . '/examples/ruby');
 
     // Python
-
     $sdk  = new SDK(new Python(), new Swagger2($spec));
 
     $sdk
