@@ -10,7 +10,7 @@ class Node extends JS
      */
     public function getName()
     {
-        return 'Node JS';
+        return 'NodeJS';
     }
 
     /**
@@ -21,8 +21,8 @@ class Node extends JS
         return [
             [
                 'scope'         => 'default',
-                'destination'   => 'src/sdk.js',
-                'template'      => '/node/src/sdk.js.twig',
+                'destination'   => 'src/client.js',
+                'template'      => '/node/src/client.js.twig',
                 'minify'        => false,
             ],
             [

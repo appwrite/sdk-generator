@@ -59,7 +59,7 @@ try {
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
     ;
 
-    $sdk->generate(__DIR__ . '/examples/js');
+    $sdk->generate(__DIR__ . '/examples/node');
 
     // Ruby
     $sdk  = new SDK(new Ruby(), new Swagger2($spec));
