@@ -9,7 +9,7 @@ const Storage = require('./lib/services/storage.js');
 const Users = require('./lib/services/users.js');
 
 module.exports = {
-    Client: Client,
+    Client,
     Account,
     Auth,
     Avatars,

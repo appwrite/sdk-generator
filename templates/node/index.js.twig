@@ -4,7 +4,7 @@ const {{service.name | caseUcfirst}} = require('./lib/services/{{service.name | 
 {% endfor %}
 
 module.exports = {
-    Client: Client,
+    Client,
 {% for service in spec.services %}
     {{service.name | caseUcfirst}},
 {% endfor %}
