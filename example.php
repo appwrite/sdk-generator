@@ -4,12 +4,13 @@ include_once 'vendor/autoload.php';
 
 use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
-use Appwrite\SDK\Language\PHP;
 use Appwrite\SDK\Language\JS;
-use Appwrite\SDK\Language\Ruby;
+use Appwrite\SDK\Language\Node;
+use Appwrite\SDK\Language\PHP;
 use Appwrite\SDK\Language\Python;
+use Appwrite\SDK\Language\Ruby;
 
-$languages  = ['php', 'js', 'node', 'python', 'ruby'];
+$languages  = ['js', 'node', 'php', 'python', 'ruby'];
 
 try {
 
@@ -40,6 +41,17 @@ try {
 
     // JS
     $sdk  = new SDK(new JS(), new Swagger2($spec));
+
+    $sdk
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/js');
+
+    // Node
+    $sdk  = new SDK(new Node(), new Swagger2($spec));
 
     $sdk
         ->setLogo('https://appwrite.io/v1/images/console.png')
