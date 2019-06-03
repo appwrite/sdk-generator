@@ -120,7 +120,7 @@ class Client {
                 response.on('end', () => resolve(body.join(''))); // we are done, resolve promise with those joined chunks
             });
 
-            request.write(JSON.stringify(params);
+            request.write(JSON.stringify(params));
             
             request.on('error', (err) => reject(err)); // handle connection errors of the request
         });
