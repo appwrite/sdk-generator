@@ -99,8 +99,10 @@ class Client {
         }
       
         return new Promise((resolve, reject) => {
-            let lib = path.startsWith('https') ? require('https') : require('http'); // select http or https module, depending on reqested url
+            let lib = this.endpoint.startsWith('https') ? require('https') : require('http'); // select http or https module, depending on reqested url
             
+            let url = this.endpoint + path;
+
             let options = {
                 'method': method,
                 'headers': Object.assign(this.headers, headers),

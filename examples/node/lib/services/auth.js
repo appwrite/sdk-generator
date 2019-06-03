@@ -27,7 +27,7 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async login($email, $password, $success = '', $failure = '')
+    async login(email, password, success = '', failure = '')
     {
         let path = '/auth/login';
         
@@ -70,7 +70,7 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async logoutBySession($userId)
+    async logoutBySession(userId)
     {
         let path = '/auth/logout/{userId}'.replace(new RegExp('{userId}', 'g'), userId);
         
@@ -94,7 +94,7 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async recovery($email, $redirect)
+    async recovery(email, redirect)
     {
         let path = '/auth/recovery';
         
@@ -125,7 +125,7 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async recoveryReset($userId, $token, $passwordA, $passwordB)
+    async recoveryReset(userId, token, passwordA, passwordB)
     {
         let path = '/auth/recovery/reset';
         
@@ -171,7 +171,7 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async register($email, $password, $redirect, $name = '', $success = '', $failure = '')
+    async register(email, password, redirect, name = '', success = '', failure = '')
     {
         let path = '/auth/register';
         
@@ -199,7 +199,7 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async confirm($userId, $token)
+    async confirm(userId, token)
     {
         let path = '/auth/register/confirm';
         
@@ -226,7 +226,7 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async confirmResend($redirect)
+    async confirmResend(redirect)
     {
         let path = '/auth/register/confirm/resend';
         
@@ -246,7 +246,7 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async oauthCallback($projectId, $provider, $code, $state = '')
+    async oauthCallback(projectId, provider, code, state = '')
     {
         let path = '/oauth/callback/{provider}/{projectId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{provider}', 'g'), provider);
         
@@ -266,7 +266,7 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async oauth($provider, $success = '', $failure = '')
+    async oauth(provider, success = '', failure = '')
     {
         let path = '/oauth/{provider}'.replace(new RegExp('{provider}', 'g'), provider);
         

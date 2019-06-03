@@ -49,7 +49,7 @@ class Account extends Service {
      * @throws Exception
      * @return {}
      */
-    async updateEmail($email, $password)
+    async updateEmail(email, password)
     {
         let path = '/account/email';
         
@@ -69,7 +69,7 @@ class Account extends Service {
      * @throws Exception
      * @return {}
      */
-    async updateName($name)
+    async updateName(name)
     {
         let path = '/account/name';
         
@@ -90,7 +90,7 @@ class Account extends Service {
      * @throws Exception
      * @return {}
      */
-    async updatePassword($password, $oldPassword)
+    async updatePassword(password, oldPassword)
     {
         let path = '/account/password';
         
@@ -128,7 +128,7 @@ class Account extends Service {
      * @throws Exception
      * @return {}
      */
-    async updatePrefs($prefs)
+    async updatePrefs(prefs)
     {
         let path = '/account/prefs';
         

@@ -17,7 +17,7 @@ class Database extends Service {
      * @throws Exception
      * @return {}
      */
-    async listCollections($search = '', $limit = 25, $offset = 0, $orderType = 'ASC')
+    async listCollections(search = '', limit = 25, offset = 0, orderType = 'ASC')
     {
         let path = '/database';
         
@@ -42,7 +42,7 @@ class Database extends Service {
      * @throws Exception
      * @return {}
      */
-    async createCollection($name, $read = [], $write = [], $rules = [])
+    async createCollection(name, read = [], write = [], rules = [])
     {
         let path = '/database';
         
@@ -76,7 +76,7 @@ class Database extends Service {
      * @throws Exception
      * @return {}
      */
-    async listDocuments($collectionId, $filters = [], $offset = 0, $limit = 50, $orderField = '$uid', $orderType = 'ASC', $orderCast = 'string', $search = '', $first = 0, $last = 0)
+    async listDocuments(collectionId, filters = [], offset = 0, limit = 50, orderField = '$uid', orderType = 'ASC', orderCast = 'string', search = '', first = 0, last = 0)
     {
         let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
         
@@ -109,7 +109,7 @@ class Database extends Service {
      * @throws Exception
      * @return {}
      */
-    async createDocument($collectionId, $data, $read = [], $write = [], $parentDocument = '', $parentProperty = '', $parentPropertyType = 'assign')
+    async createDocument(collectionId, data, read = [], write = [], parentDocument = '', parentProperty = '', parentPropertyType = 'assign')
     {
         let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
         
@@ -134,7 +134,7 @@ class Database extends Service {
      * @throws Exception
      * @return {}
      */
-    async deleteCollection($collectionId)
+    async deleteCollection(collectionId)
     {
         let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
         
@@ -154,7 +154,7 @@ class Database extends Service {
      * @throws Exception
      * @return {}
      */
-    async getDocument($collectionId, $documentId)
+    async getDocument(collectionId, documentId)
     {
         let path = '/database/{collectionId}/{documentId}'.replace(new RegExp('{collectionId}', 'g'), collectionId).replace(new RegExp('{documentId}', 'g'), documentId);
         
@@ -174,7 +174,7 @@ class Database extends Service {
      * @throws Exception
      * @return {}
      */
-    async updateDocument($collectionId, $documentId, $data, $read = [], $write = [])
+    async updateDocument(collectionId, documentId, data, read = [], write = [])
     {
         let path = '/database/{collectionId}/{documentId}'.replace(new RegExp('{collectionId}', 'g'), collectionId).replace(new RegExp('{documentId}', 'g'), documentId);
         
@@ -198,7 +198,7 @@ class Database extends Service {
      * @throws Exception
      * @return {}
      */
-    async deleteDocument($collectionId, $documentId)
+    async deleteDocument(collectionId, documentId)
     {
         let path = '/database/{collectionId}/{documentId}'.replace(new RegExp('{collectionId}', 'g'), collectionId).replace(new RegExp('{documentId}', 'g'), documentId);
         

@@ -16,7 +16,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async updateTeam($collectionId, $name, $read = [], $write = [], $rules = [])
+    async updateTeam(collectionId, name, read = [], write = [], rules = [])
     {
         let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
         
@@ -43,7 +43,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async listTeams($search = '', $limit = 25, $offset = 0, $orderType = 'ASC')
+    async listTeams(search = '', limit = 25, offset = 0, orderType = 'ASC')
     {
         let path = '/teams';
         
@@ -69,7 +69,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async createTeam($name, $roles = ["owner"])
+    async createTeam(name, roles = ["owner"])
     {
         let path = '/teams';
         
@@ -90,7 +90,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async getTeam($teamId)
+    async getTeam(teamId)
     {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
@@ -110,7 +110,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async updateTeam($teamId, $name)
+    async updateTeam(teamId, name)
     {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
@@ -130,7 +130,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async deleteTeam($teamId)
+    async deleteTeam(teamId)
     {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
@@ -149,7 +149,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async getTeamMembers($teamId)
+    async getTeamMembers(teamId)
     {
         let path = '/teams/{teamId}/members'.replace(new RegExp('{teamId}', 'g'), teamId);
         
@@ -183,7 +183,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async createTeamMembership($teamId, $email, $roles, $redirect, $name = '')
+    async createTeamMembership(teamId, email, roles, redirect, name = '')
     {
         let path = '/teams/{teamId}/memberships'.replace(new RegExp('{teamId}', 'g'), teamId);
         
@@ -207,7 +207,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async deleteTeamMembership($teamId, $inviteId)
+    async deleteTeamMembership(teamId, inviteId)
     {
         let path = '/teams/{teamId}/memberships/{inviteId}'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
         
@@ -228,7 +228,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async createTeamMembershipResend($teamId, $inviteId, $redirect)
+    async createTeamMembershipResend(teamId, inviteId, redirect)
     {
         let path = '/teams/{teamId}/memberships/{inviteId}/resend'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
         
@@ -266,7 +266,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async updateTeamMembershipStatus($teamId, $inviteId, $userId, $secret, $success = '', $failure = '')
+    async updateTeamMembershipStatus(teamId, inviteId, userId, secret, success = '', failure = '')
     {
         let path = '/teams/{teamId}/memberships/{inviteId}/status'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
         
