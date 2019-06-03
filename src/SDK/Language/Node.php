@@ -38,6 +38,12 @@ class Node extends JS
                 'minify'        => false,
             ],
             [
+                'scope'         => 'service',
+                'destination'   => '/lib/services/{{service.name | caseDash}}.js',
+                'template'      => '/node/lib/services/service.js.twig',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => '/node/REDAME.md.twig',

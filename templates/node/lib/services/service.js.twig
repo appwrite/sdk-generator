@@ -1,0 +1,36 @@
+class {{ service.name | caseUcfirst }} extends Service {
+{% for method in service.methods %}
+
+    /**
+     * {{ method.title }}
+     *
+{% if method.description %}
+{{ method.description|comment1 }}
+     *
+{% endif %}
+{% for parameter in method.parameters.all %}
+     * @param {{ parameter.type | typeName }} {{ parameter.name | caseCamel }}
+{% endfor %}
+     * @throws Exception
+     * @return {}
+     */
+    async {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}${{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %})
+    {
+        let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace(new RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', 'g'), {{ parameter.name | caseCamel }}){% endfor %};
+        
+        return await this.client.call('{{ method.method | caseLower }}', path, {'Content-type': 'application/json'},
+            {
+{% for parameter in method.parameters.query %}
+                '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}
+
+{% endfor %}
+{% for parameter in method.parameters.body %}
+                '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}
+
+{% endfor %}
+            });
+    }
+{% endfor %}
+}
+
+module.exports = {{ service.name | caseUcfirst }};

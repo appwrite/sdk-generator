@@ -1,5 +1,4 @@
 const Client = require('./lib/client.js');
-const Service = require('./lib/service.js');
 const Account = require('./lib/services/account.js');
 const Auth = require('./lib/services/auth.js');
 const Avatars = require('./lib/services/avatars.js');
