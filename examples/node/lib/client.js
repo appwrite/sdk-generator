@@ -108,7 +108,7 @@ class Client {
                 'headers': Object.assign(this.headers, headers),
             };
 
-            let request = lib.request(path, options, (response) => {
+            let request = lib.request(url, options, (response) => {
                 if (response.statusCode < 200 || response.statusCode > 299) { // handle http errors
                     reject(new Error('Failed to load page, status code: ' + response.statusCode));
                 }
