@@ -8,14 +8,14 @@ const Locale = require('./lib/services/locale.js');
 const Storage = require('./lib/services/storage.js');
 const Users = require('./lib/services/users.js');
 
-module.export = {
+module.exports = {
     Client: Client,
-    Account: Account,
-    Auth: Auth,
-    Avatars: Avatars,
-    Database: Database,
-    Teams: Teams,
-    Locale: Locale,
-    Storage: Storage,
-    Users: Users,
+    Account,
+    Auth,
+    Avatars,
+    Database,
+    Teams,
+    Locale,
+    Storage,
+    Users,
 };

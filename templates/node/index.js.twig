@@ -3,9 +3,9 @@ const Client = require('./lib/client.js');
 const {{service.name | caseUcfirst}} = require('./lib/services/{{service.name | caseDash}}.js');
 {% endfor %}
 
-module.export = {
+module.exports = {
     Client: Client,
 {% for service in spec.services %}
-    {{service.name | caseUcfirst}}: {{service.name | caseUcfirst}},
+    {{service.name | caseUcfirst}},
 {% endfor %}
 };
