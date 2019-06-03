@@ -92,25 +92,33 @@ class Client {
         return this;
     }
 
+    
     call(method, path = '', headers = [], params =[]) {
         if(this.selfSigned) { // Allow self signed requests
             process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
         }
       
         return new Promise((resolve, reject) => {
-            const lib = path.startsWith('https') ? require('https') : require('http'); // select http or https module, depending on reqested url
+            let lib = path.startsWith('https') ? require('https') : require('http'); // select http or https module, depending on reqested url
             
-            const request = lib[method](path, (response) => {
+            let options = {
+                'method': method,
+                'headers': Object.assign(this.headers, headers),
+            };
+
+            let request = lib.request(path, options, (response) => {
                 if (response.statusCode < 200 || response.statusCode > 299) { // handle http errors
                     reject(new Error('Failed to load page, status code: ' + response.statusCode));
                 }
                 
-                const body = [];
+                let body = [];
                 
                 response.on('data', (chunk) => body.push(chunk)); // on every content chunk, push it to the data array
                 
                 response.on('end', () => resolve(body.join(''))); // we are done, resolve promise with those joined chunks
             });
+
+            request.write(params);
             
             request.on('error', (err) => reject(err)); // handle connection errors of the request
         });

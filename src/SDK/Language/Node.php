@@ -21,15 +21,21 @@ class Node extends JS
         return [
             [
                 'scope'         => 'default',
-                'destination'   => 'src/client.js',
-                'template'      => '/node/src/client.js.twig',
+                'destination'   => 'index.js',
+                'template'      => '/node/index.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/sdk.min.js',
-                'template'      => '/node/src/sdk.js.twig',
-                'minify'        => true,
+                'destination'   => 'lib/client.js',
+                'template'      => '/node/lib/client.js.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/service.js',
+                'template'      => '/node/lib/service.js.twig',
+                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
