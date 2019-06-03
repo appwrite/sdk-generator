@@ -1,3 +1,5 @@
+const Service = require('../service.js');
+
 class Locale extends Service {
 
     /**
