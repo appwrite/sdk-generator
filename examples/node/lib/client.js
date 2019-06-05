@@ -104,6 +104,10 @@ class Client {
             
             let url = new URL(this.endpoint + path);
 
+            params = JSON.stringify(params);
+
+            headers['content-length'] = params.length;
+
             let options = {
                 'method': method.toUpperCase(),
                 'headers': Object.assign(this.headers, headers),
@@ -115,7 +119,7 @@ class Client {
 
             var req = lib.request(options, (res) => {
                 if (res.statusCode < 200 || res.statusCode > 299) {
-                    reject(new Error('Failed to load page, status code: ' + response.statusCode));
+                    reject(new Error('Failed to load page, status code: ' + res.statusCode));
                 }
                 
                 let body = '';
@@ -129,7 +133,7 @@ class Client {
             });
 
             if (method.toLowerCase() != 'get') {
-                req.write(JSON.stringify(params));
+                req.write(params);
             }
 
             req.end();
