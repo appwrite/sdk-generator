@@ -104,9 +104,10 @@ class Client {
             
             let url = new URL(this.endpoint + path);
 
-            params = JSON.stringify(params);
-
-            headers['content-length'] = params.length;
+            if (method.toLowerCase() != 'get') {
+                params = JSON.stringify(params);
+                headers['content-length'] = params.length;
+            }
 
             let options = {
                 'method': method.toUpperCase(),
