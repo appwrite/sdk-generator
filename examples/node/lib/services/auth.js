@@ -27,11 +27,10 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async login(email, password, success = '', failure = '')
-    {
+    async login(email, password, success = '', failure = '') {
         let path = '/auth/login';
         
-        return await this.client.call('post', path, {'Content-type': 'application/json'},
+        return await this.client.call('post', path, {'content-type': 'application/json'},
             {
                 'email': email, 
                 'password': password, 
@@ -50,11 +49,10 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async logout()
-    {
+    async logout() {
         let path = '/auth/logout';
         
-        return await this.client.call('delete', path, {'Content-type': 'application/json'},
+        return await this.client.call('delete', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -70,11 +68,10 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async logoutBySession(userId)
-    {
+    async logoutBySession(userId) {
         let path = '/auth/logout/{userId}'.replace(new RegExp('{userId}', 'g'), userId);
         
-        return await this.client.call('delete', path, {'Content-type': 'application/json'},
+        return await this.client.call('delete', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -94,11 +91,10 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async recovery(email, redirect)
-    {
+    async recovery(email, redirect) {
         let path = '/auth/recovery';
         
-        return await this.client.call('post', path, {'Content-type': 'application/json'},
+        return await this.client.call('post', path, {'content-type': 'application/json'},
             {
                 'email': email, 
                 'redirect': redirect
@@ -125,11 +121,10 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async recoveryReset(userId, token, passwordA, passwordB)
-    {
+    async recoveryReset(userId, token, passwordA, passwordB) {
         let path = '/auth/recovery/reset';
         
-        return await this.client.call('put', path, {'Content-type': 'application/json'},
+        return await this.client.call('put', path, {'content-type': 'application/json'},
             {
                 'userId': userId, 
                 'token': token, 
@@ -171,11 +166,10 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async register(email, password, redirect, name = '', success = '', failure = '')
-    {
+    async register(email, password, redirect, name = '', success = '', failure = '') {
         let path = '/auth/register';
         
-        return await this.client.call('post', path, {'Content-type': 'application/json'},
+        return await this.client.call('post', path, {'content-type': 'application/json'},
             {
                 'email': email, 
                 'password': password, 
@@ -199,11 +193,10 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async confirm(userId, token)
-    {
+    async confirm(userId, token) {
         let path = '/auth/register/confirm';
         
-        return await this.client.call('post', path, {'Content-type': 'application/json'},
+        return await this.client.call('post', path, {'content-type': 'application/json'},
             {
                 'userId': userId, 
                 'token': token
@@ -226,11 +219,10 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async confirmResend(redirect)
-    {
+    async confirmResend(redirect) {
         let path = '/auth/register/confirm/resend';
         
-        return await this.client.call('post', path, {'Content-type': 'application/json'},
+        return await this.client.call('post', path, {'content-type': 'application/json'},
             {
                 'redirect': redirect
             });
@@ -246,11 +238,10 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async oauthCallback(projectId, provider, code, state = '')
-    {
+    async oauthCallback(projectId, provider, code, state = '') {
         let path = '/oauth/callback/{provider}/{projectId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{provider}', 'g'), provider);
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
                 'code': code, 
                 'state': state
@@ -266,11 +257,10 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async oauth(provider, success = '', failure = '')
-    {
+    async oauth(provider, success = '', failure = '') {
         let path = '/oauth/{provider}'.replace(new RegExp('{provider}', 'g'), provider);
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
                 'success': success, 
                 'failure': failure

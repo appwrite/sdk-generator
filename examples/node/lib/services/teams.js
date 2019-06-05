@@ -16,11 +16,10 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async updateTeam(collectionId, name, read = [], write = [], rules = [])
-    {
+    async updateTeam(collectionId, name, read = [], write = [], rules = []) {
         let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
         
-        return await this.client.call('put', path, {'Content-type': 'application/json'},
+        return await this.client.call('put', path, {'content-type': 'application/json'},
             {
                 'name': name, 
                 'read': read, 
@@ -43,11 +42,10 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async listTeams(search = '', limit = 25, offset = 0, orderType = 'ASC')
-    {
+    async listTeams(search = '', limit = 25, offset = 0, orderType = 'ASC') {
         let path = '/teams';
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
                 'search': search, 
                 'limit': limit, 
@@ -69,11 +67,10 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async createTeam(name, roles = ["owner"])
-    {
+    async createTeam(name, roles = ["owner"]) {
         let path = '/teams';
         
-        return await this.client.call('post', path, {'Content-type': 'application/json'},
+        return await this.client.call('post', path, {'content-type': 'application/json'},
             {
                 'name': name, 
                 'roles': roles
@@ -90,11 +87,10 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async getTeam(teamId)
-    {
+    async getTeam(teamId) {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -110,11 +106,10 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async updateTeam(teamId, name)
-    {
+    async updateTeam(teamId, name) {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
-        return await this.client.call('put', path, {'Content-type': 'application/json'},
+        return await this.client.call('put', path, {'content-type': 'application/json'},
             {
                 'name': name
             });
@@ -130,11 +125,10 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async deleteTeam(teamId)
-    {
+    async deleteTeam(teamId) {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
-        return await this.client.call('delete', path, {'Content-type': 'application/json'},
+        return await this.client.call('delete', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -149,11 +143,10 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async getTeamMembers(teamId)
-    {
+    async getTeamMembers(teamId) {
         let path = '/teams/{teamId}/members'.replace(new RegExp('{teamId}', 'g'), teamId);
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -183,11 +176,10 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async createTeamMembership(teamId, email, roles, redirect, name = '')
-    {
+    async createTeamMembership(teamId, email, roles, redirect, name = '') {
         let path = '/teams/{teamId}/memberships'.replace(new RegExp('{teamId}', 'g'), teamId);
         
-        return await this.client.call('post', path, {'Content-type': 'application/json'},
+        return await this.client.call('post', path, {'content-type': 'application/json'},
             {
                 'email': email, 
                 'name': name, 
@@ -207,11 +199,10 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async deleteTeamMembership(teamId, inviteId)
-    {
+    async deleteTeamMembership(teamId, inviteId) {
         let path = '/teams/{teamId}/memberships/{inviteId}'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
         
-        return await this.client.call('delete', path, {'Content-type': 'application/json'},
+        return await this.client.call('delete', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -228,11 +219,10 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async createTeamMembershipResend(teamId, inviteId, redirect)
-    {
+    async createTeamMembershipResend(teamId, inviteId, redirect) {
         let path = '/teams/{teamId}/memberships/{inviteId}/resend'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
         
-        return await this.client.call('post', path, {'Content-type': 'application/json'},
+        return await this.client.call('post', path, {'content-type': 'application/json'},
             {
                 'redirect': redirect
             });
@@ -266,11 +256,10 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async updateTeamMembershipStatus(teamId, inviteId, userId, secret, success = '', failure = '')
-    {
+    async updateTeamMembershipStatus(teamId, inviteId, userId, secret, success = '', failure = '') {
         let path = '/teams/{teamId}/memberships/{inviteId}/status'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
         
-        return await this.client.call('patch', path, {'Content-type': 'application/json'},
+        return await this.client.call('patch', path, {'content-type': 'application/json'},
             {
                 'userId': userId, 
                 'secret': secret, 

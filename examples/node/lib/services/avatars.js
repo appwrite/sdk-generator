@@ -17,11 +17,10 @@ class Avatars extends Service {
      * @throws Exception
      * @return {}
      */
-    async getBrowser(code, width = 100, height = 100, quality = 100)
-    {
+    async getBrowser(code, width = 100, height = 100, quality = 100) {
         let path = '/avatars/browsers/{code}'.replace(new RegExp('{code}', 'g'), code);
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
                 'width': width, 
                 'height': height, 
@@ -44,11 +43,10 @@ class Avatars extends Service {
      * @throws Exception
      * @return {}
      */
-    async getCreditCard(code, width = 100, height = 100, quality = 100)
-    {
+    async getCreditCard(code, width = 100, height = 100, quality = 100) {
         let path = '/avatars/credit-cards/{code}'.replace(new RegExp('{code}', 'g'), code);
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
                 'width': width, 
                 'height': height, 
@@ -66,11 +64,10 @@ class Avatars extends Service {
      * @throws Exception
      * @return {}
      */
-    async getFavicon(url)
-    {
+    async getFavicon(url) {
         let path = '/avatars/favicon';
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
                 'url': url
             });
@@ -90,11 +87,10 @@ class Avatars extends Service {
      * @throws Exception
      * @return {}
      */
-    async getFlag(code, width = 100, height = 100, quality = 100)
-    {
+    async getFlag(code, width = 100, height = 100, quality = 100) {
         let path = '/avatars/flags/{code}'.replace(new RegExp('{code}', 'g'), code);
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
                 'width': width, 
                 'height': height, 
@@ -115,11 +111,10 @@ class Avatars extends Service {
      * @throws Exception
      * @return {}
      */
-    async getQR(text, size = 400, margin = 1, download = 0)
-    {
+    async getQR(text, size = 400, margin = 1, download = 0) {
         let path = '/avatars/qr';
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
                 'text': text, 
                 'size': size, 

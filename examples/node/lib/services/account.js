@@ -10,11 +10,10 @@ class Account extends Service {
      * @throws Exception
      * @return {}
      */
-    async get()
-    {
+    async get() {
         let path = '/account';
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -27,11 +26,10 @@ class Account extends Service {
      * @throws Exception
      * @return {}
      */
-    async delete()
-    {
+    async delete() {
         let path = '/account';
         
-        return await this.client.call('delete', path, {'Content-type': 'application/json'},
+        return await this.client.call('delete', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -49,11 +47,10 @@ class Account extends Service {
      * @throws Exception
      * @return {}
      */
-    async updateEmail(email, password)
-    {
+    async updateEmail(email, password) {
         let path = '/account/email';
         
-        return await this.client.call('patch', path, {'Content-type': 'application/json'},
+        return await this.client.call('patch', path, {'content-type': 'application/json'},
             {
                 'email': email, 
                 'password': password
@@ -69,11 +66,10 @@ class Account extends Service {
      * @throws Exception
      * @return {}
      */
-    async updateName(name)
-    {
+    async updateName(name) {
         let path = '/account/name';
         
-        return await this.client.call('patch', path, {'Content-type': 'application/json'},
+        return await this.client.call('patch', path, {'content-type': 'application/json'},
             {
                 'name': name
             });
@@ -90,11 +86,10 @@ class Account extends Service {
      * @throws Exception
      * @return {}
      */
-    async updatePassword(password, oldPassword)
-    {
+    async updatePassword(password, oldPassword) {
         let path = '/account/password';
         
-        return await this.client.call('patch', path, {'Content-type': 'application/json'},
+        return await this.client.call('patch', path, {'content-type': 'application/json'},
             {
                 'password': password, 
                 'old-password': oldPassword
@@ -109,11 +104,10 @@ class Account extends Service {
      * @throws Exception
      * @return {}
      */
-    async getPrefs()
-    {
+    async getPrefs() {
         let path = '/account/prefs';
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -128,11 +122,10 @@ class Account extends Service {
      * @throws Exception
      * @return {}
      */
-    async updatePrefs(prefs)
-    {
+    async updatePrefs(prefs) {
         let path = '/account/prefs';
         
-        return await this.client.call('patch', path, {'Content-type': 'application/json'},
+        return await this.client.call('patch', path, {'content-type': 'application/json'},
             {
                 'prefs': prefs
             });
@@ -147,11 +140,10 @@ class Account extends Service {
      * @throws Exception
      * @return {}
      */
-    async getSecurity()
-    {
+    async getSecurity() {
         let path = '/account/security';
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -165,11 +157,10 @@ class Account extends Service {
      * @throws Exception
      * @return {}
      */
-    async getSessions()
-    {
+    async getSessions() {
         let path = '/account/sessions';
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
             });
     }

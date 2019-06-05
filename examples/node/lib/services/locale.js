@@ -13,11 +13,10 @@ class Locale extends Service {
      * @throws Exception
      * @return {}
      */
-    async get()
-    {
+    async get() {
         let path = '/locale';
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -31,11 +30,10 @@ class Locale extends Service {
      * @throws Exception
      * @return {}
      */
-    async getCountries()
-    {
+    async getCountries() {
         let path = '/locale/countries';
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -49,11 +47,10 @@ class Locale extends Service {
      * @throws Exception
      * @return {}
      */
-    async getCountriesEU()
-    {
+    async getCountriesEU() {
         let path = '/locale/countries/eu';
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -67,11 +64,10 @@ class Locale extends Service {
      * @throws Exception
      * @return {}
      */
-    async getCountriesPhones()
-    {
+    async getCountriesPhones() {
         let path = '/locale/countries/phones';
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
             });
     }

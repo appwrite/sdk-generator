@@ -16,11 +16,10 @@ class Storage extends Service {
      * @throws Exception
      * @return {}
      */
-    async listFiles(search = '', limit = 25, offset = 0, orderType = 'ASC')
-    {
+    async listFiles(search = '', limit = 25, offset = 0, orderType = 'ASC') {
         let path = '/storage/files';
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
                 'search': search, 
                 'limit': limit, 
@@ -43,11 +42,10 @@ class Storage extends Service {
      * @throws Exception
      * @return {}
      */
-    async createFile(files, read = [], write = [], folderId = '')
-    {
+    async createFile(files, read = [], write = [], folderId = '') {
         let path = '/storage/files';
         
-        return await this.client.call('post', path, {'Content-type': 'application/json'},
+        return await this.client.call('post', path, {'content-type': 'application/json'},
             {
                 'files': files, 
                 'read': read, 
@@ -66,11 +64,10 @@ class Storage extends Service {
      * @throws Exception
      * @return {}
      */
-    async getFile(fileId)
-    {
+    async getFile(fileId) {
         let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -85,11 +82,10 @@ class Storage extends Service {
      * @throws Exception
      * @return {}
      */
-    async deleteFile(fileId)
-    {
+    async deleteFile(fileId) {
         let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
         
-        return await this.client.call('delete', path, {'Content-type': 'application/json'},
+        return await this.client.call('delete', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -105,11 +101,10 @@ class Storage extends Service {
      * @throws Exception
      * @return {}
      */
-    async getFileDownload(fileId)
-    {
+    async getFileDownload(fileId) {
         let path = '/storage/files/{fileId}/download'.replace(new RegExp('{fileId}', 'g'), fileId);
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
             });
     }
@@ -131,11 +126,10 @@ class Storage extends Service {
      * @throws Exception
      * @return {}
      */
-    async getFilePreview(fileId, width = 0, height = 0, quality = 100, background = '', output = '')
-    {
+    async getFilePreview(fileId, width = 0, height = 0, quality = 100, background = '', output = '') {
         let path = '/storage/files/{fileId}/preview'.replace(new RegExp('{fileId}', 'g'), fileId);
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
                 'width': width, 
                 'height': height, 
@@ -156,11 +150,10 @@ class Storage extends Service {
      * @throws Exception
      * @return {}
      */
-    async getFileView(fileId, as = '')
-    {
+    async getFileView(fileId, as = '') {
         let path = '/storage/files/{fileId}/view'.replace(new RegExp('{fileId}', 'g'), fileId);
         
-        return await this.client.call('get', path, {'Content-type': 'application/json'},
+        return await this.client.call('get', path, {'content-type': 'application/json'},
             {
                 'as': as
             });

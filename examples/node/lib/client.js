@@ -1,3 +1,5 @@
+const URL = require('url').URL;
+
 class Client {
     
     constructor() {
@@ -91,7 +93,6 @@ class Client {
         
         return this;
     }
-
     
     call(method, path = '', headers = [], params =[]) {
         if(this.selfSigned) { // Allow self signed requests
@@ -99,30 +100,39 @@ class Client {
         }
       
         return new Promise((resolve, reject) => {
-            let lib = this.endpoint.startsWith('https') ? require('https') : require('http'); // select http or https module, depending on reqested url
+            let lib = this.endpoint.startsWith('https') ? require('https') : require('http');
             
-            let url = this.endpoint + path;
+            let url = new URL(this.endpoint + path);
 
             let options = {
-                'method': method,
+                'method': method.toUpperCase(),
                 'headers': Object.assign(this.headers, headers),
-            };
+                'protocol': url.protocol,
+                'hostname': url.hostname,
+                'port': url.port || (this.endpoint.startsWith('https') ? 443 : 80),
+                'path': url.pathname,
+            }
 
-            let request = lib.request(url, options, (response) => {
-                if (response.statusCode < 200 || response.statusCode > 299) { // handle http errors
+            var req = lib.request(options, (res) => {
+                if (res.statusCode < 200 || res.statusCode > 299) {
                     reject(new Error('Failed to load page, status code: ' + response.statusCode));
                 }
                 
-                let body = [];
-                
-                response.on('data', (chunk) => body.push(chunk)); // on every content chunk, push it to the data array
-                
-                response.on('end', () => resolve(body.join(''))); // we are done, resolve promise with those joined chunks
+                let body = '';
+
+                res.on('data', chunk => body += chunk);
+                res.on('end', () => resolve(body));
             });
 
-            request.write(JSON.stringify(params));
-            
-            request.on('error', (err) => reject(err)); // handle connection errors of the request
+            req.on('error', function (error) {
+                reject(error)
+            });
+
+            if (method.toLowerCase() != 'get') {
+                req.write(JSON.stringify(params));
+            }
+
+            req.end();
         });
     }
 }
