@@ -32,9 +32,9 @@ class Auth extends Service {
         
         return await this.client.call('post', path, {'content-type': 'application/json'},
             {
-                'email': email, 
-                'password': password, 
-                'success': success, 
+                'email': email,
+                'password': password,
+                'success': success,
                 'failure': failure
             });
     }
@@ -96,7 +96,7 @@ class Auth extends Service {
         
         return await this.client.call('post', path, {'content-type': 'application/json'},
             {
-                'email': email, 
+                'email': email,
                 'redirect': redirect
             });
     }
@@ -126,9 +126,9 @@ class Auth extends Service {
         
         return await this.client.call('put', path, {'content-type': 'application/json'},
             {
-                'userId': userId, 
-                'token': token, 
-                'password-a': passwordA, 
+                'userId': userId,
+                'token': token,
+                'password-a': passwordA,
                 'password-b': passwordB
             });
     }
@@ -171,11 +171,11 @@ class Auth extends Service {
         
         return await this.client.call('post', path, {'content-type': 'application/json'},
             {
-                'email': email, 
-                'password': password, 
-                'name': name, 
-                'redirect': redirect, 
-                'success': success, 
+                'email': email,
+                'password': password,
+                'name': name,
+                'redirect': redirect,
+                'success': success,
                 'failure': failure
             });
     }
@@ -198,7 +198,7 @@ class Auth extends Service {
         
         return await this.client.call('post', path, {'content-type': 'application/json'},
             {
-                'userId': userId, 
+                'userId': userId,
                 'token': token
             });
     }
@@ -243,7 +243,7 @@ class Auth extends Service {
         
         return await this.client.call('get', path, {'content-type': 'application/json'},
             {
-                'code': code, 
+                'code': code,
                 'state': state
             });
     }
@@ -262,7 +262,7 @@ class Auth extends Service {
         
         return await this.client.call('get', path, {'content-type': 'application/json'},
             {
-                'success': success, 
+                'success': success,
                 'failure': failure
             });
     }

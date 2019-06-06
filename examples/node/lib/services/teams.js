@@ -21,9 +21,9 @@ class Teams extends Service {
         
         return await this.client.call('put', path, {'content-type': 'application/json'},
             {
-                'name': name, 
-                'read': read, 
-                'write': write, 
+                'name': name,
+                'read': read,
+                'write': write,
                 'rules': rules
             });
     }
@@ -47,9 +47,9 @@ class Teams extends Service {
         
         return await this.client.call('get', path, {'content-type': 'application/json'},
             {
-                'search': search, 
-                'limit': limit, 
-                'offset': offset, 
+                'search': search,
+                'limit': limit,
+                'offset': offset,
                 'orderType': orderType
             });
     }
@@ -72,7 +72,7 @@ class Teams extends Service {
         
         return await this.client.call('post', path, {'content-type': 'application/json'},
             {
-                'name': name, 
+                'name': name,
                 'roles': roles
             });
     }
@@ -181,9 +181,9 @@ class Teams extends Service {
         
         return await this.client.call('post', path, {'content-type': 'application/json'},
             {
-                'email': email, 
-                'name': name, 
-                'roles': roles, 
+                'email': email,
+                'name': name,
+                'roles': roles,
                 'redirect': redirect
             });
     }
@@ -261,9 +261,9 @@ class Teams extends Service {
         
         return await this.client.call('patch', path, {'content-type': 'application/json'},
             {
-                'userId': userId, 
-                'secret': secret, 
-                'success': success, 
+                'userId': userId,
+                'secret': secret,
+                'success': success,
                 'failure': failure
             });
     }

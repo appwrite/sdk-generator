@@ -52,7 +52,7 @@ class Account extends Service {
         
         return await this.client.call('patch', path, {'content-type': 'application/json'},
             {
-                'email': email, 
+                'email': email,
                 'password': password
             });
     }
@@ -91,7 +91,7 @@ class Account extends Service {
         
         return await this.client.call('patch', path, {'content-type': 'application/json'},
             {
-                'password': password, 
+                'password': password,
                 'old-password': oldPassword
             });
     }

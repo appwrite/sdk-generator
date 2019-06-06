@@ -22,9 +22,9 @@ class Database extends Service {
         
         return await this.client.call('get', path, {'content-type': 'application/json'},
             {
-                'search': search, 
-                'limit': limit, 
-                'offset': offset, 
+                'search': search,
+                'limit': limit,
+                'offset': offset,
                 'orderType': orderType
             });
     }
@@ -46,9 +46,9 @@ class Database extends Service {
         
         return await this.client.call('post', path, {'content-type': 'application/json'},
             {
-                'name': name, 
-                'read': read, 
-                'write': write, 
+                'name': name,
+                'read': read,
+                'write': write,
                 'rules': rules
             });
     }
@@ -79,14 +79,14 @@ class Database extends Service {
         
         return await this.client.call('get', path, {'content-type': 'application/json'},
             {
-                'filters': filters, 
-                'offset': offset, 
-                'limit': limit, 
-                'order-field': orderField, 
-                'order-type': orderType, 
-                'order-cast': orderCast, 
-                'search': search, 
-                'first': first, 
+                'filters': filters,
+                'offset': offset,
+                'limit': limit,
+                'order-field': orderField,
+                'order-type': orderType,
+                'order-cast': orderCast,
+                'search': search,
+                'first': first,
                 'last': last
             });
     }
@@ -111,11 +111,11 @@ class Database extends Service {
         
         return await this.client.call('post', path, {'content-type': 'application/json'},
             {
-                'data': data, 
-                'read': read, 
-                'write': write, 
-                'parentDocument': parentDocument, 
-                'parentProperty': parentProperty, 
+                'data': data,
+                'read': read,
+                'write': write,
+                'parentDocument': parentDocument,
+                'parentProperty': parentProperty,
                 'parentPropertyType': parentPropertyType
             });
     }
@@ -173,8 +173,8 @@ class Database extends Service {
         
         return await this.client.call('patch', path, {'content-type': 'application/json'},
             {
-                'data': data, 
-                'read': read, 
+                'data': data,
+                'read': read,
                 'write': write
             });
     }

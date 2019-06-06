@@ -22,11 +22,11 @@ class {{ service.name | caseUcfirst }} extends Service {
         return await this.client.call('{{ method.method | caseLower }}', path, {'content-type': 'application/json'},
             {
 {% for parameter in method.parameters.query %}
-                '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}
+                '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %},{% endif %}
 
 {% endfor %}
 {% for parameter in method.parameters.body %}
-                '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}
+                '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %},{% endif %}
 
 {% endfor %}
             });

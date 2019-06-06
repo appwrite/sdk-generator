@@ -20,9 +20,9 @@ class Users extends Service {
         
         return await this.client.call('get', path, {'content-type': 'application/json'},
             {
-                'search': search, 
-                'limit': limit, 
-                'offset': offset, 
+                'search': search,
+                'limit': limit,
+                'offset': offset,
                 'orderType': orderType
             });
     }
@@ -43,8 +43,8 @@ class Users extends Service {
         
         return await this.client.call('post', path, {'content-type': 'application/json'},
             {
-                'email': email, 
-                'password': password, 
+                'email': email,
+                'password': password,
                 'name': name
             });
     }

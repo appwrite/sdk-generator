@@ -21,9 +21,9 @@ class Storage extends Service {
         
         return await this.client.call('get', path, {'content-type': 'application/json'},
             {
-                'search': search, 
-                'limit': limit, 
-                'offset': offset, 
+                'search': search,
+                'limit': limit,
+                'offset': offset,
                 'orderType': orderType
             });
     }
@@ -47,9 +47,9 @@ class Storage extends Service {
         
         return await this.client.call('post', path, {'content-type': 'application/json'},
             {
-                'files': files, 
-                'read': read, 
-                'write': write, 
+                'files': files,
+                'read': read,
+                'write': write,
                 'folderId': folderId
             });
     }
@@ -131,10 +131,10 @@ class Storage extends Service {
         
         return await this.client.call('get', path, {'content-type': 'application/json'},
             {
-                'width': width, 
-                'height': height, 
-                'quality': quality, 
-                'background': background, 
+                'width': width,
+                'height': height,
+                'quality': quality,
+                'background': background,
                 'output': output
             });
     }

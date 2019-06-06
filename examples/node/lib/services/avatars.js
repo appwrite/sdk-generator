@@ -22,8 +22,8 @@ class Avatars extends Service {
         
         return await this.client.call('get', path, {'content-type': 'application/json'},
             {
-                'width': width, 
-                'height': height, 
+                'width': width,
+                'height': height,
                 'quality': quality
             });
     }
@@ -48,8 +48,8 @@ class Avatars extends Service {
         
         return await this.client.call('get', path, {'content-type': 'application/json'},
             {
-                'width': width, 
-                'height': height, 
+                'width': width,
+                'height': height,
                 'quality': quality
             });
     }
@@ -92,8 +92,8 @@ class Avatars extends Service {
         
         return await this.client.call('get', path, {'content-type': 'application/json'},
             {
-                'width': width, 
-                'height': height, 
+                'width': width,
+                'height': height,
                 'quality': quality
             });
     }
@@ -116,9 +116,9 @@ class Avatars extends Service {
         
         return await this.client.call('get', path, {'content-type': 'application/json'},
             {
-                'text': text, 
-                'size': size, 
-                'margin': margin, 
+                'text': text,
+                'size': size,
+                'margin': margin,
                 'download': download
             });
     }
