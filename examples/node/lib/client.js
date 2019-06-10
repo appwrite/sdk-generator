@@ -1,5 +1,5 @@
 const URL = require('url').URL;
-const request = require('request-promise');
+const request = require('request-promise-native');
 
 class Client {
     
@@ -94,18 +94,21 @@ class Client {
         
         return this;
     }
-    
+      
     call(method, path = '', headers = {}, params = {}) {
         if(this.selfSigned) { // Allow self signed requests
             process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
         }
+
+        headers = Object.assign(this.headers, headers);
         
         let options = {
             method: method.toUpperCase(),
             uri: this.endpoint + path,
             qs: (method.toUpperCase === 'GET') ? params : {},
-            headers: Object.assign(this.headers, headers),
-            body: (method.toUpperCase === 'GET') ? '' : JSON.stringify(params),
+            headers: headers,
+            body: (method.toUpperCase === 'GET') ? '' : params,
+            json: (headers['content-type'].toLowerCase().startsWith('application/json')),
         };
 
         return request(options);      
