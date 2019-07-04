@@ -117,7 +117,9 @@
 
                 for (let key in globalHeaders) { // Add Global Headers
                     if (globalHeaders.hasOwnProperty(key)) {
-                        headers[globalHeaders[key].key] = globalHeaders[key].value;
+                        if (!headers[globalHeaders[key].key]) {
+                            headers[globalHeaders[key].key] = globalHeaders[key].value;
+                        }
                     }
                 }
 
@@ -278,7 +280,7 @@
 {% if not method.cookies %}
 
                 return http
-                    .{{ method.method | caseLower }}(path, {'Content-type': 'application/json'},
+                    .{{ method.method | caseLower }}(path, {'content-type': 'application/json'},
                         {
 {% for parameter in method.parameters.query %}
                             '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}
