@@ -160,7 +160,9 @@
 
                 for (let key in globalHeaders) { // Add Global Headers
                     if (globalHeaders.hasOwnProperty(key)) {
-                        headers[globalHeaders[key].key] = globalHeaders[key].value;
+                        if (!headers[globalHeaders[key].key]) {
+                            headers[globalHeaders[key].key] = globalHeaders[key].value;
+                        }
                     }
                 }
 
@@ -292,7 +294,7 @@
                 let path = '/account';
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -309,7 +311,7 @@
                 let path = '/account';
 
                 return http
-                    .delete(path, {'Content-type': 'application/json'},
+                    .delete(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -339,7 +341,7 @@
                 let path = '/account/email';
 
                 return http
-                    .patch(path, {'Content-type': 'application/json'},
+                    .patch(path, {'content-type': 'application/json'},
                         {
                             'email': email, 
                             'password': password
@@ -363,7 +365,7 @@
                 let path = '/account/name';
 
                 return http
-                    .patch(path, {'Content-type': 'application/json'},
+                    .patch(path, {'content-type': 'application/json'},
                         {
                             'name': name
                         });
@@ -392,7 +394,7 @@
                 let path = '/account/password';
 
                 return http
-                    .patch(path, {'Content-type': 'application/json'},
+                    .patch(path, {'content-type': 'application/json'},
                         {
                             'password': password, 
                             'old-password': oldPassword
@@ -411,7 +413,7 @@
                 let path = '/account/prefs';
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -434,7 +436,7 @@
                 let path = '/account/prefs';
 
                 return http
-                    .patch(path, {'Content-type': 'application/json'},
+                    .patch(path, {'content-type': 'application/json'},
                         {
                             'prefs': prefs
                         });
@@ -453,7 +455,7 @@
                 let path = '/account/security';
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -471,7 +473,7 @@
                 let path = '/account/sessions';
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             }
@@ -515,12 +517,14 @@
                 
                 let path = '/auth/login';
 
-                return iframe('post', config.domain + '/' + config.version + path, {project: config.project,
-                    'email': email, 
-                    'password': password, 
-                    'success': success, 
-                    'failure': failure
-                });
+                return http
+                    .post(path, {'content-type': 'application/json'},
+                        {
+                            'email': email, 
+                            'password': password, 
+                            'success': success, 
+                            'failure': failure
+                        });
             },
 
             /**
@@ -537,7 +541,7 @@
                 let path = '/auth/logout';
 
                 return http
-                    .delete(path, {'Content-type': 'application/json'},
+                    .delete(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -561,7 +565,7 @@
                 let path = '/auth/logout/{userId}'.replace(new RegExp('{userId}', 'g'), userId);
 
                 return http
-                    .delete(path, {'Content-type': 'application/json'},
+                    .delete(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -593,7 +597,7 @@
                 let path = '/auth/recovery';
 
                 return http
-                    .post(path, {'Content-type': 'application/json'},
+                    .post(path, {'content-type': 'application/json'},
                         {
                             'email': email, 
                             'redirect': redirect
@@ -640,7 +644,7 @@
                 let path = '/auth/recovery/reset';
 
                 return http
-                    .put(path, {'Content-type': 'application/json'},
+                    .put(path, {'content-type': 'application/json'},
                         {
                             'userId': userId, 
                             'token': token, 
@@ -697,14 +701,16 @@
                 
                 let path = '/auth/register';
 
-                return iframe('post', config.domain + '/' + config.version + path, {project: config.project,
-                    'email': email, 
-                    'password': password, 
-                    'name': name, 
-                    'redirect': redirect, 
-                    'success': success, 
-                    'failure': failure
-                });
+                return http
+                    .post(path, {'content-type': 'application/json'},
+                        {
+                            'email': email, 
+                            'password': password, 
+                            'name': name, 
+                            'redirect': redirect, 
+                            'success': success, 
+                            'failure': failure
+                        });
             },
 
             /**
@@ -732,7 +738,7 @@
                 let path = '/auth/register/confirm';
 
                 return http
-                    .post(path, {'Content-type': 'application/json'},
+                    .post(path, {'content-type': 'application/json'},
                         {
                             'userId': userId, 
                             'token': token
@@ -763,7 +769,7 @@
                 let path = '/auth/register/confirm/resend';
 
                 return http
-                    .post(path, {'Content-type': 'application/json'},
+                    .post(path, {'content-type': 'application/json'},
                         {
                             'redirect': redirect
                         });
@@ -796,7 +802,7 @@
                 let path = '/oauth/callback/{provider}/{projectId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{provider}', 'g'), provider);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                             'code': code, 
                             'state': state
@@ -821,7 +827,7 @@
                 let path = '/oauth/{provider}'.replace(new RegExp('{provider}', 'g'), provider);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                             'success': success, 
                             'failure': failure
@@ -854,7 +860,7 @@
                 let path = '/avatars/browsers/{code}'.replace(new RegExp('{code}', 'g'), code);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                             'width': width, 
                             'height': height, 
@@ -885,7 +891,7 @@
                 let path = '/avatars/credit-cards/{code}'.replace(new RegExp('{code}', 'g'), code);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                             'width': width, 
                             'height': height, 
@@ -911,7 +917,7 @@
                 let path = '/avatars/favicon';
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                             'url': url
                         });
@@ -939,7 +945,7 @@
                 let path = '/avatars/flags/{code}'.replace(new RegExp('{code}', 'g'), code);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                             'width': width, 
                             'height': height, 
@@ -968,7 +974,7 @@
                 let path = '/avatars/qr';
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                             'text': text, 
                             'size': size, 
@@ -999,7 +1005,7 @@
                 let path = '/database';
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                             'search': search, 
                             'limit': limit, 
@@ -1028,7 +1034,7 @@
                 let path = '/database';
 
                 return http
-                    .post(path, {'Content-type': 'application/json'},
+                    .post(path, {'content-type': 'application/json'},
                         {
                             'name': name, 
                             'read': read, 
@@ -1066,7 +1072,7 @@
                 let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                             'filters': filters, 
                             'offset': offset, 
@@ -1107,7 +1113,7 @@
                 let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
 
                 return http
-                    .post(path, {'Content-type': 'application/json'},
+                    .post(path, {'content-type': 'application/json'},
                         {
                             'data': data, 
                             'read': read, 
@@ -1136,7 +1142,7 @@
                 let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
 
                 return http
-                    .delete(path, {'Content-type': 'application/json'},
+                    .delete(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -1164,7 +1170,7 @@
                 let path = '/database/{collectionId}/{documentId}'.replace(new RegExp('{collectionId}', 'g'), collectionId).replace(new RegExp('{documentId}', 'g'), documentId);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -1197,7 +1203,7 @@
                 let path = '/database/{collectionId}/{documentId}'.replace(new RegExp('{collectionId}', 'g'), collectionId).replace(new RegExp('{documentId}', 'g'), documentId);
 
                 return http
-                    .patch(path, {'Content-type': 'application/json'},
+                    .patch(path, {'content-type': 'application/json'},
                         {
                             'data': data, 
                             'read': read, 
@@ -1229,7 +1235,7 @@
                 let path = '/database/{collectionId}/{documentId}'.replace(new RegExp('{collectionId}', 'g'), collectionId).replace(new RegExp('{documentId}', 'g'), documentId);
 
                 return http
-                    .delete(path, {'Content-type': 'application/json'},
+                    .delete(path, {'content-type': 'application/json'},
                         {
                         });
             }
@@ -1263,7 +1269,7 @@
                 let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
 
                 return http
-                    .put(path, {'Content-type': 'application/json'},
+                    .put(path, {'content-type': 'application/json'},
                         {
                             'name': name, 
                             'read': read, 
@@ -1290,7 +1296,7 @@
                 let path = '/teams';
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                             'search': search, 
                             'limit': limit, 
@@ -1320,7 +1326,7 @@
                 let path = '/teams';
 
                 return http
-                    .post(path, {'Content-type': 'application/json'},
+                    .post(path, {'content-type': 'application/json'},
                         {
                             'name': name, 
                             'roles': roles
@@ -1345,7 +1351,7 @@
                 let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -1373,7 +1379,7 @@
                 let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
 
                 return http
-                    .put(path, {'Content-type': 'application/json'},
+                    .put(path, {'content-type': 'application/json'},
                         {
                             'name': name
                         });
@@ -1397,7 +1403,7 @@
                 let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
 
                 return http
-                    .delete(path, {'Content-type': 'application/json'},
+                    .delete(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -1420,7 +1426,7 @@
                 let path = '/teams/{teamId}/members'.replace(new RegExp('{teamId}', 'g'), teamId);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -1470,7 +1476,7 @@
                 let path = '/teams/{teamId}/memberships'.replace(new RegExp('{teamId}', 'g'), teamId);
 
                 return http
-                    .post(path, {'Content-type': 'application/json'},
+                    .post(path, {'content-type': 'application/json'},
                         {
                             'email': email, 
                             'name': name, 
@@ -1502,7 +1508,7 @@
                 let path = '/teams/{teamId}/memberships/{inviteId}'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
 
                 return http
-                    .delete(path, {'Content-type': 'application/json'},
+                    .delete(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -1535,7 +1541,7 @@
                 let path = '/teams/{teamId}/memberships/{inviteId}/resend'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
 
                 return http
-                    .post(path, {'Content-type': 'application/json'},
+                    .post(path, {'content-type': 'application/json'},
                         {
                             'redirect': redirect
                         });
@@ -1588,12 +1594,14 @@
                 
                 let path = '/teams/{teamId}/memberships/{inviteId}/status'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
 
-                return iframe('patch', config.domain + '/' + config.version + path, {project: config.project,
-                    'userId': userId, 
-                    'secret': secret, 
-                    'success': success, 
-                    'failure': failure
-                });
+                return http
+                    .patch(path, {'content-type': 'application/json'},
+                        {
+                            'userId': userId, 
+                            'secret': secret, 
+                            'success': success, 
+                            'failure': failure
+                        });
             }
         };
 
@@ -1614,7 +1622,7 @@
                 let path = '/locale';
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -1632,7 +1640,7 @@
                 let path = '/locale/countries';
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -1650,7 +1658,7 @@
                 let path = '/locale/countries/eu';
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -1668,7 +1676,7 @@
                 let path = '/locale/countries/phones';
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             }
@@ -1694,7 +1702,7 @@
                 let path = '/storage/files';
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                             'search': search, 
                             'limit': limit, 
@@ -1725,7 +1733,7 @@
                 let path = '/storage/files';
 
                 return http
-                    .post(path, {'Content-type': 'application/json'},
+                    .post(path, {'content-type': 'application/json'},
                         {
                             'files': files, 
                             'read': read, 
@@ -1752,7 +1760,7 @@
                 let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -1775,7 +1783,7 @@
                 let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
 
                 return http
-                    .delete(path, {'Content-type': 'application/json'},
+                    .delete(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -1799,7 +1807,7 @@
                 let path = '/storage/files/{fileId}/download'.replace(new RegExp('{fileId}', 'g'), fileId);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -1829,7 +1837,7 @@
                 let path = '/storage/files/{fileId}/preview'.replace(new RegExp('{fileId}', 'g'), fileId);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                             'width': width, 
                             'height': height, 
@@ -1858,7 +1866,7 @@
                 let path = '/storage/files/{fileId}/view'.replace(new RegExp('{fileId}', 'g'), fileId);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                             'as': as
                         });
@@ -1884,7 +1892,7 @@
                 let path = '/users';
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                             'search': search, 
                             'limit': limit, 
@@ -1916,7 +1924,7 @@
                 let path = '/users';
 
                 return http
-                    .post(path, {'Content-type': 'application/json'},
+                    .post(path, {'content-type': 'application/json'},
                         {
                             'email': email, 
                             'password': password, 
@@ -1941,7 +1949,7 @@
                 let path = '/users/{userId}'.replace(new RegExp('{userId}', 'g'), userId);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -1963,7 +1971,7 @@
                 let path = '/users/{userId}/logs'.replace(new RegExp('{userId}', 'g'), userId);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -1985,7 +1993,7 @@
                 let path = '/users/{userId}/prefs'.replace(new RegExp('{userId}', 'g'), userId);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -2007,7 +2015,7 @@
                 let path = '/users/{userId}/sessions'.replace(new RegExp('{userId}', 'g'), userId);
 
                 return http
-                    .get(path, {'Content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -2029,7 +2037,7 @@
                 let path = '/users/{userId}/sessions'.replace(new RegExp('{userId}', 'g'), userId);
 
                 return http
-                    .delete(path, {'Content-type': 'application/json'},
+                    .delete(path, {'content-type': 'application/json'},
                         {
                         });
             },
@@ -2056,7 +2064,7 @@
                 let path = '/users/{userId}/sessions/:session'.replace(new RegExp('{userId}', 'g'), userId);
 
                 return http
-                    .delete(path, {'Content-type': 'application/json'},
+                    .delete(path, {'content-type': 'application/json'},
                         {
                             'sessionId': sessionId
                         });
@@ -2084,7 +2092,7 @@
                 let path = '/users/{userId}/status'.replace(new RegExp('{userId}', 'g'), userId);
 
                 return http
-                    .patch(path, {'Content-type': 'application/json'},
+                    .patch(path, {'content-type': 'application/json'},
                         {
                             'status': status
                         });
