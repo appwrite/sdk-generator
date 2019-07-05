@@ -3,32 +3,6 @@ const Service = require('../service.js');
 class Teams extends Service {
 
     /**
-     * Update Team
-     *
-     * Update team by its unique ID. Only team owners have write access for this
-     * resource.
-     *
-     * @param string collectionId
-     * @param string name
-     * @param array read
-     * @param array write
-     * @param array rules
-     * @throws Exception
-     * @return {}
-     */
-    async updateTeam(collectionId, name, read = [], write = [], rules = []) {
-        let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
-        
-        return await this.client.call('put', path, {'content-type': 'application/json'},
-            {
-                'name': name,
-                'read': read,
-                'write': write,
-                'rules': rules
-            });
-    }
-
-    /**
      * List Teams
      *
      * Get a list of all the current user teams. You can use the query params to

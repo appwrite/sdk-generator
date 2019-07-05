@@ -70,6 +70,23 @@ class Database(Service):
         return self.client.call('post', path, {
         }, params)
 
+    def update_collection(self, collection_id, name, readstring(4) ""[]""
+=[], writestring(4) ""[]""
+=[], rulesstring(4) ""[]""
+=[]):
+        """Update Collection"""
+
+        params = {}
+        path = '/database/{collectionId}'
+        path.replace('{collectionId}', collection_id)                
+        params['name'] = name
+        params['read'] = read
+        params['write'] = write
+        params['rules'] = rules
+
+        return self.client.call('put', path, {
+        }, params)
+
     def delete_collection(self, collection_id):
         """Delete Collection"""
 

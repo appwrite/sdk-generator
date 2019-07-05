@@ -3,7 +3,7 @@ from ..service import Service
 
 class Locale(Service):
 
-    def get(self):
+    def get_locale(self):
         """Get User Locale"""
 
         params = {}

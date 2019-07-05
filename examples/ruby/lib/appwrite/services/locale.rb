@@ -1,7 +1,7 @@
 module Appwrite
     class Locale < Service
 
-        def get()
+        def get_locale()
             path = '/locale'
 
             params = {

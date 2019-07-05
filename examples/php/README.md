@@ -1,7 +1,7 @@
 # [Appwrite SDK for PHP]() &nbsp; [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=&url=&via=&hashtags=)
 
 ![License](https://img.shields.io/github/license//.svg?v=1)
-![Version](https://img.shields.io/badge/api%20version-v1.15.47-blue.svg?v=1)
+![Version](https://img.shields.io/badge/api%20version-v0.0.0dev-blue.svg?v=1)
 
 **WORK IN PROGRESS - NOT READY FOR USAGE**
 
@@ -11,7 +11,7 @@ Appwrite backend as a service cuts up to 70% of the time and costs required for 
 
 ![Appwrite](https://appwrite.io/v1/images/console.png)
 
-**API Version: v1.15.47**
+**API Version: v0.0.0dev**
 
 ## Installation
 
@@ -23,4 +23,4 @@ composer require vendorName/packageName
 
 ## License
 
-Please see the [MIT license]() file for more information.
+Please see the [BSD-3-Clause license](https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE) file for more information.

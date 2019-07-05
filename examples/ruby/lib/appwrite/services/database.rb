@@ -66,6 +66,21 @@ module Appwrite
             }, params);
         end
 
+        def update_collection(collection_id:, name:, read: [], write: [], rules: [])
+            path = '/database/{collectionId}'
+                .gsub('{collection_id}', collection_id)
+
+            params = {
+                'name': name, 
+                'read': read, 
+                'write': write, 
+                'rules': rules
+            }
+
+            return @client.call('put', path, {
+            }, params);
+        end
+
         def delete_collection(collection_id:)
             path = '/database/{collectionId}'
                 .gsub('{collection_id}', collection_id)

@@ -90,7 +90,7 @@ class Users(Service):
         }, params)
 
     def update_user_status(self, user_id, status):
-        """Block User"""
+        """Update user status"""
 
         params = {}
         path = '/users/{userId}/status'

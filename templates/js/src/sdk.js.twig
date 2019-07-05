@@ -219,7 +219,7 @@
             let form = document.createElement('form');
 
             form.setAttribute('method', method);
-            form.setAttribute('action', url);
+            form.setAttribute('action', config.endpoint + url);
 
             for(let key in params) {
                 if(params.hasOwnProperty(key)) {
@@ -252,7 +252,7 @@
              * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
              * @throws {Error}
-             * @return {Array}
+             * @return {% if method.cookies %}{null}{% else %}{Promise}{% endif %}
              */
             {{ method.name }}: function({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) {
 {% for parameter in method.parameters.all %}
@@ -266,7 +266,7 @@
                 let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace(new RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', 'g'), {{ parameter.name | caseCamel }}){% endfor %};
 {% if method.cookies %}
 
-                return iframe('{{ method.method | caseLower }}', config.domain + '/' + config.version + path, {project: config.project,
+                return iframe('{{ method.method | caseLower }}', path, {project: config.project,
 {% for parameter in method.parameters.query %}
                     '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}
 

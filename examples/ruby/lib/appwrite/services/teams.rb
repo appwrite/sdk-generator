@@ -1,21 +1,6 @@
 module Appwrite
     class Teams < Service
 
-        def update_team(collection_id:, name:, read: [], write: [], rules: [])
-            path = '/database/{collectionId}'
-                .gsub('{collection_id}', collection_id)
-
-            params = {
-                'name': name, 
-                'read': read, 
-                'write': write, 
-                'rules': rules
-            }
-
-            return @client.call('put', path, {
-            }, params);
-        end
-
         def list_teams(search: '', limit: 25, offset: 0, order_type: 'ASC')
             path = '/teams'
 

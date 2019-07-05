@@ -121,6 +121,31 @@ class Database extends Service {
     }
 
     /**
+     * Update Collection
+     *
+     * Update collection by its unique ID.
+     *
+     * @param string collectionId
+     * @param string name
+     * @param array read
+     * @param array write
+     * @param array rules
+     * @throws Exception
+     * @return {}
+     */
+    async updateCollection(collectionId, name, read = [], write = [], rules = []) {
+        let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
+        
+        return await this.client.call('put', path, {'content-type': 'application/json'},
+            {
+                'name': name,
+                'read': read,
+                'write': write,
+                'rules': rules
+            });
+    }
+
+    /**
      * Delete Collection
      *
      * Delete a collection by its unique ID. Only users with write permissions

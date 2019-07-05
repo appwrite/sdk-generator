@@ -3,23 +3,6 @@ from ..service import Service
 
 class Teams(Service):
 
-    def update_team(self, collection_id, name, readstring(4) ""[]""
-=[], writestring(4) ""[]""
-=[], rulesstring(4) ""[]""
-=[]):
-        """Update Team"""
-
-        params = {}
-        path = '/database/{collectionId}'
-        path.replace('{collectionId}', collection_id)                
-        params['name'] = name
-        params['read'] = read
-        params['write'] = write
-        params['rules'] = rules
-
-        return self.client.call('put', path, {
-        }, params)
-
     def list_teams(self, search='', limit=25, offset=0, order_type='ASC'):
         """List Teams"""
 

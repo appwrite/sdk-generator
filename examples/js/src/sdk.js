@@ -2,7 +2,7 @@
     window.Appwrite = function () {
 
         let config = {
-            endpoint: 'https://appwrite.io/v1',
+            endpoint: 'https://appwrite.test/v1',
             project: '',
             key: '',
             locale: '',
@@ -22,6 +22,9 @@
         /**
          * Set Project
          *
+         * Your Appwrite project ID. You can find your project ID in your Appwrite
+\         * console project settings.
+         *
          * @param value string
          *
          * @return this
@@ -37,6 +40,9 @@
 
         /**
          * Set Key
+         *
+         * Your Appwrite project secret key. You can can create a new API key from
+\         * your Appwrite console API keys dashboard.
          *
          * @param value string
          *
@@ -262,7 +268,7 @@
             let form = document.createElement('form');
 
             form.setAttribute('method', method);
-            form.setAttribute('action', url);
+            form.setAttribute('action', config.endpoint + url);
 
             for(let key in params) {
                 if(params.hasOwnProperty(key)) {
@@ -288,8 +294,7 @@
              * Get currently logged in user data as JSON object.
              *
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             get: function() {
                 let path = '/account';
 
@@ -305,8 +310,7 @@
              * Delete currently logged in user account.
              *
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             delete: function() {
                 let path = '/account';
 
@@ -327,8 +331,7 @@
              * @param {string} email
              * @param {string} password
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             updateEmail: function(email, password) {
                 if(email === undefined) {
                     throw new Error('Missing required parameter: "email"');
@@ -355,8 +358,7 @@
              *
              * @param {string} name
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             updateName: function(name) {
                 if(name === undefined) {
                     throw new Error('Missing required parameter: "name"');
@@ -380,8 +382,7 @@
              * @param {string} password
              * @param {string} oldPassword
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             updatePassword: function(password, oldPassword) {
                 if(password === undefined) {
                     throw new Error('Missing required parameter: "password"');
@@ -407,8 +408,7 @@
              * Get currently logged in user preferences key-value object.
              *
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getPrefs: function() {
                 let path = '/account/prefs';
 
@@ -426,8 +426,7 @@
              *
              * @param {string} prefs
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             updatePrefs: function(prefs) {
                 if(prefs === undefined) {
                     throw new Error('Missing required parameter: "prefs"');
@@ -449,8 +448,7 @@
              * log returns user IP address, location and date and time of log.
              *
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getSecurity: function() {
                 let path = '/account/security';
 
@@ -467,8 +465,7 @@
              * devices.
              *
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getSessions: function() {
                 let path = '/account/sessions';
 
@@ -504,8 +501,7 @@
              * @param {string} success
              * @param {string} failure
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {null}             */
             login: function(email, password, success = '', failure = '') {
                 if(email === undefined) {
                     throw new Error('Missing required parameter: "email"');
@@ -517,14 +513,12 @@
                 
                 let path = '/auth/login';
 
-                return http
-                    .post(path, {'content-type': 'application/json'},
-                        {
-                            'email': email, 
-                            'password': password, 
-                            'success': success, 
-                            'failure': failure
-                        });
+                return iframe('post', path, {project: config.project,
+                    'email': email, 
+                    'password': password, 
+                    'success': success, 
+                    'failure': failure
+                });
             },
 
             /**
@@ -535,8 +529,7 @@
              * session secret cookie.
              *
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             logout: function() {
                 let path = '/auth/logout';
 
@@ -555,8 +548,7 @@
              *
              * @param {string} userId
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             logoutBySession: function(userId) {
                 if(userId === undefined) {
                     throw new Error('Missing required parameter: "userId"');
@@ -583,8 +575,7 @@
              * @param {string} email
              * @param {string} redirect
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             recovery: function(email, redirect) {
                 if(email === undefined) {
                     throw new Error('Missing required parameter: "email"');
@@ -622,8 +613,7 @@
              * @param {string} passwordA
              * @param {string} passwordB
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             recoveryReset: function(userId, token, passwordA, passwordB) {
                 if(userId === undefined) {
                     throw new Error('Missing required parameter: "userId"');
@@ -684,8 +674,7 @@
              * @param {string} success
              * @param {string} failure
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {null}             */
             register: function(email, password, redirect, name = '', success = '', failure = '') {
                 if(email === undefined) {
                     throw new Error('Missing required parameter: "email"');
@@ -701,16 +690,14 @@
                 
                 let path = '/auth/register';
 
-                return http
-                    .post(path, {'content-type': 'application/json'},
-                        {
-                            'email': email, 
-                            'password': password, 
-                            'name': name, 
-                            'redirect': redirect, 
-                            'success': success, 
-                            'failure': failure
-                        });
+                return iframe('post', path, {project: config.project,
+                    'email': email, 
+                    'password': password, 
+                    'name': name, 
+                    'redirect': redirect, 
+                    'success': success, 
+                    'failure': failure
+                });
             },
 
             /**
@@ -724,8 +711,7 @@
              * @param {string} userId
              * @param {string} token
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             confirm: function(userId, token) {
                 if(userId === undefined) {
                     throw new Error('Missing required parameter: "userId"');
@@ -759,8 +745,7 @@
              *
              * @param {string} redirect
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             confirmResend: function(redirect) {
                 if(redirect === undefined) {
                     throw new Error('Missing required parameter: "redirect"');
@@ -784,8 +769,7 @@
              * @param {string} code
              * @param {string} state
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             oauthCallback: function(projectId, provider, code, state = '') {
                 if(projectId === undefined) {
                     throw new Error('Missing required parameter: "projectId"');
@@ -817,8 +801,7 @@
              * @param {string} success
              * @param {string} failure
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             oauth: function(provider, success = '', failure = '') {
                 if(provider === undefined) {
                     throw new Error('Missing required parameter: "provider"');
@@ -850,8 +833,7 @@
              * @param {number} height
              * @param {number} quality
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getBrowser: function(code, width = 100, height = 100, quality = 100) {
                 if(code === undefined) {
                     throw new Error('Missing required parameter: "code"');
@@ -881,8 +863,7 @@
              * @param {number} height
              * @param {number} quality
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getCreditCard: function(code, width = 100, height = 100, quality = 100) {
                 if(code === undefined) {
                     throw new Error('Missing required parameter: "code"');
@@ -907,8 +888,7 @@
              *
              * @param {string} url
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getFavicon: function(url) {
                 if(url === undefined) {
                     throw new Error('Missing required parameter: "url"');
@@ -935,8 +915,7 @@
              * @param {number} height
              * @param {number} quality
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getFlag: function(code, width = 100, height = 100, quality = 100) {
                 if(code === undefined) {
                     throw new Error('Missing required parameter: "code"');
@@ -964,8 +943,7 @@
              * @param {number} margin
              * @param {number} download
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getQR: function(text, size = 400, margin = 1, download = 0) {
                 if(text === undefined) {
                     throw new Error('Missing required parameter: "text"');
@@ -999,8 +977,7 @@
              * @param {number} offset
              * @param {string} orderType
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             listCollections: function(search = '', limit = 25, offset = 0, orderType = 'ASC') {
                 let path = '/database';
 
@@ -1024,8 +1001,7 @@
              * @param {array} write
              * @param {array} rules
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             createCollection: function(name, read = [], write = [], rules = []) {
                 if(name === undefined) {
                     throw new Error('Missing required parameter: "name"');
@@ -1062,8 +1038,7 @@
              * @param {number} first
              * @param {number} last
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             listDocuments: function(collectionId, filters = [], offset = 0, limit = 50, orderField = '$uid', orderType = 'ASC', orderCast = 'string', search = '', first = 0, last = 0) {
                 if(collectionId === undefined) {
                     throw new Error('Missing required parameter: "collectionId"');
@@ -1099,8 +1074,7 @@
              * @param {string} parentProperty
              * @param {string} parentPropertyType
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             createDocument: function(collectionId, data, read = [], write = [], parentDocument = '', parentProperty = '', parentPropertyType = 'assign') {
                 if(collectionId === undefined) {
                     throw new Error('Missing required parameter: "collectionId"');
@@ -1125,6 +1099,39 @@
             },
 
             /**
+             * Update Collection
+             *
+             * Update collection by its unique ID.
+             *
+             * @param {string} collectionId
+             * @param {string} name
+             * @param {array} read
+             * @param {array} write
+             * @param {array} rules
+             * @throws {Error}
+             * @return {Promise}             */
+            updateCollection: function(collectionId, name, read = [], write = [], rules = []) {
+                if(collectionId === undefined) {
+                    throw new Error('Missing required parameter: "collectionId"');
+                }
+                
+                if(name === undefined) {
+                    throw new Error('Missing required parameter: "name"');
+                }
+                
+                let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
+
+                return http
+                    .put(path, {'content-type': 'application/json'},
+                        {
+                            'name': name, 
+                            'read': read, 
+                            'write': write, 
+                            'rules': rules
+                        });
+            },
+
+            /**
              * Delete Collection
              *
              * Delete a collection by its unique ID. Only users with write permissions
@@ -1132,8 +1139,7 @@
              *
              * @param {string} collectionId
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             deleteCollection: function(collectionId) {
                 if(collectionId === undefined) {
                     throw new Error('Missing required parameter: "collectionId"');
@@ -1156,8 +1162,7 @@
              * @param {string} collectionId
              * @param {string} documentId
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getDocument: function(collectionId, documentId) {
                 if(collectionId === undefined) {
                     throw new Error('Missing required parameter: "collectionId"');
@@ -1185,8 +1190,7 @@
              * @param {array} read
              * @param {array} write
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             updateDocument: function(collectionId, documentId, data, read = [], write = []) {
                 if(collectionId === undefined) {
                     throw new Error('Missing required parameter: "collectionId"');
@@ -1221,8 +1225,7 @@
              * @param {string} collectionId
              * @param {string} documentId
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             deleteDocument: function(collectionId, documentId) {
                 if(collectionId === undefined) {
                     throw new Error('Missing required parameter: "collectionId"');
@@ -1241,42 +1244,264 @@
             }
         };
 
-        let teams = {
+        let locale = {
 
             /**
-             * Update Team
+             * Get User Locale
              *
-             * Update team by its unique ID. Only team owners have write access for this
-             * resource.
+             * Get the current user location based on IP. Returns an object with user
+             * country code, country name, continent name, continent code, ip address and
+             * suggested currency. You can use the locale header to get the data in
+             * supported language.
              *
-             * @param {string} collectionId
-             * @param {string} name
-             * @param {array} read
-             * @param {array} write
-             * @param {array} rules
              * @throws {Error}
-             * @return {Array}
-             */
-            updateTeam: function(collectionId, name, read = [], write = [], rules = []) {
-                if(collectionId === undefined) {
-                    throw new Error('Missing required parameter: "collectionId"');
-                }
-                
-                if(name === undefined) {
-                    throw new Error('Missing required parameter: "name"');
-                }
-                
-                let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
+             * @return {Promise}             */
+            getLocale: function() {
+                let path = '/locale';
 
                 return http
-                    .put(path, {'content-type': 'application/json'},
+                    .get(path, {'content-type': 'application/json'},
                         {
-                            'name': name, 
-                            'read': read, 
-                            'write': write, 
-                            'rules': rules
                         });
             },
+
+            /**
+             * List Countries
+             *
+             * List of all countries. You can use the locale header to get the data in
+             * supported language.
+             *
+             * @throws {Error}
+             * @return {Promise}             */
+            getCountries: function() {
+                let path = '/locale/countries';
+
+                return http
+                    .get(path, {'content-type': 'application/json'},
+                        {
+                        });
+            },
+
+            /**
+             * List EU Countries
+             *
+             * List of all countries that are currently members of the EU. You can use the
+             * locale header to get the data in supported language.
+             *
+             * @throws {Error}
+             * @return {Promise}             */
+            getCountriesEU: function() {
+                let path = '/locale/countries/eu';
+
+                return http
+                    .get(path, {'content-type': 'application/json'},
+                        {
+                        });
+            },
+
+            /**
+             * List Countries Phone Codes
+             *
+             * List of all countries phone codes. You can use the locale header to get the
+             * data in supported language.
+             *
+             * @throws {Error}
+             * @return {Promise}             */
+            getCountriesPhones: function() {
+                let path = '/locale/countries/phones';
+
+                return http
+                    .get(path, {'content-type': 'application/json'},
+                        {
+                        });
+            }
+        };
+
+        let storage = {
+
+            /**
+             * List Files
+             *
+             * Get a list of all the user files. You can use the query params to filter
+             * your results. On admin mode, this endpoint will return a list of all of the
+             * project files. [Learn more about different API modes](/docs/modes).
+             *
+             * @param {string} search
+             * @param {number} limit
+             * @param {number} offset
+             * @param {string} orderType
+             * @throws {Error}
+             * @return {Promise}             */
+            listFiles: function(search = '', limit = 25, offset = 0, orderType = 'ASC') {
+                let path = '/storage/files';
+
+                return http
+                    .get(path, {'content-type': 'application/json'},
+                        {
+                            'search': search, 
+                            'limit': limit, 
+                            'offset': offset, 
+                            'orderType': orderType
+                        });
+            },
+
+            /**
+             * Create File
+             *
+             * Create a new file. The user who creates the file will automatically be
+             * assigned to read and write access unless he has passed custom values for
+             * read and write arguments.
+             *
+             * @param {File} files
+             * @param {array} read
+             * @param {array} write
+             * @param {string} folderId
+             * @throws {Error}
+             * @return {Promise}             */
+            createFile: function(files, read = [], write = [], folderId = '') {
+                if(files === undefined) {
+                    throw new Error('Missing required parameter: "files"');
+                }
+                
+                let path = '/storage/files';
+
+                return http
+                    .post(path, {'content-type': 'application/json'},
+                        {
+                            'files': files, 
+                            'read': read, 
+                            'write': write, 
+                            'folderId': folderId
+                        });
+            },
+
+            /**
+             * Get File
+             *
+             * Get file by its unique ID. This endpoint response returns a JSON object
+             * with the file metadata.
+             *
+             * @param {string} fileId
+             * @throws {Error}
+             * @return {Promise}             */
+            getFile: function(fileId) {
+                if(fileId === undefined) {
+                    throw new Error('Missing required parameter: "fileId"');
+                }
+                
+                let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
+
+                return http
+                    .get(path, {'content-type': 'application/json'},
+                        {
+                        });
+            },
+
+            /**
+             * Delete File
+             *
+             * Delete a file by its unique ID. Only users with write permissions have
+             * access to delete this resource.
+             *
+             * @param {string} fileId
+             * @throws {Error}
+             * @return {Promise}             */
+            deleteFile: function(fileId) {
+                if(fileId === undefined) {
+                    throw new Error('Missing required parameter: "fileId"');
+                }
+                
+                let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
+
+                return http
+                    .delete(path, {'content-type': 'application/json'},
+                        {
+                        });
+            },
+
+            /**
+             * Download File
+             *
+             * Get file content by its unique ID. The endpoint response return with a
+             * 'Content-Disposition: attachment' header that tells the browser to start
+             * downloading the file to user downloads directory.
+             *
+             * @param {string} fileId
+             * @throws {Error}
+             * @return {Promise}             */
+            getFileDownload: function(fileId) {
+                if(fileId === undefined) {
+                    throw new Error('Missing required parameter: "fileId"');
+                }
+                
+                let path = '/storage/files/{fileId}/download'.replace(new RegExp('{fileId}', 'g'), fileId);
+
+                return http
+                    .get(path, {'content-type': 'application/json'},
+                        {
+                        });
+            },
+
+            /**
+             * Preview File
+             *
+             * Get file preview image. Currently, this method supports preview for image
+             * files (jpg, png, and gif), other supported formats, like pdf, docs, slides,
+             * and spreadsheets will return file icon image. You can also pass query
+             * string arguments for cutting and resizing your preview image.
+             *
+             * @param {string} fileId
+             * @param {number} width
+             * @param {number} height
+             * @param {number} quality
+             * @param {string} background
+             * @param {string} output
+             * @throws {Error}
+             * @return {Promise}             */
+            getFilePreview: function(fileId, width = 0, height = 0, quality = 100, background = '', output = '') {
+                if(fileId === undefined) {
+                    throw new Error('Missing required parameter: "fileId"');
+                }
+                
+                let path = '/storage/files/{fileId}/preview'.replace(new RegExp('{fileId}', 'g'), fileId);
+
+                return http
+                    .get(path, {'content-type': 'application/json'},
+                        {
+                            'width': width, 
+                            'height': height, 
+                            'quality': quality, 
+                            'background': background, 
+                            'output': output
+                        });
+            },
+
+            /**
+             * View File
+             *
+             * Get file content by its unique ID. This endpoint is similar to the download
+             * method but returns with no  'Content-Disposition: attachment' header.
+             *
+             * @param {string} fileId
+             * @param {string} as
+             * @throws {Error}
+             * @return {Promise}             */
+            getFileView: function(fileId, as = '') {
+                if(fileId === undefined) {
+                    throw new Error('Missing required parameter: "fileId"');
+                }
+                
+                let path = '/storage/files/{fileId}/view'.replace(new RegExp('{fileId}', 'g'), fileId);
+
+                return http
+                    .get(path, {'content-type': 'application/json'},
+                        {
+                            'as': as
+                        });
+            }
+        };
+
+        let teams = {
 
             /**
              * List Teams
@@ -1290,8 +1515,7 @@
              * @param {number} offset
              * @param {string} orderType
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             listTeams: function(search = '', limit = 25, offset = 0, orderType = 'ASC') {
                 let path = '/teams';
 
@@ -1316,8 +1540,7 @@
              * @param {string} name
              * @param {array} roles
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             createTeam: function(name, roles = ["owner"]) {
                 if(name === undefined) {
                     throw new Error('Missing required parameter: "name"');
@@ -1341,8 +1564,7 @@
              *
              * @param {string} teamId
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getTeam: function(teamId) {
                 if(teamId === undefined) {
                     throw new Error('Missing required parameter: "teamId"');
@@ -1365,8 +1587,7 @@
              * @param {string} teamId
              * @param {string} name
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             updateTeam: function(teamId, name) {
                 if(teamId === undefined) {
                     throw new Error('Missing required parameter: "teamId"');
@@ -1393,8 +1614,7 @@
              *
              * @param {string} teamId
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             deleteTeam: function(teamId) {
                 if(teamId === undefined) {
                     throw new Error('Missing required parameter: "teamId"');
@@ -1416,8 +1636,7 @@
              *
              * @param {string} teamId
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getTeamMembers: function(teamId) {
                 if(teamId === undefined) {
                     throw new Error('Missing required parameter: "teamId"');
@@ -1454,8 +1673,7 @@
              * @param {string} redirect
              * @param {string} name
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             createTeamMembership: function(teamId, email, roles, redirect, name = '') {
                 if(teamId === undefined) {
                     throw new Error('Missing required parameter: "teamId"');
@@ -1494,8 +1712,7 @@
              * @param {string} teamId
              * @param {string} inviteId
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             deleteTeamMembership: function(teamId, inviteId) {
                 if(teamId === undefined) {
                     throw new Error('Missing required parameter: "teamId"');
@@ -1523,8 +1740,7 @@
              * @param {string} inviteId
              * @param {string} redirect
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             createTeamMembershipResend: function(teamId, inviteId, redirect) {
                 if(teamId === undefined) {
                     throw new Error('Missing required parameter: "teamId"');
@@ -1573,8 +1789,7 @@
              * @param {string} success
              * @param {string} failure
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {null}             */
             updateTeamMembershipStatus: function(teamId, inviteId, userId, secret, success = '', failure = '') {
                 if(teamId === undefined) {
                     throw new Error('Missing required parameter: "teamId"');
@@ -1594,282 +1809,12 @@
                 
                 let path = '/teams/{teamId}/memberships/{inviteId}/status'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
 
-                return http
-                    .patch(path, {'content-type': 'application/json'},
-                        {
-                            'userId': userId, 
-                            'secret': secret, 
-                            'success': success, 
-                            'failure': failure
-                        });
-            }
-        };
-
-        let locale = {
-
-            /**
-             * Get User Locale
-             *
-             * Get the current user location based on IP. Returns an object with user
-             * country code, country name, continent name, continent code, ip address and
-             * suggested currency. You can use the locale header to get the data in
-             * supported language.
-             *
-             * @throws {Error}
-             * @return {Array}
-             */
-            get: function() {
-                let path = '/locale';
-
-                return http
-                    .get(path, {'content-type': 'application/json'},
-                        {
-                        });
-            },
-
-            /**
-             * List Countries
-             *
-             * List of all countries. You can use the locale header to get the data in
-             * supported language.
-             *
-             * @throws {Error}
-             * @return {Array}
-             */
-            getCountries: function() {
-                let path = '/locale/countries';
-
-                return http
-                    .get(path, {'content-type': 'application/json'},
-                        {
-                        });
-            },
-
-            /**
-             * List EU Countries
-             *
-             * List of all countries that are currently members of the EU. You can use the
-             * locale header to get the data in supported language.
-             *
-             * @throws {Error}
-             * @return {Array}
-             */
-            getCountriesEU: function() {
-                let path = '/locale/countries/eu';
-
-                return http
-                    .get(path, {'content-type': 'application/json'},
-                        {
-                        });
-            },
-
-            /**
-             * List Countries Phone Codes
-             *
-             * List of all countries phone codes. You can use the locale header to get the
-             * data in supported language.
-             *
-             * @throws {Error}
-             * @return {Array}
-             */
-            getCountriesPhones: function() {
-                let path = '/locale/countries/phones';
-
-                return http
-                    .get(path, {'content-type': 'application/json'},
-                        {
-                        });
-            }
-        };
-
-        let storage = {
-
-            /**
-             * List Files
-             *
-             * Get a list of all the user files. You can use the query params to filter
-             * your results. On admin mode, this endpoint will return a list of all of the
-             * project files. [Learn more about different API modes](/docs/modes).
-             *
-             * @param {string} search
-             * @param {number} limit
-             * @param {number} offset
-             * @param {string} orderType
-             * @throws {Error}
-             * @return {Array}
-             */
-            listFiles: function(search = '', limit = 25, offset = 0, orderType = 'ASC') {
-                let path = '/storage/files';
-
-                return http
-                    .get(path, {'content-type': 'application/json'},
-                        {
-                            'search': search, 
-                            'limit': limit, 
-                            'offset': offset, 
-                            'orderType': orderType
-                        });
-            },
-
-            /**
-             * Create File
-             *
-             * Create a new file. The user who creates the file will automatically be
-             * assigned to read and write access unless he has passed custom values for
-             * read and write arguments.
-             *
-             * @param {File} files
-             * @param {array} read
-             * @param {array} write
-             * @param {string} folderId
-             * @throws {Error}
-             * @return {Array}
-             */
-            createFile: function(files, read = [], write = [], folderId = '') {
-                if(files === undefined) {
-                    throw new Error('Missing required parameter: "files"');
-                }
-                
-                let path = '/storage/files';
-
-                return http
-                    .post(path, {'content-type': 'application/json'},
-                        {
-                            'files': files, 
-                            'read': read, 
-                            'write': write, 
-                            'folderId': folderId
-                        });
-            },
-
-            /**
-             * Get File
-             *
-             * Get file by its unique ID. This endpoint response returns a JSON object
-             * with the file metadata.
-             *
-             * @param {string} fileId
-             * @throws {Error}
-             * @return {Array}
-             */
-            getFile: function(fileId) {
-                if(fileId === undefined) {
-                    throw new Error('Missing required parameter: "fileId"');
-                }
-                
-                let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
-
-                return http
-                    .get(path, {'content-type': 'application/json'},
-                        {
-                        });
-            },
-
-            /**
-             * Delete File
-             *
-             * Delete a file by its unique ID. Only users with write permissions have
-             * access to delete this resource.
-             *
-             * @param {string} fileId
-             * @throws {Error}
-             * @return {Array}
-             */
-            deleteFile: function(fileId) {
-                if(fileId === undefined) {
-                    throw new Error('Missing required parameter: "fileId"');
-                }
-                
-                let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
-
-                return http
-                    .delete(path, {'content-type': 'application/json'},
-                        {
-                        });
-            },
-
-            /**
-             * Download File
-             *
-             * Get file content by its unique ID. The endpoint response return with a
-             * 'Content-Disposition: attachment' header that tells the browser to start
-             * downloading the file to user downloads directory.
-             *
-             * @param {string} fileId
-             * @throws {Error}
-             * @return {Array}
-             */
-            getFileDownload: function(fileId) {
-                if(fileId === undefined) {
-                    throw new Error('Missing required parameter: "fileId"');
-                }
-                
-                let path = '/storage/files/{fileId}/download'.replace(new RegExp('{fileId}', 'g'), fileId);
-
-                return http
-                    .get(path, {'content-type': 'application/json'},
-                        {
-                        });
-            },
-
-            /**
-             * Preview File
-             *
-             * Get file preview image. Currently, this method supports preview for image
-             * files (jpg, png, and gif), other supported formats, like pdf, docs, slides,
-             * and spreadsheets will return file icon image. You can also pass query
-             * string arguments for cutting and resizing your preview image.
-             *
-             * @param {string} fileId
-             * @param {number} width
-             * @param {number} height
-             * @param {number} quality
-             * @param {string} background
-             * @param {string} output
-             * @throws {Error}
-             * @return {Array}
-             */
-            getFilePreview: function(fileId, width = 0, height = 0, quality = 100, background = '', output = '') {
-                if(fileId === undefined) {
-                    throw new Error('Missing required parameter: "fileId"');
-                }
-                
-                let path = '/storage/files/{fileId}/preview'.replace(new RegExp('{fileId}', 'g'), fileId);
-
-                return http
-                    .get(path, {'content-type': 'application/json'},
-                        {
-                            'width': width, 
-                            'height': height, 
-                            'quality': quality, 
-                            'background': background, 
-                            'output': output
-                        });
-            },
-
-            /**
-             * View File
-             *
-             * Get file content by its unique ID. This endpoint is similar to the download
-             * method but returns with no  'Content-Disposition: attachment' header.
-             *
-             * @param {string} fileId
-             * @param {string} as
-             * @throws {Error}
-             * @return {Array}
-             */
-            getFileView: function(fileId, as = '') {
-                if(fileId === undefined) {
-                    throw new Error('Missing required parameter: "fileId"');
-                }
-                
-                let path = '/storage/files/{fileId}/view'.replace(new RegExp('{fileId}', 'g'), fileId);
-
-                return http
-                    .get(path, {'content-type': 'application/json'},
-                        {
-                            'as': as
-                        });
+                return iframe('patch', path, {project: config.project,
+                    'userId': userId, 
+                    'secret': secret, 
+                    'success': success, 
+                    'failure': failure
+                });
             }
         };
 
@@ -1886,8 +1831,7 @@
              * @param {number} offset
              * @param {string} orderType
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             listUsers: function(search = '', limit = 25, offset = 0, orderType = 'ASC') {
                 let path = '/users';
 
@@ -1910,8 +1854,7 @@
              * @param {string} password
              * @param {string} name
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             createUser: function(email, password, name = '') {
                 if(email === undefined) {
                     throw new Error('Missing required parameter: "email"');
@@ -1939,8 +1882,7 @@
              *
              * @param {string} userId
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getUser: function(userId) {
                 if(userId === undefined) {
                     throw new Error('Missing required parameter: "userId"');
@@ -1961,8 +1903,7 @@
              *
              * @param {string} userId
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getUserLogs: function(userId) {
                 if(userId === undefined) {
                     throw new Error('Missing required parameter: "userId"');
@@ -1983,8 +1924,7 @@
              *
              * @param {string} userId
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getUserPrefs: function(userId) {
                 if(userId === undefined) {
                     throw new Error('Missing required parameter: "userId"');
@@ -2005,8 +1945,7 @@
              *
              * @param {string} userId
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             getUserSessions: function(userId) {
                 if(userId === undefined) {
                     throw new Error('Missing required parameter: "userId"');
@@ -2027,8 +1966,7 @@
              *
              * @param {string} userId
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             deleteUserSessions: function(userId) {
                 if(userId === undefined) {
                     throw new Error('Missing required parameter: "userId"');
@@ -2050,8 +1988,7 @@
              * @param {string} userId
              * @param {string} sessionId
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             deleteUsersSession: function(userId, sessionId) {
                 if(userId === undefined) {
                     throw new Error('Missing required parameter: "userId"');
@@ -2071,15 +2008,14 @@
             },
 
             /**
-             * Block User
+             * Update user status
              *
              * Update user status by its unique ID.
              *
              * @param {string} userId
              * @param {string} status
              * @throws {Error}
-             * @return {Array}
-             */
+             * @return {Promise}             */
             updateUserStatus: function(userId, status) {
                 if(userId === undefined) {
                     throw new Error('Missing required parameter: "userId"');
@@ -2109,9 +2045,9 @@
             auth: auth,
             avatars: avatars,
             database: database,
-            teams: teams,
             locale: locale,
             storage: storage,
+            teams: teams,
             users: users
         };
     };
