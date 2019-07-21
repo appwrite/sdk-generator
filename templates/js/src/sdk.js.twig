@@ -202,7 +202,7 @@
                     return call('POST', path, headers, params, progress);
                 },
                 'put': function(path, headers = {}, params = {}, progress = null) {
-                    return call('PUT', headers, params, progress);
+                    return call('PUT', path, headers, params, progress);
                 },
                 'patch': function(path, headers = {}, params = {}, progress = null) {
                     return call('PATCH', path, headers, params, progress);
