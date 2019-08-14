@@ -280,7 +280,7 @@
 {% if not method.cookies %}
 
                 return http
-                    .{{ method.method | caseLower }}(path, {'content-type': 'application/json'},
+                    .{{ method.method | caseLower }}(path, {'content-type': '{% if 'multipart/form-data' in method.consumes|keys %}multipart/form-data{% else %}application/json{% endif %}'},
                         {
 {% for parameter in method.parameters.query %}
                             '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}

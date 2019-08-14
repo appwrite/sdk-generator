@@ -245,7 +245,7 @@
 
             return {
                 'get': function(path, headers = {}, params = {}) {
-                    return call('GET', path + ((params.length > 0) ? '?' + buildQuery(params) : ''), headers, {});
+                    return call('GET', path + ((Object.keys(params).length > 0) ? '?' + buildQuery(params) : ''), headers, {});
                 },
                 'post': function(path, headers = {}, params = {}, progress = null) {
                     return call('POST', path, headers, params, progress);
@@ -1716,10 +1716,10 @@
              * @param {string} name
              * @param {string} key
              * @param {string} store
-             * @param {array} domains
+             * @param {string} url
              * @throws {Error}
              * @return {Promise}             */
-            createPlatform: function(projectId, type, name, key = '', store = '', domains = []) {
+            createPlatform: function(projectId, type, name, key = '', store = '', url = '') {
                 if(projectId === undefined) {
                     throw new Error('Missing required parameter: "projectId"');
                 }
@@ -1741,7 +1741,7 @@
                             'name': name, 
                             'key': key, 
                             'store': store, 
-                            'domains': domains
+                            'url': url
                         });
             },
 
@@ -1779,10 +1779,10 @@
              * @param {string} name
              * @param {string} key
              * @param {string} store
-             * @param {array} domains
+             * @param {string} url
              * @throws {Error}
              * @return {Promise}             */
-            updatePlatform: function(projectId, platformId, name, key = '', store = '', domains = []) {
+            updatePlatform: function(projectId, platformId, name, key = '', store = '', url = '[]') {
                 if(projectId === undefined) {
                     throw new Error('Missing required parameter: "projectId"');
                 }
@@ -1803,7 +1803,7 @@
                             'name': name, 
                             'key': key, 
                             'store': store, 
-                            'domains': domains
+                            'url': url
                         });
             },
 
@@ -2272,7 +2272,7 @@
                 let path = '/storage/files';
 
                 return http
-                    .post(path, {'content-type': 'application/json'},
+                    .post(path, {'content-type': 'xxxx'},
                         {
                             'files': files, 
                             'read': read, 
