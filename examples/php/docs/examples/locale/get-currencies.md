@@ -12,4 +12,4 @@ $client
 
 $locale = new Locale($client);
 
-$result = $locale->get();
+$result = $locale->getCurrencies();

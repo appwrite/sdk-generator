@@ -5,7 +5,7 @@ sdk
     setKey('')
 ;
 
-let promise = sdk.locale.get();
+let promise = sdk.locale.getCurrencies();
 
 promise.then(function (response) {
     console.log(response);
