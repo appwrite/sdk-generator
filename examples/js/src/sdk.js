@@ -116,8 +116,14 @@
                 let str = [];
 
                 for (let p in params) {
-                    if (params.hasOwnProperty(p)) {
-                        str.push(encodeURIComponent(p + (Array.isArray(params[p]) ? '[]' : '')) + "=" + encodeURIComponent(params[p]));
+                    if(Array.isArray(params[p])) {
+                        for (let index = 0; index < params[p].length; index++) {
+                            let param = params[p][index];
+                            str.push(encodeURIComponent(p + '[]') + "=" + encodeURIComponent(param));
+                        }
+                    }
+                    else {
+                        str.push(encodeURIComponent(p) + "=" + encodeURIComponent(params[p]));
                     }
                 }
 
