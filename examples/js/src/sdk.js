@@ -117,7 +117,7 @@
 
                 for (let p in params) {
                     if (params.hasOwnProperty(p)) {
-                        str.push(encodeURIComponent(p) + "=" + encodeURIComponent(params[p]));
+                        str.push(encodeURIComponent(p + (Array.isArray(params[p]) ? '[]' : '')) + "=" + encodeURIComponent(params[p]));
                     }
                 }
 
@@ -175,7 +175,7 @@
                 if(method === 'GET') {
                     for (let param in params) {
                         if (param.hasOwnProperty(key)) {
-                            path = addParam(path, key, params[key]);
+                            path = addParam(path, key + (Array.isArray(param) ? '[]' : ''), params[key]);
                         }
                     }
                 }
