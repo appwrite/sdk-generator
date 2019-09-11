@@ -10,7 +10,7 @@ Help us keep Appwrite open and inclusive. Please read and follow our [Code of Co
 
 First, create a new class for the new language in this directory: https://github.com/appwrite/sdk-generator/tree/master/src/SDK/Language
 
-You can use the interface to know which methods are required and needs to be implemented:
+You can use the interface to know which methods are required to be implemented:
 https://github.com/appwrite/sdk-generator/blob/master/src/SDK/Language.php
 
 **getName**
