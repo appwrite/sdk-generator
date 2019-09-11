@@ -5,6 +5,22 @@ namespace Appwrite\SDK\Language;
 use Appwrite\SDK\Language;
 
 class Dart extends Language {
+
+    protected $params = [
+        'packageName' => 'dart_appwrite',
+    ];
+
+    /**
+     * @param string $name
+     * @return $this
+     */
+    public function setPackageName($name)
+    {
+        $this->setParam('packageName', $name);
+
+        return $this;
+    }
+
     /**
      * @return string
      */
