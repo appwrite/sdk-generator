@@ -67,14 +67,26 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 ## Supported Languages
 
 | Language   |  Coding Standards   |  Package Manager   |   Maintainer   |
-|------------|------------------|-----------------|------------|
-| PHP   |   [PHP FIG](https://www.php-fig.org/)   |   Composer   |   @eldadfux   |
-| Javascript   |   [NPM Coding Style](https://docs.npmjs.com/misc/coding-style)   |   NPM, Yarn, Bower   |   @eldadfux   |
-| NodeJS   |   [NPM Coding Style](https://docs.npmjs.com/misc/coding-style)   |   NPM, Yarn   |   @eldadfux   |
-| Ruby   |  [Ruby Style Guide](https://github.com/rubocop-hq/ruby-style-guide) |   GEM   |   @eldadfux   |
-| Python   |   [PEP8](https://www.python.org/dev/peps/pep-0008/)   |   PIP   |   @eldadfux   |
-| Kotlin   |   |   ?   |   |
-| Swift   |   |   ?   |   |
+|------------|---------------------|--------------------|----------------|
+| PHP        | [PHP FIG]           | Composer           | [@eldadfux]    |
+| Javascript | [NPM Coding Style]  | NPM, Yarn, Bower   | [@eldadfux]    |
+| NodeJS     | [NPM Coding Style]  | NPM, Yarn          | [@eldadfux]    |
+| Ruby       | [Ruby Style Guide]  | GEM                | [@eldadfux]    |
+| Python     | [PEP8]              | PIP                | [@eldadfux]    |
+| Dart       | [Effective Dart]    | pub tool           | [@Almoullim]   |
+| Kotlin     |                     | ?                  |                |
+| Swift      |                     | ?                  |                |
+
+[@Almoullim]:       https://github.com/Almoullim
+[@eldadfux]:        https://github.com/eldadfux
+
+[PHP FIG]:          https://www.php-fig.org/
+[NPM Coding Style]: https://docs.npmjs.com/misc/coding-style
+[NPM Coding Style]: https://docs.npmjs.com/misc/coding-style
+[Ruby Style Guide]: https://github.com/rubocop-hq/ruby-style-guide
+[PEP8]:             https://www.python.org/dev/peps/pep-0008/
+[Effective Dart]:   https://dart.dev/guides/language/effective-dart/style
+
 
 ## Development
 
