@@ -1,0 +1,67 @@
+import 'package:dio/dio.dart';
+
+class Client {
+    String endPoint;
+    Map<String, String> headers;
+    bool selfSigned;
+    Dio http;
+    
+    Client() {
+        this.endPoint = '{{spec.endpoint}}';
+        this.headers = {
+            'content-type': '',
+            'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
+        };
+        this.selfSigned = false;
+
+        this.http = Dio();
+        http.options.baseUrl = this.endPoint;
+    }
+
+{% for header in spec.global.headers %}
+
+{% if header.description %}
+     /// {{header.description}}
+{% endif %}
+    Client set{{header.key | caseUcfirst}}(value) {
+        this.addHeader('{{header.name}}', value);
+
+        return this;
+    }
+
+{% endfor %}
+    Client setSelfSigned({bool status = true}) {
+        this.selfSigned = status;
+
+        return this;
+    }
+
+    Client setEndpoint(String endPoint)
+    {
+        this.endPoint = endPoint;
+
+        return this;
+    }
+
+    Client addHeader(String key, String value) {
+        this.headers[key.toLowerCase()] = value.toLowerCase();
+        
+        return this;
+    }
+      
+    call(String method, {String path = '', Map<String, String> headers = const {}, Map<String, String> params = const {}}) {
+        if(this.selfSigned) { 
+            // Allow self signed requests
+        }
+
+        Options options = Options(
+            headers: {...this.headers, ...headers},
+        );
+
+        if (method.toUpperCase() == "GET") {
+            return http.post(path, data: params, options: options);
+        }
+
+        return http.get(path, options: options);
+    }
+}
