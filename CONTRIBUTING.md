@@ -8,7 +8,7 @@ Help us keep Appwrite open and inclusive. Please read and follow our [Code of Co
 
 ## Creating Language Class
 
-First, create a new class for the new language in this directory:�https://github.com/appwrite/sdk-generator/tree/master/src/SDK/Language
+First, create a new class for the new language in this directory: https://github.com/appwrite/sdk-generator/tree/master/src/SDK/Language
 
 You can use the interface to know which methods are required and needs to be implemented:
 https://github.com/appwrite/sdk-generator/blob/master/src/SDK/Language.php
@@ -53,6 +53,20 @@ sdk-generator/blob/master/example.php:
     use Appwrite\SDK\SDK;
     use Appwrite\SDK\Language\NewLang;
     
+    function getSSLPage($url) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_HEADER, false);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $result = curl_exec($ch);
+        curl_close($ch);
+        return $result;
+    }
+
+    $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
+
     // NewLang
     $sdk  = new SDK(new NewLang(), new Swagger2($spec));
     $sdk
@@ -69,6 +83,6 @@ Run the following command:
 php example.php
 ```
 
->Note: Make sure to have PHP CLI installed on your host.
+>Note: Make sure to have PHP CLI installed on your host. You can just add the new language next to the other languages in example.php file, no need to rewrite the file completely.
 
 Check your output files at: /examples/new-lang and make sure the SDK works. When possible add some unit tests.
