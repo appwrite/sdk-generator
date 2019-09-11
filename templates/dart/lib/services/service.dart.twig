@@ -1,0 +1,27 @@
+import "package:dart_appwrite/service.dart";
+import "package:dart_appwrite/client.dart";
+
+class {{ service.name | caseUcfirst }} extends Service {
+     
+     {{ service.name | caseUcfirst }}(Client client): super(client);
+
+{% for method in service.methods %}
+{% if method.description %}
+{{ method.description|dartComment }}
+{% endif %}
+    {{ method.name | caseCamel }}({% if method.parameters.all|length > 0 %}{{ '{' }}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}) async {
+       String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
+
+       var params = {
+{% for parameter in method.parameters.query %}
+         '{{ parameter.name }}': {{ parameter.name | caseCamel }},
+{% endfor %}
+{% for parameter in method.parameters.body %}
+         '{{ parameter.name }}': {{ parameter.name | caseCamel }},
+{% endfor %}
+       };
+
+       return await this.client.call('{{ method.method | caseLower }}', path: path, params: params);
+    }
+{% endfor %}
+}
