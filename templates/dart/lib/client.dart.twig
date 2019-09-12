@@ -9,13 +9,12 @@ class Client {
     Client() {
         this.endPoint = '{{spec.endpoint}}';
         this.headers = {
-            'content-type': '',
+            'content-type': 'application/json',
             'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
         };
         this.selfSigned = false;
 
         this.http = Dio();
-        http.options.baseUrl = this.endPoint;
     }
 
 {% for header in spec.global.headers %}
@@ -55,13 +54,11 @@ class Client {
         }
 
         Options options = Options(
+            baseUrl: this.endPoint,
             headers: {...this.headers, ...headers},
+            method: method.toUpperCase(),
         );
 
-        if (method.toUpperCase() == "GET") {
-            return http.post(path, data: params, options: options);
-        }
-
-        return http.get(path, options: options);
+        return http.request(path, data: params, options: options);
     }
 }
