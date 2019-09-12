@@ -9,13 +9,12 @@ class Client {
     Client() {
         this.endPoint = 'https://appwrite.io/v1';
         this.headers = {
-            'content-type': '',
+            'content-type': 'application/json',
             'x-sdk-version': 'appwrite:dart:0.0.1',
         };
         this.selfSigned = false;
 
         this.http = Dio();
-        http.options.baseUrl = this.endPoint;
     }
 
 
@@ -73,13 +72,11 @@ class Client {
         }
 
         Options options = Options(
+            baseUrl: this.endPoint,
             headers: {...this.headers, ...headers},
+            method: method.toUpperCase(),
         );
 
-        if (method.toUpperCase() == "GET") {
-            return http.post(path, data: params, options: options);
-        }
-
-        return http.get(path, options: options);
+        return http.request(path, data: params, options: options);
     }
 }
