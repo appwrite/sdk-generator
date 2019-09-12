@@ -2,7 +2,7 @@
     window.Appwrite = function () {
 
         let config = {
-            endpoint: 'https://appwrite.test/v1',
+            endpoint: 'https://appwrite.io/v1',
             project: '',
             key: '',
             locale: '',
@@ -573,6 +573,63 @@
             },
 
             /**
+             * OAuth Callback
+             *
+             *
+             * @param {string} projectId
+             * @param {string} provider
+             * @param {string} code
+             * @param {string} state
+             * @throws {Error}
+             * @return {Promise}             */
+            oauthCallback: function(projectId, provider, code, state = '') {
+                if(projectId === undefined) {
+                    throw new Error('Missing required parameter: "projectId"');
+                }
+                
+                if(provider === undefined) {
+                    throw new Error('Missing required parameter: "provider"');
+                }
+                
+                if(code === undefined) {
+                    throw new Error('Missing required parameter: "code"');
+                }
+                
+                let path = '/auth/oauth/callback/{provider}/{projectId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{provider}', 'g'), provider);
+
+                return http
+                    .get(path, {'content-type': 'application/json'},
+                        {
+                            'code': code, 
+                            'state': state
+                        });
+            },
+
+            /**
+             * OAuth Login
+             *
+             *
+             * @param {string} provider
+             * @param {string} success
+             * @param {string} failure
+             * @throws {Error}
+             * @return {Promise}             */
+            oauth: function(provider, success = '', failure = '') {
+                if(provider === undefined) {
+                    throw new Error('Missing required parameter: "provider"');
+                }
+                
+                let path = '/auth/oauth/{provider}'.replace(new RegExp('{provider}', 'g'), provider);
+
+                return http
+                    .get(path, {'content-type': 'application/json'},
+                        {
+                            'success': success, 
+                            'failure': failure
+                        });
+            },
+
+            /**
              * Password Recovery
              *
              * Sends the user an email with a temporary secret token for password reset.
@@ -768,63 +825,6 @@
                         {
                             'redirect': redirect
                         });
-            },
-
-            /**
-             * OAuth Callback
-             *
-             *
-             * @param {string} projectId
-             * @param {string} provider
-             * @param {string} code
-             * @param {string} state
-             * @throws {Error}
-             * @return {Promise}             */
-            oauthCallback: function(projectId, provider, code, state = '') {
-                if(projectId === undefined) {
-                    throw new Error('Missing required parameter: "projectId"');
-                }
-                
-                if(provider === undefined) {
-                    throw new Error('Missing required parameter: "provider"');
-                }
-                
-                if(code === undefined) {
-                    throw new Error('Missing required parameter: "code"');
-                }
-                
-                let path = '/oauth/callback/{provider}/{projectId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{provider}', 'g'), provider);
-
-                return http
-                    .get(path, {'content-type': 'application/json'},
-                        {
-                            'code': code, 
-                            'state': state
-                        });
-            },
-
-            /**
-             * OAuth Login
-             *
-             *
-             * @param {string} provider
-             * @param {string} success
-             * @param {string} failure
-             * @throws {Error}
-             * @return {Promise}             */
-            oauth: function(provider, success = '', failure = '') {
-                if(provider === undefined) {
-                    throw new Error('Missing required parameter: "provider"');
-                }
-                
-                let path = '/oauth/{provider}'.replace(new RegExp('{provider}', 'g'), provider);
-
-                return http
-                    .get(path, {'content-type': 'application/json'},
-                        {
-                            'success': success, 
-                            'failure': failure
-                        });
             }
         };
 
@@ -943,12 +943,12 @@
             },
 
             /**
-             * Get image from and HTTP URL and crop to any size.
+             * Get Image from URL
              *
              * Use this endpoint to fetch a remote image URL and crop it to any image size
-             * you want. This endpoint is very useful if you need to crop a remote image
-             * or in cases, you want to make sure a 3rd party image is properly served
-             * using a TLS protocol.
+             * you want. This endpoint is very useful if you need to crop and display
+             * remote images in your app or in cases, you want to make sure a 3rd party
+             * image is properly served using a TLS protocol.
              *
              * @param {string} url
              * @param {number} width
@@ -1423,7 +1423,6 @@
              * @param {string} description
              * @param {string} logo
              * @param {string} url
-             * @param {array} clients
              * @param {string} legalName
              * @param {string} legalCountry
              * @param {string} legalState
@@ -1432,7 +1431,7 @@
              * @param {string} legalTaxId
              * @throws {Error}
              * @return {Promise}             */
-            createProject: function(name, teamId, description = '', logo = '', url = '', clients = [], legalName = '', legalCountry = '', legalState = '', legalCity = '', legalAddress = '', legalTaxId = '') {
+            createProject: function(name, teamId, description = '', logo = '', url = '', legalName = '', legalCountry = '', legalState = '', legalCity = '', legalAddress = '', legalTaxId = '') {
                 if(name === undefined) {
                     throw new Error('Missing required parameter: "name"');
                 }
@@ -1451,7 +1450,6 @@
                             'description': description, 
                             'logo': logo, 
                             'url': url, 
-                            'clients': clients, 
                             'legalName': legalName, 
                             'legalCountry': legalCountry, 
                             'legalState': legalState, 
@@ -1490,7 +1488,6 @@
              * @param {string} description
              * @param {string} logo
              * @param {string} url
-             * @param {array} clients
              * @param {string} legalName
              * @param {string} legalCountry
              * @param {string} legalState
@@ -1499,7 +1496,7 @@
              * @param {string} legalTaxId
              * @throws {Error}
              * @return {Promise}             */
-            updateProject: function(projectId, name, description = '', logo = '', url = '', clients = [], legalName = '', legalCountry = '', legalState = '', legalCity = '', legalAddress = '', legalTaxId = '') {
+            updateProject: function(projectId, name, description = '', logo = '', url = '', legalName = '', legalCountry = '', legalState = '', legalCity = '', legalAddress = '', legalTaxId = '') {
                 if(projectId === undefined) {
                     throw new Error('Missing required parameter: "projectId"');
                 }
@@ -1517,7 +1514,6 @@
                             'description': description, 
                             'logo': logo, 
                             'url': url, 
-                            'clients': clients, 
                             'legalName': legalName, 
                             'legalCountry': legalCountry, 
                             'legalState': legalState, 
@@ -2333,6 +2329,34 @@
             },
 
             /**
+             * Update File
+             *
+             * Update file by its unique ID. Only users with write permissions have access
+             * to update this resource.
+             *
+             * @param {string} fileId
+             * @param {array} read
+             * @param {array} write
+             * @param {string} folderId
+             * @throws {Error}
+             * @return {Promise}             */
+            updateFile: function(fileId, read = [], write = [], folderId = '') {
+                if(fileId === undefined) {
+                    throw new Error('Missing required parameter: "fileId"');
+                }
+                
+                let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
+
+                return http
+                    .put(path, {'content-type': 'application/json'},
+                        {
+                            'read': read, 
+                            'write': write, 
+                            'folderId': folderId
+                        });
+            },
+
+            /**
              * Delete File
              *
              * Delete a file by its unique ID. Only users with write permissions have
@@ -2355,7 +2379,7 @@
             },
 
             /**
-             * Download File
+             * Get File for Download
              *
              * Get file content by its unique ID. The endpoint response return with a
              * 'Content-Disposition: attachment' header that tells the browser to start
@@ -2378,7 +2402,7 @@
             },
 
             /**
-             * Preview File
+             * Get File Preview
              *
              * Get file preview image. Currently, this method supports preview for image
              * files (jpg, png, and gif), other supported formats, like pdf, docs, slides,
@@ -2412,7 +2436,7 @@
             },
 
             /**
-             * View File
+             * Get File for View
              *
              * Get file content by its unique ID. This endpoint is similar to the download
              * method but returns with no  'Content-Disposition: attachment' header.
@@ -2666,7 +2690,7 @@
             },
 
             /**
-             * Create Team Membership (Resend Invitation Email)
+             * Create Team Membership (Resend)
              *
              * Use this endpoint to resend your invitation email for a user to join a
              * team.

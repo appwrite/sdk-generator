@@ -3,7 +3,7 @@
 ## List Files
 
 ```http request
-GET https://appwrite.test/v1/storage/files
+GET https://appwrite.io/v1/storage/files
 ```
 
 ** Get a list of all the user files. You can use the query params to filter your results. On admin mode, this endpoint will return a list of all of the project files. [Learn more about different API modes](/docs/modes). **
@@ -20,7 +20,7 @@ GET https://appwrite.test/v1/storage/files
 ## Create File
 
 ```http request
-POST https://appwrite.test/v1/storage/files
+POST https://appwrite.io/v1/storage/files
 ```
 
 ** Create a new file. The user who creates the file will automatically be assigned to read and write access unless he has passed custom values for read and write arguments. **
@@ -37,7 +37,7 @@ POST https://appwrite.test/v1/storage/files
 ## Get File
 
 ```http request
-GET https://appwrite.test/v1/storage/files/{fileId}
+GET https://appwrite.io/v1/storage/files/{fileId}
 ```
 
 ** Get file by its unique ID. This endpoint response returns a JSON object with the file metadata. **
@@ -48,10 +48,27 @@ GET https://appwrite.test/v1/storage/files/{fileId}
 | --- | --- | --- | --- |
 | fileId | string | **Required** File unique ID. |  |
 
+## Update File
+
+```http request
+PUT https://appwrite.io/v1/storage/files/{fileId}
+```
+
+** Update file by its unique ID. Only users with write permissions have access to update this resource. **
+
+### Parameters
+
+| Field Name | Type | Description | Default |
+| --- | --- | --- | --- |
+| fileId | string | **Required** File unique ID. |  |
+| read | array | An array of read permissions. [Learn more about permissions and roles](/docs/permissions). | [] |
+| write | array | An array of write permissions. [Learn more about permissions and roles](/docs/permissions). | [] |
+| folderId | string | Folder to associate files with. |  |
+
 ## Delete File
 
 ```http request
-DELETE https://appwrite.test/v1/storage/files/{fileId}
+DELETE https://appwrite.io/v1/storage/files/{fileId}
 ```
 
 ** Delete a file by its unique ID. Only users with write permissions have access to delete this resource. **
@@ -62,10 +79,10 @@ DELETE https://appwrite.test/v1/storage/files/{fileId}
 | --- | --- | --- | --- |
 | fileId | string | **Required** File unique ID. |  |
 
-## Download File
+## Get File for Download
 
 ```http request
-GET https://appwrite.test/v1/storage/files/{fileId}/download
+GET https://appwrite.io/v1/storage/files/{fileId}/download
 ```
 
 ** Get file content by its unique ID. The endpoint response return with a &#039;Content-Disposition: attachment&#039; header that tells the browser to start downloading the file to user downloads directory. **
@@ -76,10 +93,10 @@ GET https://appwrite.test/v1/storage/files/{fileId}/download
 | --- | --- | --- | --- |
 | fileId | string | **Required** File unique ID. |  |
 
-## Preview File
+## Get File Preview
 
 ```http request
-GET https://appwrite.test/v1/storage/files/{fileId}/preview
+GET https://appwrite.io/v1/storage/files/{fileId}/preview
 ```
 
 ** Get file preview image. Currently, this method supports preview for image files (jpg, png, and gif), other supported formats, like pdf, docs, slides, and spreadsheets will return file icon image. You can also pass query string arguments for cutting and resizing your preview image. **
@@ -95,10 +112,10 @@ GET https://appwrite.test/v1/storage/files/{fileId}/preview
 | background | string | Preview image background color. Only works with transparent images (png). Use a valid HEX color, no # is needed for prefix. |  |
 | output | string | Output format type (jpeg, jpg, png, gif and webp) |  |
 
-## View File
+## Get File for View
 
 ```http request
-GET https://appwrite.test/v1/storage/files/{fileId}/view
+GET https://appwrite.io/v1/storage/files/{fileId}/view
 ```
 
 ** Get file content by its unique ID. This endpoint is similar to the download method but returns with no  &#039;Content-Disposition: attachment&#039; header. **
