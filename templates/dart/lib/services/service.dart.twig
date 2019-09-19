@@ -9,7 +9,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% if method.description %}
 {{ method.description|dartComment }}
 {% endif %}
-    {{ method.name | caseCamel }}({% if method.parameters.all|length > 0 %}{{ '{' }}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}) async {
+    {{ method.name | caseCamel }}({% if method.parameters.all|length > 0 %}{{ '{' }}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | escapeDollarSign | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}) async {
        String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
 
        var params = {
