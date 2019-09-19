@@ -15,6 +15,7 @@ class Client {
         this.selfSigned = false;
 
         this.http = Dio();
+        this.http.options.baseUrl = this.endPoint;
     }
 
 {% for header in spec.global.headers %}
@@ -54,7 +55,6 @@ class Client {
         }
 
         Options options = Options(
-            baseUrl: this.endPoint,
             headers: {...this.headers, ...headers},
             method: method.toUpperCase(),
         );
