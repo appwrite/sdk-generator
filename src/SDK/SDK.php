@@ -120,6 +120,9 @@ class SDK
             }
             return implode("\n", $value);
         }, ['is_safe' => ['dart']]));
+        $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value) {
+            return str_replace('$', '\$', $value);
+        }));
     }
 
     /**
