@@ -236,6 +236,12 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/dart_appwrite.dart',
+                'template'      => '/dart/lib/dart_appwrite.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/pubspec.yaml',
                 'template'      => '/dart/pubspec.yaml.twig',
                 'minify'        => false,
