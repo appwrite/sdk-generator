@@ -1,16 +1,16 @@
 const sdk = require('node-appwrite');
 
 // Init SDK
-let client = new Database.Client();
+let client = new Storage.Client();
 
-let database = new sdk.Database(client);
+let storage = new sdk.Storage(client);
 
 client
     setProject('')
     setKey('')
 ;
 
-let promise = database.createDocument('[COLLECTION_ID]', '{}');
+let promise = storage.updateFile('[FILE_ID]');
 
 promise.then(function (response) {
     console.log(response);
