@@ -46,7 +46,7 @@ class Node extends JS
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
-                'template'      => '/node/REDAME.md.twig',
+                'template'      => '/node/README.md.twig',
                 'minify'        => false,
             ],
             [

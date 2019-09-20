@@ -231,13 +231,13 @@ class Dart extends Language {
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
-                'template'      => '/js/REDAME.md.twig',
+                'template'      => '/dart/README.md.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
-                'template'      => '/js/LICENSE.twig',
+                'template'      => '/dart/LICENSE.twig',
                 'minify'        => false,
             ],
             [

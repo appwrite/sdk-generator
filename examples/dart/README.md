@@ -15,10 +15,17 @@ Appwrite backend as a service cuts up to 70% of the time and costs required for 
 
 ## Installation
 
-To install via [NPM](https://www.npmjs.com/):
+Add this to your package's pubspec.yaml file:
+
+```yml
+dependencies:
+  packageName: ^0.0.1
+```
+
+You can install packages from the command line:
 
 ```bash
-npm install  --save
+pub get
 ```
 
 ## License
