@@ -1,0 +1,5 @@
+{% for service in spec.services %}
+export 'package:dart_appwrite/services/{{service.name | caseDash}}.dart';
+{% endfor %}
+export 'package:dart_appwrite/client.dart';
+export 'package:dio/dio.dart' show Response;

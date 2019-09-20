@@ -9,8 +9,9 @@ use Appwrite\SDK\Language\Node;
 use Appwrite\SDK\Language\PHP;
 use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
+use Appwrite\SDK\Language\Dart;
 
-$languages  = ['js', 'node', 'php', 'python', 'ruby'];
+$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart'];
 
 try {
 
@@ -82,6 +83,20 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/python');
+
+    // Dart
+    $sdk  = new SDK(new Dart(), new Swagger2($spec));
+
+    $sdk
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setVersion('0.0.1')
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/dart');
+
+
 }
 catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";

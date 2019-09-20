@@ -1,3 +1,7 @@
 composer.lock
 /vendor/
 /.idea/
+
+# Dart auto-generated
+examples/dart/.packages
+examples/dart/pubspec.lock

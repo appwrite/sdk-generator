@@ -113,6 +113,16 @@ class SDK
             }
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('dartComment', function ($value) {
+            $value = explode("\n", $value);
+            foreach ($value as $key => $line) {
+                $value[$key] = "     /// " . wordwrap($value[$key], 75, "\n     /// ");
+            }
+            return implode("\n", $value);
+        }, ['is_safe' => ['dart']]));
+        $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value) {
+            return str_replace('$', '\$', $value);
+        }));
     }
 
     /**
