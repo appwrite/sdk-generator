@@ -248,8 +248,8 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/dart_appwrite.dart',
-                'template'      => '/dart/lib/dart_appwrite.dart.twig',
+                'destination'   => '/lib/{{ spec.title | caseDash }}.dart',
+                'template'      => '/dart/lib/package.dart.twig',
                 'minify'        => false,
             ],
             [
