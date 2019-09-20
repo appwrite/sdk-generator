@@ -73,6 +73,30 @@ class Storage extends Service {
     }
 
     /**
+     * Update File
+     *
+     * Update file by its unique ID. Only users with write permissions have access
+     * to update this resource.
+     *
+     * @param string fileId
+     * @param array read
+     * @param array write
+     * @param string folderId
+     * @throws Exception
+     * @return {}
+     */
+    async updateFile(fileId, read = [], write = [], folderId = '') {
+        let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
+        
+        return await this.client.call('put', path, {'content-type': 'application/json'},
+            {
+                'read': read,
+                'write': write,
+                'folderId': folderId
+            });
+    }
+
+    /**
      * Delete File
      *
      * Delete a file by its unique ID. Only users with write permissions have
@@ -91,7 +115,7 @@ class Storage extends Service {
     }
 
     /**
-     * Download File
+     * Get File for Download
      *
      * Get file content by its unique ID. The endpoint response return with a
      * 'Content-Disposition: attachment' header that tells the browser to start
@@ -110,7 +134,7 @@ class Storage extends Service {
     }
 
     /**
-     * Preview File
+     * Get File Preview
      *
      * Get file preview image. Currently, this method supports preview for image
      * files (jpg, png, and gif), other supported formats, like pdf, docs, slides,
@@ -140,7 +164,7 @@ class Storage extends Service {
     }
 
     /**
-     * View File
+     * Get File for View
      *
      * Get file content by its unique ID. This endpoint is similar to the download
      * method but returns with no  'Content-Disposition: attachment' header.

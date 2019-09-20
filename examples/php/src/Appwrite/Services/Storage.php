@@ -86,6 +86,32 @@ class Storage extends Service
     }
 
     /**
+     * Update File
+     *
+     * Update file by its unique ID. Only users with write permissions have access
+     * to update this resource.
+     *
+     * @param string $fileId
+     * @param array $read
+     * @param array $write
+     * @param string $folderId
+     * @throws Exception
+     * @return array
+     */
+    public function updateFile($fileId, $read = [], $write = [], $folderId = '')
+    {
+        $path   = str_replace(['{fileId}'], [$fileId], '/storage/files/{fileId}');
+        $params = [];
+
+        $params['read'] = $read;
+        $params['write'] = $write;
+        $params['folderId'] = $folderId;
+
+        return $this->client->call(Client::METHOD_PUT, $path, [
+        ], $params);
+    }
+
+    /**
      * Delete File
      *
      * Delete a file by its unique ID. Only users with write permissions have
@@ -106,7 +132,7 @@ class Storage extends Service
     }
 
     /**
-     * Download File
+     * Get File for Download
      *
      * Get file content by its unique ID. The endpoint response return with a
      * 'Content-Disposition: attachment' header that tells the browser to start
@@ -127,7 +153,7 @@ class Storage extends Service
     }
 
     /**
-     * Preview File
+     * Get File Preview
      *
      * Get file preview image. Currently, this method supports preview for image
      * files (jpg, png, and gif), other supported formats, like pdf, docs, slides,
@@ -159,7 +185,7 @@ class Storage extends Service
     }
 
     /**
-     * View File
+     * Get File for View
      *
      * Get file content by its unique ID. This endpoint is similar to the download
      * method but returns with no  'Content-Disposition: attachment' header.

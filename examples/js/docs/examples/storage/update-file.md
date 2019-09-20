@@ -5,7 +5,7 @@ sdk
     setKey('')
 ;
 
-let promise = sdk.projects.createTask('[PROJECT_ID]', '[NAME]', 'play', '', 0, 'GET', 'https://example.com');
+let promise = sdk.storage.updateFile('[FILE_ID]');
 
 promise.then(function (response) {
     console.log(response);

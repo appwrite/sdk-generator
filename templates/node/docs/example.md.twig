@@ -1,11 +1,16 @@
-let sdk = new {{ spec.title | caseUcfirst }}();
+const sdk = require('node-appwrite');
 
-sdk
+// Init SDK
+let client = new {{service.name | caseUcfirst}}.Client();
+
+let {{ service.name | caseCamel }} = new sdk.{{service.name | caseUcfirst}}(client);
+
+client
 {% for key,header in method.security[0]|keys %}
     set{{header}}('')
 {% endfor %};
 
-let promise = sdk.{{ service.name | caseLower }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
+let promise = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
 
 promise.then(function (response) {
     console.log(response);
