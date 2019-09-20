@@ -1,24 +1,25 @@
 import "package:dart_appwrite/service.dart";
 import "package:dart_appwrite/client.dart";
+import 'package:dio/dio.dart';
 
 class Account extends Service {
      
      Account(Client client): super(client);
 
      /// Get currently logged in user data as JSON object.
-    get() async {
+    Future<Response> get() async {
        String path = '/account';
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
      /// Delete currently logged in user account.
-    delete() async {
+    Future<Response> delete() async {
        String path = '/account';
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('delete', path: path, params: params);
@@ -27,10 +28,10 @@ class Account extends Service {
      /// address, user confirmation status is being reset and a new confirmation
      /// mail is sent. For security measures, user password is required to complete
      /// this request.
-    updateEmail({email, password}) async {
+    Future<Response> updateEmail({email, password}) async {
        String path = '/account/email';
 
-       var params = {
+       Map<String, dynamic> params = {
          'email': email,
          'password': password,
        };
@@ -38,10 +39,10 @@ class Account extends Service {
        return await this.client.call('patch', path: path, params: params);
     }
      /// Update currently logged in user account name.
-    updateName({name}) async {
+    Future<Response> updateName({name}) async {
        String path = '/account/name';
 
-       var params = {
+       Map<String, dynamic> params = {
          'name': name,
        };
 
@@ -49,10 +50,10 @@ class Account extends Service {
     }
      /// Update currently logged in user password. For validation, user is required
      /// to pass the password twice.
-    updatePassword({password, oldPassword}) async {
+    Future<Response> updatePassword({password, oldPassword}) async {
        String path = '/account/password';
 
-       var params = {
+       Map<String, dynamic> params = {
          'password': password,
          'old-password': oldPassword,
        };
@@ -60,20 +61,20 @@ class Account extends Service {
        return await this.client.call('patch', path: path, params: params);
     }
      /// Get currently logged in user preferences key-value object.
-    getPrefs() async {
+    Future<Response> getPrefs() async {
        String path = '/account/prefs';
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
      /// Update currently logged in user account preferences. You can pass only the
      /// specific settings you wish to update.
-    updatePrefs({prefs}) async {
+    Future<Response> updatePrefs({prefs}) async {
        String path = '/account/prefs';
 
-       var params = {
+       Map<String, dynamic> params = {
          'prefs': prefs,
        };
 
@@ -81,20 +82,20 @@ class Account extends Service {
     }
      /// Get currently logged in user list of latest security activity logs. Each
      /// log returns user IP address, location and date and time of log.
-    getSecurity() async {
+    Future<Response> getSecurity() async {
        String path = '/account/security';
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
      /// Get currently logged in user list of active sessions across different
      /// devices.
-    getSessions() async {
+    Future<Response> getSessions() async {
        String path = '/account/sessions';
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);

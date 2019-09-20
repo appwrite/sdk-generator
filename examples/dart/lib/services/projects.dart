@@ -1,22 +1,23 @@
 import "package:dart_appwrite/service.dart";
 import "package:dart_appwrite/client.dart";
+import 'package:dio/dio.dart';
 
 class Projects extends Service {
      
      Projects(Client client): super(client);
 
-    listProjects() async {
+    Future<Response> listProjects() async {
        String path = '/projects';
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
-    createProject({name, teamId, description = null, logo = null, url = null, legalName = null, legalCountry = null, legalState = null, legalCity = null, legalAddress = null, legalTaxId = null}) async {
+    Future<Response> createProject({name, teamId, description = null, logo = null, url = null, legalName = null, legalCountry = null, legalState = null, legalCity = null, legalAddress = null, legalTaxId = null}) async {
        String path = '/projects';
 
-       var params = {
+       Map<String, dynamic> params = {
          'name': name,
          'teamId': teamId,
          'description': description,
@@ -32,18 +33,18 @@ class Projects extends Service {
 
        return await this.client.call('post', path: path, params: params);
     }
-    getProject({projectId}) async {
+    Future<Response> getProject({projectId}) async {
        String path = '/projects/{projectId}'.replaceAll(RegExp('{projectId}'), projectId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
-    updateProject({projectId, name, description = null, logo = null, url = null, legalName = null, legalCountry = null, legalState = null, legalCity = null, legalAddress = null, legalTaxId = null}) async {
+    Future<Response> updateProject({projectId, name, description = null, logo = null, url = null, legalName = null, legalCountry = null, legalState = null, legalCity = null, legalAddress = null, legalTaxId = null}) async {
        String path = '/projects/{projectId}'.replaceAll(RegExp('{projectId}'), projectId);
 
-       var params = {
+       Map<String, dynamic> params = {
          'name': name,
          'description': description,
          'logo': logo,
@@ -58,62 +59,62 @@ class Projects extends Service {
 
        return await this.client.call('patch', path: path, params: params);
     }
-    deleteProject({projectId}) async {
+    Future<Response> deleteProject({projectId}) async {
        String path = '/projects/{projectId}'.replaceAll(RegExp('{projectId}'), projectId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('delete', path: path, params: params);
     }
-    listKeys({projectId}) async {
+    Future<Response> listKeys({projectId}) async {
        String path = '/projects/{projectId}/keys'.replaceAll(RegExp('{projectId}'), projectId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
-    createKey({projectId, name, scopes}) async {
+    Future<Response> createKey({projectId, name, scopes}) async {
        String path = '/projects/{projectId}/keys'.replaceAll(RegExp('{projectId}'), projectId);
 
-       var params = {
+       Map<String, dynamic> params = {
          'name': name,
          'scopes': scopes,
        };
 
        return await this.client.call('post', path: path, params: params);
     }
-    getKey({projectId, keyId}) async {
+    Future<Response> getKey({projectId, keyId}) async {
        String path = '/projects/{projectId}/keys/{keyId}'.replaceAll(RegExp('{projectId}'), projectId).replaceAll(RegExp('{keyId}'), keyId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
-    updateKey({projectId, keyId, name, scopes}) async {
+    Future<Response> updateKey({projectId, keyId, name, scopes}) async {
        String path = '/projects/{projectId}/keys/{keyId}'.replaceAll(RegExp('{projectId}'), projectId).replaceAll(RegExp('{keyId}'), keyId);
 
-       var params = {
+       Map<String, dynamic> params = {
          'name': name,
          'scopes': scopes,
        };
 
        return await this.client.call('put', path: path, params: params);
     }
-    deleteKey({projectId, keyId}) async {
+    Future<Response> deleteKey({projectId, keyId}) async {
        String path = '/projects/{projectId}/keys/{keyId}'.replaceAll(RegExp('{projectId}'), projectId).replaceAll(RegExp('{keyId}'), keyId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('delete', path: path, params: params);
     }
-    updateProjectOAuth({projectId, provider, appId = null, secret = null}) async {
+    Future<Response> updateProjectOAuth({projectId, provider, appId = null, secret = null}) async {
        String path = '/projects/{projectId}/oauth'.replaceAll(RegExp('{projectId}'), projectId);
 
-       var params = {
+       Map<String, dynamic> params = {
          'provider': provider,
          'appId': appId,
          'secret': secret,
@@ -121,18 +122,18 @@ class Projects extends Service {
 
        return await this.client.call('patch', path: path, params: params);
     }
-    listPlatforms({projectId}) async {
+    Future<Response> listPlatforms({projectId}) async {
        String path = '/projects/{projectId}/platforms'.replaceAll(RegExp('{projectId}'), projectId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
-    createPlatform({projectId, type, name, key = null, store = null, url = null}) async {
+    Future<Response> createPlatform({projectId, type, name, key = null, store = null, url = null}) async {
        String path = '/projects/{projectId}/platforms'.replaceAll(RegExp('{projectId}'), projectId);
 
-       var params = {
+       Map<String, dynamic> params = {
          'type': type,
          'name': name,
          'key': key,
@@ -142,18 +143,18 @@ class Projects extends Service {
 
        return await this.client.call('post', path: path, params: params);
     }
-    getPlatform({projectId, platformId}) async {
+    Future<Response> getPlatform({projectId, platformId}) async {
        String path = '/projects/{projectId}/platforms/{platformId}'.replaceAll(RegExp('{projectId}'), projectId).replaceAll(RegExp('{platformId}'), platformId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
-    updatePlatform({projectId, platformId, name, key = null, store = null, url = null}) async {
+    Future<Response> updatePlatform({projectId, platformId, name, key = null, store = null, url = null}) async {
        String path = '/projects/{projectId}/platforms/{platformId}'.replaceAll(RegExp('{projectId}'), projectId).replaceAll(RegExp('{platformId}'), platformId);
 
-       var params = {
+       Map<String, dynamic> params = {
          'name': name,
          'key': key,
          'store': store,
@@ -162,26 +163,26 @@ class Projects extends Service {
 
        return await this.client.call('put', path: path, params: params);
     }
-    deletePlatform({projectId, platformId}) async {
+    Future<Response> deletePlatform({projectId, platformId}) async {
        String path = '/projects/{projectId}/platforms/{platformId}'.replaceAll(RegExp('{projectId}'), projectId).replaceAll(RegExp('{platformId}'), platformId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('delete', path: path, params: params);
     }
-    listTasks({projectId}) async {
+    Future<Response> listTasks({projectId}) async {
        String path = '/projects/{projectId}/tasks'.replaceAll(RegExp('{projectId}'), projectId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
-    createTask({projectId, name, status, schedule, security, httpMethod, httpUrl, httpHeaders = null, httpUser = null, httpPass = null}) async {
+    Future<Response> createTask({projectId, name, status, schedule, security, httpMethod, httpUrl, httpHeaders = null, httpUser = null, httpPass = null}) async {
        String path = '/projects/{projectId}/tasks'.replaceAll(RegExp('{projectId}'), projectId);
 
-       var params = {
+       Map<String, dynamic> params = {
          'name': name,
          'status': status,
          'schedule': schedule,
@@ -195,18 +196,18 @@ class Projects extends Service {
 
        return await this.client.call('post', path: path, params: params);
     }
-    getTask({projectId, taskId}) async {
+    Future<Response> getTask({projectId, taskId}) async {
        String path = '/projects/{projectId}/tasks/{taskId}'.replaceAll(RegExp('{projectId}'), projectId).replaceAll(RegExp('{taskId}'), taskId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
-    updateTask({projectId, taskId, name, status, schedule, security, httpMethod, httpUrl, httpHeaders = null, httpUser = null, httpPass = null}) async {
+    Future<Response> updateTask({projectId, taskId, name, status, schedule, security, httpMethod, httpUrl, httpHeaders = null, httpUser = null, httpPass = null}) async {
        String path = '/projects/{projectId}/tasks/{taskId}'.replaceAll(RegExp('{projectId}'), projectId).replaceAll(RegExp('{taskId}'), taskId);
 
-       var params = {
+       Map<String, dynamic> params = {
          'name': name,
          'status': status,
          'schedule': schedule,
@@ -220,34 +221,34 @@ class Projects extends Service {
 
        return await this.client.call('put', path: path, params: params);
     }
-    deleteTask({projectId, taskId}) async {
+    Future<Response> deleteTask({projectId, taskId}) async {
        String path = '/projects/{projectId}/tasks/{taskId}'.replaceAll(RegExp('{projectId}'), projectId).replaceAll(RegExp('{taskId}'), taskId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('delete', path: path, params: params);
     }
-    getProjectUsage({projectId}) async {
+    Future<Response> getProjectUsage({projectId}) async {
        String path = '/projects/{projectId}/usage'.replaceAll(RegExp('{projectId}'), projectId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
-    listWebhooks({projectId}) async {
+    Future<Response> listWebhooks({projectId}) async {
        String path = '/projects/{projectId}/webhooks'.replaceAll(RegExp('{projectId}'), projectId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
-    createWebhook({projectId, name, events, url, security, httpUser = null, httpPass = null}) async {
+    Future<Response> createWebhook({projectId, name, events, url, security, httpUser = null, httpPass = null}) async {
        String path = '/projects/{projectId}/webhooks'.replaceAll(RegExp('{projectId}'), projectId);
 
-       var params = {
+       Map<String, dynamic> params = {
          'name': name,
          'events': events,
          'url': url,
@@ -258,18 +259,18 @@ class Projects extends Service {
 
        return await this.client.call('post', path: path, params: params);
     }
-    getWebhook({projectId, webhookId}) async {
+    Future<Response> getWebhook({projectId, webhookId}) async {
        String path = '/projects/{projectId}/webhooks/{webhookId}'.replaceAll(RegExp('{projectId}'), projectId).replaceAll(RegExp('{webhookId}'), webhookId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
-    updateWebhook({projectId, webhookId, name, events, url, security, httpUser = null, httpPass = null}) async {
+    Future<Response> updateWebhook({projectId, webhookId, name, events, url, security, httpUser = null, httpPass = null}) async {
        String path = '/projects/{projectId}/webhooks/{webhookId}'.replaceAll(RegExp('{projectId}'), projectId).replaceAll(RegExp('{webhookId}'), webhookId);
 
-       var params = {
+       Map<String, dynamic> params = {
          'name': name,
          'events': events,
          'url': url,
@@ -280,10 +281,10 @@ class Projects extends Service {
 
        return await this.client.call('put', path: path, params: params);
     }
-    deleteWebhook({projectId, webhookId}) async {
+    Future<Response> deleteWebhook({projectId, webhookId}) async {
        String path = '/projects/{projectId}/webhooks/{webhookId}'.replaceAll(RegExp('{projectId}'), projectId).replaceAll(RegExp('{webhookId}'), webhookId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('delete', path: path, params: params);

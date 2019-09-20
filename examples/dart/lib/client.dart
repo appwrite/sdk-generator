@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:cookie_jar/cookie_jar.dart';
 
 class Client {
     String endPoint;
@@ -15,6 +17,9 @@ class Client {
         this.selfSigned = false;
 
         this.http = Dio();
+        this.http.options.baseUrl = this.endPoint;
+        this.http.options.validateStatus = (status) => status != 404;
+        this.http.interceptors.add(CookieManager(CookieJar()));
     }
 
 
@@ -56,7 +61,7 @@ class Client {
     Client setEndpoint(String endPoint)
     {
         this.endPoint = endPoint;
-
+        this.http.options.baseUrl = this.endPoint;
         return this;
     }
 
@@ -65,18 +70,31 @@ class Client {
         
         return this;
     }
-      
-    call(String method, {String path = '', Map<String, String> headers = const {}, Map<String, String> params = const {}}) {
+
+    Future<Response> call(String method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}}) {
         if(this.selfSigned) { 
             // Allow self signed requests
         }
 
+        String reqPath = path;
+        bool isGet = method.toUpperCase() == "GET";
+
+        // Origin is hardcoded for testing
         Options options = Options(
-            baseUrl: this.endPoint,
-            headers: {...this.headers, ...headers},
+            headers: {...this.headers, ...headers, "Origin": "http://localhost"},
             method: method.toUpperCase(),
         );
 
-        return http.request(path, data: params, options: options);
+        if (isGet) {
+            path += "?";
+            params.forEach((k, v) {
+                path += "${k}=${v}&";
+            });
+        }
+
+        if (!isGet)
+            return http.request(reqPath, data: params, options: options);
+        else
+            return http.request(reqPath, options: options);
     }
 }

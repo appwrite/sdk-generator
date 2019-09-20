@@ -1,5 +1,6 @@
 import "package:dart_appwrite/service.dart";
 import "package:dart_appwrite/client.dart";
+import 'package:dio/dio.dart';
 
 class Database extends Service {
      
@@ -9,10 +10,10 @@ class Database extends Service {
      /// filter your results. On admin mode, this endpoint will return a list of all
      /// of the project collections. [Learn more about different API
      /// modes](/docs/modes).
-    listCollections({search = null, limit = 25, offset = 0, orderType = 'ASC'}) async {
+    Future<Response> listCollections({search = null, limit = 25, offset = null, orderType = 'ASC'}) async {
        String path = '/database';
 
-       var params = {
+       Map<String, dynamic> params = {
          'search': search,
          'limit': limit,
          'offset': offset,
@@ -22,10 +23,10 @@ class Database extends Service {
        return await this.client.call('get', path: path, params: params);
     }
      /// Create a new Collection.
-    createCollection({name, read = const [], write = const [], rules = const []}) async {
+    Future<Response> createCollection({name, read = const [], write = const [], rules = const []}) async {
        String path = '/database';
 
-       var params = {
+       Map<String, dynamic> params = {
          'name': name,
          'read': read,
          'write': write,
@@ -36,19 +37,19 @@ class Database extends Service {
     }
      /// Get collection by its unique ID. This endpoint response returns a JSON
      /// object with the collection metadata.
-    getCollection({collectionId}) async {
+    Future<Response> getCollection({collectionId}) async {
        String path = '/database/{collectionId}'.replaceAll(RegExp('{collectionId}'), collectionId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
      /// Update collection by its unique ID.
-    updateCollection({collectionId, name, read = const [], write = const [], rules = const []}) async {
+    Future<Response> updateCollection({collectionId, name, read = const [], write = const [], rules = const []}) async {
        String path = '/database/{collectionId}'.replaceAll(RegExp('{collectionId}'), collectionId);
 
-       var params = {
+       Map<String, dynamic> params = {
          'name': name,
          'read': read,
          'write': write,
@@ -59,10 +60,10 @@ class Database extends Service {
     }
      /// Delete a collection by its unique ID. Only users with write permissions
      /// have access to delete this resource.
-    deleteCollection({collectionId}) async {
+    Future<Response> deleteCollection({collectionId}) async {
        String path = '/database/{collectionId}'.replaceAll(RegExp('{collectionId}'), collectionId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('delete', path: path, params: params);
@@ -71,10 +72,10 @@ class Database extends Service {
      /// filter your results. On admin mode, this endpoint will return a list of all
      /// of the project documents. [Learn more about different API
      /// modes](/docs/modes).
-    listDocuments({collectionId, filters = const [], offset = 0, limit = 50, orderField = '$uid', orderType = 'ASC', orderCast = 'string', search = null, first = 0, last = 0}) async {
+    Future<Response> listDocuments({collectionId, filters = const [], offset = null, limit = 50, orderField = '\$uid', orderType = 'ASC', orderCast = 'string', search = null, first = null, last = null}) async {
        String path = '/database/{collectionId}/documents'.replaceAll(RegExp('{collectionId}'), collectionId);
 
-       var params = {
+       Map<String, dynamic> params = {
          'filters': filters,
          'offset': offset,
          'limit': limit,
@@ -89,10 +90,10 @@ class Database extends Service {
        return await this.client.call('get', path: path, params: params);
     }
      /// Create a new Document.
-    createDocument({collectionId, data, read = const [], write = const [], parentDocument = null, parentProperty = null, parentPropertyType = 'assign'}) async {
+    Future<Response> createDocument({collectionId, data, read = const [], write = const [], parentDocument = null, parentProperty = null, parentPropertyType = 'assign'}) async {
        String path = '/database/{collectionId}/documents'.replaceAll(RegExp('{collectionId}'), collectionId);
 
-       var params = {
+       Map<String, dynamic> params = {
          'data': data,
          'read': read,
          'write': write,
@@ -105,18 +106,18 @@ class Database extends Service {
     }
      /// Get document by its unique ID. This endpoint response returns a JSON object
      /// with the document data.
-    getDocument({collectionId, documentId}) async {
+    Future<Response> getDocument({collectionId, documentId}) async {
        String path = '/database/{collectionId}/documents/{documentId}'.replaceAll(RegExp('{collectionId}'), collectionId).replaceAll(RegExp('{documentId}'), documentId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
-    updateDocument({collectionId, documentId, data, read = const [], write = const []}) async {
+    Future<Response> updateDocument({collectionId, documentId, data, read = const [], write = const []}) async {
        String path = '/database/{collectionId}/documents/{documentId}'.replaceAll(RegExp('{collectionId}'), collectionId).replaceAll(RegExp('{documentId}'), documentId);
 
-       var params = {
+       Map<String, dynamic> params = {
          'data': data,
          'read': read,
          'write': write,
@@ -127,10 +128,10 @@ class Database extends Service {
      /// Delete document by its unique ID. This endpoint deletes only the parent
      /// documents, his attributes and relations to other documents. Child documents
      /// **will not** be deleted.
-    deleteDocument({collectionId, documentId}) async {
+    Future<Response> deleteDocument({collectionId, documentId}) async {
        String path = '/database/{collectionId}/documents/{documentId}'.replaceAll(RegExp('{collectionId}'), collectionId).replaceAll(RegExp('{documentId}'), documentId);
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('delete', path: path, params: params);

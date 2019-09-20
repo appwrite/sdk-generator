@@ -1,5 +1,6 @@
 import "package:dart_appwrite/service.dart";
 import "package:dart_appwrite/client.dart";
+import 'package:dio/dio.dart';
 
 class Locale extends Service {
      
@@ -9,20 +10,20 @@ class Locale extends Service {
      /// country code, country name, continent name, continent code, ip address and
      /// suggested currency. You can use the locale header to get the data in
      /// supported language.
-    getLocale() async {
+    Future<Response> getLocale() async {
        String path = '/locale';
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
      /// List of all countries. You can use the locale header to get the data in
      /// supported language.
-    getCountries() async {
+    Future<Response> getCountries() async {
        String path = '/locale/countries';
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
@@ -30,20 +31,20 @@ class Locale extends Service {
      /// List of all countries that are currently members of the EU. You can use the
      /// locale header to get the data in supported language. UK brexit date is
      /// currently set to 2019-10-31 and will be updated if and when needed.
-    getCountriesEU() async {
+    Future<Response> getCountriesEU() async {
        String path = '/locale/countries/eu';
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
     }
      /// List of all countries phone codes. You can use the locale header to get the
      /// data in supported language.
-    getCountriesPhones() async {
+    Future<Response> getCountriesPhones() async {
        String path = '/locale/countries/phones';
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
@@ -51,10 +52,10 @@ class Locale extends Service {
      /// List of all currencies, including currency symol, name, plural, and decimal
      /// digits for all major and minor currencies. You can use the locale header to
      /// get the data in supported language.
-    getCurrencies() async {
+    Future<Response> getCurrencies() async {
        String path = '/locale/currencies';
 
-       var params = {
+       Map<String, dynamic> params = {
        };
 
        return await this.client.call('get', path: path, params: params);
