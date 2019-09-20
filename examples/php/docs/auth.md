@@ -126,10 +126,10 @@ When not using the success or failure redirect arguments this endpoint will resu
 | --- | --- | --- | --- |
 | email | string | Account email |  |
 | password | string | User password |  |
-| name | string | User name |  |
 | redirect | string | Confirmation page to redirect user after confirm token has been sent to user email |  |
 | success | string | Redirect when registration succeed |  |
 | failure | string | Redirect when registration failed |  |
+| name | string | User name |  |
 
 ## Confirm User
 
