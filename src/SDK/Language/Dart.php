@@ -7,7 +7,7 @@ use Appwrite\SDK\Language;
 class Dart extends Language {
 
     protected $params = [
-        'packageName' => 'dart_appwrite',
+        'packageName' => 'packageName',
     ];
 
     /**
@@ -228,6 +228,18 @@ class Dart extends Language {
     public function getFiles()
     {
         return [
+            [
+                'scope'         => 'default',
+                'destination'   => 'README.md',
+                'template'      => '/js/REDAME.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'LICENSE',
+                'template'      => '/js/LICENSE.twig',
+                'minify'        => false,
+            ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/client.dart',
