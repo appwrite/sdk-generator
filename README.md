@@ -6,7 +6,7 @@
 
 The SDK uses predefined language setting and [Twig templates](https://twig.symfony.com/) to generate code base on different API specs.
 
-Currently the only spec supported is Swagger 2.0, but we intend to add support for more specification. 
+Currently the only spec supported is Swagger 2.0, but we intend to add support for more specification in the near future. 
 
 ## Examples
 
