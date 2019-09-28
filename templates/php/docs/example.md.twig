@@ -7,7 +7,7 @@ $client = new Client();
 
 $client
 {% for key,header in method.security[0]|keys %}
-    set{{header}}('')
+    ->set{{header}}('')
 {% endfor %};
 
 ${{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}($client);
