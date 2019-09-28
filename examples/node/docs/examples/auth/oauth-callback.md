@@ -6,8 +6,7 @@ let client = new Auth.Client();
 let auth = new sdk.Auth(client);
 
 client
-    setProject('')
-    setKey('')
+    .setProject('')
 ;
 
 let promise = auth.oauthCallback('[PROJECT_ID]', 'bitbucket', '[CODE]');

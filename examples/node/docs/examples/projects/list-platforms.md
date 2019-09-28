@@ -6,8 +6,7 @@ let client = new Projects.Client();
 let projects = new sdk.Projects(client);
 
 client
-    setProject('')
-    setKey('')
+    .setProject('')
 ;
 
 let promise = projects.listPlatforms('[PROJECT_ID]');

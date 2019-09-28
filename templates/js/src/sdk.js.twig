@@ -286,8 +286,10 @@
 
 {% endfor %}
                 });
-{% endif %}
-{% if not method.cookies %}
+{% elseif method.location > 0 %}
+
+                return window.location = config.endpoint + path + '?1=1';
+{% else %}
 
                 return http
                     .{{ method.method | caseLower }}(path, {'content-type': '{% if 'multipart/form-data' in method.consumes|keys %}multipart/form-data{% else %}application/json{% endif %}'},

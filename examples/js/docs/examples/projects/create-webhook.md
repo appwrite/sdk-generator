@@ -1,11 +1,10 @@
 let sdk = new Appwrite();
 
 sdk
-    setProject('')
-    setKey('')
+    .setProject('')
 ;
 
-let promise = sdk.projects.createWebhook('[PROJECT_ID]', '[NAME]', [], '[URL]', 1);
+let promise = sdk.projects.createWebhook('[PROJECT_ID]', '[NAME]', [], '[URL]', 0);
 
 promise.then(function (response) {
     console.log(response);

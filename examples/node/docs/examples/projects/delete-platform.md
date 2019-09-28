@@ -6,8 +6,7 @@ let client = new Projects.Client();
 let projects = new sdk.Projects(client);
 
 client
-    setProject('')
-    setKey('')
+    .setProject('')
 ;
 
 let promise = projects.deletePlatform('[PROJECT_ID]', '[PLATFORM_ID]');

@@ -6,8 +6,7 @@ let client = new Storage.Client();
 let storage = new sdk.Storage(client);
 
 client
-    setProject('')
-    setKey('')
+    .setProject('')
 ;
 
 let promise = storage.getFilePreview('[FILE_ID]');

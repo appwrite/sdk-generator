@@ -6,11 +6,10 @@ let client = new Projects.Client();
 let projects = new sdk.Projects(client);
 
 client
-    setProject('')
-    setKey('')
+    .setProject('')
 ;
 
-let promise = projects.createWebhook('[PROJECT_ID]', '[NAME]', [], '[URL]', 1);
+let promise = projects.createWebhook('[PROJECT_ID]', '[NAME]', [], '[URL]', 0);
 
 promise.then(function (response) {
     console.log(response);

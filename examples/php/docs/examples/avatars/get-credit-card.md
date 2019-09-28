@@ -6,8 +6,7 @@ use Appwrite\Services\Avatars;
 $client = new Client();
 
 $client
-    setProject('')
-    setKey('')
+    ->setProject('')
 ;
 
 $avatars = new Avatars($client);

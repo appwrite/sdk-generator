@@ -6,10 +6,9 @@ use Appwrite\Services\Projects;
 $client = new Client();
 
 $client
-    setProject('')
-    setKey('')
+    ->setProject('')
 ;
 
 $projects = new Projects($client);
 
-$result = $projects->createWebhook('[PROJECT_ID]', '[NAME]', [], '[URL]', 1);
+$result = $projects->createWebhook('[PROJECT_ID]', '[NAME]', [], '[URL]', 0);

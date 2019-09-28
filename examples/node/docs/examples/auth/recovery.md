@@ -6,8 +6,7 @@ let client = new Auth.Client();
 let auth = new sdk.Auth(client);
 
 client
-    setProject('')
-    setKey('')
+    .setProject('')
 ;
 
 let promise = auth.recovery('email@example.com', 'https://example.com');

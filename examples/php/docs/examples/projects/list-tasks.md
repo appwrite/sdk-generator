@@ -6,8 +6,7 @@ use Appwrite\Services\Projects;
 $client = new Client();
 
 $client
-    setProject('')
-    setKey('')
+    ->setProject('')
 ;
 
 $projects = new Projects($client);

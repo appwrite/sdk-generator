@@ -27,7 +27,8 @@ try {
         return $result;
     }
 
-    $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
+    //$spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
+    $spec = getSSLPage('https://appwrite.test/v1/open-api-2.json?extensions=1');
 
     // PHP
     $sdk  = new SDK(new PHP(), new Swagger2($spec));

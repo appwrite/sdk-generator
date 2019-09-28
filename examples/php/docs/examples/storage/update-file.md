@@ -6,8 +6,7 @@ use Appwrite\Services\Storage;
 $client = new Client();
 
 $client
-    setProject('')
-    setKey('')
+    ->setProject('')
 ;
 
 $storage = new Storage($client);

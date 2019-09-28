@@ -1,8 +1,7 @@
 let sdk = new Appwrite();
 
 sdk
-    setProject('')
-    setKey('')
+    .setProject('')
 ;
 
 let promise = sdk.auth.recoveryReset('[USER_ID]', '[TOKEN]', 'password', 'password');

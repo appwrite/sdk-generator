@@ -6,8 +6,7 @@ use Appwrite\Services\Account;
 $client = new Client();
 
 $client
-    setProject('')
-    setKey('')
+    ->setProject('')
 ;
 
 $account = new Account($client);

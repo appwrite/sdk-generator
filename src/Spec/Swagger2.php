@@ -127,6 +127,7 @@ class Swagger2 extends Spec {
                         'security' => $method['security'],
                         'consumes' => $method['consumes'],
                         'cookies' => (isset($method['extensions']) && isset($method['extensions']['cookies'])) ? $method['extensions']['cookies'] : false,
+                        'location' => (isset($method['extensions']) && isset($method['extensions']['location'])) ? $method['extensions']['location'] : false,
                         'headers' => [],
                         'parameters' => [
                             'all' => [],

@@ -6,8 +6,7 @@ let client = new Teams.Client();
 let teams = new sdk.Teams(client);
 
 client
-    setProject('')
-    setKey('')
+    .setProject('')
 ;
 
 let promise = teams.createTeamMembershipResend('[TEAM_ID]', '[INVITE_ID]', 'https://example.com');

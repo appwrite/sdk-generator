@@ -1,8 +1,7 @@
 let sdk = new Appwrite();
 
 sdk
-    setProject('')
-    setKey('')
+    .setProject('')
 ;
 
 let promise = sdk.database.updateDocument('[COLLECTION_ID]', '[DOCUMENT_ID]', '{}');

@@ -6,8 +6,7 @@ let client = new Avatars.Client();
 let avatars = new sdk.Avatars(client);
 
 client
-    setProject('')
-    setKey('')
+    .setProject('')
 ;
 
 let promise = avatars.getFavicon('https://example.com');

@@ -6,8 +6,7 @@ let client = new Account.Client();
 let account = new sdk.Account(client);
 
 client
-    setProject('')
-    setKey('')
+    .setProject('')
 ;
 
 let promise = account.getPrefs();

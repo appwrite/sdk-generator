@@ -6,8 +6,7 @@ let client = new Auth.Client();
 let auth = new sdk.Auth(client);
 
 client
-    setProject('')
-    setKey('')
+    .setProject('')
 ;
 
 let promise = auth.login('email@example.com', 'password', 'https://example.com', 'https://example.com');
