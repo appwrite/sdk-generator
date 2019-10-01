@@ -1,6 +1,7 @@
 composer.lock
 /vendor/
 /.idea/
+phpunit.xml
 
 # Dart auto-generated
 examples/dart/.packages
