@@ -77,26 +77,6 @@ class Auth extends Service {
     }
 
     /**
-     * OAuth Callback
-     *
-     * @param string projectId
-     * @param string provider
-     * @param string code
-     * @param string state
-     * @throws Exception
-     * @return {}
-     */
-    async oauthCallback(projectId, provider, code, state = '') {
-        let path = '/auth/oauth/callback/{provider}/{projectId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{provider}', 'g'), provider);
-        
-        return await this.client.call('get', path, {'content-type': 'application/json'},
-            {
-                'code': code,
-                'state': state
-            });
-    }
-
-    /**
      * OAuth Login
      *
      * @param string provider

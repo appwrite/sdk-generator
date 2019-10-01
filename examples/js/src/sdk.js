@@ -581,39 +581,6 @@
             },
 
             /**
-             * OAuth Callback
-             *
-             *
-             * @param {string} projectId
-             * @param {string} provider
-             * @param {string} code
-             * @param {string} state
-             * @throws {Error}
-             * @return {Promise}             */
-            oauthCallback: function(projectId, provider, code, state = '') {
-                if(projectId === undefined) {
-                    throw new Error('Missing required parameter: "projectId"');
-                }
-                
-                if(provider === undefined) {
-                    throw new Error('Missing required parameter: "provider"');
-                }
-                
-                if(code === undefined) {
-                    throw new Error('Missing required parameter: "code"');
-                }
-                
-                let path = '/auth/oauth/callback/{provider}/{projectId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{provider}', 'g'), provider);
-
-                return http
-                    .get(path, {'content-type': 'application/json'},
-                        {
-                            'code': code, 
-                            'state': state
-                        });
-            },
-
-            /**
              * OAuth Login
              *
              *
@@ -629,7 +596,12 @@
                 
                 let path = '/auth/oauth/{provider}'.replace(new RegExp('{provider}', 'g'), provider);
 
-                return window.location = config.endpoint + path + '?1=1';
+                return http
+                    .get(path, {'content-type': 'application/json'},
+                        {
+                            'success': success, 
+                            'failure': failure
+                        });
             },
 
             /**

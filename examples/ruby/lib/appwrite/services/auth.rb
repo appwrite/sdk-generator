@@ -36,20 +36,6 @@ module Appwrite
             }, params);
         end
 
-        def oauth_callback(project_id:, provider:, code:, state: '')
-            path = '/auth/oauth/callback/{provider}/{projectId}'
-                .gsub('{project_id}', project_id)
-                .gsub('{provider}', provider)
-
-            params = {
-                'code': code, 
-                'state': state
-            }
-
-            return @client.call('get', path, {
-            }, params);
-        end
-
         def oauth(provider:, success: '', failure: '')
             path = '/auth/oauth/{provider}'
                 .gsub('{provider}', provider)

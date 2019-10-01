@@ -35,19 +35,6 @@ class Auth(Service):
         return self.client.call('delete', path, {
         }, params)
 
-    def oauth_callback(self, project_id, provider, code, state=''):
-        """OAuth Callback"""
-
-        params = {}
-        path = '/auth/oauth/callback/{provider}/{projectId}'
-        path.replace('{projectId}', project_id)                
-        path.replace('{provider}', provider)                
-        params['code'] = code
-        params['state'] = state
-
-        return self.client.call('get', path, {
-        }, params)
-
     def oauth(self, provider, success='', failure=''):
         """OAuth Login"""
 

@@ -79,7 +79,7 @@ class SDK
         }));
         $this->twig->addFilter(new TwigFilter('caseJson', function ($value) {
             return (is_array($value)) ? json_encode($value) : $value;
-        }));
+        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('caseArray', function ($value) {
             return (is_array($value)) ? json_encode($value) : '[]';
         }, ['is_safe' => ['html']]));
@@ -119,10 +119,20 @@ class SDK
                 $value[$key] = "     /// " . wordwrap($value[$key], 75, "\n     /// ");
             }
             return implode("\n", $value);
-        }, ['is_safe' => ['dart']]));
+        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value) {
             return str_replace('$', '\$', $value);
         }));
+        $this->twig->addFilter(new TwigFilter('paramsQuery', function ($value) {
+            $query = '';
+
+            foreach ($value as $key => $param) {
+                $query .= (!empty($query)) ? " + '&" : "";
+                $query .= "{$param['name']}=' + {$param['name']}";
+            }
+
+            return $query;
+        }, ['is_safe' => ['html']]));
     }
 
     /**

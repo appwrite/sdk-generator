@@ -89,28 +89,6 @@ class Auth extends Service
     }
 
     /**
-     * OAuth Callback
-     *
-     * @param string $projectId
-     * @param string $provider
-     * @param string $code
-     * @param string $state
-     * @throws Exception
-     * @return array
-     */
-    public function oauthCallback($projectId, $provider, $code, $state = '')
-    {
-        $path   = str_replace(['{projectId}', '{provider}'], [$projectId, $provider], '/auth/oauth/callback/{provider}/{projectId}');
-        $params = [];
-
-        $params['code'] = $code;
-        $params['state'] = $state;
-
-        return $this->client->call(Client::METHOD_GET, $path, [
-        ], $params);
-    }
-
-    /**
      * OAuth Login
      *
      * @param string $provider

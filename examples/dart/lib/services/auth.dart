@@ -8,11 +8,11 @@ class Auth extends Service {
 
      /// Allow the user to login into his account by providing a valid email and
      /// password combination. Use the success and failure arguments to provide a
-     /// redirect URL\&#039;s back to your app when login is completed. 
+     /// redirect URL\'s back to your app when login is completed. 
      /// 
      /// Please notice that in order to avoid a [Redirect
      /// Attacks](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.md)
-     /// the only valid redirect URL&#039;s are the once from domains you have set when
+     /// the only valid redirect URL's are the once from domains you have set when
      /// added your platforms in the console interface.
      /// 
      /// When accessing this route using Javascript from the browser, success and
@@ -54,16 +54,6 @@ class Auth extends Service {
 
        return await this.client.call('delete', path: path, params: params);
     }
-    Future<Response> oauthCallback({projectId, provider, code, state = null}) async {
-       String path = '/auth/oauth/callback/{provider}/{projectId}'.replaceAll(RegExp('{projectId}'), projectId).replaceAll(RegExp('{provider}'), provider);
-
-       Map<String, dynamic> params = {
-         'code': code,
-         'state': state,
-       };
-
-       return await this.client.call('get', path: path, params: params);
-    }
     Future<Response> oauth({provider, success = null, failure = null}) async {
        String path = '/auth/oauth/{provider}'.replaceAll(RegExp('{provider}'), provider);
 
@@ -97,7 +87,7 @@ class Auth extends Service {
      /// 
      /// Please notice that in order to avoid a [Redirect
      /// Attacks](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.md)
-     /// the only valid redirect URL&#039;s are the once from domains you have set when
+     /// the only valid redirect URL's are the once from domains you have set when
      /// added your platforms in the console interface.
     Future<Response> recoveryReset({userId, token, passwordA, passwordB}) async {
        String path = '/auth/recovery/reset';
@@ -112,7 +102,7 @@ class Auth extends Service {
        return await this.client.call('put', path: path, params: params);
     }
      /// Use this endpoint to allow a new user to register an account in your
-     /// project. Use the success and failure URL&#039;s to redirect users back to your
+     /// project. Use the success and failure URL's to redirect users back to your
      /// application after signup completes.
      /// 
      /// If registration completes successfully user will be sent with a
@@ -123,7 +113,7 @@ class Auth extends Service {
      /// 
      /// Please notice that in order to avoid a [Redirect
      /// Attacks](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.md)
-     /// the only valid redirect URL&#039;s are the once from domains you have set when
+     /// the only valid redirect URL's are the once from domains you have set when
      /// added your platforms in the console interface.
      /// 
      /// When accessing this route using Javascript from the browser, success and
@@ -165,7 +155,7 @@ class Auth extends Service {
      /// 
      /// Please notice that in order to avoid a [Redirect
      /// Attacks](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.md)
-     /// the only valid redirect URL&#039;s are the once from domains you have set when
+     /// the only valid redirect URL's are the once from domains you have set when
      /// added your platforms in the console interface.
     Future<Response> confirmResend({confirm}) async {
        String path = '/auth/register/confirm/resend';

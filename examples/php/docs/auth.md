@@ -43,21 +43,6 @@ DELETE https://appwrite.test/v1/auth/logout/{id}
 | --- | --- | --- | --- |
 | id | string | **Required** User specific session unique ID number. if 0 delete all sessions. |  |
 
-## OAuth Callback
-
-```http request
-GET https://appwrite.test/v1/auth/oauth/callback/{provider}/{projectId}
-```
-
-### Parameters
-
-| Field Name | Type | Description | Default |
-| --- | --- | --- | --- |
-| projectId | string | **Required** Project unique ID |  |
-| provider | string | **Required** OAuth provider |  |
-| code | string | **Required** OAuth code |  |
-| state | string | Login state params |  |
-
 ## OAuth Login
 
 ```http request
