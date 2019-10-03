@@ -1,7 +1,7 @@
 # [Appwrite SDK for PHP]() &nbsp; [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=&url=&via=&hashtags=)
 
 ![License](https://img.shields.io/github/license//.svg?v=1)
-![Version](https://img.shields.io/badge/api%20version-0.1.15-blue.svg?v=1)
+![Version](https://img.shields.io/badge/api%20version-latest-blue.svg?v=1)
 
 **WORK IN PROGRESS - NOT READY FOR USAGE**
 
@@ -11,7 +11,7 @@ Appwrite backend as a service cuts up to 70% of the time and costs required for 
 
 ![Appwrite](https://appwrite.io/v1/images/console.png)
 
-**API Version: 0.1.15**
+**API Version: latest**
 
 ## Installation
 
