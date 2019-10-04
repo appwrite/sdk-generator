@@ -2,7 +2,7 @@
     window.Appwrite = function () {
 
         let config = {
-            endpoint: 'https://appwrite.test/v1',
+            endpoint: 'https://https://appwrite.io/v1',
             project: '',
             key: '',
             locale: '',
@@ -138,7 +138,7 @@
                 globalParams.push({key: key, value: value});
             };
 
-            addGlobalHeader('x-sdk-version', 'appwrite:javascript:');
+            addGlobalHeader('x-sdk-version', 'appwrite:javascript:0.0.0');
             addGlobalHeader('content-type', '');
 
             /**

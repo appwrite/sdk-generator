@@ -1,4 +1,4 @@
-# [Appwrite SDK for Javascript]() &nbsp; [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=&url=&via=&hashtags=)
+# Appwrite SDK for Javascript
 
 ![License](https://img.shields.io/github/license//.svg?v=1)
 ![Version](https://img.shields.io/badge/api%20version-latest-blue.svg?v=1)
@@ -11,14 +11,18 @@ Appwrite backend as a service cuts up to 70% of the time and costs required for 
 
 ![Appwrite](https://appwrite.io/v1/images/console.png)
 
-**API Version: latest**
-
 ## Installation
 
 To install via [NPM](https://www.npmjs.com/):
 
 ```bash
 npm install packageName --save
+```
+
+Install with CDN:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/packageName@0.0.0"></script>
 ```
 
 ## License
