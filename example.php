@@ -12,7 +12,7 @@ use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
 use Appwrite\SDK\Language\Dart;
 
-$languages  = ['cs', 'js', 'node', 'php', 'python', 'ruby', 'dart'];
+$languages  = ['csharp', 'js', 'node', 'php', 'python', 'ruby', 'dart'];
 
 try {
 
