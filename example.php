@@ -4,6 +4,7 @@ include_once 'vendor/autoload.php';
 
 use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
+use Appwrite\SDK\Language\CSharp;
 use Appwrite\SDK\Language\JS;
 use Appwrite\SDK\Language\Node;
 use Appwrite\SDK\Language\PHP;
@@ -11,7 +12,7 @@ use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
 use Appwrite\SDK\Language\Dart;
 
-$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart'];
+$languages  = ['cs', 'js', 'node', 'php', 'python', 'ruby', 'dart'];
 
 try {
 
@@ -40,6 +41,17 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/php');
+
+    // CSharp
+    $sdk  = new SDK(new CSharp(), new Swagger2($spec));
+
+    $sdk
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/csharp');
 
     // JS
     $sdk  = new SDK(new JS(), new Swagger2($spec));
@@ -96,8 +108,6 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/dart');
-
-
 }
 catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
