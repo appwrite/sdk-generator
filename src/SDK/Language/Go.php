@@ -34,7 +34,7 @@ class Go extends Language {
             'nil',
             'package',
             'range',
-			'return',
+            'return',
             'string',
             'struct',
             'type',
@@ -89,11 +89,19 @@ class Go extends Language {
     {
         switch ($type) {
             case self::TYPE_INTEGER:
-            case self::TYPE_NUMBER:
-                return 'number';
+                return 'int';
+            break;
+            case self::TYPE_STRING:
+                return 'string';
             break;
             case self::TYPE_FILE:
                 return 'File';
+            break;
+            case self::TYPE_BOOLEAN:
+                return 'bool';
+            break;
+            case self::TYPE_ARRAY:
+                 return '[]interface{}';
             break;
         }
 
