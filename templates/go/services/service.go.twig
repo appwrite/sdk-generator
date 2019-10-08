@@ -1,0 +1,34 @@
+package {{ spec.title | caseLower }}
+
+import (
+	"net/http"
+	"strings"
+)
+
+type {{ service.name | caseUcfirst }} struct {
+    client *Client
+}
+{% for method in service.methods %}
+
+{% if method.description %}{{ method.description | godocComment }}{% else %}// {{ method.name | caseUcfirst }}{% endif %}
+
+func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({% if method.parameters.all|length > 0 %}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }} string{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}) (*http.Response, error) {
+{% if method.parameters.path|length > 0 %}
+	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %})
+	path := r.Replace("{{ method.path }}")
+{% else %}
+	path := "{{ method.path }}"
+{% endif %}
+
+	params := map[string]string {
+{% for parameter in method.parameters.query %}
+		"{{ parameter.name }}": {{ parameter.name | caseCamel }},
+{% endfor %}
+{% for parameter in method.parameters.body %}
+		"{{ parameter.name }}": {{ parameter.name | caseCamel }},
+{% endfor %}
+	}
+
+	return srv.client.Call("{{ method.method | caseUpper }}", path, map[string]string{}, params)
+}
+{% endfor %}
