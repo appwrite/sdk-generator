@@ -11,4 +11,4 @@ $client
 
 $projects = new Projects($client);
 
-$result = $projects->createTask('[PROJECT_ID]', '[NAME]', 'play', '', 0, 'GET', 'https://example.com');
+$result = $projects->createTask('[PROJECT_ID]', '[NAME]', 'play', '', 1, 'GET', 'https://example.com');
