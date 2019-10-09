@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+{{ ((service.name | caseUcfirst) ~ " service") | godocComment }}
 type {{ service.name | caseUcfirst }} struct {
 	client *Client
 }
