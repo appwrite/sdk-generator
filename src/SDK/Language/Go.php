@@ -95,7 +95,7 @@ class Go extends Language {
                 return 'string';
             break;
             case self::TYPE_FILE:
-                return 'File';
+                return 'string'; // '*os.File';
             break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
