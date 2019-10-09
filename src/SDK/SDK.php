@@ -68,6 +68,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseUcfirst', function ($value) {
             return ucfirst((string)$this->helperCamelCase($value));
         }));
+        $this->twig->addFilter(new TwigFilter('caseLcfirst', function ($value) {
+            return lcfirst((string)$value);
+        }));
         $this->twig->addFilter(new TwigFilter('caseCamel', function ($value) {
             return (string)$this->helperCamelCase($value);
         }));
