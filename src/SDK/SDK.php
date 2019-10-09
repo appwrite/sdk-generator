@@ -134,6 +134,9 @@ class SDK
 
             return $query;
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('html', function ($value) {
+            return $value;
+        }, ['is_safe' => ['html']]));
     }
 
     /**
