@@ -44,7 +44,8 @@ class SDK
         'shareURL' => '',
         'shareVia' => '',
         'shareTags' => '',
-        'wraning' => '',
+        'warning' => '',
+        'readme' => '',
     ];
 
     /**
@@ -285,6 +286,17 @@ class SDK
     public function setWarning($message)
     {
         $this->setParam('warning', $message);
+
+        return $this;
+    }
+
+    /**
+     * @param $text string
+     * @return $this
+     */
+    public function setReadme($text)
+    {
+        $this->setParam('readme', $text);
 
         return $this;
     }

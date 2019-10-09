@@ -33,6 +33,8 @@ To install with a CDN (content delivery network) add the following scripts to th
 <script src="https://cdn.jsdelivr.net/npm/packageName@0.0.0"></script>
 ```
 
+## Getting Started
+
 ## License
 
 Please see the [BSD-3-Clause license](https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE) file for more information.

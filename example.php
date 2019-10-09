@@ -49,7 +49,7 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-    ;
+        ->setReadme("## Getting Started");
 
     $sdk->generate(__DIR__ . '/examples/js');
 
