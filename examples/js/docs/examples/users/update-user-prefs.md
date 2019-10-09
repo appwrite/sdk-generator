@@ -4,7 +4,7 @@ sdk
     .setProject('')
 ;
 
-let promise = sdk.projects.createTask('[PROJECT_ID]', '[NAME]', 'play', '', 0, 'GET', 'https://example.com');
+let promise = sdk.users.updateUserPrefs('[USER_ID]', '{}');
 
 promise.then(function (response) {
     console.log(response);

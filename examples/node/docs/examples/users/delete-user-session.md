@@ -3,13 +3,13 @@ const sdk = require('node-appwrite');
 // Init SDK
 let client = new sdk.Client();
 
-let projects = new sdk.Projects(client);
+let users = new sdk.Users(client);
 
 client
     .setProject('')
 ;
 
-let promise = projects.createTask('[PROJECT_ID]', '[NAME]', 'play', '', 0, 'GET', 'https://example.com');
+let promise = users.deleteUserSession('[USER_ID]', '[SESSION_ID]');
 
 promise.then(function (response) {
     console.log(response);
