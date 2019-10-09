@@ -19,7 +19,7 @@ To install via [NPM](https://www.npmjs.com/):
 npm install packageName --save
 ```
 
-If you're using a bundler (like Browserify or webpack), you can import the Appwrite module when you need it:
+If you're using a bundler (like [Browserify](http://browserify.org/) or [webpack](https://webpack.js.org/)), you can import the Appwrite module when you need it:
 
 ```js
 import * as PackageName from "packageName";
