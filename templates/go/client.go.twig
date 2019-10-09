@@ -1,6 +1,7 @@
 package {{ spec.title | caseLower }}
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -38,7 +39,7 @@ func (clt *Client) Set{{header.key | caseUcfirst}}Header(value string) {
 {% endfor %}
 
 // Call an API using Client
-func (clt *Client) Call(method string, path string, headers map[string]string, params map[string]string) (*http.Response, error) {
+func (clt *Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (*http.Response, error) {
 	if clt.client == nil {
 		// Create HTTP client
 		clt.client = &http.Client{}
@@ -55,7 +56,7 @@ func (clt *Client) Call(method string, path string, headers map[string]string, p
 	if !isGet {
 		frm := url.Values{}
 		for key, val := range params {
-			frm.Add(key, val)
+			frm.Add(key, fmt.Printf("%v", val))
 		}
 		reqBody = strings.NewReader(frm.Encode())
 	}
@@ -68,18 +69,18 @@ func (clt *Client) Call(method string, path string, headers map[string]string, p
 
 	// Set Client headers
 	for key, val := range clt.headers {
-		req.Header.Set(key, val)
+		req.Header.Set(key, fmt.Printf("%v", val))
 	}
 
 	// Set Custom headers
 	for key, val := range headers {
-		req.Header.Set(key, val)
+		req.Header.Set(key, fmt.Printf("%v", val))
 	}
 
 	if isGet {
 		q := req.URL.Query()
 		for key, val := range params {
-			q.Add(key, val)
+			q.Add(key, fmt.Printf("%v", val))
 		}
 		req.URL.RawQuery = q.Encode()
 	}
