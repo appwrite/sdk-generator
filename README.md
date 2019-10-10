@@ -1,5 +1,7 @@
 # Appwrite SDK Generator
 
+[![Join the chat at https://gitter.im/appwrite/sdk-generator](https://badges.gitter.im/appwrite/sdk-generator.svg)](https://gitter.im/appwrite/sdk-generator?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 **WORK IN PROGRESS - NOT READY FOR USAGE**
 
 [Appwrite](https://appwrite.io) SDK generator is a PHP library for auto generating SDK library for multiple languages or platforms.
