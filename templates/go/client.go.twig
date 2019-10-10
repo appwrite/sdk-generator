@@ -1,7 +1,6 @@
 package {{ spec.title | caseLower }}
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -56,7 +55,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 	if !isGet {
 		frm := url.Values{}
 		for key, val := range params {
-			frm.Add(key, fmt.Printf("%v", val))
+			frm.Add(key, ToString(val))
 		}
 		reqBody = strings.NewReader(frm.Encode())
 	}
@@ -69,18 +68,18 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 
 	// Set Client headers
 	for key, val := range clt.headers {
-		req.Header.Set(key, fmt.Printf("%v", val))
+		req.Header.Set(key, ToString(val))
 	}
 
 	// Set Custom headers
 	for key, val := range headers {
-		req.Header.Set(key, fmt.Printf("%v", val))
+		req.Header.Set(key, ToString(val))
 	}
 
 	if isGet {
 		q := req.URL.Query()
 		for key, val := range params {
-			q.Add(key, fmt.Printf("%v", val))
+			q.Add(key, ToString(val))
 		}
 		req.URL.RawQuery = q.Encode()
 	}
