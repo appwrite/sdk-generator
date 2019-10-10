@@ -21,9 +21,11 @@ class Client {
 
     String _endPoint;
     String get endPoint => _endPoint;
+    
+    bool _selfSigned;
+    bool get selfSigned => _selfSigned;
 
     final Map<String, String> headers;
-    bool selfSigned;
     final Dio http;
 
 {% for header in spec.global.headers %}
