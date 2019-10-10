@@ -73,6 +73,12 @@ class Go extends Language {
                 'minify'        => false,
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'utils.go',
+                'template'      => '/go/utils.go.twig',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '/{{service.name | caseDash}}.go',
                 'template'      => '/go/services/service.go.twig',
