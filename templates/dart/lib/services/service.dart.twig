@@ -10,7 +10,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% if method.description %}
 {{ method.description|dartComment }}
 {% endif %}
-    Future<Response<T>> {{ method.name | caseCamel }}<T>({% if method.parameters.all|length > 0 %}{{ '{' }}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | escapeDollarSign | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}) {
+    Future<Response> {{ method.name | caseCamel }}({% if method.parameters.all|length > 0 %}{{ '{' }}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | escapeDollarSign | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}) {
        const path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
 
        final params = <String, dynamic>{
@@ -22,7 +22,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
        };
 
-       return client.call<T>('{{ method.method | caseLower }}', path: path, params: params);
+       return client.call<dynamic>('{{ method.method | caseLower }}', path: path, params: params);
     }
 {% endfor %}
 }
