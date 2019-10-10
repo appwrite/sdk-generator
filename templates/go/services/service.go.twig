@@ -1,8 +1,15 @@
+{%- set requireStringsPkg = false -%}
+{%- for method in service.methods -%}
+	{%- if method.parameters.path|length > 0 -%}
+		{%- set requireStringsPkg = true -%}
+	{%- endif -%}
+{%- endfor -%}
 package {{ spec.title | caseLower }}
 
 import (
-	"net/http"
+{% if requireStringsPkg %}
 	"strings"
+{% endif %}
 )
 
 {{ ((service.name | caseUcfirst) ~ " service") | godocComment }}
@@ -13,7 +20,7 @@ type {{ service.name | caseUcfirst }} struct {
 
 {% if method.description %}{{ ((method.name | caseUcfirst) ~ ' ' ~ method.description | caseLcfirst) | godocComment }}{% else %}// {{ method.name | caseUcfirst }}{% endif %}
 
-func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({% if method.parameters.all|length > 0 %}{% for parameter in method.parameters.all %}{{ parameter.name | caseUcfirst }} {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}) (*http.Response, error) {
+func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({% if method.parameters.all|length > 0 %}{% for parameter in method.parameters.all %}{{ parameter.name | caseUcfirst }} {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}) (map[string]interface{}, error) {
 {% if method.parameters.path|length > 0 %}
 	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
 	path := r.Replace("{{ method.path }}")
