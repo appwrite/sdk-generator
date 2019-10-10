@@ -1,6 +1,8 @@
 package {{ spec.title | caseLower }}
 
 import (
+	"encoding/json"
+  "io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -38,7 +40,7 @@ func (clt *Client) Set{{header.key | caseUcfirst}}Header(value string) {
 {% endfor %}
 
 // Call an API using Client
-func (clt *Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (*http.Response, error) {
+func (clt *Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (map[string]interface{}, error) {
 	if clt.client == nil {
 		// Create HTTP client
 		clt.client = &http.Client{}
@@ -90,5 +92,16 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		return nil, err
 	}
 
-	return response, nil
+	// Handle response
+	defer response.Body.Close()
+ 
+	responseData, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var jsonResponse map[string]interface{}
+	json.Unmarshal(responseData, &jsonResponse)
+
+	return jsonResponse, nil
 }
