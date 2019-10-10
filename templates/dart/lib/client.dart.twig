@@ -3,24 +3,28 @@ import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 
 class Client {
-    String endPoint;
-    Map<String, String> headers;
-    bool selfSigned;
-    Dio http;
-    
-    Client() {
-        this.endPoint = '{{spec.endpoint}}';
-        this.headers = {
+    Client({
+        this.selfSigned = false,
+        String endPoint = '{{spec.endpoint}}',
+    }) : http = Dio(),
+         _endPoint = endPoint,
+         headers = {} {
+        headers.addAll({
             'content-type': 'application/json',
             'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
-        };
-        this.selfSigned = false;
+        });
 
-        this.http = Dio();
-        this.http.options.baseUrl = this.endPoint;
-        this.http.options.validateStatus = (status) => status != 404;
-        this.http.interceptors.add(CookieManager(CookieJar()));
+        http.options.baseUrl = endPoint;
+        http.options.validateStatus = (status) => status != 404;
+        http.interceptors.add(CookieManager(CookieJar()));
     }
+
+    String _endPoint;
+    String get endPoint => _endPoint;
+
+    final Map<String, String> headers;
+    bool selfSigned;
+    final Dio http;
 
 {% for header in spec.global.headers %}
 
@@ -28,49 +32,49 @@ class Client {
      /// {{header.description}}
 {% endif %}
     Client set{{header.key | caseUcfirst}}(value) {
-        this.addHeader('{{header.name}}', value);
+        addHeader('{{header.name}}', value);
 
         return this;
     }
 
 {% endfor %}
     Client setSelfSigned({bool status = true}) {
-        this.selfSigned = status;
+        selfSigned = status;
 
         return this;
     }
 
     Client setEndpoint(String endPoint)
     {
-        this.endPoint = endPoint;
-        this.http.options.baseUrl = this.endPoint;
+        _endPoint = endPoint;
+        http.options.baseUrl = this.endPoint;
         return this;
     }
 
     Client addHeader(String key, String value) {
-        this.headers[key.toLowerCase()] = value.toLowerCase();
+        headers[key.toLowerCase()] = value.toLowerCase();
         
         return this;
     }
 
-    Future<Response> call(String method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}}) {
+    Future<Response<T>> call<T>(String method, {String path = '', Map<String, String> headers = const <String, String>{}, Map<String, String> params = const <String, String>{}}) {
         if(this.selfSigned) { 
             // Allow self signed requests
         }
 
-        String reqPath = path;
-        bool isGet = method.toUpperCase() == "GET";
+        final reqPath = path;
+        final isGet = method.toUpperCase() == 'GET';
 
         // Origin is hardcoded for testing
-        Options options = Options(
-            headers: {...this.headers, ...headers, "Origin": "http://localhost"},
+        final options = Options(
+            headers: <String, dynamic>{...this.headers, ...headers, 'Origin': 'http://localhost'},
             method: method.toUpperCase(),
         );
 
         if (isGet) {
-            path += "?";
+            path += '?';
             params.forEach((k, v) {
-                path += "${k}=${v}&";
+                path += '$k=$v&';
             });
         }
 

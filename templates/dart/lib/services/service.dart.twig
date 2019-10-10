@@ -1,19 +1,19 @@
-import "package:{{ spec.title | caseDash }}/service.dart";
-import "package:{{ spec.title | caseDash }}/client.dart";
+import 'package:{{ spec.title | caseDash }}/service.dart';
+import 'package:{{ spec.title | caseDash }}/client.dart';
 import 'package:dio/dio.dart';
 
 class {{ service.name | caseUcfirst }} extends Service {
      
-     {{ service.name | caseUcfirst }}(Client client): super(client);
+    const {{ service.name | caseUcfirst }}(Client client): super(client);
 
 {% for method in service.methods %}
 {% if method.description %}
 {{ method.description|dartComment }}
 {% endif %}
-    Future<Response> {{ method.name | caseCamel }}({% if method.parameters.all|length > 0 %}{{ '{' }}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | escapeDollarSign | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}) async {
-       String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
+    Future<Response<T>> {{ method.name | caseCamel }}<T>({% if method.parameters.all|length > 0 %}{{ '{' }}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | escapeDollarSign | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}) {
+       const path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
 
-       Map<String, dynamic> params = {
+       final params = <String, dynamic>{
 {% for parameter in method.parameters.query %}
          '{{ parameter.name }}': {{ parameter.name | caseCamel }},
 {% endfor %}
@@ -22,7 +22,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
        };
 
-       return await this.client.call('{{ method.method | caseLower }}', path: path, params: params);
+       return client.call<T>('{{ method.method | caseLower }}', path: path, params: params);
     }
 {% endfor %}
 }
