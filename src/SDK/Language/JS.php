@@ -38,7 +38,7 @@ class JS extends Language {
      */
     public function getName()
     {
-        return 'Javascript';
+        return 'JavaScript';
     }
 
     /**
