@@ -137,7 +137,7 @@ class JS extends Language {
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
-                'template'      => '/js/REDAME.md.twig',
+                'template'      => '/js/README.md.twig',
                 'minify'        => false,
             ],
             [
