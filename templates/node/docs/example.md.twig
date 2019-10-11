@@ -1,7 +1,7 @@
 const sdk = require('node-appwrite');
 
 // Init SDK
-let client = new {{service.name | caseUcfirst}}.Client();
+let client = new sdk.Client();
 
 let {{ service.name | caseCamel }} = new sdk.{{service.name | caseUcfirst}}(client);
 

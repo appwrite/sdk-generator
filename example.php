@@ -57,10 +57,11 @@ try {
     $sdk  = new SDK(new JS(), new Swagger2($spec));
 
     $sdk
+        ->setVersion('0.0.0')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-    ;
+        ->setReadme("## Getting Started");
 
     $sdk->generate(__DIR__ . '/examples/js');
 

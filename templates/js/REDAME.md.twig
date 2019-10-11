@@ -1,4 +1,4 @@
-# [{{ spec.title }} SDK for {{ language.name }}]({{ sdk.url }}) &nbsp; [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text={{ sdk.shareText|url_encode }}&url={{ sdk.shareURL|url_encode }}&via={{ sdk.shareVia|url_encode }}&hashtags={{ sdk.shareTags|url_encode }})
+# {{ spec.title }} SDK for {{ language.name }}
 
 ![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?v=1)
 ![Version](https://img.shields.io/badge/api%20version-{{ spec.version|url_encode }}-blue.svg?v=1)
@@ -9,19 +9,33 @@
 
 {{ spec.description }}
 
-
-
 ![{{ spec.title }}]({{ sdk.logo }})
 
-**API Version: {{ spec.version }}**
-
 ## Installation
+
+### NPM
 
 To install via [NPM](https://www.npmjs.com/):
 
 ```bash
 npm install {{ language.params.npmPackage }} --save
 ```
+
+If you're using a bundler (like [Browserify](http://browserify.org/) or [webpack](https://webpack.js.org/)), you can import the {{ spec.title }} module when you need it:
+
+```js
+import * as {{ language.params.npmPackage|caseUcfirst }} from "{{ language.params.npmPackage }}";
+```
+
+### CDN
+
+To install with a CDN (content delivery network) add the following scripts to the bottom of your <body> tag, but before you use any {{ spec.title }} services:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/{{ language.params.npmPackage }}@{{sdk.version}}"></script>
+```
+
+{{ sdk.readme|html }}
 
 ## License
 

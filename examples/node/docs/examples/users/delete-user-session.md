@@ -3,13 +3,13 @@ const sdk = require('node-appwrite');
 // Init SDK
 let client = new sdk.Client();
 
-let database = new sdk.Database(client);
+let users = new sdk.Users(client);
 
 client
     .setProject('')
 ;
 
-let promise = database.getDocument('[COLLECTION_ID]', '[DOCUMENT_ID]');
+let promise = users.deleteUserSession('[USER_ID]', '[SESSION_ID]');
 
 promise.then(function (response) {
     console.log(response);
