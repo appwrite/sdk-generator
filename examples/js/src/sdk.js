@@ -3515,7 +3515,7 @@
             },
 
             /**
-             * Update Account Prefs
+             * Update User Prefs
              *
              * Update user preferences by its unique ID. You can pass only the specific
              * settings you wish to update.
@@ -3622,7 +3622,7 @@
             },
 
             /**
-             * Update user status
+             * Update User Status
              *
              * Update user status by its unique ID.
              *
