@@ -69,6 +69,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseUcfirst', function ($value) {
             return ucfirst((string)$this->helperCamelCase($value));
         }));
+        $this->twig->addFilter(new TwigFilter('caseLcfirst', function ($value) {
+            return lcfirst((string)$value);
+        }));
         $this->twig->addFilter(new TwigFilter('caseCamel', function ($value) {
             return (string)$this->helperCamelCase($value);
         }));
@@ -136,6 +139,13 @@ class SDK
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('html', function ($value) {
             return $value;
+        }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('godocComment', function ($value) {
+            $value = explode("\n", $value);
+            foreach ($value as $key => $line) {
+                $value[$key] = "// " . wordwrap($value[$key], 75, "\n// ");
+            }
+            return implode("\n", $value);
         }, ['is_safe' => ['html']]));
     }
 
