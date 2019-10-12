@@ -138,7 +138,7 @@ class Go extends Language {
                     $output .= 'null';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "''";
+                    $output .= '""';
                     break;
                 case self::TYPE_ARRAY:
                     $output .= '[]';
@@ -156,7 +156,7 @@ class Go extends Language {
                     $output .= ($default) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "'{$default}'";
+                    $output .= "\"{$default}\"";
                     break;
             }
         }
@@ -183,13 +183,13 @@ class Go extends Language {
                     $output .= 'null';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "''";
+                    $output .= '""';
                     break;
                 case self::TYPE_ARRAY:
                     $output .= '[]';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "document.getElementById('uploader').files[0]";
+                    $output .= "file";
                     break;
             }
         }
@@ -204,10 +204,10 @@ class Go extends Language {
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "'{$example}'";
+                    $output .= "\"{$example}\"";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "document.getElementById('uploader').files[0]";
+                    $output .= "file";
                     break;
             }
         }
