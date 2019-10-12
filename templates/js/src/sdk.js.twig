@@ -1,4 +1,7 @@
 (function (window) {
+     
+    'use strict';
+
     window.{{ spec.title | caseUcfirst }} = function () {
 
         let config = {
@@ -263,6 +266,7 @@
 {% endfor %}
              * @throws {Error}
              * @return {% if method.cookies %}{null}{% else %}{Promise}{% endif %}
+             
              */
             {{ method.name }}: function({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) {
 {% for parameter in method.parameters.all %}
@@ -274,32 +278,28 @@
 {% endif %}
 {% endfor %}
                 let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace(new RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', 'g'), {{ parameter.name | caseCamel }}){% endfor %};
+
+                let payload = {};
+
+{% for parameter in method.parameters.query %}
+                if({{ parameter.name | caseCamel }}) {
+                    payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
+                }
+
+{% endfor %}
+{% for parameter in method.parameters.body %}
+                if({{ parameter.name | caseCamel }}) {
+                    payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
+                }
+
+{% endfor %}
 {% if method.cookies %}
+                payload['project'] = config.project;
 
-                return iframe('{{ method.method | caseLower }}', path, {project: config.project,
-{% for parameter in method.parameters.query %}
-                    '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}
-
-{% endfor %}
-{% for parameter in method.parameters.body %}
-                    '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}
-
-{% endfor %}
-                });
+                return iframe('{{ method.method | caseLower }}', path, payload);
 {% else %}
-
                 return http
-                    .{{ method.method | caseLower }}(path, {'content-type': '{% if 'multipart/form-data' in method.consumes|keys %}multipart/form-data{% else %}application/json{% endif %}'},
-                        {
-{% for parameter in method.parameters.query %}
-                            '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}
-
-{% endfor %}
-{% for parameter in method.parameters.body %}
-                            '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}
-
-{% endfor %}
-                        });
+                    .{{ method.method | caseLower }}(path, {'content-type': '{% if 'multipart/form-data' in method.consumes|keys %}multipart/form-data{% else %}application/json{% endif %}'}, payload);
 {% endif %}
             }{% if not loop.last %},
 {% endif %}
@@ -320,4 +320,8 @@
         };
     };
 
-})(window);
+    if(typeof module !== "undefined") {
+        module.exports = window.Appwrite;
+    }
+
+})((typeof window !== "undefined") ? window : {});
