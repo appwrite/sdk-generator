@@ -10,8 +10,9 @@ use Appwrite\SDK\Language\PHP;
 use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
 use Appwrite\SDK\Language\Dart;
+use Appwrite\SDK\Language\Go;
 
-$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart'];
+$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go'];
 
 try {
 
@@ -98,7 +99,18 @@ try {
 
     $sdk->generate(__DIR__ . '/examples/dart');
 
+    // GO
 
+    $sdk  = new SDK(new Go(), new Swagger2($spec));
+    $sdk
+        ->setGitUserName('appwrite')
+        ->setGitRepoName('go-sdk')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/go');
 }
 catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
