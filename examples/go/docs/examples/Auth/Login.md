@@ -24,7 +24,7 @@
         }
 
         // Call Login method and handle results
-        var res, err := srv.Login("email@example.com", "password", "https://example.com", "https://example.com")
+        var res, err := srv.Login("email@example.com", "password")
         if err != nil {
             panic(err)
         }

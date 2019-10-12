@@ -20,7 +20,7 @@ class Auth extends Service {
      /// 301 redirect status code and will set the user session cookie. This
      /// behavior is enforced because modern browsers are limiting 3rd party cookies
      /// in XHR of fetch requests to protect user privacy.
-    Future<Response> login({email, password, success, failure}) async {
+    Future<Response> login({email, password, success = null, failure = null}) async {
        String path = '/auth/login';
 
        Map<String, dynamic> params = {

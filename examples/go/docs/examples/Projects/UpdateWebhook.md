@@ -24,7 +24,7 @@
         }
 
         // Call UpdateWebhook method and handle results
-        var res, err := srv.UpdateWebhook("[PROJECT_ID]", "[WEBHOOK_ID]", "[NAME]", [], "[URL]", 1)
+        var res, err := srv.UpdateWebhook("[PROJECT_ID]", "[WEBHOOK_ID]", "[NAME]", [], "[URL]", 0)
         if err != nil {
             panic(err)
         }

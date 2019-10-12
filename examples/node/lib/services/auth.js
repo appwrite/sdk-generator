@@ -27,7 +27,7 @@ class Auth extends Service {
      * @throws Exception
      * @return {}
      */
-    async login(email, password, success, failure) {
+    async login(email, password, success = '', failure = '') {
         let path = '/auth/login';
         
         return await this.client.call('post', path, {'content-type': 'application/json'},

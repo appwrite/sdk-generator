@@ -541,21 +541,13 @@
              * @throws {Error}
              * @return {null}             
              */
-            login: function(email, password, success, failure) {
+            login: function(email, password, success = '', failure = '') {
                 if(email === undefined) {
                     throw new Error('Missing required parameter: "email"');
                 }
                 
                 if(password === undefined) {
                     throw new Error('Missing required parameter: "password"');
-                }
-                
-                if(success === undefined) {
-                    throw new Error('Missing required parameter: "success"');
-                }
-                
-                if(failure === undefined) {
-                    throw new Error('Missing required parameter: "failure"');
                 }
                 
                 let path = '/auth/login';
@@ -634,7 +626,7 @@
              * @param {string} success
              * @param {string} failure
              * @throws {Error}
-             * @return {Promise}             
+             * @return {null}             
              */
             oauth: function(provider, success = '', failure = '') {
                 if(provider === undefined) {
@@ -653,8 +645,9 @@
                     payload['failure'] = failure;
                 }
 
-                return http
-                    .get(path, {'content-type': 'application/json'}, payload);
+                payload['project'] = config.project;
+
+                return iframe('get', path, payload);
             },
 
             /**

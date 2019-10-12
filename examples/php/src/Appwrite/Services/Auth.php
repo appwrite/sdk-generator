@@ -33,7 +33,7 @@ class Auth extends Service
      * @throws Exception
      * @return array
      */
-    public function login($email, $password, $success, $failure)
+    public function login($email, $password, $success = '', $failure = '')
     {
         $path   = str_replace([], [], '/auth/login');
         $params = [];
