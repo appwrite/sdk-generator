@@ -80,8 +80,14 @@ class Go extends Language {
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/{{service.name | caseDash}}.go',
+                'destination'   => '{{service.name | caseDash}}.go',
                 'template'      => '/go/services/service.go.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/{{service.name | caseUcfirst}}/{{method.name | caseUcfirst}}.md',
+                'template'      => '/go/docs/example.md.twig',
                 'minify'        => false,
             ],
         ];
