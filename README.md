@@ -74,11 +74,15 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | Ruby       | [Ruby Style Guide]  | GEM                | [@eldadfux]    |
 | Python     | [PEP8]              | PIP                | [@eldadfux]    |
 | Dart       | [Effective Dart]    | pub tool           | [@Almoullim]   |
+| Go         | [Effective Go  ]    | go get             | [@panz3r]      |
+| CSharp     |                     | ?                  |                |
+| D          |                     | ?                  |                |
 | Kotlin     |                     | ?                  |                |
 | Swift      |                     | ?                  |                |
 
 [@Almoullim]:       https://github.com/Almoullim
 [@eldadfux]:        https://github.com/eldadfux
+[@panz3r]:          https://github.com/panz3r
 
 [PHP FIG]:          https://www.php-fig.org/
 [NPM Coding Style]: https://docs.npmjs.com/misc/coding-style
@@ -87,20 +91,25 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 [PEP8]:             https://www.python.org/dev/peps/pep-0008/
 [Effective Dart]:   https://dart.dev/guides/language/effective-dart/style
 
+## Contributing
 
-## Development
+To install a working development environment follow this instruction:
+
+1. For or clone the appwrite/sdk-generator repository.
+
+2. Install Composer dependencies:
 
 ```bash
 composer update --ignore-platform-reqs --optimize-autoloader
 ```
 
-## TODO List
+3. Follow our contribution guide to learn how you can add support for more languages.
 
-* Better spec modeling
-* Spec Validators
-* XML Content Types
+All code contributions - including those of people having commit access - must go through a pull request and approved by a core developer before being merged. This is to ensure proper review of all the code.
+
+Fork the project, create a feature branch, and send us a pull request.
     
-## SDK Checklist
+### SDK Checklist
 
 It is very important for us to create consistent structure, architecture and native like feel for the SDKs we generate.
 In order to accomplish that we have made a checklist of points to support while adding a new language to the SDK generator.
@@ -141,12 +150,6 @@ The checklist aims to balance consistency among languages, and follow each platf
         * Arrays / Dictionaries / Lists Support (+concatenation type)
 * Usage Example Docs
 * Definitions / Models Classes - with setters and getters
-
-## Contributing
-
-All code contributions - including those of people having commit access - must go through a pull request and approved by a core developer before being merged. This is to ensure proper review of all the code.
-
-Fork the project, create a feature branch, and send us a pull request.
 
 ## Copyright and license
 
