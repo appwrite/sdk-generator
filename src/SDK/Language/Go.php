@@ -86,7 +86,7 @@ class Go extends Language {
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseUcfirst}}/{{method.name | caseUcfirst}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => '/go/docs/example.md.twig',
                 'minify'        => false,
             ],
