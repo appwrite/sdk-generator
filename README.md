@@ -74,7 +74,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | Ruby       | [Ruby Style Guide]  | GEM                | [@eldadfux]    |
 | Python     | [PEP8]              | PIP                | [@eldadfux]    |
 | Dart       | [Effective Dart]    | pub tool           | [@Almoullim]   |
-| Go         | [Effective Go  ]    | go get             | [@panz3r]      |
+| Go         | [Effective Go]      | go get             | [@panz3r]      |
 | CSharp     |                     | ?                  |                |
 | D          |                     | ?                  |                |
 | Kotlin     |                     | ?                  |                |
@@ -90,6 +90,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 [Ruby Style Guide]: https://github.com/rubocop-hq/ruby-style-guide
 [PEP8]:             https://www.python.org/dev/peps/pep-0008/
 [Effective Dart]:   https://dart.dev/guides/language/effective-dart/style
+[Effective Go]:     https://golang.org/doc/effective_go.html
 
 ## Contributing
 
