@@ -28,8 +28,12 @@ try {
         return $result;
     }
 
-    //$spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
-    $spec = getSSLPage('https://appwrite.test/v1/open-api-2.json?extensions=1');
+    $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
+    //$spec = getSSLPage('https://appwrite.test/v1/open-api-2.json?extensions=1');
+
+    if(empty($spec)) {
+        throw new Exception('Failed to fetch spec from Appwrite server');
+    }
 
     // PHP
     $sdk  = new SDK(new PHP(), new Swagger2($spec));

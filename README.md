@@ -108,7 +108,7 @@ composer update --ignore-platform-reqs --optimize-autoloader
 All code contributions - including those of people having commit access - must go through a pull request and approved by a core developer before being merged. This is to ensure proper review of all the code.
 
 Fork the project, create a feature branch, and send us a pull request.
-    
+
 ### SDK Checklist
 
 It is very important for us to create consistent structure, architecture and native like feel for the SDKs we generate.

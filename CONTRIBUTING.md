@@ -82,7 +82,7 @@ sdk-generator/blob/master/example.php:
 Run the following command:
 
 ```bash
-php example.php
+docker run --rm -v $(pwd):/app -w /app php:7.3-cli php example.php
 ```
 
 >Note: Make sure to have PHP CLI installed on your host. You can just add the new language next to the other languages in example.php file, no need to rewrite the file completely.
