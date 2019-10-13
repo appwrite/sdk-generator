@@ -6,6 +6,20 @@ We would ❤️ for you to contribute to Appwrite and help make it better! As a 
 
 Help us keep Appwrite open and inclusive. Please read and follow our [Code of Conduct](/CODE_OF_CONDUCT.md).
 
+## Installation
+
+To install a working development environment follow this instruction:
+
+1. For or clone the appwrite/sdk-generator repository.
+
+2. Install Composer dependencies:
+
+```bash
+composer update --ignore-platform-reqs --optimize-autoloader
+```
+
+3. Follow our contribution guide to learn how you can add support for more languages.
+
 ## Creating Language Class
 
 First, create a new class for the new language in this directory: https://github.com/appwrite/sdk-generator/tree/master/src/SDK/Language
@@ -79,12 +93,54 @@ sdk-generator/blob/master/example.php:
     $sdk->generate(__DIR__ . '/examples/new-lang');
 ```
 
-Run the following command:
+Run the following command (make sure you have an updated docker version on your machine):
 
 ```bash
 docker run --rm -v $(pwd):/app -w /app php:7.3-cli php example.php
 ```
 
->Note: Make sure to have PHP CLI installed on your host. You can just add the new language next to the other languages in example.php file, no need to rewrite the file completely.
+>Note: You can just add the new language next to the other languages in example.php file, no need to rewrite the file completely.
 
 Check your output files at: /examples/new-lang and make sure the SDK works. When possible add some unit tests.
+
+## SDK Checklist
+
+It is very important for us to create consistent structure, architecture and native like feel for the SDKs we generate.
+In order to accomplish that we have made a checklist of points to support while adding a new language to the SDK generator.
+
+The checklist aims to balance consistency among languages, and follow each platform's best practices and coding standards.
+
+* Proper Coding Standards and Conventions
+* Proper Skeleton Structure
+* Readme Doc
+* HTTP Client class or object
+    * Client Setters
+        * Set Auth Keys Method
+        * Set Basic Auth Method
+        * Set OAuth Dialog Method
+        * Set Endpoint Method
+        * Set Self Signed Certificates
+    * Default Headers
+        * 'appwrite-sdk-version' header
+        * Add 'User-Agent' header with server name and language version (ubuntu-18.02:php-7.0.1)
+    * Methods
+        * addHeader(key, value)
+        * call(method, path = '', headers = [], params = [])
+            * Concat GET params to path
+            * Parse request params by content type header
+            * Parse response params by content type header
+            * Throw error on bad response
+* Service Abstraction (optional)
+    * Constructor receiving an instance of the client class 
+* Service Class
+    * Headers Support (Content Type)
+    * Parameters Support
+        * Default Values Support
+        * Required Values Support
+        * String Support
+        * Integer Support
+        * Boolean Support
+        * Files Support (+array file and multiple header support and params flatten)
+        * Arrays / Dictionaries / Lists Support (+concatenation type)
+* Usage Example Docs
+* Definitions / Models Classes - with setters and getters
