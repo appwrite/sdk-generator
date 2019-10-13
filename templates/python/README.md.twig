@@ -21,6 +21,14 @@ To install via [PyPI](https://pypi.org/):
 pip install {{ language.params.pipPackage }}
 ```
 
+To install the development version, do the following:
+
+```bash
+git clone {{ sdk.gitURL }}
+cd {{ sdk.gitRepoName }}
+python -m pip install -U .
+```
+
 ## License
 
 Please see the [{{spec.licenseName}} license]({{spec.licenseURL}}) file for more information.
