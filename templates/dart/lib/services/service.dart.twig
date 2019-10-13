@@ -11,7 +11,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {{ method.description|dartComment }}
 {% endif %}
     Future<Response> {{ method.name | caseCamel }}({% if method.parameters.all|length > 0 %}{{ '{' }}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | escapeDollarSign | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}) {
-       const path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
+       final path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
 
        final params = <String, dynamic>{
 {% for parameter in method.parameters.query %}

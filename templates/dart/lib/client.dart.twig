@@ -4,9 +4,10 @@ import 'package:cookie_jar/cookie_jar.dart';
 
 class Client {
     Client({
-        this.selfSigned = false,
+        bool selfSigned = false,
         String endPoint = '{{spec.endpoint}}',
     }) : http = Dio(),
+         _selfSigned = selfSigned,
          _endPoint = endPoint,
          headers = {} {
         headers.addAll({
@@ -41,7 +42,7 @@ class Client {
 
 {% endfor %}
     Client setSelfSigned({bool status = true}) {
-        selfSigned = status;
+        _selfSigned = status;
 
         return this;
     }
