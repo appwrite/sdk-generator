@@ -1,0 +1,20 @@
+# {{ spec.title }} SDK for {{ language.name }}
+
+![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?v=1)
+![Version](https://img.shields.io/badge/api%20version-{{ spec.version|url_encode }}-blue.svg?v=1)
+{% if sdk.warning %}
+
+{{ sdk.warning }}
+{% endif %}
+
+{{ spec.description }}
+
+
+
+![{{ spec.title }}]({{ sdk.logo }})
+
+## Installation
+
+## License
+
+Please see the [{{spec.licenseName}} license]({{spec.licenseURL}}) file for more information.
