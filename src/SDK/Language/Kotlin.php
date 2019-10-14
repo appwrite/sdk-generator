@@ -184,6 +184,48 @@ class Kotlin extends Language {
      */
 	public function getParamExample(array $param) 
 	{
+		$type       = (isset($param['type'])) ? $param['type'] : '';
+        $example    = (isset($param['example'])) ? $param['example'] : '';
 
+        $output = '';
+
+        if(empty($example) && $example !== 0 && $example !== false) {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                case self::TYPE_BOOLEAN:
+                    $output .= 'None';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "''";
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= '[]';
+                    break;
+                case self::TYPE_FILE:
+                    $output .= "document.getElementById('uploader').files[0]";
+                    break;
+            }
+        }
+        else {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                case self::TYPE_ARRAY:
+                    $output .= $example;
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= ($example) ? 'True' : 'False';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "'{$example}'";
+                    break;
+                case self::TYPE_FILE:
+                    $output .= "document.getElementById('uploader').files[0]"; //TODO add file class
+                    break;
+            }
+        }
+
+        return $output;
 	}
 }
