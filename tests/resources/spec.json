@@ -1,0 +1,514 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "0.2.0",
+    "title": "Appwrite",
+    "description": "Appwrite backend as a service cuts up to 70% of the time and costs required for building a modern application. We abstract and simplify common development tasks behind a REST APIs, to help you develop your app in a fast and secure way. For full API documentation and tutorials go to [https://appwrite.io/docs](https://appwrite.io/docs)",
+    "termsOfService": "https://appwrite.io/policy/terms",
+    "contact": {
+      "name": "Appwrite Team",
+      "url": "https://appwrite.io/support",
+      "email": "team@appwrite.io"
+    },
+    "license": {
+      "name": "BSD-3-Clause",
+      "url": "https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE"
+    }
+  },
+  "host": "appwrite.io",
+  "basePath": "/v1",
+  "schemes": ["https"],
+  "consumes": ["application/json", "multipart/form-data"],
+  "produces": ["application/json"],
+  "securityDefinitions": {
+    "Project": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Project",
+      "description": "Your Appwrite project ID",
+      "in": "header"
+    },
+    "Key": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Key",
+      "description": "Your Appwrite project secret key",
+      "in": "header"
+    },
+    "Locale": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Locale",
+      "description": "",
+      "in": "header"
+    },
+    "Mode": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Mode",
+      "description": "",
+      "in": "header"
+    }
+  },
+  "paths": {
+    "/mock/tests/bar": {
+      "get": {
+        "summary": "Mock a get request for SDK tests",
+        "operationId": "get",
+        "consumes": [],
+        "tags": ["bar"],
+        "description": false,
+        "responses": {
+          "200": {
+            "description": "An paged array of pets",
+            "schema": {
+              "$ref": "#/definitions/Pet"
+            }
+          }
+        },
+        "extensions": {
+          "weight": 21,
+          "cookies": false,
+          "location": false,
+          "demo": "docs/examples/bar/get.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a get request for SDK tests",
+          "rate-limit": 0,
+          "rate-time": 3600
+        },
+        "parameters": [
+          {
+            "name": "x",
+            "description": "Sample string param",
+            "required": true,
+            "type": "string",
+            "x-example": "[]",
+            "in": "query"
+          },
+          {
+            "name": "y",
+            "description": "Sample numeric param",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "query"
+          }
+        ]
+      },
+      "post": {
+        "summary": "Mock a post request for SDK tests",
+        "operationId": "post",
+        "consumes": [],
+        "tags": ["bar"],
+        "description": false,
+        "responses": {
+          "200": {
+            "description": "An paged array of pets",
+            "schema": {
+              "$ref": "#/definitions/Pet"
+            }
+          }
+        },
+        "extensions": {
+          "weight": 22,
+          "cookies": false,
+          "location": false,
+          "demo": "docs/examples/bar/post.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a post request for SDK tests",
+          "rate-limit": 0,
+          "rate-time": 3600
+        },
+        "parameters": [
+          {
+            "name": "x",
+            "description": "Sample string param",
+            "required": true,
+            "type": "string",
+            "x-example": "[]",
+            "in": "formData"
+          },
+          {
+            "name": "y",
+            "description": "Sample numeric param",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          }
+        ]
+      },
+      "put": {
+        "summary": "Mock a put request for SDK tests",
+        "operationId": "put",
+        "consumes": [],
+        "tags": ["bar"],
+        "description": false,
+        "responses": {
+          "200": {
+            "description": "An paged array of pets",
+            "schema": {
+              "$ref": "#/definitions/Pet"
+            }
+          }
+        },
+        "extensions": {
+          "weight": 24,
+          "cookies": false,
+          "location": false,
+          "demo": "docs/examples/bar/put.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a put request for SDK tests",
+          "rate-limit": 0,
+          "rate-time": 3600
+        },
+        "parameters": [
+          {
+            "name": "x",
+            "description": "Sample string param",
+            "required": true,
+            "type": "string",
+            "x-example": "[]",
+            "in": "formData"
+          },
+          {
+            "name": "y",
+            "description": "Sample numeric param",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Mock a patch request for SDK tests",
+        "operationId": "patch",
+        "consumes": [],
+        "tags": ["bar"],
+        "description": false,
+        "responses": {
+          "200": {
+            "description": "An paged array of pets",
+            "schema": {
+              "$ref": "#/definitions/Pet"
+            }
+          }
+        },
+        "extensions": {
+          "weight": 23,
+          "cookies": false,
+          "location": false,
+          "demo": "docs/examples/bar/patch.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a get request for SDK tests",
+          "rate-limit": 0,
+          "rate-time": 3600
+        },
+        "parameters": [
+          {
+            "name": "x",
+            "description": "Sample string param",
+            "required": true,
+            "type": "string",
+            "x-example": "[]",
+            "in": "formData"
+          },
+          {
+            "name": "y",
+            "description": "Sample numeric param",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Mock a delete request for SDK tests",
+        "operationId": "delete",
+        "consumes": [],
+        "tags": ["bar"],
+        "description": false,
+        "responses": {
+          "200": {
+            "description": "An paged array of pets",
+            "schema": {
+              "$ref": "#/definitions/Pet"
+            }
+          }
+        },
+        "extensions": {
+          "weight": 25,
+          "cookies": false,
+          "location": false,
+          "demo": "docs/examples/bar/delete.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a delete request for SDK tests",
+          "rate-limit": 0,
+          "rate-time": 3600
+        },
+        "parameters": [
+          {
+            "name": "x",
+            "description": "Sample string param",
+            "required": true,
+            "type": "string",
+            "x-example": "[]",
+            "in": "formData"
+          },
+          {
+            "name": "y",
+            "description": "Sample numeric param",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          }
+        ]
+      }
+    },
+    "/mock/tests/foo": {
+      "get": {
+        "summary": "Mock a get request for SDK tests",
+        "operationId": "get",
+        "consumes": [],
+        "tags": ["foo"],
+        "description": false,
+        "responses": {
+          "200": {
+            "description": "An paged array of pets",
+            "schema": {
+              "$ref": "#/definitions/Pet"
+            }
+          }
+        },
+        "extensions": {
+          "weight": 16,
+          "cookies": false,
+          "location": false,
+          "demo": "docs/examples/foo/get.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a get request for SDK tests",
+          "rate-limit": 0,
+          "rate-time": 3600
+        },
+        "parameters": [
+          {
+            "name": "x",
+            "description": "Sample string param",
+            "required": true,
+            "type": "string",
+            "x-example": "[]",
+            "in": "query"
+          },
+          {
+            "name": "y",
+            "description": "Sample numeric param",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "query"
+          }
+        ]
+      },
+      "post": {
+        "summary": "Mock a post request for SDK tests",
+        "operationId": "post",
+        "consumes": [],
+        "tags": ["foo"],
+        "description": false,
+        "responses": {
+          "200": {
+            "description": "An paged array of pets",
+            "schema": {
+              "$ref": "#/definitions/Pet"
+            }
+          }
+        },
+        "extensions": {
+          "weight": 17,
+          "cookies": false,
+          "location": false,
+          "demo": "docs/examples/foo/post.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a post request for SDK tests",
+          "rate-limit": 0,
+          "rate-time": 3600
+        },
+        "parameters": [
+          {
+            "name": "x",
+            "description": "Sample string param",
+            "required": true,
+            "type": "string",
+            "x-example": "[]",
+            "in": "formData"
+          },
+          {
+            "name": "y",
+            "description": "Sample numeric param",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          }
+        ]
+      },
+      "put": {
+        "summary": "Mock a put request for SDK tests",
+        "operationId": "put",
+        "consumes": [],
+        "tags": ["foo"],
+        "description": false,
+        "responses": {
+          "200": {
+            "description": "An paged array of pets",
+            "schema": {
+              "$ref": "#/definitions/Pet"
+            }
+          }
+        },
+        "extensions": {
+          "weight": 19,
+          "cookies": false,
+          "location": false,
+          "demo": "docs/examples/foo/put.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a put request for SDK tests",
+          "rate-limit": 0,
+          "rate-time": 3600
+        },
+        "parameters": [
+          {
+            "name": "x",
+            "description": "Sample string param",
+            "required": true,
+            "type": "string",
+            "x-example": "[]",
+            "in": "formData"
+          },
+          {
+            "name": "y",
+            "description": "Sample numeric param",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Mock a patch request for SDK tests",
+        "operationId": "patch",
+        "consumes": [],
+        "tags": ["foo"],
+        "description": false,
+        "responses": {
+          "200": {
+            "description": "An paged array of pets",
+            "schema": {
+              "$ref": "#/definitions/Pet"
+            }
+          }
+        },
+        "extensions": {
+          "weight": 18,
+          "cookies": false,
+          "location": false,
+          "demo": "docs/examples/foo/patch.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a get request for SDK tests",
+          "rate-limit": 0,
+          "rate-time": 3600
+        },
+        "parameters": [
+          {
+            "name": "x",
+            "description": "Sample string param",
+            "required": true,
+            "type": "string",
+            "x-example": "[]",
+            "in": "formData"
+          },
+          {
+            "name": "y",
+            "description": "Sample numeric param",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Mock a delete request for SDK tests",
+        "operationId": "delete",
+        "consumes": [],
+        "tags": ["foo"],
+        "description": false,
+        "responses": {
+          "200": {
+            "description": "An paged array of pets",
+            "schema": {
+              "$ref": "#/definitions/Pet"
+            }
+          }
+        },
+        "extensions": {
+          "weight": 20,
+          "cookies": false,
+          "location": false,
+          "demo": "docs/examples/foo/delete.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a delete request for SDK tests",
+          "rate-limit": 0,
+          "rate-time": 3600
+        },
+        "parameters": [
+          {
+            "name": "x",
+            "description": "Sample string param",
+            "required": true,
+            "type": "string",
+            "x-example": "[]",
+            "in": "formData"
+          },
+          {
+            "name": "y",
+            "description": "Sample numeric param",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "Pet": {
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "name": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        }
+      }
+    },
+    "Pets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Pet"
+      }
+    },
+    "Error": {
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "externalDocs": {
+    "description": "Full API docs, specs and tutorials",
+    "url": "https://appwrite.test/docs"
+  }
+}
