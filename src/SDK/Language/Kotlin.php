@@ -106,7 +106,7 @@ class Kotlin extends Language {
 	{
 		return [
 
-		]
+		];
 	}
 
 	/**
@@ -115,7 +115,17 @@ class Kotlin extends Language {
      */
 	public function getTypeName($type) 
 	{
+		switch ($type) {
+            case self::TYPE_INTEGER:
+            case self::TYPE_NUMBER:
+                return 'number';
+            break;
+            case self::TYPE_FILE:
+                return 'File';
+            break;
+        }
 
+        return $type;
 	}
 
 	/**
