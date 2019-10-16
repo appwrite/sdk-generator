@@ -19,27 +19,27 @@ class Client:
         return self
 
     def add_header(self, key, value):
-        self._global_headers[key.lower()] = value.lower()
+        self._global_headers[key.lower()] = value.lower().strip()
         return self
 
     def set_project(self, value):
         """Your Appwrite project ID"""
 
-        self._global_headers['x-appwrite-project'] = value.lower()
+        self._global_headers['x-appwrite-project'] = value.lower().strip()
         return self
 
     def set_key(self, value):
         """Your Appwrite project secret key"""
 
-        self._global_headers['x-appwrite-key'] = value.lower()
+        self._global_headers['x-appwrite-key'] = value.lower().strip()
         return self
 
     def set_locale(self, value):
-        self._global_headers['x-appwrite-locale'] = value.lower()
+        self._global_headers['x-appwrite-locale'] = value.lower().strip()
         return self
 
     def set_mode(self, value):
-        self._global_headers['x-appwrite-mode'] = value.lower()
+        self._global_headers['x-appwrite-mode'] = value.lower().strip()
         return self
 
     def call(self, method, path='', headers=None, params=None):
