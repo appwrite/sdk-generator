@@ -25,6 +25,7 @@ class Bar extends Service
         $params['y'] = $y;
 
         return $this->client->call(Client::METHOD_GET, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
@@ -45,6 +46,7 @@ class Bar extends Service
         $params['y'] = $y;
 
         return $this->client->call(Client::METHOD_POST, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
@@ -65,6 +67,7 @@ class Bar extends Service
         $params['y'] = $y;
 
         return $this->client->call(Client::METHOD_PUT, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
@@ -85,6 +88,7 @@ class Bar extends Service
         $params['y'] = $y;
 
         return $this->client->call(Client::METHOD_PATCH, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
@@ -105,6 +109,7 @@ class Bar extends Service
         $params['y'] = $y;
 
         return $this->client->call(Client::METHOD_DELETE, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
