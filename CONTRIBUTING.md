@@ -132,7 +132,7 @@ The checklist aims to balance consistency among languages, and follow each platf
             * Throw error on bad response
 * Service Abstraction (optional)
     * Constructor receiving an instance of the client class 
-* Service Class
+* Service Class (extends the service abstraction if exists)
     * Headers Support (Content Type)
     * Parameters Support
         * Default Values Support
@@ -144,3 +144,38 @@ The checklist aims to balance consistency among languages, and follow each platf
         * Arrays / Dictionaries / Lists Support (+concatenation type)
 * Usage Example Docs
 * Definitions / Models Classes - with setters and getters
+
+## Tests
+
+Testing a single project that runs in multiple languages can be very hard. Managing dependencies with multiple package managers of different ecosystems can take the SDK Generator complexity to extreme levels.
+
+To avoid that complexity, we have created a cross-platform mechanism that leverages Docker and a vanilla language file with no dependencies attached.
+
+To add a new language test, you need to create a language file that initializes your SDK and call generated method in a predefined order. The test algorithm will evaluate your script output and determine whether the test passed or failed.
+
+The test algorithm will generate your SDK from a small demo SDK JSON spec file and will run your test on different versions of your chosen language.
+
+To get started, create a language file in this location:
+
+`./tests/languages/tests-for-[MY-LANGUAGE].[MY-LANGUAGE-FILE-EXT]`
+
+In your new language file, init your SDK from a relative path which will be generated here: `./tests/sdks/` from this spec file: `./tests/resources/spec.json`.
+
+After you finish initializing, make a series of HTTP calls using your new generated SDKs method just like in one of these examples:
+
+1. tests/languages/tests-for-php.js
+2. tests/languages/tests-for-node.js
+
+Once done, add a Docker command that can execute your test file to the SDK test algorithm `$containers` array in this location: `./tests/SDKTest.php:17`. Make sure to add one command for each language version you wish to support.
+
+A good example is the PHP test for 5 different PHP versions:
+
+```php
+    protected $containers = [
+        'php-5.6' => 'docker run --rm -v $(pwd):/app -w /app php:5.6-cli php tests/languages/tests-for-php.php',
+        'php-7.0' => 'docker run --rm -v $(pwd):/app -w /app php:7.0-cli php tests/languages/tests-for-php.php',
+        'php-7.1' => 'docker run --rm -v $(pwd):/app -w /app php:7.1-cli php tests/languages/tests-for-php.php',
+        'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli php tests/languages/tests-for-php.php',
+        'php-7.3' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli php tests/languages/tests-for-php.php',
+    ];
+```
