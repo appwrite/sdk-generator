@@ -1,0 +1,39 @@
+import java.util.Arrays
+
+
+class Client {
+	
+	val METHOD_GET = 'GET'
+	val METHOD_POST = 'POST'
+	val METHOD_PUT = 'PUT'
+	val METHOD_PATCH = 'PATCH'
+	val METHOD_DELETE = 'DELETE'
+	val METHOD_HEAD = 'HEAD'
+	val METHOD_OPTIONS = 'OPTIONS'
+	val METHOD_CONNECT = 'CONNECT'
+	val METHOD_TRACE = 'TRACE'
+
+	var endpoint = 'https://appwrite.test/v1'
+	var headers = ArrayList<String>()
+
+	fun addHeader(header: String) {
+		headers.add(header)
+	}
+
+	fun call(method: String, path: String, headers: Array, params: Object) {
+		val url = URL(endpoint)
+
+		with (url.openConnection as  HttpURLConnection) {
+			requestMethod = METHOD_GET
+
+			inputSteam.bufferedReader().use {
+				it.lines.forEach {
+					line -> println(line)
+				}
+
+			}
+		}
+
+
+	} 
+}
