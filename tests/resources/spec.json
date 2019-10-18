@@ -87,6 +87,17 @@
             "type": "integer",
             "format": "int32",
             "in": "query"
+          },
+          {
+            "name": "z",
+            "description": "Sample array param",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "in": "query"
           }
         ]
       },
@@ -128,6 +139,17 @@
             "required": true,
             "type": "integer",
             "format": "int32",
+            "in": "formData"
+          },
+          {
+            "name": "z",
+            "description": "Sample array param",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
             "in": "formData"
           }
         ]
@@ -171,6 +193,17 @@
             "type": "integer",
             "format": "int32",
             "in": "formData"
+          },
+          {
+            "name": "z",
+            "description": "Sample array param",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "in": "formData"
           }
         ]
       },
@@ -213,6 +246,17 @@
             "type": "integer",
             "format": "int32",
             "in": "formData"
+          },
+          {
+            "name": "z",
+            "description": "Sample array param",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "in": "formData"
           }
         ]
       },
@@ -254,6 +298,17 @@
             "required": true,
             "type": "integer",
             "format": "int32",
+            "in": "formData"
+          },
+          {
+            "name": "z",
+            "description": "Sample array param",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
             "in": "formData"
           }
         ]
@@ -299,6 +354,17 @@
             "type": "integer",
             "format": "int32",
             "in": "query"
+          },
+          {
+            "name": "z",
+            "description": "Sample array param",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "in": "query"
           }
         ]
       },
@@ -340,6 +406,17 @@
             "required": true,
             "type": "integer",
             "format": "int32",
+            "in": "formData"
+          },
+          {
+            "name": "z",
+            "description": "Sample array param",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
             "in": "formData"
           }
         ]
@@ -383,6 +460,17 @@
             "type": "integer",
             "format": "int32",
             "in": "formData"
+          },
+          {
+            "name": "z",
+            "description": "Sample array param",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "in": "formData"
           }
         ]
       },
@@ -425,6 +513,17 @@
             "type": "integer",
             "format": "int32",
             "in": "formData"
+          },
+          {
+            "name": "z",
+            "description": "Sample array param",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "in": "formData"
           }
         ]
       },
@@ -466,6 +565,17 @@
             "required": true,
             "type": "integer",
             "format": "int32",
+            "in": "formData"
+          },
+          {
+            "name": "z",
+            "description": "Sample array param",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
             "in": "formData"
           }
         ]

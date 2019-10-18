@@ -17,35 +17,34 @@ $client->addHeader('Origin', 'http://localhost');
 
 // Foo Service
 
-$resposne = $foo->get('string', 123);
+$resposne = $foo->get('string', 123, ['string in array']);
 echo "{$resposne['result']}\n";
 
-$resposne = $foo->post('string', 123);
+$resposne = $foo->post('string', 123, ['string in array']);
 echo "{$resposne['result']}\n";
 
-$resposne = $foo->put('string', 123);
+$resposne = $foo->put('string', 123, ['string in array']);
 echo "{$resposne['result']}\n";
 
-$resposne = $foo->patch('string', 123);
+$resposne = $foo->patch('string', 123, ['string in array']);
 echo "{$resposne['result']}\n";
 
-$resposne = $foo->delete('string', 123);
+$resposne = $foo->delete('string', 123, ['string in array']);
 echo "{$resposne['result']}\n";
-
 
 // Bar Service
 
-$resposne = $bar->get('string', 123);
+$resposne = $bar->get('string', 123, ['string in array']);
 echo "{$resposne['result']}\n";
 
-$resposne = $bar->post('string', 123);
+$resposne = $bar->post('string', 123, ['string in array']);
 echo "{$resposne['result']}\n";
 
-$resposne = $bar->put('string', 123);
+$resposne = $bar->put('string', 123, ['string in array']);
 echo "{$resposne['result']}\n";
 
-$resposne = $bar->patch('string', 123);
+$resposne = $bar->patch('string', 123, ['string in array']);
 echo "{$resposne['result']}\n";
 
-$resposne = $bar->delete('string', 123);
+$resposne = $bar->delete('string', 123, ['string in array']);
 echo "{$resposne['result']}\n";
