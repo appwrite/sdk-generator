@@ -9,6 +9,9 @@ $languages  = [
     'php' => [
         'class' => 'Appwrite\SDK\Language\PHP',
     ],
+    'node' => [
+        'class' => 'Appwrite\SDK\Language\Node',
+    ],
 ];
 
 try {
