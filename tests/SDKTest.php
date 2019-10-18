@@ -56,11 +56,13 @@ class SDKTest extends TestCase
         echo "Generating SDKs files for all langauges...\n";
 
         try {
-            $spec = file_get_contents(__DIR__ . '/resources/spec.json');
+            $spec = file_get_contents(realpath(__DIR__ . '/resources/spec.json'));
         
             if(empty($spec)) {
                 throw new Exception('Failed to fetch spec from Appwrite server');
             }
+
+            var_dump($spec);
         
             foreach ($this->languages as $language => $options) {
                 $sdk  = new SDK(new $options['class'](), new Swagger2($spec));
