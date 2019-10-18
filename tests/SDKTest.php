@@ -1,6 +1,9 @@
 <?php
 
 namespace Tests;
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
@@ -62,8 +65,6 @@ class SDKTest extends TestCase
                 throw new Exception('Failed to fetch spec from Appwrite server');
             }
 
-            var_dump($spec);
-        
             foreach ($this->languages as $language => $options) {
                 $sdk  = new SDK(new $options['class'](), new Swagger2($spec));
         
