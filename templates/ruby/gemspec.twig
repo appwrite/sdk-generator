@@ -6,5 +6,6 @@ Gem::Specification.new do |s|
   s.author = '{{ spec.contactName }}'
   s.homepage = '{{ spec.contactURL }}'
   s.email = '{{ spec.contactEmail }}'
+  s.files = `git ls-files`.split($INPUT_RECORD_SEPARATOR)
  
 end
