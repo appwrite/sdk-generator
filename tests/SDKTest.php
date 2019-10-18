@@ -28,7 +28,9 @@ class SDKTest extends TestCase
             'class' => 'Appwrite\SDK\Language\Node',
             'build' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:12.12 npm install',
             'envs' => [
-                //'nodejs-12.12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/languages/tests-for-node.js',
+                'nodejs-8' => 'docker run --rm -v $(pwd):/app -w /app node:8.16 node tests/node/test.js',
+                'nodejs-10' => 'docker run --rm -v $(pwd):/app -w /app node:10.16 node tests/node/test.js',
+                'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/node/test.js',
             ],
         ],
     ];
@@ -101,7 +103,5 @@ class SDKTest extends TestCase
         catch (Throwable $exception) {
             echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
         }
-
-        exec('rm -r ./tests/sdks');
     }
 }
