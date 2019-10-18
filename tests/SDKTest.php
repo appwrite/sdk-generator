@@ -1,13 +1,14 @@
 <?php
 
 namespace Tests;
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
 use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
 use PHPUnit\Framework\TestCase;
+
+// ini_set('display_errors', 1);
+// ini_set('display_startup_errors', 1);
+// error_reporting(E_ALL);
 
 class SDKTest extends TestCase
 {
@@ -34,6 +35,13 @@ class SDKTest extends TestCase
                 'nodejs-8' => 'docker run --rm -v $(pwd):/app -w /app node:8.16 node tests/node/test.js',
                 'nodejs-10' => 'docker run --rm -v $(pwd):/app -w /app node:10.16 node tests/node/test.js',
                 'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/node/test.js',
+            ],
+        ],
+        'ruby' => [
+            'class' => 'Appwrite\SDK\Language\Ruby',
+            'build' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/ruby ruby:2.6.5 ruby -v',
+            'envs' => [
+                'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.6.5 ruby tests/ruby/tests.rb',
             ],
         ],
     ];
@@ -74,11 +82,14 @@ class SDKTest extends TestCase
         
                 $sdk->generate(__DIR__ . '/sdks/' . $language);
                 
+                //continue;
+
                 $output = [];
 
-                echo "Building {$language} package...\n";
-    
-                exec($options['build'], $output);
+                if(isset($options['build'])) {
+                    echo "Building {$language} package...\n";
+                    exec($options['build'], $output);
+                }
 
                 foreach ($options['envs'] as $key => $command) {
                     echo "Running tests for the {$key} environment...\n";
@@ -86,6 +97,8 @@ class SDKTest extends TestCase
                     $output = [];
         
                     exec($command, $output);
+
+                    //var_dump($output);
         
                     $this->assertEquals($output[0], 'GET:/v1/mock/tests/foo:passed');
                     $this->assertEquals($output[1], 'POST:/v1/mock/tests/foo:passed');

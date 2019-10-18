@@ -20,6 +20,7 @@ module {{spec.title | caseUcfirst}}
             }
 
             return @client.call('{{ method.method | caseLower }}', path, {
+                'content-type' => '{% if 'multipart/form-data' in method.consumes|keys %}multipart/form-data{% else %}application/json{% endif %}',
 {% for parameter in method.parameters.header %}
                 '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},
 {% endfor %}
