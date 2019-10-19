@@ -20,7 +20,7 @@ class SDKTest extends TestCase
             'class' => 'Appwrite\SDK\Language\PHP',
             'build' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli php -v',
             'envs' => [
-                'php-5.6' => 'docker run --rm -v $(pwd):/app -w /app php:5.6-cli php tests/php/test.php',
+                //'php-5.6' => 'docker run --rm -v $(pwd):/app -w /app php:5.6-cli php tests/php/test.php',
                 'php-7.0' => 'docker run --rm -v $(pwd):/app -w /app php:7.0-cli php tests/php/test.php',
                 'php-7.1' => 'docker run --rm -v $(pwd):/app -w /app php:7.1-cli php tests/php/test.php',
                 'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli php tests/php/test.php',

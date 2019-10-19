@@ -4,6 +4,7 @@ include __DIR__ . '/../sdks/php/src/Appwrite/Client.php';
 include __DIR__ . '/../sdks/php/src/Appwrite/Service.php';
 include __DIR__ . '/../sdks/php/src/Appwrite/Services/Foo.php';
 include __DIR__ . '/../sdks/php/src/Appwrite/Services/Bar.php';
+include __DIR__ . '/../sdks/php/src/Appwrite/Services/Files.php';
 
 use Appwrite\Client;
 use Appwrite\Services\Foo;
