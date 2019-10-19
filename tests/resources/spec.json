@@ -51,9 +51,9 @@
       "get": {
         "summary": "Mock a get request for SDK tests",
         "operationId": "get",
-        "consumes": [],
+        "consumes": ["application/json"],
         "tags": ["bar"],
-        "description": false,
+        "description": "",
         "responses": {
           "200": {
             "description": "An paged array of pets",
@@ -104,9 +104,9 @@
       "post": {
         "summary": "Mock a post request for SDK tests",
         "operationId": "post",
-        "consumes": [],
+        "consumes": ["application/json"],
         "tags": ["bar"],
-        "description": false,
+        "description": "",
         "responses": {
           "200": {
             "description": "An paged array of pets",
@@ -157,9 +157,9 @@
       "put": {
         "summary": "Mock a put request for SDK tests",
         "operationId": "put",
-        "consumes": [],
+        "consumes": ["application/json"],
         "tags": ["bar"],
-        "description": false,
+        "description": "",
         "responses": {
           "200": {
             "description": "An paged array of pets",
@@ -210,9 +210,9 @@
       "patch": {
         "summary": "Mock a patch request for SDK tests",
         "operationId": "patch",
-        "consumes": [],
+        "consumes": ["application/json"],
         "tags": ["bar"],
-        "description": false,
+        "description": "",
         "responses": {
           "200": {
             "description": "An paged array of pets",
@@ -263,9 +263,9 @@
       "delete": {
         "summary": "Mock a delete request for SDK tests",
         "operationId": "delete",
-        "consumes": [],
+        "consumes": ["application/json"],
         "tags": ["bar"],
-        "description": false,
+        "description": "",
         "responses": {
           "200": {
             "description": "An paged array of pets",
@@ -314,13 +314,75 @@
         ]
       }
     },
+    "/mock/tests/files": {
+      "post": {
+        "summary": "Mock a post request for SDK tests",
+        "operationId": "upload",
+        "consumes": ["multipart/form-data"],
+        "tags": ["files"],
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "An paged array of pets",
+            "schema": {
+              "$ref": "#/definitions/Pet"
+            }
+          }
+        },
+        "extensions": {
+          "weight": 26,
+          "cookies": false,
+          "location": false,
+          "demo": "docs/examples/files/upload.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a delete request for SDK tests",
+          "rate-limit": 0,
+          "rate-time": 3600
+        },
+        "parameters": [
+          {
+            "name": "x",
+            "description": "Sample string param",
+            "required": true,
+            "type": "string",
+            "x-example": "[]",
+            "in": "formData"
+          },
+          {
+            "name": "y",
+            "description": "Sample numeric param",
+            "required": true,
+            "type": "integer",
+            "format": "int32",
+            "in": "formData"
+          },
+          {
+            "name": "z",
+            "description": "Sample array param",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "in": "formData"
+          },
+          {
+            "name": "file",
+            "description": "Sample file param",
+            "required": true,
+            "type": "file",
+            "in": "formData"
+          }
+        ]
+      }
+    },
     "/mock/tests/foo": {
       "get": {
         "summary": "Mock a get request for SDK tests",
         "operationId": "get",
-        "consumes": [],
+        "consumes": ["application/json"],
         "tags": ["foo"],
-        "description": false,
+        "description": "",
         "responses": {
           "200": {
             "description": "An paged array of pets",
@@ -371,9 +433,9 @@
       "post": {
         "summary": "Mock a post request for SDK tests",
         "operationId": "post",
-        "consumes": [],
+        "consumes": ["application/json"],
         "tags": ["foo"],
-        "description": false,
+        "description": "",
         "responses": {
           "200": {
             "description": "An paged array of pets",
@@ -424,9 +486,9 @@
       "put": {
         "summary": "Mock a put request for SDK tests",
         "operationId": "put",
-        "consumes": [],
+        "consumes": ["application/json"],
         "tags": ["foo"],
-        "description": false,
+        "description": "",
         "responses": {
           "200": {
             "description": "An paged array of pets",
@@ -477,9 +539,9 @@
       "patch": {
         "summary": "Mock a patch request for SDK tests",
         "operationId": "patch",
-        "consumes": [],
+        "consumes": ["application/json"],
         "tags": ["foo"],
-        "description": false,
+        "description": "",
         "responses": {
           "200": {
             "description": "An paged array of pets",
@@ -530,9 +592,9 @@
       "delete": {
         "summary": "Mock a delete request for SDK tests",
         "operationId": "delete",
-        "consumes": [],
+        "consumes": ["application/json"],
         "tags": ["foo"],
-        "description": false,
+        "description": "",
         "responses": {
           "200": {
             "description": "An paged array of pets",

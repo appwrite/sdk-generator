@@ -10,9 +10,9 @@ type Avatars struct {
 }
 
 // GetBrowser you can use this endpoint to show different browser icons to
-// your users, The code argument receives the browser code as appear in your
-// user /account/sessions endpoint. Use width, height and quality arguments to
-// change the output settings.
+// your users. The code argument receives the browser code as it appears in
+// your user /account/sessions endpoint. Use width, height and quality
+// arguments to change the output settings.
 func (srv *Avatars) GetBrowser(Code string, Width int, Height int, Quality int) (map[string]interface{}, error) {
 	r := strings.NewReplacer("{code}", Code)
 	path := r.Replace("/avatars/browsers/{code}")
@@ -26,7 +26,7 @@ func (srv *Avatars) GetBrowser(Code string, Width int, Height int, Quality int) 
 	return srv.client.Call("GET", path, nil, params)
 }
 
-// GetCreditCard need to display your users with your billing method or there
+// GetCreditCard need to display your users with your billing method or their
 // payment methods? The credit card endpoint will return you the icon of the
 // credit card provider you need. Use width, height and quality arguments to
 // change the output settings.
@@ -56,7 +56,7 @@ func (srv *Avatars) GetFavicon(Url string) (map[string]interface{}, error) {
 }
 
 // GetFlag you can use this endpoint to show different country flags icons to
-// your users, The code argument receives the a 2 letter country code. Use
+// your users. The code argument receives the 2 letter country code. Use
 // width, height and quality arguments to change the output settings.
 func (srv *Avatars) GetFlag(Code string, Width int, Height int, Quality int) (map[string]interface{}, error) {
 	r := strings.NewReplacer("{code}", Code)
@@ -73,7 +73,7 @@ func (srv *Avatars) GetFlag(Code string, Width int, Height int, Quality int) (ma
 
 // GetImage use this endpoint to fetch a remote image URL and crop it to any
 // image size you want. This endpoint is very useful if you need to crop and
-// display remote images in your app or in cases, you want to make sure a 3rd
+// display remote images in your app or in case you want to make sure a 3rd
 // party image is properly served using a TLS protocol.
 func (srv *Avatars) GetImage(Url string, Width int, Height int) (map[string]interface{}, error) {
 	path := "/avatars/image"

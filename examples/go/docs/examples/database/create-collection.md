@@ -24,7 +24,7 @@
         }
 
         // Call CreateCollection method and handle results
-        var res, err := srv.CreateCollection("[NAME]")
+        var res, err := srv.CreateCollection("[NAME]", [], [], [])
         if err != nil {
             panic(err)
         }

@@ -18,8 +18,9 @@ class Users extends Service {
     async listUsers(search = '', limit = 25, offset = 0, orderType = 'ASC') {
         let path = '/users';
         
-        return await this.client.call('get', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('get', path, {
+               },
+               {
                 'search': search,
                 'limit': limit,
                 'offset': offset,
@@ -41,8 +42,9 @@ class Users extends Service {
     async createUser(email, password, name = '') {
         let path = '/users';
         
-        return await this.client.call('post', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('post', path, {
+               },
+               {
                 'email': email,
                 'password': password,
                 'name': name
@@ -61,8 +63,9 @@ class Users extends Service {
     async getUser(userId) {
         let path = '/users/{userId}'.replace(new RegExp('{userId}', 'g'), userId);
         
-        return await this.client.call('get', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('get', path, {
+               },
+               {
             });
     }
 
@@ -78,8 +81,9 @@ class Users extends Service {
     async getUserLogs(userId) {
         let path = '/users/{userId}/logs'.replace(new RegExp('{userId}', 'g'), userId);
         
-        return await this.client.call('get', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('get', path, {
+               },
+               {
             });
     }
 
@@ -95,8 +99,9 @@ class Users extends Service {
     async getUserPrefs(userId) {
         let path = '/users/{userId}/prefs'.replace(new RegExp('{userId}', 'g'), userId);
         
-        return await this.client.call('get', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('get', path, {
+               },
+               {
             });
     }
 
@@ -114,8 +119,9 @@ class Users extends Service {
     async updateUserPrefs(userId, prefs) {
         let path = '/users/{userId}/prefs'.replace(new RegExp('{userId}', 'g'), userId);
         
-        return await this.client.call('patch', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('patch', path, {
+               },
+               {
                 'prefs': prefs
             });
     }
@@ -132,8 +138,9 @@ class Users extends Service {
     async getUserSessions(userId) {
         let path = '/users/{userId}/sessions'.replace(new RegExp('{userId}', 'g'), userId);
         
-        return await this.client.call('get', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('get', path, {
+               },
+               {
             });
     }
 
@@ -149,8 +156,9 @@ class Users extends Service {
     async deleteUserSessions(userId) {
         let path = '/users/{userId}/sessions'.replace(new RegExp('{userId}', 'g'), userId);
         
-        return await this.client.call('delete', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('delete', path, {
+               },
+               {
             });
     }
 
@@ -167,8 +175,9 @@ class Users extends Service {
     async deleteUserSession(userId, sessionId) {
         let path = '/users/{userId}/sessions/:session'.replace(new RegExp('{userId}', 'g'), userId);
         
-        return await this.client.call('delete', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('delete', path, {
+               },
+               {
                 'sessionId': sessionId
             });
     }
@@ -186,8 +195,9 @@ class Users extends Service {
     async updateUserStatus(userId, status) {
         let path = '/users/{userId}/status'.replace(new RegExp('{userId}', 'g'), userId);
         
-        return await this.client.call('patch', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('patch', path, {
+               },
+               {
                 'status': status
             });
     }

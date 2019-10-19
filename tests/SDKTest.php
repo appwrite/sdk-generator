@@ -41,7 +41,10 @@ class SDKTest extends TestCase
             'class' => 'Appwrite\SDK\Language\Ruby',
             'build' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/ruby ruby:2.6.5 ruby -v',
             'envs' => [
+                'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.7-rc ruby tests/ruby/tests.rb',
                 'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.6.5 ruby tests/ruby/tests.rb',
+                'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.5.7 ruby tests/ruby/tests.rb',
+                'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.4.9 ruby tests/ruby/tests.rb',
             ],
         ],
     ];

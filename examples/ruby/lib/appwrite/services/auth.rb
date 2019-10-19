@@ -36,7 +36,7 @@ module Appwrite
             }, params);
         end
 
-        def oauth(provider:, success: '', failure: '')
+        def oauth(provider:, success:, failure:)
             path = '/auth/oauth/{provider}'
                 .gsub('{provider}', provider)
 

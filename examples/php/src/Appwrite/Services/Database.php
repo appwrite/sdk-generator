@@ -49,7 +49,7 @@ class Database extends Service
      * @throws Exception
      * @return array
      */
-    public function createCollection($name, $read = [], $write = [], $rules = [])
+    public function createCollection($name, $read, $write, $rules)
     {
         $path   = str_replace([], [], '/database');
         $params = [];

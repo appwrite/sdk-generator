@@ -9,7 +9,7 @@ client
     .setProject('')
 ;
 
-let promise = auth.oauth('bitbucket');
+let promise = auth.oauth('bitbucket', 'https://example.com', 'https://example.com');
 
 promise.then(function (response) {
     console.log(response);

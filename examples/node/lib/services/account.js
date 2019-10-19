@@ -13,8 +13,9 @@ class Account extends Service {
     async get() {
         let path = '/account';
         
-        return await this.client.call('get', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('get', path, {
+               },
+               {
             });
     }
 
@@ -29,8 +30,9 @@ class Account extends Service {
     async delete() {
         let path = '/account';
         
-        return await this.client.call('delete', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('delete', path, {
+               },
+               {
             });
     }
 
@@ -50,8 +52,9 @@ class Account extends Service {
     async updateEmail(email, password) {
         let path = '/account/email';
         
-        return await this.client.call('patch', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('patch', path, {
+               },
+               {
                 'email': email,
                 'password': password
             });
@@ -69,8 +72,9 @@ class Account extends Service {
     async updateName(name) {
         let path = '/account/name';
         
-        return await this.client.call('patch', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('patch', path, {
+               },
+               {
                 'name': name
             });
     }
@@ -89,8 +93,9 @@ class Account extends Service {
     async updatePassword(password, oldPassword) {
         let path = '/account/password';
         
-        return await this.client.call('patch', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('patch', path, {
+               },
+               {
                 'password': password,
                 'old-password': oldPassword
             });
@@ -107,8 +112,9 @@ class Account extends Service {
     async getPrefs() {
         let path = '/account/prefs';
         
-        return await this.client.call('get', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('get', path, {
+               },
+               {
             });
     }
 
@@ -125,8 +131,9 @@ class Account extends Service {
     async updatePrefs(prefs) {
         let path = '/account/prefs';
         
-        return await this.client.call('patch', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('patch', path, {
+               },
+               {
                 'prefs': prefs
             });
     }
@@ -143,8 +150,9 @@ class Account extends Service {
     async getSecurity() {
         let path = '/account/security';
         
-        return await this.client.call('get', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('get', path, {
+               },
+               {
             });
     }
 
@@ -160,8 +168,9 @@ class Account extends Service {
     async getSessions() {
         let path = '/account/sessions';
         
-        return await this.client.call('get', path, {'content-type': 'application/json'},
-            {
+        return await this.client.call('get', path, {
+               },
+               {
             });
     }
 }

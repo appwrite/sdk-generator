@@ -15,7 +15,7 @@ module Appwrite
             }, params);
         end
 
-        def create_collection(name:, read: [], write: [], rules: [])
+        def create_collection(name:, read:, write:, rules:)
             path = '/database'
 
             params = {

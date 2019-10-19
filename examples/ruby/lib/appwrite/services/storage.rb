@@ -26,6 +26,7 @@ module Appwrite
             }
 
             return @client.call('post', path, {
+                'content-type' => 'multipart/form-data',
             }, params);
         end
 
