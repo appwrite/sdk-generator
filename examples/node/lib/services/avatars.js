@@ -21,6 +21,7 @@ class Avatars extends Service {
         let path = '/avatars/browsers/{code}'.replace(new RegExp('{code}', 'g'), code);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
                 'width': width,
@@ -48,6 +49,7 @@ class Avatars extends Service {
         let path = '/avatars/credit-cards/{code}'.replace(new RegExp('{code}', 'g'), code);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
                 'width': width,
@@ -70,6 +72,7 @@ class Avatars extends Service {
         let path = '/avatars/favicon';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
                 'url': url
@@ -94,6 +97,7 @@ class Avatars extends Service {
         let path = '/avatars/flags/{code}'.replace(new RegExp('{code}', 'g'), code);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
                 'width': width,
@@ -120,6 +124,7 @@ class Avatars extends Service {
         let path = '/avatars/image';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
                 'url': url,
@@ -145,6 +150,7 @@ class Avatars extends Service {
         let path = '/avatars/qr';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
                 'text': text,

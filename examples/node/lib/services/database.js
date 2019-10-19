@@ -21,6 +21,7 @@ class Database extends Service {
         let path = '/database';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
                 'search': search,
@@ -46,6 +47,7 @@ class Database extends Service {
         let path = '/database';
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'name': name,
@@ -69,6 +71,7 @@ class Database extends Service {
         let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -91,6 +94,7 @@ class Database extends Service {
         let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
         
         return await this.client.call('put', path, {
+                    'content-type': 'application/json',
                },
                {
                 'name': name,
@@ -114,6 +118,7 @@ class Database extends Service {
         let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -144,6 +149,7 @@ class Database extends Service {
         let path = '/database/{collectionId}/documents'.replace(new RegExp('{collectionId}', 'g'), collectionId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
                 'filters': filters,
@@ -177,6 +183,7 @@ class Database extends Service {
         let path = '/database/{collectionId}/documents'.replace(new RegExp('{collectionId}', 'g'), collectionId);
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'data': data,
@@ -203,6 +210,7 @@ class Database extends Service {
         let path = '/database/{collectionId}/documents/{documentId}'.replace(new RegExp('{collectionId}', 'g'), collectionId).replace(new RegExp('{documentId}', 'g'), documentId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -223,6 +231,7 @@ class Database extends Service {
         let path = '/database/{collectionId}/documents/{documentId}'.replace(new RegExp('{collectionId}', 'g'), collectionId).replace(new RegExp('{documentId}', 'g'), documentId);
         
         return await this.client.call('patch', path, {
+                    'content-type': 'application/json',
                },
                {
                 'data': data,
@@ -247,6 +256,7 @@ class Database extends Service {
         let path = '/database/{collectionId}/documents/{documentId}'.replace(new RegExp('{collectionId}', 'g'), collectionId).replace(new RegExp('{documentId}', 'g'), documentId);
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
             });

@@ -14,6 +14,7 @@ class Account extends Service {
         let path = '/account';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -31,6 +32,7 @@ class Account extends Service {
         let path = '/account';
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -53,6 +55,7 @@ class Account extends Service {
         let path = '/account/email';
         
         return await this.client.call('patch', path, {
+                    'content-type': 'application/json',
                },
                {
                 'email': email,
@@ -73,6 +76,7 @@ class Account extends Service {
         let path = '/account/name';
         
         return await this.client.call('patch', path, {
+                    'content-type': 'application/json',
                },
                {
                 'name': name
@@ -94,6 +98,7 @@ class Account extends Service {
         let path = '/account/password';
         
         return await this.client.call('patch', path, {
+                    'content-type': 'application/json',
                },
                {
                 'password': password,
@@ -113,6 +118,7 @@ class Account extends Service {
         let path = '/account/prefs';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -132,6 +138,7 @@ class Account extends Service {
         let path = '/account/prefs';
         
         return await this.client.call('patch', path, {
+                    'content-type': 'application/json',
                },
                {
                 'prefs': prefs
@@ -151,6 +158,7 @@ class Account extends Service {
         let path = '/account/security';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -169,6 +177,7 @@ class Account extends Service {
         let path = '/account/sessions';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });

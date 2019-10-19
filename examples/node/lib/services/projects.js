@@ -12,6 +12,7 @@ class Projects extends Service {
         let path = '/projects';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -38,6 +39,7 @@ class Projects extends Service {
         let path = '/projects';
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'name': name,
@@ -65,6 +67,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}'.replace(new RegExp('{projectId}', 'g'), projectId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -91,6 +94,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}'.replace(new RegExp('{projectId}', 'g'), projectId);
         
         return await this.client.call('patch', path, {
+                    'content-type': 'application/json',
                },
                {
                 'name': name,
@@ -117,6 +121,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}'.replace(new RegExp('{projectId}', 'g'), projectId);
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -133,6 +138,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/keys'.replace(new RegExp('{projectId}', 'g'), projectId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -151,6 +157,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/keys'.replace(new RegExp('{projectId}', 'g'), projectId);
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'name': name,
@@ -170,6 +177,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/keys/{keyId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{keyId}', 'g'), keyId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -189,6 +197,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/keys/{keyId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{keyId}', 'g'), keyId);
         
         return await this.client.call('put', path, {
+                    'content-type': 'application/json',
                },
                {
                 'name': name,
@@ -208,6 +217,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/keys/{keyId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{keyId}', 'g'), keyId);
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -227,6 +237,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/oauth'.replace(new RegExp('{projectId}', 'g'), projectId);
         
         return await this.client.call('patch', path, {
+                    'content-type': 'application/json',
                },
                {
                 'provider': provider,
@@ -246,6 +257,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/platforms'.replace(new RegExp('{projectId}', 'g'), projectId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -267,6 +279,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/platforms'.replace(new RegExp('{projectId}', 'g'), projectId);
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'type': type,
@@ -289,6 +302,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/platforms/{platformId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{platformId}', 'g'), platformId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -310,6 +324,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/platforms/{platformId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{platformId}', 'g'), platformId);
         
         return await this.client.call('put', path, {
+                    'content-type': 'application/json',
                },
                {
                 'name': name,
@@ -331,6 +346,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/platforms/{platformId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{platformId}', 'g'), platformId);
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -347,6 +363,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/tasks'.replace(new RegExp('{projectId}', 'g'), projectId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -372,6 +389,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/tasks'.replace(new RegExp('{projectId}', 'g'), projectId);
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'name': name,
@@ -398,6 +416,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/tasks/{taskId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{taskId}', 'g'), taskId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -424,6 +443,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/tasks/{taskId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{taskId}', 'g'), taskId);
         
         return await this.client.call('put', path, {
+                    'content-type': 'application/json',
                },
                {
                 'name': name,
@@ -450,6 +470,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/tasks/{taskId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{taskId}', 'g'), taskId);
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -466,6 +487,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/usage'.replace(new RegExp('{projectId}', 'g'), projectId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -482,6 +504,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/webhooks'.replace(new RegExp('{projectId}', 'g'), projectId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -504,6 +527,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/webhooks'.replace(new RegExp('{projectId}', 'g'), projectId);
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'name': name,
@@ -527,6 +551,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/webhooks/{webhookId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{webhookId}', 'g'), webhookId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -550,6 +575,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/webhooks/{webhookId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{webhookId}', 'g'), webhookId);
         
         return await this.client.call('put', path, {
+                    'content-type': 'application/json',
                },
                {
                 'name': name,
@@ -573,6 +599,7 @@ class Projects extends Service {
         let path = '/projects/{projectId}/webhooks/{webhookId}'.replace(new RegExp('{projectId}', 'g'), projectId).replace(new RegExp('{webhookId}', 'g'), webhookId);
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
             });

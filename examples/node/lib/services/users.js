@@ -19,6 +19,7 @@ class Users extends Service {
         let path = '/users';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
                 'search': search,
@@ -43,6 +44,7 @@ class Users extends Service {
         let path = '/users';
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'email': email,
@@ -64,6 +66,7 @@ class Users extends Service {
         let path = '/users/{userId}'.replace(new RegExp('{userId}', 'g'), userId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -82,6 +85,7 @@ class Users extends Service {
         let path = '/users/{userId}/logs'.replace(new RegExp('{userId}', 'g'), userId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -100,6 +104,7 @@ class Users extends Service {
         let path = '/users/{userId}/prefs'.replace(new RegExp('{userId}', 'g'), userId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -120,6 +125,7 @@ class Users extends Service {
         let path = '/users/{userId}/prefs'.replace(new RegExp('{userId}', 'g'), userId);
         
         return await this.client.call('patch', path, {
+                    'content-type': 'application/json',
                },
                {
                 'prefs': prefs
@@ -139,6 +145,7 @@ class Users extends Service {
         let path = '/users/{userId}/sessions'.replace(new RegExp('{userId}', 'g'), userId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -157,6 +164,7 @@ class Users extends Service {
         let path = '/users/{userId}/sessions'.replace(new RegExp('{userId}', 'g'), userId);
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -176,6 +184,7 @@ class Users extends Service {
         let path = '/users/{userId}/sessions/:session'.replace(new RegExp('{userId}', 'g'), userId);
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
                 'sessionId': sessionId
@@ -196,6 +205,7 @@ class Users extends Service {
         let path = '/users/{userId}/status'.replace(new RegExp('{userId}', 'g'), userId);
         
         return await this.client.call('patch', path, {
+                    'content-type': 'application/json',
                },
                {
                 'status': status

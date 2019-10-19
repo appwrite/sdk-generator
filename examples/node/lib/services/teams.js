@@ -20,6 +20,7 @@ class Teams extends Service {
         let path = '/teams';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
                 'search': search,
@@ -46,6 +47,7 @@ class Teams extends Service {
         let path = '/teams';
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'name': name,
@@ -67,6 +69,7 @@ class Teams extends Service {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -87,6 +90,7 @@ class Teams extends Service {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('put', path, {
+                    'content-type': 'application/json',
                },
                {
                 'name': name
@@ -107,6 +111,7 @@ class Teams extends Service {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -126,6 +131,7 @@ class Teams extends Service {
         let path = '/teams/{teamId}/members'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -160,6 +166,7 @@ class Teams extends Service {
         let path = '/teams/{teamId}/memberships'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'email': email,
@@ -184,6 +191,7 @@ class Teams extends Service {
         let path = '/teams/{teamId}/memberships/{inviteId}'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -205,6 +213,7 @@ class Teams extends Service {
         let path = '/teams/{teamId}/memberships/{inviteId}/resend'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'redirect': redirect
@@ -243,6 +252,7 @@ class Teams extends Service {
         let path = '/teams/{teamId}/memberships/{inviteId}/status'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
         
         return await this.client.call('patch', path, {
+                    'content-type': 'application/json',
                },
                {
                 'userId': userId,

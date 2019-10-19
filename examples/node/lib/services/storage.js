@@ -20,6 +20,7 @@ class Storage extends Service {
         let path = '/storage/files';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
                 'search': search,
@@ -71,6 +72,7 @@ class Storage extends Service {
         let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -93,6 +95,7 @@ class Storage extends Service {
         let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
         
         return await this.client.call('put', path, {
+                    'content-type': 'application/json',
                },
                {
                 'read': read,
@@ -115,6 +118,7 @@ class Storage extends Service {
         let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -135,6 +139,7 @@ class Storage extends Service {
         let path = '/storage/files/{fileId}/download'.replace(new RegExp('{fileId}', 'g'), fileId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -161,6 +166,7 @@ class Storage extends Service {
         let path = '/storage/files/{fileId}/preview'.replace(new RegExp('{fileId}', 'g'), fileId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
                 'width': width,
@@ -186,6 +192,7 @@ class Storage extends Service {
         let path = '/storage/files/{fileId}/view'.replace(new RegExp('{fileId}', 'g'), fileId);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
                 'as': as

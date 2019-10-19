@@ -17,6 +17,7 @@ class Locale extends Service {
         let path = '/locale';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -35,6 +36,7 @@ class Locale extends Service {
         let path = '/locale/countries';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -54,6 +56,7 @@ class Locale extends Service {
         let path = '/locale/countries/eu';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -72,6 +75,7 @@ class Locale extends Service {
         let path = '/locale/countries/phones';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -91,6 +95,7 @@ class Locale extends Service {
         let path = '/locale/currencies';
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
             });

@@ -299,7 +299,14 @@
                 return iframe('{{ method.method | caseLower }}', path, payload);
 {% else %}
                 return http
-                    .{{ method.method | caseLower }}(path, {'content-type': '{% if 'multipart/form-data' in method.consumes|keys %}multipart/form-data{% else %}application/json{% endif %}'}, payload);
+                    .{{ method.method | caseLower }}(path, {
+{% for parameter in method.parameters.header %}
+                        '{{ parameter.name }}': ${{ parameter.name | caseCamel }},
+{% endfor %}
+{% for key, header in method.headers %}
+                        '{{ key }}': '{{ header }}',
+{% endfor %}
+                    }, payload);
 {% endif %}
             }{% if not loop.last %},
 {% endif %}

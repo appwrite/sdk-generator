@@ -31,6 +31,7 @@ class Auth extends Service {
         let path = '/auth/login';
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'email': email,
@@ -54,6 +55,7 @@ class Auth extends Service {
         let path = '/auth/logout';
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -74,6 +76,7 @@ class Auth extends Service {
         let path = '/auth/logout/{id}'.replace(new RegExp('{id}', 'g'), id);
         
         return await this.client.call('delete', path, {
+                    'content-type': 'application/json',
                },
                {
             });
@@ -92,6 +95,7 @@ class Auth extends Service {
         let path = '/auth/oauth/{provider}'.replace(new RegExp('{provider}', 'g'), provider);
         
         return await this.client.call('get', path, {
+                    'content-type': 'application/json',
                },
                {
                 'success': success,
@@ -118,6 +122,7 @@ class Auth extends Service {
         let path = '/auth/recovery';
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'email': email,
@@ -149,6 +154,7 @@ class Auth extends Service {
         let path = '/auth/recovery/reset';
         
         return await this.client.call('put', path, {
+                    'content-type': 'application/json',
                },
                {
                 'userId': userId,
@@ -195,6 +201,7 @@ class Auth extends Service {
         let path = '/auth/register';
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'email': email,
@@ -223,6 +230,7 @@ class Auth extends Service {
         let path = '/auth/register/confirm';
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'userId': userId,
@@ -250,6 +258,7 @@ class Auth extends Service {
         let path = '/auth/register/confirm/resend';
         
         return await this.client.call('post', path, {
+                    'content-type': 'application/json',
                },
                {
                 'confirm': confirm
