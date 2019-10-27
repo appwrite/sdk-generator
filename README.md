@@ -1,7 +1,7 @@
 # Appwrite SDK Generator
 
 [![Build Status](https://travis-ci.org/appwrite/sdk-generator.svg?branch=master)](https://travis-ci.org/appwrite/sdk-generator)
-[![Join the chat at https://gitter.im/appwrite/sdk-generator](https://badges.gitter.im/appwrite/sdk-generator.svg)](https://gitter.im/appwrite/sdk-generator?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Discord](https://img.shields.io/discord/564160730845151244)](https://discord.gg/GSeTUeA)
 
 **WORK IN PROGRESS - NOT READY FOR USAGE**
 
