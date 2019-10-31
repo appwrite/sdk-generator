@@ -1,5 +1,8 @@
 # Appwrite SDK Generator
 
+[![Build Status](https://travis-ci.org/appwrite/sdk-generator.svg?branch=master)](https://travis-ci.org/appwrite/sdk-generator)
+[![Discord](https://img.shields.io/discord/564160730845151244)](https://discord.gg/GSeTUeA)
+
 **WORK IN PROGRESS - NOT READY FOR USAGE**
 
 [Appwrite](https://appwrite.io) SDK generator is a PHP library for auto generating SDK library for multiple languages or platforms.
@@ -74,11 +77,15 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | Ruby       | [Ruby Style Guide]  | GEM                | [@eldadfux]    |
 | Python     | [PEP8]              | PIP                | [@eldadfux]    |
 | Dart       | [Effective Dart]    | pub tool           | [@Almoullim]   |
+| Go         | [Effective Go]      | go get             | [@panz3r]      |
+| CSharp     |                     | ?                  |                |
+| D          |                     | ?                  |                |
 | Kotlin     |                     | ?                  |                |
 | Swift      |                     | ?                  |                |
 
 [@Almoullim]:       https://github.com/Almoullim
 [@eldadfux]:        https://github.com/eldadfux
+[@panz3r]:          https://github.com/panz3r
 
 [PHP FIG]:          https://www.php-fig.org/
 [NPM Coding Style]: https://docs.npmjs.com/misc/coding-style
@@ -86,67 +93,13 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 [Ruby Style Guide]: https://github.com/rubocop-hq/ruby-style-guide
 [PEP8]:             https://www.python.org/dev/peps/pep-0008/
 [Effective Dart]:   https://dart.dev/guides/language/effective-dart/style
-
-
-## Development
-
-```bash
-composer update --ignore-platform-reqs --optimize-autoloader
-```
-
-## TODO List
-
-* Better spec modeling
-* Spec Validators
-* XML Content Types
-    
-## SDK Checklist
-
-It is very important for us to create consistent structure, architecture and native like feel for the SDKs we generate.
-In order to accomplish that we have made a checklist of points to support while adding a new language to the SDK generator.
-
-The checklist aims to balance consistency among languages, and follow each platform's best practices and coding standards.
-
-* Proper Coding Standards and Conventions
-* Proper Skeleton Structure
-* Readme Doc
-* HTTP Client class or object
-    * Client Setters
-        * Set Auth Keys Method
-        * Set Basic Auth Method
-        * Set OAuth Dialog Method
-        * Set Endpoint Method
-        * Set Self Signed Certificates
-    * Default Headers
-        * 'appwrite-sdk-version' header
-        * Add 'User-Agent' header with server name and language version (ubuntu-18.02:php-7.0.1)
-    * Methods
-        * addHeader(key, value)
-        * call(method, path = '', headers = [], params = [])
-            * Concat GET params to path
-            * Parse request params by content type header
-            * Parse response params by content type header
-            * Throw error on bad response
-* Service Abstraction (optional)
-    * Constructor receiving an instance of the client class 
-* Service Class
-    * Headers Support (Content Type)
-    * Parameters Support
-        * Default Values Support
-        * Required Values Support
-        * String Support
-        * Integer Support
-        * Boolean Support
-        * Files Support (+array file and multiple header support and params flatten)
-        * Arrays / Dictionaries / Lists Support (+concatenation type)
-* Usage Example Docs
-* Definitions / Models Classes - with setters and getters
+[Effective Go]:     https://golang.org/doc/effective_go.html
 
 ## Contributing
 
 All code contributions - including those of people having commit access - must go through a pull request and approved by a core developer before being merged. This is to ensure proper review of all the code.
 
-Fork the project, create a feature branch, and send us a pull request.
+We truly ❤️ pull requests! If you wish to help, you can learn more about how you can contribute to this project in the [contribution guide](CONTRIBUTING.md).
 
 ## Copyright and license
 

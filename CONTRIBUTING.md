@@ -6,6 +6,20 @@ We would ❤️ for you to contribute to Appwrite and help make it better! As a 
 
 Help us keep Appwrite open and inclusive. Please read and follow our [Code of Conduct](/CODE_OF_CONDUCT.md).
 
+## Installation
+
+To install a working development environment follow this instruction:
+
+1. For or clone the appwrite/sdk-generator repository.
+
+2. Install Composer dependencies:
+
+```bash
+composer update --ignore-platform-reqs --optimize-autoloader
+```
+
+3. Follow our contribution guide to learn how you can add support for more languages.
+
 ## Creating Language Class
 
 First, create a new class for the new language in this directory: https://github.com/appwrite/sdk-generator/tree/master/src/SDK/Language
@@ -79,12 +93,89 @@ sdk-generator/blob/master/example.php:
     $sdk->generate(__DIR__ . '/examples/new-lang');
 ```
 
-Run the following command:
+Run the following command (make sure you have an updated docker version on your machine):
 
 ```bash
-php example.php
+docker run --rm -v $(pwd):/app -w /app php:7.3-cli php example.php
 ```
 
->Note: Make sure to have PHP CLI installed on your host. You can just add the new language next to the other languages in example.php file, no need to rewrite the file completely.
+>Note: You can just add the new language next to the other languages in example.php file, no need to rewrite the file completely.
 
 Check your output files at: /examples/new-lang and make sure the SDK works. When possible add some unit tests.
+
+## SDK Checklist
+
+It is very important for us to create consistent structure, architecture and native like feel for the SDKs we generate.
+In order to accomplish that we have made a checklist of points to support while adding a new language to the SDK generator.
+
+The checklist aims to balance consistency among languages, and follow each platform's best practices and coding standards.
+
+* Proper Coding Standards and Conventions
+* Proper Skeleton Structure
+* Readme Doc
+* HTTP Client class or object
+    * Client Setters
+        * Set Auth Keys Method
+        * Set Basic Auth Method
+        * Set OAuth Dialog Method
+        * Set Endpoint Method
+        * Set Self Signed Certificates
+    * Default Headers
+        * 'appwrite-sdk-version' header
+        * Add 'User-Agent' header with server name and language version (ubuntu-18.02:php-7.0.1)
+    * Methods
+        * addHeader(key, value)
+        * call(method, path = '', headers = [], params = [])
+            * Concat GET params to path
+            * Parse request params by content type header
+            * Parse response params by content type header
+            * Throw error on bad response
+* Service Abstraction (optional)
+    * Constructor receiving an instance of the client class 
+* Service Class (extends the service abstraction if exists)
+    * Headers Support (Content Type)
+    * Parameters Support
+        * Default Values Support
+        * Required Values Support
+        * String Support
+        * Integer Support
+        * Boolean Support
+        * Files Support (+array file and multiple header support and params flatten)
+        * Arrays / Dictionaries / Lists Support (+concatenation type)
+* Usage Example Docs
+* Definitions / Models Classes - with setters and getters
+
+## Tests
+
+Testing a single project that runs in multiple languages can be very hard. Managing dependencies with multiple package managers of different ecosystems can take the SDK Generator complexity to extreme levels.
+
+To avoid that complexity, we have created a cross-platform mechanism that leverages Docker and a vanilla language file with no dependencies attached.
+
+To add a new language test, you need to create a language file that initializes your SDK and call generated method in a predefined order. The test algorithm will evaluate your script output and determine whether the test passed or failed.
+
+The test algorithm will generate your SDK from a small demo SDK JSON spec file and will run your test on different versions of your chosen language.
+
+To get started, create a language file in this location:
+
+`./tests/languages/tests-for-[MY-LANGUAGE].[MY-LANGUAGE-FILE-EXT]`
+
+In your new language file, init your SDK from a relative path which will be generated here: `./tests/sdks/` from this spec file: `./tests/resources/spec.json`.
+
+After you finish initializing, make a series of HTTP calls using your new generated SDKs method just like in one of these examples:
+
+1. tests/languages/tests-for-php.js
+2. tests/languages/tests-for-node.js
+
+Once done, add a Docker command that can execute your test file to the SDK test algorithm `$containers` array in this location: `./tests/SDKTest.php:17`. Make sure to add one command for each language version you wish to support.
+
+A good example is the PHP test for 5 different PHP versions:
+
+```php
+protected $containers = [
+    'php-5.6' => 'docker run --rm -v $(pwd):/app -w /app php:5.6-cli php tests/languages/tests-for-php.php',
+    'php-7.0' => 'docker run --rm -v $(pwd):/app -w /app php:7.0-cli php tests/languages/tests-for-php.php',
+    'php-7.1' => 'docker run --rm -v $(pwd):/app -w /app php:7.1-cli php tests/languages/tests-for-php.php',
+    'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli php tests/languages/tests-for-php.php',
+    'php-7.3' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli php tests/languages/tests-for-php.php',
+];
+```

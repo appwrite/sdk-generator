@@ -96,6 +96,18 @@ class Ruby extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'Gemfile',
+                'template'      => '/ruby/Gemfile.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseDash }}.gemspec',
+                'template'      => '/ruby/gemspec.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}.rb',
                 'template'      => '/ruby/lib/container.rb.twig',
                 'minify'        => false,

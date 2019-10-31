@@ -1,6 +1,7 @@
 composer.lock
 /vendor/
 /.idea/
+/tests/sdks
 
 # Dart auto-generated
 examples/dart/.packages

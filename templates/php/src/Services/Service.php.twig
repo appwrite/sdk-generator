@@ -22,7 +22,7 @@ class {{ service.name | caseUcfirst }} extends Service
      * @throws Exception
      * @return array
      */
-    public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}${{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %})
+    public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.type | typeName }}${{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}):array
     {
         $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
         $params = [];

@@ -32,6 +32,7 @@ class Users extends Service
         $params['orderType'] = $orderType;
 
         return $this->client->call(Client::METHOD_GET, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
@@ -56,6 +57,7 @@ class Users extends Service
         $params['name'] = $name;
 
         return $this->client->call(Client::METHOD_POST, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
@@ -75,6 +77,7 @@ class Users extends Service
 
 
         return $this->client->call(Client::METHOD_GET, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
@@ -94,6 +97,7 @@ class Users extends Service
 
 
         return $this->client->call(Client::METHOD_GET, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
@@ -113,11 +117,12 @@ class Users extends Service
 
 
         return $this->client->call(Client::METHOD_GET, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
     /**
-     * Update Account Prefs
+     * Update User Prefs
      *
      * Update user preferences by its unique ID. You can pass only the specific
      * settings you wish to update.
@@ -135,6 +140,7 @@ class Users extends Service
         $params['prefs'] = $prefs;
 
         return $this->client->call(Client::METHOD_PATCH, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
@@ -154,6 +160,7 @@ class Users extends Service
 
 
         return $this->client->call(Client::METHOD_GET, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
@@ -173,6 +180,7 @@ class Users extends Service
 
 
         return $this->client->call(Client::METHOD_DELETE, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
@@ -194,11 +202,12 @@ class Users extends Service
         $params['sessionId'] = $sessionId;
 
         return $this->client->call(Client::METHOD_DELETE, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
     /**
-     * Update user status
+     * Update User Status
      *
      * Update user status by its unique ID.
      *
@@ -215,6 +224,7 @@ class Users extends Service
         $params['status'] = $status;
 
         return $this->client->call(Client::METHOD_PATCH, $path, [
+            'content-type' => 'application/json',
         ], $params);
     }
 
