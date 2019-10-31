@@ -46,6 +46,7 @@ try {
     $sdk  = new SDK(new CSharp(), new Swagger2($spec));
 
     $sdk
+        ->setVersion('0.0.0')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
