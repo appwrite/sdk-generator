@@ -1,0 +1,42 @@
+{%- set requireStringsPkg = false -%}
+{%- for method in service.methods -%}
+	{%- if method.parameters.path|length > 0 -%}
+		{%- set requireStringsPkg = true -%}
+	{%- endif -%}
+{%- endfor -%}
+package {{ spec.title | caseLower }}
+
+import (
+{% if requireStringsPkg %}
+	"strings"
+{% endif %}
+)
+
+{{ ((service.name | caseUcfirst) ~ " service") | godocComment }}
+type {{ service.name | caseUcfirst }} struct {
+	client *Client
+}
+{% for method in service.methods %}
+
+{% if method.description %}{{ ((method.name | caseUcfirst) ~ ' ' ~ method.description | caseLcfirst) | godocComment }}{% else %}// {{ method.name | caseUcfirst }}{% endif %}
+
+func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({% if method.parameters.all|length > 0 %}{% for parameter in method.parameters.all %}{{ parameter.name | caseUcfirst }} {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}) (map[string]interface{}, error) {
+{% if method.parameters.path|length > 0 %}
+	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
+	path := r.Replace("{{ method.path }}")
+{% else %}
+	path := "{{ method.path }}"
+{% endif %}
+
+	params := map[string]interface{}{
+{% for parameter in method.parameters.query %}
+		"{{ parameter.name }}": {{ parameter.name | caseUcfirst }},
+{% endfor %}
+{% for parameter in method.parameters.body %}
+		"{{ parameter.name }}": {{ parameter.name | caseUcfirst }},
+{% endfor %}
+	}
+
+	return srv.client.Call("{{ method.method | caseUpper }}", path, nil, params)
+}
+{% endfor %}

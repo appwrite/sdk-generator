@@ -1,0 +1,11 @@
+Gem::Specification.new do |s|
+ 
+  s.name = '{{spec.title | caseLower | caseSnake}}'
+  s.version = '{{ sdk.version }}'
+  s.summary = "{{ spec.description }}"
+  s.author = '{{ spec.contactName }}'
+  s.homepage = '{{ spec.contactURL }}'
+  s.email = '{{ spec.contactEmail }}'
+  s.files = `git ls-files`.split($INPUT_RECORD_SEPARATOR)
+ 
+end

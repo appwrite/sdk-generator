@@ -23,6 +23,9 @@ module {{spec.title | caseUcfirst}}
 {% for parameter in method.parameters.header %}
                 '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},
 {% endfor %}
+{% for key, header in method.headers %}
+                '{{ key }}' => '{{ header }}',
+{% endfor %}
             }, params);
         end
 

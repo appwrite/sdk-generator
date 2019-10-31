@@ -186,14 +186,15 @@ class PHP extends Language {
     {
         switch ($type) {
             case self::TYPE_NUMBER:
-                return 'integer';
+            case self::TYPE_INTEGER:
+                $type = 'int';
                 break;
             case self::TYPE_FILE:
-                return '\CurlFile';
+                $type = '\CurlFile';
                 break;
         }
 
-        return $type;
+        return $type . ' ';
     }
 
     /**
