@@ -85,7 +85,7 @@ class Ruby extends Language {
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
-                'template'      => '/ruby/README.md.twig',
+                'template'      => '/ruby/README.twig',
                 'minify'        => false,
             ],
             [
