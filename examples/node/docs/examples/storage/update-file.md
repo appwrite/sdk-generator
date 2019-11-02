@@ -9,7 +9,7 @@ client
     .setProject('')
 ;
 
-let promise = storage.updateFile('[FILE_ID]');
+let promise = storage.updateFile('[FILE_ID]', [], []);
 
 promise.then(function (response) {
     console.log(response);

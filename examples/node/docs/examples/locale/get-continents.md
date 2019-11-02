@@ -3,13 +3,13 @@ const sdk = require('node-appwrite');
 // Init SDK
 let client = new sdk.Client();
 
-let database = new sdk.Database(client);
+let locale = new sdk.Locale(client);
 
 client
     .setProject('')
 ;
 
-let promise = database.updateDocument('[COLLECTION_ID]', '[DOCUMENT_ID]', '{}', [], []);
+let promise = locale.getContinents();
 
 promise.then(function (response) {
     console.log(response);

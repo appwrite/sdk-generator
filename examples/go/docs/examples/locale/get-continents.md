@@ -1,9 +1,9 @@
-# Database Examples
+# Locale Examples
 
-## CreateDocument
+## GetContinents
 
 ```go
-    package appwrite-createdocument
+    package appwrite-getcontinents
 
     import (
         "fmt"
@@ -18,13 +18,13 @@
         // Set Client required headers
         clt.SetProject("")
 
-        // Create a new Database service passing Client
-        var srv := appwrite.Database{
+        // Create a new Locale service passing Client
+        var srv := appwrite.Locale{
             client: &clt
         }
 
-        // Call CreateDocument method and handle results
-        var res, err := srv.CreateDocument("[COLLECTION_ID]", "{}", [], [])
+        // Call GetContinents method and handle results
+        var res, err := srv.GetContinents()
         if err != nil {
             panic(err)
         }

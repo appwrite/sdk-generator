@@ -205,7 +205,6 @@ class Python extends Language {
                     $output .= $default;
                     break;
                 case self::TYPE_ARRAY:
-                var_dump( json_encode($default));
                     #$output .= json_encode($default);
                     $output .= '[]';
                     break;

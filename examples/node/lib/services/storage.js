@@ -44,7 +44,7 @@ class Storage extends Service {
      * @throws Exception
      * @return {}
      */
-    async createFile(files, read = [], write = [], folderId = '') {
+    async createFile(files, read, write, folderId = '') {
         let path = '/storage/files';
         
         return await this.client.call('post', path, {
@@ -91,7 +91,7 @@ class Storage extends Service {
      * @throws Exception
      * @return {}
      */
-    async updateFile(fileId, read = [], write = [], folderId = '') {
+    async updateFile(fileId, read, write, folderId = '') {
         let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
         
         return await this.client.call('put', path, {

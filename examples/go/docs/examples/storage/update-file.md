@@ -24,7 +24,7 @@
         }
 
         // Call UpdateFile method and handle results
-        var res, err := srv.UpdateFile("[FILE_ID]")
+        var res, err := srv.UpdateFile("[FILE_ID]", [], [])
         if err != nil {
             panic(err)
         }

@@ -535,7 +535,7 @@
         let auth = {
 
             /**
-             * Login User
+             * Login
              *
              * Allow the user to login into his account by providing a valid email and
              * password combination. Use the success and failure arguments to provide a
@@ -594,6 +594,46 @@
             },
 
             /**
+             * Login with OAuth
+             *
+             *
+             * @param {string} provider
+             * @param {string} success
+             * @param {string} failure
+             * @throws {Error}
+             * @return {null}             
+             */
+            oauth: function(provider, success, failure) {
+                if(provider === undefined) {
+                    throw new Error('Missing required parameter: "provider"');
+                }
+                
+                if(success === undefined) {
+                    throw new Error('Missing required parameter: "success"');
+                }
+                
+                if(failure === undefined) {
+                    throw new Error('Missing required parameter: "failure"');
+                }
+                
+                let path = '/auth/login/oauth/{provider}'.replace(new RegExp('{provider}', 'g'), provider);
+
+                let payload = {};
+
+                if(success) {
+                    payload['success'] = success;
+                }
+
+                if(failure) {
+                    payload['failure'] = failure;
+                }
+
+                payload['project'] = config.project;
+
+                return iframe('get', path, payload);
+            },
+
+            /**
              * Logout Current Session
              *
              * Use this endpoint to log out the currently logged in user from his account.
@@ -638,46 +678,6 @@
                     .delete(path, {
                         'content-type': 'application/json',
                     }, payload);
-            },
-
-            /**
-             * OAuth Login
-             *
-             *
-             * @param {string} provider
-             * @param {string} success
-             * @param {string} failure
-             * @throws {Error}
-             * @return {null}             
-             */
-            oauth: function(provider, success, failure) {
-                if(provider === undefined) {
-                    throw new Error('Missing required parameter: "provider"');
-                }
-                
-                if(success === undefined) {
-                    throw new Error('Missing required parameter: "success"');
-                }
-                
-                if(failure === undefined) {
-                    throw new Error('Missing required parameter: "failure"');
-                }
-                
-                let path = '/auth/oauth/{provider}'.replace(new RegExp('{provider}', 'g'), provider);
-
-                let payload = {};
-
-                if(success) {
-                    payload['success'] = success;
-                }
-
-                if(failure) {
-                    payload['failure'] = failure;
-                }
-
-                payload['project'] = config.project;
-
-                return iframe('get', path, payload);
             },
 
             /**
@@ -786,7 +786,7 @@
             },
 
             /**
-             * Register User
+             * Register
              *
              * Use this endpoint to allow a new user to register an account in your
              * project. Use the success and failure URLs to redirect users back to your
@@ -865,7 +865,7 @@
             },
 
             /**
-             * Confirm User
+             * Confirmation
              *
              * Use this endpoint to complete the confirmation of the user account email
              * address. Both the **userId** and **token** arguments will be passed as
@@ -1319,13 +1319,21 @@
              * @throws {Error}
              * @return {Promise}             
              */
-            updateCollection: function(collectionId, name, read = [], write = [], rules = []) {
+            updateCollection: function(collectionId, name, read, write, rules = []) {
                 if(collectionId === undefined) {
                     throw new Error('Missing required parameter: "collectionId"');
                 }
                 
                 if(name === undefined) {
                     throw new Error('Missing required parameter: "name"');
+                }
+                
+                if(read === undefined) {
+                    throw new Error('Missing required parameter: "read"');
+                }
+                
+                if(write === undefined) {
+                    throw new Error('Missing required parameter: "write"');
                 }
                 
                 let path = '/database/{collectionId}'.replace(new RegExp('{collectionId}', 'g'), collectionId);
@@ -1466,13 +1474,21 @@
              * @throws {Error}
              * @return {Promise}             
              */
-            createDocument: function(collectionId, data, read = [], write = [], parentDocument = '', parentProperty = '', parentPropertyType = 'assign') {
+            createDocument: function(collectionId, data, read, write, parentDocument = '', parentProperty = '', parentPropertyType = 'assign') {
                 if(collectionId === undefined) {
                     throw new Error('Missing required parameter: "collectionId"');
                 }
                 
                 if(data === undefined) {
                     throw new Error('Missing required parameter: "data"');
+                }
+                
+                if(read === undefined) {
+                    throw new Error('Missing required parameter: "read"');
+                }
+                
+                if(write === undefined) {
+                    throw new Error('Missing required parameter: "write"');
                 }
                 
                 let path = '/database/{collectionId}/documents'.replace(new RegExp('{collectionId}', 'g'), collectionId);
@@ -1551,7 +1567,7 @@
              * @throws {Error}
              * @return {Promise}             
              */
-            updateDocument: function(collectionId, documentId, data, read = [], write = []) {
+            updateDocument: function(collectionId, documentId, data, read, write) {
                 if(collectionId === undefined) {
                     throw new Error('Missing required parameter: "collectionId"');
                 }
@@ -1562,6 +1578,14 @@
                 
                 if(data === undefined) {
                     throw new Error('Missing required parameter: "data"');
+                }
+                
+                if(read === undefined) {
+                    throw new Error('Missing required parameter: "read"');
+                }
+                
+                if(write === undefined) {
+                    throw new Error('Missing required parameter: "write"');
                 }
                 
                 let path = '/database/{collectionId}/documents/{documentId}'.replace(new RegExp('{collectionId}', 'g'), collectionId).replace(new RegExp('{documentId}', 'g'), documentId);
@@ -1625,7 +1649,7 @@
              *
              * Get the current user location based on IP. Returns an object with user
              * country code, country name, continent name, continent code, ip address and
-             * suggested currency. You can use the locale header to get the data in
+             * suggested currency. You can use the locale header to get the data in a
              * supported language.
              *
              * @throws {Error}
@@ -1645,7 +1669,27 @@
             /**
              * List Countries
              *
-             * List of all countries. You can use the locale header to get the data in
+             * List of all continents. You can use the locale header to get the data in a
+             * supported language.
+             *
+             * @throws {Error}
+             * @return {Promise}             
+             */
+            getContinents: function() {
+                let path = '/locale/continents';
+
+                let payload = {};
+
+                return http
+                    .get(path, {
+                        'content-type': 'application/json',
+                    }, payload);
+            },
+
+            /**
+             * List Countries
+             *
+             * List of all countries. You can use the locale header to get the data in a
              * supported language.
              *
              * @throws {Error}
@@ -1666,7 +1710,7 @@
              * List EU Countries
              *
              * List of all countries that are currently members of the EU. You can use the
-             * locale header to get the data in supported language. UK brexit date is
+             * locale header to get the data in a supported language. UK brexit date is
              * currently set to 2019-10-31 and will be updated if and when needed.
              *
              * @throws {Error}
@@ -1687,7 +1731,7 @@
              * List Countries Phone Codes
              *
              * List of all countries phone codes. You can use the locale header to get the
-             * data in supported language.
+             * data in a supported language.
              *
              * @throws {Error}
              * @return {Promise}             
@@ -1708,7 +1752,7 @@
              *
              * List of all currencies, including currency symol, name, plural, and decimal
              * digits for all major and minor currencies. You can use the locale header to
-             * get the data in supported language.
+             * get the data in a supported language.
              *
              * @throws {Error}
              * @return {Promise}             
@@ -2915,9 +2959,17 @@
              * @throws {Error}
              * @return {Promise}             
              */
-            createFile: function(files, read = [], write = [], folderId = '') {
+            createFile: function(files, read, write, folderId = '') {
                 if(files === undefined) {
                     throw new Error('Missing required parameter: "files"');
+                }
+                
+                if(read === undefined) {
+                    throw new Error('Missing required parameter: "read"');
+                }
+                
+                if(write === undefined) {
+                    throw new Error('Missing required parameter: "write"');
                 }
                 
                 let path = '/storage/files';
@@ -2984,9 +3036,17 @@
              * @throws {Error}
              * @return {Promise}             
              */
-            updateFile: function(fileId, read = [], write = [], folderId = '') {
+            updateFile: function(fileId, read, write, folderId = '') {
                 if(fileId === undefined) {
                     throw new Error('Missing required parameter: "fileId"');
+                }
+                
+                if(read === undefined) {
+                    throw new Error('Missing required parameter: "read"');
+                }
+                
+                if(write === undefined) {
+                    throw new Error('Missing required parameter: "write"');
                 }
                 
                 let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
