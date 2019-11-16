@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
   name = '{{spec.title | caseSnake}}',
-  packages = ['{{spec.title | caseSnake}}'],
+  packages = ['{{spec.title | caseSnake}}', '{{spec.title | caseSnake}}/services'],
   version = '{{sdk.version}}',
   license='{{spec.licenseName}}',
   description = '{{spec.description}}',

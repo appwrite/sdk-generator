@@ -42,6 +42,8 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
     ;
 
     $sdk->generate(__DIR__ . '/examples/php');
@@ -54,7 +56,10 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setReadme("## Getting Started");
+        ->setReadme("## Getting Started")
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
+    ;
 
     $sdk->generate(__DIR__ . '/examples/js');
 
@@ -65,6 +70,8 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
     ;
 
     $sdk->generate(__DIR__ . '/examples/node');
@@ -76,6 +83,8 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
     ;
 
     $sdk->generate(__DIR__ . '/examples/ruby');
@@ -87,6 +96,8 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
     ;
 
     $sdk->generate(__DIR__ . '/examples/python');
@@ -99,6 +110,8 @@ try {
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
         ->setVersion('0.0.1')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
     ;
 
     $sdk->generate(__DIR__ . '/examples/dart');

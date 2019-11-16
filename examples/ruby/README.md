@@ -1,6 +1,6 @@
 # Appwrite SDK for Ruby
 
-![License](https://img.shields.io/github/license//.svg?v=1)
+![License](https://img.shields.io/github/license/repoowner/reponame.svg?v=1)
 ![Version](https://img.shields.io/badge/api%20version-0.3.0-blue.svg?v=1)
 
 **WORK IN PROGRESS - NOT READY FOR USAGE**
