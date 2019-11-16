@@ -47,17 +47,17 @@ class SDKTest extends TestCase
                 'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.4.9 ruby tests/ruby/tests.rb',
             ],
         ],
-        'python' => [
-            'class' => 'Appwrite\SDK\Language\Python',
-            'build' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/python python:3.8 python --version',
-            'envs' => [
-                'python-3.8' => 'docker run --rm -v $(pwd):/app -w /app python:3.8 python tests/python/tests.py',
-                'python-3.7' => 'docker run --rm -v $(pwd):/app -w /app python:3.7 python tests/python/tests.py',
-                'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app python:3.6 python tests/python/tests.py',
-                'python-3.5' => 'docker run --rm -v $(pwd):/app -w /app python:3.5 python tests/python/tests.py',
-                'python-2.7' => 'docker run --rm -v $(pwd):/app -w /app python:2.7 python tests/python/tests.py',
-            ],
-        ],
+        // 'python' => [
+        //     'class' => 'Appwrite\SDK\Language\Python',
+        //     'build' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/python python:3.8 python --version',
+        //     'envs' => [
+        //         'python-3.8' => 'docker run --rm -v $(pwd):/app -w /app python:3.8 python tests/python/tests.py',
+        //         'python-3.7' => 'docker run --rm -v $(pwd):/app -w /app python:3.7 python tests/python/tests.py',
+        //         'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app python:3.6 python tests/python/tests.py',
+        //         'python-3.5' => 'docker run --rm -v $(pwd):/app -w /app python:3.5 python tests/python/tests.py',
+        //         'python-2.7' => 'docker run --rm -v $(pwd):/app -w /app python:2.7 python tests/python/tests.py',
+        //     ],
+        // ],
     ];
 
     public function setUp()
