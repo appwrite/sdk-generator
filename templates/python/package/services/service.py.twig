@@ -2,6 +2,9 @@ from ..service import Service
 
 
 class {{ service.name | caseUcfirst }}(Service):
+
+    def __init__(self, client):
+        super({{ service.name | caseUcfirst }}, self).__init__(client)
 {% for method in service.methods %}
 
     def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseSnake }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}):
