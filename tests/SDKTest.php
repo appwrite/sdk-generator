@@ -26,7 +26,7 @@ class SDKTest extends TestCase
                 'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli php tests/php/test.php',
                 'php-7.3' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli php tests/php/test.php',
             ],
-            
+
         ],
         'node' => [
             'class' => 'Appwrite\SDK\Language\Node',
@@ -71,7 +71,7 @@ class SDKTest extends TestCase
     public function testHTTPSuccess()
     {
         $output = [];
-        
+
         /**
          * SDK Generation
          */
@@ -82,14 +82,14 @@ class SDKTest extends TestCase
 
         try {
             $spec = file_get_contents(realpath(__DIR__ . '/resources/spec.json'));
-        
+
             if(empty($spec)) {
                 throw new Exception('Failed to fetch spec from Appwrite server');
             }
 
             foreach ($this->languages as $language => $options) {
                 $sdk  = new SDK(new $options['class'](), new Swagger2($spec));
-        
+
                 $sdk
                     ->setLogo('https://appwrite.io/v1/images/console.png')
                     ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
@@ -98,9 +98,9 @@ class SDKTest extends TestCase
                     ->setGitRepoName('reponame')
                     ->setLicenseContent('demo license')
                 ;
-        
+
                 $sdk->generate(__DIR__ . '/sdks/' . $language);
-                
+
                 //continue;
 
                 $output = [];
@@ -112,13 +112,13 @@ class SDKTest extends TestCase
 
                 foreach ($options['envs'] as $key => $command) {
                     echo "Running tests for the {$key} environment...\n";
-                    
+
                     $output = [];
-        
+
                     exec($command, $output);
 
                     //var_dump($output);
-        
+
                     $this->assertEquals($output[0], 'GET:/v1/mock/tests/foo:passed');
                     $this->assertEquals($output[1], 'POST:/v1/mock/tests/foo:passed');
                     $this->assertEquals($output[2], 'PUT:/v1/mock/tests/foo:passed');
