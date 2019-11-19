@@ -1,6 +1,6 @@
-from distutils.core import setup
+import setuptools
 
-setup(
+setuptools.setup(
   name = '{{spec.title | caseSnake}}',
   packages = ['{{spec.title | caseSnake}}', '{{spec.title | caseSnake}}/services'],
   version = '{{sdk.version}}',
