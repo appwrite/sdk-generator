@@ -97,6 +97,12 @@ class Python extends Language {
                 'template'      => '/python/setup.py.twig',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'setup.cfg',
+                'template'      => '/python/setup.cfg.twig',
+                'minify'        => false,
+            ],
             /*[
                 'scope'         => 'service',
                 'destination'   => 'docs/{{service.name | caseSnake}}.md',

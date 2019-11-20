@@ -1,6 +1,6 @@
-from distutils.core import setup
+import setuptools
 
-setup(
+setuptools.setup(
   name = 'appwrite',
   packages = ['appwrite', 'appwrite/services'],
   version = '',
@@ -17,7 +17,7 @@ setup(
           'requests',
       ],
   classifiers=[
-    'Development Status :: 5 - PRODUCTION/STABLE',
+    'Development Status :: 5 - Production/Stable',
     'Intended Audience :: Developers',
     'Environment :: Web Environment',
     'Topic :: Software Development',

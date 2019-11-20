@@ -47,11 +47,10 @@ class Storage extends Service
      * @param \CurlFile  $files
      * @param array  $read
      * @param array  $write
-     * @param string  $folderId
      * @throws Exception
      * @return array
      */
-    public function createFile(\CurlFile $files, array $read, array $write, string $folderId = ''):array
+    public function createFile(\CurlFile $files, array $read, array $write):array
     {
         $path   = str_replace([], [], '/storage/files');
         $params = [];
@@ -59,7 +58,6 @@ class Storage extends Service
         $params['files'] = $files;
         $params['read'] = $read;
         $params['write'] = $write;
-        $params['folderId'] = $folderId;
 
         return $this->client->call(Client::METHOD_POST, $path, [
             'content-type' => 'multipart/form-data',
@@ -96,18 +94,16 @@ class Storage extends Service
      * @param string  $fileId
      * @param array  $read
      * @param array  $write
-     * @param string  $folderId
      * @throws Exception
      * @return array
      */
-    public function updateFile(string $fileId, array $read, array $write, string $folderId = ''):array
+    public function updateFile(string $fileId, array $read, array $write):array
     {
         $path   = str_replace(['{fileId}'], [$fileId], '/storage/files/{fileId}');
         $params = [];
 
         $params['read'] = $read;
         $params['write'] = $write;
-        $params['folderId'] = $folderId;
 
         return $this->client->call(Client::METHOD_PUT, $path, [
             'content-type' => 'application/json',

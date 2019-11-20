@@ -20,7 +20,7 @@ class Storage(Service):
             'content-type': 'application/json',
         }, params)
 
-    def create_file(self, files, read, write, folder_id=''):
+    def create_file(self, files, read, write):
         """Create File"""
 
         params = {}
@@ -28,7 +28,6 @@ class Storage(Service):
         params['files'] = files
         params['read'] = read
         params['write'] = write
-        params['folderId'] = folder_id
 
         return self.client.call('post', path, {
             'content-type': 'multipart/form-data',
@@ -45,7 +44,7 @@ class Storage(Service):
             'content-type': 'application/json',
         }, params)
 
-    def update_file(self, file_id, read, write, folder_id=''):
+    def update_file(self, file_id, read, write):
         """Update File"""
 
         params = {}
@@ -53,7 +52,6 @@ class Storage(Service):
         path.replace('{fileId}', file_id)                
         params['read'] = read
         params['write'] = write
-        params['folderId'] = folder_id
 
         return self.client.call('put', path, {
             'content-type': 'application/json',

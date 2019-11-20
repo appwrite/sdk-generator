@@ -40,11 +40,10 @@ class Storage extends Service {
      * @param File files
      * @param array read
      * @param array write
-     * @param string folderId
      * @throws Exception
      * @return {}
      */
-    async createFile(files, read, write, folderId = '') {
+    async createFile(files, read, write) {
         let path = '/storage/files';
         
         return await this.client.call('post', path, {
@@ -53,8 +52,7 @@ class Storage extends Service {
                {
                 'files': files,
                 'read': read,
-                'write': write,
-                'folderId': folderId
+                'write': write
             });
     }
 
@@ -87,11 +85,10 @@ class Storage extends Service {
      * @param string fileId
      * @param array read
      * @param array write
-     * @param string folderId
      * @throws Exception
      * @return {}
      */
-    async updateFile(fileId, read, write, folderId = '') {
+    async updateFile(fileId, read, write) {
         let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
         
         return await this.client.call('put', path, {
@@ -99,8 +96,7 @@ class Storage extends Service {
                },
                {
                 'read': read,
-                'write': write,
-                'folderId': folderId
+                'write': write
             });
     }
 

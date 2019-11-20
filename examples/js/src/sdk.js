@@ -2959,11 +2959,10 @@
              * @param {File} files
              * @param {array} read
              * @param {array} write
-             * @param {string} folderId
              * @throws {Error}
              * @return {Promise}             
              */
-            createFile: function(files, read, write, folderId = '') {
+            createFile: function(files, read, write) {
                 if(files === undefined) {
                     throw new Error('Missing required parameter: "files"');
                 }
@@ -2990,10 +2989,6 @@
 
                 if(write) {
                     payload['write'] = write;
-                }
-
-                if(folderId) {
-                    payload['folderId'] = folderId;
                 }
 
                 return http
@@ -3036,11 +3031,10 @@
              * @param {string} fileId
              * @param {array} read
              * @param {array} write
-             * @param {string} folderId
              * @throws {Error}
              * @return {Promise}             
              */
-            updateFile: function(fileId, read, write, folderId = '') {
+            updateFile: function(fileId, read, write) {
                 if(fileId === undefined) {
                     throw new Error('Missing required parameter: "fileId"');
                 }
@@ -3063,10 +3057,6 @@
 
                 if(write) {
                     payload['write'] = write;
-                }
-
-                if(folderId) {
-                    payload['folderId'] = folderId;
                 }
 
                 return http
