@@ -7,7 +7,7 @@ class {{ service.name | caseUcfirst }}(Service):
         super({{ service.name | caseUcfirst }}, self).__init__(client)
 {% for method in service.methods %}
 
-    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseSnake }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}):
+    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}):
 {% if method.title %}
         """{{ method.title }}"""
 
@@ -15,21 +15,21 @@ class {{ service.name | caseUcfirst }}(Service):
         params = {}
         path = '{{ method.path }}'
 {% for parameter in method.parameters.path %}
-        path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseSnake }})                
+        path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | escapeKeyword | caseSnake }})                
 {% endfor %}
 {% for parameter in method.parameters.query %}
-        params['{{ parameter.name }}'] = {{ parameter.name | caseSnake }}
+        params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 {% endfor %}
 {% for parameter in method.parameters.body %}
-        params['{{ parameter.name }}'] = {{ parameter.name | caseSnake }}
+        params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 {% endfor %}
 {% for parameter in method.parameters.formData %}
-        params['{{ parameter.name }}'] = {{ parameter.name | caseSnake }}
+        params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 {% endfor %}
 
         return self.client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
-            '{{ parameter.name }}': {{ parameter.name | caseSnake }},
+            '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
 {% endfor %}
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',

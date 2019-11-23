@@ -147,6 +147,13 @@ class SDK
             }
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('escapeKeyword', function ($value) use ($language) {
+            if(in_array($value, $language->getKeywords())) {
+                return 'x' . $value;
+            }
+
+            return $value;
+        }, ['is_safe' => ['html']]));
     }
 
     /**
