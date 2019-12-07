@@ -69,19 +69,19 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
 ## Supported Languages
 
-| Language   |  Coding Standards   |  Package Manager   |   Maintainer   |
-|------------|---------------------|--------------------|----------------|
-| PHP        | [PHP FIG]           | Composer           | [@eldadfux]    |
-| Javascript | [NPM Coding Style]  | NPM, Yarn, Bower   | [@eldadfux]    |
-| NodeJS     | [NPM Coding Style]  | NPM, Yarn          | [@eldadfux]    |
-| Ruby       | [Ruby Style Guide]  | GEM                | [@eldadfux]    |
-| Python     | [PEP8]              | PIP                | [@eldadfux]    |
-| Dart       | [Effective Dart]    | pub tool           | [@Almoullim]   |
-| Go         | [Effective Go]      | go get             | [@panz3r]      |
-| CSharp     |                     | ?                  |                |
-| D          |                     | ?                  |                |
-| Kotlin     |                     | ?                  |                |
-| Swift      |                     | ?                  |                |
+| Language   |  Supported Versions |  Coding Standards   |  Package Manager   |   Maintainer   |
+|------------|---------------------|---------------------|--------------------|----------------|
+| PHP        | 7.0+                | [PHP FIG]           | Composer           | [@eldadfux]    |
+| Javascript | ES5+                | [NPM Coding Style]  | NPM, Yarn, Bower   | [@eldadfux]    |
+| NodeJS     | 8, 10, 12           | [NPM Coding Style]  | NPM, Yarn          | [@eldadfux]    |
+| Ruby       | 2.4+                | [Ruby Style Guide]  | GEM                | [@eldadfux]    |
+| Python     | 3.5+                | [PEP8]              | PIP                | [@eldadfux]    |
+| Dart       |                     | [Effective Dart]    | pub tool           | [@Almoullim]   |
+| Go         |                     | [Effective Go]      | go get             | [@panz3r]      |
+| CSharp     |                     |                     | ?                  |                |
+| D          |                     |                     | ?                  |                |
+| Kotlin     |                     |                     | ?                  |                |
+| Swift      |                     |                     | ?                  |                |
 
 [@Almoullim]:       https://github.com/Almoullim
 [@eldadfux]:        https://github.com/eldadfux
