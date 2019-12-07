@@ -28,7 +28,7 @@ try {
         return $result;
     }
 
-    $spec = getSSLPage('https://appwrite.test/v1/open-api-2.json?extensions=1');
+    $spec = getSSLPage('https://localhost/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
     $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
 
     if(empty($spec)) {
