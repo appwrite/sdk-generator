@@ -1,6 +1,7 @@
 /vendor/
 /.idea/
 /tests/sdks
+/.vscode
 
 # Dart auto-generated
 examples/dart/.packages
