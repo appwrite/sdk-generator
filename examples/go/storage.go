@@ -11,7 +11,7 @@ type Storage struct {
 
 // ListFiles get a list of all the user files. You can use the query params to
 // filter your results. On admin mode, this endpoint will return a list of all
-// of the project files. [Learn more about different API modes](/docs/modes).
+// of the project files. [Learn more about different API modes](/docs/admin).
 func (srv *Storage) ListFiles(Search string, Limit int, Offset int, OrderType string) (map[string]interface{}, error) {
 	path := "/storage/files"
 

@@ -1142,7 +1142,7 @@
             },
 
             /**
-             * Text to QR Generator
+             * Get QR Code
              *
              * Converts a given plain text to a QR code image. You can use the query
              * parameters to change the size and style of the resulting image.
@@ -1194,7 +1194,7 @@
              * Get a list of all the user collections. You can use the query params to
              * filter your results. On admin mode, this endpoint will return a list of all
              * of the project collections. [Learn more about different API
-             * modes](/docs/modes).
+             * modes](/docs/admin).
              *
              * @param {string} search
              * @param {number} limit
@@ -1397,7 +1397,7 @@
              * Get a list of all the user documents. You can use the query params to
              * filter your results. On admin mode, this endpoint will return a list of all
              * of the project documents. [Learn more about different API
-             * modes](/docs/modes).
+             * modes](/docs/admin).
              *
              * @param {string} collectionId
              * @param {array} filters
@@ -2913,7 +2913,7 @@
              *
              * Get a list of all the user files. You can use the query params to filter
              * your results. On admin mode, this endpoint will return a list of all of the
-             * project files. [Learn more about different API modes](/docs/modes).
+             * project files. [Learn more about different API modes](/docs/admin).
              *
              * @param {string} search
              * @param {number} limit
@@ -3206,7 +3206,7 @@
              *
              * Get a list of all the current user teams. You can use the query params to
              * filter your results. On admin mode, this endpoint will return a list of all
-             * of the project teams. [Learn more about different API modes](/docs/modes).
+             * of the project teams. [Learn more about different API modes](/docs/admin).
              *
              * @param {string} search
              * @param {number} limit

@@ -38,7 +38,7 @@ class Storage(Service):
 
         params = {}
         path = '/storage/files/{fileId}'
-        path.replace('{fileId}', file_id)                
+        path = path.replace('{fileId}', file_id)                
 
         return self.client.call('get', path, {
             'content-type': 'application/json',
@@ -49,7 +49,7 @@ class Storage(Service):
 
         params = {}
         path = '/storage/files/{fileId}'
-        path.replace('{fileId}', file_id)                
+        path = path.replace('{fileId}', file_id)                
         params['read'] = read
         params['write'] = write
 
@@ -62,7 +62,7 @@ class Storage(Service):
 
         params = {}
         path = '/storage/files/{fileId}'
-        path.replace('{fileId}', file_id)                
+        path = path.replace('{fileId}', file_id)                
 
         return self.client.call('delete', path, {
             'content-type': 'application/json',
@@ -73,7 +73,7 @@ class Storage(Service):
 
         params = {}
         path = '/storage/files/{fileId}/download'
-        path.replace('{fileId}', file_id)                
+        path = path.replace('{fileId}', file_id)                
 
         return self.client.call('get', path, {
             'content-type': 'application/json',
@@ -84,7 +84,7 @@ class Storage(Service):
 
         params = {}
         path = '/storage/files/{fileId}/preview'
-        path.replace('{fileId}', file_id)                
+        path = path.replace('{fileId}', file_id)                
         params['width'] = width
         params['height'] = height
         params['quality'] = quality
@@ -100,7 +100,7 @@ class Storage(Service):
 
         params = {}
         path = '/storage/files/{fileId}/view'
-        path.replace('{fileId}', file_id)                
+        path = path.replace('{fileId}', file_id)                
         params['as'] = xas
 
         return self.client.call('get', path, {

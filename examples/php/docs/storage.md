@@ -6,7 +6,7 @@
 GET https://appwrite.io/v1/storage/files
 ```
 
-** Get a list of all the user files. You can use the query params to filter your results. On admin mode, this endpoint will return a list of all of the project files. [Learn more about different API modes](/docs/modes). **
+** Get a list of all the user files. You can use the query params to filter your results. On admin mode, this endpoint will return a list of all of the project files. [Learn more about different API modes](/docs/admin). **
 
 ### Parameters
 
