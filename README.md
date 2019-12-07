@@ -69,7 +69,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
 ## Supported Languages
 
-| Language   |  Supported Versions |  Coding Standards   |  Package Manager   |   Maintainer   |
+| Language   | Supported Versions  |  Coding Standards   |  Package Manager   |   Maintainer   |
 |------------|---------------------|---------------------|--------------------|----------------|
 | PHP        | 7.0+                | [PHP FIG]           | Composer           | [@eldadfux]    |
 | Javascript | ES5+                | [NPM Coding Style]  | NPM, Yarn, Bower   | [@eldadfux]    |
