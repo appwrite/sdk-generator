@@ -6,9 +6,9 @@ use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
 use PHPUnit\Framework\TestCase;
 
-// ini_set('display_errors', 1);
-// ini_set('display_startup_errors', 1);
-// error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 class SDKTest extends TestCase
 {
@@ -18,9 +18,9 @@ class SDKTest extends TestCase
     protected $languages  = [
         'php' => [
             'class' => 'Appwrite\SDK\Language\PHP',
-            'build' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli php -v',
+            'build' => [
+            ],
             'envs' => [
-                //'php-5.6' => 'docker run --rm -v $(pwd):/app -w /app php:5.6-cli php tests/php/test.php',
                 'php-7.0' => 'docker run --rm -v $(pwd):/app -w /app php:7.0-cli php tests/php/test.php',
                 'php-7.1' => 'docker run --rm -v $(pwd):/app -w /app php:7.1-cli php tests/php/test.php',
                 'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli php tests/php/test.php',
@@ -30,7 +30,9 @@ class SDKTest extends TestCase
         ],
         'node' => [
             'class' => 'Appwrite\SDK\Language\Node',
-            'build' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:12.12 npm install',
+            'build' => [
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:12.12 npm install'
+            ],
             'envs' => [
                 'nodejs-8' => 'docker run --rm -v $(pwd):/app -w /app node:8.16 node tests/node/test.js',
                 'nodejs-10' => 'docker run --rm -v $(pwd):/app -w /app node:10.16 node tests/node/test.js',
@@ -39,7 +41,8 @@ class SDKTest extends TestCase
         ],
         'ruby' => [
             'class' => 'Appwrite\SDK\Language\Ruby',
-            'build' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/ruby ruby:2.6.5 ruby -v',
+            'build' => [
+            ],
             'envs' => [
                 'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.7-rc ruby tests/ruby/tests.rb',
                 'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.6.5 ruby tests/ruby/tests.rb',
@@ -49,13 +52,13 @@ class SDKTest extends TestCase
         ],
         // 'python' => [
         //     'class' => 'Appwrite\SDK\Language\Python',
-        //     'build' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/python python:3.8 python --version',
+        //     'build' => [
+        //         'cp tests/python/tests.py tests/sdks/python/test.py',
+        //     ],
         //     'envs' => [
-        //         'python-3.8' => 'docker run --rm -v $(pwd):/app -w /app python:3.8 python tests/python/tests.py',
-        //         'python-3.7' => 'docker run --rm -v $(pwd):/app -w /app python:3.7 python tests/python/tests.py',
-        //         'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app python:3.6 python tests/python/tests.py',
-        //         'python-3.5' => 'docker run --rm -v $(pwd):/app -w /app python:3.5 python tests/python/tests.py',
-        //         'python-2.7' => 'docker run --rm -v $(pwd):/app -w /app python:2.7 python tests/python/tests.py',
+        //         'python-3.8' => 'docker run --rm -v $(pwd):/app -w /app python:3.8 pip install -r tests/sdks/python/requirements.txt > test1.txt && python tests/sdks/python/test.py',
+        //         'python-3.7' => 'docker run --rm -v $(pwd):/app -w /app python:3.7 pip install -r tests/sdks/python/requirements.txt > test2.txt && python tests/sdks/python/test.py',
+        //         'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app python:3.6 pip install -r tests/sdks/python/requirements.txt > test3.txt && python tests/sdks/python/test.py',
         //     ],
         // ],
     ];
@@ -101,23 +104,28 @@ class SDKTest extends TestCase
 
                 $sdk->generate(__DIR__ . '/sdks/' . $language);
 
-                //continue;
-
                 $output = [];
 
+                /**
+                 * Build SDK
+                 */
                 if(isset($options['build'])) {
                     echo "Building {$language} package...\n";
-                    exec($options['build'], $output);
+
+                    foreach ($options['build'] as $key => $command) {
+                        exec($command, $output);
+                    }
                 }
 
+                /**
+                 * Run tests on all different envs
+                 */
                 foreach ($options['envs'] as $key => $command) {
                     echo "Running tests for the {$key} environment...\n";
 
                     $output = [];
 
                     exec($command, $output);
-
-                    //var_dump($output);
 
                     $this->assertEquals($output[0], 'GET:/v1/mock/tests/foo:passed');
                     $this->assertEquals($output[1], 'POST:/v1/mock/tests/foo:passed');
