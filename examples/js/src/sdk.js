@@ -321,7 +321,11 @@
             /**
              * Delete Account
              *
-             * Delete currently logged in user account.
+             * Delete a currently logged in user account. Behind the scene, the user
+             * record is not deleted but permanently blocked from any access. This is done
+             * to avoid deleted accounts being overtaken by new users with the same email
+             * address. Any user-related resources like documents or storage files should
+             * be deleted separately.
              *
              * @throws {Error}
              * @return {Promise}             
@@ -557,7 +561,7 @@
              * @param {string} success
              * @param {string} failure
              * @throws {Error}
-             * @return {null}             
+             * @return {Promise}             
              */
             login: function(email, password, success = '', failure = '') {
                 if(email === undefined) {
@@ -588,9 +592,10 @@
                     payload['failure'] = failure;
                 }
 
-                payload['project'] = config.project;
-
-                return iframe('post', path, payload);
+                return http
+                    .post(path, {
+                        'content-type': 'application/json',
+                    }, payload);
             },
 
             /**
@@ -605,7 +610,7 @@
              * @param {string} success
              * @param {string} failure
              * @throws {Error}
-             * @return {null}             
+             * @return {Promise}             
              */
             oauth: function(provider, success, failure) {
                 if(provider === undefined) {
@@ -632,9 +637,10 @@
                     payload['failure'] = failure;
                 }
 
-                payload['project'] = config.project;
-
-                return iframe('get', path, payload);
+                return http
+                    .get(path, {
+                        'content-type': 'application/json',
+                    }, payload);
             },
 
             /**
@@ -820,7 +826,7 @@
              * @param {string} failure
              * @param {string} name
              * @throws {Error}
-             * @return {null}             
+             * @return {Promise}             
              */
             register: function(email, password, confirm, success = '', failure = '', name = '') {
                 if(email === undefined) {
@@ -863,9 +869,10 @@
                     payload['name'] = name;
                 }
 
-                payload['project'] = config.project;
-
-                return iframe('post', path, payload);
+                return http
+                    .post(path, {
+                        'content-type': 'application/json',
+                    }, payload);
             },
 
             /**
@@ -3550,7 +3557,7 @@
              * @param {string} success
              * @param {string} failure
              * @throws {Error}
-             * @return {null}             
+             * @return {Promise}             
              */
             updateTeamMembershipStatus: function(teamId, inviteId, userId, secret, success = '', failure = '') {
                 if(teamId === undefined) {
@@ -3589,9 +3596,10 @@
                     payload['failure'] = failure;
                 }
 
-                payload['project'] = config.project;
-
-                return iframe('patch', path, payload);
+                return http
+                    .patch(path, {
+                        'content-type': 'application/json',
+                    }, payload);
             }
         };
 
