@@ -41,7 +41,8 @@ class Client:
 
         data = {}
         json = {}
-        headers = self._global_headers.update(headers)
+        
+        self._global_headers.update(headers)
 
         if method != 'get':
             data = params

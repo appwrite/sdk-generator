@@ -50,17 +50,19 @@ class SDKTest extends TestCase
                 'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.4.9 ruby tests/ruby/tests.rb',
             ],
         ],
-        // 'python' => [
-        //     'class' => 'Appwrite\SDK\Language\Python',
-        //     'build' => [
-        //         'cp tests/python/tests.py tests/sdks/python/test.py',
-        //     ],
-        //     'envs' => [
-        //         'python-3.8' => 'docker run --rm -v $(pwd):/app -w /app python:3.8 pip install -r tests/sdks/python/requirements.txt > test1.txt && python tests/sdks/python/test.py',
-        //         'python-3.7' => 'docker run --rm -v $(pwd):/app -w /app python:3.7 pip install -r tests/sdks/python/requirements.txt > test2.txt && python tests/sdks/python/test.py',
-        //         'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app python:3.6 pip install -r tests/sdks/python/requirements.txt > test3.txt && python tests/sdks/python/test.py',
-        //     ],
-        // ],
+        'python' => [
+            'class' => 'Appwrite\SDK\Language\Python',
+            'build' => [
+                'cp tests/python/tests.py tests/sdks/python/test.py',
+                'echo "" > tests/sdks/python/__init__.py',
+                'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor python:3.8 pip install -r tests/sdks/python/requirements.txt --upgrade'
+            ],
+            'envs' => [
+                'python-3.8' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.8 python tests/sdks/python/test.py',
+                //'python-3.7' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor python:3.7 python tests/sdks/python/test.py',
+                //'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor python:3.6 python tests/sdks/python/test.py',
+            ],
+        ],
     ];
 
     public function setUp()
@@ -126,6 +128,8 @@ class SDKTest extends TestCase
                     $output = [];
 
                     exec($command, $output);
+
+                    var_dump($output);
 
                     $this->assertEquals($output[0], 'GET:/v1/mock/tests/foo:passed');
                     $this->assertEquals($output[1], 'POST:/v1/mock/tests/foo:passed');

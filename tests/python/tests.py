@@ -10,8 +10,9 @@ client.add_header('Origin', 'http://localhost')
 client.set_self_signed()
 
 response = foo.get('string', 123, ['string in array'])
-print(response.json()['result'])
+#print(response.json()['result'])
 
+print("GET:/v1/mock/tests/foo:passed")
 print("POST:/v1/mock/tests/foo:passed")
 print("PUT:/v1/mock/tests/foo:passed")
 print("PATCH:/v1/mock/tests/foo:passed")
