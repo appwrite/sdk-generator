@@ -72,7 +72,8 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | Language   | Supported Versions  |  Coding Standards   |  Package Manager   |   Maintainer   |
 |------------|---------------------|---------------------|--------------------|----------------|
 | PHP        | 7.0+                | [PHP FIG]           | Composer           | [@eldadfux]    |
-| Javascript | ES5+                | [NPM Coding Style]  | NPM, Yarn, Bower   | [@eldadfux]    |
+| Javascript | ES5+                | [NPM Coding Style]  | NPM, Yarn,         | [@eldadfux]    |
+| TypeScript |                     | [NPM Coding Style]  | NPM, Yarn          | [HELP US](https://github.com/appwrite/sdk-generator/issues/20)               |
 | NodeJS     | 8, 10, 12           | [NPM Coding Style]  | NPM, Yarn          | [@eldadfux]    |
 | Ruby       | 2.4+                | [Ruby Style Guide]  | GEM                | [@eldadfux]    |
 | Python     | 3.5+                | [PEP8]              | PIP                | [@eldadfux]    |
