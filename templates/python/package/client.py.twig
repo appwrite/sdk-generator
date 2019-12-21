@@ -58,8 +58,10 @@ class Client:
             params=params,
             data=data,
             json=json,
-            headers=headers,
+            headers=self._global_headers,
             verify=self._self_signed,
         )
 
-        return response
+        response.raise_for_status()
+        
+        return response.json()

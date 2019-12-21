@@ -51,7 +51,8 @@ class Client:
 
         data = {}
         json = {}
-        headers = self._global_headers.update(headers)
+        
+        self._global_headers.update(headers)
 
         if method != 'get':
             data = params
@@ -61,7 +62,8 @@ class Client:
             json = data
             data = {}
 
-        response = getattr(requests, method)(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
+        response = requests.request(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
+            method=method,
             url=self._endpoint + path,
             params=params,
             data=data,
@@ -70,4 +72,6 @@ class Client:
             verify=self._self_signed,
         )
 
-        return response
+        response.raise_for_status()
+        
+        return response.json()
