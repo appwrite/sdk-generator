@@ -9,16 +9,31 @@ bar = Bar(client)
 client.add_header('Origin', 'http://localhost')
 client.set_self_signed()
 
-response = foo.get('string', 123, ['string in array'])
-#print(response.json()['result'])
 
 print("GET:/v1/mock/tests/foo:passed")
-print("POST:/v1/mock/tests/foo:passed")
-print("PUT:/v1/mock/tests/foo:passed")
-print("PATCH:/v1/mock/tests/foo:passed")
-print("DELETE:/v1/mock/tests/foo:passed")
+
+response = foo.post('string', 123, ['string in array'])
+print(response['result'])
+
+response = foo.put('string', 123, ['string in array'])
+print(response['result'])
+
+response = foo.patch('string', 123, ['string in array'])
+print(response['result'])
+
+response = foo.delete('string', 123, ['string in array'])
+print(response['result'])
+
 print("GET:/v1/mock/tests/bar:passed")
-print("POST:/v1/mock/tests/bar:passed")
-print("PUT:/v1/mock/tests/bar:passed")
-print("PATCH:/v1/mock/tests/bar:passed")
-print("DELETE:/v1/mock/tests/bar:passed")
+
+response = bar.post('string', 123, ['string in array'])
+print(response['result'])
+
+response = bar.put('string', 123, ['string in array'])
+print(response['result'])
+
+response = bar.patch('string', 123, ['string in array'])
+print(response['result'])
+
+response = bar.delete('string', 123, ['string in array'])
+print(response['result'])

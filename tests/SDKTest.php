@@ -129,7 +129,7 @@ class SDKTest extends TestCase
 
                     exec($command, $output);
 
-                    var_dump($output);
+                    //var_dump($output);
 
                     $this->assertEquals($output[0], 'GET:/v1/mock/tests/foo:passed');
                     $this->assertEquals($output[1], 'POST:/v1/mock/tests/foo:passed');
