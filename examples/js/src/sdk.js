@@ -561,7 +561,7 @@
              * @param {string} success
              * @param {string} failure
              * @throws {Error}
-             * @return {Promise}             
+             * @return {null}             
              */
             login: function(email, password, success = '', failure = '') {
                 if(email === undefined) {
@@ -592,10 +592,9 @@
                     payload['failure'] = failure;
                 }
 
-                return http
-                    .post(path, {
-                        'content-type': 'application/json',
-                    }, payload);
+                payload['project'] = config.project;
+
+                return iframe('post', path, payload);
             },
 
             /**
@@ -610,7 +609,7 @@
              * @param {string} success
              * @param {string} failure
              * @throws {Error}
-             * @return {Promise}             
+             * @return {null}             
              */
             oauth: function(provider, success, failure) {
                 if(provider === undefined) {
@@ -637,10 +636,9 @@
                     payload['failure'] = failure;
                 }
 
-                return http
-                    .get(path, {
-                        'content-type': 'application/json',
-                    }, payload);
+                payload['project'] = config.project;
+
+                return iframe('get', path, payload);
             },
 
             /**
@@ -826,7 +824,7 @@
              * @param {string} failure
              * @param {string} name
              * @throws {Error}
-             * @return {Promise}             
+             * @return {null}             
              */
             register: function(email, password, confirm, success = '', failure = '', name = '') {
                 if(email === undefined) {
@@ -869,10 +867,9 @@
                     payload['name'] = name;
                 }
 
-                return http
-                    .post(path, {
-                        'content-type': 'application/json',
-                    }, payload);
+                payload['project'] = config.project;
+
+                return iframe('post', path, payload);
             },
 
             /**
@@ -3557,7 +3554,7 @@
              * @param {string} success
              * @param {string} failure
              * @throws {Error}
-             * @return {Promise}             
+             * @return {null}             
              */
             updateTeamMembershipStatus: function(teamId, inviteId, userId, secret, success = '', failure = '') {
                 if(teamId === undefined) {
@@ -3596,10 +3593,9 @@
                     payload['failure'] = failure;
                 }
 
-                return http
-                    .patch(path, {
-                        'content-type': 'application/json',
-                    }, payload);
+                payload['project'] = config.project;
+
+                return iframe('patch', path, payload);
             }
         };
 
