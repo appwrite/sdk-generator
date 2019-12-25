@@ -144,7 +144,7 @@ class Swagger2 extends Spec {
                         }
                     }
 
-                    $method['parameters'] = (is_array($method['parameters'])) ? $method['parameters'] : [];
+                    $method['parameters'] = (isset($method['parameters']) && is_array($method['parameters'])) ? $method['parameters'] : [];
 
                     foreach ($method['parameters'] as $parameter) {
                         $param = [
