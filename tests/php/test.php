@@ -4,15 +4,17 @@ include __DIR__ . '/../sdks/php/src/Appwrite/Client.php';
 include __DIR__ . '/../sdks/php/src/Appwrite/Service.php';
 include __DIR__ . '/../sdks/php/src/Appwrite/Services/Foo.php';
 include __DIR__ . '/../sdks/php/src/Appwrite/Services/Bar.php';
-include __DIR__ . '/../sdks/php/src/Appwrite/Services/Files.php';
+include __DIR__ . '/../sdks/php/src/Appwrite/Services/General.php';
 
 use Appwrite\Client;
 use Appwrite\Services\Foo;
 use Appwrite\Services\Bar;
+use Appwrite\Services\General;
 
-$client = new Client();
-$foo    = new Foo($client);
-$bar    = new Bar($client);
+$client     = new Client();
+$foo        = new Foo($client);
+$bar        = new Bar($client);
+$general    = new General($client);
 
 $client->addHeader('Origin', 'http://localhost');
 
@@ -48,4 +50,7 @@ $resposne = $bar->patch('string', 123, ['string in array']);
 echo "{$resposne['result']}\n";
 
 $resposne = $bar->delete('string', 123, ['string in array']);
+echo "{$resposne['result']}\n";
+
+$resposne = $general->redirect();
 echo "{$resposne['result']}\n";

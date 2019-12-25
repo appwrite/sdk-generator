@@ -9,6 +9,7 @@ async function start() {
 
     let foo = new appwrite.Foo(client);
     let bar = new appwrite.Bar(client);
+    let general = new appwrite.General(client);
 
     client.addHeader('Origin', 'http://localhost');
 
@@ -44,6 +45,9 @@ async function start() {
     console.log(response.result);
 
     response = await bar.delete('string', 123, ['string in array']);
+    console.log(response.result);
+
+    response = await general.redirect();
     console.log(response.result);
 
 }

@@ -26,8 +26,8 @@ class SDKTest extends TestCase
                 'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli php tests/php/test.php',
                 'php-7.3' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli php tests/php/test.php',
             ],
-
         ],
+
         'node' => [
             'class' => 'Appwrite\SDK\Language\Node',
             'build' => [
@@ -39,6 +39,7 @@ class SDKTest extends TestCase
                 'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/node/test.js',
             ],
         ],
+
         'ruby' => [
             'class' => 'Appwrite\SDK\Language\Ruby',
             'build' => [
@@ -50,6 +51,7 @@ class SDKTest extends TestCase
                 'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.4.9 ruby tests/ruby/tests.rb',
             ],
         ],
+
         'python' => [
             'class' => 'Appwrite\SDK\Language\Python',
             'build' => [
@@ -59,8 +61,8 @@ class SDKTest extends TestCase
             ],
             'envs' => [
                 'python-3.8' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.8 python tests/sdks/python/test.py',
-                //'python-3.7' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor python:3.7 python tests/sdks/python/test.py',
-                //'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor python:3.6 python tests/sdks/python/test.py',
+                'python-3.7' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.7 python tests/sdks/python/test.py',
+                'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.6 python tests/sdks/python/test.py',
             ],
         ],
     ];
@@ -129,7 +131,7 @@ class SDKTest extends TestCase
 
                     exec($command, $output);
 
-                    //var_dump($output);
+                    var_dump($output);
 
                     $this->assertEquals($output[0], 'GET:/v1/mock/tests/foo:passed');
                     $this->assertEquals($output[1], 'POST:/v1/mock/tests/foo:passed');
@@ -141,6 +143,8 @@ class SDKTest extends TestCase
                     $this->assertEquals($output[7], 'PUT:/v1/mock/tests/bar:passed');
                     $this->assertEquals($output[8], 'PATCH:/v1/mock/tests/bar:passed');
                     $this->assertEquals($output[9], 'DELETE:/v1/mock/tests/bar:passed');
+                    
+                    $this->assertEquals($output[10], 'GET:/v1/mock/tests/general/redirected:passed');
                 }
             }
         }

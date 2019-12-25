@@ -6,6 +6,7 @@ client.add_header('Origin', 'http://localhost')
 
 foo = Appwrite::Foo.new(client)  
 bar = Appwrite::Bar.new(client)  
+general = Appwrite::General.new(client)  
 
 # Foo
 
@@ -39,4 +40,9 @@ response = bar.patch(x: 'string', y: 123, z: ['string in array']);
 puts response['result']
 
 response = bar.delete(x: 'string', y: 123, z: ['string in array']);
+puts response['result']
+
+# General
+
+response = general.redirect();
 puts response['result']
