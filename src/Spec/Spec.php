@@ -40,7 +40,6 @@ abstract class Spec extends ArrayObject {
             throw new Exception('Failed to parse spec: ' . $e->getMessage());
         }
 
-        
         parent::__construct($input);
     }
 
