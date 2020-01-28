@@ -1,34 +1,28 @@
-# Projects Examples
+package appwrite
 
-## DeleteTask
+import (
+    "fmt"
+    "os"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-deletetask
+func main() {
+    // Create a Client
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    // Set Client required headers
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Projects service passing Client
-        var srv := appwrite.Projects{
-            client: &clt
-        }
-
-        // Call DeleteTask method and handle results
-        var res, err := srv.DeleteTask("[PROJECT_ID]", "[TASK_ID]")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    // Create a new Projects service passing Client
+    var srv := appwrite.Projects{
+        client: &client
     }
-```
+
+    // Call DeleteTask method and handle results
+    var res, err := srv.DeleteTask("[PROJECT_ID]", "[TASK_ID]")
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Println(res)
+}

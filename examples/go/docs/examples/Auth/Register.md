@@ -1,34 +1,28 @@
-# Auth Examples
+package appwrite
 
-## Register
+import (
+    "fmt"
+    "os"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-register
+func main() {
+    // Create a Client
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    // Set Client required headers
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Auth service passing Client
-        var srv := appwrite.Auth{
-            client: &clt
-        }
-
-        // Call Register method and handle results
-        var res, err := srv.Register("email@example.com", "password", "https://example.com")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    // Create a new Auth service passing Client
+    var srv := appwrite.Auth{
+        client: &client
     }
-```
+
+    // Call Register method and handle results
+    var res, err := srv.Register("email@example.com", "password", "https://example.com")
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Println(res)
+}

@@ -1,34 +1,28 @@
-# Users Examples
+package appwrite
 
-## UpdateUserPrefs
+import (
+    "fmt"
+    "os"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-updateuserprefs
+func main() {
+    // Create a Client
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    // Set Client required headers
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Users service passing Client
-        var srv := appwrite.Users{
-            client: &clt
-        }
-
-        // Call UpdateUserPrefs method and handle results
-        var res, err := srv.UpdateUserPrefs("[USER_ID]", "{}")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    // Create a new Users service passing Client
+    var srv := appwrite.Users{
+        client: &client
     }
-```
+
+    // Call UpdateUserPrefs method and handle results
+    var res, err := srv.UpdateUserPrefs("[USER_ID]", "{}")
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Println(res)
+}

@@ -1,34 +1,28 @@
-# Teams Examples
+package appwrite
 
-## CreateTeam
+import (
+    "fmt"
+    "os"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-createteam
+func main() {
+    // Create a Client
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    // Set Client required headers
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Teams service passing Client
-        var srv := appwrite.Teams{
-            client: &clt
-        }
-
-        // Call CreateTeam method and handle results
-        var res, err := srv.CreateTeam("[NAME]")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    // Create a new Teams service passing Client
+    var srv := appwrite.Teams{
+        client: &client
     }
-```
+
+    // Call CreateTeam method and handle results
+    var res, err := srv.CreateTeam("[NAME]")
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Println(res)
+}

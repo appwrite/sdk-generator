@@ -1,34 +1,28 @@
-# Users Examples
+package appwrite
 
-## UpdateUserStatus
+import (
+    "fmt"
+    "os"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-updateuserstatus
+func main() {
+    // Create a Client
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    // Set Client required headers
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Users service passing Client
-        var srv := appwrite.Users{
-            client: &clt
-        }
-
-        // Call UpdateUserStatus method and handle results
-        var res, err := srv.UpdateUserStatus("[USER_ID]", "1")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    // Create a new Users service passing Client
+    var srv := appwrite.Users{
+        client: &client
     }
-```
+
+    // Call UpdateUserStatus method and handle results
+    var res, err := srv.UpdateUserStatus("[USER_ID]", "1")
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Println(res)
+}

@@ -1,34 +1,28 @@
-# Auth Examples
+package appwrite
 
-## Logout
+import (
+    "fmt"
+    "os"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-logout
+func main() {
+    // Create a Client
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    // Set Client required headers
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Auth service passing Client
-        var srv := appwrite.Auth{
-            client: &clt
-        }
-
-        // Call Logout method and handle results
-        var res, err := srv.Logout()
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    // Create a new Auth service passing Client
+    var srv := appwrite.Auth{
+        client: &client
     }
-```
+
+    // Call Logout method and handle results
+    var res, err := srv.Logout()
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Println(res)
+}

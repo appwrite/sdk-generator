@@ -1,34 +1,28 @@
-# Account Examples
+package appwrite
 
-## UpdateName
+import (
+    "fmt"
+    "os"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-updatename
+func main() {
+    // Create a Client
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    // Set Client required headers
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Account service passing Client
-        var srv := appwrite.Account{
-            client: &clt
-        }
-
-        // Call UpdateName method and handle results
-        var res, err := srv.UpdateName("[NAME]")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    // Create a new Account service passing Client
+    var srv := appwrite.Account{
+        client: &client
     }
-```
+
+    // Call UpdateName method and handle results
+    var res, err := srv.UpdateName("[NAME]")
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Println(res)
+}

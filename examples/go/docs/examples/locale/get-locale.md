@@ -1,34 +1,28 @@
-# Locale Examples
+package appwrite
 
-## GetLocale
+import (
+    "fmt"
+    "os"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-getlocale
+func main() {
+    // Create a Client
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    // Set Client required headers
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Locale service passing Client
-        var srv := appwrite.Locale{
-            client: &clt
-        }
-
-        // Call GetLocale method and handle results
-        var res, err := srv.GetLocale()
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    // Create a new Locale service passing Client
+    var srv := appwrite.Locale{
+        client: &client
     }
-```
+
+    // Call GetLocale method and handle results
+    var res, err := srv.GetLocale()
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Println(res)
+}

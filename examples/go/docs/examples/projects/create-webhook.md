@@ -1,34 +1,28 @@
-# Projects Examples
+package appwrite
 
-## CreateWebhook
+import (
+    "fmt"
+    "os"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-createwebhook
+func main() {
+    // Create a Client
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    // Set Client required headers
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Projects service passing Client
-        var srv := appwrite.Projects{
-            client: &clt
-        }
-
-        // Call CreateWebhook method and handle results
-        var res, err := srv.CreateWebhook("[PROJECT_ID]", "[NAME]", [], "[URL]", 0)
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    // Create a new Projects service passing Client
+    var srv := appwrite.Projects{
+        client: &client
     }
-```
+
+    // Call CreateWebhook method and handle results
+    var res, err := srv.CreateWebhook("[PROJECT_ID]", "[NAME]", [], "[URL]", 0)
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Println(res)
+}

@@ -1,34 +1,28 @@
-# Database Examples
+package appwrite
 
-## UpdateCollection
+import (
+    "fmt"
+    "os"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-updatecollection
+func main() {
+    // Create a Client
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    // Set Client required headers
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Database service passing Client
-        var srv := appwrite.Database{
-            client: &clt
-        }
-
-        // Call UpdateCollection method and handle results
-        var res, err := srv.UpdateCollection("[COLLECTION_ID]", "[NAME]", [], [])
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    // Create a new Database service passing Client
+    var srv := appwrite.Database{
+        client: &client
     }
-```
+
+    // Call UpdateCollection method and handle results
+    var res, err := srv.UpdateCollection("[COLLECTION_ID]", "[NAME]", [], [])
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Println(res)
+}

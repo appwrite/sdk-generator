@@ -1,34 +1,28 @@
-# Storage Examples
+package appwrite
 
-## GetFileDownload
+import (
+    "fmt"
+    "os"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-getfiledownload
+func main() {
+    // Create a Client
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    // Set Client required headers
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Storage service passing Client
-        var srv := appwrite.Storage{
-            client: &clt
-        }
-
-        // Call GetFileDownload method and handle results
-        var res, err := srv.GetFileDownload("[FILE_ID]")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    // Create a new Storage service passing Client
+    var srv := appwrite.Storage{
+        client: &client
     }
-```
+
+    // Call GetFileDownload method and handle results
+    var res, err := srv.GetFileDownload("[FILE_ID]")
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Println(res)
+}
