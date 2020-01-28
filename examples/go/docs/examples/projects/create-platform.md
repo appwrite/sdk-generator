@@ -14,7 +14,7 @@ func main() {
         client: &client
     }
 
-    var response, error := service.CreatePlatform("[PROJECT_ID]", "web", "[NAME]")
+    var response, error := service.CreatePlatform("[PROJECT_ID]", "web", "[NAME]", "[KEY]", "[STORE]", "https://example.com")
 
     if error != nil {
         panic(error)

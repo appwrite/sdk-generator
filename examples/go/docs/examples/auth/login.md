@@ -14,7 +14,7 @@ func main() {
         client: &client
     }
 
-    var response, error := service.Login("email@example.com", "password")
+    var response, error := service.Login("email@example.com", "password", "https://example.com", "https://example.com")
 
     if error != nil {
         panic(error)

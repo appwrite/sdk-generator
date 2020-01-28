@@ -14,7 +14,7 @@ func main() {
         client: &client
     }
 
-    var response, error := service.UpdateCollection("[COLLECTION_ID]", "[NAME]", [], [])
+    var response, error := service.UpdateCollection("[COLLECTION_ID]", "[NAME]", [], [], [])
 
     if error != nil {
         panic(error)

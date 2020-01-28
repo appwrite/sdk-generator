@@ -6,7 +6,12 @@ import (
 
 // Projects service
 type Projects struct {
-	Client Client
+	client Client
+}
+
+func New((client *Client)) *Projects {  
+    service := Projects{client}
+    return service
 }
 
 // ListProjects

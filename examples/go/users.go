@@ -6,7 +6,12 @@ import (
 
 // Users service
 type Users struct {
-	Client Client
+	client Client
+}
+
+func New((client *Client)) *Users {  
+    service := Users{client}
+    return service
 }
 
 // ListUsers get a list of all the project users. You can use the query params

@@ -6,7 +6,12 @@ import (
 
 // Database service
 type Database struct {
-	Client Client
+	client Client
+}
+
+func New((client *Client)) *Database {  
+    service := Database{client}
+    return service
 }
 
 // ListCollections get a list of all the user collections. You can use the

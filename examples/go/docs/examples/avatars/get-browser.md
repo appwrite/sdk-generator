@@ -14,7 +14,7 @@ func main() {
         client: &client
     }
 
-    var response, error := service.GetBrowser("aa")
+    var response, error := service.GetBrowser("aa", 0, 0, 0)
 
     if error != nil {
         panic(error)

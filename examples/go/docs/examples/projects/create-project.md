@@ -14,7 +14,7 @@ func main() {
         client: &client
     }
 
-    var response, error := service.CreateProject("[NAME]", "[TEAM_ID]")
+    var response, error := service.CreateProject("[NAME]", "[TEAM_ID]", "[DESCRIPTION]", "[LOGO]", "https://example.com", "[LEGAL_NAME]", "[LEGAL_COUNTRY]", "[LEGAL_STATE]", "[LEGAL_CITY]", "[LEGAL_ADDRESS]", "[LEGAL_TAX_ID]")
 
     if error != nil {
         panic(error)

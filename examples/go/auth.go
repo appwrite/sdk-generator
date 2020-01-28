@@ -6,7 +6,12 @@ import (
 
 // Auth service
 type Auth struct {
-	Client Client
+	client Client
+}
+
+func New((client *Client)) *Auth {  
+    service := Auth{client}
+    return service
 }
 
 // Login allow the user to login into his account by providing a valid email

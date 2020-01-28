@@ -14,7 +14,7 @@ func main() {
         client: &client
     }
 
-    var response, error := service.UpdateProjectOAuth("[PROJECT_ID]", "bitbucket")
+    var response, error := service.UpdateProjectOAuth("[PROJECT_ID]", "bitbucket", "[APP_ID]", "[SECRET]")
 
     if error != nil {
         panic(error)

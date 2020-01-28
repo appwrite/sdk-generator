@@ -14,7 +14,7 @@ func main() {
         client: &client
     }
 
-    var response, error := service.GetFilePreview("[FILE_ID]")
+    var response, error := service.GetFilePreview("[FILE_ID]", 0, 0, 0, "", "jpg")
 
     if error != nil {
         panic(error)

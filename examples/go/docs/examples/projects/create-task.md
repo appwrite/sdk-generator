@@ -14,7 +14,7 @@ func main() {
         client: &client
     }
 
-    var response, error := service.CreateTask("[PROJECT_ID]", "[NAME]", "play", "", 0, "GET", "https://example.com")
+    var response, error := service.CreateTask("[PROJECT_ID]", "[NAME]", "play", "", 0, "GET", "https://example.com", [], "[HTTP_USER]", "[HTTP_PASS]")
 
     if error != nil {
         panic(error)

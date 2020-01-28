@@ -14,7 +14,7 @@ func main() {
         client: &client
     }
 
-    var response, error := service.UpdateWebhook("[PROJECT_ID]", "[WEBHOOK_ID]", "[NAME]", [], "[URL]", 0)
+    var response, error := service.UpdateWebhook("[PROJECT_ID]", "[WEBHOOK_ID]", "[NAME]", [], "[URL]", 0, "[HTTP_USER]", "[HTTP_PASS]")
 
     if error != nil {
         panic(error)

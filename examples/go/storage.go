@@ -6,7 +6,12 @@ import (
 
 // Storage service
 type Storage struct {
-	Client Client
+	client Client
+}
+
+func New((client *Client)) *Storage {  
+    service := Storage{client}
+    return service
 }
 
 // ListFiles get a list of all the user files. You can use the query params to

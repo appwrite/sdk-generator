@@ -14,7 +14,7 @@ func main() {
         client: &client
     }
 
-    var response, error := service.UpdatePlatform("[PROJECT_ID]", "[PLATFORM_ID]", "[NAME]")
+    var response, error := service.UpdatePlatform("[PROJECT_ID]", "[PLATFORM_ID]", "[NAME]", "[KEY]", "[STORE]", "https://example.com")
 
     if error != nil {
         panic(error)

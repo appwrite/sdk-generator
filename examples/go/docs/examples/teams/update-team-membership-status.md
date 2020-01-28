@@ -14,7 +14,7 @@ func main() {
         client: &client
     }
 
-    var response, error := service.UpdateTeamMembershipStatus("[TEAM_ID]", "[INVITE_ID]", "[USER_ID]", "[SECRET]")
+    var response, error := service.UpdateTeamMembershipStatus("[TEAM_ID]", "[INVITE_ID]", "[USER_ID]", "[SECRET]", "https://example.com", "https://example.com")
 
     if error != nil {
         panic(error)

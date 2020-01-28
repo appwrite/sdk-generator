@@ -18,7 +18,7 @@ func main() {
         client: &client
     }
 
-    var response, error := service.{{ method.name | caseUcfirst }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %})
+    var response, error := service.{{ method.name | caseUcfirst }}({% for parameter in method.parameters.all %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endfor %})
 
     if error != nil {
         panic(error)

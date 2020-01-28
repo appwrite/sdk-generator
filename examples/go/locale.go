@@ -5,7 +5,12 @@ import (
 
 // Locale service
 type Locale struct {
-	Client Client
+	client Client
+}
+
+func New((client *Client)) *Locale {  
+    service := Locale{client}
+    return service
 }
 
 // GetLocale get the current user location based on IP. Returns an object with
