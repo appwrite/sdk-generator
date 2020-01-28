@@ -32,9 +32,10 @@ func (clt Client) AddHeader(key string, value string) {
 }
 {% for header in spec.global.headers %}
 
-// Set{{header.key | caseUcfirst}}Header add the '{{header.name}}' header for the Client.{% if header.description %} {{header.description}}{% endif %}
-
-func (clt Client) Set{{header.key | caseUcfirst}}Header(value string) {
+{% if header.description %}
+// {{header.description}}
+{% endif %}
+func (clt Client) Set{{header.key | caseUcfirst}}(value string) {
 	clt.headers["{{header.name}}"] = value
 }
 {% endfor %}
