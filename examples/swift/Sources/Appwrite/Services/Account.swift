@@ -12,19 +12,15 @@ class Account: Service
      */
 
     func get()-> Array<Any> {
-        let methodPath = "/account"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/account"
 
 
-        return self.client.call(HTTPMethod.get, path, [
+                let params: [String: Any] = [:]
+        
+
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -41,19 +37,15 @@ class Account: Service
      */
 
     func delete()-> Array<Any> {
-        let methodPath = "/account"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/account"
 
 
-        return self.client.call(HTTPMethod.delete, path, [
+                let params: [String: Any] = [:]
+        
+
+        return [self.client.call(method: Client.HTTPMethod.delete.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -71,21 +63,17 @@ class Account: Service
      */
 
     func updateEmail(email: String, password: String)-> Array<Any> {
-        let methodPath = "/account/email"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/account/email"
 
+
+                var params: [String: Any] = [:]
+        
         params["email"] = email
         params["password"] = password
 
-        return self.client.call(HTTPMethod.patch, path, [
+        return [self.client.call(method: Client.HTTPMethod.patch.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -99,20 +87,16 @@ class Account: Service
      */
 
     func updateName(name: String)-> Array<Any> {
-        let methodPath = "/account/name"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/account/name"
 
+
+                var params: [String: Any] = [:]
+        
         params["name"] = name
 
-        return self.client.call(HTTPMethod.patch, path, [
+        return [self.client.call(method: Client.HTTPMethod.patch.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -128,21 +112,17 @@ class Account: Service
      */
 
     func updatePassword(password: String, oldPassword: String)-> Array<Any> {
-        let methodPath = "/account/password"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/account/password"
 
+
+                var params: [String: Any] = [:]
+        
         params["password"] = password
         params["old-password"] = oldPassword
 
-        return self.client.call(HTTPMethod.patch, path, [
+        return [self.client.call(method: Client.HTTPMethod.patch.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -155,19 +135,15 @@ class Account: Service
      */
 
     func getPrefs()-> Array<Any> {
-        let methodPath = "/account/prefs"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/account/prefs"
 
 
-        return self.client.call(HTTPMethod.get, path, [
+                let params: [String: Any] = [:]
+        
+
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -182,20 +158,16 @@ class Account: Service
      */
 
     func updatePrefs(prefs: String)-> Array<Any> {
-        let methodPath = "/account/prefs"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/account/prefs"
 
+
+                var params: [String: Any] = [:]
+        
         params["prefs"] = prefs
 
-        return self.client.call(HTTPMethod.patch, path, [
+        return [self.client.call(method: Client.HTTPMethod.patch.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -209,19 +181,15 @@ class Account: Service
      */
 
     func getSecurity()-> Array<Any> {
-        let methodPath = "/account/security"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/account/security"
 
 
-        return self.client.call(HTTPMethod.get, path, [
+                let params: [String: Any] = [:]
+        
+
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -235,19 +203,15 @@ class Account: Service
      */
 
     func getSessions()-> Array<Any> {
-        let methodPath = "/account/sessions"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/account/sessions"
 
 
-        return self.client.call(HTTPMethod.get, path, [
+                let params: [String: Any] = [:]
+        
+
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
 }

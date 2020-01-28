@@ -17,24 +17,20 @@ class Storage: Service
      * @return array
      */
 
-    func listFiles(search: String = null, limit: Int = 25, offset: Int = 0, orderType: String = 'ASC')-> Array<Any> {
-        let methodPath = "/storage/files"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func listFiles(search: String = "", limit: Int = 25, offset: Int = 0, orderType: String = "ASC")-> Array<Any> {
+        let path: String = "/storage/files"
 
+
+                var params: [String: Any] = [:]
+        
         params["search"] = search
         params["limit"] = limit
         params["offset"] = offset
         params["orderType"] = orderType
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -44,30 +40,26 @@ class Storage: Service
      * assigned to read and write access unless he has passed custom values for
      * read and write arguments.
      *
-     * @param File files
-     * @param Array read
-     * @param Array write
+     * @param Array<Any> files
+     * @param Array<Any> read
+     * @param Array<Any> write
      * @throws Exception
      * @return array
      */
 
-    func createFile(files: File, read: Array, write: Array)-> Array<Any> {
-        let methodPath = "/storage/files"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func createFile(files: Array<Any>, read: Array<Any>, write: Array<Any>)-> Array<Any> {
+        let path: String = "/storage/files"
 
+
+                var params: [String: Any] = [:]
+        
         params["files"] = files
         params["read"] = read
         params["write"] = write
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "multipart/form-data",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -82,19 +74,19 @@ class Storage: Service
      */
 
     func getFile(fileId: String)-> Array<Any> {
-        let methodPath = "/storage/files/{fileId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{fileId}']",
-          with: "$fileId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/storage/files/{fileId}"
+
+        path = path.replacingOccurrences(
+          of: "{fileId}",
+          with: fileId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -104,28 +96,28 @@ class Storage: Service
      * to update this resource.
      *
      * @param String fileId
-     * @param Array read
-     * @param Array write
+     * @param Array<Any> read
+     * @param Array<Any> write
      * @throws Exception
      * @return array
      */
 
-    func updateFile(fileId: String, read: Array, write: Array)-> Array<Any> {
-        let methodPath = "/storage/files/{fileId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{fileId}']",
-          with: "$fileId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func updateFile(fileId: String, read: Array<Any>, write: Array<Any>)-> Array<Any> {
+        var path: String = "/storage/files/{fileId}"
 
+        path = path.replacingOccurrences(
+          of: "{fileId}",
+          with: fileId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["read"] = read
         params["write"] = write
 
-        return self.client.call(HTTPMethod.put, path, [
+        return [self.client.call(method: Client.HTTPMethod.put.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -140,19 +132,19 @@ class Storage: Service
      */
 
     func deleteFile(fileId: String)-> Array<Any> {
-        let methodPath = "/storage/files/{fileId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{fileId}']",
-          with: "$fileId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/storage/files/{fileId}"
+
+        path = path.replacingOccurrences(
+          of: "{fileId}",
+          with: fileId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.delete, path, [
+        return [self.client.call(method: Client.HTTPMethod.delete.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -168,19 +160,19 @@ class Storage: Service
      */
 
     func getFileDownload(fileId: String)-> Array<Any> {
-        let methodPath = "/storage/files/{fileId}/download"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{fileId}']",
-          with: "$fileId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/storage/files/{fileId}/download"
+
+        path = path.replacingOccurrences(
+          of: "{fileId}",
+          with: fileId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -201,25 +193,25 @@ class Storage: Service
      * @return array
      */
 
-    func getFilePreview(fileId: String, width: Int = 0, height: Int = 0, quality: Int = 100, background: String = null, output: String = null)-> Array<Any> {
-        let methodPath = "/storage/files/{fileId}/preview"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{fileId}']",
-          with: "$fileId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func getFilePreview(fileId: String, width: Int = 0, height: Int = 0, quality: Int = 100, background: String = "", output: String = "")-> Array<Any> {
+        var path: String = "/storage/files/{fileId}/preview"
 
+        path = path.replacingOccurrences(
+          of: "{fileId}",
+          with: fileId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["width"] = width
         params["height"] = height
         params["quality"] = quality
         params["background"] = background
         params["output"] = output
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -234,21 +226,21 @@ class Storage: Service
      * @return array
      */
 
-    func getFileView(fileId: String, as: String = null)-> Array<Any> {
-        let methodPath = "/storage/files/{fileId}/view"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{fileId}']",
-          with: "$fileId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func getFileView(fileId: String, as: String = "")-> Array<Any> {
+        var path: String = "/storage/files/{fileId}/view"
 
+        path = path.replacingOccurrences(
+          of: "{fileId}",
+          with: fileId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["as"] = as
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
 }

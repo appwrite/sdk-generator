@@ -152,13 +152,13 @@ class Swift extends Language {
                 return 'String';
             break;
             case self::TYPE_FILE:
-                return 'File';
+                return 'Array<Any>';
             break;
             case self::TYPE_BOOLEAN:
                 return 'Bool';
             break;
             case self::TYPE_ARRAY:
-                 return 'Array';
+                 return "Array<Any>";
             break;
         }
 
@@ -185,10 +185,16 @@ class Swift extends Language {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
+                    $output = "0";
+                    break;
                 case self::TYPE_STRING:
+                    $output .= "\"\"";
+                    break;
                 case self::TYPE_BOOLEAN:
+                    $output .= 'false';
+                    break;
                 case self::TYPE_ARRAY:
-                    $output .= 'null';
+                    $output .= '[]';
                     break;
             }
         }
@@ -199,13 +205,13 @@ class Swift extends Language {
                     $output .= $default;
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= 'const ' . $default;
+                    $output .= $default;
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "'{$default}'";
+                    $output .= "\"{$default}\"";
                     break;
             }
         }
@@ -228,13 +234,17 @@ class Swift extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
+                    $output .= "nil";
+                    break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
+                    $output .= "0";
+                    break;
                 case self::TYPE_BOOLEAN:
-                    $output .= 'null';
+                    $output .= 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "''";
+                    $output .= '""';
                     break;
                 case self::TYPE_ARRAY:
                     $output .= '[]';
@@ -253,7 +263,7 @@ class Swift extends Language {
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "'{$example}'";
+                    $output .= "\"{$example}\"";
                     break;
             }
         }

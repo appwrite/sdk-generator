@@ -18,24 +18,20 @@ class Database: Service
      * @return array
      */
 
-    func listCollections(search: String = null, limit: Int = 25, offset: Int = 0, orderType: String = 'ASC')-> Array<Any> {
-        let methodPath = "/database"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func listCollections(search: String = "", limit: Int = 25, offset: Int = 0, orderType: String = "ASC")-> Array<Any> {
+        let path: String = "/database"
 
+
+                var params: [String: Any] = [:]
+        
         params["search"] = search
         params["limit"] = limit
         params["offset"] = offset
         params["orderType"] = orderType
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -44,31 +40,27 @@ class Database: Service
      * Create a new Collection.
      *
      * @param String name
-     * @param Array read
-     * @param Array write
-     * @param Array rules
+     * @param Array<Any> read
+     * @param Array<Any> write
+     * @param Array<Any> rules
      * @throws Exception
      * @return array
      */
 
-    func createCollection(name: String, read: Array, write: Array, rules: Array)-> Array<Any> {
-        let methodPath = "/database"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func createCollection(name: String, read: Array<Any>, write: Array<Any>, rules: Array<Any>)-> Array<Any> {
+        let path: String = "/database"
 
+
+                var params: [String: Any] = [:]
+        
         params["name"] = name
         params["read"] = read
         params["write"] = write
         params["rules"] = rules
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -83,19 +75,19 @@ class Database: Service
      */
 
     func getCollection(collectionId: String)-> Array<Any> {
-        let methodPath = "/database/{collectionId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{collectionId}']",
-          with: "$collectionId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/database/{collectionId}"
+
+        path = path.replacingOccurrences(
+          of: "{collectionId}",
+          with: collectionId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -105,31 +97,31 @@ class Database: Service
      *
      * @param String collectionId
      * @param String name
-     * @param Array read
-     * @param Array write
-     * @param Array rules
+     * @param Array<Any> read
+     * @param Array<Any> write
+     * @param Array<Any> rules
      * @throws Exception
      * @return array
      */
 
-    func updateCollection(collectionId: String, name: String, read: Array, write: Array, rules: Array = const [])-> Array<Any> {
-        let methodPath = "/database/{collectionId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{collectionId}']",
-          with: "$collectionId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func updateCollection(collectionId: String, name: String, read: Array<Any>, write: Array<Any>, rules: Array<Any> = [])-> Array<Any> {
+        var path: String = "/database/{collectionId}"
 
+        path = path.replacingOccurrences(
+          of: "{collectionId}",
+          with: collectionId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["name"] = name
         params["read"] = read
         params["write"] = write
         params["rules"] = rules
 
-        return self.client.call(HTTPMethod.put, path, [
+        return [self.client.call(method: Client.HTTPMethod.put.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -144,19 +136,19 @@ class Database: Service
      */
 
     func deleteCollection(collectionId: String)-> Array<Any> {
-        let methodPath = "/database/{collectionId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{collectionId}']",
-          with: "$collectionId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/database/{collectionId}"
+
+        path = path.replacingOccurrences(
+          of: "{collectionId}",
+          with: collectionId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.delete, path, [
+        return [self.client.call(method: Client.HTTPMethod.delete.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -168,7 +160,7 @@ class Database: Service
      * modes](/docs/admin).
      *
      * @param String collectionId
-     * @param Array filters
+     * @param Array<Any> filters
      * @param Int offset
      * @param Int limit
      * @param String orderField
@@ -181,16 +173,16 @@ class Database: Service
      * @return array
      */
 
-    func listDocuments(collectionId: String, filters: Array = const [], offset: Int = 0, limit: Int = 50, orderField: String = '$uid', orderType: String = 'ASC', orderCast: String = 'string', search: String = null, first: Int = 0, last: Int = 0)-> Array<Any> {
-        let methodPath = "/database/{collectionId}/documents"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{collectionId}']",
-          with: "$collectionId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func listDocuments(collectionId: String, filters: Array<Any> = [], offset: Int = 0, limit: Int = 50, orderField: String = "$uid", orderType: String = "ASC", orderCast: String = "string", search: String = "", first: Int = 0, last: Int = 0)-> Array<Any> {
+        var path: String = "/database/{collectionId}/documents"
 
+        path = path.replacingOccurrences(
+          of: "{collectionId}",
+          with: collectionId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["filters"] = filters
         params["offset"] = offset
         params["limit"] = limit
@@ -201,9 +193,9 @@ class Database: Service
         params["first"] = first
         params["last"] = last
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -213,8 +205,8 @@ class Database: Service
      *
      * @param String collectionId
      * @param String data
-     * @param Array read
-     * @param Array write
+     * @param Array<Any> read
+     * @param Array<Any> write
      * @param String parentDocument
      * @param String parentProperty
      * @param String parentPropertyType
@@ -222,16 +214,16 @@ class Database: Service
      * @return array
      */
 
-    func createDocument(collectionId: String, data: String, read: Array, write: Array, parentDocument: String = null, parentProperty: String = null, parentPropertyType: String = 'assign')-> Array<Any> {
-        let methodPath = "/database/{collectionId}/documents"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{collectionId}']",
-          with: "$collectionId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func createDocument(collectionId: String, data: String, read: Array<Any>, write: Array<Any>, parentDocument: String = "", parentProperty: String = "", parentPropertyType: String = "assign")-> Array<Any> {
+        var path: String = "/database/{collectionId}/documents"
 
+        path = path.replacingOccurrences(
+          of: "{collectionId}",
+          with: collectionId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["data"] = data
         params["read"] = read
         params["write"] = write
@@ -239,9 +231,9 @@ class Database: Service
         params["parentProperty"] = parentProperty
         params["parentPropertyType"] = parentPropertyType
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -257,19 +249,23 @@ class Database: Service
      */
 
     func getDocument(collectionId: String, documentId: String)-> Array<Any> {
-        let methodPath = "/database/{collectionId}/documents/{documentId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{collectionId}', '//{documentId}']",
-          with: "$collectionId, $documentId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/database/{collectionId}/documents/{documentId}"
+
+        path = path.replacingOccurrences(
+          of: "{collectionId}",
+          with: collectionId
         )
-        let params = []
+        path = path.replacingOccurrences(
+          of: "{documentId}",
+          with: documentId
+        )
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -278,29 +274,33 @@ class Database: Service
      * @param String collectionId
      * @param String documentId
      * @param String data
-     * @param Array read
-     * @param Array write
+     * @param Array<Any> read
+     * @param Array<Any> write
      * @throws Exception
      * @return array
      */
 
-    func updateDocument(collectionId: String, documentId: String, data: String, read: Array, write: Array)-> Array<Any> {
-        let methodPath = "/database/{collectionId}/documents/{documentId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{collectionId}', '//{documentId}']",
-          with: "$collectionId, $documentId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func updateDocument(collectionId: String, documentId: String, data: String, read: Array<Any>, write: Array<Any>)-> Array<Any> {
+        var path: String = "/database/{collectionId}/documents/{documentId}"
 
+        path = path.replacingOccurrences(
+          of: "{collectionId}",
+          with: collectionId
+        )
+        path = path.replacingOccurrences(
+          of: "{documentId}",
+          with: documentId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["data"] = data
         params["read"] = read
         params["write"] = write
 
-        return self.client.call(HTTPMethod.patch, path, [
+        return [self.client.call(method: Client.HTTPMethod.patch.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -317,19 +317,23 @@ class Database: Service
      */
 
     func deleteDocument(collectionId: String, documentId: String)-> Array<Any> {
-        let methodPath = "/database/{collectionId}/documents/{documentId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{collectionId}', '//{documentId}']",
-          with: "$collectionId, $documentId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/database/{collectionId}/documents/{documentId}"
+
+        path = path.replacingOccurrences(
+          of: "{collectionId}",
+          with: collectionId
         )
-        let params = []
+        path = path.replacingOccurrences(
+          of: "{documentId}",
+          with: documentId
+        )
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.delete, path, [
+        return [self.client.call(method: Client.HTTPMethod.delete.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
 }

@@ -134,7 +134,7 @@ open class Client {
     /// @return Array|String
     /// @throws Exception
     ///
-    func call(method:String, path:String = "", headers:[String: String] = [:], params:[[String: Any]] = [[:]]) -> Any {
+    func call(method:String, path:String = "", headers:[String: String] = [:], params:[String: Any] = [:]) -> Any {
 
         //let headers = self.headers + headers
         self.headers.merge(headers){(current, _) in current}
@@ -200,5 +200,5 @@ extension Client {
       case trace
     }
 
-    
+
 }

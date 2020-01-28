@@ -15,19 +15,15 @@ class Locale: Service
      */
 
     func getLocale()-> Array<Any> {
-        let methodPath = "/locale"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/locale"
 
 
-        return self.client.call(HTTPMethod.get, path, [
+                let params: [String: Any] = [:]
+        
+
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -41,19 +37,15 @@ class Locale: Service
      */
 
     func getContinents()-> Array<Any> {
-        let methodPath = "/locale/continents"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/locale/continents"
 
 
-        return self.client.call(HTTPMethod.get, path, [
+                let params: [String: Any] = [:]
+        
+
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -67,19 +59,15 @@ class Locale: Service
      */
 
     func getCountries()-> Array<Any> {
-        let methodPath = "/locale/countries"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/locale/countries"
 
 
-        return self.client.call(HTTPMethod.get, path, [
+                let params: [String: Any] = [:]
+        
+
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -94,19 +82,15 @@ class Locale: Service
      */
 
     func getCountriesEU()-> Array<Any> {
-        let methodPath = "/locale/countries/eu"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/locale/countries/eu"
 
 
-        return self.client.call(HTTPMethod.get, path, [
+                let params: [String: Any] = [:]
+        
+
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -120,19 +104,15 @@ class Locale: Service
      */
 
     func getCountriesPhones()-> Array<Any> {
-        let methodPath = "/locale/countries/phones"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/locale/countries/phones"
 
 
-        return self.client.call(HTTPMethod.get, path, [
+                let params: [String: Any] = [:]
+        
+
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -147,19 +127,15 @@ class Locale: Service
      */
 
     func getCurrencies()-> Array<Any> {
-        let methodPath = "/locale/currencies"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/locale/currencies"
 
 
-        return self.client.call(HTTPMethod.get, path, [
+                let params: [String: Any] = [:]
+        
+
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
 }

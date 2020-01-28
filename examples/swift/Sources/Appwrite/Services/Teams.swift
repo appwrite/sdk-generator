@@ -17,24 +17,20 @@ class Teams: Service
      * @return array
      */
 
-    func listTeams(search: String = null, limit: Int = 25, offset: Int = 0, orderType: String = 'ASC')-> Array<Any> {
-        let methodPath = "/teams"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func listTeams(search: String = "", limit: Int = 25, offset: Int = 0, orderType: String = "ASC")-> Array<Any> {
+        let path: String = "/teams"
 
+
+                var params: [String: Any] = [:]
+        
         params["search"] = search
         params["limit"] = limit
         params["offset"] = offset
         params["orderType"] = orderType
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -46,27 +42,23 @@ class Teams: Service
      * project.
      *
      * @param String name
-     * @param Array roles
+     * @param Array<Any> roles
      * @throws Exception
      * @return array
      */
 
-    func createTeam(name: String, roles: Array = const ["owner"])-> Array<Any> {
-        let methodPath = "/teams"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func createTeam(name: String, roles: Array<Any> = ["owner"])-> Array<Any> {
+        let path: String = "/teams"
 
+
+                var params: [String: Any] = [:]
+        
         params["name"] = name
         params["roles"] = roles
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -81,19 +73,19 @@ class Teams: Service
      */
 
     func getTeam(teamId: String)-> Array<Any> {
-        let methodPath = "/teams/{teamId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{teamId}']",
-          with: "$teamId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/teams/{teamId}"
+
+        path = path.replacingOccurrences(
+          of: "{teamId}",
+          with: teamId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -109,20 +101,20 @@ class Teams: Service
      */
 
     func updateTeam(teamId: String, name: String)-> Array<Any> {
-        let methodPath = "/teams/{teamId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{teamId}']",
-          with: "$teamId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        var path: String = "/teams/{teamId}"
 
+        path = path.replacingOccurrences(
+          of: "{teamId}",
+          with: teamId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["name"] = name
 
-        return self.client.call(HTTPMethod.put, path, [
+        return [self.client.call(method: Client.HTTPMethod.put.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -137,19 +129,19 @@ class Teams: Service
      */
 
     func deleteTeam(teamId: String)-> Array<Any> {
-        let methodPath = "/teams/{teamId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{teamId}']",
-          with: "$teamId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/teams/{teamId}"
+
+        path = path.replacingOccurrences(
+          of: "{teamId}",
+          with: teamId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.delete, path, [
+        return [self.client.call(method: Client.HTTPMethod.delete.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -164,19 +156,19 @@ class Teams: Service
      */
 
     func getTeamMembers(teamId: String)-> Array<Any> {
-        let methodPath = "/teams/{teamId}/members"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{teamId}']",
-          with: "$teamId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/teams/{teamId}/members"
+
+        path = path.replacingOccurrences(
+          of: "{teamId}",
+          with: teamId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -198,31 +190,31 @@ class Teams: Service
      *
      * @param String teamId
      * @param String email
-     * @param Array roles
+     * @param Array<Any> roles
      * @param String redirect
      * @param String name
      * @throws Exception
      * @return array
      */
 
-    func createTeamMembership(teamId: String, email: String, roles: Array, redirect: String, name: String = null)-> Array<Any> {
-        let methodPath = "/teams/{teamId}/memberships"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{teamId}']",
-          with: "$teamId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func createTeamMembership(teamId: String, email: String, roles: Array<Any>, redirect: String, name: String = "")-> Array<Any> {
+        var path: String = "/teams/{teamId}/memberships"
 
+        path = path.replacingOccurrences(
+          of: "{teamId}",
+          with: teamId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["email"] = email
         params["name"] = name
         params["roles"] = roles
         params["redirect"] = redirect
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -238,19 +230,23 @@ class Teams: Service
      */
 
     func deleteTeamMembership(teamId: String, inviteId: String)-> Array<Any> {
-        let methodPath = "/teams/{teamId}/memberships/{inviteId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{teamId}', '//{inviteId}']",
-          with: "$teamId, $inviteId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/teams/{teamId}/memberships/{inviteId}"
+
+        path = path.replacingOccurrences(
+          of: "{teamId}",
+          with: teamId
         )
-        let params = []
+        path = path.replacingOccurrences(
+          of: "{inviteId}",
+          with: inviteId
+        )
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.delete, path, [
+        return [self.client.call(method: Client.HTTPMethod.delete.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -267,20 +263,24 @@ class Teams: Service
      */
 
     func createTeamMembershipResend(teamId: String, inviteId: String, redirect: String)-> Array<Any> {
-        let methodPath = "/teams/{teamId}/memberships/{inviteId}/resend"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{teamId}', '//{inviteId}']",
-          with: "$teamId, $inviteId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        var path: String = "/teams/{teamId}/memberships/{inviteId}/resend"
 
+        path = path.replacingOccurrences(
+          of: "{teamId}",
+          with: teamId
+        )
+        path = path.replacingOccurrences(
+          of: "{inviteId}",
+          with: inviteId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["redirect"] = redirect
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -312,24 +312,28 @@ class Teams: Service
      * @return array
      */
 
-    func updateTeamMembershipStatus(teamId: String, inviteId: String, userId: String, secret: String, success: String = null, failure: String = null)-> Array<Any> {
-        let methodPath = "/teams/{teamId}/memberships/{inviteId}/status"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{teamId}', '//{inviteId}']",
-          with: "$teamId, $inviteId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func updateTeamMembershipStatus(teamId: String, inviteId: String, userId: String, secret: String, success: String = "", failure: String = "")-> Array<Any> {
+        var path: String = "/teams/{teamId}/memberships/{inviteId}/status"
 
+        path = path.replacingOccurrences(
+          of: "{teamId}",
+          with: teamId
+        )
+        path = path.replacingOccurrences(
+          of: "{inviteId}",
+          with: inviteId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["userId"] = userId
         params["secret"] = secret
         params["success"] = success
         params["failure"] = failure
 
-        return self.client.call(HTTPMethod.patch, path, [
+        return [self.client.call(method: Client.HTTPMethod.patch.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
 }

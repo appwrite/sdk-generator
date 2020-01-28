@@ -19,22 +19,22 @@ class Avatars: Service
      */
 
     func getBrowser(code: String, width: Int = 100, height: Int = 100, quality: Int = 100)-> Array<Any> {
-        let methodPath = "/avatars/browsers/{code}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{code}']",
-          with: "$code",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        var path: String = "/avatars/browsers/{code}"
 
+        path = path.replacingOccurrences(
+          of: "{code}",
+          with: code
+        )
+
+                var params: [String: Any] = [:]
+        
         params["width"] = width
         params["height"] = height
         params["quality"] = quality
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -54,22 +54,22 @@ class Avatars: Service
      */
 
     func getCreditCard(code: String, width: Int = 100, height: Int = 100, quality: Int = 100)-> Array<Any> {
-        let methodPath = "/avatars/credit-cards/{code}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{code}']",
-          with: "$code",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        var path: String = "/avatars/credit-cards/{code}"
 
+        path = path.replacingOccurrences(
+          of: "{code}",
+          with: code
+        )
+
+                var params: [String: Any] = [:]
+        
         params["width"] = width
         params["height"] = height
         params["quality"] = quality
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -84,20 +84,16 @@ class Avatars: Service
      */
 
     func getFavicon(url: String)-> Array<Any> {
-        let methodPath = "/avatars/favicon"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/avatars/favicon"
 
+
+                var params: [String: Any] = [:]
+        
         params["url"] = url
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -116,22 +112,22 @@ class Avatars: Service
      */
 
     func getFlag(code: String, width: Int = 100, height: Int = 100, quality: Int = 100)-> Array<Any> {
-        let methodPath = "/avatars/flags/{code}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{code}']",
-          with: "$code",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        var path: String = "/avatars/flags/{code}"
 
+        path = path.replacingOccurrences(
+          of: "{code}",
+          with: code
+        )
+
+                var params: [String: Any] = [:]
+        
         params["width"] = width
         params["height"] = height
         params["quality"] = quality
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -150,22 +146,18 @@ class Avatars: Service
      */
 
     func getImage(url: String, width: Int = 400, height: Int = 400)-> Array<Any> {
-        let methodPath = "/avatars/image"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/avatars/image"
 
+
+                var params: [String: Any] = [:]
+        
         params["url"] = url
         params["width"] = width
         params["height"] = height
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -183,23 +175,19 @@ class Avatars: Service
      */
 
     func getQR(text: String, size: Int = 400, margin: Int = 1, download: Int = 0)-> Array<Any> {
-        let methodPath = "/avatars/qr"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/avatars/qr"
 
+
+                var params: [String: Any] = [:]
+        
         params["text"] = text
         params["size"] = size
         params["margin"] = margin
         params["download"] = download
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
 }

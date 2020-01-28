@@ -10,19 +10,15 @@ class Projects: Service
      */
 
     func listProjects()-> Array<Any> {
-        let methodPath = "/projects"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/projects"
 
 
-        return self.client.call(HTTPMethod.get, path, [
+                let params: [String: Any] = [:]
+        
+
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -43,16 +39,12 @@ class Projects: Service
      * @return array
      */
 
-    func createProject(name: String, teamId: String, description: String = null, logo: String = null, url: String = null, legalName: String = null, legalCountry: String = null, legalState: String = null, legalCity: String = null, legalAddress: String = null, legalTaxId: String = null)-> Array<Any> {
-        let methodPath = "/projects"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func createProject(name: String, teamId: String, description: String = "", logo: String = "", url: String = "", legalName: String = "", legalCountry: String = "", legalState: String = "", legalCity: String = "", legalAddress: String = "", legalTaxId: String = "")-> Array<Any> {
+        let path: String = "/projects"
 
+
+                var params: [String: Any] = [:]
+        
         params["name"] = name
         params["teamId"] = teamId
         params["description"] = description
@@ -65,9 +57,9 @@ class Projects: Service
         params["legalAddress"] = legalAddress
         params["legalTaxId"] = legalTaxId
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -79,19 +71,19 @@ class Projects: Service
      */
 
     func getProject(projectId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}']",
-          with: "$projectId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -112,16 +104,16 @@ class Projects: Service
      * @return array
      */
 
-    func updateProject(projectId: String, name: String, description: String = null, logo: String = null, url: String = null, legalName: String = null, legalCountry: String = null, legalState: String = null, legalCity: String = null, legalAddress: String = null, legalTaxId: String = null)-> Array<Any> {
-        let methodPath = "/projects/{projectId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}']",
-          with: "$projectId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func updateProject(projectId: String, name: String, description: String = "", logo: String = "", url: String = "", legalName: String = "", legalCountry: String = "", legalState: String = "", legalCity: String = "", legalAddress: String = "", legalTaxId: String = "")-> Array<Any> {
+        var path: String = "/projects/{projectId}"
 
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["name"] = name
         params["description"] = description
         params["logo"] = logo
@@ -133,9 +125,9 @@ class Projects: Service
         params["legalAddress"] = legalAddress
         params["legalTaxId"] = legalTaxId
 
-        return self.client.call(HTTPMethod.patch, path, [
+        return [self.client.call(method: Client.HTTPMethod.patch.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -147,19 +139,19 @@ class Projects: Service
      */
 
     func deleteProject(projectId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}']",
-          with: "$projectId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.delete, path, [
+        return [self.client.call(method: Client.HTTPMethod.delete.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -171,19 +163,19 @@ class Projects: Service
      */
 
     func listKeys(projectId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/keys"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}']",
-          with: "$projectId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}/keys"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -191,27 +183,27 @@ class Projects: Service
      *
      * @param String projectId
      * @param String name
-     * @param Array scopes
+     * @param Array<Any> scopes
      * @throws Exception
      * @return array
      */
 
-    func createKey(projectId: String, name: String, scopes: Array)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/keys"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}']",
-          with: "$projectId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func createKey(projectId: String, name: String, scopes: Array<Any>)-> Array<Any> {
+        var path: String = "/projects/{projectId}/keys"
 
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["name"] = name
         params["scopes"] = scopes
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -224,19 +216,23 @@ class Projects: Service
      */
 
     func getKey(projectId: String, keyId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/keys/{keyId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}', '//{keyId}']",
-          with: "$projectId, $keyId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}/keys/{keyId}"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
+        path = path.replacingOccurrences(
+          of: "{keyId}",
+          with: keyId
+        )
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -245,27 +241,31 @@ class Projects: Service
      * @param String projectId
      * @param String keyId
      * @param String name
-     * @param Array scopes
+     * @param Array<Any> scopes
      * @throws Exception
      * @return array
      */
 
-    func updateKey(projectId: String, keyId: String, name: String, scopes: Array)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/keys/{keyId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}', '//{keyId}']",
-          with: "$projectId, $keyId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func updateKey(projectId: String, keyId: String, name: String, scopes: Array<Any>)-> Array<Any> {
+        var path: String = "/projects/{projectId}/keys/{keyId}"
 
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
+        )
+        path = path.replacingOccurrences(
+          of: "{keyId}",
+          with: keyId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["name"] = name
         params["scopes"] = scopes
 
-        return self.client.call(HTTPMethod.put, path, [
+        return [self.client.call(method: Client.HTTPMethod.put.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -278,19 +278,23 @@ class Projects: Service
      */
 
     func deleteKey(projectId: String, keyId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/keys/{keyId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}', '//{keyId}']",
-          with: "$projectId, $keyId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}/keys/{keyId}"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
+        path = path.replacingOccurrences(
+          of: "{keyId}",
+          with: keyId
+        )
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.delete, path, [
+        return [self.client.call(method: Client.HTTPMethod.delete.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -304,23 +308,23 @@ class Projects: Service
      * @return array
      */
 
-    func updateProjectOAuth(projectId: String, provider: String, appId: String = null, secret: String = null)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/oauth"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}']",
-          with: "$projectId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func updateProjectOAuth(projectId: String, provider: String, appId: String = "", secret: String = "")-> Array<Any> {
+        var path: String = "/projects/{projectId}/oauth"
 
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["provider"] = provider
         params["appId"] = appId
         params["secret"] = secret
 
-        return self.client.call(HTTPMethod.patch, path, [
+        return [self.client.call(method: Client.HTTPMethod.patch.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -332,19 +336,19 @@ class Projects: Service
      */
 
     func listPlatforms(projectId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/platforms"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}']",
-          with: "$projectId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}/platforms"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -360,25 +364,25 @@ class Projects: Service
      * @return array
      */
 
-    func createPlatform(projectId: String, type: String, name: String, key: String = null, store: String = null, url: String = null)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/platforms"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}']",
-          with: "$projectId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func createPlatform(projectId: String, type: String, name: String, key: String = "", store: String = "", url: String = "")-> Array<Any> {
+        var path: String = "/projects/{projectId}/platforms"
 
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["type"] = type
         params["name"] = name
         params["key"] = key
         params["store"] = store
         params["url"] = url
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -391,19 +395,23 @@ class Projects: Service
      */
 
     func getPlatform(projectId: String, platformId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/platforms/{platformId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}', '//{platformId}']",
-          with: "$projectId, $platformId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}/platforms/{platformId}"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
+        path = path.replacingOccurrences(
+          of: "{platformId}",
+          with: platformId
+        )
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -419,24 +427,28 @@ class Projects: Service
      * @return array
      */
 
-    func updatePlatform(projectId: String, platformId: String, name: String, key: String = null, store: String = null, url: String = null)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/platforms/{platformId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}', '//{platformId}']",
-          with: "$projectId, $platformId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func updatePlatform(projectId: String, platformId: String, name: String, key: String = "", store: String = "", url: String = "")-> Array<Any> {
+        var path: String = "/projects/{projectId}/platforms/{platformId}"
 
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
+        )
+        path = path.replacingOccurrences(
+          of: "{platformId}",
+          with: platformId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["name"] = name
         params["key"] = key
         params["store"] = store
         params["url"] = url
 
-        return self.client.call(HTTPMethod.put, path, [
+        return [self.client.call(method: Client.HTTPMethod.put.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -449,19 +461,23 @@ class Projects: Service
      */
 
     func deletePlatform(projectId: String, platformId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/platforms/{platformId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}', '//{platformId}']",
-          with: "$projectId, $platformId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}/platforms/{platformId}"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
+        path = path.replacingOccurrences(
+          of: "{platformId}",
+          with: platformId
+        )
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.delete, path, [
+        return [self.client.call(method: Client.HTTPMethod.delete.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -473,19 +489,19 @@ class Projects: Service
      */
 
     func listTasks(projectId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/tasks"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}']",
-          with: "$projectId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}/tasks"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -498,23 +514,23 @@ class Projects: Service
      * @param Int security
      * @param String httpMethod
      * @param String httpUrl
-     * @param Array httpHeaders
+     * @param Array<Any> httpHeaders
      * @param String httpUser
      * @param String httpPass
      * @throws Exception
      * @return array
      */
 
-    func createTask(projectId: String, name: String, status: String, schedule: String, security: Int, httpMethod: String, httpUrl: String, httpHeaders: Array = null, httpUser: String = null, httpPass: String = null)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/tasks"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}']",
-          with: "$projectId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func createTask(projectId: String, name: String, status: String, schedule: String, security: Int, httpMethod: String, httpUrl: String, httpHeaders: Array<Any> = [], httpUser: String = "", httpPass: String = "")-> Array<Any> {
+        var path: String = "/projects/{projectId}/tasks"
 
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["name"] = name
         params["status"] = status
         params["schedule"] = schedule
@@ -525,9 +541,9 @@ class Projects: Service
         params["httpUser"] = httpUser
         params["httpPass"] = httpPass
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -540,19 +556,23 @@ class Projects: Service
      */
 
     func getTask(projectId: String, taskId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/tasks/{taskId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}', '//{taskId}']",
-          with: "$projectId, $taskId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}/tasks/{taskId}"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
+        path = path.replacingOccurrences(
+          of: "{taskId}",
+          with: taskId
+        )
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -566,23 +586,27 @@ class Projects: Service
      * @param Int security
      * @param String httpMethod
      * @param String httpUrl
-     * @param Array httpHeaders
+     * @param Array<Any> httpHeaders
      * @param String httpUser
      * @param String httpPass
      * @throws Exception
      * @return array
      */
 
-    func updateTask(projectId: String, taskId: String, name: String, status: String, schedule: String, security: Int, httpMethod: String, httpUrl: String, httpHeaders: Array = null, httpUser: String = null, httpPass: String = null)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/tasks/{taskId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}', '//{taskId}']",
-          with: "$projectId, $taskId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func updateTask(projectId: String, taskId: String, name: String, status: String, schedule: String, security: Int, httpMethod: String, httpUrl: String, httpHeaders: Array<Any> = [], httpUser: String = "", httpPass: String = "")-> Array<Any> {
+        var path: String = "/projects/{projectId}/tasks/{taskId}"
 
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
+        )
+        path = path.replacingOccurrences(
+          of: "{taskId}",
+          with: taskId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["name"] = name
         params["status"] = status
         params["schedule"] = schedule
@@ -593,9 +617,9 @@ class Projects: Service
         params["httpUser"] = httpUser
         params["httpPass"] = httpPass
 
-        return self.client.call(HTTPMethod.put, path, [
+        return [self.client.call(method: Client.HTTPMethod.put.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -608,19 +632,23 @@ class Projects: Service
      */
 
     func deleteTask(projectId: String, taskId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/tasks/{taskId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}', '//{taskId}']",
-          with: "$projectId, $taskId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}/tasks/{taskId}"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
+        path = path.replacingOccurrences(
+          of: "{taskId}",
+          with: taskId
+        )
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.delete, path, [
+        return [self.client.call(method: Client.HTTPMethod.delete.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -632,19 +660,19 @@ class Projects: Service
      */
 
     func getProjectUsage(projectId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/usage"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}']",
-          with: "$projectId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}/usage"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -656,19 +684,19 @@ class Projects: Service
      */
 
     func listWebhooks(projectId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/webhooks"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}']",
-          with: "$projectId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}/webhooks"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -676,7 +704,7 @@ class Projects: Service
      *
      * @param String projectId
      * @param String name
-     * @param Array events
+     * @param Array<Any> events
      * @param String url
      * @param Int security
      * @param String httpUser
@@ -685,16 +713,16 @@ class Projects: Service
      * @return array
      */
 
-    func createWebhook(projectId: String, name: String, events: Array, url: String, security: Int, httpUser: String = null, httpPass: String = null)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/webhooks"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}']",
-          with: "$projectId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func createWebhook(projectId: String, name: String, events: Array<Any>, url: String, security: Int, httpUser: String = "", httpPass: String = "")-> Array<Any> {
+        var path: String = "/projects/{projectId}/webhooks"
 
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["name"] = name
         params["events"] = events
         params["url"] = url
@@ -702,9 +730,9 @@ class Projects: Service
         params["httpUser"] = httpUser
         params["httpPass"] = httpPass
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -717,19 +745,23 @@ class Projects: Service
      */
 
     func getWebhook(projectId: String, webhookId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/webhooks/{webhookId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}', '//{webhookId}']",
-          with: "$projectId, $webhookId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}/webhooks/{webhookId}"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
+        path = path.replacingOccurrences(
+          of: "{webhookId}",
+          with: webhookId
+        )
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -738,7 +770,7 @@ class Projects: Service
      * @param String projectId
      * @param String webhookId
      * @param String name
-     * @param Array events
+     * @param Array<Any> events
      * @param String url
      * @param Int security
      * @param String httpUser
@@ -747,16 +779,20 @@ class Projects: Service
      * @return array
      */
 
-    func updateWebhook(projectId: String, webhookId: String, name: String, events: Array, url: String, security: Int, httpUser: String = null, httpPass: String = null)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/webhooks/{webhookId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}', '//{webhookId}']",
-          with: "$projectId, $webhookId",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func updateWebhook(projectId: String, webhookId: String, name: String, events: Array<Any>, url: String, security: Int, httpUser: String = "", httpPass: String = "")-> Array<Any> {
+        var path: String = "/projects/{projectId}/webhooks/{webhookId}"
 
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
+        )
+        path = path.replacingOccurrences(
+          of: "{webhookId}",
+          with: webhookId
+        )
+
+                var params: [String: Any] = [:]
+        
         params["name"] = name
         params["events"] = events
         params["url"] = url
@@ -764,9 +800,9 @@ class Projects: Service
         params["httpUser"] = httpUser
         params["httpPass"] = httpPass
 
-        return self.client.call(HTTPMethod.put, path, [
+        return [self.client.call(method: Client.HTTPMethod.put.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -779,19 +815,23 @@ class Projects: Service
      */
 
     func deleteWebhook(projectId: String, webhookId: String)-> Array<Any> {
-        let methodPath = "/projects/{projectId}/webhooks/{webhookId}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{projectId}', '//{webhookId}']",
-          with: "$projectId, $webhookId",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/projects/{projectId}/webhooks/{webhookId}"
+
+        path = path.replacingOccurrences(
+          of: "{projectId}",
+          with: projectId
         )
-        let params = []
+        path = path.replacingOccurrences(
+          of: "{webhookId}",
+          with: webhookId
+        )
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.delete, path, [
+        return [self.client.call(method: Client.HTTPMethod.delete.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
 }

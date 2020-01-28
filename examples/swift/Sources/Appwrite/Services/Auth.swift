@@ -28,24 +28,20 @@ class Auth: Service
      * @return array
      */
 
-    func login(email: String, password: String, success: String = null, failure: String = null)-> Array<Any> {
-        let methodPath = "/auth/login"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func login(email: String, password: String, success: String = "", failure: String = "")-> Array<Any> {
+        let path: String = "/auth/login"
 
+
+                var params: [String: Any] = [:]
+        
         params["email"] = email
         params["password"] = password
         params["success"] = success
         params["failure"] = failure
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -64,21 +60,21 @@ class Auth: Service
      */
 
     func oauth(provider: String, success: String, failure: String)-> Array<Any> {
-        let methodPath = "/auth/login/oauth/{provider}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{provider}']",
-          with: "$provider",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        var path: String = "/auth/login/oauth/{provider}"
 
+        path = path.replacingOccurrences(
+          of: "{provider}",
+          with: provider
+        )
+
+                var params: [String: Any] = [:]
+        
         params["success"] = success
         params["failure"] = failure
 
-        return self.client.call(HTTPMethod.get, path, [
+        return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -93,19 +89,15 @@ class Auth: Service
      */
 
     func logout()-> Array<Any> {
-        let methodPath = "/auth/logout"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/auth/logout"
 
 
-        return self.client.call(HTTPMethod.delete, path, [
+                let params: [String: Any] = [:]
+        
+
+        return [self.client.call(method: Client.HTTPMethod.delete.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -121,19 +113,19 @@ class Auth: Service
      */
 
     func logoutBySession(id: String)-> Array<Any> {
-        let methodPath = "/auth/logout/{id}"
-        let path = methodPath.replacingOccurrences(
-          of: "['//{id}']",
-          with: "$id",
-          options: .regularExpression,
-          range: nil
+        var path: String = "/auth/logout/{id}"
+
+        path = path.replacingOccurrences(
+          of: "{id}",
+          with: id
         )
-        let params = []
 
+                let params: [String: Any] = [:]
+        
 
-        return self.client.call(HTTPMethod.delete, path, [
+        return [self.client.call(method: Client.HTTPMethod.delete.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -153,21 +145,17 @@ class Auth: Service
      */
 
     func recovery(email: String, reset: String)-> Array<Any> {
-        let methodPath = "/auth/recovery"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/auth/recovery"
 
+
+                var params: [String: Any] = [:]
+        
         params["email"] = email
         params["reset"] = reset
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -192,23 +180,19 @@ class Auth: Service
      */
 
     func recoveryReset(userId: String, token: String, passwordA: String, passwordB: String)-> Array<Any> {
-        let methodPath = "/auth/recovery/reset"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/auth/recovery/reset"
 
+
+                var params: [String: Any] = [:]
+        
         params["userId"] = userId
         params["token"] = token
         params["password-a"] = passwordA
         params["password-b"] = passwordB
 
-        return self.client.call(HTTPMethod.put, path, [
+        return [self.client.call(method: Client.HTTPMethod.put.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -245,16 +229,12 @@ class Auth: Service
      * @return array
      */
 
-    func register(email: String, password: String, confirm: String, success: String = null, failure: String = null, name: String = null)-> Array<Any> {
-        let methodPath = "/auth/register"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+    func register(email: String, password: String, confirm: String, success: String = "", failure: String = "", name: String = "")-> Array<Any> {
+        let path: String = "/auth/register"
 
+
+                var params: [String: Any] = [:]
+        
         params["email"] = email
         params["password"] = password
         params["confirm"] = confirm
@@ -262,9 +242,9 @@ class Auth: Service
         params["failure"] = failure
         params["name"] = name
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -282,21 +262,17 @@ class Auth: Service
      */
 
     func confirm(userId: String, token: String)-> Array<Any> {
-        let methodPath = "/auth/register/confirm"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/auth/register/confirm"
 
+
+                var params: [String: Any] = [:]
+        
         params["userId"] = userId
         params["token"] = token
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
     /**
@@ -317,20 +293,16 @@ class Auth: Service
      */
 
     func confirmResend(confirm: String)-> Array<Any> {
-        let methodPath = "/auth/register/confirm/resend"
-        let path = methodPath.replacingOccurrences(
-          of: "[]",
-          with: "",
-          options: .regularExpression,
-          range: nil
-        )
-        let params = []
+        let path: String = "/auth/register/confirm/resend"
 
+
+                var params: [String: Any] = [:]
+        
         params["confirm"] = confirm
 
-        return self.client.call(HTTPMethod.post, path, [
+        return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
-        ], params);
+        ], params: params)];
     }
 
 }
