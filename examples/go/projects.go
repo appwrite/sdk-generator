@@ -9,11 +9,11 @@ type Projects struct {
 	client Client
 }
 
-func New(clt *Client) *Projects {  
+func NewProjects(clt *Client) *Projects {  
     service := Projects{
 		client: clt,
 	}
-	
+
     return service
 }
 

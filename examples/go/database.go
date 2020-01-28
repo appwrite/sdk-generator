@@ -9,11 +9,11 @@ type Database struct {
 	client Client
 }
 
-func New(clt *Client) *Database {  
+func NewDatabase(clt *Client) *Database {  
     service := Database{
 		client: clt,
 	}
-	
+
     return service
 }
 
