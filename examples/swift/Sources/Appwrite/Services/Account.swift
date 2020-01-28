@@ -11,7 +11,7 @@ class Account: Service
      * @return array
      */
 
-    func get()-> Array<Any> {
+    func get() -> Array<Any> {
         let path: String = "/account"
 
 
@@ -36,7 +36,7 @@ class Account: Service
      * @return array
      */
 
-    func delete()-> Array<Any> {
+    func delete() -> Array<Any> {
         let path: String = "/account"
 
 
@@ -56,20 +56,20 @@ class Account: Service
      * mail is sent. For security measures, user password is required to complete
      * this request.
      *
-     * @param String email
-     * @param String password
+     * @param String _email
+     * @param String _password
      * @throws Exception
      * @return array
      */
 
-    func updateEmail(email: String, password: String)-> Array<Any> {
+    func updateEmail(_email: String, _password: String) -> Array<Any> {
         let path: String = "/account/email"
 
 
                 var params: [String: Any] = [:]
         
-        params["email"] = email
-        params["password"] = password
+        params["email"] = _email
+        params["password"] = _password
 
         return [self.client.call(method: Client.HTTPMethod.patch.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -81,18 +81,18 @@ class Account: Service
      *
      * Update currently logged in user account name.
      *
-     * @param String name
+     * @param String _name
      * @throws Exception
      * @return array
      */
 
-    func updateName(name: String)-> Array<Any> {
+    func updateName(_name: String) -> Array<Any> {
         let path: String = "/account/name"
 
 
                 var params: [String: Any] = [:]
         
-        params["name"] = name
+        params["name"] = _name
 
         return [self.client.call(method: Client.HTTPMethod.patch.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -105,20 +105,20 @@ class Account: Service
      * Update currently logged in user password. For validation, user is required
      * to pass the password twice.
      *
-     * @param String password
-     * @param String oldPassword
+     * @param String _password
+     * @param String _oldPassword
      * @throws Exception
      * @return array
      */
 
-    func updatePassword(password: String, oldPassword: String)-> Array<Any> {
+    func updatePassword(_password: String, _oldPassword: String) -> Array<Any> {
         let path: String = "/account/password"
 
 
                 var params: [String: Any] = [:]
         
-        params["password"] = password
-        params["old-password"] = oldPassword
+        params["password"] = _password
+        params["old-password"] = _oldPassword
 
         return [self.client.call(method: Client.HTTPMethod.patch.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -134,7 +134,7 @@ class Account: Service
      * @return array
      */
 
-    func getPrefs()-> Array<Any> {
+    func getPrefs() -> Array<Any> {
         let path: String = "/account/prefs"
 
 
@@ -152,18 +152,18 @@ class Account: Service
      * Update currently logged in user account preferences. You can pass only the
      * specific settings you wish to update.
      *
-     * @param String prefs
+     * @param String _prefs
      * @throws Exception
      * @return array
      */
 
-    func updatePrefs(prefs: String)-> Array<Any> {
+    func updatePrefs(_prefs: String) -> Array<Any> {
         let path: String = "/account/prefs"
 
 
                 var params: [String: Any] = [:]
         
-        params["prefs"] = prefs
+        params["prefs"] = _prefs
 
         return [self.client.call(method: Client.HTTPMethod.patch.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -180,7 +180,7 @@ class Account: Service
      * @return array
      */
 
-    func getSecurity()-> Array<Any> {
+    func getSecurity() -> Array<Any> {
         let path: String = "/account/security"
 
 
@@ -202,7 +202,7 @@ class Account: Service
      * @return array
      */
 
-    func getSessions()-> Array<Any> {
+    func getSessions() -> Array<Any> {
         let path: String = "/account/sessions"
 
 

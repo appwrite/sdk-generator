@@ -20,24 +20,24 @@ class Auth: Service
      * behavior is enforced because modern browsers are limiting 3rd party cookies
      * in XHR of fetch requests to protect user privacy.
      *
-     * @param String email
-     * @param String password
-     * @param String success
-     * @param String failure
+     * @param String _email
+     * @param String _password
+     * @param String _success
+     * @param String _failure
      * @throws Exception
      * @return array
      */
 
-    func login(email: String, password: String, success: String = "", failure: String = "")-> Array<Any> {
+    func login(_email: String, _password: String, _success: String = "", _failure: String = "") -> Array<Any> {
         let path: String = "/auth/login"
 
 
                 var params: [String: Any] = [:]
         
-        params["email"] = email
-        params["password"] = password
-        params["success"] = success
-        params["failure"] = failure
+        params["email"] = _email
+        params["password"] = _password
+        params["success"] = _success
+        params["failure"] = _failure
 
         return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -52,25 +52,25 @@ class Auth: Service
      * first. Use the success and failure arguments to provide a redirect URL's
      * back to your app when login is completed.
      *
-     * @param String provider
-     * @param String success
-     * @param String failure
+     * @param String _provider
+     * @param String _success
+     * @param String _failure
      * @throws Exception
      * @return array
      */
 
-    func oauth(provider: String, success: String, failure: String)-> Array<Any> {
+    func oauth(_provider: String, _success: String, _failure: String) -> Array<Any> {
         var path: String = "/auth/login/oauth/{provider}"
 
         path = path.replacingOccurrences(
           of: "{provider}",
-          with: provider
+          with: _provider
         )
 
                 var params: [String: Any] = [:]
         
-        params["success"] = success
-        params["failure"] = failure
+        params["success"] = _success
+        params["failure"] = _failure
 
         return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -88,7 +88,7 @@ class Auth: Service
      * @return array
      */
 
-    func logout()-> Array<Any> {
+    func logout() -> Array<Any> {
         let path: String = "/auth/logout"
 
 
@@ -107,17 +107,17 @@ class Auth: Service
      * account sessions across all his different devices. When using the option id
      * argument, only the session unique ID provider will be deleted.
      *
-     * @param String id
+     * @param String _id
      * @throws Exception
      * @return array
      */
 
-    func logoutBySession(id: String)-> Array<Any> {
+    func logoutBySession(_id: String) -> Array<Any> {
         var path: String = "/auth/logout/{id}"
 
         path = path.replacingOccurrences(
           of: "{id}",
-          with: id
+          with: _id
         )
 
                 let params: [String: Any] = [:]
@@ -138,20 +138,20 @@ class Auth: Service
      * submit a request to the /auth/password/reset endpoint to complete the
      * process.
      *
-     * @param String email
-     * @param String reset
+     * @param String _email
+     * @param String _reset
      * @throws Exception
      * @return array
      */
 
-    func recovery(email: String, reset: String)-> Array<Any> {
+    func recovery(_email: String, _reset: String) -> Array<Any> {
         let path: String = "/auth/recovery"
 
 
                 var params: [String: Any] = [:]
         
-        params["email"] = email
-        params["reset"] = reset
+        params["email"] = _email
+        params["reset"] = _reset
 
         return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -171,24 +171,24 @@ class Auth: Service
      * the only valid redirect URLs are the ones from domains you have set when
      * adding your platforms in the console interface.
      *
-     * @param String userId
-     * @param String token
-     * @param String passwordA
-     * @param String passwordB
+     * @param String _userId
+     * @param String _token
+     * @param String _passwordA
+     * @param String _passwordB
      * @throws Exception
      * @return array
      */
 
-    func recoveryReset(userId: String, token: String, passwordA: String, passwordB: String)-> Array<Any> {
+    func recoveryReset(_userId: String, _token: String, _passwordA: String, _passwordB: String) -> Array<Any> {
         let path: String = "/auth/recovery/reset"
 
 
                 var params: [String: Any] = [:]
         
-        params["userId"] = userId
-        params["token"] = token
-        params["password-a"] = passwordA
-        params["password-b"] = passwordB
+        params["userId"] = _userId
+        params["token"] = _token
+        params["password-a"] = _passwordA
+        params["password-b"] = _passwordB
 
         return [self.client.call(method: Client.HTTPMethod.put.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -219,28 +219,28 @@ class Auth: Service
      * behavior is enforced because modern browsers are limiting 3rd party cookies
      * in XHR of fetch requests to protect user privacy.
      *
-     * @param String email
-     * @param String password
-     * @param String confirm
-     * @param String success
-     * @param String failure
-     * @param String name
+     * @param String _email
+     * @param String _password
+     * @param String _confirm
+     * @param String _success
+     * @param String _failure
+     * @param String _name
      * @throws Exception
      * @return array
      */
 
-    func register(email: String, password: String, confirm: String, success: String = "", failure: String = "", name: String = "")-> Array<Any> {
+    func register(_email: String, _password: String, _confirm: String, _success: String = "", _failure: String = "", _name: String = "") -> Array<Any> {
         let path: String = "/auth/register"
 
 
                 var params: [String: Any] = [:]
         
-        params["email"] = email
-        params["password"] = password
-        params["confirm"] = confirm
-        params["success"] = success
-        params["failure"] = failure
-        params["name"] = name
+        params["email"] = _email
+        params["password"] = _password
+        params["confirm"] = _confirm
+        params["success"] = _success
+        params["failure"] = _failure
+        params["name"] = _name
 
         return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -255,20 +255,20 @@ class Auth: Service
      * query parameters to the redirect URL you have provided when sending your
      * request to the /auth/register endpoint.
      *
-     * @param String userId
-     * @param String token
+     * @param String _userId
+     * @param String _token
      * @throws Exception
      * @return array
      */
 
-    func confirm(userId: String, token: String)-> Array<Any> {
+    func confirm(_userId: String, _token: String) -> Array<Any> {
         let path: String = "/auth/register/confirm"
 
 
                 var params: [String: Any] = [:]
         
-        params["userId"] = userId
-        params["token"] = token
+        params["userId"] = _userId
+        params["token"] = _token
 
         return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -287,18 +287,18 @@ class Auth: Service
      * the only valid redirect URLs are the ones from domains you have set when
      * adding your platforms in the console interface.
      *
-     * @param String confirm
+     * @param String _confirm
      * @throws Exception
      * @return array
      */
 
-    func confirmResend(confirm: String)-> Array<Any> {
+    func confirmResend(_confirm: String) -> Array<Any> {
         let path: String = "/auth/register/confirm/resend"
 
 
                 var params: [String: Any] = [:]
         
-        params["confirm"] = confirm
+        params["confirm"] = _confirm
 
         return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",

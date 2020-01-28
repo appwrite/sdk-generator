@@ -9,24 +9,24 @@ class Teams: Service
      * filter your results. On admin mode, this endpoint will return a list of all
      * of the project teams. [Learn more about different API modes](/docs/admin).
      *
-     * @param String search
-     * @param Int limit
-     * @param Int offset
-     * @param String orderType
+     * @param String _search
+     * @param Int _limit
+     * @param Int _offset
+     * @param String _orderType
      * @throws Exception
      * @return array
      */
 
-    func listTeams(search: String = "", limit: Int = 25, offset: Int = 0, orderType: String = "ASC")-> Array<Any> {
+    func listTeams(_search: String = "", _limit: Int = 25, _offset: Int = 0, _orderType: String = "ASC") -> Array<Any> {
         let path: String = "/teams"
 
 
                 var params: [String: Any] = [:]
         
-        params["search"] = search
-        params["limit"] = limit
-        params["offset"] = offset
-        params["orderType"] = orderType
+        params["search"] = _search
+        params["limit"] = _limit
+        params["offset"] = _offset
+        params["orderType"] = _orderType
 
         return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -41,20 +41,20 @@ class Teams: Service
      * who will be able add new owners and update or delete the team from your
      * project.
      *
-     * @param String name
-     * @param Array<Any> roles
+     * @param String _name
+     * @param Array<Any> _roles
      * @throws Exception
      * @return array
      */
 
-    func createTeam(name: String, roles: Array<Any> = ["owner"])-> Array<Any> {
+    func createTeam(_name: String, _roles: Array<Any> = ["owner"]) -> Array<Any> {
         let path: String = "/teams"
 
 
                 var params: [String: Any] = [:]
         
-        params["name"] = name
-        params["roles"] = roles
+        params["name"] = _name
+        params["roles"] = _roles
 
         return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -67,17 +67,17 @@ class Teams: Service
      * Get team by its unique ID. All team members have read access for this
      * resource.
      *
-     * @param String teamId
+     * @param String _teamId
      * @throws Exception
      * @return array
      */
 
-    func getTeam(teamId: String)-> Array<Any> {
+    func getTeam(_teamId: String) -> Array<Any> {
         var path: String = "/teams/{teamId}"
 
         path = path.replacingOccurrences(
           of: "{teamId}",
-          with: teamId
+          with: _teamId
         )
 
                 let params: [String: Any] = [:]
@@ -94,23 +94,23 @@ class Teams: Service
      * Update team by its unique ID. Only team owners have write access for this
      * resource.
      *
-     * @param String teamId
-     * @param String name
+     * @param String _teamId
+     * @param String _name
      * @throws Exception
      * @return array
      */
 
-    func updateTeam(teamId: String, name: String)-> Array<Any> {
+    func updateTeam(_teamId: String, _name: String) -> Array<Any> {
         var path: String = "/teams/{teamId}"
 
         path = path.replacingOccurrences(
           of: "{teamId}",
-          with: teamId
+          with: _teamId
         )
 
                 var params: [String: Any] = [:]
         
-        params["name"] = name
+        params["name"] = _name
 
         return [self.client.call(method: Client.HTTPMethod.put.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -123,17 +123,17 @@ class Teams: Service
      * Delete team by its unique ID. Only team owners have write access for this
      * resource.
      *
-     * @param String teamId
+     * @param String _teamId
      * @throws Exception
      * @return array
      */
 
-    func deleteTeam(teamId: String)-> Array<Any> {
+    func deleteTeam(_teamId: String) -> Array<Any> {
         var path: String = "/teams/{teamId}"
 
         path = path.replacingOccurrences(
           of: "{teamId}",
-          with: teamId
+          with: _teamId
         )
 
                 let params: [String: Any] = [:]
@@ -150,17 +150,17 @@ class Teams: Service
      * Get team members by the team unique ID. All team members have read access
      * for this list of resources.
      *
-     * @param String teamId
+     * @param String _teamId
      * @throws Exception
      * @return array
      */
 
-    func getTeamMembers(teamId: String)-> Array<Any> {
+    func getTeamMembers(_teamId: String) -> Array<Any> {
         var path: String = "/teams/{teamId}/members"
 
         path = path.replacingOccurrences(
           of: "{teamId}",
-          with: teamId
+          with: _teamId
         )
 
                 let params: [String: Any] = [:]
@@ -188,29 +188,29 @@ class Teams: Service
      * the only valid redirect URL's are the once from domains you have set when
      * added your platforms in the console interface.
      *
-     * @param String teamId
-     * @param String email
-     * @param Array<Any> roles
-     * @param String redirect
-     * @param String name
+     * @param String _teamId
+     * @param String _email
+     * @param Array<Any> _roles
+     * @param String _redirect
+     * @param String _name
      * @throws Exception
      * @return array
      */
 
-    func createTeamMembership(teamId: String, email: String, roles: Array<Any>, redirect: String, name: String = "")-> Array<Any> {
+    func createTeamMembership(_teamId: String, _email: String, _roles: Array<Any>, _redirect: String, _name: String = "") -> Array<Any> {
         var path: String = "/teams/{teamId}/memberships"
 
         path = path.replacingOccurrences(
           of: "{teamId}",
-          with: teamId
+          with: _teamId
         )
 
                 var params: [String: Any] = [:]
         
-        params["email"] = email
-        params["name"] = name
-        params["roles"] = roles
-        params["redirect"] = redirect
+        params["email"] = _email
+        params["name"] = _name
+        params["roles"] = _roles
+        params["redirect"] = _redirect
 
         return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -223,22 +223,22 @@ class Teams: Service
      * This endpoint allows a user to leave a team or for a team owner to delete
      * the membership of any other team member.
      *
-     * @param String teamId
-     * @param String inviteId
+     * @param String _teamId
+     * @param String _inviteId
      * @throws Exception
      * @return array
      */
 
-    func deleteTeamMembership(teamId: String, inviteId: String)-> Array<Any> {
+    func deleteTeamMembership(_teamId: String, _inviteId: String) -> Array<Any> {
         var path: String = "/teams/{teamId}/memberships/{inviteId}"
 
         path = path.replacingOccurrences(
           of: "{teamId}",
-          with: teamId
+          with: _teamId
         )
         path = path.replacingOccurrences(
           of: "{inviteId}",
-          with: inviteId
+          with: _inviteId
         )
 
                 let params: [String: Any] = [:]
@@ -255,28 +255,28 @@ class Teams: Service
      * Use this endpoint to resend your invitation email for a user to join a
      * team.
      *
-     * @param String teamId
-     * @param String inviteId
-     * @param String redirect
+     * @param String _teamId
+     * @param String _inviteId
+     * @param String _redirect
      * @throws Exception
      * @return array
      */
 
-    func createTeamMembershipResend(teamId: String, inviteId: String, redirect: String)-> Array<Any> {
+    func createTeamMembershipResend(_teamId: String, _inviteId: String, _redirect: String) -> Array<Any> {
         var path: String = "/teams/{teamId}/memberships/{inviteId}/resend"
 
         path = path.replacingOccurrences(
           of: "{teamId}",
-          with: teamId
+          with: _teamId
         )
         path = path.replacingOccurrences(
           of: "{inviteId}",
-          with: inviteId
+          with: _inviteId
         )
 
                 var params: [String: Any] = [:]
         
-        params["redirect"] = redirect
+        params["redirect"] = _redirect
 
         return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -302,34 +302,34 @@ class Teams: Service
      * browsers who don't allow to set 3rd party HTTP cookies needed for saving
      * the account session token.
      *
-     * @param String teamId
-     * @param String inviteId
-     * @param String userId
-     * @param String secret
-     * @param String success
-     * @param String failure
+     * @param String _teamId
+     * @param String _inviteId
+     * @param String _userId
+     * @param String _secret
+     * @param String _success
+     * @param String _failure
      * @throws Exception
      * @return array
      */
 
-    func updateTeamMembershipStatus(teamId: String, inviteId: String, userId: String, secret: String, success: String = "", failure: String = "")-> Array<Any> {
+    func updateTeamMembershipStatus(_teamId: String, _inviteId: String, _userId: String, _secret: String, _success: String = "", _failure: String = "") -> Array<Any> {
         var path: String = "/teams/{teamId}/memberships/{inviteId}/status"
 
         path = path.replacingOccurrences(
           of: "{teamId}",
-          with: teamId
+          with: _teamId
         )
         path = path.replacingOccurrences(
           of: "{inviteId}",
-          with: inviteId
+          with: _inviteId
         )
 
                 var params: [String: Any] = [:]
         
-        params["userId"] = userId
-        params["secret"] = secret
-        params["success"] = success
-        params["failure"] = failure
+        params["userId"] = _userId
+        params["secret"] = _secret
+        params["success"] = _success
+        params["failure"] = _failure
 
         return [self.client.call(method: Client.HTTPMethod.patch.rawValue, path: path, headers: [
             "content-type": "application/json",

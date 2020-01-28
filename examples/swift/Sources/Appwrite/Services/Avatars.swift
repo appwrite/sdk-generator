@@ -10,27 +10,27 @@ class Avatars: Service
      * /account/sessions endpoint. Use width, height and quality arguments to
      * change the output settings.
      *
-     * @param String code
-     * @param Int width
-     * @param Int height
-     * @param Int quality
+     * @param String _code
+     * @param Int _width
+     * @param Int _height
+     * @param Int _quality
      * @throws Exception
      * @return array
      */
 
-    func getBrowser(code: String, width: Int = 100, height: Int = 100, quality: Int = 100)-> Array<Any> {
+    func getBrowser(_code: String, _width: Int = 100, _height: Int = 100, _quality: Int = 100) -> Array<Any> {
         var path: String = "/avatars/browsers/{code}"
 
         path = path.replacingOccurrences(
           of: "{code}",
-          with: code
+          with: _code
         )
 
                 var params: [String: Any] = [:]
         
-        params["width"] = width
-        params["height"] = height
-        params["quality"] = quality
+        params["width"] = _width
+        params["height"] = _height
+        params["quality"] = _quality
 
         return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -45,27 +45,27 @@ class Avatars: Service
      * card provider you need. Use width, height and quality arguments to change
      * the output settings.
      *
-     * @param String code
-     * @param Int width
-     * @param Int height
-     * @param Int quality
+     * @param String _code
+     * @param Int _width
+     * @param Int _height
+     * @param Int _quality
      * @throws Exception
      * @return array
      */
 
-    func getCreditCard(code: String, width: Int = 100, height: Int = 100, quality: Int = 100)-> Array<Any> {
+    func getCreditCard(_code: String, _width: Int = 100, _height: Int = 100, _quality: Int = 100) -> Array<Any> {
         var path: String = "/avatars/credit-cards/{code}"
 
         path = path.replacingOccurrences(
           of: "{code}",
-          with: code
+          with: _code
         )
 
                 var params: [String: Any] = [:]
         
-        params["width"] = width
-        params["height"] = height
-        params["quality"] = quality
+        params["width"] = _width
+        params["height"] = _height
+        params["quality"] = _quality
 
         return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -78,18 +78,18 @@ class Avatars: Service
      * Use this endpoint to fetch the favorite icon (AKA favicon) of a  any remote
      * website URL.
      *
-     * @param String url
+     * @param String _url
      * @throws Exception
      * @return array
      */
 
-    func getFavicon(url: String)-> Array<Any> {
+    func getFavicon(_url: String) -> Array<Any> {
         let path: String = "/avatars/favicon"
 
 
                 var params: [String: Any] = [:]
         
-        params["url"] = url
+        params["url"] = _url
 
         return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -103,27 +103,27 @@ class Avatars: Service
      * users. The code argument receives the 2 letter country code. Use width,
      * height and quality arguments to change the output settings.
      *
-     * @param String code
-     * @param Int width
-     * @param Int height
-     * @param Int quality
+     * @param String _code
+     * @param Int _width
+     * @param Int _height
+     * @param Int _quality
      * @throws Exception
      * @return array
      */
 
-    func getFlag(code: String, width: Int = 100, height: Int = 100, quality: Int = 100)-> Array<Any> {
+    func getFlag(_code: String, _width: Int = 100, _height: Int = 100, _quality: Int = 100) -> Array<Any> {
         var path: String = "/avatars/flags/{code}"
 
         path = path.replacingOccurrences(
           of: "{code}",
-          with: code
+          with: _code
         )
 
                 var params: [String: Any] = [:]
         
-        params["width"] = width
-        params["height"] = height
-        params["quality"] = quality
+        params["width"] = _width
+        params["height"] = _height
+        params["quality"] = _quality
 
         return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -138,22 +138,22 @@ class Avatars: Service
      * remote images in your app or in case you want to make sure a 3rd party
      * image is properly served using a TLS protocol.
      *
-     * @param String url
-     * @param Int width
-     * @param Int height
+     * @param String _url
+     * @param Int _width
+     * @param Int _height
      * @throws Exception
      * @return array
      */
 
-    func getImage(url: String, width: Int = 400, height: Int = 400)-> Array<Any> {
+    func getImage(_url: String, _width: Int = 400, _height: Int = 400) -> Array<Any> {
         let path: String = "/avatars/image"
 
 
                 var params: [String: Any] = [:]
         
-        params["url"] = url
-        params["width"] = width
-        params["height"] = height
+        params["url"] = _url
+        params["width"] = _width
+        params["height"] = _height
 
         return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -166,24 +166,24 @@ class Avatars: Service
      * Converts a given plain text to a QR code image. You can use the query
      * parameters to change the size and style of the resulting image.
      *
-     * @param String text
-     * @param Int size
-     * @param Int margin
-     * @param Int download
+     * @param String _text
+     * @param Int _size
+     * @param Int _margin
+     * @param Int _download
      * @throws Exception
      * @return array
      */
 
-    func getQR(text: String, size: Int = 400, margin: Int = 1, download: Int = 0)-> Array<Any> {
+    func getQR(_text: String, _size: Int = 400, _margin: Int = 1, _download: Int = 0) -> Array<Any> {
         let path: String = "/avatars/qr"
 
 
                 var params: [String: Any] = [:]
         
-        params["text"] = text
-        params["size"] = size
-        params["margin"] = margin
-        params["download"] = download
+        params["text"] = _text
+        params["size"] = _size
+        params["margin"] = _margin
+        params["download"] = _download
 
         return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",

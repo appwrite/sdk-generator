@@ -10,24 +10,24 @@ class Database: Service
      * of the project collections. [Learn more about different API
      * modes](/docs/admin).
      *
-     * @param String search
-     * @param Int limit
-     * @param Int offset
-     * @param String orderType
+     * @param String _search
+     * @param Int _limit
+     * @param Int _offset
+     * @param String _orderType
      * @throws Exception
      * @return array
      */
 
-    func listCollections(search: String = "", limit: Int = 25, offset: Int = 0, orderType: String = "ASC")-> Array<Any> {
+    func listCollections(_search: String = "", _limit: Int = 25, _offset: Int = 0, _orderType: String = "ASC") -> Array<Any> {
         let path: String = "/database"
 
 
                 var params: [String: Any] = [:]
         
-        params["search"] = search
-        params["limit"] = limit
-        params["offset"] = offset
-        params["orderType"] = orderType
+        params["search"] = _search
+        params["limit"] = _limit
+        params["offset"] = _offset
+        params["orderType"] = _orderType
 
         return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -39,24 +39,24 @@ class Database: Service
      *
      * Create a new Collection.
      *
-     * @param String name
-     * @param Array<Any> read
-     * @param Array<Any> write
-     * @param Array<Any> rules
+     * @param String _name
+     * @param Array<Any> _read
+     * @param Array<Any> _write
+     * @param Array<Any> _rules
      * @throws Exception
      * @return array
      */
 
-    func createCollection(name: String, read: Array<Any>, write: Array<Any>, rules: Array<Any>)-> Array<Any> {
+    func createCollection(_name: String, _read: Array<Any>, _write: Array<Any>, _rules: Array<Any>) -> Array<Any> {
         let path: String = "/database"
 
 
                 var params: [String: Any] = [:]
         
-        params["name"] = name
-        params["read"] = read
-        params["write"] = write
-        params["rules"] = rules
+        params["name"] = _name
+        params["read"] = _read
+        params["write"] = _write
+        params["rules"] = _rules
 
         return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -69,17 +69,17 @@ class Database: Service
      * Get collection by its unique ID. This endpoint response returns a JSON
      * object with the collection metadata.
      *
-     * @param String collectionId
+     * @param String _collectionId
      * @throws Exception
      * @return array
      */
 
-    func getCollection(collectionId: String)-> Array<Any> {
+    func getCollection(_collectionId: String) -> Array<Any> {
         var path: String = "/database/{collectionId}"
 
         path = path.replacingOccurrences(
           of: "{collectionId}",
-          with: collectionId
+          with: _collectionId
         )
 
                 let params: [String: Any] = [:]
@@ -95,29 +95,29 @@ class Database: Service
      *
      * Update collection by its unique ID.
      *
-     * @param String collectionId
-     * @param String name
-     * @param Array<Any> read
-     * @param Array<Any> write
-     * @param Array<Any> rules
+     * @param String _collectionId
+     * @param String _name
+     * @param Array<Any> _read
+     * @param Array<Any> _write
+     * @param Array<Any> _rules
      * @throws Exception
      * @return array
      */
 
-    func updateCollection(collectionId: String, name: String, read: Array<Any>, write: Array<Any>, rules: Array<Any> = [])-> Array<Any> {
+    func updateCollection(_collectionId: String, _name: String, _read: Array<Any>, _write: Array<Any>, _rules: Array<Any> = []) -> Array<Any> {
         var path: String = "/database/{collectionId}"
 
         path = path.replacingOccurrences(
           of: "{collectionId}",
-          with: collectionId
+          with: _collectionId
         )
 
                 var params: [String: Any] = [:]
         
-        params["name"] = name
-        params["read"] = read
-        params["write"] = write
-        params["rules"] = rules
+        params["name"] = _name
+        params["read"] = _read
+        params["write"] = _write
+        params["rules"] = _rules
 
         return [self.client.call(method: Client.HTTPMethod.put.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -130,17 +130,17 @@ class Database: Service
      * Delete a collection by its unique ID. Only users with write permissions
      * have access to delete this resource.
      *
-     * @param String collectionId
+     * @param String _collectionId
      * @throws Exception
      * @return array
      */
 
-    func deleteCollection(collectionId: String)-> Array<Any> {
+    func deleteCollection(_collectionId: String) -> Array<Any> {
         var path: String = "/database/{collectionId}"
 
         path = path.replacingOccurrences(
           of: "{collectionId}",
-          with: collectionId
+          with: _collectionId
         )
 
                 let params: [String: Any] = [:]
@@ -159,39 +159,39 @@ class Database: Service
      * of the project documents. [Learn more about different API
      * modes](/docs/admin).
      *
-     * @param String collectionId
-     * @param Array<Any> filters
-     * @param Int offset
-     * @param Int limit
-     * @param String orderField
-     * @param String orderType
-     * @param String orderCast
-     * @param String search
-     * @param Int first
-     * @param Int last
+     * @param String _collectionId
+     * @param Array<Any> _filters
+     * @param Int _offset
+     * @param Int _limit
+     * @param String _orderField
+     * @param String _orderType
+     * @param String _orderCast
+     * @param String _search
+     * @param Int _first
+     * @param Int _last
      * @throws Exception
      * @return array
      */
 
-    func listDocuments(collectionId: String, filters: Array<Any> = [], offset: Int = 0, limit: Int = 50, orderField: String = "$uid", orderType: String = "ASC", orderCast: String = "string", search: String = "", first: Int = 0, last: Int = 0)-> Array<Any> {
+    func listDocuments(_collectionId: String, _filters: Array<Any> = [], _offset: Int = 0, _limit: Int = 50, _orderField: String = "$uid", _orderType: String = "ASC", _orderCast: String = "string", _search: String = "", _first: Int = 0, _last: Int = 0) -> Array<Any> {
         var path: String = "/database/{collectionId}/documents"
 
         path = path.replacingOccurrences(
           of: "{collectionId}",
-          with: collectionId
+          with: _collectionId
         )
 
                 var params: [String: Any] = [:]
         
-        params["filters"] = filters
-        params["offset"] = offset
-        params["limit"] = limit
-        params["order-field"] = orderField
-        params["order-type"] = orderType
-        params["order-cast"] = orderCast
-        params["search"] = search
-        params["first"] = first
-        params["last"] = last
+        params["filters"] = _filters
+        params["offset"] = _offset
+        params["limit"] = _limit
+        params["order-field"] = _orderField
+        params["order-type"] = _orderType
+        params["order-cast"] = _orderCast
+        params["search"] = _search
+        params["first"] = _first
+        params["last"] = _last
 
         return [self.client.call(method: Client.HTTPMethod.get.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -203,33 +203,33 @@ class Database: Service
      *
      * Create a new Document.
      *
-     * @param String collectionId
-     * @param String data
-     * @param Array<Any> read
-     * @param Array<Any> write
-     * @param String parentDocument
-     * @param String parentProperty
-     * @param String parentPropertyType
+     * @param String _collectionId
+     * @param String _data
+     * @param Array<Any> _read
+     * @param Array<Any> _write
+     * @param String _parentDocument
+     * @param String _parentProperty
+     * @param String _parentPropertyType
      * @throws Exception
      * @return array
      */
 
-    func createDocument(collectionId: String, data: String, read: Array<Any>, write: Array<Any>, parentDocument: String = "", parentProperty: String = "", parentPropertyType: String = "assign")-> Array<Any> {
+    func createDocument(_collectionId: String, _data: String, _read: Array<Any>, _write: Array<Any>, _parentDocument: String = "", _parentProperty: String = "", _parentPropertyType: String = "assign") -> Array<Any> {
         var path: String = "/database/{collectionId}/documents"
 
         path = path.replacingOccurrences(
           of: "{collectionId}",
-          with: collectionId
+          with: _collectionId
         )
 
                 var params: [String: Any] = [:]
         
-        params["data"] = data
-        params["read"] = read
-        params["write"] = write
-        params["parentDocument"] = parentDocument
-        params["parentProperty"] = parentProperty
-        params["parentPropertyType"] = parentPropertyType
+        params["data"] = _data
+        params["read"] = _read
+        params["write"] = _write
+        params["parentDocument"] = _parentDocument
+        params["parentProperty"] = _parentProperty
+        params["parentPropertyType"] = _parentPropertyType
 
         return [self.client.call(method: Client.HTTPMethod.post.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -242,22 +242,22 @@ class Database: Service
      * Get document by its unique ID. This endpoint response returns a JSON object
      * with the document data.
      *
-     * @param String collectionId
-     * @param String documentId
+     * @param String _collectionId
+     * @param String _documentId
      * @throws Exception
      * @return array
      */
 
-    func getDocument(collectionId: String, documentId: String)-> Array<Any> {
+    func getDocument(_collectionId: String, _documentId: String) -> Array<Any> {
         var path: String = "/database/{collectionId}/documents/{documentId}"
 
         path = path.replacingOccurrences(
           of: "{collectionId}",
-          with: collectionId
+          with: _collectionId
         )
         path = path.replacingOccurrences(
           of: "{documentId}",
-          with: documentId
+          with: _documentId
         )
 
                 let params: [String: Any] = [:]
@@ -271,32 +271,32 @@ class Database: Service
     /**
      * Update Document
      *
-     * @param String collectionId
-     * @param String documentId
-     * @param String data
-     * @param Array<Any> read
-     * @param Array<Any> write
+     * @param String _collectionId
+     * @param String _documentId
+     * @param String _data
+     * @param Array<Any> _read
+     * @param Array<Any> _write
      * @throws Exception
      * @return array
      */
 
-    func updateDocument(collectionId: String, documentId: String, data: String, read: Array<Any>, write: Array<Any>)-> Array<Any> {
+    func updateDocument(_collectionId: String, _documentId: String, _data: String, _read: Array<Any>, _write: Array<Any>) -> Array<Any> {
         var path: String = "/database/{collectionId}/documents/{documentId}"
 
         path = path.replacingOccurrences(
           of: "{collectionId}",
-          with: collectionId
+          with: _collectionId
         )
         path = path.replacingOccurrences(
           of: "{documentId}",
-          with: documentId
+          with: _documentId
         )
 
                 var params: [String: Any] = [:]
         
-        params["data"] = data
-        params["read"] = read
-        params["write"] = write
+        params["data"] = _data
+        params["read"] = _read
+        params["write"] = _write
 
         return [self.client.call(method: Client.HTTPMethod.patch.rawValue, path: path, headers: [
             "content-type": "application/json",
@@ -310,22 +310,22 @@ class Database: Service
      * documents, his attributes and relations to other documents. Child documents
      * **will not** be deleted.
      *
-     * @param String collectionId
-     * @param String documentId
+     * @param String _collectionId
+     * @param String _documentId
      * @throws Exception
      * @return array
      */
 
-    func deleteDocument(collectionId: String, documentId: String)-> Array<Any> {
+    func deleteDocument(_collectionId: String, _documentId: String) -> Array<Any> {
         var path: String = "/database/{collectionId}/documents/{documentId}"
 
         path = path.replacingOccurrences(
           of: "{collectionId}",
-          with: collectionId
+          with: _collectionId
         )
         path = path.replacingOccurrences(
           of: "{documentId}",
-          with: documentId
+          with: _documentId
         )
 
                 let params: [String: Any] = [:]

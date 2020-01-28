@@ -79,11 +79,11 @@ open class Client {
         return self
     }
 
-    open func flatten(params: Array<Any>) -> String {
+    open func flatten(params: [String: Any]) -> String {
         return ""
     }
 
-    open func httpBuildQuery(params: Array<Any>) -> String {
+    open func httpBuildQuery(params: [String: Any]) -> String {
         return ""
     }
 
@@ -101,14 +101,14 @@ open class Client {
 
         //let headers = self.headers + headers
         self.headers.merge(headers){(current, _) in current}
-        let targetURL = URL(string: self.endpoint + path + (( method == HTTPMethod.get.rawValue && !params.isEmpty ) ? "?" + httpBuildQuery(params: params) : ""))
+        let targetURL:URL = URL(string: self.endpoint + path + (( method == HTTPMethod.get.rawValue && !params.isEmpty ) ? "?" + httpBuildQuery(params: params) : ""))!
 
-        var query = ""
+        var query: String = ""
 
-        var responseHeaders    = Array<Any>()
-        var responseStatus     = -1
-        var responseType       = ""
-        var responseBody       = ""
+        var responseHeaders: Array<Any>  = []
+        var responseStatus: Int = HTTPStatus.unknown.rawValue
+        var responseType: String = ""
+        var responseBody: String = ""
 
         switch (self.headers["content-type"]) {
             case "application/json":
@@ -127,9 +127,23 @@ open class Client {
               break
         }
 
-        // more work here
+        var request = URLRequest(url: targetURL)
+        let session = URLSession.shared
 
-        return responseBody;
+        request.httpMethod = method
+        request.httpBody = query.data(using: .utf8)
+
+        let task = session.dataTask(with: request, completionHandler: { data, response, error in
+            if (error != nil) {
+                print(error)
+                return
+            }
+
+            //more to go here
+        })
+        task.resume()
+
+        return responseBody
     }
 
 }
@@ -137,15 +151,25 @@ open class Client {
 extension Client {
 
     public enum HTTPStatus: Int {
+      case unknown = -1
+
       case ok = 200
+      case created = 201
+      case accepted = 202
+
+      case movedPermanently = 301
+      case found = 302
 
       case badRequest = 400
       case notAuthorized = 401
       case paymentRequired = 402
       case forbidden = 403
       case notFound = 404
+      case methodNotAllowed = 405
+      case notAcceptable = 406
 
       case internalServerError = 500
+      case notImplemented = 501
     }
 
     public enum HTTPMethod: String {
