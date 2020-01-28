@@ -3,8 +3,9 @@ from appwrite.services.locale import Locale
 
 client = Client()
 
-client
-    .set_project('')
+(client
+  .set_project('')
+)
 
 locale = Locale(client)
 

@@ -3,8 +3,9 @@ from appwrite.services.avatars import Avatars
 
 client = Client()
 
-client
-    .set_project('')
+(client
+  .set_project('')
+)
 
 avatars = Avatars(client)
 

@@ -3,8 +3,9 @@ from appwrite.services.account import Account
 
 client = Client()
 
-client
-    .set_project('')
+(client
+  .set_project('')
+)
 
 account = Account(client)
 

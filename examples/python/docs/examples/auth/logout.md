@@ -3,8 +3,9 @@ from appwrite.services.auth import Auth
 
 client = Client()
 
-client
-    .set_project('')
+(client
+  .set_project('')
+)
 
 auth = Auth(client)
 

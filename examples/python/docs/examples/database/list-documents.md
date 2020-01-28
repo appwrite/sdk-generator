@@ -3,8 +3,9 @@ from appwrite.services.database import Database
 
 client = Client()
 
-client
-    .set_project('')
+(client
+  .set_project('')
+)
 
 database = Database(client)
 

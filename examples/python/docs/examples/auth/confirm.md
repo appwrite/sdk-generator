@@ -3,7 +3,8 @@ from appwrite.services.auth import Auth
 
 client = Client()
 
-client
+(client
+)
 
 auth = Auth(client)
 

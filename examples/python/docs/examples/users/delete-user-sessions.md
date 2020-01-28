@@ -3,8 +3,9 @@ from appwrite.services.users import Users
 
 client = Client()
 
-client
-    .set_project('')
+(client
+  .set_project('')
+)
 
 users = Users(client)
 

@@ -3,8 +3,9 @@ from appwrite.services.storage import Storage
 
 client = Client()
 
-client
-    .set_project('')
+(client
+  .set_project('')
+)
 
 storage = Storage(client)
 

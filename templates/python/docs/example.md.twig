@@ -3,12 +3,12 @@ from {{ spec.title | caseSnake }}.services.{{ service.name | caseSnake }} import
 
 client = Client()
 
-client
+(client
 {% for node in method.security %}
 {% for key,header in node|keys %}
-    .set_{{header | caseSnake}}('')
+  .set_{{header | caseSnake}}('')
 {% endfor %}
-{% endfor %}
+{% endfor %})
 
 {{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}(client)
 

@@ -3,8 +3,9 @@ from appwrite.services.teams import Teams
 
 client = Client()
 
-client
-    .set_project('')
+(client
+  .set_project('')
+)
 
 teams = Teams(client)
 
