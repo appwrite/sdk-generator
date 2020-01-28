@@ -6,7 +6,7 @@ import (
 
 // Projects service
 type Projects struct {
-	client *Client
+	client Client
 }
 
 // ListProjects

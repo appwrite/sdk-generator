@@ -6,7 +6,7 @@ import (
 
 // Auth service
 type Auth struct {
-	client *Client
+	client Client
 }
 
 // Login allow the user to login into his account by providing a valid email

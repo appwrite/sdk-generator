@@ -5,7 +5,7 @@ import (
 
 // Account service
 type Account struct {
-	client *Client
+	client Client
 }
 
 // Get get currently logged in user data as JSON object.
