@@ -38,7 +38,7 @@ func (srv *Auth) Login(Email string, Password string, Success string, Failure st
 		"failure": Failure,
 	}
 
-	return srv.Client.Call("POST", path, nil, params)
+	return srv.client.Call("POST", path, nil, params)
 }
 
 // Oauth allow the user to login to his account using the OAuth provider of
@@ -54,7 +54,7 @@ func (srv *Auth) Oauth(Provider string, Success string, Failure string) (map[str
 		"failure": Failure,
 	}
 
-	return srv.Client.Call("GET", path, nil, params)
+	return srv.client.Call("GET", path, nil, params)
 }
 
 // Logout use this endpoint to log out the currently logged in user from his
@@ -66,7 +66,7 @@ func (srv *Auth) Logout() (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.Client.Call("DELETE", path, nil, params)
+	return srv.client.Call("DELETE", path, nil, params)
 }
 
 // LogoutBySession use this endpoint to log out the currently logged in user
@@ -80,7 +80,7 @@ func (srv *Auth) LogoutBySession(Id string) (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.Client.Call("DELETE", path, nil, params)
+	return srv.client.Call("DELETE", path, nil, params)
 }
 
 // Recovery sends the user an email with a temporary secret token for password
@@ -97,7 +97,7 @@ func (srv *Auth) Recovery(Email string, Reset string) (map[string]interface{}, e
 		"reset": Reset,
 	}
 
-	return srv.Client.Call("POST", path, nil, params)
+	return srv.client.Call("POST", path, nil, params)
 }
 
 // RecoveryReset use this endpoint to complete the user account password
@@ -119,7 +119,7 @@ func (srv *Auth) RecoveryReset(UserId string, Token string, PasswordA string, Pa
 		"password-b": PasswordB,
 	}
 
-	return srv.Client.Call("PUT", path, nil, params)
+	return srv.client.Call("PUT", path, nil, params)
 }
 
 // Register use this endpoint to allow a new user to register an account in
@@ -154,7 +154,7 @@ func (srv *Auth) Register(Email string, Password string, Confirm string, Success
 		"name": Name,
 	}
 
-	return srv.Client.Call("POST", path, nil, params)
+	return srv.client.Call("POST", path, nil, params)
 }
 
 // Confirm use this endpoint to complete the confirmation of the user account
@@ -169,7 +169,7 @@ func (srv *Auth) Confirm(UserId string, Token string) (map[string]interface{}, e
 		"token": Token,
 	}
 
-	return srv.Client.Call("POST", path, nil, params)
+	return srv.client.Call("POST", path, nil, params)
 }
 
 // ConfirmResend this endpoint allows the user to request your app to resend
@@ -187,5 +187,5 @@ func (srv *Auth) ConfirmResend(Confirm string) (map[string]interface{}, error) {
 		"confirm": Confirm,
 	}
 
-	return srv.Client.Call("POST", path, nil, params)
+	return srv.client.Call("POST", path, nil, params)
 }

@@ -42,6 +42,6 @@ func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({% 
 {% endfor %}
 	}
 
-	return srv.Client.Call("{{ method.method | caseUpper }}", path, nil, params)
+	return srv.client.Call("{{ method.method | caseUpper }}", path, nil, params)
 }
 {% endfor %}
