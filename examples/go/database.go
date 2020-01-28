@@ -6,7 +6,7 @@ import (
 
 // Database service
 type Database struct {
-	client Client
+	Client Client
 }
 
 // ListCollections get a list of all the user collections. You can use the
@@ -23,7 +23,7 @@ func (srv *Database) ListCollections(Search string, Limit int, Offset int, Order
 		"orderType": OrderType,
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // CreateCollection create a new Collection.
@@ -37,7 +37,7 @@ func (srv *Database) CreateCollection(Name string, Read []interface{}, Write []i
 		"rules": Rules,
 	}
 
-	return srv.client.Call("POST", path, nil, params)
+	return srv.Client.Call("POST", path, nil, params)
 }
 
 // GetCollection get collection by its unique ID. This endpoint response
@@ -49,7 +49,7 @@ func (srv *Database) GetCollection(CollectionId string) (map[string]interface{},
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // UpdateCollection update collection by its unique ID.
@@ -64,7 +64,7 @@ func (srv *Database) UpdateCollection(CollectionId string, Name string, Read []i
 		"rules": Rules,
 	}
 
-	return srv.client.Call("PUT", path, nil, params)
+	return srv.Client.Call("PUT", path, nil, params)
 }
 
 // DeleteCollection delete a collection by its unique ID. Only users with
@@ -76,7 +76,7 @@ func (srv *Database) DeleteCollection(CollectionId string) (map[string]interface
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("DELETE", path, nil, params)
+	return srv.Client.Call("DELETE", path, nil, params)
 }
 
 // ListDocuments get a list of all the user documents. You can use the query
@@ -99,7 +99,7 @@ func (srv *Database) ListDocuments(CollectionId string, Filters []interface{}, O
 		"last": Last,
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // CreateDocument create a new Document.
@@ -116,7 +116,7 @@ func (srv *Database) CreateDocument(CollectionId string, Data string, Read []int
 		"parentPropertyType": ParentPropertyType,
 	}
 
-	return srv.client.Call("POST", path, nil, params)
+	return srv.Client.Call("POST", path, nil, params)
 }
 
 // GetDocument get document by its unique ID. This endpoint response returns a
@@ -128,7 +128,7 @@ func (srv *Database) GetDocument(CollectionId string, DocumentId string) (map[st
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // UpdateDocument
@@ -142,7 +142,7 @@ func (srv *Database) UpdateDocument(CollectionId string, DocumentId string, Data
 		"write": Write,
 	}
 
-	return srv.client.Call("PATCH", path, nil, params)
+	return srv.Client.Call("PATCH", path, nil, params)
 }
 
 // DeleteDocument delete document by its unique ID. This endpoint deletes only
@@ -155,5 +155,5 @@ func (srv *Database) DeleteDocument(CollectionId string, DocumentId string) (map
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("DELETE", path, nil, params)
+	return srv.Client.Call("DELETE", path, nil, params)
 }

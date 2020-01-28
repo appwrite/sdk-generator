@@ -6,7 +6,7 @@ import (
 
 // Projects service
 type Projects struct {
-	client Client
+	Client Client
 }
 
 // ListProjects
@@ -16,7 +16,7 @@ func (srv *Projects) ListProjects() (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // CreateProject
@@ -37,7 +37,7 @@ func (srv *Projects) CreateProject(Name string, TeamId string, Description strin
 		"legalTaxId": LegalTaxId,
 	}
 
-	return srv.client.Call("POST", path, nil, params)
+	return srv.Client.Call("POST", path, nil, params)
 }
 
 // GetProject
@@ -48,7 +48,7 @@ func (srv *Projects) GetProject(ProjectId string) (map[string]interface{}, error
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // UpdateProject
@@ -69,7 +69,7 @@ func (srv *Projects) UpdateProject(ProjectId string, Name string, Description st
 		"legalTaxId": LegalTaxId,
 	}
 
-	return srv.client.Call("PATCH", path, nil, params)
+	return srv.Client.Call("PATCH", path, nil, params)
 }
 
 // DeleteProject
@@ -80,7 +80,7 @@ func (srv *Projects) DeleteProject(ProjectId string) (map[string]interface{}, er
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("DELETE", path, nil, params)
+	return srv.Client.Call("DELETE", path, nil, params)
 }
 
 // ListKeys
@@ -91,7 +91,7 @@ func (srv *Projects) ListKeys(ProjectId string) (map[string]interface{}, error) 
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // CreateKey
@@ -104,7 +104,7 @@ func (srv *Projects) CreateKey(ProjectId string, Name string, Scopes []interface
 		"scopes": Scopes,
 	}
 
-	return srv.client.Call("POST", path, nil, params)
+	return srv.Client.Call("POST", path, nil, params)
 }
 
 // GetKey
@@ -115,7 +115,7 @@ func (srv *Projects) GetKey(ProjectId string, KeyId string) (map[string]interfac
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // UpdateKey
@@ -128,7 +128,7 @@ func (srv *Projects) UpdateKey(ProjectId string, KeyId string, Name string, Scop
 		"scopes": Scopes,
 	}
 
-	return srv.client.Call("PUT", path, nil, params)
+	return srv.Client.Call("PUT", path, nil, params)
 }
 
 // DeleteKey
@@ -139,7 +139,7 @@ func (srv *Projects) DeleteKey(ProjectId string, KeyId string) (map[string]inter
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("DELETE", path, nil, params)
+	return srv.Client.Call("DELETE", path, nil, params)
 }
 
 // UpdateProjectOAuth
@@ -153,7 +153,7 @@ func (srv *Projects) UpdateProjectOAuth(ProjectId string, Provider string, AppId
 		"secret": Secret,
 	}
 
-	return srv.client.Call("PATCH", path, nil, params)
+	return srv.Client.Call("PATCH", path, nil, params)
 }
 
 // ListPlatforms
@@ -164,7 +164,7 @@ func (srv *Projects) ListPlatforms(ProjectId string) (map[string]interface{}, er
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // CreatePlatform
@@ -180,7 +180,7 @@ func (srv *Projects) CreatePlatform(ProjectId string, Type string, Name string, 
 		"url": Url,
 	}
 
-	return srv.client.Call("POST", path, nil, params)
+	return srv.Client.Call("POST", path, nil, params)
 }
 
 // GetPlatform
@@ -191,7 +191,7 @@ func (srv *Projects) GetPlatform(ProjectId string, PlatformId string) (map[strin
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // UpdatePlatform
@@ -206,7 +206,7 @@ func (srv *Projects) UpdatePlatform(ProjectId string, PlatformId string, Name st
 		"url": Url,
 	}
 
-	return srv.client.Call("PUT", path, nil, params)
+	return srv.Client.Call("PUT", path, nil, params)
 }
 
 // DeletePlatform
@@ -217,7 +217,7 @@ func (srv *Projects) DeletePlatform(ProjectId string, PlatformId string) (map[st
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("DELETE", path, nil, params)
+	return srv.Client.Call("DELETE", path, nil, params)
 }
 
 // ListTasks
@@ -228,7 +228,7 @@ func (srv *Projects) ListTasks(ProjectId string) (map[string]interface{}, error)
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // CreateTask
@@ -248,7 +248,7 @@ func (srv *Projects) CreateTask(ProjectId string, Name string, Status string, Sc
 		"httpPass": HttpPass,
 	}
 
-	return srv.client.Call("POST", path, nil, params)
+	return srv.Client.Call("POST", path, nil, params)
 }
 
 // GetTask
@@ -259,7 +259,7 @@ func (srv *Projects) GetTask(ProjectId string, TaskId string) (map[string]interf
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // UpdateTask
@@ -279,7 +279,7 @@ func (srv *Projects) UpdateTask(ProjectId string, TaskId string, Name string, St
 		"httpPass": HttpPass,
 	}
 
-	return srv.client.Call("PUT", path, nil, params)
+	return srv.Client.Call("PUT", path, nil, params)
 }
 
 // DeleteTask
@@ -290,7 +290,7 @@ func (srv *Projects) DeleteTask(ProjectId string, TaskId string) (map[string]int
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("DELETE", path, nil, params)
+	return srv.Client.Call("DELETE", path, nil, params)
 }
 
 // GetProjectUsage
@@ -301,7 +301,7 @@ func (srv *Projects) GetProjectUsage(ProjectId string) (map[string]interface{}, 
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // ListWebhooks
@@ -312,7 +312,7 @@ func (srv *Projects) ListWebhooks(ProjectId string) (map[string]interface{}, err
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // CreateWebhook
@@ -329,7 +329,7 @@ func (srv *Projects) CreateWebhook(ProjectId string, Name string, Events []inter
 		"httpPass": HttpPass,
 	}
 
-	return srv.client.Call("POST", path, nil, params)
+	return srv.Client.Call("POST", path, nil, params)
 }
 
 // GetWebhook
@@ -340,7 +340,7 @@ func (srv *Projects) GetWebhook(ProjectId string, WebhookId string) (map[string]
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // UpdateWebhook
@@ -357,7 +357,7 @@ func (srv *Projects) UpdateWebhook(ProjectId string, WebhookId string, Name stri
 		"httpPass": HttpPass,
 	}
 
-	return srv.client.Call("PUT", path, nil, params)
+	return srv.Client.Call("PUT", path, nil, params)
 }
 
 // DeleteWebhook
@@ -368,5 +368,5 @@ func (srv *Projects) DeleteWebhook(ProjectId string, WebhookId string) (map[stri
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("DELETE", path, nil, params)
+	return srv.Client.Call("DELETE", path, nil, params)
 }

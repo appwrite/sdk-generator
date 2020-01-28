@@ -6,7 +6,7 @@ import (
 
 // Storage service
 type Storage struct {
-	client Client
+	Client Client
 }
 
 // ListFiles get a list of all the user files. You can use the query params to
@@ -22,7 +22,7 @@ func (srv *Storage) ListFiles(Search string, Limit int, Offset int, OrderType st
 		"orderType": OrderType,
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // CreateFile create a new file. The user who creates the file will
@@ -37,7 +37,7 @@ func (srv *Storage) CreateFile(Files string, Read []interface{}, Write []interfa
 		"write": Write,
 	}
 
-	return srv.client.Call("POST", path, nil, params)
+	return srv.Client.Call("POST", path, nil, params)
 }
 
 // GetFile get file by its unique ID. This endpoint response returns a JSON
@@ -49,7 +49,7 @@ func (srv *Storage) GetFile(FileId string) (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // UpdateFile update file by its unique ID. Only users with write permissions
@@ -63,7 +63,7 @@ func (srv *Storage) UpdateFile(FileId string, Read []interface{}, Write []interf
 		"write": Write,
 	}
 
-	return srv.client.Call("PUT", path, nil, params)
+	return srv.Client.Call("PUT", path, nil, params)
 }
 
 // DeleteFile delete a file by its unique ID. Only users with write
@@ -75,7 +75,7 @@ func (srv *Storage) DeleteFile(FileId string) (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("DELETE", path, nil, params)
+	return srv.Client.Call("DELETE", path, nil, params)
 }
 
 // GetFileDownload get file content by its unique ID. The endpoint response
@@ -88,7 +88,7 @@ func (srv *Storage) GetFileDownload(FileId string) (map[string]interface{}, erro
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // GetFilePreview get file preview image. Currently, this method supports
@@ -108,7 +108,7 @@ func (srv *Storage) GetFilePreview(FileId string, Width int, Height int, Quality
 		"output": Output,
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // GetFileView get file content by its unique ID. This endpoint is similar to
@@ -122,5 +122,5 @@ func (srv *Storage) GetFileView(FileId string, As string) (map[string]interface{
 		"as": As,
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }

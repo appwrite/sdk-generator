@@ -5,7 +5,7 @@ import (
 
 // Locale service
 type Locale struct {
-	client Client
+	Client Client
 }
 
 // GetLocale get the current user location based on IP. Returns an object with
@@ -18,7 +18,7 @@ func (srv *Locale) GetLocale() (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // GetContinents list of all continents. You can use the locale header to get
@@ -29,7 +29,7 @@ func (srv *Locale) GetContinents() (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // GetCountries list of all countries. You can use the locale header to get
@@ -40,7 +40,7 @@ func (srv *Locale) GetCountries() (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // GetCountriesEU list of all countries that are currently members of the EU.
@@ -53,7 +53,7 @@ func (srv *Locale) GetCountriesEU() (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // GetCountriesPhones list of all countries phone codes. You can use the
@@ -64,7 +64,7 @@ func (srv *Locale) GetCountriesPhones() (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // GetCurrencies list of all currencies, including currency symol, name,
@@ -76,5 +76,5 @@ func (srv *Locale) GetCurrencies() (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }

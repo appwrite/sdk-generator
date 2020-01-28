@@ -5,7 +5,7 @@ import (
 
 // Account service
 type Account struct {
-	client Client
+	Client Client
 }
 
 // Get get currently logged in user data as JSON object.
@@ -15,7 +15,7 @@ func (srv *Account) Get() (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // Delete delete a currently logged in user account. Behind the scene, the
@@ -29,7 +29,7 @@ func (srv *Account) Delete() (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("DELETE", path, nil, params)
+	return srv.Client.Call("DELETE", path, nil, params)
 }
 
 // UpdateEmail update currently logged in user account email address. After
@@ -44,7 +44,7 @@ func (srv *Account) UpdateEmail(Email string, Password string) (map[string]inter
 		"password": Password,
 	}
 
-	return srv.client.Call("PATCH", path, nil, params)
+	return srv.Client.Call("PATCH", path, nil, params)
 }
 
 // UpdateName update currently logged in user account name.
@@ -55,7 +55,7 @@ func (srv *Account) UpdateName(Name string) (map[string]interface{}, error) {
 		"name": Name,
 	}
 
-	return srv.client.Call("PATCH", path, nil, params)
+	return srv.Client.Call("PATCH", path, nil, params)
 }
 
 // UpdatePassword update currently logged in user password. For validation,
@@ -68,7 +68,7 @@ func (srv *Account) UpdatePassword(Password string, OldPassword string) (map[str
 		"old-password": OldPassword,
 	}
 
-	return srv.client.Call("PATCH", path, nil, params)
+	return srv.Client.Call("PATCH", path, nil, params)
 }
 
 // GetPrefs get currently logged in user preferences key-value object.
@@ -78,7 +78,7 @@ func (srv *Account) GetPrefs() (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // UpdatePrefs update currently logged in user account preferences. You can
@@ -90,7 +90,7 @@ func (srv *Account) UpdatePrefs(Prefs string) (map[string]interface{}, error) {
 		"prefs": Prefs,
 	}
 
-	return srv.client.Call("PATCH", path, nil, params)
+	return srv.Client.Call("PATCH", path, nil, params)
 }
 
 // GetSecurity get currently logged in user list of latest security activity
@@ -101,7 +101,7 @@ func (srv *Account) GetSecurity() (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }
 
 // GetSessions get currently logged in user list of active sessions across
@@ -112,5 +112,5 @@ func (srv *Account) GetSessions() (map[string]interface{}, error) {
 	params := map[string]interface{}{
 	}
 
-	return srv.client.Call("GET", path, nil, params)
+	return srv.Client.Call("GET", path, nil, params)
 }

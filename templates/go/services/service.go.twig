@@ -14,7 +14,7 @@ import (
 
 {{ ((service.name | caseUcfirst) ~ " service") | godocComment }}
 type {{ service.name | caseUcfirst }} struct {
-	client Client
+	Client Client
 }
 {% for method in service.methods %}
 
@@ -37,6 +37,6 @@ func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({% 
 {% endfor %}
 	}
 
-	return srv.client.Call("{{ method.method | caseUpper }}", path, nil, params)
+	return srv.Client.Call("{{ method.method | caseUpper }}", path, nil, params)
 }
 {% endfor %}
