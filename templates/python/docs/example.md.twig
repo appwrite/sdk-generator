@@ -1,0 +1,15 @@
+from {{ spec.title | caseSnake }}.client import Client
+from {{ spec.title | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
+
+client = Client()
+
+client
+{% for node in method.security %}
+{% for key,header in node|keys %}
+    .set_{{header | caseSnake}}('')
+{% endfor %}
+{% endfor %}
+
+{{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}(client)
+
+result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %})
