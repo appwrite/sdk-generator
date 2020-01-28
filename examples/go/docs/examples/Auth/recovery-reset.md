@@ -1,4 +1,4 @@
-package appwrite
+package main
 
 import (
     "fmt"
@@ -7,22 +7,19 @@ import (
 )
 
 func main() {
-    // Create a Client
     var client := appwrite.Client{}
 
-    // Set Client required headers
     client.SetProject("")
 
-    // Create a new Auth service passing Client
-    var srv := appwrite.Auth{
+    var service := appwrite.Auth{
         client: &client
     }
 
-    // Call RecoveryReset method and handle results
-    var res, err := srv.RecoveryReset("[USER_ID]", "[TOKEN]", "password", "password")
-    if err != nil {
-        panic(err)
+    var response, error := service.RecoveryReset("[USER_ID]", "[TOKEN]", "password", "password")
+
+    if error != nil {
+        panic(error)
     }
 
-    fmt.Println(res)
+    fmt.Println(response)
 }

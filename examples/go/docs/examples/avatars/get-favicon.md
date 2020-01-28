@@ -1,4 +1,4 @@
-package appwrite
+package main
 
 import (
     "fmt"
@@ -7,22 +7,19 @@ import (
 )
 
 func main() {
-    // Create a Client
     var client := appwrite.Client{}
 
-    // Set Client required headers
     client.SetProject("")
 
-    // Create a new Avatars service passing Client
-    var srv := appwrite.Avatars{
+    var service := appwrite.Avatars{
         client: &client
     }
 
-    // Call GetFavicon method and handle results
-    var res, err := srv.GetFavicon("https://example.com")
-    if err != nil {
-        panic(err)
+    var response, error := service.GetFavicon("https://example.com")
+
+    if error != nil {
+        panic(error)
     }
 
-    fmt.Println(res)
+    fmt.Println(response)
 }

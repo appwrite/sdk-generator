@@ -1,4 +1,4 @@
-package appwrite
+package main
 
 import (
     "fmt"
@@ -7,22 +7,19 @@ import (
 )
 
 func main() {
-    // Create a Client
     var client := appwrite.Client{}
 
-    // Set Client required headers
     client.SetProject("")
 
-    // Create a new Locale service passing Client
-    var srv := appwrite.Locale{
+    var service := appwrite.Locale{
         client: &client
     }
 
-    // Call GetCountriesEU method and handle results
-    var res, err := srv.GetCountriesEU()
-    if err != nil {
-        panic(err)
+    var response, error := service.GetCountriesEU()
+
+    if error != nil {
+        panic(error)
     }
 
-    fmt.Println(res)
+    fmt.Println(response)
 }

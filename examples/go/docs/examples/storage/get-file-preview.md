@@ -1,4 +1,4 @@
-package appwrite
+package main
 
 import (
     "fmt"
@@ -7,22 +7,19 @@ import (
 )
 
 func main() {
-    // Create a Client
     var client := appwrite.Client{}
 
-    // Set Client required headers
     client.SetProject("")
 
-    // Create a new Storage service passing Client
-    var srv := appwrite.Storage{
+    var service := appwrite.Storage{
         client: &client
     }
 
-    // Call GetFilePreview method and handle results
-    var res, err := srv.GetFilePreview("[FILE_ID]")
-    if err != nil {
-        panic(err)
+    var response, error := service.GetFilePreview("[FILE_ID]")
+
+    if error != nil {
+        panic(error)
     }
 
-    fmt.Println(res)
+    fmt.Println(response)
 }

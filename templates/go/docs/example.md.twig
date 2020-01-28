@@ -7,24 +7,23 @@ import (
 )
 
 func main() {
-    // Create a Client
     var client := {{ spec.title | caseLower }}.Client{}
 
-    // Set Client required headers
-{% for key,header in method.security[0]|keys %}
+{% for node in method.security %}
+{% for key,header in node|keys %}
     client.Set{{header}}("")
 {% endfor %}
+{% endfor %}
 
-    // Create a new {{ service.name | caseUcfirst }} service passing Client
-    var srv := {{ spec.title | caseLower }}.{{ service.name | caseUcfirst }}{
+    var service := {{ spec.title | caseLower }}.{{ service.name | caseUcfirst }}{
         client: &client
     }
 
-    // Call {{ method.name | caseUcfirst }} method and handle results
-    var res, err := srv.{{ method.name | caseUcfirst }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %})
-    if err != nil {
-        panic(err)
+    var response, error := service.{{ method.name | caseUcfirst }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %})
+
+    if error != nil {
+        panic(error)
     }
 
-    fmt.Println(res)
+    fmt.Println(response)
 }

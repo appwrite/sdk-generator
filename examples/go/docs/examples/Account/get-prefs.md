@@ -1,4 +1,4 @@
-package appwrite
+package main
 
 import (
     "fmt"
@@ -7,22 +7,19 @@ import (
 )
 
 func main() {
-    // Create a Client
     var client := appwrite.Client{}
 
-    // Set Client required headers
     client.SetProject("")
 
-    // Create a new Account service passing Client
-    var srv := appwrite.Account{
+    var service := appwrite.Account{
         client: &client
     }
 
-    // Call GetPrefs method and handle results
-    var res, err := srv.GetPrefs()
-    if err != nil {
-        panic(err)
+    var response, error := service.GetPrefs()
+
+    if error != nil {
+        panic(error)
     }
 
-    fmt.Println(res)
+    fmt.Println(response)
 }

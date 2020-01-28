@@ -1,4 +1,4 @@
-package appwrite
+package main
 
 import (
     "fmt"
@@ -7,22 +7,19 @@ import (
 )
 
 func main() {
-    // Create a Client
     var client := appwrite.Client{}
 
-    // Set Client required headers
     client.SetProject("")
 
-    // Create a new Users service passing Client
-    var srv := appwrite.Users{
+    var service := appwrite.Users{
         client: &client
     }
 
-    // Call GetUser method and handle results
-    var res, err := srv.GetUser("[USER_ID]")
-    if err != nil {
-        panic(err)
+    var response, error := service.GetUser("[USER_ID]")
+
+    if error != nil {
+        panic(error)
     }
 
-    fmt.Println(res)
+    fmt.Println(response)
 }

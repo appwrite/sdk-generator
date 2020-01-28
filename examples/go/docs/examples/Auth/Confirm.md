@@ -1,4 +1,4 @@
-package appwrite
+package main
 
 import (
     "fmt"
@@ -7,21 +7,18 @@ import (
 )
 
 func main() {
-    // Create a Client
     var client := appwrite.Client{}
 
-    // Set Client required headers
 
-    // Create a new Auth service passing Client
-    var srv := appwrite.Auth{
+    var service := appwrite.Auth{
         client: &client
     }
 
-    // Call Confirm method and handle results
-    var res, err := srv.Confirm("[USER_ID]", "[TOKEN]")
-    if err != nil {
-        panic(err)
+    var response, error := service.Confirm("[USER_ID]", "[TOKEN]")
+
+    if error != nil {
+        panic(error)
     }
 
-    fmt.Println(res)
+    fmt.Println(response)
 }

@@ -1,4 +1,4 @@
-package appwrite
+package main
 
 import (
     "fmt"
@@ -7,22 +7,19 @@ import (
 )
 
 func main() {
-    // Create a Client
     var client := appwrite.Client{}
 
-    // Set Client required headers
     client.SetProject("")
 
-    // Create a new Teams service passing Client
-    var srv := appwrite.Teams{
+    var service := appwrite.Teams{
         client: &client
     }
 
-    // Call DeleteTeamMembership method and handle results
-    var res, err := srv.DeleteTeamMembership("[TEAM_ID]", "[INVITE_ID]")
-    if err != nil {
-        panic(err)
+    var response, error := service.DeleteTeamMembership("[TEAM_ID]", "[INVITE_ID]")
+
+    if error != nil {
+        panic(error)
     }
 
-    fmt.Println(res)
+    fmt.Println(response)
 }
