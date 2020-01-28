@@ -8,7 +8,7 @@ type Locale struct {
 	client Client
 }
 
-func New((client *Client)) *Locale {  
+func New(client *Client) *Locale {  
     service := Locale{client}
     return service
 }

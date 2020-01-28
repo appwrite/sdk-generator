@@ -9,7 +9,7 @@ type Storage struct {
 	client Client
 }
 
-func New((client *Client)) *Storage {  
+func New(client *Client) *Storage {  
     service := Storage{client}
     return service
 }

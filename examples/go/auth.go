@@ -9,7 +9,7 @@ type Auth struct {
 	client Client
 }
 
-func New((client *Client)) *Auth {  
+func New(client *Client) *Auth {  
     service := Auth{client}
     return service
 }

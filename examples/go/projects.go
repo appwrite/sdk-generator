@@ -9,7 +9,7 @@ type Projects struct {
 	client Client
 }
 
-func New((client *Client)) *Projects {  
+func New(client *Client) *Projects {  
     service := Projects{client}
     return service
 }

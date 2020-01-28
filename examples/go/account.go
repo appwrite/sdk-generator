@@ -8,7 +8,7 @@ type Account struct {
 	client Client
 }
 
-func New((client *Client)) *Account {  
+func New(client *Client) *Account {  
     service := Account{client}
     return service
 }
