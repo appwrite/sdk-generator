@@ -9,8 +9,11 @@ type Teams struct {
 	client Client
 }
 
-func New(client *Client) *Teams {  
-    service := Teams{client}
+func New(clt *Client) *Teams {  
+    service := Teams{
+		client: clt,
+	}
+	
     return service
 }
 
