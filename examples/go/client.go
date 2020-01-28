@@ -17,40 +17,40 @@ type Client struct {
 }
 
 // SetEndpoint sets the default endpoint to which the Client connects to
-func (clt Client) SetEndpoint(endpoint string) {
+func (clt *Client) SetEndpoint(endpoint string) {
 	clt.endpoint = endpoint
 }
 
 // SetSelfSigned sets the condition that specify if the Client should allow connections to a server using a self-signed certificate
-func (clt Client) SetSelfSigned(status bool) {
+func (clt *Client) SetSelfSigned(status bool) {
 	clt.selfSigned = status
 }
 
 // AddHeader add a new custom header that the Client should send on each request
-func (clt Client) AddHeader(key string, value string) {
+func (clt *Client) AddHeader(key string, value string) {
 	clt.headers[key] = value
 }
 
 // Your Appwrite project ID
-func (clt Client) SetProject(value string) {
+func (clt *Client) SetProject(value string) {
 	clt.headers["X-Appwrite-Project"] = value
 }
 
 // Your Appwrite project secret key
-func (clt Client) SetKey(value string) {
+func (clt *Client) SetKey(value string) {
 	clt.headers["X-Appwrite-Key"] = value
 }
 
-func (clt Client) SetLocale(value string) {
+func (clt *Client) SetLocale(value string) {
 	clt.headers["X-Appwrite-Locale"] = value
 }
 
-func (clt Client) SetMode(value string) {
+func (clt *Client) SetMode(value string) {
 	clt.headers["X-Appwrite-Mode"] = value
 }
 
 // Call an API using Client
-func (clt Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (map[string]interface{}, error) {
+func (clt *Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (map[string]interface{}, error) {
 	if clt.client == nil {
 		// Create HTTP client
 		clt.client = &http.Client{}
