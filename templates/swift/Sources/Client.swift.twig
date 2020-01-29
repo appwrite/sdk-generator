@@ -106,23 +106,21 @@ open class Client {
     ///
     func call(method:String, path:String = "", headers:[String: String] = [:], params:[String: Any] = [:]) -> Any {
 
-        //let headers = self.headers + headers
-        self.headers.merge(headers){(current, _) in current}
+        self.headers.merge(headers){(_, new) in new}
         let targetURL:URL = URL(string: self.endpoint + path + (( method == HTTPMethod.get.rawValue && !params.isEmpty ) ? "?" + httpBuildQuery(params: params) : ""))!
 
         var query: String = ""
 
-        //var responseHeaders: Array<Any>  = []
         var responseStatus: Int = HTTPStatus.unknown.rawValue
         var responseType: String = ""
-        var responseBody: String = ""
+        var responseBody: Any = ""
 
         switch (self.headers["content-type"]) {
             case "application/json":
               do {
                 let json = try JSONSerialization.data(withJSONObject:params, options: [])
                 query = String( data: json, encoding: String.Encoding.utf8)!
-              } catch let error as NSError {
+              } catch {
                 print("Failed to parse json: \(error.localizedDescription)")
               }
               break
@@ -141,7 +139,9 @@ open class Client {
         request.httpMethod = method
         request.httpBody = query.data(using: .utf8)
 
-        let task = session.dataTask(with: request, completionHandler: { data, response, error in
+        let semaphore = DispatchSemaphore(value: 0)
+
+        session.dataTask(with: request) { data, response, error in
             if (error != nil) {
                 print(error!)
                 return
@@ -159,8 +159,7 @@ open class Client {
 
                 if (responseType == "application/json") {
                     let json = try JSONSerialization.data(withJSONObject:data ?? "", options: [])
-
-                    responseBody = String(data: json, encoding: String.Encoding.utf8)!
+                    responseBody = json
               } else {
                     responseBody = String(data: data!, encoding: String.Encoding.utf8)!
               }
@@ -168,8 +167,10 @@ open class Client {
                 print(error)
             }
 
-        })
-        task.resume()
+            semaphore.signal()
+        }.resume()
+
+        _ = semaphore.wait(wallTimeout: .distantFuture)
 
         return responseBody
     }
