@@ -1,34 +1,24 @@
-# Avatars Examples
+package main
 
-## GetFlag
+import (
+    "fmt"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-getflag
+func main() {
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Avatars service passing Client
-        var srv := appwrite.Avatars{
-            client: &clt
-        }
-
-        // Call GetFlag method and handle results
-        var res, err := srv.GetFlag("af")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    var service := appwrite.Avatars{
+        client: &client
     }
-```
+
+    var response, error := service.GetFlag("af", 0, 0, 0)
+
+    if error != nil {
+        panic(error)
+    }
+
+    fmt.Println(response)
+}

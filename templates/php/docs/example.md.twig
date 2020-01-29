@@ -6,8 +6,10 @@ use {{ spec.title | caseUcfirst }}\Services\{{ service.name | caseUcfirst }};
 $client = new Client();
 
 $client
-{% for key,header in method.security[0]|keys %}
+{% for node in method.security %}
+{% for key,header in node|keys %}
     ->set{{header}}('')
+{% endfor %}
 {% endfor %};
 
 ${{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}($client);

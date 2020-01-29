@@ -1,34 +1,24 @@
-# Teams Examples
+package main
 
-## CreateTeamMembership
+import (
+    "fmt"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-createteammembership
+func main() {
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Teams service passing Client
-        var srv := appwrite.Teams{
-            client: &clt
-        }
-
-        // Call CreateTeamMembership method and handle results
-        var res, err := srv.CreateTeamMembership("[TEAM_ID]", "email@example.com", [], "https://example.com")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    var service := appwrite.Teams{
+        client: &client
     }
-```
+
+    var response, error := service.CreateTeamMembership("[TEAM_ID]", "email@example.com", [], "https://example.com", "[NAME]")
+
+    if error != nil {
+        panic(error)
+    }
+
+    fmt.Println(response)
+}

@@ -1,34 +1,24 @@
-# Avatars Examples
+package main
 
-## GetFavicon
+import (
+    "fmt"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-getfavicon
+func main() {
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Avatars service passing Client
-        var srv := appwrite.Avatars{
-            client: &clt
-        }
-
-        // Call GetFavicon method and handle results
-        var res, err := srv.GetFavicon("https://example.com")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    var service := appwrite.Avatars{
+        client: &client
     }
-```
+
+    var response, error := service.GetFavicon("https://example.com")
+
+    if error != nil {
+        panic(error)
+    }
+
+    fmt.Println(response)
+}

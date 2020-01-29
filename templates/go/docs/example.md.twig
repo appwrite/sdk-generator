@@ -1,36 +1,28 @@
-# {{ service.name | caseUcfirst }} Examples
+package main
 
-## {{ method.name | caseUcfirst }}
+import (
+    "fmt"
+    "github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}"
+)
 
-```go
-    package {{ (spec.title ~ '-' ~ method.name) | caseLower }}
+func main() {
+    var client := {{ spec.title | caseLower }}.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}"
-    )
-
-    func main() {
-        // Create a Client
-        var clt := {{ spec.title | caseLower }}.Client{}
-
-        // Set Client required headers
-{% for key,header in method.security[0]|keys %}
-        clt.Set{{header}}("")
+{% for node in method.security %}
+{% for key,header in node|keys %}
+    client.Set{{header}}("")
+{% endfor %}
 {% endfor %}
 
-        // Create a new {{ service.name | caseUcfirst }} service passing Client
-        var srv := {{ spec.title | caseLower }}.{{ service.name | caseUcfirst }}{
-            client: &clt
-        }
-
-        // Call {{ method.name | caseUcfirst }} method and handle results
-        var res, err := srv.{{ method.name | caseUcfirst }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %})
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    var service := {{ spec.title | caseLower }}.{{ service.name | caseUcfirst }}{
+        client: &client
     }
-```
+
+    var response, error := service.{{ method.name | caseUcfirst }}({% for parameter in method.parameters.all %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endfor %})
+
+    if error != nil {
+        panic(error)
+    }
+
+    fmt.Println(response)
+}

@@ -1,34 +1,24 @@
-# Projects Examples
+package main
 
-## CreateProject
+import (
+    "fmt"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-createproject
+func main() {
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Projects service passing Client
-        var srv := appwrite.Projects{
-            client: &clt
-        }
-
-        // Call CreateProject method and handle results
-        var res, err := srv.CreateProject("[NAME]", "[TEAM_ID]")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    var service := appwrite.Projects{
+        client: &client
     }
-```
+
+    var response, error := service.CreateProject("[NAME]", "[TEAM_ID]", "[DESCRIPTION]", "[LOGO]", "https://example.com", "[LEGAL_NAME]", "[LEGAL_COUNTRY]", "[LEGAL_STATE]", "[LEGAL_CITY]", "[LEGAL_ADDRESS]", "[LEGAL_TAX_ID]")
+
+    if error != nil {
+        panic(error)
+    }
+
+    fmt.Println(response)
+}
