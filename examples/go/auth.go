@@ -9,7 +9,7 @@ type Auth struct {
 	client Client
 }
 
-func NewAuth(clt *Client) *Auth {  
+func NewAuth(clt Client) Auth {  
     service := Auth{
 		client: clt,
 	}

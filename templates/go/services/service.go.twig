@@ -17,7 +17,7 @@ type {{ service.name | caseUcfirst }} struct {
 	client Client
 }
 
-func New{{ service.name | caseUcfirst }}(clt *Client) *{{ service.name | caseUcfirst }} {  
+func New{{ service.name | caseUcfirst }}(clt Client) {{ service.name | caseUcfirst }} {  
     service := {{ service.name | caseUcfirst }}{
 		client: clt,
 	}
