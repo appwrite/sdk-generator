@@ -116,14 +116,14 @@ open class Client {
                 let json = try JSONSerialization.data(withJSONObject:params, options: [])
                 query = String( data: json, encoding: String.Encoding.utf8)!
               } catch let error as NSError {
-                print("Failed to parse json: \(error.localizedDescription)");
+                print("Failed to parse json: \(error.localizedDescription)")
               }
               break
             case "multipart/form-data":
               query = self.flatten(params: params)
               break
             default:
-              query = httpBuildQuery(params: params)
+              query = self.httpBuildQuery(params: params)
               break
         }
 
@@ -139,7 +139,18 @@ open class Client {
                 return
             }
 
-            //more to go here
+            responseStatus = response.statusCode
+
+            responseHeaders = response.allHeaderFields
+
+            responseType = response.mimeType
+            if (responseType == 'application/json') {
+              let json = try JSONSerialization.data(withJSONObject:data, options: [])
+              responseBody = String(data: json, encoding: String.Enconding.utf8)
+            } else {
+              responseBody = data
+            }
+
         })
         task.resume()
 
