@@ -124,7 +124,7 @@ open class Client {
             if (value is AnyCollection<Any>) {
                 output += self.httpBuildQuery(params: value as! [String : Any], prefix: finalKey)
             } else {
-                output += value as! String
+                output += "\(value)"
             }
             output += "&"
         }
@@ -174,7 +174,9 @@ open class Client {
         }
 
         request.httpMethod = method
-        request.httpBody = query.data(using: .utf8)
+        if (method.uppercased() == "POST") {
+            request.httpBody = query.data(using: .utf8)
+        }
 
         let semaphore = DispatchSemaphore(value: 0)
 
