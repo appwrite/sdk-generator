@@ -2,12 +2,13 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-    .setProject('')
-;
+    .setProject(value: "")
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-projects: Projects =  Projects(client);
+var projects: Projects =  Projects(client: client);
 
-result = projects.updateWebhook("[PROJECT_ID]", "[WEBHOOK_ID]", "[NAME]", [], "[URL]", 0);
+var result = projects.updateWebhook(_projectId: "[PROJECT_ID]", _webhookId: "[WEBHOOK_ID]", _name: "[NAME]", _events: [], _url: "[URL]", _security: 0);

@@ -2,12 +2,13 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-    .setProject('')
-;
+    .setProject(value: "")
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-storage: Storage =  Storage(client);
+var storage: Storage =  Storage(client: client);
 
-result = storage.updateFile("[FILE_ID]", [], []);
+var result = storage.updateFile(_fileId: "[FILE_ID]", _read: [], _write: []);

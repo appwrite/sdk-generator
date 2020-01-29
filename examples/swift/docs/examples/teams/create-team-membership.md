@@ -2,12 +2,13 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-    .setProject('')
-;
+    .setProject(value: "")
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-teams: Teams =  Teams(client);
+var teams: Teams =  Teams(client: client);
 
-result = teams.createTeamMembership("[TEAM_ID]", "email@example.com", [], "https://example.com");
+var result = teams.createTeamMembership(_teamId: "[TEAM_ID]", _email: "email@example.com", _roles: [], _redirect: "https://example.com");

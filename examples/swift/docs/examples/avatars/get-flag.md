@@ -2,12 +2,13 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-    .setProject('')
-;
+    .setProject(value: "")
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-avatars: Avatars =  Avatars(client);
+var avatars: Avatars =  Avatars(client: client);
 
-result = avatars.getFlag("af");
+var result = avatars.getFlag(_code: "af");

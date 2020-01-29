@@ -2,13 +2,15 @@
 /// Produced by {{spec.title | caseUcfirst}} SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
 {% for key,header in method.security[0]|keys %}
-    .set{{header}}('')
-{% endfor %};
+    .set{{header}}(value: "")
+{% endfor %}
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-{{ service.name | caseCamel }}: {{ service.name | caseUcfirst }} =  {{ service.name | caseUcfirst }}(client);
+var {{ service.name | caseCamel }}: {{ service.name | caseUcfirst }} =  {{ service.name | caseUcfirst }}(client: client);
 
-result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
+var result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}_{{ parameter.name | caseCamel }}: {{ parameter | paramExample }}{% endif %}{% endfor %});

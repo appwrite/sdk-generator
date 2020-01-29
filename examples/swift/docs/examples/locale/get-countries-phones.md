@@ -2,12 +2,13 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-    .setProject('')
-;
+    .setProject(value: "")
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-locale: Locale =  Locale(client);
+var locale: Locale =  Locale(client: client);
 
-result = locale.getCountriesPhones();
+var result = locale.getCountriesPhones();

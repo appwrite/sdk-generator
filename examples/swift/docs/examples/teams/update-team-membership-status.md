@@ -2,12 +2,13 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-    .setProject('')
-;
+    .setProject(value: "")
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-teams: Teams =  Teams(client);
+var teams: Teams =  Teams(client: client);
 
-result = teams.updateTeamMembershipStatus("[TEAM_ID]", "[INVITE_ID]", "[USER_ID]", "[SECRET]");
+var result = teams.updateTeamMembershipStatus(_teamId: "[TEAM_ID]", _inviteId: "[INVITE_ID]", _userId: "[USER_ID]", _secret: "[SECRET]");

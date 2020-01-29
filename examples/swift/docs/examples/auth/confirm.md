@@ -2,11 +2,12 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-;
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-auth: Auth =  Auth(client);
+var auth: Auth =  Auth(client: client);
 
-result = auth.confirm("[USER_ID]", "[TOKEN]");
+var result = auth.confirm(_userId: "[USER_ID]", _token: "[TOKEN]");

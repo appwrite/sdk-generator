@@ -2,12 +2,13 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-    .setProject('')
-;
+    .setProject(value: "")
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-projects: Projects =  Projects(client);
+var projects: Projects =  Projects(client: client);
 
-result = projects.updateProjectOAuth("[PROJECT_ID]", "bitbucket");
+var result = projects.updateProjectOAuth(_projectId: "[PROJECT_ID]", _provider: "bitbucket");

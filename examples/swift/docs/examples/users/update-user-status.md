@@ -2,12 +2,13 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-    .setProject('')
-;
+    .setProject(value: "")
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-users: Users =  Users(client);
+var users: Users =  Users(client: client);
 
-result = users.updateUserStatus("[USER_ID]", "1");
+var result = users.updateUserStatus(_userId: "[USER_ID]", _status: "1");

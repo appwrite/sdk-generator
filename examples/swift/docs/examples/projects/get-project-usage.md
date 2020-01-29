@@ -2,12 +2,13 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-    .setProject('')
-;
+    .setProject(value: "")
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-projects: Projects =  Projects(client);
+var projects: Projects =  Projects(client: client);
 
-result = projects.getProjectUsage("[PROJECT_ID]");
+var result = projects.getProjectUsage(_projectId: "[PROJECT_ID]");

@@ -2,12 +2,13 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-    .setProject('')
-;
+    .setProject(value: "")
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-auth: Auth =  Auth(client);
+var auth: Auth =  Auth(client: client);
 
-result = auth.oauth("bitbucket", "https://example.com", "https://example.com");
+var result = auth.oauth(_provider: "bitbucket", _success: "https://example.com", _failure: "https://example.com");

@@ -2,12 +2,13 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-    .setProject('')
-;
+    .setProject(value: "")
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-database: Database =  Database(client);
+var database: Database =  Database(client: client);
 
-result = database.updateCollection("[COLLECTION_ID]", "[NAME]", [], []);
+var result = database.updateCollection(_collectionId: "[COLLECTION_ID]", _name: "[NAME]", _read: [], _write: []);

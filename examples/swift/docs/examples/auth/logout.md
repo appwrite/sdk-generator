@@ -2,12 +2,13 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-    .setProject('')
-;
+    .setProject(value: "")
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-auth: Auth =  Auth(client);
+var auth: Auth =  Auth(client: client);
 
-result = auth.logout();
+var result = auth.logout();

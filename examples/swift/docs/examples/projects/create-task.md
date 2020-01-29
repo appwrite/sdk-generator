@@ -2,12 +2,13 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-    .setProject('')
-;
+    .setProject(value: "")
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-projects: Projects =  Projects(client);
+var projects: Projects =  Projects(client: client);
 
-result = projects.createTask("[PROJECT_ID]", "[NAME]", "play", "", 0, "GET", "https://example.com");
+var result = projects.createTask(_projectId: "[PROJECT_ID]", _name: "[NAME]", _status: "play", _schedule: "", _security: 0, _httpMethod: "GET", _httpUrl: "https://example.com");

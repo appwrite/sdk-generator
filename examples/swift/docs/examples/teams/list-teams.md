@@ -2,12 +2,13 @@
 /// Produced by Appwrite SDK Generator
 ///
 
+
 var client: Client = Client()
 
 client
-    .setProject('')
-;
+    .setProject(value: "")
+    .setEndpoint(endpoint: "http://localhost/v1")
 
-teams: Teams =  Teams(client);
+var teams: Teams =  Teams(client: client);
 
-result = teams.listTeams();
+var result = teams.listTeams();
