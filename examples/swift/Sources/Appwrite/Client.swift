@@ -142,7 +142,7 @@ open class Client {
 
         var query: String = ""
 
-        var responseHeaders: Array<Any>  = []
+        //var responseHeaders: Array<Any>  = []
         var responseStatus: Int = HTTPStatus.unknown.rawValue
         var responseType: String = ""
         var responseBody: String = ""
@@ -153,14 +153,14 @@ open class Client {
                 let json = try JSONSerialization.data(withJSONObject:params, options: [])
                 query = String( data: json, encoding: String.Encoding.utf8)!
               } catch let error as NSError {
-                print("Failed to parse json: \(error.localizedDescription)");
+                print("Failed to parse json: \(error.localizedDescription)")
               }
               break
             case "multipart/form-data":
               query = self.flatten(params: params)
               break
             default:
-              query = httpBuildQuery(params: params)
+              query = self.httpBuildQuery(params: params)
               break
         }
 
@@ -172,11 +172,30 @@ open class Client {
 
         let task = session.dataTask(with: request, completionHandler: { data, response, error in
             if (error != nil) {
-                print(error)
+                print(error!)
                 return
             }
+            do {
+                let httpResponse = response as! HTTPURLResponse
+                responseStatus = httpResponse.statusCode
 
-            //more to go here
+                if (responseStatus == HTTPStatus.internalServerError.rawValue) {
+                    print(responseStatus)
+                }
+
+                responseType = httpResponse.mimeType ?? ""
+
+                if (responseType == "application/json") {
+                    let json = try JSONSerialization.data(withJSONObject:data ?? "", options: [])
+
+                    responseBody = String(data: json, encoding: String.Encoding.utf8)!
+              } else {
+                    responseBody = String(data: data!, encoding: String.Encoding.utf8)!
+              }
+            } catch {
+                print(error)
+            }
+
         })
         task.resume()
 

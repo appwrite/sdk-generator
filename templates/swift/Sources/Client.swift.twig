@@ -105,7 +105,7 @@ open class Client {
 
         var query: String = ""
 
-        var responseHeaders: Array<Any>  = []
+        //var responseHeaders: Array<Any>  = []
         var responseStatus: Int = HTTPStatus.unknown.rawValue
         var responseType: String = ""
         var responseBody: String = ""
@@ -135,20 +135,28 @@ open class Client {
 
         let task = session.dataTask(with: request, completionHandler: { data, response, error in
             if (error != nil) {
-                print(error)
+                print(error!)
                 return
             }
+            do {
+                let httpResponse = response as! HTTPURLResponse
+                responseStatus = httpResponse.statusCode
 
-            responseStatus = response.statusCode
+                if (responseStatus == HTTPStatus.internalServerError.rawValue) {
+                    print(responseStatus)
+                }
 
-            responseHeaders = response.allHeaderFields
+                responseType = httpResponse.mimeType ?? ""
 
-            responseType = response.mimeType
-            if (responseType == 'application/json') {
-              let json = try JSONSerialization.data(withJSONObject:data, options: [])
-              responseBody = String(data: json, encoding: String.Enconding.utf8)
-            } else {
-              responseBody = data
+                if (responseType == "application/json") {
+                    let json = try JSONSerialization.data(withJSONObject:data ?? "", options: [])
+
+                    responseBody = String(data: json, encoding: String.Encoding.utf8)!
+              } else {
+                    responseBody = String(data: data!, encoding: String.Encoding.utf8)!
+              }
+            } catch {
+                print(error)
             }
 
         })
