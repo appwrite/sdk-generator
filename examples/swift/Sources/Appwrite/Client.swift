@@ -195,7 +195,7 @@ open class Client {
                 responseType = httpResponse.mimeType ?? ""
 
                 if (responseType == "application/json") {
-                    let json = try JSONSerialization.data(withJSONObject:data ?? "", options: [])
+                    let json = try JSONSerialization.jsonObject(with: data!, options: [])
                     responseBody = json
               } else {
                     responseBody = String(data: data!, encoding: String.Encoding.utf8)!
