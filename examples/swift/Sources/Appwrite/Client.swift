@@ -116,12 +116,19 @@ open class Client {
         return self
     }
 
-    open func flatten(params: [String: Any]) -> String {
-        return ""
-    }
-
-    open func httpBuildQuery(params: [String: Any]) -> String {
-        return ""
+    ///
+    open func httpBuildQuery(params: [String: Any], prefix: String = "") -> String {
+        var output: String = ""
+        for (key, value) in params {
+            let finalKey: String = prefix.isEmpty ? key : (prefix + "[" + key + "]")
+            if (value is AnyCollection<Any>) {
+                output += self.httpBuildQuery(params: value as! [String : Any], prefix: finalKey)
+            } else {
+                output += value as! String
+            }
+            output += "&"
+        }
+        return output
     }
 
     ///
@@ -156,9 +163,6 @@ open class Client {
                 print("Failed to parse json: \(error.localizedDescription)")
               }
               break
-            case "multipart/form-data":
-              query = self.flatten(params: params)
-              break
             default:
               query = self.httpBuildQuery(params: params)
               break
@@ -166,6 +170,10 @@ open class Client {
 
         var request = URLRequest(url: targetURL)
         let session = URLSession.shared
+
+        for (key, value) in self.headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
 
         request.httpMethod = method
         request.httpBody = query.data(using: .utf8)
@@ -181,6 +189,7 @@ open class Client {
 
                 if (responseStatus == HTTPStatus.internalServerError.rawValue) {
                     print(responseStatus)
+                    return
                 }
 
                 responseType = httpResponse.mimeType ?? ""
