@@ -1,5 +1,5 @@
 
-const appwrite = require('../sdks/node/index');
+const appwrite = require('../../sdks/node/index');
 
 async function start() {
     var response;
