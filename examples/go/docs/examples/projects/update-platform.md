@@ -1,34 +1,24 @@
-# Projects Examples
+package main
 
-## UpdatePlatform
+import (
+    "fmt"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-updateplatform
+func main() {
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Projects service passing Client
-        var srv := appwrite.Projects{
-            client: &clt
-        }
-
-        // Call UpdatePlatform method and handle results
-        var res, err := srv.UpdatePlatform("[PROJECT_ID]", "[PLATFORM_ID]", "[NAME]")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    var service := appwrite.Projects{
+        client: &client
     }
-```
+
+    var response, error := service.UpdatePlatform("[PROJECT_ID]", "[PLATFORM_ID]", "[NAME]", "[KEY]", "[STORE]", "https://example.com")
+
+    if error != nil {
+        panic(error)
+    }
+
+    fmt.Println(response)
+}

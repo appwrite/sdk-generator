@@ -6,7 +6,15 @@ import (
 
 // Teams service
 type Teams struct {
-	client *Client
+	client Client
+}
+
+func NewTeams(clt Client) Teams {  
+    service := Teams{
+		client: clt,
+	}
+
+    return service
 }
 
 // ListTeams get a list of all the current user teams. You can use the query

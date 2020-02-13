@@ -1,34 +1,24 @@
-# Projects Examples
+package main
 
-## UpdateTask
+import (
+    "fmt"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-updatetask
+func main() {
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Projects service passing Client
-        var srv := appwrite.Projects{
-            client: &clt
-        }
-
-        // Call UpdateTask method and handle results
-        var res, err := srv.UpdateTask("[PROJECT_ID]", "[TASK_ID]", "[NAME]", "play", "", 0, "GET", "https://example.com")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    var service := appwrite.Projects{
+        client: &client
     }
-```
+
+    var response, error := service.UpdateTask("[PROJECT_ID]", "[TASK_ID]", "[NAME]", "play", "", 0, "GET", "https://example.com", [], "[HTTP_USER]", "[HTTP_PASS]")
+
+    if error != nil {
+        panic(error)
+    }
+
+    fmt.Println(response)
+}

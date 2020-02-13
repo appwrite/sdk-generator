@@ -157,6 +157,12 @@ class Python extends Language {
                 'template'      => '/python/package/services/service.py.twig',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => '/python/docs/example.md.twig',
+                'minify'        => false,
+            ],
         ];
     }
 

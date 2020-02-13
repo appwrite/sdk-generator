@@ -21,10 +21,10 @@ class SDKTest extends TestCase
             'build' => [
             ],
             'envs' => [
-                'php-7.0' => 'docker run --rm -v $(pwd):/app -w /app php:7.0-cli php tests/php/test.php',
-                'php-7.1' => 'docker run --rm -v $(pwd):/app -w /app php:7.1-cli php tests/php/test.php',
-                'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli php tests/php/test.php',
-                'php-7.3' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli php tests/php/test.php',
+                'php-7.0' => 'docker run --rm -v $(pwd):/app -w /app php:7.0-cli php tests/languages/php/test.php',
+                'php-7.1' => 'docker run --rm -v $(pwd):/app -w /app php:7.1-cli php tests/languages/php/test.php',
+                'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli php tests/languages/php/test.php',
+                'php-7.3' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli php tests/languages/php/test.php',
             ],
         ],
 
@@ -34,9 +34,9 @@ class SDKTest extends TestCase
                 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:12.12 npm install'
             ],
             'envs' => [
-                'nodejs-8' => 'docker run --rm -v $(pwd):/app -w /app node:8.16 node tests/node/test.js',
-                'nodejs-10' => 'docker run --rm -v $(pwd):/app -w /app node:10.16 node tests/node/test.js',
-                'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/node/test.js',
+                'nodejs-8' => 'docker run --rm -v $(pwd):/app -w /app node:8.16 node tests/languages/node/test.js',
+                'nodejs-10' => 'docker run --rm -v $(pwd):/app -w /app node:10.16 node tests/languages/node/test.js',
+                'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/languages/node/test.js',
             ],
         ],
 
@@ -45,17 +45,17 @@ class SDKTest extends TestCase
             'build' => [
             ],
             'envs' => [
-                'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.7-rc ruby tests/ruby/tests.rb',
-                'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.6.5 ruby tests/ruby/tests.rb',
-                'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.5.7 ruby tests/ruby/tests.rb',
-                'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.4.9 ruby tests/ruby/tests.rb',
+                'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.7-rc ruby tests/languages/ruby/tests.rb',
+                'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.6.5 ruby tests/languages/ruby/tests.rb',
+                'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.5.7 ruby tests/languages/ruby/tests.rb',
+                'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.4.9 ruby tests/languages/ruby/tests.rb',
             ],
         ],
 
         'python' => [
             'class' => 'Appwrite\SDK\Language\Python',
             'build' => [
-                'cp tests/python/tests.py tests/sdks/python/test.py',
+                'cp tests/languages/python/tests.py tests/sdks/python/test.py',
                 'echo "" > tests/sdks/python/__init__.py',
                 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor python:3.8 pip install -r tests/sdks/python/requirements.txt --upgrade'
             ],
@@ -91,7 +91,7 @@ class SDKTest extends TestCase
             $spec = file_get_contents(realpath(__DIR__ . '/resources/spec.json'));
 
             if(empty($spec)) {
-                throw new Exception('Failed to fetch spec from Appwrite server');
+                throw new \Exception('Failed to fetch spec from Appwrite server');
             }
 
             foreach ($this->languages as $language => $options) {
@@ -148,10 +148,10 @@ class SDKTest extends TestCase
                 }
             }
         }
-        catch (Exception $exception) {
+        catch (\Exception $exception) {
             echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
         }
-        catch (Throwable $exception) {
+        catch (\Throwable $exception) {
             echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
         }
     }

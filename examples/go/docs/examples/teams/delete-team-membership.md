@@ -1,34 +1,24 @@
-# Teams Examples
+package main
 
-## DeleteTeamMembership
+import (
+    "fmt"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-deleteteammembership
+func main() {
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Teams service passing Client
-        var srv := appwrite.Teams{
-            client: &clt
-        }
-
-        // Call DeleteTeamMembership method and handle results
-        var res, err := srv.DeleteTeamMembership("[TEAM_ID]", "[INVITE_ID]")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    var service := appwrite.Teams{
+        client: &client
     }
-```
+
+    var response, error := service.DeleteTeamMembership("[TEAM_ID]", "[INVITE_ID]")
+
+    if error != nil {
+        panic(error)
+    }
+
+    fmt.Println(response)
+}

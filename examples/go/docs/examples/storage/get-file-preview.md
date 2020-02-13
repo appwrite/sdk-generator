@@ -1,34 +1,24 @@
-# Storage Examples
+package main
 
-## GetFilePreview
+import (
+    "fmt"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-getfilepreview
+func main() {
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Storage service passing Client
-        var srv := appwrite.Storage{
-            client: &clt
-        }
-
-        // Call GetFilePreview method and handle results
-        var res, err := srv.GetFilePreview("[FILE_ID]")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    var service := appwrite.Storage{
+        client: &client
     }
-```
+
+    var response, error := service.GetFilePreview("[FILE_ID]", 0, 0, 0, "", "jpg")
+
+    if error != nil {
+        panic(error)
+    }
+
+    fmt.Println(response)
+}

@@ -30,7 +30,11 @@ try {
     }
 
     $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
+<<<<<<< HEAD
     //$spec = getSSLPage('http://localhost/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
+=======
+    //$spec = getSSLPage('https://localhost/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
+>>>>>>> aaf138e1cfa3e572338767ed2e59cad2de02027b
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');

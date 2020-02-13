@@ -1,34 +1,24 @@
-# Database Examples
+package main
 
-## CreateCollection
+import (
+    "fmt"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-createcollection
+func main() {
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Database service passing Client
-        var srv := appwrite.Database{
-            client: &clt
-        }
-
-        // Call CreateCollection method and handle results
-        var res, err := srv.CreateCollection("[NAME]", [], [], [])
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    var service := appwrite.Database{
+        client: &client
     }
-```
+
+    var response, error := service.CreateCollection("[NAME]", [], [], [])
+
+    if error != nil {
+        panic(error)
+    }
+
+    fmt.Println(response)
+}

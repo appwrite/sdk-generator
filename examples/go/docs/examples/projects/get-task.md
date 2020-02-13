@@ -1,34 +1,24 @@
-# Projects Examples
+package main
 
-## GetTask
+import (
+    "fmt"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-gettask
+func main() {
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Projects service passing Client
-        var srv := appwrite.Projects{
-            client: &clt
-        }
-
-        // Call GetTask method and handle results
-        var res, err := srv.GetTask("[PROJECT_ID]", "[TASK_ID]")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    var service := appwrite.Projects{
+        client: &client
     }
-```
+
+    var response, error := service.GetTask("[PROJECT_ID]", "[TASK_ID]")
+
+    if error != nil {
+        panic(error)
+    }
+
+    fmt.Println(response)
+}

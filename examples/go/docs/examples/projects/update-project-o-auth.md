@@ -1,34 +1,24 @@
-# Projects Examples
+package main
 
-## UpdateProjectOAuth
+import (
+    "fmt"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-updateprojectoauth
+func main() {
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Projects service passing Client
-        var srv := appwrite.Projects{
-            client: &clt
-        }
-
-        // Call UpdateProjectOAuth method and handle results
-        var res, err := srv.UpdateProjectOAuth("[PROJECT_ID]", "bitbucket")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    var service := appwrite.Projects{
+        client: &client
     }
-```
+
+    var response, error := service.UpdateProjectOAuth("[PROJECT_ID]", "bitbucket", "[APP_ID]", "[SECRET]")
+
+    if error != nil {
+        panic(error)
+    }
+
+    fmt.Println(response)
+}

@@ -14,7 +14,15 @@ import (
 
 {{ ((service.name | caseUcfirst) ~ " service") | godocComment }}
 type {{ service.name | caseUcfirst }} struct {
-	client *Client
+	client Client
+}
+
+func New{{ service.name | caseUcfirst }}(clt Client) {{ service.name | caseUcfirst }} {  
+    service := {{ service.name | caseUcfirst }}{
+		client: clt,
+	}
+
+    return service
 }
 {% for method in service.methods %}
 

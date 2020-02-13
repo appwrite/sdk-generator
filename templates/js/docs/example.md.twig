@@ -1,8 +1,10 @@
 let sdk = new {{ spec.title | caseUcfirst }}();
 
 sdk
-{% for key,header in method.security[0]|keys %}
+{% for node in method.security %}
+{% for key,header in node|keys %}
     .set{{header}}('')
+{% endfor %}
 {% endfor %};
 
 let promise = sdk.{{ service.name | caseLower }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});

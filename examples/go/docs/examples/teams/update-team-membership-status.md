@@ -1,34 +1,24 @@
-# Teams Examples
+package main
 
-## UpdateTeamMembershipStatus
+import (
+    "fmt"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-updateteammembershipstatus
+func main() {
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Teams service passing Client
-        var srv := appwrite.Teams{
-            client: &clt
-        }
-
-        // Call UpdateTeamMembershipStatus method and handle results
-        var res, err := srv.UpdateTeamMembershipStatus("[TEAM_ID]", "[INVITE_ID]", "[USER_ID]", "[SECRET]")
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    var service := appwrite.Teams{
+        client: &client
     }
-```
+
+    var response, error := service.UpdateTeamMembershipStatus("[TEAM_ID]", "[INVITE_ID]", "[USER_ID]", "[SECRET]", "https://example.com", "https://example.com")
+
+    if error != nil {
+        panic(error)
+    }
+
+    fmt.Println(response)
+}

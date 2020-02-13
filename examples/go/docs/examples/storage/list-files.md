@@ -1,34 +1,24 @@
-# Storage Examples
+package main
 
-## ListFiles
+import (
+    "fmt"
+    "github.com/appwrite/go-sdk"
+)
 
-```go
-    package appwrite-listfiles
+func main() {
+    var client := appwrite.Client{}
 
-    import (
-        "fmt"
-        "os"
-        "github.com/appwrite/go-sdk"
-    )
+    client.SetProject("")
 
-    func main() {
-        // Create a Client
-        var clt := appwrite.Client{}
-
-        // Set Client required headers
-        clt.SetProject("")
-
-        // Create a new Storage service passing Client
-        var srv := appwrite.Storage{
-            client: &clt
-        }
-
-        // Call ListFiles method and handle results
-        var res, err := srv.ListFiles()
-        if err != nil {
-            panic(err)
-        }
-
-        fmt.Println(res)
+    var service := appwrite.Storage{
+        client: &client
     }
-```
+
+    var response, error := service.ListFiles("[SEARCH]", 0, 0, "ASC")
+
+    if error != nil {
+        panic(error)
+    }
+
+    fmt.Println(response)
+}

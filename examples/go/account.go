@@ -5,7 +5,15 @@ import (
 
 // Account service
 type Account struct {
-	client *Client
+	client Client
+}
+
+func NewAccount(clt Client) Account {  
+    service := Account{
+		client: clt,
+	}
+
+    return service
 }
 
 // Get get currently logged in user data as JSON object.

@@ -68,10 +68,16 @@ class Client:
             params=params,
             data=data,
             json=json,
-            headers=headers,
+            headers=self._global_headers,
             verify=self._self_signed,
         )
 
         response.raise_for_status()
-        
-        return response.json()
+
+        content_type = response.headers['Content-Type']
+
+        if content_type.startswith('application/json'):
+            return response.json()
+
+        return response._content
+
