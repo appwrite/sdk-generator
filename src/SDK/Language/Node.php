@@ -69,4 +69,55 @@ class Node extends JS
             ],
         ];
     }
+
+    /**
+     * @param array $param
+     * @return string
+     */
+    public function getParamExample(array $param)
+    {
+        $type       = (isset($param['type'])) ? $param['type'] : '';
+        $example    = (isset($param['example'])) ? $param['example'] : '';
+
+        $output = '';
+
+        if(empty($example) && $example !== 0 && $example !== false) {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                case self::TYPE_BOOLEAN:
+                    $output .= 'null';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "''";
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= '[]';
+                    break;
+                case self::TYPE_FILE:
+                    $output .= "fs.createReadStream(__dirname + '/file.png'))";
+                    break;
+            }
+        }
+        else {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                case self::TYPE_ARRAY:
+                    $output .= $example;
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= ($example) ? 'true' : 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "'{$example}'";
+                    break;
+                case self::TYPE_FILE:
+                    $output .= "fs.createReadStream(__dirname + '/file.png'))";
+                    break;
+            }
+        }
+
+        return $output;
+    }
 }
