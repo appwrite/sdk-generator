@@ -9,7 +9,7 @@ client
     .setProject('')
 ;
 
-let promise = storage.createFile(document.getElementById('uploader').files[0], [], []);
+let promise = storage.createFile(fs.createReadStream(__dirname + '/file.png')), [], []);
 
 promise.then(function (response) {
     console.log(response);

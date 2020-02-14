@@ -8,7 +8,6 @@ import (
 func main() {
     var client := appwrite.Client{}
 
-
     var service := appwrite.Auth{
         client: &client
     }

@@ -5,9 +5,6 @@ let client = new sdk.Client();
 
 let auth = new sdk.Auth(client);
 
-client
-;
-
 let promise = auth.confirm('[USER_ID]', '[TOKEN]');
 
 promise.then(function (response) {
