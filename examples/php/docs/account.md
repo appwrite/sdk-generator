@@ -8,6 +8,22 @@ GET https://appwrite.io/v1/account
 
 ** Get currently logged in user data as JSON object. **
 
+## Create Account
+
+```http request
+POST https://appwrite.io/v1/account
+```
+
+** Use this endpoint to allow a new user to register a new account in your project. After the user registration completes successfully, you can use the [/account/verfication](/docs/account#createVerification) route to start verifying the user email address. To allow your new user to login to his new account, you need to create a new [account session](/docs/account#createSession). **
+
+### Parameters
+
+| Field Name | Type | Description | Default |
+| --- | --- | --- | --- |
+| email | string | User email. |  |
+| password | string | User password. |  |
+| name | string | User name. |  |
+
 ## Delete Account
 
 ```http request
@@ -28,8 +44,16 @@ PATCH https://appwrite.io/v1/account/email
 
 | Field Name | Type | Description | Default |
 | --- | --- | --- | --- |
-| email | string | Email Address |  |
-| password | string | User Password |  |
+| email | string | User email. |  |
+| password | string | User password. |  |
+
+## Get Account Logs
+
+```http request
+GET https://appwrite.io/v1/account/logs
+```
+
+** Get currently logged in user list of latest security activity logs. Each log returns user IP address, location and date and time of log. **
 
 ## Update Account Name
 
@@ -43,7 +67,7 @@ PATCH https://appwrite.io/v1/account/name
 
 | Field Name | Type | Description | Default |
 | --- | --- | --- | --- |
-| name | string | User name |  |
+| name | string | User name. |  |
 
 ## Update Account Password
 
@@ -57,8 +81,8 @@ PATCH https://appwrite.io/v1/account/password
 
 | Field Name | Type | Description | Default |
 | --- | --- | --- | --- |
-| password | string | New password |  |
-| old-password | string | Old password |  |
+| password | string | New user password. |  |
+| old-password | string | Old user password. |  |
 
 ## Get Account Preferences
 
@@ -66,9 +90,9 @@ PATCH https://appwrite.io/v1/account/password
 GET https://appwrite.io/v1/account/prefs
 ```
 
-** Get currently logged in user preferences key-value object. **
+** Get currently logged in user preferences as a key-value object. **
 
-## Update Account Prefs
+## Update Account Preferences
 
 ```http request
 PATCH https://appwrite.io/v1/account/prefs
@@ -80,21 +104,131 @@ PATCH https://appwrite.io/v1/account/prefs
 
 | Field Name | Type | Description | Default |
 | --- | --- | --- | --- |
-| prefs | string | Prefs key-value JSON object string. |  |
+| prefs | object | Prefs key-value JSON object. |  |
 
-## Get Account Security Log
+## Create Password Recovery
 
 ```http request
-GET https://appwrite.io/v1/account/security
+POST https://appwrite.io/v1/account/recovery
 ```
 
-** Get currently logged in user list of latest security activity logs. Each log returns user IP address, location and date and time of log. **
+** Sends the user an email with a temporary secret key for password reset. When the user clicks the confirmation link he is redirected back to your app password reset URL with the secret key and email address values attached to the URL query string. Use the query string params to submit a request to the [PUT /account/recovery](/docs/account#updateRecovery) endpoint to complete the process. **
 
-## Get Account Active Sessions
+### Parameters
+
+| Field Name | Type | Description | Default |
+| --- | --- | --- | --- |
+| email | string | User email. |  |
+| url | string | URL to redirect the user back to your app from the recovery email. |  |
+
+## Complete Password Recovery
+
+```http request
+PUT https://appwrite.io/v1/account/recovery
+```
+
+** Use this endpoint to complete the user account password reset. Both the **userId** and **secret** arguments will be passed as query parameters to the redirect URL you have provided when sending your request to the [POST /account/recovery](/docs/account#createRecovery) endpoint.
+
+Please note that in order to avoid a [Redirect Attack](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.md) the only valid redirect URLs are the ones from domains you have set when adding your platforms in the console interface. **
+
+### Parameters
+
+| Field Name | Type | Description | Default |
+| --- | --- | --- | --- |
+| userId | string | User account UID address. |  |
+| secret | string | Valid reset token. |  |
+| password-a | string | New password. |  |
+| password-b | string | New password again. |  |
+
+## Get Account Sessions
 
 ```http request
 GET https://appwrite.io/v1/account/sessions
 ```
 
 ** Get currently logged in user list of active sessions across different devices. **
+
+## Create Account Session
+
+```http request
+POST https://appwrite.io/v1/account/sessions
+```
+
+** Allow the user to login into his account by providing a valid email and password combination. This route will create a new session for the user. **
+
+### Parameters
+
+| Field Name | Type | Description | Default |
+| --- | --- | --- | --- |
+| email | string | User email. |  |
+| password | string | User password. |  |
+
+## Delete All Account Sessions
+
+```http request
+DELETE https://appwrite.io/v1/account/sessions
+```
+
+** Delete all sessions from the user account and remove any sessions cookies from the end client. **
+
+## Create Account Session with OAuth
+
+```http request
+GET https://appwrite.io/v1/account/sessions/oauth/{provider}
+```
+
+** Allow the user to login to his account using the OAuth provider of his choice. Each OAuth provider should be enabled from the Appwrite console first. Use the success and failure arguments to provide a redirect URL&#039;s back to your app when login is completed. **
+
+### Parameters
+
+| Field Name | Type | Description | Default |
+| --- | --- | --- | --- |
+| provider | string | **Required** OAuth Provider. Currently, supported providers are: bitbucket, facebook, github, gitlab, google, microsoft, linkedin, slack, dropbox, salesforce, amazon, vk, discord, twitch, spotify, yahoo, yandex, twitter, paypal, bitly. |  |
+| success | string | **Required** URL to redirect back to your app after a successful login attempt. |  |
+| failure | string | **Required** URL to redirect back to your app after a failed login attempt. |  |
+
+## Delete Account Session
+
+```http request
+DELETE https://appwrite.io/v1/account/sessions/{sessionUid}
+```
+
+** Use this endpoint to log out the currently logged in user from all his account sessions across all his different devices. When using the option id argument, only the session unique ID provider will be deleted. **
+
+### Parameters
+
+| Field Name | Type | Description | Default |
+| --- | --- | --- | --- |
+| sessionUid | string | **Required** Session unique ID. Use the string &#039;current&#039; to delete the current device session. |  |
+
+## Create Email Verification
+
+```http request
+POST https://appwrite.io/v1/account/verification
+```
+
+** Use this endpoint to send a verification message to your user email address to confirm they are the valid owners of that address. Both the **userId** and **secret** arguments will be passed as query parameters to the URL you have provider to be attached to the verification email. The provided URL should redirect the user back for your app and allow you to complete the verification process by verifying both the **userId** and **secret** parameters. Learn more about how to [complete the verification process](/docs/account#updateAccountVerification). 
+
+Please note that in order to avoid a [Redirect Attack](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.md) the only valid redirect URLs are the ones from domains you have set when adding your platforms in the console interface. **
+
+### Parameters
+
+| Field Name | Type | Description | Default |
+| --- | --- | --- | --- |
+| url | string | URL to redirect the user back to your app from the verification email. |  |
+
+## Complete Email Verification
+
+```http request
+PUT https://appwrite.io/v1/account/verification
+```
+
+** Use this endpoint to complete the user email verification process. Use both the **userId** and **secret** parameters that were attached to your app URL to verify the user email ownership. If confirmed this route will return a 200 status code. **
+
+### Parameters
+
+| Field Name | Type | Description | Default |
+| --- | --- | --- | --- |
+| userId | string | User unique ID. |  |
+| secret | string | Valid verification token. |  |
 

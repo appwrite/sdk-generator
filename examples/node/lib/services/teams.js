@@ -16,7 +16,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async listTeams(search = '', limit = 25, offset = 0, orderType = 'ASC') {
+    async list(search = '', limit = 25, offset = 0, orderType = 'ASC') {
         let path = '/teams';
         
         return await this.client.call('get', path, {
@@ -43,7 +43,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async createTeam(name, roles = ["owner"]) {
+    async create(name, roles = ["owner"]) {
         let path = '/teams';
         
         return await this.client.call('post', path, {
@@ -65,7 +65,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async getTeam(teamId) {
+    async get(teamId) {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('get', path, {
@@ -86,7 +86,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async updateTeam(teamId, name) {
+    async update(teamId, name) {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('put', path, {
@@ -107,7 +107,7 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async deleteTeam(teamId) {
+    async delete(teamId) {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('delete', path, {
@@ -118,7 +118,7 @@ class Teams extends Service {
     }
 
     /**
-     * Get Team Members
+     * Get Team Memberships
      *
      * Get team members by the team unique ID. All team members have read access
      * for this list of resources.
@@ -127,8 +127,8 @@ class Teams extends Service {
      * @throws Exception
      * @return {}
      */
-    async getTeamMembers(teamId) {
-        let path = '/teams/{teamId}/members'.replace(new RegExp('{teamId}', 'g'), teamId);
+    async getMemberships(teamId) {
+        let path = '/teams/{teamId}/memberships'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('get', path, {
                     'content-type': 'application/json',
@@ -140,16 +140,16 @@ class Teams extends Service {
     /**
      * Create Team Membership
      *
-     * Use this endpoint to invite a new member to your team. An email with a link
-     * to join the team will be sent to the new member email address. If member
-     * doesn't exists in the project it will be automatically created.
+     * Use this endpoint to invite a new member to join your team. An email with a
+     * link to join the team will be sent to the new member email address if the
+     * member doesn't exist in the project it will be created automatically.
      * 
-     * Use the redirect parameter to redirect the user from the invitation email
-     * back to your app. When the user is redirected, use the
-     * /teams/{teamId}/memberships/{inviteId}/status endpoint to finally join the
-     * user to the team.
+     * Use the 'URL' parameter to redirect the user from the invitation email back
+     * to your app. When the user is redirected, use the [Update Team Membership
+     * Status](/docs/teams#updateMembershipStatus) endpoint to allow the user to
+     * accept the invitation to the team.
      * 
-     * Please notice that in order to avoid a [Redirect
+     * Please note that in order to avoid a [Redirect
      * Attacks](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.md)
      * the only valid redirect URL's are the once from domains you have set when
      * added your platforms in the console interface.
@@ -157,12 +157,12 @@ class Teams extends Service {
      * @param string teamId
      * @param string email
      * @param array roles
-     * @param string redirect
+     * @param string url
      * @param string name
      * @throws Exception
      * @return {}
      */
-    async createTeamMembership(teamId, email, roles, redirect, name = '') {
+    async createMembership(teamId, email, roles, url, name = '') {
         let path = '/teams/{teamId}/memberships'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('post', path, {
@@ -172,7 +172,7 @@ class Teams extends Service {
                 'email': email,
                 'name': name,
                 'roles': roles,
-                'redirect': redirect
+                'url': url
             });
     }
 
@@ -180,14 +180,15 @@ class Teams extends Service {
      * Delete Team Membership
      *
      * This endpoint allows a user to leave a team or for a team owner to delete
-     * the membership of any other team member.
+     * the membership of any other team member. You can also use this endpoint to
+     * delete a user membership even if he didn't accept it.
      *
      * @param string teamId
      * @param string inviteId
      * @throws Exception
      * @return {}
      */
-    async deleteTeamMembership(teamId, inviteId) {
+    async deleteMembership(teamId, inviteId) {
         let path = '/teams/{teamId}/memberships/{inviteId}'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
         
         return await this.client.call('delete', path, {
@@ -198,57 +199,20 @@ class Teams extends Service {
     }
 
     /**
-     * Create Team Membership (Resend)
-     *
-     * Use this endpoint to resend your invitation email for a user to join a
-     * team.
-     *
-     * @param string teamId
-     * @param string inviteId
-     * @param string redirect
-     * @throws Exception
-     * @return {}
-     */
-    async createTeamMembershipResend(teamId, inviteId, redirect) {
-        let path = '/teams/{teamId}/memberships/{inviteId}/resend'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
-        
-        return await this.client.call('post', path, {
-                    'content-type': 'application/json',
-               },
-               {
-                'redirect': redirect
-            });
-    }
-
-    /**
      * Update Team Membership Status
      *
-     * Use this endpoint to let user accept an invitation to join a team after he
-     * is being redirect back to your app from the invitation email. Use the
-     * success and failure URL's to redirect users back to your application after
-     * the request completes.
-     * 
-     * Please notice that in order to avoid a [Redirect
-     * Attacks](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.md)
-     * the only valid redirect URL's are the once from domains you have set when
-     * added your platforms in the console interface.
-     * 
-     * When not using the success or failure redirect arguments this endpoint will
-     * result with a 200 status code on success and with 401 status error on
-     * failure. This behavior was applied to help the web clients deal with
-     * browsers who don't allow to set 3rd party HTTP cookies needed for saving
-     * the account session token.
+     * Use this endpoint to allow a user to accept an invitation to join a team
+     * after he is being redirected back to your app from the invitation email he
+     * was sent.
      *
      * @param string teamId
      * @param string inviteId
      * @param string userId
      * @param string secret
-     * @param string success
-     * @param string failure
      * @throws Exception
      * @return {}
      */
-    async updateTeamMembershipStatus(teamId, inviteId, userId, secret, success = '', failure = '') {
+    async updateMembershipStatus(teamId, inviteId, userId, secret) {
         let path = '/teams/{teamId}/memberships/{inviteId}/status'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
         
         return await this.client.call('patch', path, {
@@ -256,9 +220,7 @@ class Teams extends Service {
                },
                {
                 'userId': userId,
-                'secret': secret,
-                'success': success,
-                'failure': failure
+                'secret': secret
             });
     }
 }

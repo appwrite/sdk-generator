@@ -14,7 +14,7 @@ func main() {
         client: &client
     }
 
-    var response, error := service.UpdatePrefs("{}")
+    var response, error := service.UpdatePrefs()
 
     if error != nil {
         panic(error)

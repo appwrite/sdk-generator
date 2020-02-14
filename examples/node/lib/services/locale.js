@@ -9,11 +9,13 @@ class Locale extends Service {
      * country code, country name, continent name, continent code, ip address and
      * suggested currency. You can use the locale header to get the data in a
      * supported language.
+     * 
+     * ([IP Geolocation by DB-IP](https://db-ip.com))
      *
      * @throws Exception
      * @return {}
      */
-    async getLocale() {
+    async get() {
         let path = '/locale';
         
         return await this.client.call('get', path, {
@@ -65,8 +67,7 @@ class Locale extends Service {
      * List EU Countries
      *
      * List of all countries that are currently members of the EU. You can use the
-     * locale header to get the data in a supported language. UK brexit date is
-     * currently set to 2019-10-31 and will be updated if and when needed.
+     * locale header to get the data in a supported language.
      *
      * @throws Exception
      * @return {}

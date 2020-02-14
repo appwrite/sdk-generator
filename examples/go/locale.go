@@ -16,11 +16,13 @@ func NewLocale(clt Client) Locale {
     return service
 }
 
-// GetLocale get the current user location based on IP. Returns an object with
-// user country code, country name, continent name, continent code, ip address
-// and suggested currency. You can use the locale header to get the data in a
+// Get get the current user location based on IP. Returns an object with user
+// country code, country name, continent name, continent code, ip address and
+// suggested currency. You can use the locale header to get the data in a
 // supported language.
-func (srv *Locale) GetLocale() (map[string]interface{}, error) {
+// 
+// ([IP Geolocation by DB-IP](https://db-ip.com))
+func (srv *Locale) Get() (map[string]interface{}, error) {
 	path := "/locale"
 
 	params := map[string]interface{}{
@@ -52,9 +54,7 @@ func (srv *Locale) GetCountries() (map[string]interface{}, error) {
 }
 
 // GetCountriesEU list of all countries that are currently members of the EU.
-// You can use the locale header to get the data in a supported language. UK
-// brexit date is currently set to 2019-10-31 and will be updated if and when
-// needed.
+// You can use the locale header to get the data in a supported language.
 func (srv *Locale) GetCountriesEU() (map[string]interface{}, error) {
 	path := "/locale/countries/eu"
 
