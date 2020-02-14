@@ -189,6 +189,9 @@ class PHP extends Language {
             case self::TYPE_INTEGER:
                 $type = 'int';
                 break;
+            case self::TYPE_OBJECT:
+                $type = 'array';
+                break;
             case self::TYPE_FILE:
                 $type = '\CurlFile';
                 break;

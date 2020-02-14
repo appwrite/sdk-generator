@@ -196,11 +196,11 @@ class Account extends Service
      * Update currently logged in user account preferences. You can pass only the
      * specific settings you wish to update.
      *
-     * @param object  $prefs
+     * @param array  $prefs
      * @throws Exception
      * @return array
      */
-    public function updatePrefs(object $prefs):array
+    public function updatePrefs(array $prefs):array
     {
         $path   = str_replace([], [], '/account/prefs');
         $params = [];
