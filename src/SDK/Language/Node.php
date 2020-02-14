@@ -94,6 +94,9 @@ class Node extends JS
                 case self::TYPE_ARRAY:
                     $output .= '[]';
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= '{}';
+                    break;
                 case self::TYPE_FILE:
                     $output .= "fs.createReadStream(__dirname + '/file.png'))";
                     break;
@@ -104,6 +107,7 @@ class Node extends JS
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                 case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
                     $output .= $example;
                     break;
                 case self::TYPE_BOOLEAN:

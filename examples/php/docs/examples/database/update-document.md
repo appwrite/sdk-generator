@@ -11,4 +11,4 @@ $client
 
 $database = new Database($client);
 
-$result = $database->updateDocument('[COLLECTION_ID]', '[DOCUMENT_ID]', , [], []);
+$result = $database->updateDocument('[COLLECTION_ID]', '[DOCUMENT_ID]', [], [], []);

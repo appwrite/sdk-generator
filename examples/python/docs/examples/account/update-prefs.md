@@ -9,4 +9,4 @@ client = Client()
 
 account = Account(client)
 
-result = account.update_prefs()
+result = account.update_prefs({})

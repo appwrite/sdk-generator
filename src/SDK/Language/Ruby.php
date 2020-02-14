@@ -181,6 +181,9 @@ class Ruby extends Language {
                 case self::TYPE_ARRAY:
                     $output .= '[]';
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= '{}';
+                    break;
             }
         }
         else {
@@ -188,6 +191,7 @@ class Ruby extends Language {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                 case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
                     $output .= $default;
                     break;
                 case self::TYPE_BOOLEAN:
@@ -209,5 +213,24 @@ class Ruby extends Language {
     public function getParamExample(array $param)
     {
         // TODO: Implement getParamExample() method.
+    }
+
+    /**
+     * Converts JSON Object To Ruby Native Hash
+     * 
+     * @var $data array
+     */
+    protected function jsonToHash(array $data):string
+    {
+        $output = '{';
+        
+        foreach($data as $key => $node) {
+            $value = (is_array($node)) ? $this->jsonToHash($node) : $node;
+            $output .= '"'.$key.'" => '.((is_string($node)) ? '"'.$value.'"' : $value).(($key !== array_key_last($data)) ? ', ' : '');
+        }
+
+        $output .= '}';
+
+        return $output;
     }
 }

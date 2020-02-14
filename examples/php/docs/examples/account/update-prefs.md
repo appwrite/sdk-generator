@@ -11,4 +11,4 @@ $client
 
 $account = new Account($client);
 
-$result = $account->updatePrefs();
+$result = $account->updatePrefs([]);

@@ -212,6 +212,7 @@ class Python extends Language {
                     $output .= "''";
                     break;
                 case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
                     $output .= '{}';
                     break;
             }
@@ -223,6 +224,7 @@ class Python extends Language {
                     $output .= $default;
                     break;
                 case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
                     #$output .= json_encode($default);
                     $output .= '[]';
                     break;
@@ -260,6 +262,7 @@ class Python extends Language {
                     $output .= "''";
                     break;
                 case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
@@ -272,6 +275,7 @@ class Python extends Language {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                 case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
                     $output .= $example;
                     break;
                 case self::TYPE_BOOLEAN:
@@ -281,7 +285,7 @@ class Python extends Language {
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "document.getElementById('uploader').files[0]"; //TODO add file class
+                    $output .= "{}"; //TODO add file class
                     break;
             }
         }

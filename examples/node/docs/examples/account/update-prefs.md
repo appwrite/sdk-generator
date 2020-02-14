@@ -9,7 +9,7 @@ client
     .setProject('')
 ;
 
-let promise = account.updatePrefs();
+let promise = account.updatePrefs({});
 
 promise.then(function (response) {
     console.log(response);
