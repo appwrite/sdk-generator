@@ -1,4 +1,7 @@
 const sdk = require('node-appwrite');
+{% if method.consumes[0] == 'multipart/form-data' %}
+const fs = require('fs');
+{% endif %}
 
 // Init SDK
 let client = new sdk.Client();
