@@ -6,7 +6,7 @@ let client = new sdk.Client();
 let teams = new sdk.Teams(client);
 
 client
-    .setProject('5df5acd0d48c2')
+    .setProject('5df5acd0d48c2') // Your project ID
 ;
 
 let promise = teams.delete('[TEAM_ID]');

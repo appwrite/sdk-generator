@@ -6,7 +6,7 @@ let client = new sdk.Client();
 let database = new sdk.Database(client);
 
 client
-    .setProject('5df5acd0d48c2')
+    .setProject('5df5acd0d48c2') // Your project ID
 ;
 
 let promise = database.listDocuments('[COLLECTION_ID]');

@@ -12,7 +12,7 @@ let {{ service.name | caseCamel }} = new sdk.{{service.name | caseUcfirst}}(clie
 client
 {% for node in method.security %}
 {% for key,header in node|keys %}
-    .set{{header}}('{{node[header].extensions.demo}}')
+    .set{{header}}('{{node[header].extensions.demo}}') // {{node[header].description}}
 {% endfor %}
 {% endfor %};
 
