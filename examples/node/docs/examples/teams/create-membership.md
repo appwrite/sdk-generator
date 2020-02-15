@@ -6,7 +6,7 @@ let client = new sdk.Client();
 let teams = new sdk.Teams(client);
 
 client
-    .setProject('')
+    .setProject('5df5acd0d48c2')
 ;
 
 let promise = teams.createMembership('[TEAM_ID]', 'email@example.com', [], 'https://example.com');

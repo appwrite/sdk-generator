@@ -6,7 +6,7 @@ use Appwrite\Services\Teams;
 $client = new Client();
 
 $client
-    ->setProject('')
+    ->setProject('5df5acd0d48c2')
 ;
 
 $teams = new Teams($client);

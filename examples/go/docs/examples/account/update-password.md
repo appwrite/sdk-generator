@@ -8,7 +8,7 @@ import (
 func main() {
     var client := appwrite.Client{}
 
-    client.SetProject("")
+    client.SetProject("5df5acd0d48c2")
 
     var service := appwrite.Account{
         client: &client

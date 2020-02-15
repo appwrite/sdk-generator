@@ -7,7 +7,7 @@ client = Client()
 (client
 {% for node in method.security %}
 {% for key,header in node|keys %}
-  .set_{{header | caseSnake}}('')
+  .set_{{header | caseSnake}}('{{node[header].extensions.demo}}')
 {% endfor %}
 {% endfor %})
 

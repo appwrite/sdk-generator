@@ -6,7 +6,7 @@ let client = new sdk.Client();
 let locale = new sdk.Locale(client);
 
 client
-    .setProject('')
+    .setProject('5df5acd0d48c2')
 ;
 
 let promise = locale.getCountries();
