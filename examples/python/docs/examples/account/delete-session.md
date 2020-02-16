@@ -9,4 +9,4 @@ client = Client()
 
 account = Account(client)
 
-result = account.delete_session('[SESSION_UID]')
+result = account.delete_session('[SESSION_ID]')

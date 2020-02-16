@@ -352,12 +352,12 @@ class Account extends Service {
      * account sessions across all his different devices. When using the option id
      * argument, only the session unique ID provider will be deleted.
      *
-     * @param string sessionUid
+     * @param string sessionId
      * @throws Exception
      * @return {}
      */
-    async deleteSession(sessionUid) {
-        let path = '/account/sessions/{sessionUid}'.replace(new RegExp('{sessionUid}', 'g'), sessionUid);
+    async deleteSession(sessionId) {
+        let path = '/account/sessions/{sessionId}'.replace(new RegExp('{sessionId}', 'g'), sessionId);
         
         return await this.client.call('delete', path, {
                     'content-type': 'application/json',

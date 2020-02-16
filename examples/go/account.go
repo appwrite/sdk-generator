@@ -227,9 +227,9 @@ func (srv *Account) CreateOAuthSession(Provider string, Success string, Failure 
 // from all his account sessions across all his different devices. When using
 // the option id argument, only the session unique ID provider will be
 // deleted.
-func (srv *Account) DeleteSession(SessionUid string) (map[string]interface{}, error) {
-	r := strings.NewReplacer("{sessionUid}", SessionUid)
-	path := r.Replace("/account/sessions/{sessionUid}")
+func (srv *Account) DeleteSession(SessionId string) (map[string]interface{}, error) {
+	r := strings.NewReplacer("{sessionId}", SessionId)
+	path := r.Replace("/account/sessions/{sessionId}")
 
 	params := map[string]interface{}{
 	}

@@ -190,7 +190,7 @@ GET https://appwrite.io/v1/account/sessions/oauth/{provider}
 ## Delete Account Session
 
 ```http request
-DELETE https://appwrite.io/v1/account/sessions/{sessionUid}
+DELETE https://appwrite.io/v1/account/sessions/{sessionId}
 ```
 
 ** Use this endpoint to log out the currently logged in user from all his account sessions across all his different devices. When using the option id argument, only the session unique ID provider will be deleted. **
@@ -199,7 +199,7 @@ DELETE https://appwrite.io/v1/account/sessions/{sessionUid}
 
 | Field Name | Type | Description | Default |
 | --- | --- | --- | --- |
-| sessionUid | string | **Required** Session unique ID. Use the string &#039;current&#039; to delete the current device session. |  |
+| sessionId | string | **Required** Session unique ID. Use the string &#039;current&#039; to delete the current device session. |  |
 
 ## Create Email Verification
 

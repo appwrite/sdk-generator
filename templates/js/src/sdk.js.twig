@@ -293,7 +293,19 @@
                 }
 
 {% endfor %}
-{% if method.cookies %}
+{% if method.location %}
+{% if method.security|length > 0 %}
+{% for node in method.security %}
+{% for key,header in node|keys %}
+                payload['{{header|caseLower}}'] = config.{{header|caseLower}};
+
+{% endfor %}
+{% endfor %}
+{% endif %}
+                let query = Object.keys(payload).map(key => key + '=' + encodeURIComponent(payload[key])).join('&');
+
+                return config.endpoint + path + ((query) ? '?' + query : '');
+{% elseif method.cookies %}
                 payload['project'] = config.project;
 
                 return iframe('{{ method.method | caseLower }}', path, payload);

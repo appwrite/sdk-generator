@@ -3,6 +3,10 @@ from appwrite.services.account import Account
 
 client = Client()
 
+(client
+  .set_project('5df5acd0d48c2') # Your project ID
+)
+
 account = Account(client)
 
 result = account.update_recovery('[USER_ID]', '[SECRET]', 'password', 'password')

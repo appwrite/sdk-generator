@@ -186,9 +186,9 @@ module Appwrite
             }, params);
         end
 
-        def delete_session(session_uid:)
-            path = '/account/sessions/{sessionUid}'
-                .gsub('{session_uid}', session_uid)
+        def delete_session(session_id:)
+            path = '/account/sessions/{sessionId}'
+                .gsub('{session_id}', session_id)
 
             params = {
             }

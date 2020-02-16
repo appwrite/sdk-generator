@@ -14,7 +14,7 @@ func main() {
         client: &client
     }
 
-    var response, error := service.DeleteSession("[SESSION_UID]")
+    var response, error := service.DeleteSession("[SESSION_ID]")
 
     if error != nil {
         panic(error)

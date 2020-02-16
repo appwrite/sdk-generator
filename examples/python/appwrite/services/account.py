@@ -176,12 +176,12 @@ class Account(Service):
             'content-type': 'application/json',
         }, params)
 
-    def delete_session(self, session_uid):
+    def delete_session(self, session_id):
         """Delete Account Session"""
 
         params = {}
-        path = '/account/sessions/{sessionUid}'
-        path = path.replace('{sessionUid}', session_uid)                
+        path = '/account/sessions/{sessionId}'
+        path = path.replace('{sessionId}', session_id)                
 
         return self.client.call('delete', path, {
             'content-type': 'application/json',

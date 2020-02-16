@@ -5,6 +5,10 @@ let client = new sdk.Client();
 
 let account = new sdk.Account(client);
 
+client
+    .setProject('5df5acd0d48c2') // Your project ID
+;
+
 let promise = account.updateVerification('[USER_ID]', '[SECRET]');
 
 promise.then(function (response) {

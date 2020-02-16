@@ -373,13 +373,13 @@ class Account extends Service
      * account sessions across all his different devices. When using the option id
      * argument, only the session unique ID provider will be deleted.
      *
-     * @param string  $sessionUid
+     * @param string  $sessionId
      * @throws Exception
      * @return array
      */
-    public function deleteSession(string $sessionUid):array
+    public function deleteSession(string $sessionId):array
     {
-        $path   = str_replace(['{sessionUid}'], [$sessionUid], '/account/sessions/{sessionUid}');
+        $path   = str_replace(['{sessionId}'], [$sessionId], '/account/sessions/{sessionId}');
         $params = [];
 
 

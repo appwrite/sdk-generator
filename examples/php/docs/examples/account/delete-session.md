@@ -11,4 +11,4 @@ $client
 
 $account = new Account($client);
 
-$result = $account->deleteSession('[SESSION_UID]');
+$result = $account->deleteSession('[SESSION_ID]');

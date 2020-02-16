@@ -784,10 +784,11 @@
                     payload['failure'] = failure;
                 }
 
-                return http
-                    .get(path, {
-                        'content-type': 'application/json',
-                    }, payload);
+                payload['project'] = config.project;
+
+                let query = Object.keys(payload).map(key => key + '=' + encodeURIComponent(payload[key])).join('&');
+
+                return config.endpoint + path + ((query) ? '?' + query : '');
             },
 
             /**
@@ -797,16 +798,16 @@
              * account sessions across all his different devices. When using the option id
              * argument, only the session unique ID provider will be deleted.
              *
-             * @param {string} sessionUid
+             * @param {string} sessionId
              * @throws {Error}
              * @return {Promise}             
              */
-            deleteSession: function(sessionUid) {
-                if(sessionUid === undefined) {
-                    throw new Error('Missing required parameter: "sessionUid"');
+            deleteSession: function(sessionId) {
+                if(sessionId === undefined) {
+                    throw new Error('Missing required parameter: "sessionId"');
                 }
                 
-                let path = '/account/sessions/{sessionUid}'.replace(new RegExp('{sessionUid}', 'g'), sessionUid);
+                let path = '/account/sessions/{sessionId}'.replace(new RegExp('{sessionId}', 'g'), sessionId);
 
                 let payload = {};
 
