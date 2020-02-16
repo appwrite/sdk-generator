@@ -9,10 +9,13 @@ sdk
 {% endfor %};
 
 {% endif %}
-let promise = sdk.{{ service.name | caseLower }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
+let {% if method.location %}result{% else %}promise{% endif %} = sdk.{{ service.name | caseLower }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
 
+{% if method.location %}
+console.log(result); // Resource URL
+{% else %}
 promise.then(function (response) {
-    console.log(response);
+    console.log(response); // Success
 }, function (error) {
-    console.log(error);
-});
+    console.log(error); // Failure
+});{% endif %}

@@ -7,7 +7,7 @@ sdk
 let promise = sdk.teams.updateMembershipStatus('[TEAM_ID]', '[INVITE_ID]', '[USER_ID]', '[SECRET]');
 
 promise.then(function (response) {
-    console.log(response);
+    console.log(response); // Success
 }, function (error) {
-    console.log(error);
+    console.log(error); // Failure
 });

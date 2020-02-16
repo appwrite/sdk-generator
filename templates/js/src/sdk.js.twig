@@ -265,7 +265,7 @@
              * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
              * @throws {Error}
-             * @return {% if method.cookies %}{null}{% else %}{Promise}{% endif %}
+             * @return {% if method.location %}{string}{% elseif method.cookies %}{null}{% else %}{Promise}{% endif %}
              
              */
             {{ method.name }}: function({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) {
