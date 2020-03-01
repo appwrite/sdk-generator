@@ -207,13 +207,13 @@ func (srv *Account) DeleteSessions() (map[string]interface{}, error) {
 	return srv.client.Call("DELETE", path, nil, params)
 }
 
-// CreateOAuthSession allow the user to login to his account using the OAuth
-// provider of his choice. Each OAuth provider should be enabled from the
+// CreateOAuth2Session allow the user to login to his account using the OAuth2
+// provider of his choice. Each OAuth2 provider should be enabled from the
 // Appwrite console first. Use the success and failure arguments to provide a
 // redirect URL's back to your app when login is completed.
-func (srv *Account) CreateOAuthSession(Provider string, Success string, Failure string) (map[string]interface{}, error) {
+func (srv *Account) CreateOAuth2Session(Provider string, Success string, Failure string) (map[string]interface{}, error) {
 	r := strings.NewReplacer("{provider}", Provider)
-	path := r.Replace("/account/sessions/oauth/{provider}")
+	path := r.Replace("/account/sessions/oauth2/{provider}")
 
 	params := map[string]interface{}{
 		"success": Success,

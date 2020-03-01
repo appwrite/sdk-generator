@@ -163,11 +163,11 @@ class Account(Service):
             'content-type': 'application/json',
         }, params)
 
-    def create_o_auth_session(self, provider, success, failure):
-        """Create Account Session with OAuth"""
+    def create_o_auth2session(self, provider, success, failure):
+        """Create Account Session with OAuth2"""
 
         params = {}
-        path = '/account/sessions/oauth/{provider}'
+        path = '/account/sessions/oauth2/{provider}'
         path = path.replace('{provider}', provider)                
         params['success'] = success
         params['failure'] = failure

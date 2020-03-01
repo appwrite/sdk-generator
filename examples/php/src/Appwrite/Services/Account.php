@@ -340,10 +340,10 @@ class Account extends Service
     }
 
     /**
-     * Create Account Session with OAuth
+     * Create Account Session with OAuth2
      *
-     * Allow the user to login to his account using the OAuth provider of his
-     * choice. Each OAuth provider should be enabled from the Appwrite console
+     * Allow the user to login to his account using the OAuth2 provider of his
+     * choice. Each OAuth2 provider should be enabled from the Appwrite console
      * first. Use the success and failure arguments to provide a redirect URL's
      * back to your app when login is completed.
      *
@@ -353,9 +353,9 @@ class Account extends Service
      * @throws Exception
      * @return array
      */
-    public function createOAuthSession(string $provider, string $success, string $failure):array
+    public function createOAuth2Session(string $provider, string $success, string $failure):array
     {
-        $path   = str_replace(['{provider}'], [$provider], '/account/sessions/oauth/{provider}');
+        $path   = str_replace(['{provider}'], [$provider], '/account/sessions/oauth2/{provider}');
         $params = [];
 
         $params['success'] = $success;

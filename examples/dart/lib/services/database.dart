@@ -10,7 +10,7 @@ class Database extends Service {
      /// filter your results. On admin mode, this endpoint will return a list of all
      /// of the project documents. [Learn more about different API
      /// modes](/docs/admin).
-    Future<Response> listDocuments({collectionId, filters = const [], offset = null, limit = 50, orderField = '\$uid', orderType = 'ASC', orderCast = 'string', search = null, first = null, last = null}) async {
+    Future<Response> listDocuments({collectionId, filters = const [], offset = null, limit = 50, orderField = '\$id', orderType = 'ASC', orderCast = 'string', search = null, first = null, last = null}) async {
        String path = '/database/collections/{collectionId}/documents'.replaceAll(RegExp('{collectionId}'), collectionId);
 
        Map<String, dynamic> params = {

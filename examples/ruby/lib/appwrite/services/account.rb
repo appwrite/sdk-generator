@@ -172,8 +172,8 @@ module Appwrite
             }, params);
         end
 
-        def create_o_auth_session(provider:, success:, failure:)
-            path = '/account/sessions/oauth/{provider}'
+        def create_o_auth2session(provider:, success:, failure:)
+            path = '/account/sessions/oauth2/{provider}'
                 .gsub('{provider}', provider)
 
             params = {

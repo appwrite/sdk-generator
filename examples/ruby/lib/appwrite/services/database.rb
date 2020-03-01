@@ -1,7 +1,7 @@
 module Appwrite
     class Database < Service
 
-        def list_documents(collection_id:, filters: [], offset: 0, limit: 50, order_field: '$uid', order_type: 'ASC', order_cast: 'string', search: '', first: 0, last: 0)
+        def list_documents(collection_id:, filters: [], offset: 0, limit: 50, order_field: '$id', order_type: 'ASC', order_cast: 'string', search: '', first: 0, last: 0)
             path = '/database/collections/{collectionId}/documents'
                 .gsub('{collection_id}', collection_id)
 

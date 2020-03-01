@@ -171,19 +171,19 @@ DELETE https://appwrite.io/v1/account/sessions
 
 ** Delete all sessions from the user account and remove any sessions cookies from the end client. **
 
-## Create Account Session with OAuth
+## Create Account Session with OAuth2
 
 ```http request
-GET https://appwrite.io/v1/account/sessions/oauth/{provider}
+GET https://appwrite.io/v1/account/sessions/oauth2/{provider}
 ```
 
-** Allow the user to login to his account using the OAuth provider of his choice. Each OAuth provider should be enabled from the Appwrite console first. Use the success and failure arguments to provide a redirect URL&#039;s back to your app when login is completed. **
+** Allow the user to login to his account using the OAuth2 provider of his choice. Each OAuth2 provider should be enabled from the Appwrite console first. Use the success and failure arguments to provide a redirect URL&#039;s back to your app when login is completed. **
 
 ### Parameters
 
 | Field Name | Type | Description | Default |
 | --- | --- | --- | --- |
-| provider | string | **Required** OAuth Provider. Currently, supported providers are: bitbucket, facebook, github, gitlab, google, microsoft, linkedin, slack, dropbox, salesforce, amazon, vk, discord, twitch, spotify, yahoo, yandex, twitter, paypal, bitly. |  |
+| provider | string | **Required** OAuth2 Provider. Currently, supported providers are: bitbucket, facebook, github, gitlab, google, microsoft, linkedin, slack, dropbox, salesforce, amazon, vk, discord, twitch, spotify, yahoo, yandex, twitter, paypal, bitly. |  |
 | success | string | **Required** URL to redirect back to your app after a successful login attempt. |  |
 | failure | string | **Required** URL to redirect back to your app after a failed login attempt. |  |
 

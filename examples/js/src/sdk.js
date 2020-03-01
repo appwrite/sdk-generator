@@ -171,6 +171,10 @@
                     path = addParam(path, globalParams[i].key, globalParams[i].value);
                 }
 
+                if(window.localStorage && window.localStorage.getItem('cookieFallback')) {
+                    headers['X-Fallback-Cookies'] = window.localStorage.getItem('cookieFallback');
+                }
+
                 for (let key in globalHeaders) { // Add Global Headers
                     if (globalHeaders.hasOwnProperty(key)) {
                         if (!headers[globalHeaders[key].key]) {
@@ -231,6 +235,13 @@
                                 case 'application/json':
                                     data = JSON.parse(data);
                                     break;
+                            }
+
+                            let cookieFallback = this.getResponseHeader('X-Fallback-Cookies') || '';
+                            
+                            if(window.localStorage && cookieFallback) {
+                                window.console.warn('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
+                                window.localStorage.setItem('cookieFallback', cookieFallback);
                             }
 
                             resolve(data);
@@ -746,10 +757,10 @@
             },
 
             /**
-             * Create Account Session with OAuth
+             * Create Account Session with OAuth2
              *
-             * Allow the user to login to his account using the OAuth provider of his
-             * choice. Each OAuth provider should be enabled from the Appwrite console
+             * Allow the user to login to his account using the OAuth2 provider of his
+             * choice. Each OAuth2 provider should be enabled from the Appwrite console
              * first. Use the success and failure arguments to provide a redirect URL's
              * back to your app when login is completed.
              *
@@ -759,7 +770,7 @@
              * @throws {Error}
              * @return {string}             
              */
-            createOAuthSession: function(provider, success, failure) {
+            createOAuth2Session: function(provider, success, failure) {
                 if(provider === undefined) {
                     throw new Error('Missing required parameter: "provider"');
                 }
@@ -772,7 +783,7 @@
                     throw new Error('Missing required parameter: "failure"');
                 }
                 
-                let path = '/account/sessions/oauth/{provider}'.replace(new RegExp('{provider}', 'g'), provider);
+                let path = '/account/sessions/oauth2/{provider}'.replace(new RegExp('{provider}', 'g'), provider);
 
                 let payload = {};
 
@@ -1163,7 +1174,7 @@
              * @throws {Error}
              * @return {Promise}             
              */
-            listDocuments: function(collectionId, filters = [], offset = 0, limit = 50, orderField = '$uid', orderType = 'ASC', orderCast = 'string', search = '', first = 0, last = 0) {
+            listDocuments: function(collectionId, filters = [], offset = 0, limit = 50, orderField = '$id', orderType = 'ASC', orderCast = 'string', search = '', first = 0, last = 0) {
                 if(collectionId === undefined) {
                     throw new Error('Missing required parameter: "collectionId"');
                 }

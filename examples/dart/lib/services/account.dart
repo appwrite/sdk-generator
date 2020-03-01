@@ -180,12 +180,12 @@ class Account extends Service {
 
        return await this.client.call('delete', path: path, params: params);
     }
-     /// Allow the user to login to his account using the OAuth provider of his
-     /// choice. Each OAuth provider should be enabled from the Appwrite console
+     /// Allow the user to login to his account using the OAuth2 provider of his
+     /// choice. Each OAuth2 provider should be enabled from the Appwrite console
      /// first. Use the success and failure arguments to provide a redirect URL's
      /// back to your app when login is completed.
-    Future<Response> createOAuthSession({provider, success, failure}) async {
-       String path = '/account/sessions/oauth/{provider}'.replaceAll(RegExp('{provider}'), provider);
+    Future<Response> createOAuth2Session({provider, success, failure}) async {
+       String path = '/account/sessions/oauth2/{provider}'.replaceAll(RegExp('{provider}'), provider);
 
        Map<String, dynamic> params = {
          'success': success,

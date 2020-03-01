@@ -320,10 +320,10 @@ class Account extends Service {
     }
 
     /**
-     * Create Account Session with OAuth
+     * Create Account Session with OAuth2
      *
-     * Allow the user to login to his account using the OAuth provider of his
-     * choice. Each OAuth provider should be enabled from the Appwrite console
+     * Allow the user to login to his account using the OAuth2 provider of his
+     * choice. Each OAuth2 provider should be enabled from the Appwrite console
      * first. Use the success and failure arguments to provide a redirect URL's
      * back to your app when login is completed.
      *
@@ -333,8 +333,8 @@ class Account extends Service {
      * @throws Exception
      * @return {}
      */
-    async createOAuthSession(provider, success, failure) {
-        let path = '/account/sessions/oauth/{provider}'.replace(new RegExp('{provider}', 'g'), provider);
+    async createOAuth2Session(provider, success, failure) {
+        let path = '/account/sessions/oauth2/{provider}'.replace(new RegExp('{provider}', 'g'), provider);
         
         return await this.client.call('get', path, {
                     'content-type': 'application/json',

@@ -29,7 +29,7 @@ class Database extends Service
      * @throws Exception
      * @return array
      */
-    public function listDocuments(string $collectionId, array $filters = [], int $offset = 0, int $limit = 50, string $orderField = '$uid', string $orderType = 'ASC', string $orderCast = 'string', string $search = '', int $first = 0, int $last = 0):array
+    public function listDocuments(string $collectionId, array $filters = [], int $offset = 0, int $limit = 50, string $orderField = '$id', string $orderType = 'ASC', string $orderCast = 'string', string $search = '', int $first = 0, int $last = 0):array
     {
         $path   = str_replace(['{collectionId}'], [$collectionId], '/database/collections/{collectionId}/documents');
         $params = [];
