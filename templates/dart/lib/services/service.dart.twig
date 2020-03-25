@@ -1,6 +1,11 @@
+import 'dart:html';
+
 import "package:{{ spec.title | caseDash }}/service.dart";
 import "package:{{ spec.title | caseDash }}/client.dart";
 import 'package:dio/dio.dart';
+import 'package:meta/meta.dart';
+
+import '../enums.dart';
 
 class {{ service.name | caseUcfirst }} extends Service {
      
@@ -10,7 +15,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% if method.description %}
 {{ method.description|dartComment }}
 {% endif %}
-    Future<Response> {{ method.name | caseCamel }}({% if method.parameters.all|length > 0 %}{{ '{' }}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | escapeDollarSign | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}) async {
+    Future<Response> {{ method.name | caseCamel }}({% if method.parameters.all|length > 0 %}{{ '{' }}{% for parameter in method.parameters.all %}{% if parameter.required %}@required {% endif %}{{ parameter.type | typeName }} {{ parameter.name | caseCamel }}{{ parameter | escapeDollarSign | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}) async {
        String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
 
        Map<String, dynamic> params = {
@@ -22,7 +27,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
        };
 
-       return await this.client.call('{{ method.method | caseLower }}', path: path, params: params);
+       return await this.client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params);
     }
 {% endfor %}
 }
