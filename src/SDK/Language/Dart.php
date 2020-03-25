@@ -120,7 +120,9 @@ class Dart extends Language {
                 return 'bool';
             break;
             case self::TYPE_ARRAY:
-                 return 'array';
+            	return 'List';
+			case self::TYPE_OBJECT:
+				return 'dynamic';
             break;
         }
 
@@ -264,6 +266,12 @@ class Dart extends Language {
                 'template'      => '/dart/lib/service.dart.twig',
                 'minify'        => false,
             ],
+            [
+				'scope'         => 'default',
+				'destination'   => '/lib/enums.dart',
+				'template'      => '/dart/lib/enums.dart.twig',
+				'minify'        => false,
+			],
             [
                 'scope'         => 'service',
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
