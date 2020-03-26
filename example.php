@@ -11,6 +11,7 @@ use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
 use Appwrite\SDK\Language\Dart;
 use Appwrite\SDK\Language\Go;
+use Appwrite\SDK\Language\Typescript;
 
 $languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go'];
 
@@ -62,6 +63,19 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/js');
+
+    // TypeScript
+    $sdk  = new SDK(new Typescript(), new Swagger2($spec));
+
+    $sdk
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/typescript');
 
     // Node
     $sdk  = new SDK(new Node(), new Swagger2($spec));

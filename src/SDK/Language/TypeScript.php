@@ -2,14 +2,14 @@
 
 namespace Appwrite\SDK\Language;
 
-class Node extends JS
+class Typescript extends JS
 {
     /**
      * @return string
      */
     public function getName()
     {
-        return 'NodeJS';
+        return 'TypeScript';
     }
 
     /**
@@ -20,50 +20,50 @@ class Node extends JS
         return [
             [
                 'scope'         => 'default',
-                'destination'   => 'index.js',
-                'template'      => '/node/index.js.twig',
+                'destination'   => 'index.ts',
+                'template'      => '/typescript/index.ts.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/client.js',
-                'template'      => '/node/lib/client.js.twig',
+                'destination'   => 'src/client.ts',
+                'template'      => '/typescript/src/client.ts.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/service.js',
-                'template'      => '/node/lib/service.js.twig',
+                'destination'   => '/src/service.ts',
+                'template'      => '/typescript/src/service.ts.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/lib/services/{{service.name | caseDash}}.js',
-                'template'      => '/node/lib/services/service.js.twig',
+                'destination'   => '/src/services/{{service.name | caseDash}}.ts',
+                'template'      => '/typescript/src/services/service.ts.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
-                'template'      => '/node/README.md.twig',
+                'template'      => '/typescript/README.md.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
-                'template'      => '/node/LICENSE.twig',
+                'template'      => '/typescript/LICENSE.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'package.json',
-                'template'      => '/node/package.json.twig',
+                'template'      => '/typescript/package.json.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => '/node/docs/example.md.twig',
+                'template'      => '/typescript/docs/example.md.twig',
                 'minify'        => false,
             ],
         ];
