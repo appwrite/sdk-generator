@@ -29,7 +29,7 @@ try {
     }
 
     $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
-    $spec = getSSLPage('https://localhost/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
+    //$spec = getSSLPage('https://localhost/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -39,7 +39,7 @@ try {
     $sdk  = new SDK(new PHP(), new Swagger2($spec));
 
     $sdk
-        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLogo('https://appwrite.io/images/github.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
         ->setGitUserName('repoowner')
