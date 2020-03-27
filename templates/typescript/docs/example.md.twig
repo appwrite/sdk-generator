@@ -1,7 +1,7 @@
-const sdk = require('node-appwrite');
-{% if method.consumes[0] == 'multipart/form-data' %}
+import * as sdk from "{{ spec.title | caseDash }}";
+{# {% if method.consumes[0] == 'multipart/form-data' %}
 const fs = require('fs');
-{% endif %}
+{% endif %} #}
 
 // Init SDK
 let client = new sdk.Client();

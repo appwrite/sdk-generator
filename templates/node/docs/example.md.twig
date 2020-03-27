@@ -1,4 +1,4 @@
-const sdk = require('node-appwrite');
+const sdk = require('node-{{ spec.title | caseDash }}');
 {% if method.consumes[0] == 'multipart/form-data' %}
 const fs = require('fs');
 {% endif %}
