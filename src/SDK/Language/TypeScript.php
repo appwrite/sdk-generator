@@ -26,6 +26,12 @@ class Typescript extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'tsconfig.json',
+                'template'      => '/typescript/tsconfig.json.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/client.ts',
                 'template'      => '/typescript/src/client.ts.twig',
                 'minify'        => false,

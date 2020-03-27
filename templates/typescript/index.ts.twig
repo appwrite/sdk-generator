@@ -3,7 +3,7 @@ import { Client } from "./src/client";
 import { {{service.name | caseUcfirst}} } from "./src/services/{{service.name | caseDash}}";
 {% endfor %}
 
-export = {
+export {
     Client,
 {% for service in spec.services %}
     {{service.name | caseUcfirst}},

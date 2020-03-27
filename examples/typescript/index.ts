@@ -6,7 +6,7 @@ import { Locale } from "./src/services/locale";
 import { Storage } from "./src/services/storage";
 import { Teams } from "./src/services/teams";
 
-export = {
+export {
     Client,
     Account,
     Avatars,

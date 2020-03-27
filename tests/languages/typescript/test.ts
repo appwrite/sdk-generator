@@ -1,5 +1,5 @@
-import appwrite from "../../sdks/typescript/index";
-import * as fs from "fs";
+import * as appwrite from "../../sdks/typescript/index";
+//import * as fs from "fs";
 
 async function start() {
     var response;
@@ -50,9 +50,9 @@ async function start() {
     response = await general.redirect();
     console.log(response.result);
 
-    response = await general.upload('string', 123, ['string in array'], fs.createReadStream(__dirname + '/../../resources/file.png'));
-    console.log(response.result);
-    console.log('---------------------');
+    // response = await general.upload('string', 123, ['string in array'], fs.createReadStream(__dirname + '/../../resources/file.png'));
+    // console.log(response.result);
+    // console.log('---------------------');
 
 }
 
