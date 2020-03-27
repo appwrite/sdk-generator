@@ -1,5 +1,9 @@
 import { Service } from "../service";
 
+interface assoc {
+    [key: string]: any;
+}
+
 export class Account extends Service {
 
     /**
@@ -8,9 +12,9 @@ export class Account extends Service {
      * Get currently logged in user data as JSON object.
      *
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async get() {
+    async get(): Promise<string> {
         let path = '/account';
         
         return await this.client.call('get', path, {
@@ -34,9 +38,9 @@ export class Account extends Service {
      * @param string password
      * @param string name
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async create(email, password, name = '') {
+    async create(email: string, password: string, name: string = ''): Promise<string> {
         let path = '/account';
         
         return await this.client.call('post', path, {
@@ -59,9 +63,9 @@ export class Account extends Service {
      * be deleted separately.
      *
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async delete() {
+    async delete(): Promise<string> {
         let path = '/account';
         
         return await this.client.call('delete', path, {
@@ -82,9 +86,9 @@ export class Account extends Service {
      * @param string email
      * @param string password
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async updateEmail(email, password) {
+    async updateEmail(email: string, password: string): Promise<string> {
         let path = '/account/email';
         
         return await this.client.call('patch', path, {
@@ -103,9 +107,9 @@ export class Account extends Service {
      * log returns user IP address, location and date and time of log.
      *
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getLogs() {
+    async getLogs(): Promise<string> {
         let path = '/account/logs';
         
         return await this.client.call('get', path, {
@@ -122,9 +126,9 @@ export class Account extends Service {
      *
      * @param string name
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async updateName(name) {
+    async updateName(name: string): Promise<string> {
         let path = '/account/name';
         
         return await this.client.call('patch', path, {
@@ -144,9 +148,9 @@ export class Account extends Service {
      * @param string password
      * @param string oldPassword
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async updatePassword(password, oldPassword) {
+    async updatePassword(password: string, oldPassword: string): Promise<string> {
         let path = '/account/password';
         
         return await this.client.call('patch', path, {
@@ -164,9 +168,9 @@ export class Account extends Service {
      * Get currently logged in user preferences as a key-value object.
      *
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getPrefs() {
+    async getPrefs(): Promise<string> {
         let path = '/account/prefs';
         
         return await this.client.call('get', path, {
@@ -182,11 +186,11 @@ export class Account extends Service {
      * Update currently logged in user account preferences. You can pass only the
      * specific settings you wish to update.
      *
-     * @param object prefs
+     * @param assoc prefs
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async updatePrefs(prefs) {
+    async updatePrefs(prefs: assoc): Promise<string> {
         let path = '/account/prefs';
         
         return await this.client.call('patch', path, {
@@ -210,9 +214,9 @@ export class Account extends Service {
      * @param string email
      * @param string url
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async createRecovery(email, url) {
+    async createRecovery(email: string, url: string): Promise<string> {
         let path = '/account/recovery';
         
         return await this.client.call('post', path, {
@@ -242,9 +246,9 @@ export class Account extends Service {
      * @param string passwordA
      * @param string passwordB
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async updateRecovery(userId, secret, passwordA, passwordB) {
+    async updateRecovery(userId: string, secret: string, passwordA: string, passwordB: string): Promise<string> {
         let path = '/account/recovery';
         
         return await this.client.call('put', path, {
@@ -265,9 +269,9 @@ export class Account extends Service {
      * devices.
      *
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getSessions() {
+    async getSessions(): Promise<string> {
         let path = '/account/sessions';
         
         return await this.client.call('get', path, {
@@ -286,9 +290,9 @@ export class Account extends Service {
      * @param string email
      * @param string password
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async createSession(email, password) {
+    async createSession(email: string, password: string): Promise<string> {
         let path = '/account/sessions';
         
         return await this.client.call('post', path, {
@@ -307,9 +311,9 @@ export class Account extends Service {
      * from the end client.
      *
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async deleteSessions() {
+    async deleteSessions(): Promise<string> {
         let path = '/account/sessions';
         
         return await this.client.call('delete', path, {
@@ -331,9 +335,9 @@ export class Account extends Service {
      * @param string success
      * @param string failure
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async createOAuth2Session(provider, success, failure) {
+    async createOAuth2Session(provider: string, success: string, failure: string): Promise<string> {
         let path = '/account/sessions/oauth2/{provider}'.replace(new RegExp('{provider}', 'g'), provider);
         
         return await this.client.call('get', path, {
@@ -354,9 +358,9 @@ export class Account extends Service {
      *
      * @param string sessionId
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async deleteSession(sessionId) {
+    async deleteSession(sessionId: string): Promise<string> {
         let path = '/account/sessions/{sessionId}'.replace(new RegExp('{sessionId}', 'g'), sessionId);
         
         return await this.client.call('delete', path, {
@@ -385,9 +389,9 @@ export class Account extends Service {
      *
      * @param string url
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async createVerification(url) {
+    async createVerification(url: string): Promise<string> {
         let path = '/account/verification';
         
         return await this.client.call('post', path, {
@@ -409,9 +413,9 @@ export class Account extends Service {
      * @param string userId
      * @param string secret
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async updateVerification(userId, secret) {
+    async updateVerification(userId: string, secret: string): Promise<string> {
         let path = '/account/verification';
         
         return await this.client.call('put', path, {

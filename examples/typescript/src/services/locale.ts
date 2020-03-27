@@ -1,5 +1,9 @@
 import { Service } from "../service";
 
+interface assoc {
+    [key: string]: any;
+}
+
 export class Locale extends Service {
 
     /**
@@ -13,9 +17,9 @@ export class Locale extends Service {
      * ([IP Geolocation by DB-IP](https://db-ip.com))
      *
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async get() {
+    async get(): Promise<string> {
         let path = '/locale';
         
         return await this.client.call('get', path, {
@@ -32,9 +36,9 @@ export class Locale extends Service {
      * supported language.
      *
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getContinents() {
+    async getContinents(): Promise<string> {
         let path = '/locale/continents';
         
         return await this.client.call('get', path, {
@@ -51,9 +55,9 @@ export class Locale extends Service {
      * supported language.
      *
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getCountries() {
+    async getCountries(): Promise<string> {
         let path = '/locale/countries';
         
         return await this.client.call('get', path, {
@@ -70,9 +74,9 @@ export class Locale extends Service {
      * locale header to get the data in a supported language.
      *
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getCountriesEU() {
+    async getCountriesEU(): Promise<string> {
         let path = '/locale/countries/eu';
         
         return await this.client.call('get', path, {
@@ -89,9 +93,9 @@ export class Locale extends Service {
      * data in a supported language.
      *
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getCountriesPhones() {
+    async getCountriesPhones(): Promise<string> {
         let path = '/locale/countries/phones';
         
         return await this.client.call('get', path, {
@@ -109,9 +113,9 @@ export class Locale extends Service {
      * get the data in a supported language.
      *
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getCurrencies() {
+    async getCurrencies(): Promise<string> {
         let path = '/locale/currencies';
         
         return await this.client.call('get', path, {

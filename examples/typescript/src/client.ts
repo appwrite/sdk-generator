@@ -1,13 +1,13 @@
 import * as request from "request-promise-native";
 
-interface Assoc {
-    [key: string]: string;
+interface assoc {
+    [key: string]: any;
 }
 
 export class Client {
 
     endpoint: string = 'https://appwrite.io/v1';
-    headers: Assoc = {
+    headers: assoc = {
         'content-type': '',
         'x-sdk-version': 'appwrite:typescript:',
     };
@@ -89,7 +89,7 @@ export class Client {
         return this;
     }
 
-    async call(method: string, path: string = '', headers: Assoc = {}, params: Assoc = {}) {
+    async call(method: string, path: string = '', headers: assoc = {}, params: assoc = {}) {
         headers = Object.assign(this.headers, headers);
 
         let contentType = headers['content-type'].toLowerCase();

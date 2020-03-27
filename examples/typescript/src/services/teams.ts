@@ -1,5 +1,9 @@
 import { Service } from "../service";
 
+interface assoc {
+    [key: string]: any;
+}
+
 export class Teams extends Service {
 
     /**
@@ -14,9 +18,9 @@ export class Teams extends Service {
      * @param number offset
      * @param string orderType
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async list(search = '', limit = 25, offset = 0, orderType = 'ASC') {
+    async list(search: string = '', limit: number = 25, offset: number = 0, orderType: string = 'ASC'): Promise<string> {
         let path = '/teams';
         
         return await this.client.call('get', path, {
@@ -39,11 +43,11 @@ export class Teams extends Service {
      * project.
      *
      * @param string name
-     * @param array roles
+     * @param Array<string> roles
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async create(name, roles = ["owner"]) {
+    async create(name: string, roles: Array<string> = ["owner"]): Promise<string> {
         let path = '/teams';
         
         return await this.client.call('post', path, {
@@ -63,9 +67,9 @@ export class Teams extends Service {
      *
      * @param string teamId
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async get(teamId) {
+    async get(teamId: string): Promise<string> {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('get', path, {
@@ -84,9 +88,9 @@ export class Teams extends Service {
      * @param string teamId
      * @param string name
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async update(teamId, name) {
+    async update(teamId: string, name: string): Promise<string> {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('put', path, {
@@ -105,9 +109,9 @@ export class Teams extends Service {
      *
      * @param string teamId
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async delete(teamId) {
+    async delete(teamId: string): Promise<string> {
         let path = '/teams/{teamId}'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('delete', path, {
@@ -125,9 +129,9 @@ export class Teams extends Service {
      *
      * @param string teamId
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getMemberships(teamId) {
+    async getMemberships(teamId: string): Promise<string> {
         let path = '/teams/{teamId}/memberships'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('get', path, {
@@ -156,13 +160,13 @@ export class Teams extends Service {
      *
      * @param string teamId
      * @param string email
-     * @param array roles
+     * @param Array<string> roles
      * @param string url
      * @param string name
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async createMembership(teamId, email, roles, url, name = '') {
+    async createMembership(teamId: string, email: string, roles: Array<string>, url: string, name: string = ''): Promise<string> {
         let path = '/teams/{teamId}/memberships'.replace(new RegExp('{teamId}', 'g'), teamId);
         
         return await this.client.call('post', path, {
@@ -186,9 +190,9 @@ export class Teams extends Service {
      * @param string teamId
      * @param string inviteId
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async deleteMembership(teamId, inviteId) {
+    async deleteMembership(teamId: string, inviteId: string): Promise<string> {
         let path = '/teams/{teamId}/memberships/{inviteId}'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
         
         return await this.client.call('delete', path, {
@@ -210,9 +214,9 @@ export class Teams extends Service {
      * @param string userId
      * @param string secret
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async updateMembershipStatus(teamId, inviteId, userId, secret) {
+    async updateMembershipStatus(teamId: string, inviteId: string, userId: string, secret: string): Promise<string> {
         let path = '/teams/{teamId}/memberships/{inviteId}/status'.replace(new RegExp('{teamId}', 'g'), teamId).replace(new RegExp('{inviteId}', 'g'), inviteId);
         
         return await this.client.call('patch', path, {

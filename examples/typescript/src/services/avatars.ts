@@ -1,5 +1,9 @@
 import { Service } from "../service";
 
+interface assoc {
+    [key: string]: any;
+}
+
 export class Avatars extends Service {
 
     /**
@@ -15,9 +19,9 @@ export class Avatars extends Service {
      * @param number height
      * @param number quality
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getBrowser(code, width = 100, height = 100, quality = 100) {
+    async getBrowser(code: string, width: number = 100, height: number = 100, quality: number = 100): Promise<string> {
         let path = '/avatars/browsers/{code}'.replace(new RegExp('{code}', 'g'), code);
         
         return await this.client.call('get', path, {
@@ -43,9 +47,9 @@ export class Avatars extends Service {
      * @param number height
      * @param number quality
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getCreditCard(code, width = 100, height = 100, quality = 100) {
+    async getCreditCard(code: string, width: number = 100, height: number = 100, quality: number = 100): Promise<string> {
         let path = '/avatars/credit-cards/{code}'.replace(new RegExp('{code}', 'g'), code);
         
         return await this.client.call('get', path, {
@@ -66,9 +70,9 @@ export class Avatars extends Service {
      *
      * @param string url
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getFavicon(url) {
+    async getFavicon(url: string): Promise<string> {
         let path = '/avatars/favicon';
         
         return await this.client.call('get', path, {
@@ -91,9 +95,9 @@ export class Avatars extends Service {
      * @param number height
      * @param number quality
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getFlag(code, width = 100, height = 100, quality = 100) {
+    async getFlag(code: string, width: number = 100, height: number = 100, quality: number = 100): Promise<string> {
         let path = '/avatars/flags/{code}'.replace(new RegExp('{code}', 'g'), code);
         
         return await this.client.call('get', path, {
@@ -118,9 +122,9 @@ export class Avatars extends Service {
      * @param number width
      * @param number height
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getImage(url, width = 400, height = 400) {
+    async getImage(url: string, width: number = 400, height: number = 400): Promise<string> {
         let path = '/avatars/image';
         
         return await this.client.call('get', path, {
@@ -144,9 +148,9 @@ export class Avatars extends Service {
      * @param number margin
      * @param number download
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getQR(text, size = 400, margin = 1, download = 0) {
+    async getQR(text: string, size: number = 400, margin: number = 1, download: number = 0): Promise<string> {
         let path = '/avatars/qr';
         
         return await this.client.call('get', path, {

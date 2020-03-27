@@ -1,5 +1,9 @@
 import { Service } from "../service";
 
+interface assoc {
+    [key: string]: any;
+}
+
 export class Database extends Service {
 
     /**
@@ -11,7 +15,7 @@ export class Database extends Service {
      * modes](/docs/admin).
      *
      * @param string collectionId
-     * @param array filters
+     * @param Array<string> filters
      * @param number offset
      * @param number limit
      * @param string orderField
@@ -21,9 +25,9 @@ export class Database extends Service {
      * @param number first
      * @param number last
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async listDocuments(collectionId, filters = [], offset = 0, limit = 50, orderField = '$id', orderType = 'ASC', orderCast = 'string', search = '', first = 0, last = 0) {
+    async listDocuments(collectionId: string, filters: Array<string> = [], offset: number = 0, limit: number = 50, orderField: string = '$id', orderType: string = 'ASC', orderCast: string = 'string', search: string = '', first: number = 0, last: number = 0): Promise<string> {
         let path = '/database/collections/{collectionId}/documents'.replace(new RegExp('{collectionId}', 'g'), collectionId);
         
         return await this.client.call('get', path, {
@@ -48,16 +52,16 @@ export class Database extends Service {
      * Create a new Document.
      *
      * @param string collectionId
-     * @param object data
-     * @param array read
-     * @param array write
+     * @param assoc data
+     * @param Array<string> read
+     * @param Array<string> write
      * @param string parentDocument
      * @param string parentProperty
      * @param string parentPropertyType
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async createDocument(collectionId, data, read, write, parentDocument = '', parentProperty = '', parentPropertyType = 'assign') {
+    async createDocument(collectionId: string, data: assoc, read: Array<string>, write: Array<string>, parentDocument: string = '', parentProperty: string = '', parentPropertyType: string = 'assign'): Promise<string> {
         let path = '/database/collections/{collectionId}/documents'.replace(new RegExp('{collectionId}', 'g'), collectionId);
         
         return await this.client.call('post', path, {
@@ -82,9 +86,9 @@ export class Database extends Service {
      * @param string collectionId
      * @param string documentId
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getDocument(collectionId, documentId) {
+    async getDocument(collectionId: string, documentId: string): Promise<string> {
         let path = '/database/collections/{collectionId}/documents/{documentId}'.replace(new RegExp('{collectionId}', 'g'), collectionId).replace(new RegExp('{documentId}', 'g'), documentId);
         
         return await this.client.call('get', path, {
@@ -99,13 +103,13 @@ export class Database extends Service {
      *
      * @param string collectionId
      * @param string documentId
-     * @param object data
-     * @param array read
-     * @param array write
+     * @param assoc data
+     * @param Array<string> read
+     * @param Array<string> write
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async updateDocument(collectionId, documentId, data, read, write) {
+    async updateDocument(collectionId: string, documentId: string, data: assoc, read: Array<string>, write: Array<string>): Promise<string> {
         let path = '/database/collections/{collectionId}/documents/{documentId}'.replace(new RegExp('{collectionId}', 'g'), collectionId).replace(new RegExp('{documentId}', 'g'), documentId);
         
         return await this.client.call('patch', path, {
@@ -128,9 +132,9 @@ export class Database extends Service {
      * @param string collectionId
      * @param string documentId
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async deleteDocument(collectionId, documentId) {
+    async deleteDocument(collectionId: string, documentId: string): Promise<string> {
         let path = '/database/collections/{collectionId}/documents/{documentId}'.replace(new RegExp('{collectionId}', 'g'), collectionId).replace(new RegExp('{documentId}', 'g'), documentId);
         
         return await this.client.call('delete', path, {

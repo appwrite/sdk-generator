@@ -89,7 +89,7 @@ class SDK
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('typeName', function ($value) {
             return $this->language->getTypeName($value);
-        }));
+        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('paramDefault', function ($value) {
             return $this->language->getParamDefault($value);
         }, ['is_safe' => ['html']]));

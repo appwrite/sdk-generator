@@ -1,5 +1,9 @@
 import { Service } from "../service";
 
+interface assoc {
+    [key: string]: any;
+}
+
 export class Storage extends Service {
 
     /**
@@ -14,9 +18,9 @@ export class Storage extends Service {
      * @param number offset
      * @param string orderType
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async listFiles(search = '', limit = 25, offset = 0, orderType = 'ASC') {
+    async listFiles(search: string = '', limit: number = 25, offset: number = 0, orderType: string = 'ASC'): Promise<string> {
         let path = '/storage/files';
         
         return await this.client.call('get', path, {
@@ -37,13 +41,13 @@ export class Storage extends Service {
      * assigned to read and write access unless he has passed custom values for
      * read and write arguments.
      *
-     * @param File file
-     * @param array read
-     * @param array write
+     * @param HTMLElement file
+     * @param Array<string> read
+     * @param Array<string> write
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async createFile(file, read, write) {
+    async createFile(file: HTMLElement, read: Array<string>, write: Array<string>): Promise<string> {
         let path = '/storage/files';
         
         return await this.client.call('post', path, {
@@ -64,9 +68,9 @@ export class Storage extends Service {
      *
      * @param string fileId
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getFile(fileId) {
+    async getFile(fileId: string): Promise<string> {
         let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
         
         return await this.client.call('get', path, {
@@ -83,12 +87,12 @@ export class Storage extends Service {
      * to update this resource.
      *
      * @param string fileId
-     * @param array read
-     * @param array write
+     * @param Array<string> read
+     * @param Array<string> write
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async updateFile(fileId, read, write) {
+    async updateFile(fileId: string, read: Array<string>, write: Array<string>): Promise<string> {
         let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
         
         return await this.client.call('put', path, {
@@ -108,9 +112,9 @@ export class Storage extends Service {
      *
      * @param string fileId
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async deleteFile(fileId) {
+    async deleteFile(fileId: string): Promise<string> {
         let path = '/storage/files/{fileId}'.replace(new RegExp('{fileId}', 'g'), fileId);
         
         return await this.client.call('delete', path, {
@@ -129,9 +133,9 @@ export class Storage extends Service {
      *
      * @param string fileId
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getFileDownload(fileId) {
+    async getFileDownload(fileId: string): Promise<string> {
         let path = '/storage/files/{fileId}/download'.replace(new RegExp('{fileId}', 'g'), fileId);
         
         return await this.client.call('get', path, {
@@ -156,9 +160,9 @@ export class Storage extends Service {
      * @param string background
      * @param string output
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getFilePreview(fileId, width = 0, height = 0, quality = 100, background = '', output = '') {
+    async getFilePreview(fileId: string, width: number = 0, height: number = 0, quality: number = 100, background: string = '', output: string = ''): Promise<string> {
         let path = '/storage/files/{fileId}/preview'.replace(new RegExp('{fileId}', 'g'), fileId);
         
         return await this.client.call('get', path, {
@@ -182,9 +186,9 @@ export class Storage extends Service {
      * @param string fileId
      * @param string as
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async getFileView(fileId, as = '') {
+    async getFileView(fileId: string, as: string = ''): Promise<string> {
         let path = '/storage/files/{fileId}/view'.replace(new RegExp('{fileId}', 'g'), fileId);
         
         return await this.client.call('get', path, {

@@ -75,6 +75,35 @@ class Typescript extends JS
         ];
     }
 
+   /**
+     * @param $type
+     * @return string
+     */
+    public function getTypeName($type)
+    {
+        switch ($type) {
+            case self::TYPE_INTEGER:
+                return 'number';
+            break;
+            case self::TYPE_STRING:
+                return 'string';
+            break;
+            case self::TYPE_FILE:
+                return 'HTMLElement';
+            break;
+            case self::TYPE_BOOLEAN:
+                return 'boolean';
+            break;
+            case self::TYPE_ARRAY:
+            	return 'Array<string>';
+			case self::TYPE_OBJECT:
+				return 'assoc';
+            break;
+        }
+
+        return $type;
+    }
+
     /**
      * @param array $param
      * @return string

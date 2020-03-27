@@ -1,5 +1,9 @@
 import { Service } from "../service";
 
+interface assoc {
+    [key: string]: any;
+}
+
 export class {{ service.name | caseUcfirst }} extends Service {
 {% for method in service.methods %}
 
@@ -14,9 +18,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
      * @param {{ parameter.type | typeName }} {{ parameter.name | caseCamel }}
 {% endfor %}
      * @throws Exception
-     * @return {}
+     * @return Promise<string>
      */
-    async {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) {
+    async {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<string> {
         let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace(new RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', 'g'), {{ parameter.name | caseCamel }}){% endfor %};
         
         return await this.client.call('{{ method.method | caseLower }}', path, {
