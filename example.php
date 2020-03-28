@@ -13,8 +13,6 @@ use Appwrite\SDK\Language\Dart;
 use Appwrite\SDK\Language\Go;
 use Appwrite\SDK\Language\Typescript;
 
-$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go'];
-
 try {
 
     function getSSLPage($url) {
@@ -30,7 +28,7 @@ try {
     }
 
     $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
-    //$spec = getSSLPage('https://localhost/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
+    $spec = getSSLPage('https://localhost:2444/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');

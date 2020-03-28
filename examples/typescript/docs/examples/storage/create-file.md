@@ -1,5 +1,4 @@
-const sdk = require('node-appwrite');
-const fs = require('fs');
+import * as sdk from "appwrite";
 
 // Init SDK
 let client = new sdk.Client();

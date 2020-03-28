@@ -1,6 +1,6 @@
 import { Client } from "./client";
 
-export class Service {
+export abstract class Service {
     
     client: Client;
 
