@@ -1,33 +1,44 @@
-import 'dart:html';
+{% macro parameter(parameter) %}
+{% if parameter.name == 'orderType' %}{% if parameter.required %}@required {% endif %}{{ 'OrderType orderType = OrderType.asc' }}{% else %}
+{% if parameter.required %}@required {% endif %}{{ parameter.type | typeName }} {{ parameter.name | caseCamel }}{{ parameter | escapeDollarSign | paramDefault }}{% endif %}
+{% endmacro %}
+{% macro method_parameters(parameters) %}
+{% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}
+{% endmacro %}
+{% macro map_parameter(parameter) %}
+{% if parameter.name == 'orderType' %}'{{ parameter.name }}': {{ parameter.name | caseCamel }}.name(),{% else %}
+'{{ parameter.name }}': {{ parameter.name | caseCamel }},{% endif %}
+{% endmacro %}
+{#import 'dart:html';#}
 
-import "package:{{ spec.title | caseDash }}/service.dart";
-import "package:{{ spec.title | caseDash }}/client.dart";
 import 'package:dio/dio.dart';
 import 'package:meta/meta.dart';
 
+import "../client.dart";
 import '../enums.dart';
+import "../service.dart";
 
 class {{ service.name | caseUcfirst }} extends Service {
      
-     {{ service.name | caseUcfirst }}(Client client): super(client);
+    {{ service.name | caseUcfirst }}(Client client): super(client);
 
 {% for method in service.methods %}
 {% if method.description %}
 {{ method.description|dartComment }}
 {% endif %}
-    Future<Response> {{ method.name | caseCamel }}({% if method.parameters.all|length > 0 %}{{ '{' }}{% for parameter in method.parameters.all %}{% if parameter.required %}@required {% endif %}{{ parameter.type | typeName }} {{ parameter.name | caseCamel }}{{ parameter | escapeDollarSign | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}) async {
-       String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
+    Future<Response> {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) {
+        final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
 
-       Map<String, dynamic> params = {
+        final Map<String, dynamic> params = {
 {% for parameter in method.parameters.query %}
-         '{{ parameter.name }}': {{ parameter.name | caseCamel }},
+            {{ _self.map_parameter(parameter) }}
 {% endfor %}
 {% for parameter in method.parameters.body %}
-         '{{ parameter.name }}': {{ parameter.name | caseCamel }},
+            {{ _self.map_parameter(parameter) }}
 {% endfor %}
-       };
+        };
 
-       return await this.client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params);
+        return this.client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params);
     }
 {% endfor %}
 }

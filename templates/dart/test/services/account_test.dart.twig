@@ -1,0 +1,19 @@
+import 'package:{{ spec.title | caseDash }}/appwrite.dart';
+import 'package:mockito/mockito.dart';
+import 'package:test/test.dart';
+
+import '../mocks.dart';
+
+void main() {
+    DioMock dioMock = DioMock();
+    Account account = Account(Client(http: dioMock));
+
+    test('should call client with proper parameters', () async {
+        when(dioMock.request("/account",
+                data: {'email': 'test@test.com', 'password': 'pass1234', 'name': null},
+                options: anyNamed('options')))
+                .thenAnswer((_) => Future.value(Response(data: '"status" : "ok"', statusCode: 200)));
+        Response response = await account.create(email: "test@test.com", password: "pass1234");
+        expect(response.statusCode, equals(200));
+    });
+}

@@ -99,7 +99,7 @@ class Dart extends Language {
                 return 'String';
             break;
             case self::TYPE_FILE:
-                return 'File';
+                return '';
             break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
@@ -263,6 +263,24 @@ class Dart extends Language {
                 'template'      => '/dart/lib/services/service.dart.twig',
                 'minify'        => false,
             ],
+            [
+				'scope'         => 'service',
+				'destination'   => '/test/services/account_test.dart',
+				'template'      => '/dart/test/services/account_test.dart.twig',
+				'minify'        => false,
+			],
+            [
+				'scope'         => 'service',
+				'destination'   => '/test/services/database_test.dart',
+				'template'      => '/dart/test/services/database_test.dart.twig',
+				'minify'        => false,
+			],
+            [
+				'scope'         => 'service',
+				'destination'   => '/test/mocks.dart',
+				'template'      => '/dart/test/mocks.dart.twig',
+				'minify'        => false,
+			],
         ];
     }
 }
