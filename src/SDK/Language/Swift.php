@@ -6,10 +6,6 @@ use Appwrite\SDK\Language;
 
 class Swift extends Language {
 
-    protected $params = [
-        'packageName' => 'packageName',
-    ];
-
     /**
      * @return string
      */
