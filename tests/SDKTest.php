@@ -31,7 +31,8 @@ class SDKTest extends TestCase
         'typescript' => [
             'class' => 'Appwrite\SDK\Language\TypeScript',
             'build' => [
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:12.12 npm i -g typescript && npm install && tsc --lib ES6,DOM tests/languages/typescript/test.ts'
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:12.12 npm install',
+                'docker run --rm -v $(pwd):/app -w /app node:12.12 npm i -g typescript && tsc --lib ES6,DOM tests/languages/typescript/test.ts'
             ],
             'envs' => [
                 'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/languages/typescript/test.js',
@@ -113,6 +114,7 @@ class SDKTest extends TestCase
                     ->setVersion('0.0.1')
                     ->setGitUserName('repoowner')
                     ->setGitRepoName('reponame')
+                    ->setLicense('BSD-3-Clause')
                     ->setLicenseContent('demo license')
                 ;
 
@@ -141,7 +143,9 @@ class SDKTest extends TestCase
 
                     exec($command, $output);
 
-                    var_dump($output);
+                    $this->assertIsArray($output);
+                    $this->assertNotEmpty($output);
+                    $this->assertGreaterThan(10, count($output));
 
                     $this->assertEquals($output[0], 'GET:/v1/mock/tests/foo:passed');
                     $this->assertEquals($output[1], 'POST:/v1/mock/tests/foo:passed');
