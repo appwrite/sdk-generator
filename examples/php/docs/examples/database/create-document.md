@@ -6,9 +6,9 @@ use Appwrite\Services\Database;
 $client = new Client();
 
 $client
-    ->setProject('')
+    ->setProject('5df5acd0d48c2') // Your project ID
 ;
 
 $database = new Database($client);
 
-$result = $database->createDocument('[COLLECTION_ID]', '{}', [], []);
+$result = $database->createDocument('[COLLECTION_ID]', [], [], []);

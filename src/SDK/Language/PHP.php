@@ -189,6 +189,9 @@ class PHP extends Language {
             case self::TYPE_INTEGER:
                 $type = 'int';
                 break;
+            case self::TYPE_OBJECT:
+                $type = 'array';
+                break;
             case self::TYPE_FILE:
                 $type = '\CurlFile';
                 break;
@@ -269,6 +272,7 @@ class PHP extends Language {
                     $output .= "''";
                     break;
                 case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
                     $output .= '[]';
                     break;
                 case self::TYPE_FILE:
@@ -283,6 +287,9 @@ class PHP extends Language {
                 case self::TYPE_ARRAY:
                     $output .= $example;
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= $this->jsonToAssoc(json_decode($example, true));
+                    break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
                     break;
@@ -294,6 +301,25 @@ class PHP extends Language {
                     break;
             }
         }
+
+        return $output;
+    }
+
+    /**
+     * Converts JSON Object To PHP Native Assoc Array
+     * 
+     * @var $data array
+     */
+    protected function jsonToAssoc(array $data):string
+    {
+        $output = '[';
+        
+        foreach($data as $key => $node) {
+            $value = (is_array($node)) ? $this->jsonToAssoc($node) : $node;
+            $output .= '\''.$key.'\' => '.((is_string($node)) ? '\''.$value.'\'' : $value).(($key !== array_key_last($data)) ? ', ' : '');
+        }
+
+        $output .= ']';
 
         return $output;
     }

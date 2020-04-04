@@ -28,6 +28,16 @@ class SDKTest extends TestCase
             ],
         ],
 
+        'typescript' => [
+            'class' => 'Appwrite\SDK\Language\TypeScript',
+            'build' => [
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:12.12 npm i -g typescript && npm install && tsc --lib ES6,DOM tests/languages/typescript/test.ts'
+            ],
+            'envs' => [
+                'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/languages/typescript/test.js',
+            ],
+        ],
+
         'node' => [
             'class' => 'Appwrite\SDK\Language\Node',
             'build' => [
@@ -145,6 +155,7 @@ class SDKTest extends TestCase
                     $this->assertEquals($output[9], 'DELETE:/v1/mock/tests/bar:passed');
                     
                     $this->assertEquals($output[10], 'GET:/v1/mock/tests/general/redirected:passed');
+                    //$this->assertEquals($output[11], 'POST:/v1/mock/tests/general/upload:passed');
                 }
             }
         }

@@ -1,5 +1,6 @@
 
 const appwrite = require('../../sdks/node/index');
+const fs = require('fs');
 
 async function start() {
     var response;
@@ -49,6 +50,10 @@ async function start() {
 
     response = await general.redirect();
     console.log(response.result);
+
+    response = await general.upload('string', 123, ['string in array'], fs.createReadStream(__dirname + '/../../resources/file.png'));
+    console.log(response.result);
+    console.log('---------------------');
 
 }
 

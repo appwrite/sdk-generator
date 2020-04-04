@@ -1,6 +1,11 @@
+import 'dart:html';
+
 import "package:appwrite/service.dart";
 import "package:appwrite/client.dart";
 import 'package:dio/dio.dart';
+import 'package:meta/meta.dart';
+
+import '../enums.dart';
 
 class Locale extends Service {
      
@@ -10,13 +15,15 @@ class Locale extends Service {
      /// country code, country name, continent name, continent code, ip address and
      /// suggested currency. You can use the locale header to get the data in a
      /// supported language.
-    Future<Response> getLocale() async {
+     /// 
+     /// ([IP Geolocation by DB-IP](https://db-ip.com))
+    Future<Response> get() async {
        String path = '/locale';
 
        Map<String, dynamic> params = {
        };
 
-       return await this.client.call('get', path: path, params: params);
+       return await this.client.call(HttpMethod.get, path: path, params: params);
     }
      /// List of all continents. You can use the locale header to get the data in a
      /// supported language.
@@ -26,7 +33,7 @@ class Locale extends Service {
        Map<String, dynamic> params = {
        };
 
-       return await this.client.call('get', path: path, params: params);
+       return await this.client.call(HttpMethod.get, path: path, params: params);
     }
      /// List of all countries. You can use the locale header to get the data in a
      /// supported language.
@@ -36,18 +43,17 @@ class Locale extends Service {
        Map<String, dynamic> params = {
        };
 
-       return await this.client.call('get', path: path, params: params);
+       return await this.client.call(HttpMethod.get, path: path, params: params);
     }
      /// List of all countries that are currently members of the EU. You can use the
-     /// locale header to get the data in a supported language. UK brexit date is
-     /// currently set to 2019-10-31 and will be updated if and when needed.
+     /// locale header to get the data in a supported language.
     Future<Response> getCountriesEU() async {
        String path = '/locale/countries/eu';
 
        Map<String, dynamic> params = {
        };
 
-       return await this.client.call('get', path: path, params: params);
+       return await this.client.call(HttpMethod.get, path: path, params: params);
     }
      /// List of all countries phone codes. You can use the locale header to get the
      /// data in a supported language.
@@ -57,7 +63,7 @@ class Locale extends Service {
        Map<String, dynamic> params = {
        };
 
-       return await this.client.call('get', path: path, params: params);
+       return await this.client.call(HttpMethod.get, path: path, params: params);
     }
      /// List of all currencies, including currency symol, name, plural, and decimal
      /// digits for all major and minor currencies. You can use the locale header to
@@ -68,6 +74,6 @@ class Locale extends Service {
        Map<String, dynamic> params = {
        };
 
-       return await this.client.call('get', path: path, params: params);
+       return await this.client.call(HttpMethod.get, path: path, params: params);
     }
 }

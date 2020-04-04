@@ -1,5 +1,6 @@
+.idea/
+.dart_tool
 /vendor/
-/.idea/
 /tests/sdks
 /.vscode
 

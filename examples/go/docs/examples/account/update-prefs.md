@@ -8,13 +8,13 @@ import (
 func main() {
     var client := appwrite.Client{}
 
-    client.SetProject("")
+    client.SetProject("5df5acd0d48c2") // Your project ID
 
     var service := appwrite.Account{
         client: &client
     }
 
-    var response, error := service.UpdatePrefs("{}")
+    var response, error := service.UpdatePrefs()
 
     if error != nil {
         panic(error)

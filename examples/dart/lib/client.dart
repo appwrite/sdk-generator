@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 
+import 'enums.dart';
+
 class Client {
     String endPoint;
     Map<String, String> headers;
@@ -23,7 +25,7 @@ class Client {
     }
 
 
-     /// Your Appwrite project ID
+     /// Your project ID
     Client setProject(value) {
         this.addHeader('X-Appwrite-Project', value);
 
@@ -31,7 +33,7 @@ class Client {
     }
 
 
-     /// Your Appwrite project secret key
+     /// Your secret API key
     Client setKey(value) {
         this.addHeader('X-Appwrite-Key', value);
 
@@ -71,18 +73,18 @@ class Client {
         return this;
     }
 
-    Future<Response> call(String method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}}) {
+    Future<Response> call(HttpMethod method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}}) {
         if(this.selfSigned) { 
             // Allow self signed requests
         }
 
         String reqPath = path;
-        bool isGet = method.toUpperCase() == "GET";
+        bool isGet = method == HttpMethod.get;
 
         // Origin is hardcoded for testing
         Options options = Options(
             headers: {...this.headers, ...headers, "Origin": "http://localhost"},
-            method: method.toUpperCase(),
+            method: method.name(),
         );
 
         if (isGet) {

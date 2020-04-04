@@ -124,6 +124,10 @@
                     path = addParam(path, globalParams[i].key, globalParams[i].value);
                 }
 
+                if(window.localStorage && window.localStorage.getItem('cookieFallback')) {
+                    headers['X-Fallback-Cookies'] = window.localStorage.getItem('cookieFallback');
+                }
+
                 for (let key in globalHeaders) { // Add Global Headers
                     if (globalHeaders.hasOwnProperty(key)) {
                         if (!headers[globalHeaders[key].key]) {
@@ -184,6 +188,13 @@
                                 case 'application/json':
                                     data = JSON.parse(data);
                                     break;
+                            }
+
+                            let cookieFallback = this.getResponseHeader('X-Fallback-Cookies') || '';
+                            
+                            if(window.localStorage && cookieFallback) {
+                                window.console.warn('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
+                                window.localStorage.setItem('cookieFallback', cookieFallback);
                             }
 
                             resolve(data);
@@ -265,7 +276,7 @@
              * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
              * @throws {Error}
-             * @return {% if method.cookies %}{null}{% else %}{Promise}{% endif %}
+             * @return {% if method.location %}{string}{% elseif method.cookies %}{null}{% else %}{Promise}{% endif %}
              
              */
             {{ method.name }}: function({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) {
@@ -293,7 +304,19 @@
                 }
 
 {% endfor %}
-{% if method.cookies %}
+{% if method.location %}
+{% if method.security|length > 0 %}
+{% for node in method.security %}
+{% for key,header in node|keys %}
+                payload['{{header|caseLower}}'] = config.{{header|caseLower}};
+
+{% endfor %}
+{% endfor %}
+{% endif %}
+                let query = Object.keys(payload).map(key => key + '=' + encodeURIComponent(payload[key])).join('&');
+
+                return config.endpoint + path + ((query) ? '?' + query : '');
+{% elseif method.cookies %}
                 payload['project'] = config.project;
 
                 return iframe('{{ method.method | caseLower }}', path, payload);

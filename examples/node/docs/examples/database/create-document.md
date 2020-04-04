@@ -6,10 +6,10 @@ let client = new sdk.Client();
 let database = new sdk.Database(client);
 
 client
-    .setProject('')
+    .setProject('5df5acd0d48c2') // Your project ID
 ;
 
-let promise = database.createDocument('[COLLECTION_ID]', '{}', [], []);
+let promise = database.createDocument('[COLLECTION_ID]', {}, [], []);
 
 promise.then(function (response) {
     console.log(response);

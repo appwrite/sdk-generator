@@ -6,10 +6,10 @@ let client = new sdk.Client();
 let account = new sdk.Account(client);
 
 client
-    .setProject('')
+    .setProject('5df5acd0d48c2') // Your project ID
 ;
 
-let promise = account.updatePrefs('{}');
+let promise = account.updatePrefs({});
 
 promise.then(function (response) {
     console.log(response);

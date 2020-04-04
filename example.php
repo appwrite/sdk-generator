@@ -11,9 +11,11 @@ use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
 use Appwrite\SDK\Language\Dart;
 use Appwrite\SDK\Language\Go;
+use Appwrite\SDK\Language\Typescript;
 use Appwrite\SDK\Language\Swift;
 
 $languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'swift'];
+
 
 try {
 
@@ -29,8 +31,8 @@ try {
         return $result;
     }
 
-    $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
-    //$spec = getSSLPage('http://localhost/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
+    //$spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
+    $spec = getSSLPage('https://localhost:2444/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -40,7 +42,7 @@ try {
     $sdk  = new SDK(new PHP(), new Swagger2($spec));
 
     $sdk
-        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLogo('https://appwrite.io/images/github.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
         ->setGitUserName('repoowner')
@@ -63,6 +65,19 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/js');
+
+    // TypeScript
+    $sdk  = new SDK(new Typescript(), new Swagger2($spec));
+
+    $sdk
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/typescript');
 
     // Node
     $sdk  = new SDK(new Node(), new Swagger2($spec));
@@ -151,4 +166,4 @@ catch (Throwable $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
 }
 
-echo 'Example SDKs generated successfully';
+echo "Example SDKs generated successfully\n";

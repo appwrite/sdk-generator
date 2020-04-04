@@ -113,11 +113,21 @@ class Swagger2 extends Spec {
     {
         $list = [];
 
+        $security = $this->getAttribute('securityDefinitions', []);
         $paths = $this->getAttribute('paths', []);
 
         foreach ($paths as $pathName => $path) {
             foreach ($path as $methodName => $method) {
                 if(isset($method['tags']) && is_array($method['tags']) && in_array($service, $method['tags'])) {
+                    
+                    if(isset($method['security']) && is_array($method['security'])) {
+                        foreach($method['security'] as $i => $node) {
+                            foreach($node as $x => &$value) {
+                                $method['security'][$i][$x] = (array_key_exists($x, $security)) ? $security[$x] : [];
+                            }
+                        }
+                    }
+
                     $output = [
                         'method' => $methodName,
                         'path' => $pathName,

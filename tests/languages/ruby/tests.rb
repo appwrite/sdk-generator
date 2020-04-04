@@ -1,4 +1,4 @@
-require_relative '../sdks/ruby/lib/appwrite'
+require_relative '../../sdks/ruby/lib/appwrite'
 
 client = Appwrite::Client.new()
 

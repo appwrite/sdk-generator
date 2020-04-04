@@ -5,13 +5,15 @@ use {{ spec.title | caseUcfirst }}\Services\{{ service.name | caseUcfirst }};
 
 $client = new Client();
 
+{% if method.security|length > 0 %}
 $client
 {% for node in method.security %}
 {% for key,header in node|keys %}
-    ->set{{header}}('')
+    ->set{{header}}('{{node[header].extensions.demo}}') // {{node[header].description}}
 {% endfor %}
 {% endfor %};
 
+{% endif %}
 ${{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}($client);
 
 $result = ${{ service.name | caseCamel }}->{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});

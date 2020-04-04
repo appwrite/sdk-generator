@@ -9,6 +9,7 @@ abstract class Language {
     const TYPE_STRING = 'string';
     const TYPE_BOOLEAN = 'boolean';
     const TYPE_ARRAY = 'array';
+    const TYPE_OBJECT = 'object';
     const TYPE_FILE = 'file';
 
     /**
