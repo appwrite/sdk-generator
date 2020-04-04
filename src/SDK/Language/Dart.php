@@ -262,25 +262,7 @@ class Dart extends Language {
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
                 'template'      => '/dart/lib/services/service.dart.twig',
                 'minify'        => false,
-            ],
-            [
-				'scope'         => 'service',
-				'destination'   => '/test/services/account_test.dart',
-				'template'      => '/dart/test/services/account_test.dart.twig',
-				'minify'        => false,
-			],
-            [
-				'scope'         => 'service',
-				'destination'   => '/test/services/database_test.dart',
-				'template'      => '/dart/test/services/database_test.dart.twig',
-				'minify'        => false,
-			],
-            [
-				'scope'         => 'service',
-				'destination'   => '/test/mocks.dart',
-				'template'      => '/dart/test/mocks.dart.twig',
-				'minify'        => false,
-			],
+            ]
         ];
     }
 }

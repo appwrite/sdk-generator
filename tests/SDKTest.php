@@ -28,6 +28,18 @@ class SDKTest extends TestCase
             ],
         ],
 
+        'dart' => [
+            'class' => 'Appwrite\SDK\Language\Dart',
+            'build' => [
+                'mkdir -p tests/sdks/dart/test',
+                'cp tests/languages/dart/tests.dart tests/sdks/dart/test/tests.dart',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.7 pub get'
+            ],
+            'envs' => [
+                'dart-2.7' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.7 pub run test/tests.dart',
+            ],
+        ],
+
         'typescript' => [
             'class' => 'Appwrite\SDK\Language\TypeScript',
             'build' => [
