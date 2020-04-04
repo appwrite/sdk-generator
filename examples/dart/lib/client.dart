@@ -62,9 +62,9 @@ class Client {
 
     Future<Response> call(HttpMethod method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}}) {
         if(this.selfSigned) { 
-            // Allow self signed requests from localhost
+            // Allow self signed requests
             (http.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate = (HttpClient client) {
-                client.badCertificateCallback = (X509Certificate cert, String host, int port) => host == "localhost";
+                client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
                 return client;
             };
         }
