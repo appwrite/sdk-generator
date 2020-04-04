@@ -9,7 +9,7 @@
 
 The SDK uses predefined language settings and [Twig templates](https://twig.symfony.com/) to generate code base on different API specs.
 
-Currently the only spec supported is Swagger 2.0, but we intend to add support for more specification in the near future. 
+Currently the only spec supported is Swagger 2.0, but we intend to add support for more specification in the near future.
 
 ## Examples
 
@@ -82,11 +82,12 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | CSharp     |                     |                     | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | D          |                     |                     | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Kotlin     |                     |                     | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
-| Swift      |                     |                     | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
+| Swift      |                     |                     | Swift Pkg Manager  | [@armino-dev] |
 
 [@Almoullim]:       https://github.com/Almoullim
 [@eldadfux]:        https://github.com/eldadfux
 [@panz3r]:          https://github.com/panz3r
+[@armino-dev]:      https://github.com/armino-dev
 
 [PHP FIG]:          https://www.php-fig.org/
 [NPM Coding Style]: https://docs.npmjs.com/misc/coding-style
@@ -95,6 +96,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 [PEP8]:             https://www.python.org/dev/peps/pep-0008/
 [Effective Dart]:   https://dart.dev/guides/language/effective-dart/style
 [Effective Go]:     https://golang.org/doc/effective_go.html
+[Swift Style Guide]:https://google.github.io/swift/
 
 ## Contributing
 

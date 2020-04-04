@@ -1,0 +1,16 @@
+/// Swift {{spec.title | caseUcfirst}} SDK
+/// Produced by {{spec.title | caseUcfirst}} SDK Generator
+///
+
+
+var client: Client = Client()
+
+client
+{% for key,header in method.security[0]|keys %}
+    .set{{header}}(value: "")
+{% endfor %}
+    .setEndpoint(endpoint: "http://localhost/v1")
+
+var {{ service.name | caseCamel }}: {{ service.name | caseUcfirst }} =  {{ service.name | caseUcfirst }}(client: client);
+
+var result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}_{{ parameter.name | caseCamel }}: {{ parameter | paramExample }}{% endif %}{% endfor %});

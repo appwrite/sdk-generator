@@ -12,6 +12,10 @@ use Appwrite\SDK\Language\Ruby;
 use Appwrite\SDK\Language\Dart;
 use Appwrite\SDK\Language\Go;
 use Appwrite\SDK\Language\Typescript;
+use Appwrite\SDK\Language\Swift;
+
+$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'swift'];
+
 
 try {
 
@@ -27,7 +31,7 @@ try {
         return $result;
     }
 
-    $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
+    //$spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
     $spec = getSSLPage('https://localhost:2444/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
 
     if(empty($spec)) {
@@ -140,6 +144,20 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/go');
+
+    // Swift
+    $sdk  = new SDK(new Swift(), new Swagger2($spec));
+
+    $sdk
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setVersion('0.0.1')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/swift');
 }
 catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";

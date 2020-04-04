@@ -1,0 +1,58 @@
+
+
+class {{ service.name | caseUcfirst }}: Service
+{
+{% for method in service.methods %}
+    /**
+     * {{ method.title }}
+     *
+{% if method.description %}
+{{ method.description|comment1 }}
+     *
+{% endif %}
+{% for parameter in method.parameters.all %}
+     * @param {{ parameter.type | typeName | raw}} _{{ parameter.name | caseCamel }}
+{% endfor %}
+     * @throws Exception
+     * @return array
+     */
+
+    func {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}_{{ parameter.name | caseCamel }}: {{ parameter.type | typeName | raw }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> Array<Any> {
+        {% if method.parameters.path %}var{% else %}let{% endif %} path: String = "{{ method.path }}"
+
+{% for parameter in method.parameters.path %}
+        path = path.replacingOccurrences(
+          of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}",
+          with: {% if method.parameters.path %}_{{ parameter.name | caseCamel }}{% else %}""{% endif %}
+
+        )
+{% endfor %}
+
+        {% if method.parameters.query or method.parameters.body or method.parameters.formData %}
+        var params: [String: Any] = [:]
+        {% else %}
+        let params: [String: Any] = [:]
+        {% endif %}
+
+{% for parameter in method.parameters.query %}
+        params["{{ parameter.name }}"] = _{{ parameter.name | caseCamel }}
+{% endfor %}
+{% for parameter in method.parameters.body %}
+        params["{{ parameter.name }}"] = _{{ parameter.name | caseCamel }}
+{% endfor %}
+{% for parameter in method.parameters.formData %}
+        params["{{ parameter.name }}"] = _{{ parameter.name | caseCamel }}
+{% endfor %}
+
+        return [self.client.call(method: Client.HTTPMethod.{{ method.method }}.rawValue, path: path, headers: [
+{% for parameter in method.parameters.header %}
+            "{{ parameter.name }}": {{ parameter.name | caseCamel }},
+{% endfor %}
+{% for key, header in method.headers %}
+            "{{ key }}": "{{ header }}",
+{% endfor %}
+        ], params: params)];
+    }
+
+{% endfor %}
+}
