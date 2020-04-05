@@ -134,10 +134,16 @@ class Dart extends Language {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_STRING:
+                    $output .= '0';
+                    break;
                 case self::TYPE_BOOLEAN:
+                    $output .= 'false';
+                    break;
                 case self::TYPE_ARRAY:
                     $output .= 'null';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= '';
                     break;
             }
         }
@@ -176,10 +182,14 @@ class Dart extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
+                    $output .= 'null';
+                    break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
+                    $output .= '0';
+                break;
                 case self::TYPE_BOOLEAN:
-                    $output .= 'null';
+                    $output .= 'false';
                     break;
                 case self::TYPE_STRING:
                     $output .= "''";
