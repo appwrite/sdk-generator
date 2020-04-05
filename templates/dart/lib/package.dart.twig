@@ -1,5 +1,6 @@
 {% for service in spec.services %}
-export 'package:{{ spec.title | caseDash }}/services/{{service.name | caseDash}}.dart';
+export 'services/{{service.name | caseDash}}.dart';
 {% endfor %}
-export 'package:{{ spec.title | caseDash }}/client.dart';
+export 'client.dart';
+export 'enums.dart';
 export 'package:dio/dio.dart' show Response;

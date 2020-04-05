@@ -13,7 +13,7 @@ Appwrite backend as a service cuts up to 70% of the time and costs required for 
 
 ## Installation
 
-Add this to your package's pubspec.yaml file:
+Add this to your package's `pubspec.yaml` file:
 
 ```yml
 dependencies:

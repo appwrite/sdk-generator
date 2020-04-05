@@ -99,7 +99,7 @@ class Dart extends Language {
                 return 'String';
             break;
             case self::TYPE_FILE:
-                return 'File';
+                return '';
             break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
@@ -262,7 +262,7 @@ class Dart extends Language {
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
                 'template'      => '/dart/lib/services/service.dart.twig',
                 'minify'        => false,
-            ],
+            ]
         ];
     }
 }
