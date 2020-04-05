@@ -143,7 +143,7 @@ class Dart extends Language {
                     $output .= 'null';
                     break;
                 case self::TYPE_STRING:
-                    $output .= '';
+                    $output .= "''";
                     break;
             }
         }
