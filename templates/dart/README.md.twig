@@ -19,13 +19,13 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yml
 dependencies:
-  {{ language.params.packageName }}: ^{{sdk.version}}
+  {{ spec.title | caseDash }}: ^{{sdk.version}}
 ```
 
 You can install packages from the command line:
 
 ```bash
-pub get
+pub get {{ spec.title | caseDash }}
 ```
 
 ## Contribution

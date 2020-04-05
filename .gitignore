@@ -4,6 +4,8 @@
 /tests/sdks
 /.vscode
 
-# Dart auto-generated
-examples/dart/.packages
-examples/dart/pubspec.lock
+# exclude everything
+examples/*
+
+# exception to the rule
+!examples/.gitkeep 

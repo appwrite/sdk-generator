@@ -96,7 +96,7 @@ sdk-generator/blob/master/example.php:
 Run the following command (make sure you have an updated docker version on your machine):
 
 ```bash
-docker run --rm -v $(pwd):/app -w /app php:7.3-cli php example.php
+docker run --rm -v $(pwd):/app -w /app php:7.4-cli php example.php
 ```
 
 >Note: You can just add the new language next to the other languages in example.php file, no need to rewrite the file completely.
@@ -177,5 +177,6 @@ protected $containers = [
     'php-7.1' => 'docker run --rm -v $(pwd):/app -w /app php:7.1-cli php tests/languages/tests-for-php.php',
     'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli php tests/languages/tests-for-php.php',
     'php-7.3' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli php tests/languages/tests-for-php.php',
+    'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli php tests/languages/tests-for-php.php',
 ];
 ```
