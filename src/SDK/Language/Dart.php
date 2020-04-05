@@ -223,6 +223,12 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'CHANGELOG.md',
+                'template'      => '/dart/CHANGELOG.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => '/dart/LICENSE.twig',
                 'minify'        => false,

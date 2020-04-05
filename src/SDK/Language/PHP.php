@@ -135,6 +135,12 @@ class PHP extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'CHANGELOG.md',
+                'template'      => '/php/CHANGELOG.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => '/php/LICENSE.twig',
                 'minify'        => false,

@@ -56,6 +56,12 @@ class Typescript extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'CHANGELOG.md',
+                'template'      => '/typescript/CHANGELOG.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => '/typescript/LICENSE.twig',
                 'minify'        => false,

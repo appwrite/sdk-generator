@@ -87,6 +87,12 @@ class Python extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'CHANGELOG.md',
+                'template'      => '/python/CHANGELOG.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => '/python/LICENSE.twig',
                 'minify'        => false,

@@ -103,6 +103,12 @@ class Swift extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'CHANGELOG.md',
+                'template'      => '/swift/CHANGELOG.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => '/swift/LICENSE.twig',
                 'minify'        => false,

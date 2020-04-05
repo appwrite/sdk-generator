@@ -45,6 +45,7 @@ try {
         ->setLogo('https://appwrite.io/images/github.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
     ;
@@ -59,6 +60,7 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
         ->setReadme("## Getting Started")
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
@@ -73,6 +75,7 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
     ;
@@ -86,6 +89,7 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
     ;
@@ -99,6 +103,7 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
     ;
@@ -112,6 +117,7 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
     ;
@@ -125,6 +131,7 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
         ->setVersion('0.0.1')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
@@ -141,6 +148,7 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
     ;
 
     $sdk->generate(__DIR__ . '/examples/go');
@@ -152,6 +160,7 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
         ->setVersion('0.0.1')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')

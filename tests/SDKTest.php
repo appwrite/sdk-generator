@@ -131,6 +131,7 @@ class SDKTest extends TestCase
                     ->setGitRepoName('reponame')
                     ->setLicense('BSD-3-Clause')
                     ->setLicenseContent('demo license')
+                    ->setChangelog('--changelog--')
                 ;
 
                 $sdk->generate(__DIR__ . '/sdks/' . $language);

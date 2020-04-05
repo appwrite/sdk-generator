@@ -46,6 +46,7 @@ class SDK
         'shareTags' => '',
         'warning' => '',
         'readme' => '',
+        'changelog' => '',
     ];
 
     /**
@@ -317,6 +318,17 @@ class SDK
     public function setReadme($text)
     {
         $this->setParam('readme', $text);
+
+        return $this;
+    }
+
+    /**
+     * @param $text string
+     * @return $this
+     */
+    public function setChangelog($text)
+    {
+        $this->setParam('changelog', $text);
 
         return $this;
     }
