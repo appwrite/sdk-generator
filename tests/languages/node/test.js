@@ -53,7 +53,6 @@ async function start() {
 
     response = await general.upload('string', 123, ['string in array'], fs.createReadStream(__dirname + '/../../resources/file.png'));
     console.log(response.result);
-    console.log('---------------------');
 
 }
 

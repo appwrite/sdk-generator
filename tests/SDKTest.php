@@ -141,9 +141,9 @@ class SDKTest extends TestCase
                  * Build SDK
                  */
                 if(isset($options['build'])) {
-                    echo "Building {$language} package...\n";
-
+                    
                     foreach ($options['build'] as $key => $command) {
+                        echo "Building phase #{$key} for {$language} package...\n";
                         exec($command, $output);
                     }
                 }
@@ -158,19 +158,23 @@ class SDKTest extends TestCase
 
                     exec($command, $output);
 
+                    foreach($output as $i => $row) {
+                        echo "{$i}. {$row}\n";
+                    }
+
                     $this->assertIsArray($output);
                     $this->assertGreaterThan(10, count($output));
 
-                    $this->assertEquals($output[0], 'GET:/v1/mock/tests/foo:passed');
-                    $this->assertEquals($output[1], 'POST:/v1/mock/tests/foo:passed');
-                    $this->assertEquals($output[2], 'PUT:/v1/mock/tests/foo:passed');
-                    $this->assertEquals($output[3], 'PATCH:/v1/mock/tests/foo:passed');
-                    $this->assertEquals($output[4], 'DELETE:/v1/mock/tests/foo:passed');
-                    $this->assertEquals($output[5], 'GET:/v1/mock/tests/bar:passed');
-                    $this->assertEquals($output[6], 'POST:/v1/mock/tests/bar:passed');
-                    $this->assertEquals($output[7], 'PUT:/v1/mock/tests/bar:passed');
-                    $this->assertEquals($output[8], 'PATCH:/v1/mock/tests/bar:passed');
-                    $this->assertEquals($output[9], 'DELETE:/v1/mock/tests/bar:passed');
+                    $this->assertEquals((isset($output[0])) ? $output[0] : '', 'GET:/v1/mock/tests/foo:passed');
+                    $this->assertEquals((isset($output[1])) ? $output[1] : '', 'POST:/v1/mock/tests/foo:passed');
+                    $this->assertEquals((isset($output[2])) ? $output[2] : '', 'PUT:/v1/mock/tests/foo:passed');
+                    $this->assertEquals((isset($output[3])) ? $output[3] : '', 'PATCH:/v1/mock/tests/foo:passed');
+                    $this->assertEquals((isset($output[4])) ? $output[4] : '', 'DELETE:/v1/mock/tests/foo:passed');
+                    $this->assertEquals((isset($output[5])) ? $output[5] : '', 'GET:/v1/mock/tests/bar:passed');
+                    $this->assertEquals((isset($output[6])) ? $output[6] : '', 'POST:/v1/mock/tests/bar:passed');
+                    $this->assertEquals((isset($output[7])) ? $output[7] : '', 'PUT:/v1/mock/tests/bar:passed');
+                    $this->assertEquals((isset($output[8])) ? $output[8] : '', 'PATCH:/v1/mock/tests/bar:passed');
+                    $this->assertEquals((isset($output[9])) ? $output[9] : '', 'DELETE:/v1/mock/tests/bar:passed');
                     
                     $this->assertEquals($output[10], 'GET:/v1/mock/tests/general/redirected:passed');
                     //$this->assertEquals($output[11], 'POST:/v1/mock/tests/general/upload:passed');

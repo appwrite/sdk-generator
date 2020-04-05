@@ -48,4 +48,10 @@ void main() async {
 
   response = await general.redirect();
   print(response.data['result']);
+
+  // response = await general.setCookie();
+  // print(response.data['result']);
+
+  // response = await general.getCookie();
+  // print(response.data['result']);
 }
