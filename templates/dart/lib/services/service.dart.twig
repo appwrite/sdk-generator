@@ -19,7 +19,6 @@ import '../enums.dart';
 import "../service.dart";
 
 class {{ service.name | caseUcfirst }} extends Service {
-     
     {{ service.name | caseUcfirst }}(Client client): super(client);
 
 {% for method in service.methods %}
@@ -38,7 +37,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
         };
 
-        return this.client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params);
+        return client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params);
     }
 {% endfor %}
 }
