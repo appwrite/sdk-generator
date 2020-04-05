@@ -37,7 +37,9 @@ class SDKTest extends TestCase
                 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.7 pub get'
             ],
             'envs' => [
+                'dart-2.6' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.6 pub run test/tests.dart',
                 'dart-2.7' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.7 pub run test/tests.dart',
+                'dart-2.8-dev' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.8-dev pub run test/tests.dart',
             ],
         ],
 
@@ -157,7 +159,6 @@ class SDKTest extends TestCase
                     exec($command, $output);
 
                     $this->assertIsArray($output);
-                    $this->assertNotEmpty($output);
                     $this->assertGreaterThan(10, count($output));
 
                     $this->assertEquals($output[0], 'GET:/v1/mock/tests/foo:passed');
