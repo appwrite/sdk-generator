@@ -42,6 +42,7 @@ try {
     $sdk  = new SDK(new PHP(), new Swagger2($spec));
 
     $sdk
+        ->setDescription('Repo description goes here')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/images/github.png')
         ->setLicenseContent('test test test')
@@ -57,6 +58,7 @@ try {
     $sdk  = new SDK(new JS(), new Swagger2($spec));
 
     $sdk
+        ->setDescription('Repo description goes here')
         ->setVersion('0.0.0')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
@@ -74,6 +76,7 @@ try {
     $sdk  = new SDK(new Typescript(), new Swagger2($spec));
 
     $sdk
+        ->setDescription('Repo description goes here')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
@@ -89,6 +92,7 @@ try {
     $sdk  = new SDK(new Node(), new Swagger2($spec));
 
     $sdk
+        ->setDescription('Repo description goes here')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
@@ -104,6 +108,7 @@ try {
     $sdk  = new SDK(new Ruby(), new Swagger2($spec));
 
     $sdk
+        ->setDescription('Repo description goes here')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
@@ -119,6 +124,7 @@ try {
     $sdk  = new SDK(new Python(), new Swagger2($spec));
 
     $sdk
+        ->setDescription('Repo description goes here')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
@@ -134,6 +140,7 @@ try {
     $sdk  = new SDK(new Dart(), new Swagger2($spec));
 
     $sdk
+        ->setDescription('Repo description goes here')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
@@ -151,6 +158,7 @@ try {
     $sdk  = new SDK(new Go(), new Swagger2($spec));
 
     $sdk
+        ->setDescription('Repo description goes here')
         ->setURL('https://example.com')
         ->setGitUserName('appwrite')
         ->setGitRepoName('go-sdk')
@@ -166,6 +174,7 @@ try {
     $sdk  = new SDK(new Swift(), new Swagger2($spec));
 
     $sdk
+        ->setDescription('Repo description goes here')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
