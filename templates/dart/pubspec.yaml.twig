@@ -1,10 +1,10 @@
 name: {{ spec.title | caseDash }}
 version: {{ sdk.version }}
 description: {{spec.description}}
-homepage: https://appwrite.io
-repository: https://github.com/appwrite/sdk-for-dart
+homepage: {{sdk.url}}
+repository: https://github.com/{{sdk.gitUserName}}/{{sdk.gitRepoName}}
 issue_tracker: https://github.com/appwrite/sdk-generator/issues
-documentation: https://appwrite.io/docs
+documentation: {{ spec.contactURL }}
 environment:
   sdk: '>=2.6.0 <3.0.0'
 dependencies:

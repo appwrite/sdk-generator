@@ -42,6 +42,7 @@ try {
     $sdk  = new SDK(new PHP(), new Swagger2($spec));
 
     $sdk
+        ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/images/github.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
@@ -57,6 +58,7 @@ try {
 
     $sdk
         ->setVersion('0.0.0')
+        ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
@@ -72,6 +74,7 @@ try {
     $sdk  = new SDK(new Typescript(), new Swagger2($spec));
 
     $sdk
+        ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
@@ -86,6 +89,7 @@ try {
     $sdk  = new SDK(new Node(), new Swagger2($spec));
 
     $sdk
+        ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
@@ -100,6 +104,7 @@ try {
     $sdk  = new SDK(new Ruby(), new Swagger2($spec));
 
     $sdk
+        ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
@@ -114,6 +119,7 @@ try {
     $sdk  = new SDK(new Python(), new Swagger2($spec));
 
     $sdk
+        ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
@@ -128,6 +134,7 @@ try {
     $sdk  = new SDK(new Dart(), new Swagger2($spec));
 
     $sdk
+        ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
@@ -142,7 +149,9 @@ try {
     // GO
 
     $sdk  = new SDK(new Go(), new Swagger2($spec));
+
     $sdk
+        ->setURL('https://example.com')
         ->setGitUserName('appwrite')
         ->setGitRepoName('go-sdk')
         ->setLogo('https://appwrite.io/v1/images/console.png')
@@ -157,6 +166,7 @@ try {
     $sdk  = new SDK(new Swift(), new Swagger2($spec));
 
     $sdk
+        ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
