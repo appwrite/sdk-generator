@@ -43,6 +43,7 @@ try {
 
     $sdk
         ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/images/github.png')
         ->setLicenseContent('test test test')
@@ -59,6 +60,7 @@ try {
 
     $sdk
         ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
         ->setVersion('0.0.0')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
@@ -77,6 +79,7 @@ try {
 
     $sdk
         ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
@@ -93,6 +96,7 @@ try {
 
     $sdk
         ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
@@ -109,6 +113,7 @@ try {
 
     $sdk
         ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
@@ -125,6 +130,7 @@ try {
 
     $sdk
         ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
@@ -141,6 +147,7 @@ try {
 
     $sdk
         ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
@@ -159,6 +166,7 @@ try {
 
     $sdk
         ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
         ->setGitUserName('appwrite')
         ->setGitRepoName('go-sdk')
@@ -175,6 +183,7 @@ try {
 
     $sdk
         ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')

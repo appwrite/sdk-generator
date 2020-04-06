@@ -32,6 +32,7 @@ class SDK
      */
     protected $params = [
         'description' => '',
+        'shortDescription' => '',
         'version' => '',
         'license' => '',
         'licenseContent' => '',
@@ -165,6 +166,17 @@ class SDK
     public function setDescription($text)
     {
         $this->setParam('description', $text);
+
+        return $this;
+    }
+
+    /**
+     * @param string $name
+     * @return $this
+     */
+    public function setShortDescription($text)
+    {
+        $this->setParam('shortDescription', $text);
 
         return $this;
     }

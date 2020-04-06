@@ -124,6 +124,8 @@ class SDKTest extends TestCase
                 $sdk  = new SDK(new $options['class'](), new Swagger2($spec));
 
                 $sdk
+                    ->setDescription('Repo description goes here')
+                    ->setShortDescription('Repo short description goes here')
                     ->setLogo('https://appwrite.io/v1/images/console.png')
                     ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
                     ->setVersion('0.0.1')
