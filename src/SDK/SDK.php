@@ -31,6 +31,7 @@ class SDK
      * @var array
      */
     protected $params = [
+        'description' => '',
         'version' => '',
         'license' => '',
         'licenseContent' => '',
@@ -155,6 +156,17 @@ class SDK
 
             return $value;
         }, ['is_safe' => ['html']]));
+    }
+
+    /**
+     * @param string $name
+     * @return $this
+     */
+    public function setDescription($text)
+    {
+        $this->setParam('description', $text);
+
+        return $this;
     }
 
     /**
