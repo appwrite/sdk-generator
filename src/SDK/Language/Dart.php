@@ -132,6 +132,9 @@ class Dart extends Language {
 
         if(empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
+                case self::TYPE_OBJECT:
+                    $output .= '{}';
+                    break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                     $output .= '0';
@@ -140,7 +143,7 @@ class Dart extends Language {
                     $output .= 'false';
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= 'null';
+                    $output .= '[]';
                     break;
                 case self::TYPE_STRING:
                     $output .= "''";
@@ -149,6 +152,7 @@ class Dart extends Language {
         }
         else {
             switch ($type) {
+                case self::TYPE_OBJECT:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                     $output .= $default;
@@ -194,6 +198,9 @@ class Dart extends Language {
                 case self::TYPE_STRING:
                     $output .= "''";
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= '{}';
+                    break;
                 case self::TYPE_ARRAY:
                     $output .= '[]';
                     break;
@@ -201,6 +208,7 @@ class Dart extends Language {
         }
         else {
             switch ($type) {
+                case self::TYPE_OBJECT:
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -278,7 +286,13 @@ class Dart extends Language {
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
                 'template'      => '/dart/lib/services/service.dart.twig',
                 'minify'        => false,
-            ]
+            ],
+            [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => '/dart/docs/example.md.twig',
+                'minify'        => false,
+            ],
         ];
     }
 }

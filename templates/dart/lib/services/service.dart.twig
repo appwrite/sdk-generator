@@ -9,10 +9,12 @@
 {% if parameter.name == 'orderType' %}'{{ parameter.name }}': {{ parameter.name | caseCamel }}.name(),{% else %}
 '{{ parameter.name }}': {{ parameter.name | caseCamel }},{% endif %}
 {% endmacro %}
-{#import 'dart:html';#}
+
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:meta/meta.dart';
+import 'package:flutter_web_auth/flutter_web_auth.dart';
 
 import "../client.dart";
 import '../enums.dart';
@@ -25,7 +27,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% if method.description %}
 {{ method.description|dartComment }}
 {% endif %}
-    Future<Response> {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) {
+    {% if method.location %}Future{% else %}Future<Response>{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) {
         final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
 
         final Map<String, dynamic> params = {
@@ -35,9 +37,38 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% for parameter in method.parameters.body %}
             {{ _self.map_parameter(parameter) }}
 {% endfor %}
+{% if method.location %}
+{% if method.security|length > 0 %}
+{% for node in method.security %}
+{% for key,header in node|keys %}
+            '{{header|caseLower}}': client.config['{{header|caseLower}}'],
+{% endfor %}
+{% endfor %}
+{% endif %}
+{% endif %}
         };
 
+{% if method.location %}
+        Uri endpoint = Uri.parse(client.endPoint);
+        Uri url = new Uri(scheme: endpoint.scheme,
+          host: endpoint.host,
+          port: endpoint.port,
+          path: endpoint.path + path,
+          queryParameters:params,
+        );
+
+        return FlutterWebAuth.authenticate(
+          url: url.toString(),
+          callbackUrlScheme: "appwrite-callback"
+          ).then((value) {
+              Uri url = Uri.parse(value);
+                List<Cookie> cookies = [new Cookie(url.queryParameters['key'], url.queryParameters['secret'])];
+                client.cookieJar.saveFromResponse(Uri.parse(client.endPoint), cookies);
+          }).catchError((error) {
+        });
+{% else %}
         return client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params);
+{% endif %}
     }
 {% endfor %}
 }

@@ -1,0 +1,33 @@
+import 'package:appwrite/appwrite.dart';
+{% if method.consumes[0] == 'multipart/form-data' %}
+//const fs = require('fs');
+{% endif %}
+
+// Init SDK
+Client client = Client();
+{{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = {{service.name | caseUcfirst}}(client);
+
+{% if method.security|length > 0 %}
+client
+{% for node in method.security %}
+{% for key,header in node|keys %}
+    .set{{header}}('{{node[header].extensions.demo}}') // {{node[header].description}}
+{% endfor %}
+{% endfor %};
+
+{% endif %}
+Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+{% if loop.first %}
+
+{% endif %}
+{% if parameter.required %}
+    {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
+{% endif %}
+{% endfor %});
+
+result
+  .then((response) {
+    print(response);
+  }).catchError((error) {
+    print(error);
+  });
