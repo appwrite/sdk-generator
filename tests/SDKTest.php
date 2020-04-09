@@ -29,31 +29,31 @@ class SDKTest extends TestCase
             ],
         ],
 
-        // 'dart' => [
-        //     'class' => 'Appwrite\SDK\Language\Dart',
-        //     'build' => [
-        //         'mkdir -p tests/sdks/dart/tests',
-        //         'cp tests/languages/dart/tests.dart tests/sdks/dart/tests/tests.dart',
-        //         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor appwrite/flutter:0.3.0 flutter pub get',
-        //     ],
-        //     'envs' => [
-        //         'flutter' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor appwrite/flutter:0.3.0 flutter pub run tests/tests.dart',
-        //         'dart-2.6' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.6 pub run test/tests.dart',
-        //         'dart-2.7' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.7 pub run test/tests.dart',
-        //         'dart-2.8-dev' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.8-dev pub run test/tests.dart',
-        //     ],
-        // ],
+        'dart' => [
+            'class' => 'Appwrite\SDK\Language\Dart',
+            'build' => [
+                'mkdir -p tests/sdks/dart/tests',
+                'cp tests/languages/dart/tests.dart tests/sdks/dart/tests/tests.dart',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor appwrite/flutter:0.3.0 flutter pub get',
+            ],
+            'envs' => [
+                'flutter' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor appwrite/flutter:0.3.0 flutter pub run tests/tests.dart',
+                'dart-2.6' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.6 pub run test/tests.dart',
+                'dart-2.7' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.7 pub run test/tests.dart',
+                'dart-2.8-dev' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.8-dev pub run test/tests.dart',
+            ],
+        ],
 
-        // 'typescript' => [
-        //     'class' => 'Appwrite\SDK\Language\TypeScript',
-        //     'build' => [
-        //         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:12.12 npm install',
-        //         'docker run --rm -v $(pwd):/app -w /app node:12.12 npm i -g typescript && tsc --lib ES6,DOM tests/languages/typescript/test.ts'
-        //     ],
-        //     'envs' => [
-        //         'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 cat tests/languages/typescript/test.js && node tests/languages/typescript/test.js',
-        //     ],
-        // ],
+        'typescript' => [
+            'class' => 'Appwrite\SDK\Language\TypeScript',
+            'build' => [
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:12.12 npm install',
+                'docker run --rm -v $(pwd):/app -w /app node:12.12 npm i -g typescript && tsc --lib ES6,DOM tests/languages/typescript/test.ts'
+            ],
+            'envs' => [
+                'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/languages/typescript/test.js',
+            ],
+        ],
 
         'node' => [
             'class' => 'Appwrite\SDK\Language\Node',
@@ -114,86 +114,86 @@ class SDKTest extends TestCase
 
         echo "Generating SDKs files for all langauges...\n";
 
-        try {
-            $spec = file_get_contents(realpath(__DIR__ . '/resources/spec.json'));
+        $spec = file_get_contents(realpath(__DIR__ . '/resources/spec.json'));
 
-            if(empty($spec)) {
-                throw new \Exception('Failed to fetch spec from Appwrite server');
+        if(empty($spec)) {
+            throw new \Exception('Failed to fetch spec from Appwrite server');
+        }
+
+        $whitelist = ['typescript'];
+        $whitelist = ['php', 'node', 'ruby', 'python', 'typescript'];
+
+        foreach ($this->languages as $language => $options) {
+            if(!empty($whitelist) && !in_array($language, $whitelist)) {
+                continue;
             }
 
-            foreach ($this->languages as $language => $options) {
-                $sdk  = new SDK(new $options['class'](), new Swagger2($spec));
+            $sdk  = new SDK(new $options['class'](), new Swagger2($spec));
 
-                $sdk
-                    ->setDescription('Repo description goes here')
-                    ->setShortDescription('Repo short description goes here')
-                    ->setLogo('https://appwrite.io/v1/images/console.png')
-                    ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
-                    ->setVersion('0.0.1')
-                    ->setGitUserName('repoowner')
-                    ->setGitRepoName('reponame')
-                    ->setLicense('BSD-3-Clause')
-                    ->setLicenseContent('demo license')
-                    ->setChangelog('--changelog--')
-                ;
+            $sdk
+                ->setDescription('Repo description goes here')
+                ->setShortDescription('Repo short description goes here')
+                ->setLogo('https://appwrite.io/v1/images/console.png')
+                ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
+                ->setVersion('0.0.1')
+                ->setGitUserName('repoowner')
+                ->setGitRepoName('reponame')
+                ->setLicense('BSD-3-Clause')
+                ->setLicenseContent('demo license')
+                ->setChangelog('--changelog--')
+            ;
 
-                $sdk->generate(__DIR__ . '/sdks/' . $language);
+            $sdk->generate(__DIR__ . '/sdks/' . $language);
 
-                $output = [];
+            $output = [];
 
-                /**
-                 * Build SDK
-                 */
-                if(isset($options['build'])) {
-                    
-                    foreach ($options['build'] as $key => $command) {
-                        echo "Building phase #{$key} for {$language} package...\n";
-                        exec($command, $output);
-
-                        foreach($output as $i => $row) {
-                            echo "{$i}. {$row}\n";
-                        }
-                    }
-                }
-
-                /**
-                 * Run tests on all different envs
-                 */
-                foreach ($options['envs'] as $key => $command) {
-                    echo "Running tests for the {$key} environment...\n";
-
-                    $output = [];
-
+            /**
+             * Build SDK
+             */
+            if(isset($options['build'])) {
+                
+                foreach ($options['build'] as $key => $command) {
+                    echo "Building phase #{$key} for {$language} package...\n";
                     exec($command, $output);
 
                     foreach($output as $i => $row) {
-                        echo "{$row}\n";
+                        echo "{$i}. {$row}\n";
                     }
-
-                    $this->assertIsArray($output);
-                    $this->assertGreaterThan(10, count($output));
-
-                    $this->assertEquals((isset($output[0])) ? $output[0] : '', 'GET:/v1/mock/tests/foo:passed');
-                    $this->assertEquals((isset($output[1])) ? $output[1] : '', 'POST:/v1/mock/tests/foo:passed');
-                    $this->assertEquals((isset($output[2])) ? $output[2] : '', 'PUT:/v1/mock/tests/foo:passed');
-                    $this->assertEquals((isset($output[3])) ? $output[3] : '', 'PATCH:/v1/mock/tests/foo:passed');
-                    $this->assertEquals((isset($output[4])) ? $output[4] : '', 'DELETE:/v1/mock/tests/foo:passed');
-                    $this->assertEquals((isset($output[5])) ? $output[5] : '', 'GET:/v1/mock/tests/bar:passed');
-                    $this->assertEquals((isset($output[6])) ? $output[6] : '', 'POST:/v1/mock/tests/bar:passed');
-                    $this->assertEquals((isset($output[7])) ? $output[7] : '', 'PUT:/v1/mock/tests/bar:passed');
-                    $this->assertEquals((isset($output[8])) ? $output[8] : '', 'PATCH:/v1/mock/tests/bar:passed');
-                    $this->assertEquals((isset($output[9])) ? $output[9] : '', 'DELETE:/v1/mock/tests/bar:passed');
-                    
-                    $this->assertEquals($output[10], 'GET:/v1/mock/tests/general/redirected:passed');
-                    //$this->assertEquals($output[11], 'POST:/v1/mock/tests/general/upload:passed');
                 }
             }
+
+            /**
+             * Run tests on all different envs
+             */
+            foreach ($options['envs'] as $key => $command) {
+                echo "Running tests for the {$key} environment...\n";
+
+                $output = [];
+
+                exec($command, $output);
+
+                foreach($output as $i => $row) {
+                    echo "{$row}\n";
+                }
+
+                $this->assertIsArray($output);
+                $this->assertGreaterThan(10, count($output));
+
+                $this->assertEquals((isset($output[0])) ? $output[0] : '', 'GET:/v1/mock/tests/foo:passed');
+                $this->assertEquals((isset($output[1])) ? $output[1] : '', 'POST:/v1/mock/tests/foo:passed');
+                $this->assertEquals((isset($output[2])) ? $output[2] : '', 'PUT:/v1/mock/tests/foo:passed');
+                $this->assertEquals((isset($output[3])) ? $output[3] : '', 'PATCH:/v1/mock/tests/foo:passed');
+                $this->assertEquals((isset($output[4])) ? $output[4] : '', 'DELETE:/v1/mock/tests/foo:passed');
+                $this->assertEquals((isset($output[5])) ? $output[5] : '', 'GET:/v1/mock/tests/bar:passed');
+                $this->assertEquals((isset($output[6])) ? $output[6] : '', 'POST:/v1/mock/tests/bar:passed');
+                $this->assertEquals((isset($output[7])) ? $output[7] : '', 'PUT:/v1/mock/tests/bar:passed');
+                $this->assertEquals((isset($output[8])) ? $output[8] : '', 'PATCH:/v1/mock/tests/bar:passed');
+                $this->assertEquals((isset($output[9])) ? $output[9] : '', 'DELETE:/v1/mock/tests/bar:passed');
+                
+                $this->assertEquals($output[10], 'GET:/v1/mock/tests/general/redirected:passed');
+                //$this->assertEquals($output[11], 'POST:/v1/mock/tests/general/upload:passed');
+            }
         }
-        catch (\Exception $exception) {
-            echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
-        }
-        catch (\Throwable $exception) {
-            echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
-        }
+    
     }
 }
