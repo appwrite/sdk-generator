@@ -34,7 +34,7 @@ class SDKTest extends TestCase
             'build' => [
                 'mkdir -p tests/sdks/dart/tests',
                 'cp tests/languages/dart/tests.dart tests/sdks/dart/tests/tests.dart',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor appwrite/flutter:0.2.0 flutter doctor && flutter pub get'
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor appwrite/flutter:0.2.0 flutter pub get'
             ],
             'envs' => [
                 'flutter' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor appwrite/flutter:0.2.0 flutter pub run tests/tests.dart',
