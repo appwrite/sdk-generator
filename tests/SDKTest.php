@@ -49,7 +49,7 @@ class SDKTest extends TestCase
             'build' => [
                 'cp tests/languages/typescript/tests.ts tests/sdks/typescript/tests.ts',
                 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:12.12 npm install',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:12.12 npm i -g typescript && tsc --lib ES6,DOM ./tests/sdks/typescript/tests'
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:12.12 npm i -g typescript && npm list -g --depth 0 && tsc --lib ES6,DOM ./tests/sdks/typescript/tests'
             ],
             'envs' => [
                 'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/sdks/typescript/tests.js',
