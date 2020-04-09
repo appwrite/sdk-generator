@@ -16,82 +16,82 @@ class SDKTest extends TestCase
      * @var array
      */
     protected $languages  = [
-        'php' => [
-            'class' => 'Appwrite\SDK\Language\PHP',
-            'build' => [
-            ],
-            'envs' => [
-                'php-7.0' => 'docker run --rm -v $(pwd):/app -w /app php:7.0-cli php tests/languages/php/test.php',
-                'php-7.1' => 'docker run --rm -v $(pwd):/app -w /app php:7.1-cli php tests/languages/php/test.php',
-                'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli php tests/languages/php/test.php',
-                'php-7.3' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli php tests/languages/php/test.php',
-                'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli php tests/languages/php/test.php',
-            ],
-        ],
+        // 'php' => [
+        //     'class' => 'Appwrite\SDK\Language\PHP',
+        //     'build' => [
+        //     ],
+        //     'envs' => [
+        //         'php-7.0' => 'docker run --rm -v $(pwd):/app -w /app php:7.0-cli php tests/languages/php/test.php',
+        //         'php-7.1' => 'docker run --rm -v $(pwd):/app -w /app php:7.1-cli php tests/languages/php/test.php',
+        //         'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli php tests/languages/php/test.php',
+        //         'php-7.3' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli php tests/languages/php/test.php',
+        //         'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli php tests/languages/php/test.php',
+        //     ],
+        // ],
 
         'dart' => [
             'class' => 'Appwrite\SDK\Language\Dart',
             'build' => [
-                'mkdir -p tests/sdks/dart/test',
-                'cp tests/languages/dart/tests.dart tests/sdks/dart/test/tests.dart',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor appwrite/flutter:0.2.0 flutter -v'
+                'mkdir -p tests/sdks/dart/tests',
+                'cp tests/languages/dart/tests.dart tests/sdks/dart/tests/tests.dart',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor appwrite/flutter:0.2.0 flutter doctor && flutter pub get'
             ],
             'envs' => [
-                'flutter' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor appwrite/flutter:0.2.0 flutter pub run test/tests.dart',
+                'flutter' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor appwrite/flutter:0.2.0 flutter pub run tests/tests.dart',
                 //'dart-2.6' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.6 pub run test/tests.dart',
                 //'dart-2.7' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.7 pub run test/tests.dart',
                 //'dart-2.8-dev' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.8-dev pub run test/tests.dart',
             ],
         ],
 
-        'typescript' => [
-            'class' => 'Appwrite\SDK\Language\TypeScript',
-            'build' => [
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:12.12 npm install',
-                'docker run --rm -v $(pwd):/app -w /app node:12.12 npm i -g typescript && tsc --lib ES6,DOM tests/languages/typescript/test.ts'
-            ],
-            'envs' => [
-                'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/languages/typescript/test.js',
-            ],
-        ],
+        // 'typescript' => [
+        //     'class' => 'Appwrite\SDK\Language\TypeScript',
+        //     'build' => [
+        //         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:12.12 npm install',
+        //         'docker run --rm -v $(pwd):/app -w /app node:12.12 npm i -g typescript && tsc --lib ES6,DOM tests/languages/typescript/test.ts'
+        //     ],
+        //     'envs' => [
+        //         'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/languages/typescript/test.js',
+        //     ],
+        // ],
 
-        'node' => [
-            'class' => 'Appwrite\SDK\Language\Node',
-            'build' => [
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:12.12 npm install'
-            ],
-            'envs' => [
-                'nodejs-8' => 'docker run --rm -v $(pwd):/app -w /app node:8.16 node tests/languages/node/test.js',
-                'nodejs-10' => 'docker run --rm -v $(pwd):/app -w /app node:10.16 node tests/languages/node/test.js',
-                'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/languages/node/test.js',
-            ],
-        ],
+        // 'node' => [
+        //     'class' => 'Appwrite\SDK\Language\Node',
+        //     'build' => [
+        //         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:12.12 npm install'
+        //     ],
+        //     'envs' => [
+        //         'nodejs-8' => 'docker run --rm -v $(pwd):/app -w /app node:8.16 node tests/languages/node/test.js',
+        //         'nodejs-10' => 'docker run --rm -v $(pwd):/app -w /app node:10.16 node tests/languages/node/test.js',
+        //         'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/languages/node/test.js',
+        //     ],
+        // ],
 
-        'ruby' => [
-            'class' => 'Appwrite\SDK\Language\Ruby',
-            'build' => [
-            ],
-            'envs' => [
-                'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.7-rc ruby tests/languages/ruby/tests.rb',
-                'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.6.5 ruby tests/languages/ruby/tests.rb',
-                'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.5.7 ruby tests/languages/ruby/tests.rb',
-                'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.4.9 ruby tests/languages/ruby/tests.rb',
-            ],
-        ],
+        // 'ruby' => [
+        //     'class' => 'Appwrite\SDK\Language\Ruby',
+        //     'build' => [
+        //     ],
+        //     'envs' => [
+        //         'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.7-rc ruby tests/languages/ruby/tests.rb',
+        //         'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.6.5 ruby tests/languages/ruby/tests.rb',
+        //         'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.5.7 ruby tests/languages/ruby/tests.rb',
+        //         'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.4.9 ruby tests/languages/ruby/tests.rb',
+        //     ],
+        // ],
 
-        'python' => [
-            'class' => 'Appwrite\SDK\Language\Python',
-            'build' => [
-                'cp tests/languages/python/tests.py tests/sdks/python/test.py',
-                'echo "" > tests/sdks/python/__init__.py',
-                'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor python:3.8 pip install -r tests/sdks/python/requirements.txt --upgrade'
-            ],
-            'envs' => [
-                'python-3.8' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.8 python tests/sdks/python/test.py',
-                'python-3.7' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.7 python tests/sdks/python/test.py',
-                'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.6 python tests/sdks/python/test.py',
-            ],
-        ],
+        // 'python' => [
+        //     'class' => 'Appwrite\SDK\Language\Python',
+        //     'build' => [
+        //         'cp tests/languages/python/tests.py tests/sdks/python/test.py',
+        //         'echo "" > tests/sdks/python/__init__.py',
+        //         'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor python:3.8 pip install -r tests/sdks/python/requirements.txt --upgrade'
+        //     ],
+        //     'envs' => [
+        //         'python-3.8' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.8 python tests/sdks/python/test.py',
+        //         'python-3.7' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.7 python tests/sdks/python/test.py',
+        //         'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.6 python tests/sdks/python/test.py',
+        //     ],
+        // ],
     ];
 
     public function setUp()
@@ -149,6 +149,10 @@ class SDKTest extends TestCase
                     foreach ($options['build'] as $key => $command) {
                         echo "Building phase #{$key} for {$language} package...\n";
                         exec($command, $output);
+
+                        foreach($output as $i => $row) {
+                            echo "{$i}. {$row}\n";
+                        }
                     }
                 }
 
