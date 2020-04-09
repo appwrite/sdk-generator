@@ -1,4 +1,4 @@
-import * as appwrite from "../../sdks/typescript/index";
+import * as appwrite from "./index";
 //import * as fs from "fs";
 
 async function start() {
