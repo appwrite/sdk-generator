@@ -1,0 +1,68 @@
+// Type definitions for {{ language.params.npmPackage }} {{ sdk.version }}
+// Project: {{ spec.title }}
+
+
+/*~ This declaration specifies that the class constructor function
+ *~ is the exported object from the file
+ */
+export = {{ spec.title | caseUcfirst }};
+
+/*~ Write your module's methods and properties in this class */
+declare class {{ spec.title | caseUcfirst }} {
+    constructor();
+
+    /**
+     * @param {string} endpoint
+     * @returns {this}
+     */
+    setEndpoint(endpoint: string): this;
+
+{% for header in spec.global.headers %}
+	/**
+	 * Set {{header.key | caseUcfirst}}
+	 *
+{% if header.description %}
+{{header.description|comment2}}
+	 *
+{% endif %}
+     * @param value string
+     *
+     * @return this
+     */
+    set{{header.key | caseUcfirst}}({{ header.key | caseCamel }}: string): this;
+{% endfor %}
+
+{% for service in spec.services %}
+	{{ service.name }}:{{ spec.title | caseUcfirst }}.{{ service.name | caseUcfirst }};
+{% endfor %}
+
+}
+
+declare namespace {{ spec.title | caseUcfirst }} {
+
+{% for service in spec.services %}
+    export interface {{ service.name | caseUcfirst }} {
+
+{% for method in service.methods %}
+        /**
+         * {{ method.title }}
+         *
+{% if method.description %}
+{{ method.description|comment2 }}
+{% endif %}
+	     *
+{% for parameter in method.parameters.all %}
+         * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
+{% endfor %}
+         * @throws {Error}
+         * @return {% if method.location %}{string}{% elseif method.cookies %}{null}{% else %}{Promise}{% endif %}
+         
+         */
+	    {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<string>;
+
+{% endfor %}
+	}
+
+{% endfor %}
+
+}
