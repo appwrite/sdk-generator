@@ -79,7 +79,7 @@ class {{ service.name | caseUcfirst }} extends Service {
           queryParameters:params,
         );
 
-        return Uri.toString();
+        return url.toString();
 {% else %}
         final Map<String, String> headers = {
 {% for key, header in method.headers %}
