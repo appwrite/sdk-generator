@@ -186,7 +186,7 @@ class Dart extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'MultipartFile.fromFile(\'./path-to-files/image.jpg\', \'image.jpg\')';
+                    $output .= 'await MultipartFile.fromFile(\'./path-to-files/image.jpg\', \'image.jpg\')';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
