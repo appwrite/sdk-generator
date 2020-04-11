@@ -419,22 +419,28 @@ class SDK
             'sdk' => $this->getParams(),
         ];
 
-        foreach ($this->language->getFiles() as $file) {
-            /** @var $file [] */
-            $template       = $this->twig->load($file['template']);
+        foreach ($this->language->getFiles() as $file) { /** @var $file [] */
+            
+            $template       = $this->twig->load($file['template']); /** @var $template Twig\TemplateWrapper */
             $destination    = $target . '/' . $file['destination'];
             $block          = (isset($file['block'])) ? $file['block'] : null;
             $minify         = (isset($file['minify'])) ? $file['minify'] : false;
-
+            
             switch ($file['scope']) {
                 case 'default':
                     $this->render($template, $destination, $block, $params, $minify);
                     break;
                 case 'service':
                     foreach ($this->spec->getServices() as $key => $service) {
+                        $methods = $this->spec->getMethods($key);
                         $params['service'] = [
                             'name' => $key,
-                            'methods' => $this->spec->getMethods($key),
+                            'features' => [
+                                'upload' => $this->hasUploads($methods),
+                                'location' => $this->hasLocation($methods),
+                                'webAuth' => $this->hasWebAuth($methods),
+                            ],
+                            'methods' => $methods,
                         ];
 
                         $this->render($template, $destination, $block, $params, $minify);
@@ -442,11 +448,18 @@ class SDK
                     break;
                 case 'method':
                     foreach ($this->spec->getServices() as $key => $service) {
+                        $methods = $this->spec->getMethods($key);
                         $params['service'] = [
                             'name' => $key,
-                            'methods' => $this->spec->getMethods($key),
+                            'methods' => $methods,
+                            'features' => [
+                                'upload' => $this->hasUploads($methods),
+                                'location' => $this->hasLocation($methods),
+                                'webAuth' => $this->hasWebAuth($methods),
+                            ],
                         ];
-                        foreach ($this->spec->getMethods($key) as $method) {
+
+                        foreach ($methods as $method) {
                             $params['method'] = $method;
                             $this->render($template, $destination, $block, $params, $minify);
                         }
@@ -454,6 +467,48 @@ class SDK
                     break;
             }
         }
+    }
+
+    /**
+     * @return bool
+     */
+    protected function hasUploads($methods):bool
+    {
+        foreach($methods as $method) {
+            if(isset($method['type']) && $method['type'] === 'upload') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return bool
+     */
+    protected function hasLocation($methods):bool
+    {
+        foreach($methods as $method) {
+            if(isset($method['type']) && $method['type'] === 'location') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return bool
+     */
+    protected function hasWebAuth($methods):bool
+    {
+        foreach($methods as $method) {
+            if(isset($method['type']) && $method['type'] === 'webAuth') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

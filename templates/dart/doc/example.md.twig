@@ -1,5 +1,5 @@
 import 'package:appwrite/appwrite.dart';
-{% if method.consumes[0] == 'multipart/form-data' %}
+{% if method.type == 'upload' %}
 //const fs = require('fs');
 {% endif %}
 
@@ -16,7 +16,7 @@ client
 {% endfor %};
 
 {% endif %}
-Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+{% if method.type == 'location' %}String{% else %}Future{% endif %} result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
 {% if loop.first %}
 
 {% endif %}
@@ -25,9 +25,13 @@ Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% 
 {% endif %}
 {% endfor %});
 
+{% if method.type == 'location' %}
+print(result); // Resource URL string
+{% else %}
 result
   .then((response) {
     print(response);
   }).catchError((error) {
     print(error);
   });
+{% endif %}

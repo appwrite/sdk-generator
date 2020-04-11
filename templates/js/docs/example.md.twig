@@ -9,9 +9,9 @@ sdk
 {% endfor %};
 
 {% endif %}
-let {% if method.location %}result{% else %}promise{% endif %} = sdk.{{ service.name | caseLower }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
+let {% if method.type == 'location' %}result{% else %}promise{% endif %} = sdk.{{ service.name | caseLower }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
 
-{% if method.location %}
+{% if method.type == 'location' %}
 console.log(result); // Resource URL
 {% else %}
 promise.then(function (response) {

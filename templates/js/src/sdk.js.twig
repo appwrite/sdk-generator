@@ -239,28 +239,6 @@
             }
         }(window.document);
 
-        let iframe = function(method, url, params) {
-            let form = document.createElement('form');
-
-            form.setAttribute('method', method);
-            form.setAttribute('action', config.endpoint + url);
-
-            for(let key in params) {
-                if(params.hasOwnProperty(key)) {
-                    let hiddenField = document.createElement("input");
-                    hiddenField.setAttribute("type", "hidden");
-                    hiddenField.setAttribute("name", key);
-                    hiddenField.setAttribute("value", params[key]);
-
-                    form.appendChild(hiddenField);
-                }
-            }
-
-            document.body.appendChild(form);
-
-            return form.submit();
-        };
-
 {% for service in spec.services %}
         let {{service.name | caseCamel}} = {
 {% for method in service.methods %}
@@ -276,7 +254,7 @@
              * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
              * @throws {Error}
-             * @return {% if method.location %}{string}{% elseif method.cookies %}{null}{% else %}{Promise}{% endif %}
+             * @return {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
              
              */
             {{ method.name }}: function({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) {
@@ -304,7 +282,7 @@
                 }
 
 {% endfor %}
-{% if method.location %}
+{% if method.type == 'location' or method.type == 'webAuth' %}
 {% if method.security|length > 0 %}
 {% for node in method.security %}
 {% for key,header in node|keys %}
@@ -314,12 +292,12 @@
 {% endfor %}
 {% endif %}
                 let query = Object.keys(payload).map(key => key + '=' + encodeURIComponent(payload[key])).join('&');
-
+                
+{% endif %}
+{% if method.type == 'webAuth' %}
+                window.location = config.endpoint + path + ((query) ? '?' + query : '');
+{% elseif method.type == 'location' %}
                 return config.endpoint + path + ((query) ? '?' + query : '');
-{% elseif method.cookies %}
-                payload['project'] = config.project;
-
-                return iframe('{{ method.method | caseLower }}', path, payload);
 {% else %}
                 return http
                     .{{ method.method | caseLower }}(path, {

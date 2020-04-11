@@ -99,7 +99,7 @@ class Dart extends Language {
                 return 'String';
             break;
             case self::TYPE_FILE:
-                return '';
+                return 'File';
             break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
@@ -186,7 +186,7 @@ class Dart extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'null';
+                    $output .= 'new File(\'./image.jpg\')';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
