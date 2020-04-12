@@ -295,8 +295,8 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'doc/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => '/dart/doc/example.md.twig',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => '/dart/docs/example.md.twig',
                 'minify'        => false,
             ],
         ];
