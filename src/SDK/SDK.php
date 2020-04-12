@@ -158,6 +158,9 @@ class SDK
 
             return $value;
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('caseHTML', function ($value) {
+            return $value;
+        }, ['is_safe' => ['html']]));
     }
 
     /**

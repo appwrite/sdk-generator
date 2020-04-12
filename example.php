@@ -153,7 +153,7 @@ try {
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
         ->setChangelog('**CHANGELOG**')
-        ->setExamples('**EXAMPLES**')
+        ->setExamples('**EXAMPLES** <HTML>')
         ->setVersion('0.0.1')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
