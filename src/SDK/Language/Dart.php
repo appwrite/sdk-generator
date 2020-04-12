@@ -241,6 +241,12 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/example/README.md',
+                'template'      => '/dart/example/README.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => '/dart/CHANGELOG.md.twig',
                 'minify'        => false,

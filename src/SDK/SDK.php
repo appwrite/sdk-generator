@@ -49,6 +49,7 @@ class SDK
         'warning' => '',
         'readme' => '',
         'changelog' => '',
+        'examples' => '',
     ];
 
     /**
@@ -353,6 +354,17 @@ class SDK
     public function setChangelog($text)
     {
         $this->setParam('changelog', $text);
+
+        return $this;
+    }
+
+    /**
+     * @param $text string
+     * @return $this
+     */
+    public function setExamples($text)
+    {
+        $this->setParam('examples', $text);
 
         return $this;
     }

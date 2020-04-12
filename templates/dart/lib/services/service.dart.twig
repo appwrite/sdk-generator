@@ -10,7 +10,9 @@
 '{{ parameter.name }}': {{ parameter.name | caseCamel }},{% endif %}
 {% endmacro %}
 
+{% if(service.features.webAuth) %}
 import 'dart:io';
+{% endif %}
 
 import 'package:dio/dio.dart';
 import 'package:meta/meta.dart';
