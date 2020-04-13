@@ -77,7 +77,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | PHP        | 7.0+                | [PHP FIG]           | Composer           | [@eldadfux]    |
 | Ruby       | 2.4+                | [Ruby Style Guide]  | GEM                | [@eldadfux]    |
 | Python     | 3.5+                | [PEP8]              | PIP                | [@eldadfux]    |
-| Dart       |                     | [Effective Dart]    | pub tool           | [@Almoullim]   |
+| Dart       |                     | [Effective Dart]    | pub tool           | [@bartektartanus] [@Almoullim]   |
 | Go         |                     | [Effective Go]      | go get             | [@panz3r]      |
 | CSharp     |                     |                     | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | D          |                     |                     | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
@@ -88,6 +88,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 [@eldadfux]:        https://github.com/eldadfux
 [@panz3r]:          https://github.com/panz3r
 [@armino-dev]:      https://github.com/armino-dev
+[bartektartanus]    https://github.com/bartektartanus
 
 [PHP FIG]:          https://www.php-fig.org/
 [NPM Coding Style]: https://docs.npmjs.com/misc/coding-style
