@@ -7,8 +7,8 @@ use Appwrite\SDK\Language;
 class JS extends Language {
 
     protected $params = [
-        'npmPackage' => 'packageName',
-        'bowerPackage' => 'packageName',
+        'npmPackage' => 'appwrite',
+        'bowerPackage' => 'appwrite',
     ];
 
     /**
@@ -164,6 +164,18 @@ class JS extends Language {
                 'template'      => '/js/docs/example.md.twig',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'types/index.d.ts',
+                'template'      => '/js/types/index.d.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tsconfig.json',
+                'template'      => '/js/tsconfig.json.swig',
+                'minify'        => false,
+            ],
         ];
     }
 
@@ -178,6 +190,8 @@ class JS extends Language {
             case self::TYPE_NUMBER:
                 return 'number';
             break;
+            case self::TYPE_ARRAY:
+                return 'string[]';
             case self::TYPE_FILE:
                 return 'File';
             break;

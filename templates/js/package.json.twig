@@ -5,10 +5,13 @@
   "version": "{{ sdk.version }}",
   "license": "{{ sdk.license }}",
   "main": "src/sdk.js",
+  "types": "types/index.d.ts",
   "repository": {
     "type": "git",
     "url": "{{ sdk.gitURL }}"
   },
-  "devDependencies": {},
+  "devDependencies": {
+  "typescript": "^3.6.4"
+  },
   "dependencies": {}
 }

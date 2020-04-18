@@ -32,7 +32,7 @@ try {
     }
 
     //$spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
-    $spec = getSSLPage('https://localhost:2444/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
+    $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -80,6 +80,7 @@ try {
     $sdk
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
+        ->setVersion('0.0.0')
         ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
