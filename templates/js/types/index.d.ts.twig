@@ -55,10 +55,10 @@ declare namespace {{ spec.title | caseUcfirst }} {
          * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
          * @throws {Error}
-         * @return {% if method.location %}{string}{% elseif method.cookies %}{null}{% else %}{Promise}{% endif %}
+         * @return {% if method.type == 'location' %}{string}{% elseif method.cookies %}{null}{% else %}{Promise}{% endif %}
          
          */
-	    {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<string>;
+	    {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'location' %}string{% else %}Promise<object>{% endif %};
 
 {% endfor %}
 	}

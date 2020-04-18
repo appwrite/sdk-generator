@@ -7,8 +7,8 @@ use Appwrite\SDK\Language;
 class JS extends Language {
 
     protected $params = [
-        'npmPackage' => 'appwrite',
-        'bowerPackage' => 'appwrite',
+        'npmPackage' => 'packageName',
+        'bowerPackage' => 'packageName',
     ];
 
     /**
@@ -173,7 +173,7 @@ class JS extends Language {
             [
                 'scope'         => 'default',
                 'destination'   => 'tsconfig.json',
-                'template'      => '/js/tsconfig.json.swig',
+                'template'      => '/js/tsconfig.json.twig',
                 'minify'        => false,
             ],
         ];
