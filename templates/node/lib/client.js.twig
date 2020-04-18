@@ -1,5 +1,7 @@
 const URL = require('url').URL;
-const request = require('request-promise-native');
+const fetch = require('node-fetch');
+const urljoin = require('urljoin');
+const FormData = require('form-data');
 
 class Client {
     
@@ -67,44 +69,45 @@ class Client {
             process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
         }
 
-        headers = Object.assign(this.headers, headers);
+        const contentType = headers['content-type'].toLowerCase();
+        const uri = urljoin(this.endpoint, path);
+        const json = contentType.indexOf('application/json') === 1;
+        const formData = contentType.indexOf('multipart/form-data') === 1;
 
-        let contentType = headers['content-type'].toLowerCase();
-        let options = {
+        let body;
+        if (json) {
+            body = JSON.stringify(params);
+        } else if (formData) {
+            const form = new FormData();
+            for (let key in params) {
+                body.append(key, params[key]);
+            };
+        } else {  // query string
+            const qs = new URLSearchParams();
+            for (let key in params) {
+                qs.append(key, params[key]);
+            };
+            body = qs;
+        }
+
+        const options = {
             method: method.toUpperCase(),
-            uri: this.endpoint + path,
-            qs: (method.toUpperCase() === 'GET') ? params : {},
-            headers: headers,
-            body: (method.toUpperCase() === 'GET' || contentType.startsWith('multipart/form-data')) ? null : params,
-            json: (contentType.startsWith('application/json')),
-            formData: (contentType.startsWith('multipart/form-data')) ? this.flatten(params) : null,
+            headers: Object.assign(this.headers, headers),
+            body: body,
         };
 
-        let response = await request(options);
+        try {
+            let response = await fetch(uri, options);
+        } catch (error) {
+            console.error(error);
+            return null
+        }
 
-        if(contentType.startsWith('multipart/form-data')) {
-            response = JSON.parse(response);
+        if(formData) {
+            response = await response.json();
         }
 
         return response;
-    }
-
-    flatten(data, prefix = '') {
-        let output = {};
-
-        for (const key in data) {
-            let value = data[key];
-            let finalKey = prefix ? prefix + '[' + key +']' : key;
-
-            if (Array.isArray(value)) {
-                output = Object.assign(output, this.flatten(value, finalKey)); // @todo: handle name collision here if needed
-            }
-            else {
-                output[finalKey] = value;
-            }
-        }
-
-        return output;
     }
 }
 
