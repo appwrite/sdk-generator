@@ -11,10 +11,11 @@ use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
 use Appwrite\SDK\Language\Dart;
 use Appwrite\SDK\Language\Go;
+use Appwrite\SDK\Language\Java;
 use Appwrite\SDK\Language\Typescript;
 use Appwrite\SDK\Language\Swift;
 
-$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'swift'];
+$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift'];
 
 
 try {
@@ -179,6 +180,25 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/go');
+
+    // Java
+
+    $sdk  = new SDK(new Java(), new Swagger2($spec));
+
+    $sdk
+        ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
+        ->setURL('https://example.com')
+        ->setGitUserName('appwrite')
+        ->setGitRepoName('java-sdk')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
+        ->setVersion('0.0.1')
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/java');
 
     // Swift
     $sdk  = new SDK(new Swift(), new Swagger2($spec));

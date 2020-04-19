@@ -1,0 +1,112 @@
+package io.appwrite;
+
+import okhttp3.Call;
+import okhttp3.CookieJar;
+import okhttp3.Headers;
+import okhttp3.HttpUrl;
+import okhttp3.FormBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static java.util.Map.entry;
+
+public class Client {
+    private final OkHttpClient http;
+    private final Map<String, String> headers;
+    private final Map<String, String> config;
+    private String endPoint;
+    private boolean selfSigned;
+    private CookieJar cookieJar = CookieJar.NO_COOKIES;
+
+    public Client() {
+        this("https://appwrite.io/v1", false, new OkHttpClient());
+    }
+
+    public Client(String endPoint, boolean selfSigned, OkHttpClient http) {
+        this.headers = new HashMap<>(Map.ofEntries(
+                entry("content-type", "application/json"),
+                entry("x-sdk-version", "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}")
+        ));
+        this.config = new HashMap<>();
+        this.http = http.newBuilder()
+                .cookieJar(cookieJar)
+                .build();
+    }
+
+    public String getEndPoint(){
+        return endPoint;
+    }
+
+    public Map<String, String> getConfig(){
+        return config;
+    }
+
+//    private Future<Directory> getCookiePath() {
+//        final directory = getApplicationDocumentsDirectory();
+//        final path = directory.path;
+//        final Directory dir = new Directory("$path/cookies");
+//        dir.create();
+//        return dir;
+//    }
+
+{% for header in spec.global.headers %}
+{% if header.description %}
+    /// {{header.description}}
+{% endif %}
+    public Client set{{header.key | caseUcfirst}}(String value) {
+        config.put("{{ header.key | caseCamel }}", value);
+        addHeader("{{header.name}}", value);
+        return this;
+    }
+
+{% endfor %}
+    public Client setSelfSigned(boolean status) {
+        selfSigned = status;
+        return this;
+    }
+
+    public Client setEndpoint(String endPoint) {
+        this.endPoint = endPoint;
+        return this;
+    }
+
+    public Client addHeader(String key, String value) {
+        headers.put(key, value);
+        return this;
+    }
+
+    public Call call(String method, String path, Map<String, String> headers, Map<String, Object> params) {
+        if(selfSigned) {
+            // Allow self signed requests
+
+        }
+
+        HttpUrl.Builder httpBuilder = new HttpUrl.Builder().build().newBuilder(endPoint + path);
+        if("GET".equals(method)) {
+            params.forEach((k, v) -> httpBuilder.addQueryParameter(k, v.toString()));
+        }
+
+        RequestBody body = null;
+        if("multipart/form-data".equals(headers.get("content-type"))) {
+            FormBody.Builder builder = new FormBody.Builder();
+            params.forEach((k, v) -> builder.add(k, v.toString()));
+            body = builder.build();
+        }
+
+        Headers requestHeaders = Headers.of(this.headers).newBuilder()
+                .addAll(Headers.of(headers))
+                .build();
+
+        Request request = new Request.Builder()
+                .url(httpBuilder.build())
+                .headers(requestHeaders)
+                .method(method, body)
+                .build();
+
+        return http.newCall(request);
+    }
+}
