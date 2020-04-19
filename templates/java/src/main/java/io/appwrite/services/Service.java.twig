@@ -1,6 +1,6 @@
-package io.appwrite.services;
+package {{ spec.namespace | caseDot }}.services;
 
-import io.appwrite.Client;
+import {{ spec.namespace | caseDot }}.Client;
 
 abstract class Service {
     final Client client;

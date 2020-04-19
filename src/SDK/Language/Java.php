@@ -194,13 +194,13 @@ class Java extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/java/io/appwrite/Client.java',
+                'destination'   => '/src/main/java/{{ spec.namespace | caseSlash }}/Client.java',
                 'template'      => '/java/src/main/java/io/appwrite/Client.java.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/java/io/appwrite/enums/OrderType.java',
+                'destination'   => '/src/main/java/{{ spec.namespace | caseSlash }}/enums/OrderType.java',
                 'template'      => '/java/src/main/java/io/appwrite/enums/OrderType.java.twig',
                 'minify'        => false,
             ],
@@ -212,13 +212,13 @@ class Java extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/java/io/appwrite/services/Service.java',
+                'destination'   => '/src/main/java/{{ spec.namespace | caseSlash }}/services/Service.java',
                 'template'      => '/java/src/main/java/io/appwrite/services/Service.java.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/src/main/java/io/appwrite/services/{{service.name | caseUcfirst}}.java',
+                'destination'   => '/src/main/java/{{ spec.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.java',
                 'template'      => '/java/src/main/java/io/appwrite/services/ServiceTemplate.java.twig',
                 'minify'        => false,
             ]

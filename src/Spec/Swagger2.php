@@ -23,6 +23,14 @@ class Swagger2 extends Spec {
     /**
      * @return string
      */
+    public function getNamespace()
+    {
+        return $this->getAttribute('info.namespace', '');
+    }
+
+    /**
+     * @return string
+     */
     public function getVersion()
     {
         return $this->getAttribute('info.version', '');

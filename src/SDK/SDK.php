@@ -82,6 +82,12 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseDash', function ($value) {
             return str_replace([' ', '_'], '-', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
         }));
+        $this->twig->addFilter(new TwigFilter('caseSlash', function ($value) {
+            return str_replace([' ', '_'], '/', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
+        }));
+        $this->twig->addFilter(new TwigFilter('caseDot', function ($value) {
+            return str_replace([' ', '_'], '.', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
+        }));
         $this->twig->addFilter(new TwigFilter('caseSnake', function ($value) {
             return str_replace([' ', '-'], '_', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1_', $value)));
         }));
@@ -161,6 +167,17 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseHTML', function ($value) {
             return $value;
         }, ['is_safe' => ['html']]));
+    }
+
+    /**
+     * @param string $name
+     * @return $this
+     */
+    public function setNamespace($text)
+    {
+        $this->setParam('namespace', $text);
+
+        return $this;
     }
 
     /**
@@ -414,6 +431,7 @@ class SDK
             'spec' => [
                 'title' => $this->spec->getTitle(),
                 'description' => $this->spec->getDescription(),
+                'namespace' => $this->spec->getNamespace(),
                 'version' => $this->spec->getVersion(),
                 'endpoint' => $this->spec->getEndpoint(),
                 'host' => parse_url($this->spec->getEndpoint(), PHP_URL_SCHEME) . '://' . parse_url($this->spec->getEndpoint(), PHP_URL_HOST),

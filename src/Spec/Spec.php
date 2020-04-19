@@ -56,6 +56,11 @@ abstract class Spec extends ArrayObject {
     /**
      * @return string
      */
+    abstract public function getNamespace();
+
+    /**
+     * @return string
+     */
     abstract public function getVersion();
 
     /**

@@ -186,6 +186,7 @@ try {
     $sdk  = new SDK(new Java(), new Swagger2($spec));
 
     $sdk
+        ->setNamespace('io appwrite')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
