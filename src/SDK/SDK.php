@@ -32,6 +32,7 @@ class SDK
      */
     protected $params = [
         'description' => '',
+        'namespace' => '',
         'shortDescription' => '',
         'version' => '',
         'license' => '',
@@ -83,10 +84,10 @@ class SDK
             return str_replace([' ', '_'], '-', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
         }));
         $this->twig->addFilter(new TwigFilter('caseSlash', function ($value) {
-            return str_replace([' ', '_'], '/', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
+            return str_replace([' ', '_'], '/', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', $value)));
         }));
         $this->twig->addFilter(new TwigFilter('caseDot', function ($value) {
-            return str_replace([' ', '_'], '.', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
+            return str_replace([' ', '_'], '.', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1.', $value)));
         }));
         $this->twig->addFilter(new TwigFilter('caseSnake', function ($value) {
             return str_replace([' ', '-'], '_', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1_', $value)));
