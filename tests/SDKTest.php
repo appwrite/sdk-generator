@@ -136,7 +136,7 @@ class SDKTest extends TestCase
         }
 
         $whitelist = ['typescript'];
-        $whitelist = ['php', 'node', 'ruby', 'python', 'typescript', 'java'];
+        $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript'];
 
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
@@ -151,6 +151,7 @@ class SDKTest extends TestCase
                 ->setLogo('https://appwrite.io/v1/images/console.png')
                 ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
                 ->setVersion('0.0.1')
+                ->setNamespace("io appwrite")
                 ->setGitUserName('repoowner')
                 ->setGitRepoName('reponame')
                 ->setLicense('BSD-3-Clause')
