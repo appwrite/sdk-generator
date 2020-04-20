@@ -2,6 +2,10 @@
 const appwrite = require('../../sdks/node/index');
 const fs = require('fs');
 
+if (typeof URLSearchParams === 'undefined') {
+    global.URLSearchParams = require('url').URLSearchParams;
+}
+
 async function start() {
     var response;
 
