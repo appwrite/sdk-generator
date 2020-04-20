@@ -70,31 +70,37 @@ class Client {
         }
 
         const contentType = headers['content-type'].toLowerCase();
-        const uri = urljoin(this.endpoint, path);
         const json = contentType.indexOf('application/json') === 1;
         const formData = contentType.indexOf('multipart/form-data') === 1;
+
+        let uri = urljoin(this.endpoint, path);
+
+        const options = {
+            method: method.toUpperCase(),
+            headers: Object.assign(this.headers, headers),
+        };
 
         let body;
         if (json) {
             body = JSON.stringify(params);
+            
+            options['body'] = body;
         } else if (formData) {
             const form = new FormData();
             for (let key in params) {
                 body.append(key, params[key]);
             };
+
+            options['body'] = body;
         } else {  // query string
             const qs = new URLSearchParams();
             for (let key in params) {
                 qs.append(key, params[key]);
             };
-            body = qs;
-        }
+            body = qs.toString();
 
-        const options = {
-            method: method.toUpperCase(),
-            headers: Object.assign(this.headers, headers),
-            body: body,
-        };
+            uri += '?' + body;
+        }
 
         try {
             let response = await fetch(uri, options);
@@ -102,11 +108,13 @@ class Client {
             if(formData) {
                 response = await response.json();
             }
+
+            return response;
+
         } catch (error) {
+            console.error(error);
             throw error;
         }
-
-        return response;
     }
 }
 
