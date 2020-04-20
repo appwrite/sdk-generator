@@ -98,18 +98,12 @@ class Client {
 
         try {
             let response = await fetch(uri, options);
-        } catch (error) {
-            console.error(error);
-            return null;
-        }
-
-        if(formData) {
-            try {
+            
+            if(formData) {
                 response = await response.json();
-            } catch (error) {
-                console.error(error);
-                return null;
             }
+        } catch (error) {
+            throw error;
         }
 
         return response;
