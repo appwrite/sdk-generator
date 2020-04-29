@@ -85,7 +85,7 @@ public class Client {
 
         }
 
-        HttpUrl.Builder httpBuilder = new HttpUrl.Builder().build().newBuilder(endPoint + path);
+        HttpUrl.Builder httpBuilder = HttpUrl.get(endPoint + path).newBuilder();
         if("GET".equals(method)) {
             params.forEach((k, v) -> httpBuilder.addQueryParameter(k, v.toString()));
         }
