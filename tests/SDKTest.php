@@ -49,11 +49,10 @@ class SDKTest extends TestCase
             'build' => [
                 'mkdir -p tests/sdks/java/src/test/java/io/appwrite/services',
                 'cp tests/languages/java/ServiceTest.java tests/sdks/java/src/test/java/io/appwrite/services/ServiceTest.java',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-11-slim mvn clean install',
             ],
             'envs' => [
-                'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-11-slim mvn test -q',
-                'java-14' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-14-slim mvn test -q',
+                'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-11-slim mvn clean install test -q',
+//                'java-14' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-14-slim mvn clean install test -q',
             ],
         ],
 

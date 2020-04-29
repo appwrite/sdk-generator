@@ -1,14 +1,17 @@
 package {{ sdk.namespace | caseDot }};
 
+import com.google.gson.Gson;
 import okhttp3.Call;
 import okhttp3.CookieJar;
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import okhttp3.FormBody;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,6 +30,8 @@ public class Client {
     }
 
     public Client(String endPoint, boolean selfSigned, OkHttpClient http) {
+        this.endPoint = endPoint;
+        this.selfSigned = selfSigned;
         this.headers = new HashMap<>(Map.ofEntries(
                 entry("content-type", "application/json"),
                 entry("x-sdk-version", "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}")
@@ -85,21 +90,38 @@ public class Client {
 
         }
 
+        Headers requestHeaders = Headers.of(this.headers).newBuilder()
+                .addAll(Headers.of(headers))
+                .build();
+
         HttpUrl.Builder httpBuilder = HttpUrl.get(endPoint + path).newBuilder();
         if("GET".equals(method)) {
-            params.forEach((k, v) -> httpBuilder.addQueryParameter(k, v.toString()));
+            params.forEach((k, v) -> {
+                if(v instanceof List){
+                    httpBuilder.addQueryParameter(k+"[]", v.toString());
+                }else{
+                    httpBuilder.addQueryParameter(k, v.toString());
+                }
+            });
+            Request request = new Request.Builder()
+                    .url(httpBuilder.build())
+                    .headers(requestHeaders)
+                    .get()
+                    .build();
+
+            return http.newCall(request);
         }
 
-        RequestBody body = null;
+        RequestBody body;
         if("multipart/form-data".equals(headers.get("content-type"))) {
             FormBody.Builder builder = new FormBody.Builder();
             params.forEach((k, v) -> builder.add(k, v.toString()));
             body = builder.build();
+        } else {
+            Gson gson = new Gson();
+            String json = gson.toJson(params);
+            body = RequestBody.create(json, MediaType.get("application/json"));
         }
-
-        Headers requestHeaders = Headers.of(this.headers).newBuilder()
-                .addAll(Headers.of(headers))
-                .build();
 
         Request request = new Request.Builder()
                 .url(httpBuilder.build())
