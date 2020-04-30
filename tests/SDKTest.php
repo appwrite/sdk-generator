@@ -44,6 +44,18 @@ class SDKTest extends TestCase
             ],
         ],
 
+        'java' => [
+            'class' => 'Appwrite\SDK\Language\Java',
+            'build' => [
+                'mkdir -p tests/sdks/java/src/test/java/io/appwrite/services',
+                'cp tests/languages/java/ServiceTest.java tests/sdks/java/src/test/java/io/appwrite/services/ServiceTest.java',
+            ],
+            'envs' => [
+                'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-11-slim mvn clean install test -q',
+//                'java-14' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-14-slim mvn clean install test -q',
+            ],
+        ],
+
         'typescript' => [
             'class' => 'Appwrite\SDK\Language\TypeScript',
             'build' => [
@@ -123,7 +135,7 @@ class SDKTest extends TestCase
         }
 
         $whitelist = ['typescript'];
-        $whitelist = ['php', 'node', 'ruby', 'python', 'typescript'];
+        $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript'];
 
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
@@ -138,6 +150,7 @@ class SDKTest extends TestCase
                 ->setLogo('https://appwrite.io/v1/images/console.png')
                 ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
                 ->setVersion('0.0.1')
+                ->setNamespace("io appwrite")
                 ->setGitUserName('repoowner')
                 ->setGitRepoName('reponame')
                 ->setLicense('BSD-3-Clause')
@@ -181,18 +194,18 @@ class SDKTest extends TestCase
                 $this->assertIsArray($output);
                 $this->assertGreaterThan(10, count($output));
 
-                $this->assertEquals((isset($output[0])) ? $output[0] : '', 'GET:/v1/mock/tests/foo:passed');
-                $this->assertEquals((isset($output[1])) ? $output[1] : '', 'POST:/v1/mock/tests/foo:passed');
-                $this->assertEquals((isset($output[2])) ? $output[2] : '', 'PUT:/v1/mock/tests/foo:passed');
-                $this->assertEquals((isset($output[3])) ? $output[3] : '', 'PATCH:/v1/mock/tests/foo:passed');
-                $this->assertEquals((isset($output[4])) ? $output[4] : '', 'DELETE:/v1/mock/tests/foo:passed');
-                $this->assertEquals((isset($output[5])) ? $output[5] : '', 'GET:/v1/mock/tests/bar:passed');
-                $this->assertEquals((isset($output[6])) ? $output[6] : '', 'POST:/v1/mock/tests/bar:passed');
-                $this->assertEquals((isset($output[7])) ? $output[7] : '', 'PUT:/v1/mock/tests/bar:passed');
-                $this->assertEquals((isset($output[8])) ? $output[8] : '', 'PATCH:/v1/mock/tests/bar:passed');
-                $this->assertEquals((isset($output[9])) ? $output[9] : '', 'DELETE:/v1/mock/tests/bar:passed');
+                $this->assertEquals('GET:/v1/mock/tests/foo:passed', (isset($output[0])) ? $output[0] : '');
+                $this->assertEquals('POST:/v1/mock/tests/foo:passed', (isset($output[1])) ? $output[1] : '');
+                $this->assertEquals('PUT:/v1/mock/tests/foo:passed', (isset($output[2])) ? $output[2] : '');
+                $this->assertEquals('PATCH:/v1/mock/tests/foo:passed', (isset($output[3])) ? $output[3] : '');
+                $this->assertEquals('DELETE:/v1/mock/tests/foo:passed', (isset($output[4])) ? $output[4] : '');
+                $this->assertEquals('GET:/v1/mock/tests/bar:passed', (isset($output[5])) ? $output[5] : '');
+                $this->assertEquals('POST:/v1/mock/tests/bar:passed', (isset($output[6])) ? $output[6] : '');
+                $this->assertEquals('PUT:/v1/mock/tests/bar:passed', (isset($output[7])) ? $output[7] : '');
+                $this->assertEquals('PATCH:/v1/mock/tests/bar:passed', (isset($output[8])) ? $output[8] : '');
+                $this->assertEquals('DELETE:/v1/mock/tests/bar:passed', (isset($output[9])) ? $output[9] : '');
                 
-                $this->assertEquals($output[10], 'GET:/v1/mock/tests/general/redirected:passed');
+                $this->assertEquals('GET:/v1/mock/tests/general/redirected:passed', $output[10]);
                 //$this->assertEquals($output[11], 'POST:/v1/mock/tests/general/upload:passed');
             }
         }

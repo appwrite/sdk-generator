@@ -1,0 +1,11 @@
+package {{ sdk.namespace | caseDot }}.services;
+
+import {{ sdk.namespace | caseDot }}.Client;
+
+abstract class Service {
+    final Client client;
+
+    Service(Client client) {
+        this.client = client;
+    }
+}

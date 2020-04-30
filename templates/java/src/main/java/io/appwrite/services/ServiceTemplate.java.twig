@@ -1,0 +1,95 @@
+package {{ sdk.namespace | caseDot }}.services;
+
+{% macro parameter(parameter) %}
+{% if parameter.name == 'orderType' %}{{ 'OrderType orderType' }}{% else %}
+{{ parameter.type | typeName }} {{ parameter.name | caseCamel }}{{ parameter | escapeDollarSign | paramDefault }}{% endif %}
+{% endmacro %}
+{% macro method_parameters(parameters) %}
+{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ', ' }}{% endif %}{% endfor %}{% endif %}
+{% endmacro %}
+{% macro map_parameter(parameter) %}
+{% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.name()'}}{% else %}
+{{ parameter.name | caseCamel }}{% endif %}
+{% endmacro %}
+{% macro methodNeedsSecurityParameters(method) %}
+{% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
+{% endmacro %}
+
+{% if(service.features.webAuth) %}
+{#import 'package:flutter_web_auth/flutter_web_auth.dart';#}
+{% endif %}
+
+import okhttp3.Call;
+{% if (service.features.webAuth or service.features.location) %}
+import okhttp3.HttpUrl;
+{% endif %}
+import {{ sdk.namespace | caseDot }}.Client;
+import {{ sdk.namespace | caseDot }}.enums.OrderType;
+
+import java.io.File;
+import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+
+import static java.util.Map.entry;
+
+public class {{ service.name | caseUcfirst }} extends Service {
+    public {{ service.name | caseUcfirst }}(Client client){
+        super(client);
+    }
+{% for method in service.methods %}
+
+     /// {{ method.title }}
+{% if method.description %}
+     /*
+{{ method.description|comment1 }}
+     */
+{% endif %}
+    public {% if method.type == "location" %}String{% else %}Call{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) {
+        final String path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %};
+
+        final Map<String, Object> params = Map.ofEntries(
+{% for parameter in method.parameters.query | merge(method.parameters.body) %}
+            entry("{{ parameter.name }}", {{ _self.map_parameter(parameter) }}){% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
+
+{% endfor %}
+{% if _self.methodNeedsSecurityParameters(method) %}
+{% for node in method.security %}
+{% for key,header in node|keys %}
+            entry("{{header|caseLower}}", client.getConfig().get("{{header|caseLower}}")){% if not loop.last %},{% endif %}
+
+{% endfor %}
+{% endfor %}
+{% endif %}
+        );
+
+{#{% if method.type == 'webAuth' %}#}
+{#        HttpUrl.Builder httpBuilder = new HttpUrl.Builder().build().newBuilder(client.getEndPoint() + path);#}
+{#        params.forEach((k, v) -> httpBuilder.addQueryParameter(k, v.toString()));#}
+
+{#        OAuth2Client.Builder builder = new OAuth2Client.Builder("client-id", "client-secret", "site")#}
+{#        .okHttpClient(client);#}
+
+{#        return FlutterWebAuth.authenticate(#}
+{#          url: url.toString(),#}
+{#          callbackUrlScheme: "appwrite-callback"#}
+{#          ).then((value) {#}
+{#              Uri url = Uri.parse(value);#}
+{#                List<Cookie> cookies = [new Cookie(url.queryParameters.get("key"), url.queryParameters.get("secret"))];#}
+{#                client.cookieJar.saveFromResponse(Uri.parse(client.endPoint), cookies);#}
+{#          });#}
+{% if method.type == 'location' %}
+        HttpUrl.Builder httpBuilder = new HttpUrl.Builder().build().newBuilder(client.getEndPoint() + path);
+        params.forEach((k, v) -> httpBuilder.addQueryParameter(k, v.toString()));
+
+        return httpBuilder.build().toString();
+{% else %}
+        final Map<String, String> headers = Map.ofEntries(
+{{ method.headers|map((header, key) => "            entry(\"#{key}\", \"#{header}\")")|join(',\n')|raw }}
+        );
+
+        return client.call("{{ method.method | caseUpper }}", path, headers, params);
+{% endif %}
+    }
+{% endfor %}
+}
