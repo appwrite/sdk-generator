@@ -10,7 +10,7 @@ Help us keep Appwrite open and inclusive. Please read and follow our [Code of Co
 
 To install a working development environment follow this instruction:
 
-1. For or clone the appwrite/sdk-generator repository.
+1. Fork or clone the appwrite/sdk-generator repository.
 
 2. Install Composer dependencies:
 
@@ -58,9 +58,9 @@ Add your new templates as listed in your language class **getFiles** method. Mak
 
 Make sure to follow the objects structure and service separation architecture. We aim to keep developer experience as consisted as possible across different SDKs to make the learning curve as small as possible.
 
-> Appwrite SDK generator adds some filters to the TWIG templates to allow common code fotmatting options like converting text to camelCase, dash-case and other. Full list is available in the [SDK class](https://github.com/appwrite/sdk-generator/blob/master/src/SDK/SDK.php#L62)
+> Appwrite SDK generator adds some filters to the TWIG templates to allow common code formatting options like converting text to camelCase, dash-case and other. Full list is available in the [SDK class](https://github.com/appwrite/sdk-generator/blob/master/src/SDK/SDK.php#L62)
 
-When in need to test the API templates output, add your new language instance to the example.php file like this:
+When in need to test the API templates output, add your new language instance to the `example.php` file like this:
 
 sdk-generator/blob/master/example.php:
 
