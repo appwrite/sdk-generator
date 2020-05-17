@@ -31,8 +31,9 @@ class SDK
      * @var array
      */
     protected $params = [
-        'description' => '',
         'namespace' => '',
+        'name' => '',
+        'description' => '',
         'shortDescription' => '',
         'version' => '',
         'license' => '',
@@ -171,7 +172,7 @@ class SDK
     }
 
     /**
-     * @param string $name
+     * @param string $text
      * @return $this
      */
     public function setNamespace($text)
@@ -182,7 +183,18 @@ class SDK
     }
 
     /**
-     * @param string $name
+     * @param string $text
+     * @return $this
+     */
+    public function setName($text)
+    {
+        $this->setParam('name', $text);
+
+        return $this;
+    }
+
+    /**
+     * @param string $text
      * @return $this
      */
     public function setDescription($text)
@@ -204,23 +216,23 @@ class SDK
     }
 
     /**
-     * @param string $name
+     * @param string $text
      * @return $this
      */
-    public function setVersion($name)
+    public function setVersion($text)
     {
-        $this->setParam('version', $name);
+        $this->setParam('version', $text);
 
         return $this;
     }
 
     /**
-     * @param string $name
+     * @param string $text
      * @return $this
      */
-    public function setLicense($name)
+    public function setLicense($text)
     {
-        $this->setParam('license', $name);
+        $this->setParam('license', $text);
 
         return $this;
     }
@@ -455,7 +467,8 @@ class SDK
 
         foreach ($this->language->getFiles() as $file) { /** @var $file [] */
             
-            $template       = $this->twig->load($file['template']); /** @var $template Twig\TemplateWrapper */
+            /* @var $template \Twig\TemplateWrapper */
+            $template       = $this->twig->load($file['template']);
             $destination    = $target . '/' . $file['destination'];
             $block          = (isset($file['block'])) ? $file['block'] : null;
             $minify         = (isset($file['minify'])) ? $file['minify'] : false;

@@ -28,7 +28,6 @@ class SDKTest extends TestCase
                 'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli php tests/languages/php/test.php',
             ],
         ],
-
         'dart' => [
             'class' => 'Appwrite\SDK\Language\Dart',
             'build' => [

@@ -43,6 +43,7 @@ try {
     $sdk  = new SDK(new PHP(), new Swagger2($spec));
 
     $sdk
+        ->setName('NAME')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
@@ -60,6 +61,7 @@ try {
     $sdk  = new SDK(new JS(), new Swagger2($spec));
 
     $sdk
+        ->setName('NAME')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setVersion('0.0.0')
@@ -79,6 +81,7 @@ try {
     $sdk  = new SDK(new Typescript(), new Swagger2($spec));
 
     $sdk
+        ->setName('NAME')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setVersion('0.0.0')
@@ -97,6 +100,7 @@ try {
     $sdk  = new SDK(new Node(), new Swagger2($spec));
 
     $sdk
+        ->setName('NAME')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
@@ -114,6 +118,7 @@ try {
     $sdk  = new SDK(new Ruby(), new Swagger2($spec));
 
     $sdk
+        ->setName('NAME')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
@@ -131,6 +136,7 @@ try {
     $sdk  = new SDK(new Python(), new Swagger2($spec));
 
     $sdk
+        ->setName('NAME')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
@@ -148,6 +154,7 @@ try {
     $sdk  = new SDK(new Dart(), new Swagger2($spec));
 
     $sdk
+        ->setName('NAME')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
@@ -168,6 +175,7 @@ try {
     $sdk  = new SDK(new Go(), new Swagger2($spec));
 
     $sdk
+        ->setName('NAME')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
@@ -186,6 +194,7 @@ try {
     $sdk  = new SDK(new Java(), new Swagger2($spec));
 
     $sdk
+        ->setName('NAME')
         ->setNamespace('io appwrite')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
@@ -205,6 +214,7 @@ try {
     $sdk  = new SDK(new Swift(), new Swagger2($spec));
 
     $sdk
+        ->setName('NAME')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
