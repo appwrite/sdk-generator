@@ -13,9 +13,10 @@ use Appwrite\SDK\Language\Dart;
 use Appwrite\SDK\Language\Go;
 use Appwrite\SDK\Language\Java;
 use Appwrite\SDK\Language\Typescript;
+use Appwrite\SDK\Language\Deno;
 use Appwrite\SDK\Language\Swift;
 
-$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift'];
+$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift', 'typescript', 'deno'];
 
 
 try {
@@ -34,7 +35,7 @@ try {
 
     //$spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
     $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
-
+    
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
     }
@@ -95,6 +96,25 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/typescript');
+
+    // Deno
+    $sdk  = new SDK(new Deno(), new Swagger2($spec));
+
+    $sdk
+        ->setName('NAME')
+        ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
+        ->setVersion('0.0.0')
+        ->setURL('https://example.com')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/deno');
 
     // Node
     $sdk  = new SDK(new Node(), new Swagger2($spec));
