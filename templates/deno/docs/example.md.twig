@@ -1,4 +1,4 @@
-import * as sdk from "{{ spec.title | caseDash }}";
+import * as sdk from "https://deno.land/x/{{ spec.title | caseDash }}/mod.ts";
 {# {% if method.consumes[0] == 'multipart/form-data' %}
 const fs = require('fs');
 {% endif %} #}
