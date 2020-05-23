@@ -20,8 +20,8 @@ class Deno extends JS
         return [
             [
                 'scope'         => 'default',
-                'destination'   => 'main.ts',
-                'template'      => '/Deno/main.ts.twig',
+                'destination'   => 'mod.ts',
+                'template'      => '/Deno/mod.ts.twig',
                 'minify'        => false,
             ],
             [
