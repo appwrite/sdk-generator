@@ -50,6 +50,14 @@ export class Client {
         return this;
     }
 
+    withoutHeader(key: string, headers: DocumentData): DocumentData {
+        return Object.keys(headers).reduce((acc: DocumentData, cv) => {
+            if (cv == 'content-type') return acc
+            acc[cv] = headers[cv]
+            return acc
+        }, {})
+    }
+
     async call(method: string, path: string = '', headers: DocumentData = {}, params: DocumentData = {}) {
         headers = Object.assign(this.headers, headers);
 
@@ -59,9 +67,11 @@ export class Client {
             url.search = new URLSearchParams(this.flatten(params)).toString()
             body = null
         } else if (headers['content-type'].toLowerCase().startsWith('multipart/form-data')) {
+            headers = this.withoutHeader('content-type', headers)
             const formData = new FormData()
-            for (const key in params) {
-                formData.append(key, params[key]);
+            const flatParams = this.flatten(params)
+            for (const key in flatParams) {
+                formData.append(key, flatParams[key]);
             }
             body = formData
         } else {
