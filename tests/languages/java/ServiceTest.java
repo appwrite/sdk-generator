@@ -20,7 +20,7 @@ public class ServiceTest {
         client.addHeader("Origin", "http://localhost");
         client.setSelfSigned(true);
 
-// Foo Tests
+        // Foo Tests
 
         Response response;
         response = foo.get("string", 123, List.of("string in array")).execute();
@@ -38,7 +38,7 @@ public class ServiceTest {
         response = foo.delete("string", 123, List.of("string in array")).execute();
         printResponse(response);
 
-// Bar Tests
+        // Bar Tests
 
         response = bar.get("string", 123, List.of("string in array")).execute();
         printResponse(response);
@@ -71,6 +71,5 @@ public class ServiceTest {
         Gson gson = new Gson();
         Map map = gson.fromJson(response.body().string(), Map.class);
         System.out.println(map.get("result"));
-
     }
 }

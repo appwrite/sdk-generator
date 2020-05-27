@@ -9,7 +9,7 @@ void main() async {
   client.addHeader('Origin', 'http://localhost');
   client.setSelfSigned();
 
-// Foo Tests
+  // Foo Tests
 
   Response response;
   response = await foo.get(x: 'string', y: 123, z: ['string in array']);
@@ -27,7 +27,7 @@ void main() async {
   response = await foo.delete(x: 'string', y: 123, z: ['string in array']);
   print(response.data['result']);
 
-// Bar Tests
+  // Bar Tests
 
   response = await bar.get(x: 'string', y: 123, z: ['string in array']);
   print(response.data['result']);
