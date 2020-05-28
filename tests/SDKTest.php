@@ -68,6 +68,16 @@ class SDKTest extends TestCase
             ],
         ],
 
+        
+        'deno' => [
+            'class' => 'Appwrite\SDK\Language\Deno',
+            'build' => [
+            ],
+            'envs' => [
+                'deno-1.0.0' => 'docker run --rm -v $(pwd):/app -w /app hayd/alpine-deno:1.0.0 run --allow-net tests/languages/deno/tests.ts', // TODO: use official image when its out
+            ],
+        ],
+
         'node' => [
             'class' => 'Appwrite\SDK\Language\Node',
             'build' => [
@@ -133,8 +143,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['typescript'];
-        $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript'];
+        $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript', 'deno'];
 
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
