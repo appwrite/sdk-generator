@@ -136,6 +136,12 @@ class Ruby extends Language {
                 'template'      => '/ruby/lib/container/services/service.rb.twig',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => '/ruby/docs/example.md.twig',
+                'minify'        => false,
+            ],
         ];
     }
 
@@ -218,7 +224,55 @@ class Ruby extends Language {
      */
     public function getParamExample(array $param)
     {
-        // TODO: Implement getParamExample() method.
+        $type       = (isset($param['type'])) ? $param['type'] : '';
+        $example    = (isset($param['example'])) ? $param['example'] : '';
+
+        $output = '';
+
+        if(empty($example) && $example !== 0 && $example !== false) {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                case self::TYPE_BOOLEAN:
+                    $output .= 'null';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "''";
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= '[]';
+                break;
+                case self::TYPE_OBJECT:
+                    $output .= '{}';
+                    break;
+                case self::TYPE_FILE:
+                    $output .= "File.new()";
+                    break;
+            }
+        }
+        else {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                case self::TYPE_ARRAY:
+                    $output .= $example;
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= $this->jsonToHash(json_decode($example, true));
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= ($example) ? 'true' : 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "'{$example}'";
+                    break;
+                case self::TYPE_FILE:
+                    $output .= "File.new()";
+                    break;
+            }
+        }
+
+        return $output;
     }
 
     /**
