@@ -5,7 +5,7 @@ module {{spec.title | caseUcfirst}}
         def {{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %})
             path = '{{ method.path }}'
 {% for parameter in method.parameters.path %}
-                .gsub('{{ '{' }}{{ parameter.name | caseSnake }}{{ '}' }}', {{ parameter.name | caseSnake }})
+                .gsub('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseSnake }})
 {% endfor %}
 
             params = {
