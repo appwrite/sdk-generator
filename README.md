@@ -88,7 +88,8 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 [@eldadfux]:        https://github.com/eldadfux
 [@panz3r]:          https://github.com/panz3r
 [@armino-dev]:      https://github.com/armino-dev
-[@bartektartanus]:   https://github.com/bartektartanus
+[@bartektartanus]:  https://github.com/bartektartanus
+[@komemi]:          https://github.com/komemi
 
 [PHP FIG]:          https://www.php-fig.org/
 [NPM Coding Style]: https://docs.npmjs.com/misc/coding-style
