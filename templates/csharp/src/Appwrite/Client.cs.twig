@@ -11,22 +11,17 @@ namespace Appwrite
 {
     public class Client
     {
-        // private final OkHttpClient http;
-
+        
         private readonly HttpClient http;
 
-        // private final Map<String, String> headers;
-
         private readonly Dictionary<string, string> headers;
-
-        // private final Map<String, String> config;
 
         private readonly Dictionary<string, string> config;
 
         private string endPoint;
+        
         private bool selfSigned;
-        //private CookieJar cookieJar = CookieJar.NO_COOKIES;
-
+        
         CookieContainer cookieJar = new CookieContainer();
 
         public Client() : this("https://appwrite.io/v1", false, new HttpClient())
@@ -46,64 +41,53 @@ namespace Appwrite
             this.config = new Dictionary<string, string>();
             this.http = http;
 
-            // this.http.
-
-            // coockie container ?? 
-                    // this.http.
+            // coockie container ??                     
         }
 
-        public string getEndPoint()
+        public string GetEndPoint()
         {
             return endPoint;
         }
 
-        public Dictionary<string, string> getConfig()
+        public Dictionary<string, string> GetConfig()
         {
             return config;
         }
 
-        //    private Future<Directory> getCookiePath() {
-        //        final directory = getApplicationDocumentsDirectory();
-        //        final path = directory.path;
-        //        final Directory dir = new Directory("$path/cookies");
-        //        dir.create();
-        //        return dir;
-        //    }
-
         /// Your project ID
-        public Client setProject(string value)
+        public Client SetProject(string value)
         {
             config.Add("project", value);
-            addHeader("X-Appwrite-Project", value);
+            AddHeader("X-Appwrite-Project", value);
             return this;
         }
 
-        public Client setLocale(string value)
+        public Client SetLocale(string value)
         {
             config.Add("locale", value);
-            addHeader("X-Appwrite-Locale", value);
+            AddHeader("X-Appwrite-Locale", value);
             return this;
         }
 
-        public Client setSelfSigned(bool status)
+        public Client SetSelfSigned(bool status)
         {
             selfSigned = status;
             return this;
         }
 
-        public Client setEndpoint(string endPoint)
+        public Client SetEndpoint(string endPoint)
         {
             this.endPoint = endPoint;
             return this;
         }
 
-        public Client addHeader(String key, String value)
+        public Client AddHeader(String key, String value)
         {
             headers.Add(key, value);
             return this;
         }
 
-        public async Task<HttpResponseMessage> call(string method, string path, Dictionary<string, string> headers, Dictionary<string, object> parameters)
+        public async Task<HttpResponseMessage> Call(string method, string path, Dictionary<string, string> headers, Dictionary<string, object> parameters)
         {
             if (selfSigned)
             {

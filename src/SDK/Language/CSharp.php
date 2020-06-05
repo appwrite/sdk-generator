@@ -251,32 +251,45 @@ class CSharp extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/{{ sdk.namespace | caseSlash }}/Client.cs',
-                'template'      => '/csharp/src/Client.cs.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/{{ sdk.namespace | caseSlash }}/enums/OrderType.cs',
-                'template'      => '/csharp/src/enums/OrderType.cs.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/pom.xml',
                 'template'      => '/csharp/pom.xml.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/{{ sdk.namespace | caseSlash }}/services/Service.cs',
-                'template'      => '/csharp/src/services/Service.cs.twig',
+                'destination'   => '/src/Appwrite.sln',
+                'template'      => '/csharp/src/Appwrite.sln',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/Appwrite/Appwrite.csproj',
+                'template'      => '/csharp/src/Appwrite/Appwrite.csproj',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Client.cs',
+                'template'      => '/csharp/src/Appwrite/Client.cs.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Enums/OrderType.cs',
+                'template'      => '/csharp/src/Appwrite/Enums/OrderType.cs.twig',
+                'minify'        => false,
+            ],
+
+            [
+                'scope'         => 'default',
+                'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Services/Service.cs',
+                'template'      => '/csharp/src/Appwrite/Services/Service.cs.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.cs',
-                'template'      => '/csharp/src/services/ServiceTemplate.cs.twig',
+                'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Services/{{service.name | caseUcfirst}}.cs',
+                'template'      => '/csharp/src/Appwrite/Services/ServiceTemplate.cs.twig',
                 'minify'        => false,
             ]
         ];
