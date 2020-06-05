@@ -143,18 +143,18 @@ class CSharp extends Language {
                 return 'int';
             break;
             case self::TYPE_STRING:
-                return 'String';
+                return 'string';
             break;
             case self::TYPE_FILE:
                 return 'File';
             break;
             case self::TYPE_BOOLEAN:
-                return 'boolean';
+                return 'bool';
             break;
             case self::TYPE_ARRAY:
             	return 'List';
 			case self::TYPE_OBJECT:
-				return 'Object';
+				return 'object';
             break;
         }
 

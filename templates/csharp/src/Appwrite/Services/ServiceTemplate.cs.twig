@@ -61,10 +61,11 @@ namespace Appwrite
             return httpBuilder.build().ToString();
     {% else %}
             Dictionary<string, string> headers = new Dictionary<string, string>()
+            {
     {{ method.headers|map((header, key) => "            {\"#{key}\", \"#{header}\" }")|join(',\n')|raw }}
-            
+            };
 
-            return client.Call("{{ method.method | caseUpper }}", path, headers, parameters);
+            return _client.Call("{{ method.method | caseUpper }}", path, headers, parameters);
     {% endif %}
     }
     {% endfor %}
