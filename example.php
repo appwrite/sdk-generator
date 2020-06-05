@@ -15,8 +15,9 @@ use Appwrite\SDK\Language\Java;
 use Appwrite\SDK\Language\Typescript;
 use Appwrite\SDK\Language\Deno;
 use Appwrite\SDK\Language\Swift;
+use Appwrite\SDK\Language\CSharp;
 
-$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift', 'typescript', 'deno'];
+$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift', 'typescript', 'deno', 'csharp'];
 
 
 try {
@@ -248,6 +249,25 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/swift');
+    
+    // CSharp
+    $sdk  = new SDK(new CSharp(), new Swagger2($spec));
+
+    $sdk
+        ->setName('NAME')
+        ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
+        ->setURL('https://example.com')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
+        ->setVersion('0.0.1')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/csharp');
 }
 catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";

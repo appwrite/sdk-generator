@@ -1,0 +1,17 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\examples\\csharp",
+    "\\examples\\csharp\\services",
+    "\\examples\\deno",
+    "\\src",
+    "\\src\\SDK",
+    "\\src\\SDK\\Language",
+    "\\templates",
+    "\\templates\\csharp",
+    "\\templates\\csharp\\src",
+    "\\templates\\dart"
+  ],
+  "SelectedNode": "\\templates\\csharp\\src\\Client.cs.twig",
+  "PreviewInSolutionExplorer": false
+}
