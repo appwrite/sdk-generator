@@ -79,7 +79,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | Python     | 3.5+                | [PEP8]              | PIP                | [@eldadfux]    |
 | Dart       |                     | [Effective Dart]    | pub tool           | [@bartektartanus] [@Almoullim]   |
 | Go         |                     | [Effective Go]      | go get             | [@panz3r]      |
-| CSharp     | .NET core 3.1       |                     | ?                  | [@komemi]      |
+| CSharp     | .NET core 3.1       |                     | nuget              | [@komemi]      |
 | D          |                     |                     | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Kotlin     |                     |                     | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Swift      |                     |                     | Swift Pkg Manager  | [@armino-dev] |
