@@ -6,7 +6,7 @@
 {% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ', ' }}{% endif %}{% endfor %}{% endif %}
 {% endmacro %}
 {% macro map_parameter(parameter) %}
-{% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.name()'}}{% else %}
+{% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.ToString()'}}{% else %}
 {{ parameter.name | caseCamel }}{% endif %}
 {% endmacro %}
 {% macro methodNeedsSecurityParameters(method) %}
@@ -15,6 +15,7 @@
 
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace Appwrite
 {
@@ -32,9 +33,9 @@ namespace Appwrite
     {{ method.description|comment1 }}
         */
     {% endif %}
-    public {% if method.type == "location" %}string{% else %}HttpResponseMessage{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) 
+    public async Task<{% if method.type == "location" %}string{% else %}HttpResponseMessage{% endif %}> {{ method.name | caseUcfirst }}({{ _self.method_parameters(method.parameters) }}) 
     {
-            string path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %};
+            string path = "{{ method.path }}"{% for parameter in method.parameters.path %}.Replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %};
 
             Dictionary<string, object> parameters = new Dictionary<string, object>()
             {
@@ -44,28 +45,26 @@ namespace Appwrite
 
     {% endfor %}
             };
-    {% if _self.methodNeedsSecurityParameters(method) %}
-    {% for node in method.security %}
-    {% for key,header in node|keys %}
-                { "{{header|caseLower}}", client.getConfig().get("{{header|caseLower}}") }{% if not loop.last %},{% endif %}
 
-    {% endfor %}
-    {% endfor %}
-    {% endif %}
+    // {% if _self.methodNeedsSecurityParameters(method) %}
+    // {% for node in method.security %}
+    // {% for key,header in node|keys %}
+    //             { "{{header|caseLower}}", _client.GetConfig().get("{{header|caseLower}}") }{% if not loop.last %},{% endif %}
+    // {% endfor %}
+    // {% endfor %}
+    // {% endif %}
             
     
-    {% if method.type == 'location' %}
-            HttpUrl.Builder httpBuilder = new HttpUrl.Builder().build().newBuilder(client.getEndPoint() + path);
-            parameters.forEach((k, v) -> httpBuilder.addQueryParameter(k, v.ToString()));
-
-            return httpBuilder.build().ToString();
+    {% if method.type == 'location' %}            
+            return _client.GetEndPoint() + path + "?" + parameters.ToQueryString();
     {% else %}
+
             Dictionary<string, string> headers = new Dictionary<string, string>()
             {
     {{ method.headers|map((header, key) => "            {\"#{key}\", \"#{header}\" }")|join(',\n')|raw }}
             };
 
-            return _client.Call("{{ method.method | caseUpper }}", path, headers, parameters);
+            return await _client.Call("{{ method.method | caseUpper }}", path, headers, parameters);
     {% endif %}
     }
     {% endfor %}

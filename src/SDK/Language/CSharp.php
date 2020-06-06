@@ -152,7 +152,7 @@ class CSharp extends Language {
                 return 'bool';
             break;
             case self::TYPE_ARRAY:
-            	return 'List';
+            	return 'List<object>';
 			case self::TYPE_OBJECT:
 				return 'object';
             break;
@@ -271,6 +271,12 @@ class CSharp extends Language {
                 'scope'         => 'default',
                 'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Client.cs',
                 'template'      => '/csharp/src/Appwrite/Client.cs.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Helpers/ExtensionMethods.cs',
+                'template'      => '/csharp/src/Appwrite/Helpers/ExtensionMethods.cs',
                 'minify'        => false,
             ],
             [
