@@ -77,6 +77,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | PHP        | 7.0+                | [PHP FIG]           | Composer           | [@eldadfux]    |
 | Ruby       | 2.4+                | [Ruby Style Guide]  | GEM                | [@eldadfux]    |
 | Python     | 3.5+                | [PEP8]              | PIP                | [@eldadfux]    |
+| Java       | 1.9+                |                     | Maven              | [@bartektartanus]    |
 | Dart       |                     | [Effective Dart]    | pub tool           | [@bartektartanus] [@Almoullim]   |
 | Go         |                     | [Effective Go]      | go get             | [@panz3r]      |
 | CSharp     |                     |                     | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
