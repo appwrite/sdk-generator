@@ -1,13 +1,13 @@
 {% macro parameter(parameter) %}
 {% if parameter.name == 'orderType' %}{{ 'OrderType orderType' }}{% else %}
-{{ parameter.type | typeName }} {{ parameter.name | caseCamel }}{{ parameter | escapeDollarSign | paramDefault }}{% endif %}
+{{ parameter.type | typeName }} {{ parameter.name | caseCamel | escapeKeyword }}{{ parameter | escapeDollarSign | paramDefault }}{% endif %}
 {% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ', ' }}{% endif %}{% endfor %}{% endif %}
 {% endmacro %}
 {% macro map_parameter(parameter) %}
 {% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.ToString()'}}{% else %}
-{{ parameter.name | caseCamel }}{% endif %}
+{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}
 {% endmacro %}
 {% macro methodNeedsSecurityParameters(method) %}
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
