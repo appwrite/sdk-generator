@@ -34,17 +34,17 @@ namespace Appwrite
         */
     {% endif %}
     public async Task<{% if method.type == "location" %}string{% else %}HttpResponseMessage{% endif %}> {{ method.name | caseUcfirst }}({{ _self.method_parameters(method.parameters) }}) 
-    {
+        {
             string path = "{{ method.path }}"{% for parameter in method.parameters.path %}.Replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %};
 
             Dictionary<string, object> parameters = new Dictionary<string, object>()
             {
     {% for parameter in method.parameters.query | merge(method.parameters.body) %}
                 
-                    { "{{ parameter.name }}", {{ _self.map_parameter(parameter) }} }{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
+                { "{{ parameter.name }}", {{ _self.map_parameter(parameter) }} }{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
 
     {% endfor %}
-            };
+        };
 
     // {% if _self.methodNeedsSecurityParameters(method) %}
     // {% for node in method.security %}

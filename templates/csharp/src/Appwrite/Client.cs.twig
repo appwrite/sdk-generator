@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Globalization;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web;
 
 namespace Appwrite
 {
@@ -111,17 +111,25 @@ namespace Appwrite
 
             string body = null;
 
-            if ("multipart/form-data".Equals(headers["content-type"], StringComparison.InvariantCultureIgnoreCase))                
+            if ("multipart/form-data".Equals(headers["content-type"], StringComparison.InvariantCultureIgnoreCase))
             {
-                // TODO
+
+                var file = parameters["file"] as byte[];
+
+                using (var content = new MultipartFormDataContent("Upload----" + DateTime.Now.ToString(CultureInfo.InvariantCulture)))
+                {
+                    content.Add(new StreamContent(new MemoryStream(file)), "bilddatei", "upload.jpg");
+
+                    req.Content = content;
+                }
             }
             else
             {
                 body = parameters.ToJson();
+
+                req.Content = new StringContent(body, Encoding.UTF8, "application/json");
             }
-
-            req.Content = new StringContent(body, Encoding.UTF8, "application/json");
-
+            
             HttpResponseMessage httpResponseMessage = await http.SendAsync(req);
 
             return httpResponseMessage;
