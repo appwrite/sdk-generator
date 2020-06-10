@@ -22,6 +22,18 @@ Install using composer:
 composer require appwrite/sdk-generator
 ```
 
+Install using Docker (UNIX):
+
+```bash
+docker run --rm --interactive --tty --volume "$(pwd)":/app composer install
+```
+
+Install using Docker (Windows):
+
+```bash
+docker run --rm --interactive --tty --volume "%cd%":/app composer install
+```
+
 Create language and SDK instances and generate code to target directory.
 
 ```php
