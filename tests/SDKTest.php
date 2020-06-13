@@ -59,11 +59,10 @@ class SDKTest extends TestCase
             'class' => 'Appwrite\SDK\Language\CSharp',
             'build' => [
                 'mkdir -p tests/sdks/csharp/src/test',
-                'cp tests/languages/csharp/ServiceTest.cs tests/sdks/csharp/src/test/ServiceTest.java',
+                'cp tests/languages/csharp/ServiceTest.cs tests/sdks/csharp/src/test/ServiceTest.cs',
             ],
             'envs' => [
-                'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-11-slim mvn clean install test -q',
-//                'java-14' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-14-slim mvn clean install test -q',
+                // 'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-11-slim mvn clean install test -q'
             ],
         ],
 
