@@ -146,7 +146,7 @@ class CSharp extends Language {
                 return 'string';
             break;
             case self::TYPE_FILE:
-                return 'byte[]';
+                return 'FileInfo';
             break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
@@ -281,8 +281,14 @@ class CSharp extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Enums/OrderType.cs',
-                'template'      => '/csharp/src/Appwrite/Enums/OrderType.cs.twig',
+                'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Models/OrderType.cs',
+                'template'      => '/csharp/src/Appwrite/Models/OrderType.cs.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Models/Rule.cs',
+                'template'      => '/csharp/src/Appwrite/Models/Rule.cs.twig',
                 'minify'        => false,
             ],
 

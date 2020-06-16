@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
+using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
@@ -9,9 +12,13 @@ namespace Appwrite
 
         public static string ToJson(this Dictionary<string, object> dict)
         {
-            var entries = dict.Select(d => string.Format("\"{0}\": [{1}]", d.Key, string.Join(",", d.Value)));
+            var settings = new JsonSerializerSettings
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver(),
+                Converters = new List<JsonConverter> { new StringEnumConverter() }
+            };
 
-            return "{" + string.Join(",", entries) + "}";
+            return JsonConvert.SerializeObject(dict, settings);
         }
 
         public static string ToQueryString(this Dictionary<string, object> parameters)
@@ -20,7 +27,10 @@ namespace Appwrite
 
             foreach (var parameter in parameters)
             {
-                query[parameter.Key] = parameter.Value.ToString();
+                if (parameter.Value != null)
+                {
+                    query[parameter.Key] = parameter.Value.ToString();
+                }
             }
             return query.ToString();
         }

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -54,32 +55,19 @@ namespace Appwrite
             return config;
         }
 
-        /// Your project ID
-        public Client SetProject(string value)
-        {
-            config.Add("project", value);
-            AddHeader("X-Appwrite-Project", value);
+
+{% for header in spec.global.headers %}
+{% if header.description %}
+        /// {{header.description}}
+{% endif %}
+        public Client Set{{header.key | caseUcfirst}}(string value) {
+            config.Add("{{ header.key | caseCamel }}", value);
+            AddHeader("{{header.name}}", value);
             return this;
         }
 
-        public Client SetLocale(string value)
-        {
-            config.Add("locale", value);
-            AddHeader("X-Appwrite-Locale", value);
-            return this;
-        }
+{% endfor %}
 
-        public Client SetSelfSigned(bool status)
-        {
-            selfSigned = status;
-            return this;
-        }
-
-        public Client SetEndpoint(string endPoint)
-        {
-            this.endPoint = endPoint;
-            return this;
-        }
 
         public Client AddHeader(String key, String value)
         {
@@ -94,43 +82,67 @@ namespace Appwrite
                 // TODO Allow self signed requests ? 
             }
 
-            if ("GET".Equals(method, StringComparison.InvariantCultureIgnoreCase))
-            {                
-                HttpRequestMessage getRequest = new HttpRequestMessage(new HttpMethod(method), endPoint + path + "?" + parameters.ToQueryString());
+            bool methodGet = "GET".Equals(method, StringComparison.InvariantCultureIgnoreCase);
 
-                foreach (var header in headers)
-                {
-                    getRequest.Headers.Add(header.Key, header.Value);
-                }
+            string queryString = methodGet ? "?" + parameters.ToQueryString() : string.Empty;
 
-                return await http.SendAsync(getRequest);
-
-            }
-
-            HttpRequestMessage req = new HttpRequestMessage(new HttpMethod(method), endPoint);
-
-            string body = null;
+            HttpRequestMessage request = new HttpRequestMessage(new HttpMethod(method), endPoint + path + queryString);
 
             if ("multipart/form-data".Equals(headers["content-type"], StringComparison.InvariantCultureIgnoreCase))
             {
 
-                var file = parameters["file"] as byte[];
 
-                using (var content = new MultipartFormDataContent("Upload----" + DateTime.Now.ToString(CultureInfo.InvariantCulture)))
+                MultipartFormDataContent form = new MultipartFormDataContent();
+
+                foreach (var parameter in parameters)
                 {
-                    content.Add(new StreamContent(new MemoryStream(file)), "bilddatei", "upload.jpg");
+                    if (parameter.Key == "file")
+                    {
+                        FileInfo fi = parameters["file"] as FileInfo;
 
-                    req.Content = content;
+                        var file = File.ReadAllBytes(fi.FullName);
+
+                        form.Add(new ByteArrayContent(file, 0, file.Length), "file", fi.Name);
+                    }
+                    else
+                    {
+                        form.Add(new StringContent(parameter.Key), parameter.Value?.ToString());
+                    }
+                }
+                request.Content = form;
+
+            }
+            else if (!methodGet)
+            {
+                string body = parameters.ToJson();
+
+                request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+            }
+
+            foreach (var header in this.headers)
+            {
+                if (header.Key.Equals("content-type", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(header.Value));
+                }
+                else
+                {
+                    http.DefaultRequestHeaders.Add(header.Key, header.Value);
                 }
             }
-            else
-            {
-                body = parameters.ToJson();
 
-                req.Content = new StringContent(body, Encoding.UTF8, "application/json");
+            foreach (var header in headers)
+            {
+                if (header.Key.Equals("content-type", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(header.Value));
+                }
+                else
+                {
+                    request.Headers.Add(header.Key, header.Value);
+                }
             }
-            
-            HttpResponseMessage httpResponseMessage = await http.SendAsync(req);
+            HttpResponseMessage httpResponseMessage = await http.SendAsync(request);
 
             return httpResponseMessage;
         }
