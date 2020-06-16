@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/appwrite/sdk-generator.svg?branch=master)](https://travis-ci.org/appwrite/sdk-generator)
 [![Discord](https://img.shields.io/discord/564160730845151244)](https://discord.gg/GSeTUeA)
 
-**WORK IN PROGRESS - NOT READY FOR USAGE**
+**WORK IN PROGRESS - NOT READY FOR GENERAL USAGE**
 
 [Appwrite](https://appwrite.io) SDK generator is a PHP library for auto generating SDK library for multiple languages or platforms.
 
