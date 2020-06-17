@@ -62,7 +62,12 @@ async function start() {
   // @ts-ignore
   console.log(response.result)
 
-  // TODO: Add upload test
+  const fileArray = await Deno.readFile('./tests/resources/file.png')
+  const fileBlob = new Blob([fileArray.buffer])
+
+  response = await general.upload('string', 123, ['string in array'], fileBlob)
+  // @ts-ignore
+  console.log(response)
 }
 
 start()
