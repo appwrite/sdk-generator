@@ -69,36 +69,37 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
 ## Supported Languages
 
-| Language   | Supported Versions  |  Coding Standards   |  Package Manager   |   Maintainer   |
-|------------|---------------------|---------------------|--------------------|----------------|
-| Javascript | ES5+                | [NPM Coding Style]  | NPM, Yarn,         | [@eldadfux]    |
-| TypeScript |                     | [NPM Coding Style]  | NPM, Yarn          | [You?](https://github.com/appwrite/sdk-generator/issues/20)               |
-| NodeJS     | 8, 10, 12           | [NPM Coding Style]  | NPM, Yarn          | [@eldadfux]    |
-| PHP        | 7.0+                | [PHP FIG]           | Composer           | [@eldadfux]    |
-| Ruby       | 2.4+                | [Ruby Style Guide]  | GEM                | [@eldadfux]    |
-| Python     | 3.5+                | [PEP8]              | PIP                | [@eldadfux]    |
-| Dart       |                     | [Effective Dart]    | pub tool           | [@bartektartanus] [@Almoullim]   |
-| Go         |                     | [Effective Go]      | go get             | [@panz3r]      |
-| CSharp     | .NET core 3.1       |                     | nuget              | [@komemi]      |
-| D          |                     |                     | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
-| Kotlin     |                     |                     | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
-| Swift      |                     |                     | Swift Pkg Manager  | [@armino-dev] |
+| Language   | Supported Versions  |  Coding Standards      |  Package Manager   |   Maintainer   |
+|------------|---------------------|------------------------|--------------------|----------------|
+| Javascript | ES5+                | [NPM Coding Style]     | NPM, Yarn,         | [@eldadfux]    |
+| TypeScript |                     | [NPM Coding Style]     | NPM, Yarn          | [You?](https://github.com/appwrite/sdk-generator/issues/20)               |
+| NodeJS     | 8, 10, 12           | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
+| PHP        | 7.0+                | [PHP FIG]              | Composer           | [@eldadfux]    |
+| Ruby       | 2.4+                | [Ruby Style Guide]     | GEM                | [@eldadfux]    |
+| Python     | 3.5+                | [PEP8]                 | PIP                | [@eldadfux]    |
+| Dart       |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim]   |
+| Go         |                     | [Effective Go]         | go get             | [@panz3r]      |
+| CSharp     | .NET core 3.1       | [C# Coding Conventions]|                    |                    | [@komemi]      |
+| D          |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
+| Kotlin     |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
+| Swift      |                     |                        | Swift Pkg Manager  | [@armino-dev] |
 
-[@Almoullim]:       https://github.com/Almoullim
-[@eldadfux]:        https://github.com/eldadfux
-[@panz3r]:          https://github.com/panz3r
-[@armino-dev]:      https://github.com/armino-dev
-[@bartektartanus]:  https://github.com/bartektartanus
-[@komemi]:          https://github.com/komemi
+[@Almoullim]:           https://github.com/Almoullim
+[@eldadfux]:            https://github.com/eldadfux
+[@panz3r]:              https://github.com/panz3r
+[@armino-dev]:          https://github.com/armino-dev
+[@bartektartanus]:      https://github.com/bartektartanus
+[@komemi]:              https://github.com/komemi
 
-[PHP FIG]:          https://www.php-fig.org/
-[NPM Coding Style]: https://docs.npmjs.com/misc/coding-style
-[NPM Coding Style]: https://docs.npmjs.com/misc/coding-style
-[Ruby Style Guide]: https://github.com/rubocop-hq/ruby-style-guide
-[PEP8]:             https://www.python.org/dev/peps/pep-0008/
-[Effective Dart]:   https://dart.dev/guides/language/effective-dart/style
-[Effective Go]:     https://golang.org/doc/effective_go.html
-[Swift Style Guide]:https://google.github.io/swift/
+[PHP FIG]:              https://www.php-fig.org/
+[NPM Coding Style]:     https://docs.npmjs.com/misc/coding-style
+[NPM Coding Style]:     https://docs.npmjs.com/misc/coding-style
+[Ruby Style Guide]:     https://github.com/rubocop-hq/ruby-style-guide
+[PEP8]:                 https://www.python.org/dev/peps/pep-0008/
+[Effective Dart]:       https://dart.dev/guides/language/effective-dart/style
+[Effective Go]:         https://golang.org/doc/effective_go.html
+[Swift Style Guide]:    https://google.github.io/swift/
+[C# Coding Conventions]:https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/inside-a-program/coding-conventions
 
 ## Contributing
 
