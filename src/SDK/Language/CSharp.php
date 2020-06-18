@@ -251,12 +251,6 @@ class CSharp extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/pom.xml',
-                'template'      => '/csharp/pom.xml.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/src/Appwrite.sln',
                 'template'      => '/csharp/src/Appwrite.sln',
                 'minify'        => false,

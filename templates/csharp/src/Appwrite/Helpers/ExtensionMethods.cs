@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
-namespace Appwrite
+namespace {{ spec.title | caseUcfirst }}
 {
     public static class ExtensionMethods
     {
