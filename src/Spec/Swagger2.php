@@ -139,6 +139,7 @@ class Swagger2 extends Spec {
                     $output = [
                         'method' => $methodName,
                         'path' => $pathName,
+                        'fullPath' => parse_url($this->getEndpoint(), PHP_URL_PATH).$pathName,
                         'name' => isset($method['operationId']) ? $method['operationId'] : '',
                         'title' => isset($method['summary']) ? $method['summary'] : '',
                         'description' => isset($method['description']) ? $method['description'] : '',

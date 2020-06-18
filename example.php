@@ -14,11 +14,11 @@ use Appwrite\SDK\Language\Go;
 use Appwrite\SDK\Language\Java;
 use Appwrite\SDK\Language\Typescript;
 use Appwrite\SDK\Language\Deno;
+use Appwrite\SDK\Language\HTTP;
 use Appwrite\SDK\Language\Swift;
 use Appwrite\SDK\Language\CSharp;
 
-$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift', 'typescript', 'deno', 'csharp'];
-
+$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift', 'typescript', 'deno', 'http', 'csharp'];
 
 try {
 
@@ -269,6 +269,7 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/csharp');
+
 }
 catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";

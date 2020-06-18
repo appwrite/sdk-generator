@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/appwrite/sdk-generator.svg?branch=master)](https://travis-ci.org/appwrite/sdk-generator)
 [![Discord](https://img.shields.io/discord/564160730845151244)](https://discord.gg/GSeTUeA)
 
-**WORK IN PROGRESS - NOT READY FOR USAGE**
+**WORK IN PROGRESS - NOT READY FOR GENERAL USAGE**
 
 [Appwrite](https://appwrite.io) SDK generator is a PHP library for auto generating SDK library for multiple languages or platforms.
 
@@ -18,8 +18,22 @@ You can view examples of generated code libraries in the [examples](examples) di
 ## Getting Started
 
 Install using composer:
+
+**CLI**
 ```bash
-composer require appwrite/sdk-generator
+composer update --ignore-platform-reqs --optimize-autoloader
+```
+
+**Docker (UNIX)**
+
+```bash
+docker run --rm --interactive --tty --volume "$(pwd)":/app composer install
+```
+
+**Docker (Windows)**
+
+```bash
+docker run --rm --interactive --tty --volume "%cd%":/app composer install
 ```
 
 Create language and SDK instances and generate code to target directory.
