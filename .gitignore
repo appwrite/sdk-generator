@@ -3,6 +3,7 @@
 /vendor/
 /tests/sdks
 /.vscode
+.vs
 
 # exclude everything
 examples/*
