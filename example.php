@@ -16,8 +16,9 @@ use Appwrite\SDK\Language\Typescript;
 use Appwrite\SDK\Language\Deno;
 use Appwrite\SDK\Language\HTTP;
 use Appwrite\SDK\Language\Swift;
+use Appwrite\SDK\Language\CSharp;
 
-$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift', 'typescript', 'deno', 'http'];
+$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift', 'typescript', 'deno', 'http', 'csharp'];
 
 try {
 
@@ -34,7 +35,8 @@ try {
     }
 
     //$spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
-    $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
+    // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
+    $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1&platform=server'); // Enable only with Appwrite local server running on port 80
     
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -248,9 +250,9 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/swift');
-
-    // HTTP
-    $sdk  = new SDK(new HTTP(), new Swagger2($spec));
+    
+    // CSharp
+    $sdk  = new SDK(new CSharp(), new Swagger2($spec));
 
     $sdk
         ->setName('NAME')
@@ -266,7 +268,8 @@ try {
         ->setGitRepoName('reponame')
     ;
 
-    $sdk->generate(__DIR__ . '/examples/http');
+    $sdk->generate(__DIR__ . '/examples/csharp');
+
 }
 catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";

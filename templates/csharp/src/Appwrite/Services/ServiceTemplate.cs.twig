@@ -1,0 +1,73 @@
+{% macro parameter(parameter) %}
+{% if parameter.name == 'orderType' %}{{ 'OrderType orderType' }}{% else %}
+{{ parameter.type | typeName }} {{ parameter.name | caseCamel | escapeKeyword }}{{ parameter | escapeDollarSign | paramDefault }}{% endif %}
+{% endmacro %}
+{% macro method_parameters(parameters) %}
+{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ', ' }}{% endif %}{% endfor %}{% endif %}
+{% endmacro %}
+{% macro map_parameter(parameter) %}
+{% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.ToString()'}}{% else %}
+{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}
+{% endmacro %}
+{% macro methodNeedsSecurityParameters(method) %}
+{% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
+{% endmacro %}
+
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Http;
+using System.Threading.Tasks;
+
+namespace {{ spec.title | caseUcfirst }}
+{
+    public class {{ service.name | caseUcfirst }} : Service
+    {
+
+        public {{ service.name | caseUcfirst }}(Client client) : base(client) { }
+
+
+    {% for method in service.methods %}
+
+        /// {{ method.title }}
+    {% if method.description %}
+        /*
+    {{ method.description|comment1 }}
+        */
+    {% endif %}
+    public async Task<{% if method.type == "location" %}string{% else %}HttpResponseMessage{% endif %}> {{ method.name | caseUcfirst }}({{ _self.method_parameters(method.parameters) }}) 
+        {
+            string path = "{{ method.path }}"{% for parameter in method.parameters.path %}.Replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %};
+
+            Dictionary<string, object> parameters = new Dictionary<string, object>()
+            {
+    {% for parameter in method.parameters.query | merge(method.parameters.body) %}
+                
+                { "{{ parameter.name }}", {{ _self.map_parameter(parameter) }} }{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
+
+    {% endfor %}
+        };
+
+    // {% if _self.methodNeedsSecurityParameters(method) %}
+    // {% for node in method.security %}
+    // {% for key,header in node|keys %}
+    //             { "{{header|caseLower}}", _client.GetConfig().get("{{header|caseLower}}") }{% if not loop.last %},{% endif %}
+    // {% endfor %}
+    // {% endfor %}
+    // {% endif %}
+            
+    
+    {% if method.type == 'location' %}            
+            return _client.GetEndPoint() + path + "?" + parameters.ToQueryString();
+    {% else %}
+
+            Dictionary<string, string> headers = new Dictionary<string, string>()
+            {
+    {{ method.headers|map((header, key) => "            {\"#{key}\", \"#{header}\" }")|join(',\n')|raw }}
+            };
+
+            return await _client.Call("{{ method.method | caseUpper }}", path, headers, parameters);
+    {% endif %}
+    }
+    {% endfor %}
+    };
+}
