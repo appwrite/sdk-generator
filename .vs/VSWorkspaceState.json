@@ -1,16 +1,13 @@
 {
   "ExpandedNodes": [
     "",
-    "\\templates",
-    "\\templates\\csharp",
-    "\\templates\\csharp\\src",
+    "\\examples",
+    "\\src\\SDK\\Language",
     "\\templates\\csharp\\src\\Appwrite",
-    "\\templates\\csharp\\src\\Appwrite\\enums",
     "\\templates\\csharp\\src\\Appwrite\\Helpers",
-    "\\templates\\csharp\\src\\Appwrite\\services",
-    "\\templates\\dart\\docs",
-    "\\templates\\dart\\example"
+    "\\templates\\csharp\\src\\Appwrite\\Services",
+    "\\templates\\php\\src"
   ],
-  "SelectedNode": "\\templates\\csharp\\src\\Appwrite\\services\\ServiceTemplate.cs.twig",
+  "SelectedNode": "\\templates",
   "PreviewInSolutionExplorer": false
 }
