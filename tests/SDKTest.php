@@ -44,7 +44,7 @@ class SDKTest extends TestCase
         ],
 
         'java' => [
-            'class' => 'Appwrite\SDK\Language\CSharp',
+            'class' => 'Appwrite\SDK\Language\Java',
             'build' => [
                 'mkdir -p tests/sdks/java/src/test/java/io/appwrite/services',
                 'cp tests/languages/java/ServiceTest.java tests/sdks/java/src/test/java/io/appwrite/services/ServiceTest.java',
