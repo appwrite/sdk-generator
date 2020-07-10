@@ -67,7 +67,7 @@ class SDKTest extends TestCase
         // ],
 
         'typescript' => [
-            'class' => 'Appwrite\SDK\Language\TypeScript',
+            'class' => 'Appwrite\SDK\Language\Typescript',
             'build' => [
                 'cp tests/languages/typescript/tests.ts tests/sdks/typescript/tests.ts',
                 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:12.12 npm install', //  npm list --depth 0 && 
