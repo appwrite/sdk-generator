@@ -17,6 +17,7 @@ use Appwrite\SDK\Language\Deno;
 use Appwrite\SDK\Language\HTTP;
 use Appwrite\SDK\Language\Swift;
 use Appwrite\SDK\Language\CSharp;
+use Appwrite\SDK\Language\Flutter;
 
 $languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift', 'typescript', 'deno', 'http', 'csharp'];
 
@@ -191,6 +192,26 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/dart');
+
+    // Dart
+    $sdk  = new SDK(new Flutter(), new Swagger2($spec));
+
+    $sdk
+        ->setName('NAME')
+        ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
+        ->setURL('https://example.com')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
+        ->setExamples('**EXAMPLES** <HTML>')
+        ->setVersion('0.0.1')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/flutter');
 
     // GO
 
