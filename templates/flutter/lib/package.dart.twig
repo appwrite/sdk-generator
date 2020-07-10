@@ -1,0 +1,7 @@
+export 'package:dio/dio.dart' show Response;
+
+export 'client.dart';
+export 'enums.dart';
+{% for service in spec.services %}
+export 'services/{{service.name | caseDash}}.dart';
+{% endfor %}

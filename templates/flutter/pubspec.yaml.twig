@@ -1,0 +1,23 @@
+name: {{ language.params.packageName }}
+version: {{ sdk.version }}
+description: {{sdk.shortDescription}}
+homepage: {{sdk.url}}
+repository: https://github.com/{{sdk.gitUserName}}/{{sdk.gitRepoName}}
+issue_tracker: https://github.com/appwrite/sdk-generator/issues
+documentation: {{ spec.contactURL }}
+environment:
+  sdk: '>=2.6.0 <3.0.0'
+dependencies:
+  meta: ^1.2.2
+  path_provider: ^1.6.11
+  package_info: ^0.4.1
+  dio: ^3.0.9
+  cookie_jar: ^1.0.1
+  dio_cookie_manager: ^1.0.0
+  flutter_web_auth: ^0.2.4
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
