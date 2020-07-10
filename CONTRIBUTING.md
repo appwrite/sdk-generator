@@ -123,41 +123,41 @@ In order to accomplish that we have made a checklist of points to support while 
 
 The checklist aims to balance consistency among languages, and follow each platform's best practices and coding standards.
 
-[ ] Proper Coding Standards and Conventions
-[ ] Proper Skeleton Structure
-[ ] Readme Doc
-[ ] HTTP Client class or object
-    [ ] Client Setters
-        [ ] Set Auth Keys Method
-        [ ] Set Basic Auth Method
-        [ ] Set OAuth Dialog Method
-        [ ] Set Endpoint Method
-        [ ] Set Self Signed Certificates
-    [ ] Default Headers
-        [ ] 'appwrite-sdk-version' header
-        [ ] Add 'User-Agent' header with device/server name and version + platform name and version (ubuntu-20.04-php-7.0.1 / android-20.0-flutter-3.0)
-    [ ] Methods
-        [ ] addHeader(key, value)
-        [ ] call(method, path = '', headers = [], params = [])
-            [ ] Concat GET params to path
-            [ ] Parse request params by content type header
-            [ ] Parse response params by content type header
-            [ ] Throw error on bad response
-[ ] Service Abstraction (optional)
-    [ ] Constructor receiving an instance of the client class 
-[ ] Service Class (extends the service abstraction if exists)
-    [ ] Headers Support (Content Type)
-    [ ] Parameters Support
-        [ ] Default Values Support
-        [ ] Required Values Support
-        [ ] String Support
-        [ ] Integer Support
-        [ ] Boolean Support
-        [ ] Files Support (+array file and multiple header support and params flatten)
-        [ ] Arrays / List Support
-        [ ] Key-Value / Maps Support
-[ ] Usage Example Docs
-[ ] Definitions / Models Classes - with setters and getters
+- [ ] Proper Coding Standards and Conventions
+- [ ] Proper Skeleton Structure
+- [ ] Readme Doc
+- [ ] HTTP Client class or object
+    - [ ] Client Setters
+        - [ ] Set Auth Keys Method
+        - [ ] Set Basic Auth Method
+        - [ ] Set OAuth Dialog Method
+        - [ ] Set Endpoint Method
+        - [ ] Set Self Signed Certificates
+    - [ ] Default Headers
+        - [ ] 'appwrite-sdk-version' header
+        - [ ] Add 'User-Agent' header with device/server name and version + platform name and version (ubuntu-20.04-php-7.0.1 / android-20.0-flutter-3.0)
+    - [ ] Methods
+        - [ ] addHeader(key, value)
+        - [ ] call(method, path = '', headers = [], params = [])
+            - [ ] Concat GET params to path
+            - [ ] Parse request params by content type header
+            - [ ] Parse response params by content type header
+            - [ ] Throw error on bad response
+- [ ] Service Abstraction (optional)
+    - [ ] Constructor receiving an instance of the client class 
+- [ ] Service Class (extends the service abstraction if exists)
+    - [ ] Headers Support (Content Type)
+    - [ ] Parameters Support
+        - [ ] Default Values Support
+        - [ ] Required Values Support
+        - [ ] String Support
+        - [ ] Integer Support
+        - [ ] Boolean Support
+        - [ ] Files Support (+array file and multiple header support and params flatten)
+        - [ ] Arrays / List Support
+        - [ ] Key-Value / Maps Support
+- [ ] Usage Example Docs
+- [ ] Definitions / Models Classes - with setters and getters
 
 ## Tests
 
