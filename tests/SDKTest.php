@@ -85,7 +85,7 @@ class SDKTest extends TestCase
             'build' => [
             ],
             'envs' => [
-                'deno-1.0.0' => 'docker run --rm -v $(pwd):/app -w /app hayd/alpine-deno:1.1.0 run --allow-net --allow-read tests/languages/deno/tests.ts', // TODO: use official image when its out
+                'deno-1.1.3' => 'docker run --rm -v $(pwd):/app -w /app hayd/alpine-deno:1.1.3 run --allow-net --allow-read tests/languages/deno/tests.ts', // TODO: use official image when its out
             ],
         ],
 
