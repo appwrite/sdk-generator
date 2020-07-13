@@ -78,7 +78,6 @@ class SDKTest extends TestCase
                 'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/sdks/typescript/tests.js',
             ],
         ],
-
         
         'deno' => [
             'class' => 'Appwrite\SDK\Language\Deno',

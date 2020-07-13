@@ -68,7 +68,7 @@ async function start() {
 
   response = await general.upload('string', 123, ['string in array'], file)
   // @ts-ignore
-  console.log(response)
+  console.log(response.result)
 }
 
 start()
