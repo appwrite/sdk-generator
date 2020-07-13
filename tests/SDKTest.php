@@ -26,6 +26,7 @@ class SDKTest extends TestCase
                 'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli php tests/languages/php/test.php',
                 'php-7.3' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli php tests/languages/php/test.php',
                 'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli php tests/languages/php/test.php',
+                'php-8.0' => 'docker run --rm -v $(pwd):/app -w /app php:8.0.0alpha2-cli php tests/languages/php/test.php',
             ],
         ],
         'dart' => [
@@ -70,12 +71,12 @@ class SDKTest extends TestCase
             'class' => 'Appwrite\SDK\Language\Typescript',
             'build' => [
                 'cp tests/languages/typescript/tests.ts tests/sdks/typescript/tests.ts',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:12.12 npm install', //  npm list --depth 0 && 
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:12.12 ls node_modules/.bin',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:12.12 node_modules/.bin/tsc --lib ES6,DOM tests'
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:14.5 npm install', //  npm list --depth 0 && 
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:14.5 ls node_modules/.bin',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:14.5 node_modules/.bin/tsc --lib ES6,DOM tests'
             ],
             'envs' => [
-                'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/sdks/typescript/tests.js',
+                'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14.5 node tests/sdks/typescript/tests.js',
             ],
         ],
         
@@ -97,6 +98,7 @@ class SDKTest extends TestCase
                 'nodejs-8' => 'docker run --rm -v $(pwd):/app -w /app node:8.16 node tests/languages/node/test.js',
                 'nodejs-10' => 'docker run --rm -v $(pwd):/app -w /app node:10.16 node tests/languages/node/test.js',
                 'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12 node tests/languages/node/test.js',
+                'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14.5 node tests/languages/node/test.js',
             ],
         ],
 
@@ -105,10 +107,10 @@ class SDKTest extends TestCase
             'build' => [
             ],
             'envs' => [
-                'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.7-rc ruby tests/languages/ruby/tests.rb',
-                'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.6.5 ruby tests/languages/ruby/tests.rb',
-                'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.5.7 ruby tests/languages/ruby/tests.rb',
-                'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.4.9 ruby tests/languages/ruby/tests.rb',
+                'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.7 ruby tests/languages/ruby/tests.rb',
+                'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.6 ruby tests/languages/ruby/tests.rb',
+                'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.5 ruby tests/languages/ruby/tests.rb',
+                'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.4 ruby tests/languages/ruby/tests.rb',
             ],
         ],
 
