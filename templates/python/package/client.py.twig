@@ -84,7 +84,7 @@ class Client:
             finalKey = prefix + '[' + str(i) +']' if isinstance(data, list) else finalKey
             i += 1
             
-            if isinstance(value, list) or isinstance(value, dict)::
+            if isinstance(value, list) or isinstance(value, dict):
                 output = {**output, **self.flatten(value, finalKey)}
             else:
                 output[finalKey] = value
