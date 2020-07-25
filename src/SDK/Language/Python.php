@@ -267,7 +267,7 @@ class Python extends Language {
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "{}";
+                    $output .= "{'file': ('file.png', open('/path/to/file.png', 'rb'), 'image/png')}"; //TODO add file class
                     break;
             }
         }

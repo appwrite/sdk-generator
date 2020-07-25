@@ -47,3 +47,6 @@ print(response['result'])
 
 response = general.redirect()
 print(response['result'])
+
+response = general.upload('string', 123, ['string in array'], {'file': ('file.png', open('/path/to/file.png', 'rb'), 'image/png')})
+print(response['result'])
