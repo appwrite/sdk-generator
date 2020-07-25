@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Exception;
 
 class Python extends Language {
 
@@ -178,17 +179,7 @@ class Python extends Language {
      */
     public function getTypeName($type)
     {
-        switch ($type) {
-            case self::TYPE_INTEGER:
-            case self::TYPE_NUMBER:
-                return 'Int';
-            break;
-            case self::TYPE_FILE:
-                return 'File';
-            break;
-        }
-
-        return $type;
+        throw new Exception('Method not supported for Python SDKs');
     }
 
     /**
@@ -219,6 +210,7 @@ class Python extends Language {
                     break;
                 case self::TYPE_ARRAY:
                 case self::TYPE_OBJECT:
+                case self::TYPE_FILE:
                     $output .= '{}';
                     break;
             }
@@ -230,9 +222,12 @@ class Python extends Language {
                     $output .= $default;
                     break;
                 case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    #$output .= json_encode($default);
                     $output .= '[]';
+                    break;
+                case self::TYPE_OBJECT:
+                case self::TYPE_FILE:
+                    #$output .= json_encode($default);
+                    $output .= '{}';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'True' : 'False';
@@ -272,7 +267,7 @@ class Python extends Language {
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "document.getElementById('uploader').files[0]";
+                    $output .= "{}";
                     break;
             }
         }
@@ -291,7 +286,7 @@ class Python extends Language {
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "{}"; //TODO add file class
+                    $output .= "{'file': ('file.png', open('/path/to/file.png', 'rb'), 'image/png')}"; //TODO add file class
                     break;
             }
         }
