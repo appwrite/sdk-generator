@@ -58,7 +58,7 @@ class Client:
         response = requests.request(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
             method=method,
             url=self._endpoint + path,
-            params=self.flatten(params),,
+            params=self.flatten(params),
             data=self.flatten(data),
             json=json,
             headers=self._global_headers,
