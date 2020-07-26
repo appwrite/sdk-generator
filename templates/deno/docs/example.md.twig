@@ -17,6 +17,7 @@ client
 {% endfor %};
 
 {% endif %}
+
 let promise = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
 
 promise.then(function (response) {

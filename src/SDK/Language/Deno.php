@@ -126,7 +126,7 @@ class Deno extends JS
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "fs.createReadStream(__dirname + '/file.png'))";
+                    $output .= "new File([fileBlob], 'file.png')";
                     break;
             }
         }
@@ -145,7 +145,7 @@ class Deno extends JS
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "fs.createReadStream(__dirname + '/file.png'))";
+                    $output .= "new File([fileBlob], 'file.png')";
                     break;
             }
         }
