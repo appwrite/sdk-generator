@@ -209,6 +209,8 @@ class Python extends Language {
                     $output .= "''";
                     break;
                 case self::TYPE_ARRAY:
+                    $output .= '[]';
+                    break;
                 case self::TYPE_OBJECT:
                 case self::TYPE_FILE:
                     $output .= '{}';
@@ -263,6 +265,8 @@ class Python extends Language {
                     $output .= "''";
                     break;
                 case self::TYPE_ARRAY:
+                    $output .= '[]';
+                    break;
                 case self::TYPE_OBJECT:
                     $output .= '{}';
                     break;
