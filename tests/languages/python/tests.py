@@ -2,6 +2,8 @@ from appwrite.client import Client
 from appwrite.services.foo import Foo
 from appwrite.services.bar import Bar
 from appwrite.services.general import General
+import os.path
+
 
 client = Client()
 foo = Foo(client)
@@ -48,5 +50,5 @@ print(response['result'])
 response = general.redirect()
 print(response['result'])
 
-response = general.upload('string', 123, ['string in array'], {'file': ('file.png', open('/path/to/file.png', 'rb'), 'image/png')})
+response = general.upload('string', 123, ['string in array'], open('./tests/resources/file.png', 'rb'))
 print(response['result'])

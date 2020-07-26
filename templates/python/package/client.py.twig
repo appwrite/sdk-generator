@@ -57,11 +57,9 @@ class Client:
             del headers['content-type']
             
             for key in data.copy():
-                if isinstance(data[key], dict):
-                    for child in data[key]:
-                        if isinstance(data[key][child], io.BufferedIOBase):
-                            files = data[key]
-                            del data[key]
+                if isinstance(data[key], io.BufferedIOBase):
+                    files[key] = data[key]
+                    del data[key]
 
         response = requests.request(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
             method=method,
