@@ -90,7 +90,7 @@ class Client {
             addHeader('Origin', 'appwrite-' + type + '://' + packageInfo.packageName);
           }else{
             // if web set httpClientAdapter as BrowserHttpClientAdapter with withCredentials true to make cookies work
-            this.http.httpClientAdapter = BrowserHttpClientAdapter()..withCredentials=true;
+            this.http.options.extra['withCredentials'] = true;
           }
 
           this.http.options.baseUrl = this.endPoint;
