@@ -21,6 +21,7 @@ class Client {
     PersistCookieJar cookieJar;
 
     Client({this.endPoint = 'https://appwrite.io/v1', this.selfSigned = false, Dio http}) : this.http = http ?? Dio() {
+        // Platform is not supported in web so if web, set type to web automatically and skip Platform check
         if(kIsWeb) {
             type = 'web';
         }else{
@@ -80,17 +81,20 @@ class Client {
 
     Future init() async {
         if(!initialized) {
-          final Directory cookieDir = await _getCookiePath();
-
-          cookieJar = new PersistCookieJar(dir:cookieDir.path);
+          // if web skip cookie implementation and origin header as those are automatically handled by browsers
+          if(!kIsWeb) {
+            final Directory cookieDir = await _getCookiePath();
+            cookieJar = new PersistCookieJar(dir:cookieDir.path);
+            this.http.interceptors.add(CookieManager(cookieJar));
+            PackageInfo packageInfo = await PackageInfo.fromPlatform();
+            addHeader('Origin', 'appwrite-' + type + '://' + packageInfo.packageName);
+          }else{
+            // if web set httpClientAdapter as BrowserHttpClientAdapter with withCredentials true to make cookies work
+            this.http.httpClientAdapter = BrowserHttpClientAdapter()..withCredentials=true;
+          }
 
           this.http.options.baseUrl = this.endPoint;
           this.http.options.validateStatus = (status) => status < 400;
-          this.http.interceptors.add(CookieManager(cookieJar));
-
-          PackageInfo packageInfo = await PackageInfo.fromPlatform();
-
-          addHeader('Origin', 'appwrite-' + type + '://' + packageInfo.packageName);
         }
     }
 
