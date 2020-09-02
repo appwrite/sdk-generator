@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:dio/adapter.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
@@ -20,13 +21,16 @@ class Client {
     PersistCookieJar cookieJar;
 
     Client({this.endPoint = 'https://appwrite.io/v1', this.selfSigned = false, Dio http}) : this.http = http ?? Dio() {
-        
-        type = (Platform.isIOS) ? 'ios' : type;
-        type = (Platform.isMacOS) ? 'macos' : type;
-        type = (Platform.isAndroid) ? 'android' : type;
-        type = (Platform.isLinux) ? 'linux' : type;
-        type = (Platform.isWindows) ? 'windows' : type;
-        type = (Platform.isFuchsia) ? 'fuchsia' : type;
+        if(kIsWeb) {
+            type = 'web';
+        }else{
+            type = (Platform.isIOS) ? 'ios' : type;
+            type = (Platform.isMacOS) ? 'macos' : type;
+            type = (Platform.isAndroid) ? 'android' : type;
+            type = (Platform.isLinux) ? 'linux' : type;
+            type = (Platform.isWindows) ? 'windows' : type;
+            type = (Platform.isFuchsia) ? 'fuchsia' : type;
+        }
         
         this.headers = {
             'content-type': 'application/json',
