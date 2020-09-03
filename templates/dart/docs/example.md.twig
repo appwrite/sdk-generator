@@ -1,7 +1,7 @@
 {% if method.type == 'upload' %}
 import 'dart:io';
 {% endif %}
-import 'package:appwrite/appwrite.dart';
+import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
 
 void main() { // Init SDK
   Client client = Client();

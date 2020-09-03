@@ -283,7 +283,7 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/{{ spec.title | caseDash }}.dart',
+                'destination'   => '/lib/{{ language.params.packageName }}.dart',
                 'template'      => '/dart/lib/package.dart.twig',
                 'minify'        => false,
             ],
