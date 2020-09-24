@@ -11,10 +11,6 @@ The SDK uses predefined language settings and [Twig templates](https://twig.symf
 
 Currently the only spec supported is Swagger 2.0, but we intend to add support for more specification in the near future.
 
-## Examples
-
-You can view examples of generated code libraries in the [examples](examples) directory.
-
 ## Getting Started
 
 Install using composer:
