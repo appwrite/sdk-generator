@@ -74,7 +74,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 ## Supported Specs
 
 * [OpenAPI 3](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md) (Not Ready)
-* [Swagger 2](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md)
+* [Swagger 2](https://swagger.io/docs/specification/2-0/basic-structure/)
 * [RAML 1.0](https://raml.org/) (Not Ready)
 * [RAML 0.8](https://raml.org/) (Not Ready)
 * [Postman 2.0](https://schema.getpostman.com/json/collection/v2.0.0/docs/index.html) (Not Ready)
