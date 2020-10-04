@@ -9,6 +9,9 @@ notifications:
   email:
     - team@appwrite.io
 
+services:
+  - docker
+
 before_script: composer install
 
 install:
