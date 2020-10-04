@@ -27,6 +27,7 @@ install:
   - docker-compose exec appwrite bash -c 'echo "$_APP_DOMAIN"'
   - docker-compose exec appwrite bash -c 'echo "$_APP_DOMAIN_TARGET"'
   - docker ps
+  - cd ..
 
 script:
   - vendor/bin/phpunit
