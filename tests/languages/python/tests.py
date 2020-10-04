@@ -11,7 +11,6 @@ bar = Bar(client)
 general = General(client)
 
 client.add_header('Origin', 'http://localhost')
-client.set_endpoint('http://localhost/v1')
 client.set_self_signed()
 
 # Foo Tests

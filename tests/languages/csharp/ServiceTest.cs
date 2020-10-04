@@ -14,7 +14,6 @@ namespace Appwrite.Test
             Bar bar = new Bar(client);
             General general = new General(client);
 
-            client.SetEndpoint("http://localhost/v1");
             client.AddHeader("Origin", "http://localhost");
             client.SetSelfSigned(true);
 

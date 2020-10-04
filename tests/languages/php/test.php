@@ -16,8 +16,6 @@ $foo        = new Foo($client);
 $bar        = new Bar($client);
 $general    = new General($client);
 
-$client->setEndpoint('http://localhost/v1');
-
 $client->addHeader('Origin', 'http://localhost');
 
 // Foo Service
