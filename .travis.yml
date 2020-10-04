@@ -24,6 +24,7 @@ install:
   - cat some.file
   - docker ps
   - composer install
+  - php test.php
 
 script:
   - vendor/bin/phpunit
