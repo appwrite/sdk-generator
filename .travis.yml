@@ -16,7 +16,7 @@ before_script: composer install
 
 install:
   - >
-      echo "80\n443\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" | docker run -it --rm \
+      echo "80\n443\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" | docker run --rm \
           --volume /var/run/docker.sock:/var/run/docker.sock \
           --volume "$(pwd)"/appwrite:/install/appwrite:rw \
           -e version=0.6.2 \
