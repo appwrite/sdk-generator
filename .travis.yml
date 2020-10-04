@@ -21,12 +21,11 @@ install:
           --volume "$(pwd)"/appwrite:/install/appwrite:rw \
           -e version=0.6.2 \
           appwrite/install
-  - sleep 90
-  - ping localhost
+  - sleep 120
+  - curl http://localhost --output some.file
+  - cat some.file
   - cat ./appwrite/docker-compose.yml
   - cd ./appwrite
-  - docker-compose exec appwrite bash -c 'echo "$_APP_DOMAIN"'
-  - docker-compose exec appwrite bash -c 'echo "$_APP_DOMAIN_TARGET"'
   - docker ps
   - cd ..
 
