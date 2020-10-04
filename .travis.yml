@@ -23,7 +23,6 @@ install:
   - curl http://localhost --output some.file
   - cat some.file
   - docker ps
-  - cd ..
   - composer install
 
 script:
