@@ -21,7 +21,8 @@ install:
           --volume "$(pwd)"/appwrite:/install/appwrite:rw \
           -e version=0.6.2 \
           appwrite/install
-  - sleep 20
+  - sleep 90
+  - docker ps
 
 script:
   - vendor/bin/phpunit
