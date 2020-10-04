@@ -22,6 +22,7 @@ install:
           -e version=0.6.2 \
           appwrite/install
   - sleep 90
+  - ping localhost
   - cat ./appwrite/docker-compose.yml
   - cd ./appwrite
   - docker-compose exec appwrite bash -c 'echo "$_APP_DOMAIN"'
