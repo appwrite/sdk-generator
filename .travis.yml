@@ -12,8 +12,6 @@ notifications:
 services:
   - docker
 
-before_script: composer install
-
 install:
   - >
       echo "localhost\n80\n443\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" | docker run --rm \
@@ -26,6 +24,7 @@ install:
   - cat some.file
   - docker ps
   - cd ..
+  - composer install
 
 script:
   - vendor/bin/phpunit
