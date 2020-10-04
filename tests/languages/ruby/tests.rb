@@ -1,7 +1,7 @@
 require_relative '../../sdks/ruby/lib/appwrite'
 
 client = Appwrite::Client.new()
-
+client.set_endpoint('http://localhost/v1')
 client.add_header('Origin', 'http://localhost')
 
 foo = Appwrite::Foo.new(client)  

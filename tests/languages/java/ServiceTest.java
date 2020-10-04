@@ -17,6 +17,7 @@ public class ServiceTest {
         Bar bar = new Bar(client);
         General general = new General(client);
 
+        client.setEndpoint('http://localhost/v1');
         client.addHeader("Origin", "http://localhost");
         client.setSelfSigned(true);
 

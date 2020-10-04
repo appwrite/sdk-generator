@@ -12,6 +12,7 @@ async function start() {
   let bar = new appwrite.Bar(client)
   let general = new appwrite.General(client)
 
+  client.setEndpoint('http://localhost/v1')
   client.addHeader('Origin', 'http://localhost')
 
   // Foo

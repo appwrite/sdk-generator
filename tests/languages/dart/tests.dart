@@ -6,6 +6,7 @@ void main() async {
   Bar bar = Bar(client);
   General general = General(client);
 
+  client.setEndpoint('http://localhost/v1');
   client.addHeader('Origin', 'http://localhost');
   client.setSelfSigned();
 
