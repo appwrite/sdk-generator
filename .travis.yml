@@ -24,8 +24,6 @@ install:
   - sleep 120
   - curl http://localhost --output some.file
   - cat some.file
-  - cat ./appwrite/docker-compose.yml
-  - cd ./appwrite
   - docker ps
   - cd ..
 
