@@ -58,7 +58,7 @@ declare namespace {{ spec.title | caseUcfirst }} {
          * @return {% if method.type == 'location' %}{string}{% elseif method.cookies %}{null}{% else %}{Promise}{% endif %}
          
          */
-	    {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'location' %}string{% else %}Promise<object>{% endif %};
+	    {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if parameter.required == false %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'location' %}string{% else %}Promise<object>{% endif %};
 
 {% endfor %}
 	}
