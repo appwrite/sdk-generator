@@ -89,6 +89,14 @@ class Client {
             if(Platform.isAndroid || Platform.isIOS) {
               PackageInfo packageInfo = await PackageInfo.fromPlatform();
               addHeader('Origin', 'appwrite-' + type + '://' + packageInfo.packageName);
+            } else if(Platform.isLinux) {
+              addHeader('Origin', 'appwrite-linux://');
+            } else if(Platform.isMacOS) {
+              addHeader('Origin', 'appwrite-macos://');
+            } else if(Platform.isWindows) {
+              addHeader('Origin', 'appwrite-windows://');
+            } else if(Platform.isFuchsia) {
+              addHeader('Origin', 'appwrite-fuchsia://');
             }
           }else{
             // if web set httpClientAdapter as BrowserHttpClientAdapter with withCredentials true to make cookies work
