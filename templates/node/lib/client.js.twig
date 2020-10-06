@@ -1,5 +1,6 @@
 const URL = require('url').URL;
-const request = require('request-promise-native');
+const axios = require('axios');
+const FormData = require('form-data');
 
 class Client {
     
@@ -70,23 +71,39 @@ class Client {
         headers = Object.assign(this.headers, headers);
 
         let contentType = headers['content-type'].toLowerCase();
-        let options = {
-            method: method.toUpperCase(),
-            uri: this.endpoint + path,
-            qs: (method.toUpperCase() === 'GET') ? params : {},
-            headers: headers,
-            body: (method.toUpperCase() === 'GET' || contentType.startsWith('multipart/form-data')) ? null : params,
-            json: (contentType.startsWith('application/json')),
-            formData: (contentType.startsWith('multipart/form-data')) ? this.flatten(params) : null,
-        };
 
-        let response = await request(options);
+        let formData = null;
 
-        if(contentType.startsWith('multipart/form-data')) {
-            response = JSON.parse(response);
+        // Compute FormData for axios and appwrite.
+        if (contentType.startsWith('multipart/form-data')) {
+            const form = new FormData();
+            
+            let test = this.flatten(params);
+            
+            for (const key in test) {
+                form.append(key, test[key])
+            }
+
+            headers = {
+                ...headers,
+                ...form.getHeaders()
+            };
+
+            formData = form;
         }
 
-        return response;
+        let options = {
+            method: method.toUpperCase(),
+            url: this.endpoint + path,
+            params: (method.toUpperCase() === 'GET') ? params : {},
+            headers: headers,
+            data: (method.toUpperCase() === 'GET' || contentType.startsWith('multipart/form-data')) ? formData : params,
+            json: (contentType.startsWith('application/json'))
+        };
+
+        let response = await axios(options);
+
+        return response.data;
     }
 
     flatten(data, prefix = '') {
