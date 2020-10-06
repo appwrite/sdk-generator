@@ -78,10 +78,10 @@ class Client {
         if (contentType.startsWith('multipart/form-data')) {
             const form = new FormData();
             
-            let test = this.flatten(params);
+            let flatParams = this.flatten(params);
             
-            for (const key in test) {
-                form.append(key, test[key])
+            for (const key in flatParams) {
+                form.append(key, flatParams[key])
             }
 
             headers = {
