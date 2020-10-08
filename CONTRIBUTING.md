@@ -8,7 +8,7 @@ Help us keep Appwrite open and inclusive. Please read and follow our [Code of Co
 
 ## Installation
 
-To install a working development environment follow this instruction:
+To install a working development environment follow these instructions:
 
 1. Fork or clone the appwrite/sdk-generator repository.
 
@@ -35,7 +35,8 @@ docker run --rm --interactive --tty --volume "%cd%":/app composer install
 
 ## Creating Language Class
 
-First, create a new class for the new language in this directory: https://github.com/appwrite/sdk-generator/tree/master/src/SDK/Language
+Firstly, create a new class for the new language in this directory: 
+https://github.com/appwrite/sdk-generator/tree/master/src/SDK/Language
 
 You can use the interface to know which methods are required to be implemented:
 https://github.com/appwrite/sdk-generator/blob/master/src/SDK/Language.php
@@ -50,9 +51,9 @@ An array with language keywords to avoid using as param or function names, templ
 An array with a list of language template files in [twig format](https://twig.symfony.com/). 
 Each file scope determines what template parameters will be available.
 
-* default scope - Basic SDK and language-specific params (package name, language name, etc…)
-* service scope - Generate x templates where x is the number of API services, adds service-specific params to the template (service name, methods, etc…)
-* method scope - Generate x*y templates where x is the number of API services and y is the number of methods, adds service and method-specific params to the template (service name, method name, method params, etc…), good for generating MD files with examples for using each method
+* Default scope - Basic SDK and language-specific params (package name, language name, etc…)
+* Service scope - Generate x templates where x is the number of API services, adds service-specific params to the template (service name, methods, etc…)
+* Method scope - Generate x*y templates where x is the number of API services and y is the number of methods, adds service and method-specific params to the template (service name, method name, method params, etc…), good for generating MD files with examples for using each method
 
 **getTypeName**
 This method receives the API param type and should return the equivalent param in the implemented language.
@@ -121,7 +122,7 @@ Check your output files at: /examples/new-lang and make sure the SDK works. When
 It is very important for us to create consistent structure, architecture and native like feel for the SDKs we generate.
 In order to accomplish that we have made a checklist of points to support while adding a new language to the SDK generator.
 
-The checklist aims to balance consistency among languages, and follow each platform's best practices and coding standards.
+The following checklist aims to balance consistency among languages, and follow each platform's best practices and coding standards.
 
 - [ ] Proper Coding Standards and Conventions
 - [ ] Proper Skeleton Structure
