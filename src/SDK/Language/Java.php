@@ -192,6 +192,12 @@ class Java extends Language {
                 'template'      => '/java/LICENSE.twig',
                 'minify'        => false,
             ],
+	    [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => '/java/docs/example.md.twig',
+                'minify'        => false,
+            ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/Client.java',
