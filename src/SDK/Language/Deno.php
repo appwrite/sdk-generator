@@ -104,8 +104,8 @@ class Deno extends JS
      */
     public function getParamExample(array $param)
     {
-        $type       = (isset($param['type'])) ? $param['type'] : '';
-        $example    = (isset($param['example'])) ? $param['example'] : '';
+        $type       = $param['type'] ?? '';
+        $example    = $param['example'] ?? '';
 
         $output = '';
 

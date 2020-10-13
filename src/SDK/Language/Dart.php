@@ -138,9 +138,9 @@ class Dart extends Language {
      */
     public function getParamDefault(array $param)
     {
-        $type       = (isset($param['type'])) ? $param['type'] : '';
-        $default    = (isset($param['default'])) ? $param['default'] : '';
-        $required   = (isset($param['required'])) ? $param['required'] : '';
+        $type       = $param['type'] ?? '';
+        $default    = $param['default'] ?? '';
+        $required   = $param['required'] ?? '';
 
         if($required) {
             return '';
@@ -196,8 +196,8 @@ class Dart extends Language {
      */
     public function getParamExample(array $param)
     {
-        $type       = (isset($param['type'])) ? $param['type'] : '';
-        $example    = (isset($param['example'])) ? $param['example'] : '';
+        $type       = $param['type'] ?? '';
+        $example    = $param['example'] ?? '';
 
         $output = '';
 
