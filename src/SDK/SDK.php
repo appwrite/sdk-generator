@@ -420,7 +420,7 @@ class SDK
      */
     public function getParam($name)
     {
-        return (isset($this->params[$name])) ? $this->params[$name] : '';
+        return $this->params[$name] ?? '';
     }
 
     /**
@@ -470,8 +470,8 @@ class SDK
             /* @var $template \Twig\TemplateWrapper */
             $template       = $this->twig->load($file['template']);
             $destination    = $target . '/' . $file['destination'];
-            $block          = (isset($file['block'])) ? $file['block'] : null;
-            $minify         = (isset($file['minify'])) ? $file['minify'] : false;
+            $block          = $file['block'] ?? null;
+            $minify         = $file['minify'] ?? false;
             
             switch ($file['scope']) {
                 case 'default':
