@@ -68,7 +68,7 @@ Notice: The easiest way to get started is to copy an existing language class clo
 
 ## Adding Templates
 
-Add your new templates as listed in your language class **getFiles** method. Make sure to follow the [checklist](https://github.com/appwrite/sdk-generator#sdk-checklist) when building the language templates.
+Add your new templates as listed in your language class **getFiles** method. Make sure to follow the [checklist](#sdk-checklist) when building the language templates.
 
 Make sure to follow the objects structure and service separation architecture. We aim to keep developer experience as consisted as possible across different SDKs to make the learning curve as small as possible.
 
