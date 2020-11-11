@@ -33,7 +33,7 @@
       "name": "X-Appwrite-Project",
       "description": "Your project ID",
       "in": "header",
-      "extensions": {
+      "x-appwrite": {
         "demo": "5df5acd0d48c2"
       }
     },
@@ -42,7 +42,7 @@
       "name": "X-Appwrite-Key",
       "description": "Your secret API key",
       "in": "header",
-      "extensions": {
+      "x-appwrite": {
         "demo": "919c2d18fb5d4...a2ae413da83346ad2"
       }
     },
@@ -51,7 +51,7 @@
       "name": "X-Appwrite-Locale",
       "description": "",
       "in": "header",
-      "extensions": {
+      "x-appwrite": {
         "demo": "en"
       }
     },
@@ -60,7 +60,7 @@
       "name": "X-Appwrite-Mode",
       "description": "",
       "in": "header",
-      "extensions": {
+      "x-appwrite": {
         "demo": ""
       }
     }
@@ -77,7 +77,7 @@
           "bar"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 50,
           "cookies": false,
           "location": false,
@@ -134,7 +134,7 @@
           "bar"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 51,
           "cookies": false,
           "location": false,
@@ -191,7 +191,7 @@
           "bar"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 53,
           "cookies": false,
           "location": false,
@@ -248,7 +248,7 @@
           "bar"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 52,
           "cookies": false,
           "location": false,
@@ -305,7 +305,7 @@
           "bar"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 54,
           "cookies": false,
           "location": false,
@@ -364,7 +364,7 @@
           "foo"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 45,
           "cookies": false,
           "location": false,
@@ -421,7 +421,7 @@
           "foo"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 46,
           "cookies": false,
           "location": false,
@@ -478,7 +478,7 @@
           "foo"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 48,
           "cookies": false,
           "location": false,
@@ -535,7 +535,7 @@
           "foo"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 47,
           "cookies": false,
           "location": false,
@@ -592,7 +592,7 @@
           "foo"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 49,
           "cookies": false,
           "location": false,
@@ -651,7 +651,7 @@
           "general"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 60,
           "cookies": false,
           "location": false,
@@ -681,7 +681,7 @@
           "general"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 59,
           "cookies": false,
           "location": false,
@@ -711,7 +711,7 @@
           "general"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 56,
           "cookies": false,
           "location": false,
@@ -741,7 +741,7 @@
           "general"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 57,
           "cookies": false,
           "location": false,
@@ -771,7 +771,7 @@
           "general"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 58,
           "cookies": false,
           "location": false,
@@ -801,7 +801,7 @@
           "general"
         ],
         "description": "",
-        "extensions": {
+        "x-appwrite": {
           "weight": 55,
           "cookies": false,
           "location": false,
