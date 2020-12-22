@@ -180,8 +180,6 @@ class Swagger2 extends Spec {
 
                         $param['default'] = (is_array($param['default'])) ? json_encode($param['default']): $param['default'];
 
-                        $output['parameters']['all'][] = $param;
-
                         switch ($parameter['in']) {
                             case 'header':
                                 $output['parameters']['header'][] = $param;
@@ -196,8 +194,8 @@ class Swagger2 extends Spec {
                                 $output['parameters']['body'][] = $param;
                             break;
                             case 'body':
-                                $bodyProperties = $param['schema']['properties'] ?? [];
-                                $bodyRequired = $param['schema']['required'] ?? [];
+                                $bodyProperties = $parameter['schema']['properties'] ?? [];
+                                $bodyRequired = $parameter['schema']['required'] ?? [];
 
                                 foreach ($bodyProperties as $key => $value) {
                                     $param['name'] = $key;
@@ -208,10 +206,15 @@ class Swagger2 extends Spec {
                                     $param['example'] = $value['x-example'] ?? null;
 
                                     $output['parameters']['body'][] = $param;
+                                    $output['parameters']['all'][] = $param;
                                 }
+
+                                continue 2;
                                 
                             break;
                         }
+
+                        $output['parameters']['all'][] = $param;
                     }
 
                     usort($output['parameters']['all'], function ($a, $b) {
