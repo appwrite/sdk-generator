@@ -231,7 +231,7 @@ class SDKTest extends TestCase
                 $this->assertEquals('PATCH:/v1/mock/tests/bar:passed', $output[8] ?? '');
                 $this->assertEquals('DELETE:/v1/mock/tests/bar:passed', $output[9] ?? '');
                 
-                $this->assertEquals('GET:/v1/mock/tests/general/redirected:passed', $output[10]);
+                $this->assertEquals('GET:/v1/mock/tests/general/redirect/done:passed', $output[10]);
                 //$this->assertEquals($output[11], 'POST:/v1/mock/tests/general/upload:passed');
             }
         }
