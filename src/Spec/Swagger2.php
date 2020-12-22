@@ -170,7 +170,7 @@ class Swagger2 extends Spec {
                             'name'          => $parameter['name'] ?? null,
                             'type'          => $parameter['type'] ?? null,
                             'description'   => $parameter['description'] ?? '',
-                            'required'      => (int)$parameter['required'] ?? false,
+                            'required'      => (int)($parameter['required'] ?? 0),
                             'default'       => $parameter['default'] ?? null,
                             'example'       => $parameter['x-example'] ?? null,
                             'array'         => [
