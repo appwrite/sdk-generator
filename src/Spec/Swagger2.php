@@ -167,10 +167,10 @@ class Swagger2 extends Spec {
 
                     foreach ($method['parameters'] as $parameter) {
                         $param = [
-                            'name'          => $parameter['name'],
-                            'type'          => $parameter['type'],
-                            'description'   => $parameter['description'],
-                            'required'      => (int)$parameter['required'],
+                            'name'          => $parameter['name'] ?? null,
+                            'type'          => $parameter['type'] ?? null,
+                            'description'   => $parameter['description'] ?? '',
+                            'required'      => (int)$parameter['required'] ?? false,
                             'default'       => $parameter['default'] ?? null,
                             'example'       => $parameter['x-example'] ?? null,
                             'array'         => [
