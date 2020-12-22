@@ -5,9 +5,9 @@
 
 **WORK IN PROGRESS - NOT READY FOR GENERAL USAGE**
 
-[Appwrite](https://appwrite.io) SDK generator is a PHP library for auto generating SDK library for multiple languages or platforms.
+[Appwrite](https://appwrite.io) SDK generator is a PHP library for auto generating SDK libraries for multiple languages and platforms.
 
-The SDK uses predefined language settings and [Twig templates](https://twig.symfony.com/) to generate code base on different API specs.
+The SDK Generator uses a predefined language settings as [Twig templates](https://twig.symfony.com/) to generate codebases based on different API specs.
 
 Currently the only spec supported is Swagger 2.0, but we intend to add support for more specification in the near future.
 
@@ -81,13 +81,14 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
 | Language   | Supported Versions  |  Coding Standards      |  Package Manager   |   Maintainer   |
 |------------|---------------------|------------------------|--------------------|----------------|
-| Javascript | ES5+                | [NPM Coding Style]     | NPM, Yarn,         | [@eldadfux]    |
+| Web        | ES5+                | [NPM Coding Style]     | NPM, Yarn,         | [@eldadfux]    |
 | TypeScript |                     | [NPM Coding Style]     | NPM, Yarn          | [You?](https://github.com/appwrite/sdk-generator/issues/20)               |
 | NodeJS     | 8, 10, 12           | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
 | PHP        | 7.0+                | [PHP FIG]              | Composer           | [@eldadfux]    |
 | Ruby       | 2.4+                | [Ruby Style Guide]     | GEM                | [@eldadfux]    |
 | Python     | 3.5+                | [PEP8]                 | PIP                | [@eldadfux]    |
-| Dart       |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim]   |
+| Flutter    |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim]   |
+| Dart       |                     | [Effective Dart]       | pub tool           | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Go         |                     | [Effective Go]         | go get             | [@panz3r]      |
 | CSharp     | .NET core 3.1       | [C# Coding Conventions]| ?                  | [@komemi]      |
 | D          |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
