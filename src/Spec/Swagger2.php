@@ -192,9 +192,24 @@ class Swagger2 extends Spec {
                             case 'query':
                                 $output['parameters']['query'][] = $param;
                             break;
-                            case 'body':
                             case 'formData':
                                 $output['parameters']['body'][] = $param;
+                            break;
+                            case 'body':
+                                $bodyProperties = $param['schema']['properties'] ?? [];
+                                $bodyRequired = $param['schema']['required'] ?? [];
+
+                                foreach ($bodyProperties as $key => $value) {
+                                    $param['name'] = $key;
+                                    $param['type'] = $value['type'] ?? null;
+                                    $param['description'] = $value['description'] ?? '';
+                                    $param['required'] = (in_array($key, $bodyRequired));
+                                    $param['default'] = $value['default'] ?? null;
+                                    $param['example'] = $value['x-example'] ?? null;
+
+                                    $output['parameters']['body'][] = $param;
+                                }
+                                
                             break;
                         }
                     }
