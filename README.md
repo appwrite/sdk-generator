@@ -9,7 +9,7 @@
 
 The SDK Generator uses a predefined language settings as [Twig templates](https://twig.symfony.com/) to generate codebases based on different API specs.
 
-Currently the only spec supported is Swagger 2.0, but we intend to add support for more specification in the near future.
+Currently the only spec supported is Swagger 2.0, but we intend to add support for more specification in the near future. This generator is still lacking support for any definition/models specs.
 
 ## Getting Started
 
