@@ -7,8 +7,11 @@ notifications:
   email:
     - team@appwrite.io
 
-install:
+before_install:
   - echo 'DOCKER_OPTS="$DOCKER_OPTS --registry-mirror=https://mirror.gcr.io"'
+  - sudo service docker restart
+
+install:
   - composer install
 
 script:
