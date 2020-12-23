@@ -167,10 +167,10 @@ class Swagger2 extends Spec {
 
                     foreach ($method['parameters'] as $parameter) {
                         $param = [
-                            'name'          => $parameter['name'],
-                            'type'          => $parameter['type'],
-                            'description'   => $parameter['description'],
-                            'required'      => (int)$parameter['required'],
+                            'name'          => $parameter['name'] ?? null,
+                            'type'          => $parameter['type'] ?? null,
+                            'description'   => $parameter['description'] ?? '',
+                            'required'      => (int)($parameter['required'] ?? 0),
                             'default'       => $parameter['default'] ?? null,
                             'example'       => $parameter['x-example'] ?? null,
                             'array'         => [
@@ -179,8 +179,6 @@ class Swagger2 extends Spec {
                         ];
 
                         $param['default'] = (is_array($param['default'])) ? json_encode($param['default']): $param['default'];
-
-                        $output['parameters']['all'][] = $param;
 
                         switch ($parameter['in']) {
                             case 'header':
@@ -192,11 +190,31 @@ class Swagger2 extends Spec {
                             case 'query':
                                 $output['parameters']['query'][] = $param;
                             break;
-                            case 'body':
                             case 'formData':
                                 $output['parameters']['body'][] = $param;
                             break;
+                            case 'body':
+                                $bodyProperties = $parameter['schema']['properties'] ?? [];
+                                $bodyRequired = $parameter['schema']['required'] ?? [];
+
+                                foreach ($bodyProperties as $key => $value) {
+                                    $param['name'] = $key;
+                                    $param['type'] = $value['type'] ?? null;
+                                    $param['description'] = $value['description'] ?? '';
+                                    $param['required'] = (in_array($key, $bodyRequired));
+                                    $param['default'] = $value['default'] ?? null;
+                                    $param['example'] = $value['x-example'] ?? null;
+
+                                    $output['parameters']['body'][] = $param;
+                                    $output['parameters']['all'][] = $param;
+                                }
+
+                                continue 2;
+                                
+                            break;
                         }
+
+                        $output['parameters']['all'][] = $param;
                     }
 
                     usort($output['parameters']['all'], function ($a, $b) {
