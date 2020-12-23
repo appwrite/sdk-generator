@@ -205,6 +205,8 @@ class Swagger2 extends Spec {
                                     $param['default'] = $value['default'] ?? null;
                                     $param['example'] = $value['x-example'] ?? null;
 
+                                    $param['default'] = (is_array($value['default'])) ? json_encode($value['default']): $value['default'];
+
                                     $output['parameters']['body'][] = $param;
                                     $output['parameters']['all'][] = $param;
                                 }
