@@ -8,6 +8,7 @@ notifications:
     - team@appwrite.io
 
 install:
+  - echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
   - composer install
 
 script:
