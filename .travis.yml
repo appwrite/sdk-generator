@@ -8,7 +8,7 @@ notifications:
     - team@appwrite.io
 
 install:
-  - echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
+  - echo 'DOCKER_OPTS="$DOCKER_OPTS --registry-mirror=https://mirror.gcr.io"'
   - composer install
 
 script:
