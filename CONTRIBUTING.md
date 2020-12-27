@@ -36,10 +36,10 @@ docker run --rm --interactive --tty --volume "%cd%":/app composer install
 ## Creating Language Class
 
 First, create a new class for the new language in this directory: 
-https://github.com/appwrite/sdk-generator/tree/master/src/SDK/Language
+[/src/SDK/Language](https://github.com/appwrite/sdk-generator/tree/master/src/SDK/Language)
 
 You can use the interface to know which methods are required to be implemented:
-https://github.com/appwrite/sdk-generator/blob/master/src/SDK/Language.php
+[/src/SDK/Language.php](https://github.com/appwrite/sdk-generator/blob/master/src/SDK/Language.php)
 
 **getName**
 SDK Language name (JS, PHP…)
