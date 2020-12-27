@@ -12,9 +12,9 @@ To install a working development environment follow these instructions:
 
 1. Fork or clone the appwrite/sdk-generator repository.
 
-2. Install Composer dependencies:
+2. Install Composer dependencies using one of the following options:
 
-**CLI**
+**Composer CLI**
 ```bash
 composer update --ignore-platform-reqs --optimize-autoloader
 ```
