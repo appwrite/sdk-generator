@@ -31,7 +31,7 @@ docker run --rm --interactive --tty --volume "$(pwd)":/app composer install
 docker run --rm --interactive --tty --volume "%cd%":/app composer install
 ```
 
-1. Follow our contribution guide to learn how you can add support for more languages.
+3. Follow our contribution guide to learn how you can add support for more languages.
 
 ## Creating Language Class
 
