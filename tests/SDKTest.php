@@ -57,16 +57,18 @@ class SDKTest extends TestCase
             ],
         ],
 
-        // 'csharp' => [
-        //     'class' => 'Appwrite\SDK\Language\CSharp',
-        //     'build' => [
-        //         'mkdir -p tests/sdks/csharp/src/test',
-        //         'cp tests/languages/csharp/ServiceTest.cs tests/sdks/csharp/src/test/ServiceTest.cs',
-        //     ],
-        //     'envs' => [
-        //         // 'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-11-slim mvn clean install test -q'
-        //     ],
-        // ],
+        'csharp' => [
+            'class' => 'Appwrite\SDK\Language\CSharp',
+            'build' => [
+                'mkdir -p tests/sdks/csharp/src/test',
+                'cp tests/languages/csharp/tests.ps1 tests/sdks/csharp/src/test/tests.ps1',
+                'cp -R tests/sdks/csharp/io/appwrite/src/* tests/sdks/csharp/src',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/csharp/src mcr.microsoft.com/dotnet/sdk:5.0.101-alpine3.12-amd64 dotnet publish -c Release -o test',
+            ],
+            'envs' => [
+                'powershell' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/csharp/src/test/ mcr.microsoft.com/powershell:alpine-3.11 pwsh tests.ps1',
+            ],
+        ],
 
         'typescript' => [
             'class' => 'Appwrite\SDK\Language\Typescript',
@@ -161,7 +163,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript', 'deno'];
+        $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'csharp'];
 
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
