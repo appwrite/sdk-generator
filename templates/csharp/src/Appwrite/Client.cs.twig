@@ -45,6 +45,18 @@ namespace {{ spec.title | caseUcfirst }}
             // coockie container ??                     
         }
 
+        public Client SetSelfSigned(bool selfSigned)
+        {
+            this.selfSigned = selfSigned;
+            return this;
+        }
+
+        public Client SetEndPoint(string endPoint)
+        {
+            this.endPoint = endPoint;
+            return this;
+        }
+
         public string GetEndPoint()
         {
             return endPoint;
@@ -79,7 +91,7 @@ namespace {{ spec.title | caseUcfirst }}
         {
             if (selfSigned)
             {
-                // TODO Allow self signed requests ? 
+                ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
             }
 
             bool methodGet = "GET".Equals(method, StringComparison.InvariantCultureIgnoreCase);
