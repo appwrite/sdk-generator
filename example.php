@@ -4,7 +4,7 @@ include_once 'vendor/autoload.php';
 
 use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
-use Appwrite\SDK\Language\JS;
+use Appwrite\SDK\Language\Web;
 use Appwrite\SDK\Language\Node;
 use Appwrite\SDK\Language\PHP;
 use Appwrite\SDK\Language\Python;
@@ -19,7 +19,7 @@ use Appwrite\SDK\Language\Swift;
 use Appwrite\SDK\Language\CSharp;
 use Appwrite\SDK\Language\Flutter;
 
-$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift', 'typescript', 'deno', 'http', 'csharp'];
+$languages  = ['web', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift', 'typescript', 'deno', 'http', 'csharp'];
 
 try {
 
@@ -63,8 +63,8 @@ try {
 
     $sdk->generate(__DIR__ . '/examples/php');
 
-    // JS
-    $sdk  = new SDK(new JS(), new Swagger2($spec));
+    // Web
+    $sdk  = new SDK(new Web(), new Swagger2($spec));
 
     $sdk
         ->setName('NAME')
@@ -81,7 +81,7 @@ try {
         ->setGitRepoName('reponame')
     ;
 
-    $sdk->generate(__DIR__ . '/examples/js');
+    $sdk->generate(__DIR__ . '/examples/web');
 
     // TypeScript
     $sdk  = new SDK(new Typescript(), new Swagger2($spec));

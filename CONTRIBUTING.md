@@ -12,9 +12,9 @@ To install a working development environment follow these instructions:
 
 1. Fork or clone the appwrite/sdk-generator repository.
 
-2. Install Composer dependencies:
+2. Install Composer dependencies using one of the following options:
 
-**CLI**
+**Composer CLI**
 ```bash
 composer update --ignore-platform-reqs --optimize-autoloader
 ```
@@ -31,15 +31,15 @@ docker run --rm --interactive --tty --volume "$(pwd)":/app composer install
 docker run --rm --interactive --tty --volume "%cd%":/app composer install
 ```
 
-1. Follow our contribution guide to learn how you can add support for more languages.
+3. Follow our contribution guide to learn how you can add support for more languages.
 
 ## Creating Language Class
 
-Firstly, create a new class for the new language in this directory: 
-https://github.com/appwrite/sdk-generator/tree/master/src/SDK/Language
+First, create a new class for the new language in this directory: 
+[/src/SDK/Language](https://github.com/appwrite/sdk-generator/tree/master/src/SDK/Language)
 
 You can use the interface to know which methods are required to be implemented:
-https://github.com/appwrite/sdk-generator/blob/master/src/SDK/Language.php
+[/src/SDK/Language.php](https://github.com/appwrite/sdk-generator/blob/master/src/SDK/Language.php)
 
 **getName**
 SDK Language name (JS, PHP…)
