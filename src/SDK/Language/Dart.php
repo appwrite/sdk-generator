@@ -320,4 +320,3 @@ class Dart extends Language {
         ];
     }
 }
-

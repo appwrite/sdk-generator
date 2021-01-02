@@ -465,10 +465,8 @@ class SDK
             'sdk' => $this->getParams(),
         ];
 
-        foreach ($this->language->getFiles() as $file) { /** @var $file [] */
-            
-            /* @var $template \Twig\TemplateWrapper */
-            $template       = $this->twig->load($file['template']);
+        foreach ($this->language->getFiles() as $file) {
+            $template       = $this->twig->load($file['template']); /* @var $template \Twig\TemplateWrapper */
             $destination    = $target . '/' . $file['destination'];
             $block          = $file['block'] ?? null;
             $minify         = $file['minify'] ?? false;
