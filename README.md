@@ -95,14 +95,14 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
 | Language   | Supported Versions  |  Coding Standards      |  Package Manager   |   Maintainer   |
 |------------|---------------------|------------------------|--------------------|----------------|
-| TypeScript |                     | [NPM Coding Style]     | NPM, Yarn          | [You?](https://github.com/appwrite/sdk-generator/issues/20)               |
+| TypeScript |                     | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]               |
 | NodeJS     | 8, 10, 12           | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
 | PHP        | 7.0+                | [PHP FIG]              | Composer           | [@eldadfux]    |
 | Ruby       | 2.4+                | [Ruby Style Guide]     | GEM                | [@eldadfux]    |
 | Python     | 3.5+                | [PEP8]                 | PIP                | [@eldadfux]    |
 | Dart       |                     | [Effective Dart]       | pub tool           | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Go         |                     | [Effective Go]         | go get             | [@panz3r]      |
-| CSharp     | .NET core 3.1       | [C# Coding Conventions]| ?                  | [@komemi]      |
+| CSharp     | .NET core 3.1       | [C# Coding Conventions]| ?                  | [@komemi] [@TorstenDittmann]      |
 | D          |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Kotlin     |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Swift      |                     |                        | Swift Pkg Manager  | [@armino-dev]  |
@@ -113,6 +113,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 [@armino-dev]:          https://github.com/armino-dev
 [@bartektartanus]:      https://github.com/bartektartanus
 [@komemi]:              https://github.com/komemi
+[@TorstenDittmann]:              https://github.com/TorstenDittmann
 
 [PHP FIG]:              https://www.php-fig.org/
 [NPM Coding Style]:     https://docs.npmjs.com/misc/coding-style
