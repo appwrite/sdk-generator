@@ -19,8 +19,6 @@ use Appwrite\SDK\Language\Swift;
 use Appwrite\SDK\Language\CSharp;
 use Appwrite\SDK\Language\Flutter;
 
-$languages  = ['js', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift', 'typescript', 'deno', 'http', 'csharp'];
-
 try {
 
     function getSSLPage($url) {
@@ -195,7 +193,7 @@ try {
 
     $sdk->generate(__DIR__ . '/examples/dart');
 
-    // Dart
+    // Flutter
     $sdk  = new SDK(new Flutter(), new Swagger2($spec));
 
     $sdk
