@@ -194,7 +194,7 @@ class CSharp extends Language {
                     $output .= 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "''";
+                    $output .= '""';
                     break;
                 case self::TYPE_OBJECT:
                     $output .= 'new Object()';
@@ -217,7 +217,7 @@ class CSharp extends Language {
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "'{$example}'";
+                    $output .= "\"{$example}\"";
                     break;
             }
         }
