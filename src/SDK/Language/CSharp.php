@@ -250,6 +250,12 @@ class CSharp extends Language {
                 'minify'        => false,
             ],
             [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => '/csharp/docs/example.md.twig',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => '/src/Appwrite.sln',
                 'template'      => '/csharp/src/Appwrite.sln',
