@@ -194,7 +194,7 @@ class CSharp extends Language {
                     $output .= 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "''";
+                    $output .= '""';
                     break;
                 case self::TYPE_OBJECT:
                     $output .= 'new Object()';
@@ -217,7 +217,7 @@ class CSharp extends Language {
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "'{$example}'";
+                    $output .= "\"{$example}\"";
                     break;
             }
         }
@@ -247,6 +247,12 @@ class CSharp extends Language {
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => '/csharp/LICENSE.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => '/csharp/docs/example.md.twig',
                 'minify'        => false,
             ],
             [
