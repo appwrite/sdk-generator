@@ -1,7 +1,11 @@
 # Appwrite SDK Generator
 
-[![Build Status](https://travis-ci.com/appwrite/sdk-generator.svg?branch=master)](https://travis-ci.com/appwrite/sdk-generator)
-[![Discord](https://img.shields.io/discord/564160730845151244)](https://discord.gg/GSeTUeA)
+[![Discord](https://img.shields.io/discord/564160730845151244?label=discord&style=flat-square)](https://appwrite.io/discord)
+[![Build Status](https://img.shields.io/travis/com/appwrite/sdk-generator?style=flat-square)](https://travis-ci.com/appwrite/sdk-generator)
+[![Twitter Account](https://img.shields.io/twitter/follow/appwrite_io?color=00acee&label=twitter&style=flat-square)](https://twitter.com/appwrite_io)
+[![Follow Appwrite on StackShare](https://img.shields.io/badge/follow%20on-stackshare-blue?style=flat-square)](https://stackshare.io/appwrite)
+[![appwrite.io](https://img.shields.io/badge/appwrite-.io-f02e65?style=flat-square)](https://appwrite.io)
+
 
 **WORK IN PROGRESS - NOT READY FOR GENERAL USAGE**
 
@@ -69,31 +73,39 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
 ## Supported Specs
 
-* [OpenAPI 3](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md) (Not Ready)
 * [Swagger 2](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md)
+* [OpenAPI 3](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md) (Not Ready)
 * [RAML 1.0](https://raml.org/) (Not Ready)
 * [RAML 0.8](https://raml.org/) (Not Ready)
 * [Postman 2.0](https://schema.getpostman.com/json/collection/v2.0.0/docs/index.html) (Not Ready)
 * [Postman 1.0](https://schema.getpostman.com/json/collection/v1.0.0/docs/index.html) (Not Ready)
 * [API Blueprint 1A](https://github.com/apiaryio/api-blueprint/blob/master/API%20Blueprint%20Specification.md) (Not Ready)
 
-## Supported Languages
+## Supported Client / Platform SDKs
+
+| Language              | Supported Versions  |  Coding Standards      |  Package Manager   |   Maintainer   |
+|-----------------------|---------------------|------------------------|--------------------|----------------|
+| Web                   | ES5+                | [NPM Coding Style]     | NPM, Yarn,         | [@eldadfux]    |
+| Flutter               |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim]   |
+| Android (Kotlin)      |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
+| iOS (Swift)           |                     |                        | Swift Pkg Manager  | [@armino-dev] |
+| Unity (Csharp)        |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
+
+## Supported Server SDKs
 
 | Language   | Supported Versions  |  Coding Standards      |  Package Manager   |   Maintainer   |
 |------------|---------------------|------------------------|--------------------|----------------|
-| Web        | ES5+                | [NPM Coding Style]     | NPM, Yarn,         | [@eldadfux]    |
-| TypeScript |                     | [NPM Coding Style]     | NPM, Yarn          | [You?](https://github.com/appwrite/sdk-generator/issues/20)               |
+| TypeScript |                     | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]               |
 | NodeJS     | 8, 10, 12           | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
 | PHP        | 7.0+                | [PHP FIG]              | Composer           | [@eldadfux]    |
 | Ruby       | 2.4+                | [Ruby Style Guide]     | GEM                | [@eldadfux]    |
 | Python     | 3.5+                | [PEP8]                 | PIP                | [@eldadfux]    |
-| Flutter    |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim]   |
 | Dart       |                     | [Effective Dart]       | pub tool           | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Go         |                     | [Effective Go]         | go get             | [@panz3r]      |
 | .NET       | .NET core 3.1       | [C# Coding Conventions]| NuGet              | [@komemi] [@TorstenDittmann]     |
 | D          |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Kotlin     |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
-| Swift      |                     |                        | Swift Pkg Manager  | [@armino-dev] |
+| Swift      |                     |                        | Swift Pkg Manager  | [@armino-dev]  |
 
 [@Almoullim]:           https://github.com/Almoullim
 [@eldadfux]:            https://github.com/eldadfux
