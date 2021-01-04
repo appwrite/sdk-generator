@@ -57,16 +57,16 @@ class SDKTest extends TestCase
             ],
         ],
 
-        'csharp' => [
-            'class' => 'Appwrite\SDK\Language\CSharp',
+        'dotnet' => [
+            'class' => 'Appwrite\SDK\Language\DotNet',
             'build' => [
-                'mkdir -p tests/sdks/csharp/src/test',
-                'cp tests/languages/csharp/tests.ps1 tests/sdks/csharp/src/test/tests.ps1',
-                'cp -R tests/sdks/csharp/io/appwrite/src/* tests/sdks/csharp/src',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/csharp/src mcr.microsoft.com/dotnet/sdk:5.0.101-alpine3.12-amd64 dotnet publish -c Release -o test',
+                'mkdir -p tests/sdks/dotnet/src/test',
+                'cp tests/languages/dotnet/tests.ps1 tests/sdks/dotnet/src/test/tests.ps1',
+                'cp -R tests/sdks/dotnet/io/appwrite/src/* tests/sdks/dotnet/src',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src mcr.microsoft.com/dotnet/sdk:5.0.101-alpine3.12-amd64 dotnet publish -c Release -o test',
             ],
             'envs' => [
-                'powershell' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/csharp/src/test/ mcr.microsoft.com/powershell:alpine-3.11 pwsh tests.ps1',
+                'powershell' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/powershell:alpine-3.11 pwsh tests.ps1',
             ],
         ],
 
@@ -163,7 +163,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'csharp'];
+        $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet'];
 
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
