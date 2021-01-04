@@ -265,7 +265,6 @@ class DotNet extends Language {
                 'scope'         => 'copy',
                 'destination'   => '/icon.png',
                 'template'      => '/dotnet/icon.png',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
