@@ -8,14 +8,17 @@
     <Description>
       {{sdk.shortDescription}}
     </Description>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageLicenseExpression>{{spec.licenseName}}</PackageLicenseExpression>
     <PackageProjectUrl>{{sdk.gitURL}}</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>{{sdk.gitURL}}</RepositoryUrl>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <None Include="..\..\icon.png" Pack="true" PackagePath="$(PackageIcon)"/>
   </ItemGroup>
 
 </Project>

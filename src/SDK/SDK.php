@@ -475,6 +475,9 @@ class SDK
                 case 'default':
                     $this->render($template, $destination, $block, $params, $minify);
                     break;
+                case 'copy':
+                    copy('templates' . $file['template'], $destination);
+                    break;
                 case 'service':
                     foreach ($this->spec->getServices() as $key => $service) {
                         $methods = $this->spec->getMethods($key);
