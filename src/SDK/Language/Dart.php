@@ -125,7 +125,7 @@ class Dart extends Language {
             case self::TYPE_ARRAY:
             	return 'List';
 			case self::TYPE_OBJECT:
-				return 'dynamic';
+				return 'Map';
             break;
         }
 
@@ -151,7 +151,7 @@ class Dart extends Language {
         if(empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_OBJECT:
-                    $output .= '{}';
+                    $output .= 'const {}';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -161,7 +161,7 @@ class Dart extends Language {
                     $output .= 'false';
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= '[]';
+                    $output .= 'const []';
                     break;
                 case self::TYPE_STRING:
                     $output .= "''";
