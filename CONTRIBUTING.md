@@ -55,6 +55,7 @@ Each file scope determines what template parameters will be available.
 * Default scope - Basic SDK and language-specific params (package name, language name, etc…)
 * Service scope - Generate x templates where x is the number of API services, adds service-specific params to the template (service name, methods, etc…)
 * Method scope - Generate x*y templates where x is the number of API services and y is the number of methods, adds service and method-specific params to the template (service name, method name, method params, etc…), good for generating MD files with examples for using each method
+* Copy scope - Static files (like images, etc…) that will just get copied and not  processed by twig.
 
 **getTypeName**
 This method receives the API param type and should return the equivalent param in the implemented language.
