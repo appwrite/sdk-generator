@@ -10,16 +10,8 @@
 '{{ parameter.name }}': {{ parameter.name | caseCamel }},{% endif %}
 {% endmacro %}
 
-{% if(service.features.webAuth) %}
-import 'dart:io';
-{% endif %}
-
 import 'package:dio/dio.dart';
 import 'package:meta/meta.dart';
-{% if(service.features.webAuth) %}
-import 'package:flutter_web_auth/flutter_web_auth.dart';
-{% endif %}
-
 import "../client.dart";
 import '../enums.dart';
 import "../service.dart";
@@ -55,43 +47,11 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endif %}
         };
 
-{% if method.type == 'webAuth' %}
-
-        final List query = [];
-
-        params.forEach((key, value) {
-          if (value is List) { 
-            for (var item in value) {
-              query.add(Uri.encodeComponent(key + '[]') + '=' + Uri.encodeComponent(item));
-            }
-          }
-          else {
-              query.add(Uri.encodeComponent(key) + '=' + Uri.encodeComponent(value));
-          }
-        });
-
-        Uri endpoint = Uri.parse(client.endPoint);
-        Uri url = new Uri(scheme: endpoint.scheme,
-          host: endpoint.host,
-          port: endpoint.port,
-          path: endpoint.path + path,
-          query: query.join('&')
-        );
-
-        return FlutterWebAuth.authenticate(
-          url: url.toString(),
-          callbackUrlScheme: "appwrite-callback-" + client.config['project']
-          ).then((value) async {
-              Uri url = Uri.parse(value);
-              Cookie cookie = new Cookie(url.queryParameters['key'], url.queryParameters['secret']);
-              cookie.domain = Uri.parse(client.endPoint).host;
-              cookie.httpOnly = true;
-              cookie.path = '/';
-              List<Cookie> cookies = [cookie];
-              await client.init();
-              client.cookieJar.saveFromResponse(Uri.parse(client.endPoint), cookies);
-          });
-{% elseif method.type == 'location' %}
+{% if method.type == 'location' %}
+        params.keys.forEach((key) {if (params[key] is int || params[key] is double) {
+          params[key] = params[key].toString();
+        }});
+        
         Uri endpoint = Uri.parse(client.endPoint);
         Uri location = new Uri(scheme: endpoint.scheme,
           host: endpoint.host,

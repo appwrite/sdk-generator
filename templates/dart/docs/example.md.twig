@@ -24,7 +24,7 @@ void main() { // Init SDK
 {% if parameter.required %}
     {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
 {% endif %}
-{% endfor %}  );
+{% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %});
 
 {% if method.type == 'location' %}
   print(result); // Resource URL string
