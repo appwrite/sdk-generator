@@ -262,6 +262,12 @@ class DotNet extends Language {
                 'minify'        => false,
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => '/icon.png',
+                'template'      => '/dotnet/icon.png',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => '/src/Appwrite/Appwrite.csproj',
                 'template'      => '/dotnet/src/Appwrite/Appwrite.csproj.twig',
