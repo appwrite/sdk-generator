@@ -4,14 +4,14 @@ namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
 
-class CSharp extends Language {
+class DotNet extends Language {
 
     /**
      * @return string
      */
     public function getName()
     {
-        return 'CSharp';
+        return 'DotNet';
     }
 
     /**
@@ -234,74 +234,74 @@ class CSharp extends Language {
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
-                'template'      => '/csharp/README.md.twig',
+                'template'      => '/dotnet/README.md.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
-                'template'      => '/csharp/CHANGELOG.md.twig',
+                'template'      => '/dotnet/CHANGELOG.md.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
-                'template'      => '/csharp/LICENSE.twig',
+                'template'      => '/dotnet/LICENSE.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => '/csharp/docs/example.md.twig',
+                'template'      => '/dotnet/docs/example.md.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/Appwrite.sln',
-                'template'      => '/csharp/src/Appwrite.sln',
+                'template'      => '/dotnet/src/Appwrite.sln',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/Appwrite/Appwrite.csproj',
-                'template'      => '/csharp/src/Appwrite/Appwrite.csproj',
+                'template'      => '/dotnet/src/Appwrite/Appwrite.csproj.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Client.cs',
-                'template'      => '/csharp/src/Appwrite/Client.cs.twig',
+                'template'      => '/dotnet/src/Appwrite/Client.cs.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Helpers/ExtensionMethods.cs',
-                'template'      => '/csharp/src/Appwrite/Helpers/ExtensionMethods.cs',
+                'template'      => '/dotnet/src/Appwrite/Helpers/ExtensionMethods.cs',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Models/OrderType.cs',
-                'template'      => '/csharp/src/Appwrite/Models/OrderType.cs.twig',
+                'template'      => '/dotnet/src/Appwrite/Models/OrderType.cs.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Models/Rule.cs',
-                'template'      => '/csharp/src/Appwrite/Models/Rule.cs.twig',
+                'template'      => '/dotnet/src/Appwrite/Models/Rule.cs.twig',
                 'minify'        => false,
             ],
 
             [
                 'scope'         => 'default',
                 'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Services/Service.cs',
-                'template'      => '/csharp/src/Appwrite/Services/Service.cs.twig',
+                'template'      => '/dotnet/src/Appwrite/Services/Service.cs.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'service',
                 'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Services/{{service.name | caseUcfirst}}.cs',
-                'template'      => '/csharp/src/Appwrite/Services/ServiceTemplate.cs.twig',
+                'template'      => '/dotnet/src/Appwrite/Services/ServiceTemplate.cs.twig',
                 'minify'        => false,
             ]
         ];

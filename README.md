@@ -90,7 +90,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | Flutter    |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim]   |
 | Dart       |                     | [Effective Dart]       | pub tool           | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Go         |                     | [Effective Go]         | go get             | [@panz3r]      |
-| CSharp     | .NET core 3.1       | [C# Coding Conventions]| ?                  | [@komemi]      |
+| .NET       | .NET core 3.1       | [C# Coding Conventions]| NuGet              | [@komemi] [@TorstenDittmann]     |
 | D          |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Kotlin     |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Swift      |                     |                        | Swift Pkg Manager  | [@armino-dev] |
@@ -101,6 +101,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 [@armino-dev]:          https://github.com/armino-dev
 [@bartektartanus]:      https://github.com/bartektartanus
 [@komemi]:              https://github.com/komemi
+[@TorstenDittmann]:     https://github.com/TorstenDittmann
 
 [PHP FIG]:              https://www.php-fig.org/
 [NPM Coding Style]:     https://docs.npmjs.com/misc/coding-style

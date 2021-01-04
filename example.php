@@ -16,10 +16,10 @@ use Appwrite\SDK\Language\Typescript;
 use Appwrite\SDK\Language\Deno;
 use Appwrite\SDK\Language\HTTP;
 use Appwrite\SDK\Language\Swift;
-use Appwrite\SDK\Language\CSharp;
+use Appwrite\SDK\Language\DotNet;
 use Appwrite\SDK\Language\Flutter;
 
-$languages  = ['web', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift', 'typescript', 'deno', 'http', 'csharp'];
+$languages  = ['web', 'node', 'php', 'python', 'ruby', 'dart', 'go', 'java', 'swift', 'typescript', 'deno', 'http', 'dotnet'];
 
 try {
 
@@ -274,8 +274,8 @@ try {
 
     $sdk->generate(__DIR__ . '/examples/swift');
     
-    // CSharp
-    $sdk  = new SDK(new CSharp(), new Swagger2($spec));
+    // DotNet
+    $sdk  = new SDK(new DotNet(), new Swagger2($spec));
 
     $sdk
         ->setName('NAME')
@@ -291,7 +291,7 @@ try {
         ->setGitRepoName('reponame')
     ;
 
-    $sdk->generate(__DIR__ . '/examples/csharp');
+    $sdk->generate(__DIR__ . '/examples/dotnet');
 
 }
 catch (Exception $exception) {

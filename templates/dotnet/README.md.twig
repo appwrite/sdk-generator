@@ -9,30 +9,27 @@
 
 {{ sdk.description }}
 
-
-
 ![{{ spec.title }}]({{ sdk.logo }})
 
 ## Installation
 
-### Maven
-Add this to your project's `pom.xml` file:
+### .NET
+Add this reference to your projects's `.csproj` file:
 
 ```xml
-<dependencies>
-    <dependency>
-        <groupId>com.squareup.okhttp3</groupId>
-        <artifactId>{{ spec.title | caseDash }}</artifactId>
-        <version>{{sdk.version}}</version>
-    </dependency>
-</dependencies>
+<PackageReference Include="{{ spec.title | caseUcfirst }}" Version="{{ sdk.version }}" />
 ```
 
 You can install packages from the command line:
 
-```bash
-mvn install {{ spec.title | caseDash }}
+```powershell
+# Package Manager
+Install-Package {{ spec.title | caseUcfirst }} -Version {{ sdk.version }}
+
+# or .NET CLI
+dotnet add package {{ spec.title | caseUcfirst }} --version {{ sdk.version }}
 ```
+
 
 ## Contribution
 

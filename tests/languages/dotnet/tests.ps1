@@ -17,7 +17,7 @@ function Print-Response {
   Write-Host ($response.Content.ReadAsStringAsync().Result | ConvertFrom-Json).result
 }
 
-Add-Type -Path "/app/tests/sdks/csharp/src/test/Appwrite.dll" | Out-Null
+Add-Type -Path "/app/tests/sdks/dotnet/src/test/Appwrite.dll" | Out-Null
 
 $client = New-Object Appwrite.Client
 $foo = New-Object Appwrite.Foo -ArgumentList $client

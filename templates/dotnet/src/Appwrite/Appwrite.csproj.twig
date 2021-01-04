@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <PackageId>{{spec.title}}</PackageId>
+    <Version>{{sdk.version}}</Version>
+    <Authors>{{spec.contactName}}</Authors>
+    <Company>{{spec.contactName}}</Company>
+    <Description>
+      {{sdk.shortDescription}}
+    </Description>
+    <PackageLicenseExpression>{{spec.licenseName}}</PackageLicenseExpression>
+    <PackageProjectUrl>{{sdk.gitURL}}</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>{{sdk.gitURL}}</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+  </ItemGroup>
+
+</Project>
