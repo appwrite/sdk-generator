@@ -221,12 +221,10 @@ class Python extends Language {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
                     $output .= $default;
                     break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-                case self::TYPE_OBJECT:
                 case self::TYPE_FILE:
                     #$output .= json_encode($default);
                     $output .= '{}';

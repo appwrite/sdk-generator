@@ -191,6 +191,9 @@ class PHP extends Language {
     public function getTypeName($type)
     {
         switch ($type) {
+            case self::TYPE_BOOLEAN:
+                $type = 'bool';
+                break;
             case self::TYPE_NUMBER:
             case self::TYPE_INTEGER:
                 $type = 'int';
@@ -233,6 +236,7 @@ class PHP extends Language {
                     $output .= "''";
                     break;
                 case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
                     $output .= '[]';
                     break;
             }
@@ -243,6 +247,9 @@ class PHP extends Language {
                 case self::TYPE_INTEGER:
                 case self::TYPE_ARRAY:
                     $output .= $default;
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= $this->jsonToAssoc(json_decode($default, true));
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
