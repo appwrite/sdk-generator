@@ -86,7 +86,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | Language              | Supported Versions  |  Coding Standards      |  Package Manager   |   Maintainer   |
 |-----------------------|---------------------|------------------------|--------------------|----------------|
 | Web                   | ES5+                | [NPM Coding Style]     | NPM, Yarn,         | [@eldadfux]    |
-| Flutter               |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim]   |
+| Flutter               |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim] [@lohanidamodar]   |
 | Android (Kotlin)      |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | iOS (Swift)           |                     |                        | Swift Pkg Manager  | [@armino-dev] |
 | Unity (Csharp)        |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
