@@ -1,4 +1,4 @@
-import '../lib/appwrite.dart';
+import '../lib/packageName.dart';
 
 void main() async {
   Client client = Client();
@@ -47,6 +47,10 @@ void main() async {
   // General Tests
 
   response = await general.redirect();
+  print(response.data['result']);
+
+  final file = await MultipartFile.fromFile('../../resources/file.png',filename: 'file.png');
+  response = await general.upload(x:'string',y: 123,z:['string in array'], file: file);
   print(response.data['result']);
 
   // response = await general.setCookie();
