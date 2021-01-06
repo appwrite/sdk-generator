@@ -10,6 +10,7 @@ let {{ service.name | caseCamel }} = new sdk.{{service.name | caseUcfirst}}(clie
 
 {% if method.security|length > 0 %}
 client
+    .setEndpoint('https://[HOSTNAME_OR_IP]/v1') // Your API Endpoint
 {% for node in method.security %}
 {% for key,header in node|keys %}
     .set{{header}}('{{node[header]['x-appwrite']['demo']}}') // {{node[header].description}}
