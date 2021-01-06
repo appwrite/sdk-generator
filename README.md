@@ -93,14 +93,14 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
 ## Supported Server SDKs
 
-| Language   | Supported Versions  |  Coding Standards      |  Package Manager   |   Maintainer   |
+| Language   | Supported Versions  |  Coding Standards      |  Package Manager   | Contributors   |
 |------------|---------------------|------------------------|--------------------|----------------|
 | TypeScript |                     | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]               |
 | NodeJS     | 8, 10, 12           | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
 | PHP        | 7.0+                | [PHP FIG]              | Composer           | [@eldadfux]    |
 | Ruby       | 2.4+                | [Ruby Style Guide]     | GEM                | [@eldadfux]    |
 | Python     | 3.5+                | [PEP8]                 | PIP                | [@eldadfux]    |
-| Dart       |                     | [Effective Dart]       | pub tool           | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
+| Dart       | 2.7+                | [Effective Dart]       | pub                | [@lohanidamodar] |
 | Go         |                     | [Effective Go]         | go get             | [@panz3r]      |
 | .NET       | .NET core 3.1       | [C# Coding Conventions]| NuGet              | [@komemi] [@TorstenDittmann]     |
 | D          |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
@@ -114,6 +114,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 [@bartektartanus]:      https://github.com/bartektartanus
 [@komemi]:              https://github.com/komemi
 [@TorstenDittmann]:     https://github.com/TorstenDittmann
+[@lohanidamodar]:     https://github.com/lohanidamodar
 
 [PHP FIG]:              https://www.php-fig.org/
 [NPM Coding Style]:     https://docs.npmjs.com/misc/coding-style
