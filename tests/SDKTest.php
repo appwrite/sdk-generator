@@ -28,6 +28,8 @@ class SDKTest extends TestCase
                 'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli-alpine php tests/languages/php/test.php',
                 'php-8.0' => 'docker run --rm -v $(pwd):/app -w /app php:8.0.0rc1-cli-alpine php tests/languages/php/test.php',
             ],
+            'supportRedirect' => true,
+            'supportUpload' => true,
         ],
         
         'dart' => [
@@ -44,6 +46,8 @@ class SDKTest extends TestCase
                 'dart-2.10' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.10 dart pub run tests/tests.dart',
                 'dart-2.12-beta' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.12-beta dart pub run tests/tests.dart',
             ],
+            'supportRedirect' => true,
+            'supportUpload' => true,
         ],
 
         'java' => [
@@ -56,6 +60,8 @@ class SDKTest extends TestCase
                 'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-11-slim mvn clean install test -q',
                 //'java-14' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-14-slim mvn clean install test -q',
             ],
+            'supportRedirect' => false,
+            'supportUpload' => false,
         ],
 
         'dotnet' => [
@@ -69,6 +75,8 @@ class SDKTest extends TestCase
             'envs' => [
                 'powershell' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/powershell:alpine-3.11 pwsh tests.ps1',
             ],
+            'supportRedirect' => false,
+            'supportUpload' => false,
         ],
 
         'typescript' => [
@@ -82,6 +90,8 @@ class SDKTest extends TestCase
             'envs' => [
                 'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14.5-alpine node tests/sdks/typescript/tests.js',
             ],
+            'supportRedirect' => false,
+            'supportUpload' => false,
         ],
         
         'deno' => [
@@ -91,6 +101,8 @@ class SDKTest extends TestCase
             'envs' => [
                 'deno-1.1.3' => 'docker run --rm -v $(pwd):/app -w /app hayd/alpine-deno:1.1.3 run --allow-net --allow-read tests/languages/deno/tests.ts', // TODO: use official image when its out
             ],
+            'supportRedirect' => true,
+            'supportUpload' => true,
         ],
 
         'node' => [
@@ -104,6 +116,8 @@ class SDKTest extends TestCase
                 'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12-alpine node tests/languages/node/test.js',
                 'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14.5-alpine node tests/languages/node/test.js',
             ],
+            'supportRedirect' => true,
+            'supportUpload' => true,
         ],
 
         'ruby' => [
@@ -116,6 +130,8 @@ class SDKTest extends TestCase
                 'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.5-alpine ruby tests/languages/ruby/tests.rb',
                 'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.4-alpine ruby tests/languages/ruby/tests.rb',
             ],
+            'supportRedirect' => true,
+            'supportUpload' => false,
         ],
 
         'python' => [
@@ -135,6 +151,8 @@ class SDKTest extends TestCase
                 // 'python-3.2' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.2 python tests/sdks/python/test.py',
                 // 'python-3.1' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.1 python tests/sdks/python/test.py',
             ],
+            'supportRedirect' => true,
+            'supportUpload' => true,
         ],
     ];
 
@@ -236,7 +254,10 @@ class SDKTest extends TestCase
                 $this->assertEquals('DELETE:/v1/mock/tests/bar:passed', $output[9] ?? '');
                 
                 $this->assertEquals('GET:/v1/mock/tests/general/redirect/done:passed', $output[10]);
-                //$this->assertEquals($output[11], 'POST:/v1/mock/tests/general/upload:passed');
+                
+                if($options['supportUpload']) {
+                    $this->assertEquals($output[11], 'POST:/v1/mock/tests/general/upload:passed');
+                }
             }
         }
     
