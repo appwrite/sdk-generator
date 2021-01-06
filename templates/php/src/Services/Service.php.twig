@@ -17,7 +17,7 @@ class {{ service.name | caseUcfirst }} extends Service
      *
 {% endif %}
 {% for parameter in method.parameters.all %}
-     * @param {{ parameter.type | typeName }} ${{ parameter.name | caseCamel }}
+     * @param {{ parameter.type | typeName }}${{ parameter.name | caseCamel }}
 {% endfor %}
      * @throws Exception
      * @return array
@@ -46,6 +46,8 @@ class {{ service.name | caseUcfirst }} extends Service
 {% endfor %}
         ], $params);
     }
+{% if not loop.last %}
 
+{% endif %}
 {% endfor %}
 }

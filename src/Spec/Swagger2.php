@@ -2,6 +2,8 @@
 
 namespace Appwrite\Spec;
 
+use stdClass;
+
 class Swagger2 extends Spec {
 
     /**
@@ -178,6 +180,10 @@ class Swagger2 extends Spec {
                             ],
                         ];
 
+                        if($param['type'] === 'object' && is_array($param['default'])) {
+                            $param['default'] = (empty($param['default'])) ? new stdClass() : $param['default'];
+                        }
+
                         $param['default'] = (is_array($param['default'])) ? json_encode($param['default']): $param['default'];
 
                         switch ($parameter['in']) {
@@ -205,7 +211,11 @@ class Swagger2 extends Spec {
                                     $param['default'] = $value['default'] ?? null;
                                     $param['example'] = $value['x-example'] ?? null;
 
-                                    $param['default'] = (is_array($value['default'])) ? json_encode($value['default']): $value['default'];
+                                    if($value['type'] === 'object' && is_array($value['default'])) {
+                                        $value['default'] = (empty($value['default'])) ? new stdClass() : $value['default'];
+                                    }
+
+                                    $param['default'] = (is_array($value['default']) || $value['default'] instanceof stdClass) ? json_encode($value['default']): $value['default'];
 
                                     $output['parameters']['body'][] = $param;
                                     $output['parameters']['all'][] = $param;
