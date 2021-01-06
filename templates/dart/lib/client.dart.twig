@@ -59,8 +59,6 @@ class Client {
 
     Future init() async {
         if(!initialized) {
-          cookieJar = new PersistCookieJar(dir:'./cookies');
-          this.http.interceptors.add(CookieManager(cookieJar));
           this.http.options.baseUrl = this.endPoint;
           this.http.options.validateStatus = (status) => status < 400;
         }
