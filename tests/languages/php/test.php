@@ -55,5 +55,5 @@ echo "{$resposne['result']}\n";
 $resposne = $general->redirect();
 echo "{$resposne['result']}\n";
 
-$resposne = $general->upload('string', 123, ['string in array'], new \CURLFile(__DIR__.'/../../resources/file.png'));
+$resposne = $general->upload('string', 123, ['string in array'], new \CURLFile(__DIR__.'/../../resources/file.png', 'image/png', 'file.png'));
 echo "{$resposne['result']}\n";
