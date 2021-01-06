@@ -35,13 +35,13 @@ class SDKTest extends TestCase
             'build' => [
                 'mkdir -p tests/sdks/dart/tests',
                 'cp tests/languages/dart/tests.dart tests/sdks/dart/tests/tests.dart',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor appwrite/flutter:0.3.0 flutter pub get',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:latest pub get',
             ],
             'envs' => [
-                'flutter' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor appwrite/flutter:0.3.0 flutter pub run tests/tests.dart',
-                //'dart-2.6' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.6 pub run test/tests.dart',
-                //'dart-2.7' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.7 pub run test/tests.dart',
-                //'dart-2.8-dev' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=tests/sdks/dart/vendor google/dart:2.8-dev pub run test/tests.dart',
+                // 'dart-2.6' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.6 pub run tests/tests.dart',
+                'dart-2.7' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.7 pub run tests/tests.dart',
+                'dart-2.8' => 'docker run --rm --tty -it -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.8 pub run tests/tests.dart',
+                'dart-2.10' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.10 dart pub run tests/tests.dart',
             ],
         ],
 
@@ -178,6 +178,7 @@ class SDKTest extends TestCase
                 ->setLogo('https://appwrite.io/v1/images/console.png')
                 ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
                 ->setVersion('0.0.1')
+                ->setExamples('**EXAMPLES** <HTML>')
                 ->setNamespace("io appwrite")
                 ->setGitUserName('repoowner')
                 ->setGitRepoName('reponame')
