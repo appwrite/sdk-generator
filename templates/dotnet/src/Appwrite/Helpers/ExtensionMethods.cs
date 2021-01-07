@@ -1,10 +1,8 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
+using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Linq;
-using System.Web;
 
 namespace {{ spec.title | caseUcfirst }}
 {
@@ -24,7 +22,7 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string ToQueryString(this Dictionary<string, object> parameters)
         {
-            NameValueCollection query = HttpUtility.ParseQueryString(string.Empty);
+            List<string> query = new List<string>();
 
             foreach (KeyValuePair<string, object> parameter in parameters)
             {
@@ -34,16 +32,16 @@ namespace {{ spec.title | caseUcfirst }}
                     {
                         foreach(object entry in (dynamic) parameter.Value) 
                         {
-                            query.Add(parameter.Key + "[]", entry.ToString());
+                            query.Add(parameter.Key + "[]=" + Uri.EscapeUriString(entry.ToString()));
                         }
                     } 
                     else 
                     {
-                        query.Add(parameter.Key, parameter.Value.ToString());
+                        query.Add(parameter.Key + "=" + Uri.EscapeUriString(parameter.Value.ToString()));
                     }
                 }
             }
-            return query.ToString();
+            return string.Join("&", query);
         }
 
     }
