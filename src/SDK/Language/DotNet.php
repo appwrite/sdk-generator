@@ -152,7 +152,8 @@ class DotNet extends Language {
                 return 'bool';
             break;
             case self::TYPE_ARRAY:
-            	return 'List<object>';
+                return 'List<object>';
+            break;
 			case self::TYPE_OBJECT:
 				return 'object';
             break;
@@ -181,17 +182,13 @@ class DotNet extends Language {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
                 case self::TYPE_BOOLEAN:
                     $output .= 'null';
                     break;
                 case self::TYPE_STRING:
                     $output .= '""';
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '{}';
                     break;
             }
         }
@@ -199,8 +196,6 @@ class DotNet extends Language {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
                     $output .= $default;
                     break;
                 case self::TYPE_BOOLEAN:
@@ -208,6 +203,10 @@ class DotNet extends Language {
                     break;
                 case self::TYPE_STRING:
                     $output .= "\"{$default}\"";
+                    break;
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
+                    $output .= 'null';
                     break;
             }
         }
