@@ -70,10 +70,11 @@ class SDKTest extends TestCase
                 'mkdir -p tests/sdks/dotnet/src/test',
                 'cp tests/languages/dotnet/tests.ps1 tests/sdks/dotnet/src/test/tests.ps1',
                 'cp -R tests/sdks/dotnet/io/appwrite/src/* tests/sdks/dotnet/src',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src mcr.microsoft.com/dotnet/sdk:5.0.101-alpine3.12-amd64 dotnet publish -c Release -o test -f netstandard2.0',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src mcr.microsoft.com/dotnet/sdk:5.0-alpine dotnet publish -c Release -o test -f netstandard2.0',
             ],
             'envs' => [
-                'powershell' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/powershell:alpine-3.11 pwsh tests.ps1',
+                'dotnet-5.0' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:5.0-alpine pwsh tests.ps1',
+                'dotnet-3.1' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:3.1-alpine pwsh tests.ps1'
             ],
             'supportRedirect' => false,
             'supportUpload' => false,
