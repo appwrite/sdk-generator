@@ -37,7 +37,7 @@ class SDKTest extends TestCase
             'build' => [
                 'mkdir -p tests/sdks/dart/tests',
                 'cp tests/languages/dart/tests.dart tests/sdks/dart/tests/tests.dart',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:latest pub get',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.7 pub get',
             ],
             'envs' => [
                 // 'dart-2.6' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.6 pub run tests/tests.dart',
@@ -182,7 +182,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet'];
+        $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
 
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
