@@ -155,7 +155,7 @@ class DotNet extends Language {
                 return 'List<object>';
             break;
             case self::TYPE_OBJECT:
-			    return 'object';
+                return 'object';
             break;
         }
 
