@@ -138,6 +138,9 @@ namespace {{ spec.title | caseUcfirst }}
                 }
                 else
                 {
+                    if (http.DefaultRequestHeaders.Contains(header.Key)) {
+                        http.DefaultRequestHeaders.Remove(header.Key);
+                    }
                     http.DefaultRequestHeaders.Add(header.Key, header.Value);
                 }
             }
@@ -150,6 +153,9 @@ namespace {{ spec.title | caseUcfirst }}
                 }
                 else
                 {
+                    if (request.Headers.Contains(header.Key)) {
+                        request.Headers.Remove(header.Key);
+                    }
                     request.Headers.Add(header.Key, header.Value);
                 }
             }
