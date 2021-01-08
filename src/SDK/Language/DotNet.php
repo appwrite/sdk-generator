@@ -141,22 +141,22 @@ class DotNet extends Language {
         switch ($type) {
             case self::TYPE_INTEGER:
                 return 'int';
-            break;
+                break;
             case self::TYPE_STRING:
                 return 'string';
-            break;
+                break;
             case self::TYPE_FILE:
                 return 'FileInfo';
-            break;
+                break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
-            break;
+                break;
             case self::TYPE_ARRAY:
                 return 'List<object>';
-            break;
+                break;
             case self::TYPE_OBJECT:
                 return 'object';
-            break;
+                break;
         }
 
         return $type;
@@ -180,7 +180,6 @@ class DotNet extends Language {
 
         if(empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
-                case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                 case self::TYPE_ARRAY:
                 case self::TYPE_OBJECT:
@@ -194,7 +193,6 @@ class DotNet extends Language {
         }
         else {
             switch ($type) {
-                case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                     $output .= $default;
                     break;
