@@ -141,21 +141,22 @@ class DotNet extends Language {
         switch ($type) {
             case self::TYPE_INTEGER:
                 return 'int';
-            break;
+                break;
             case self::TYPE_STRING:
                 return 'string';
-            break;
+                break;
             case self::TYPE_FILE:
                 return 'FileInfo';
-            break;
+                break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
-            break;
+                break;
             case self::TYPE_ARRAY:
-            	return 'List<object>';
-			case self::TYPE_OBJECT:
-				return 'object';
-            break;
+                return 'List<object>';
+                break;
+            case self::TYPE_OBJECT:
+                return 'object';
+                break;
         }
 
         return $type;
@@ -179,28 +180,20 @@ class DotNet extends Language {
 
         if(empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
-                case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
                 case self::TYPE_BOOLEAN:
                     $output .= 'null';
                     break;
                 case self::TYPE_STRING:
                     $output .= '""';
                     break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '{}';
-                    break;
             }
         }
         else {
             switch ($type) {
-                case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
                     $output .= $default;
                     break;
                 case self::TYPE_BOOLEAN:
@@ -208,6 +201,10 @@ class DotNet extends Language {
                     break;
                 case self::TYPE_STRING:
                     $output .= "\"{$default}\"";
+                    break;
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
+                    $output .= 'null';
                     break;
             }
         }
