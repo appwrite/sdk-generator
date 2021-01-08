@@ -182,7 +182,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet'];
+        $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
 
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
