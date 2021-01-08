@@ -154,8 +154,8 @@ class DotNet extends Language {
             case self::TYPE_ARRAY:
                 return 'List<object>';
             break;
-			case self::TYPE_OBJECT:
-				return 'object';
+            case self::TYPE_OBJECT:
+			    return 'object';
             break;
         }
 
