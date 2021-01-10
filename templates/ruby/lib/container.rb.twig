@@ -1,6 +1,7 @@
 require 'net/http'
 require 'uri'
 require 'json'
+require 'mime/types'
 require_relative '{{ spec.title | caseDash }}/client'
 require_relative '{{ spec.title | caseDash }}/service'
 {% for service in spec.services %}
