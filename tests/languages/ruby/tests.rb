@@ -45,3 +45,6 @@ puts response['result']
 
 response = general.redirect();
 puts response['result']
+
+response = general.upload(x:'string',y: 123,z:['string in array'], file: './tests/resources/file.png');
+puts response['result']
