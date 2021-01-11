@@ -14,6 +14,15 @@ class Dart extends Language {
     ];
 
     /**
+     * @param $headers
+     * @return $this
+     */
+    public function setDefaultHeaders($headers) {
+        $this->setParam('defaultHeaders',$headers);
+        return $this;
+    }
+
+    /**
      * @param string $name
      * @return $this
      */

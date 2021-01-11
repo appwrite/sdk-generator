@@ -19,7 +19,9 @@ class Client {
             'content-type': 'application/json',
             'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
         };
-
+        {% for key,header in language.params.defaultHeaders %}
+        this.headers['{{key}}'] = '{{header}}';
+        {% endfor %}
         this.config = {};
 
         assert(endPoint.startsWith(RegExp("http://|https://")), "endPoint $endPoint must start with 'http'");

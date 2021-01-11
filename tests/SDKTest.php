@@ -185,12 +185,16 @@ class SDKTest extends TestCase
         }
 
         $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
+        $whitelist = ['dart'];
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
                 continue;
             }
-
-            $sdk  = new SDK(new $options['class'](), new Swagger2($spec));
+            $lang = new $options['class']();
+            $lang->setDefaultHeaders([
+                'X-Appwrite-Response-Format' => '0.7.0'
+            ]);
+            $sdk  = new SDK($lang, new Swagger2($spec));
 
             $sdk
                 ->setDescription('Repo description goes here')

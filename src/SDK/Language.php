@@ -15,7 +15,14 @@ abstract class Language {
     /**
      * @var array
      */
-    protected $params = [];
+    protected $params = [
+        'defaultHeaders' => []
+    ];
+
+    /**
+     * @param $headers
+     */
+    abstract public function setDefaultHeaders($headers);
 
     /**
      * @return string
