@@ -2,6 +2,7 @@
 
 include_once 'vendor/autoload.php';
 
+use Appwrite\SDK\Language\CLI;
 use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\Web;
@@ -61,235 +62,244 @@ try {
 
     $sdk->generate(__DIR__ . '/examples/php');
 
-    // Web
-    $sdk  = new SDK(new Web(), new Swagger2($spec));
+    // // Web
+    // $sdk  = new SDK(new Web(), new Swagger2($spec));
 
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setVersion('0.0.0')
-        ->setURL('https://example.com')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setReadme("## Getting Started")
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
-    ;
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setVersion('0.0.0')
+    //     ->setURL('https://example.com')
+    //     ->setLogo('https://appwrite.io/v1/images/console.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    //     ->setReadme("## Getting Started")
+    //     ->setGitUserName('repoowner')
+    //     ->setGitRepoName('reponame')
+    // ;
 
-    $sdk->generate(__DIR__ . '/examples/web');
+    // $sdk->generate(__DIR__ . '/examples/web');
 
-    // TypeScript
-    $sdk  = new SDK(new Typescript(), new Swagger2($spec));
+    // // TypeScript
+    // $sdk  = new SDK(new Typescript(), new Swagger2($spec));
 
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setVersion('0.0.0')
-        ->setURL('https://example.com')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
-    ;
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setVersion('0.0.0')
+    //     ->setURL('https://example.com')
+    //     ->setLogo('https://appwrite.io/v1/images/console.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    //     ->setGitUserName('repoowner')
+    //     ->setGitRepoName('reponame')
+    // ;
 
-    $sdk->generate(__DIR__ . '/examples/typescript');
+    // $sdk->generate(__DIR__ . '/examples/typescript');
 
-    // Deno
-    $sdk  = new SDK(new Deno(), new Swagger2($spec));
+    // // Deno
+    // $sdk  = new SDK(new Deno(), new Swagger2($spec));
 
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setVersion('0.0.0')
-        ->setURL('https://example.com')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
-    ;
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setVersion('0.0.0')
+    //     ->setURL('https://example.com')
+    //     ->setLogo('https://appwrite.io/v1/images/console.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    //     ->setGitUserName('repoowner')
+    //     ->setGitRepoName('reponame')
+    // ;
 
-    $sdk->generate(__DIR__ . '/examples/deno');
+    // $sdk->generate(__DIR__ . '/examples/deno');
 
-    // Node
-    $sdk  = new SDK(new Node(), new Swagger2($spec));
+    // // Node
+    // $sdk  = new SDK(new Node(), new Swagger2($spec));
 
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setURL('https://example.com')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
-    ;
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setURL('https://example.com')
+    //     ->setLogo('https://appwrite.io/v1/images/console.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    //     ->setGitUserName('repoowner')
+    //     ->setGitRepoName('reponame')
+    // ;
 
-    $sdk->generate(__DIR__ . '/examples/node');
+    // $sdk->generate(__DIR__ . '/examples/node');
 
-    // Ruby
-    $sdk  = new SDK(new Ruby(), new Swagger2($spec));
+    // // Ruby
+    // $sdk  = new SDK(new Ruby(), new Swagger2($spec));
 
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setURL('https://example.com')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
-    ;
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setURL('https://example.com')
+    //     ->setLogo('https://appwrite.io/v1/images/console.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    //     ->setGitUserName('repoowner')
+    //     ->setGitRepoName('reponame')
+    // ;
 
-    $sdk->generate(__DIR__ . '/examples/ruby');
+    // $sdk->generate(__DIR__ . '/examples/ruby');
 
-    // Python
-    $sdk  = new SDK(new Python(), new Swagger2($spec));
+    // // Python
+    // $sdk  = new SDK(new Python(), new Swagger2($spec));
 
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setURL('https://example.com')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
-    ;
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setURL('https://example.com')
+    //     ->setLogo('https://appwrite.io/v1/images/console.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    //     ->setGitUserName('repoowner')
+    //     ->setGitRepoName('reponame')
+    // ;
 
-    $sdk->generate(__DIR__ . '/examples/python');
+    // $sdk->generate(__DIR__ . '/examples/python');
 
-    // Dart
-    $sdk  = new SDK(new Dart(), new Swagger2($spec));
+    // // Dart
+    // $sdk  = new SDK(new Dart(), new Swagger2($spec));
 
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setURL('https://example.com')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setExamples('**EXAMPLES** <HTML>')
-        ->setVersion('0.0.1')
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
-    ;
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setURL('https://example.com')
+    //     ->setLogo('https://appwrite.io/v1/images/console.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    //     ->setExamples('**EXAMPLES** <HTML>')
+    //     ->setVersion('0.0.1')
+    //     ->setGitUserName('repoowner')
+    //     ->setGitRepoName('reponame')
+    // ;
 
-    $sdk->generate(__DIR__ . '/examples/dart');
+    // $sdk->generate(__DIR__ . '/examples/dart');
 
-    // Flutter
-    $sdk  = new SDK(new Flutter(), new Swagger2($spec));
+    // // Flutter
+    // $sdk  = new SDK(new Flutter(), new Swagger2($spec));
 
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setURL('https://example.com')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setExamples('**EXAMPLES** <HTML>')
-        ->setVersion('0.0.1')
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
-    ;
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setURL('https://example.com')
+    //     ->setLogo('https://appwrite.io/v1/images/console.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    //     ->setExamples('**EXAMPLES** <HTML>')
+    //     ->setVersion('0.0.1')
+    //     ->setGitUserName('repoowner')
+    //     ->setGitRepoName('reponame')
+    // ;
 
-    $sdk->generate(__DIR__ . '/examples/flutter');
+    // $sdk->generate(__DIR__ . '/examples/flutter');
 
-    // GO
+    // // GO
 
-    $sdk  = new SDK(new Go(), new Swagger2($spec));
+    // $sdk  = new SDK(new Go(), new Swagger2($spec));
 
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setURL('https://example.com')
-        ->setGitUserName('appwrite')
-        ->setGitRepoName('go-sdk')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-    ;
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setURL('https://example.com')
+    //     ->setGitUserName('appwrite')
+    //     ->setGitRepoName('go-sdk')
+    //     ->setLogo('https://appwrite.io/v1/images/console.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    // ;
 
-    $sdk->generate(__DIR__ . '/examples/go');
+    // $sdk->generate(__DIR__ . '/examples/go');
 
-    // Java
+    // // Java
 
-    $sdk  = new SDK(new Java(), new Swagger2($spec));
+    // $sdk  = new SDK(new Java(), new Swagger2($spec));
 
-    $sdk
-        ->setName('NAME')
-        ->setNamespace('io appwrite')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setURL('https://example.com')
-        ->setGitUserName('appwrite')
-        ->setGitRepoName('java-sdk')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setVersion('0.0.1')
-    ;
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setNamespace('io appwrite')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setURL('https://example.com')
+    //     ->setGitUserName('appwrite')
+    //     ->setGitRepoName('java-sdk')
+    //     ->setLogo('https://appwrite.io/v1/images/console.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    //     ->setVersion('0.0.1')
+    // ;
 
-    $sdk->generate(__DIR__ . '/examples/java');
+    // $sdk->generate(__DIR__ . '/examples/java');
 
-    // Swift
-    $sdk  = new SDK(new Swift(), new Swagger2($spec));
+    // // Swift
+    // $sdk  = new SDK(new Swift(), new Swagger2($spec));
 
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setURL('https://example.com')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setVersion('0.0.1')
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
-    ;
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setURL('https://example.com')
+    //     ->setLogo('https://appwrite.io/v1/images/console.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    //     ->setVersion('0.0.1')
+    //     ->setGitUserName('repoowner')
+    //     ->setGitRepoName('reponame')
+    // ;
 
-    $sdk->generate(__DIR__ . '/examples/swift');
+    // $sdk->generate(__DIR__ . '/examples/swift');
     
-    // DotNet
-    $sdk  = new SDK(new DotNet(), new Swagger2($spec));
+    // // DotNet
+    // $sdk  = new SDK(new DotNet(), new Swagger2($spec));
 
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setURL('https://example.com')
+    //     ->setLogo('https://appwrite.io/v1/images/console.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    //     ->setVersion('0.0.1')
+    //     ->setGitUserName('repoowner')
+    //     ->setGitRepoName('reponame')
+    // ;
+
+    // $sdk->generate(__DIR__ . '/examples/dotnet');
+
+    // NewLang
+    $sdk  = new SDK(new CLI(), new Swagger2($spec));
     $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setURL('https://example.com')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setVersion('0.0.1')
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
     ;
-
-    $sdk->generate(__DIR__ . '/examples/dotnet');
+    $sdk->generate(__DIR__ . '/examples/CLI');
 
 }
 catch (Exception $exception) {
