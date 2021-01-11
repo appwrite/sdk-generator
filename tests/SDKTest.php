@@ -128,9 +128,9 @@ class SDKTest extends TestCase
             ],
             'envs' => [
                 'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.7-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.6-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.5-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.4-alpine ruby tests/languages/ruby/tests.rb',
+                'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.6-alpine ruby tests/languages/ruby/tests.rb',
+                'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.5-alpine ruby tests/languages/ruby/tests.rb',
+                'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.4-alpine ruby tests/languages/ruby/tests.rb',
             ],
             'supportRedirect' => true,
             'supportUpload' => true,
