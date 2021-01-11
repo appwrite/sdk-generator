@@ -34,6 +34,13 @@
       "description": "",
       "in": "header",
       "x-appwrite": { "demo": "en" }
+    },
+    "ResponseFilter": {
+      "type":"apiKey",
+      "name":"X-Appwrite-Response-Format",
+      "description":"",
+      "in":"header",
+      "x-appwrite":{"demo":"0.7.0"}
     }
   },
   "paths": {
