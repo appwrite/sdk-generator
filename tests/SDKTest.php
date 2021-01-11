@@ -124,7 +124,7 @@ class SDKTest extends TestCase
         'ruby' => [
             'class' => 'Appwrite\SDK\Language\Ruby',
             'build' => [
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/ruby --env GEM_HOME=/app/vendor ruby:latest bundle install'
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/ruby --env GEM_HOME=/app/vendor ruby:2.7-alpine sh -c "apk add git build-base && bundle install"'
             ],
             'envs' => [
                 'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.7-alpine ruby tests/languages/ruby/tests.rb',
