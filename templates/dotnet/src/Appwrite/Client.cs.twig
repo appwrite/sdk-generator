@@ -115,9 +115,17 @@ namespace {{ spec.title | caseUcfirst }}
 
                         form.Add(new ByteArrayContent(file, 0, file.Length), "file", fi.Name);
                     }
+                    else if (parameter.Value is IEnumerable<object>)
+                    {
+                        List<object> list = new List<object>((IEnumerable<object>) parameter.Value);
+                        for (int index = 0; index < list.Count; index++)
+                        {
+                            form.Add(new StringContent(list[index].ToString()), $"{parameter.Key}[{index}]");
+                        }
+                    }
                     else
                     {
-                        form.Add(new StringContent(parameter.Key), parameter.Value?.ToString());
+                        form.Add(new StringContent(parameter.Value.ToString()), parameter.Key);
                     }
                 }
                 request.Content = form;
