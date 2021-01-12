@@ -44,23 +44,23 @@ try {
         throw new Exception('Failed to fetch spec from Appwrite server');
     }
 
-    // PHP
-    $sdk  = new SDK(new PHP(), new Swagger2($spec));
+    // // PHP
+    // $sdk  = new SDK(new PHP(), new Swagger2($spec));
 
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setURL('https://example.com')
-        ->setLogo('https://appwrite.io/images/github.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
-    ;
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setURL('https://example.com')
+    //     ->setLogo('https://appwrite.io/images/github.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    //     ->setGitUserName('repoowner')
+    //     ->setGitRepoName('reponame')
+    // ;
 
-    $sdk->generate(__DIR__ . '/examples/php');
+    // $sdk->generate(__DIR__ . '/examples/php');
 
     // // Web
     // $sdk  = new SDK(new Web(), new Swagger2($spec));
