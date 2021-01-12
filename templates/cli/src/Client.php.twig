@@ -89,32 +89,22 @@ class Client
             $this->setPreference(self::PREFERENCE_ENDPOINT, ($endpoint) ? $endpoint : 'http://localhost/v1');
         }
 
-        if(empty($this->getPreference(self::PREFERENCE_APPWRITE_PROJECT))) {
-            $project = Console::confirm('Enter your project ID from the Appwrite console: ');
-            if (empty($project)) {
-                Console::error("You cannot continue without a project ID. Exiting...");
+{% for header in spec.global.headers %}
+{% if header.key != 'Mode' %}
+        if(empty($this->getPreference('{{header.name}}'))) {
+            ${{header.key | caseCamel}} = Console::confirm('Enter your {{header.key | caseLower}} from the Appwrite console: ');
+            if (empty(${{header.key | caseCamel}})) {
+                Console::error("You cannot continue without a {{header.key | caseLower }}. Exiting...");
                 exit();
             } 
-            $this->setPreference(self::PREFERENCE_APPWRITE_PROJECT, $project);
+            $this->setPreference('{{header.name}}', ${{header.key | caseCamel }});
         }
-        
-        if(empty($this->getPreference(self::PREFERENCE_APPWRITE_KEY))) {
-            $key = Console::confirm('Enter your project key from the Appwrite console: ');
-            if (empty($key)) {
-                Console::error("You cannot continue without a project key. Exiting...");
-                exit();
-            } 
-            $this->setPreference(self::PREFERENCE_APPWRITE_KEY, $key);
-        }
-        
-        if(empty($this->getPreference(self::PREFERENCE_APPWRITE_LOCALE))) {
-            $locale = Console::confirm('Enter your locale : ( default : en-IN )');
-            $this->setPreference(self::PREFERENCE_APPWRITE_LOCALE, $locale ? $locale : "en-IN" );
-        }
+
+{% endif %}
+{% endfor %}
         
         $this->savePreferences();
 
-        
     }
 
     /**
