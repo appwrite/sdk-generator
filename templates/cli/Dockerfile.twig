@@ -12,7 +12,7 @@ COPY ./src /usr/local/code/src
 COPY ./bin /usr/local/bin
 
 # Executables
-{% for parameter in method.parameters.all %}
-RUN chmod +x /usr/local/bin/{{users}}
+{% for service in spec.services %}
+RUN chmod +x /usr/local/bin/{{service.name}}
 {% endfor %}
 
