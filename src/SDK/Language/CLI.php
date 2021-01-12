@@ -73,12 +73,12 @@ class CLI extends PHP {
                 'minify'        => false,
                 //'block'         => 'default',
             ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'CHANGELOG.md',
-                'template'      => '/cli/CHANGELOG.md.twig',
-                'minify'        => false,
-            ],
+            // [
+            //     'scope'         => 'default',
+            //     'destination'   => 'CHANGELOG.md',
+            //     'template'      => '/cli/CHANGELOG.md.twig',
+            //     'minify'        => false,
+            // ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
