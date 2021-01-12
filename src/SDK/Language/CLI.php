@@ -169,12 +169,12 @@ class CLI extends Language {
                 'template'      => '/cli/src/Client.php.twig',
                 'minify'        => false,
             ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'Dockerfile',
-                'template'      => '/cli/Dockerfile.twig',
-                'minify'        => false,
-            ],
+            // [
+            //     'scope'         => 'default',
+            //     'destination'   => 'Dockerfile',
+            //     'template'      => '/cli/Dockerfile.twig',
+            //     'minify'        => false,
+            // ],
             // [
             //     'scope'         => 'default',
             //     'destination'   => 'src/{{ spec.title | caseUcfirst}}/Parser.php',
@@ -193,12 +193,12 @@ class CLI extends Language {
             //     'template'      => '/cli/bin/service.twig',
             //     'minify'        => false,
             // ],
-            // [
-            //     'scope'         => 'service',
-            //     'destination'   => '/src/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
-            //     'template'      => '/cli/src/Services/Service.php.twig',
-            //     'minify'        => false,
-            // ],
+            [
+                'scope'         => 'service',
+                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
+                'template'      => '/cli/src/Services/Servicedraft.php.twig',
+                'minify'        => false,
+            ],
         ];
     }
 

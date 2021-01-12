@@ -1,0 +1,53 @@
+<?php
+
+namespace {{ spec.title | caseUcfirst }}\Services;
+
+require_once './vendor/autoload.php';
+
+use {{ spec.title | caseUcfirst }}\Client;
+use {{ spec.title | caseUcfirst }}\Parser;
+use Utopia\CLI\CLI;
+use Utopia\CLI\Console;
+use Utopia\Validator\Mock;
+
+$client = new Client();
+$parser = new Parser();
+
+$cli = new CLI();
+
+{% for method in service.methods %}
+$cli
+    ->task('{{ method.name | caseCamel }}')
+{% for parameter in method.parameters.all %}
+    ->param('{{ parameter.name }}', '', new Mock(), '{{ parameter.description}}', true)
+{% endfor %}
+    ->action(function ({% for parameter in method.parameters.all %}${{ parameter.name}} {% if not loop.last %}, {% endif %}{% endfor %}) use ($client, $parser) {
+
+        $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
+        $params = [];
+
+{% for parameter in method.parameters.query %}
+        $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
+{% endfor %}
+{% for parameter in method.parameters.body %}
+        $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
+{% endfor %}
+{% for parameter in method.parameters.formData %}
+        $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
+{% endfor %}
+
+        $response =  $client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
+{% for parameter in method.parameters.header %}
+            '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},
+{% endfor %}
+{% for key, header in method.headers %}
+            '{{ key }}' => '{{ header }}',
+{% endfor %}
+        ], $params);
+
+        $parser->parseResponse($response);
+    });
+
+{% endfor %}
+
+$cli->run();
