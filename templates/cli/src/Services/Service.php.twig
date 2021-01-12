@@ -2,28 +2,26 @@
 
 namespace {{ spec.title | caseUcfirst }}\Services;
 
-use Exception;
-use {{ spec.title | caseUcfirst }}\Client;
-use {{ spec.title | caseUcfirst }}\Service;
+require_once './vendor/autoload.php';
 
-class {{ service.name | caseUcfirst }} extends Service
-{
+use {{ spec.title | caseUcfirst }}\Client;
+use {{ spec.title | caseUcfirst }}\Parser;
+use Utopia\CLI\CLI;
+use Utopia\Validator\Mock;
+
+$client = new Client();
+$parser = new Parser();
+
+$cli = new CLI();
+
 {% for method in service.methods %}
-    /**
-     * {{ method.title }}
-     *
-{% if method.description %}
-{{ method.description|comment1 }}
-     *
-{% endif %}
+$cli
+    ->task('{{ method.name | caseCamel }}')
 {% for parameter in method.parameters.all %}
-     * @param {{ parameter.type | typeName }}${{ parameter.name | caseCamel }}
+    ->param('{{ parameter.name }}', {{ parameter | paramDefault }} , new Mock(), '{{ parameter.description}}', {%if not parameter.required %} true{% else %} false{% endif %})
 {% endfor %}
-     * @throws Exception
-     * @return array
-     */
-    public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.type | typeName }}${{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}):array
-    {
+    ->action(function ({% for parameter in method.parameters.all %}${{ parameter.name}} {% if not loop.last %}, {% endif %}{% endfor %}) use ($client, $parser) {
+
         $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
         $params = [];
 
@@ -37,7 +35,7 @@ class {{ service.name | caseUcfirst }} extends Service
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
 {% endfor %}
 
-        return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
+        $response =  $client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},
 {% endfor %}
@@ -45,9 +43,10 @@ class {{ service.name | caseUcfirst }} extends Service
             '{{ key }}' => '{{ header }}',
 {% endfor %}
         ], $params);
-    }
-{% if not loop.last %}
 
-{% endif %}
+        $parser->parseResponse($response);
+    });
+
 {% endfor %}
-}
+
+$cli->run();
