@@ -5,6 +5,19 @@ namespace Appwrite\SDK\Language;
 class CLI extends PHP {
 
     /**
+     * @return string
+     */
+    public function getName()
+    {
+        return 'CLI';
+    }
+
+    /**
+     * @var array
+     */
+    protected $params = [];
+
+    /**
      * @param array $param
      * @return string
      */
