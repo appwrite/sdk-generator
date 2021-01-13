@@ -2,8 +2,6 @@
 
 namespace Appwrite\SDK\Language;
 
-use Appwrite\SDK\Language;
-
 class CLI extends PHP {
 
     /**
@@ -92,12 +90,6 @@ class CLI extends PHP {
                 'minify'        => false,
             ],
             [
-                'scope'         => 'service',
-                'destination'   => 'docs/{{service.name | caseLower}}.md',
-                'template'      => '/cli/docs/service.md.twig',
-                'minify'        => false,
-            ],
-            [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => '/cli/docs/example.md.twig',
@@ -119,12 +111,6 @@ class CLI extends PHP {
                 'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/Parser.php',
                 'template'      => '/cli/src/Parser.php.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Service.php',
-                'template'      => '/cli/src/Service.php.twig',
                 'minify'        => false,
             ],
             [

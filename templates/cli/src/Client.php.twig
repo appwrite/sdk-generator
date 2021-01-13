@@ -149,7 +149,7 @@ class Client
     {
         $jsondata = json_encode($this->preferences, JSON_PRETTY_PRINT);
         if (file_put_contents($filename, $jsondata)) {
-            echo 'Data successfully saved';
+            echo 'Data successfully saved\n';
         } else {
             echo "error";
         }
