@@ -36,8 +36,11 @@ namespace {{ spec.title | caseUcfirst }}
             this.headers = new Dictionary<string, string>()
             {
                 { "content-type", "application/json" },
-                { "x-sdk-version", "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{sdk.version}}" }
-            };
+                { "x-sdk-version", "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{sdk.version}}" },
+        {% for key,header in spec.global.defaultHeaders %}
+        {"{{key}}", "{{header}}"},
+        {% endfor %}
+    };
             this.config = new Dictionary<string, string>();
             this.http = http;
 

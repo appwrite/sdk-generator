@@ -34,7 +34,10 @@ public class Client {
         this.selfSigned = selfSigned;
         this.headers = new HashMap<>(Map.ofEntries(
                 entry("content-type", "application/json"),
-                entry("x-sdk-version", "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}")
+                entry("x-sdk-version", "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}"),
+        {% for key,header in spec.global.defaultHeaders %}
+        entry("{{key}}", "{{header}}"),
+        {% endfor %}
         ));
         this.config = new HashMap<>();
         this.http = http.newBuilder()

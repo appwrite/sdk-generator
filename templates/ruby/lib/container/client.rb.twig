@@ -20,7 +20,10 @@ module {{spec.title | caseUcfirst}}
             @headers = {
                 'content-type' => '',
                 'user-agent' => RUBY_PLATFORM + ':{{ language.name | caseLower }}-' + RUBY_VERSION,
-                'x-sdk-version' => '{{ spec.title | caseDash }}:{{ language.name | caseLower }}:{{ sdk.version }}'
+                'x-sdk-version' => '{{ spec.title | caseDash }}:{{ language.name | caseLower }}:{{ sdk.version }}',
+        {% for key,header in spec.global.defaultHeaders %}
+        '{{key}}' => '{{header}}',
+        {% endfor %}
             }
             @endpoint = '{{spec.endpoint}}';
         end

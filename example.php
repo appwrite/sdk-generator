@@ -80,6 +80,9 @@ try {
         ->setReadme("## Getting Started")
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/web');
@@ -99,6 +102,9 @@ try {
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/typescript');
@@ -118,6 +124,9 @@ try {
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/deno');
@@ -136,6 +145,9 @@ try {
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/node');
@@ -154,6 +166,9 @@ try {
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/ruby');
@@ -172,6 +187,9 @@ try {
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/python');
@@ -192,6 +210,9 @@ try {
         ->setVersion('0.0.1')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/dart');
@@ -212,6 +233,9 @@ try {
         ->setVersion('0.0.1')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/flutter');
@@ -231,6 +255,9 @@ try {
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
         ->setChangelog('**CHANGELOG**')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/go');
@@ -252,6 +279,9 @@ try {
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
         ->setChangelog('**CHANGELOG**')
         ->setVersion('0.0.1')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/java');
@@ -271,6 +301,9 @@ try {
         ->setVersion('0.0.1')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/swift');
@@ -290,6 +323,9 @@ try {
         ->setVersion('0.0.1')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/dotnet');

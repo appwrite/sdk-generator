@@ -10,6 +10,9 @@ export class Client {
     headers: assoc = {
         'content-type': '',
         'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
+    {% for key,header in spec.global.defaultHeaders %}
+    '{{key}}' : '{{header}}',
+    {% endfor %}
     };
     
 {% for header in spec.global.headers %}
