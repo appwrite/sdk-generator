@@ -141,21 +141,22 @@ class DotNet extends Language {
         switch ($type) {
             case self::TYPE_INTEGER:
                 return 'int';
-            break;
+                break;
             case self::TYPE_STRING:
                 return 'string';
-            break;
+                break;
             case self::TYPE_FILE:
                 return 'FileInfo';
-            break;
+                break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
-            break;
+                break;
             case self::TYPE_ARRAY:
-            	return 'List<object>';
-			case self::TYPE_OBJECT:
-				return 'object';
-            break;
+                return 'List<object>';
+                break;
+            case self::TYPE_OBJECT:
+                return 'object';
+                break;
         }
 
         return $type;
@@ -167,7 +168,48 @@ class DotNet extends Language {
      */
     public function getParamDefault(array $param)
     {
-        return '';
+        $type       = $param['type'] ?? '';
+        $default    = $param['default'] ?? '';
+        $required   = $param['required'] ?? '';
+
+        if($required) {
+            return '';
+        }
+
+        $output = ' = ';
+
+        if(empty($default) && $default !== 0 && $default !== false) {
+            switch ($type) {
+                case self::TYPE_INTEGER:
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
+                case self::TYPE_BOOLEAN:
+                    $output .= 'null';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= '""';
+                    break;
+            }
+        }
+        else {
+            switch ($type) {
+                case self::TYPE_INTEGER:
+                    $output .= $default;
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= ($default) ? 'true' : 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "\"{$default}\"";
+                    break;
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
+                    $output .= 'null';
+                    break;
+            }
+        }
+
+        return $output;
     }
 
     /**
@@ -197,21 +239,23 @@ class DotNet extends Language {
                     $output .= '""';
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= 'new Object()';
+                    $output .= '[object]';
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= '{}';
+                    $output .= '[List<object>]';
                     break;
             }
         }
         else {
             switch ($type) {
-                case self::TYPE_OBJECT:
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                 case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= '[object]';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';

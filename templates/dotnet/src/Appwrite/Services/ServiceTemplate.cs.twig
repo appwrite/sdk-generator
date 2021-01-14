@@ -1,6 +1,6 @@
 {% macro parameter(parameter) %}
-{% if parameter.name == 'orderType' %}{{ 'OrderType orderType' }}{% else %}
-{{ parameter.type | typeName }} {{ parameter.name | caseCamel | escapeKeyword }}{{ parameter | escapeDollarSign | paramDefault }}{% endif %}
+{% if parameter.name == 'orderType' %}{{ 'OrderType orderType = OrderType.ASC' }}{% else %}
+{{ parameter.type | typeName }}{% if not parameter.required and (parameter.type == 'boolean' or parameter.type == 'integer') %}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{{ parameter | paramDefault }}{% endif %}
 {% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ', ' }}{% endif %}{% endfor %}{% endif %}
@@ -34,7 +34,7 @@ namespace {{ spec.title | caseUcfirst }}
     {{ method.description|comment1 }}
         */
     {% endif %}
-    public async Task<{% if method.type == "location" %}string{% else %}HttpResponseMessage{% endif %}> {{ method.name | caseUcfirst }}({{ _self.method_parameters(method.parameters) }}) 
+    public {% if method.type == "location" %}string{% else %}async Task<HttpResponseMessage>{% endif %} {{ method.name | caseUcfirst }}({{ _self.method_parameters(method.parameters) }}) 
         {
             string path = "{{ method.path }}"{% for parameter in method.parameters.path %}.Replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %};
 

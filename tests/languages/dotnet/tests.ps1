@@ -57,3 +57,6 @@ Print-Response $response
 
 $response = $general.Redirect() | Await-Task
 Print-Response $response
+
+$response = $general.Upload("string", 123, $list, (Get-Item "../../../../resources/file.png"))  | Await-Task
+Print-Response $response

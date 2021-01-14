@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -116,9 +115,17 @@ namespace {{ spec.title | caseUcfirst }}
 
                         form.Add(new ByteArrayContent(file, 0, file.Length), "file", fi.Name);
                     }
+                    else if (parameter.Value is IEnumerable<object>)
+                    {
+                        List<object> list = new List<object>((IEnumerable<object>) parameter.Value);
+                        for (int index = 0; index < list.Count; index++)
+                        {
+                            form.Add(new StringContent(list[index].ToString()), $"{parameter.Key}[{index}]");
+                        }
+                    }
                     else
                     {
-                        form.Add(new StringContent(parameter.Key), parameter.Value?.ToString());
+                        form.Add(new StringContent(parameter.Value.ToString()), parameter.Key);
                     }
                 }
                 request.Content = form;
@@ -139,6 +146,9 @@ namespace {{ spec.title | caseUcfirst }}
                 }
                 else
                 {
+                    if (http.DefaultRequestHeaders.Contains(header.Key)) {
+                        http.DefaultRequestHeaders.Remove(header.Key);
+                    }
                     http.DefaultRequestHeaders.Add(header.Key, header.Value);
                 }
             }
@@ -151,6 +161,9 @@ namespace {{ spec.title | caseUcfirst }}
                 }
                 else
                 {
+                    if (request.Headers.Contains(header.Key)) {
+                        request.Headers.Remove(header.Key);
+                    }
                     request.Headers.Add(header.Key, header.Value);
                 }
             }
