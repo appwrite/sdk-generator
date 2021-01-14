@@ -13,7 +13,7 @@ export class Client {
     {% for key,header in spec.global.defaultHeaders %}
     '{{key}}' : '{{header}}',
     {% endfor %}
-    };
+};
     
 {% for header in spec.global.headers %}
     /**

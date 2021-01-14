@@ -20,10 +20,12 @@ module {{spec.title | caseUcfirst}}
             @headers = {
                 'content-type' => '',
                 'user-agent' => RUBY_PLATFORM + ':{{ language.name | caseLower }}-' + RUBY_VERSION,
-                'x-sdk-version' => '{{ spec.title | caseDash }}:{{ language.name | caseLower }}:{{ sdk.version }}',
+                'x-sdk-version' => '{{ spec.title | caseDash }}:{{ language.name | caseLower }}:{{ sdk.version }}'{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+                
         {% for key,header in spec.global.defaultHeaders %}
-        '{{key}}' => '{{header}}',
+        '{{key}}' => '{{header}}'{% if not loop.last %},{% endif %}
         {% endfor %}
+
             }
             @endpoint = '{{spec.endpoint}}';
         end
