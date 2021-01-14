@@ -57,6 +57,9 @@ try {
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/php');
