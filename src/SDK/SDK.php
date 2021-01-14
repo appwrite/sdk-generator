@@ -582,7 +582,7 @@ class SDK
 
         $result = file_put_contents($destination, $output);
 
-        if (!$result) {
+        if ($result === false) {
             throw new Exception('Can\'t save file: ' . $destination);
         }
 
