@@ -1,0 +1,45 @@
+<?php
+
+namespace {{ spec.title | caseUcfirst }}\Services;
+
+require_once './vendor/autoload.php';
+
+use {{ spec.title | caseUcfirst }}\Client;
+use Utopia\CLI\CLI;
+use Utopia\Validator\Mock;
+use Utopia\CLI\Console;
+
+$client = new Client();
+$cli = new CLI();
+
+$cli
+    ->task('setEndpoint')
+    ->param('endpoint', '', new Mock(), 'Your Appwrite endpoint', false)
+    ->action(function($endpoint) use ($client) {
+        $client->setPreference('endpoint', $endpoint);
+        $result = $client->savePreferences();
+        if ($result === false) {
+            Console::error('Could not save preferences.');
+        } else {
+            Console::success('Preferences saved successfully');
+        }
+    });
+
+
+{% for header in spec.global.headers %}
+$cli
+    ->task('set{{ header.key }}')
+    ->param('{{ header.key | lower }}', '', new Mock(), '{{ header.description }}', false)
+    ->action(function(${{ header.key | lower }}) use ($client) {
+        $client->setPreference('{{ header.name }}', ${{ header.key | lower }});
+        $result = $client->savePreferences();
+        if ($result === false) {
+            Console::error('Could not save preferences.');
+        } else {
+            Console::success('Preferences saved successfully');
+        }
+    });
+
+{% endfor %}
+
+$cli->run();

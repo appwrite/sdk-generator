@@ -103,8 +103,12 @@ class Client
 {% endif %}
 {% endfor %}
         
-        $this->savePreferences();
-
+        $result = $this->savePreferences();
+        if ($result === false) {
+            throw new Exception('Could not save preferences.');
+        } else {
+            Console::success('Preferences saved successfully');
+        }
     }
 
     /**
@@ -144,15 +148,14 @@ class Client
     /**
      * Function to write user preferences to
      * the JSON file
+     * 
+     * @return bool
      */
-    private function savePreferences(string $filename = self::USER_PREFERENCES_FILE)
+    public function savePreferences(string $filename = self::USER_PREFERENCES_FILE): bool
     {
         $jsondata = json_encode($this->preferences, JSON_PRETTY_PRINT);
-        if (file_put_contents($filename, $jsondata)) {
-            echo 'Data successfully saved\n';
-        } else {
-            echo "error";
-        }
+        $result = file_put_contents($filename, $jsondata);
+        return $result;
     }
 
 {% for header in spec.global.headers %}
