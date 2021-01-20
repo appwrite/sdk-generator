@@ -131,6 +131,12 @@ class Ruby extends Language {
                 'minify'        => false,
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/file.rb',
+                'template'      => '/ruby/lib/container/file.rb.twig',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '/lib/{{ spec.title | caseDash}}/services/{{service.name | caseDash}}.rb',
                 'template'      => '/ruby/lib/container/services/service.rb.twig',
