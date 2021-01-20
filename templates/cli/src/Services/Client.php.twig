@@ -42,4 +42,11 @@ $cli
 
 {% endfor %}
 
+$cli
+    ->task('version')
+    ->action(function() {
+       Console::log('CLI Version : {{ sdk.version }}');
+       Console::log('Server Version : {{ spec.version | url_encode }}');
+    });
+
 $cli->run();
