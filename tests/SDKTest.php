@@ -31,6 +31,16 @@ class SDKTest extends TestCase
             'supportRedirect' => true,
             'supportUpload' => true,
         ],
+
+        'cli' => [
+            'class' => 'Appwrite\SDK\Language\CLI',
+            'build' => [
+                'docker build -t cli tests/sdks/cli'
+            ],
+            'envs' => [
+                'default' => 'php tests/languages/cli/test.php',
+            ]
+        ],
         
         'dart' => [
             'class' => 'Appwrite\SDK\Language\Dart',

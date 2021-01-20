@@ -20,40 +20,40 @@ $client->addHeader('Origin', 'http://localhost');
 
 // Foo Service
 
-$resposne = $foo->get('string', 123, ['string in array']);
-echo "{$resposne['result']}\n";
+$response = $foo->get('string', 123, ['string in array']);
+echo "{$response['result']}\n";
 
-$resposne = $foo->post('string', 123, ['string in array']);
-echo "{$resposne['result']}\n";
+$response = $foo->post('string', 123, ['string in array']);
+echo "{$response['result']}\n";
 
-$resposne = $foo->put('string', 123, ['string in array']);
-echo "{$resposne['result']}\n";
+$response = $foo->put('string', 123, ['string in array']);
+echo "{$response['result']}\n";
 
-$resposne = $foo->patch('string', 123, ['string in array']);
-echo "{$resposne['result']}\n";
+$response = $foo->patch('string', 123, ['string in array']);
+echo "{$response['result']}\n";
 
-$resposne = $foo->delete('string', 123, ['string in array']);
-echo "{$resposne['result']}\n";
+$response = $foo->delete('string', 123, ['string in array']);
+echo "{$response['result']}\n";
 
 // Bar Service
 
-$resposne = $bar->get('string', 123, ['string in array']);
-echo "{$resposne['result']}\n";
+$response = $bar->get('string', 123, ['string in array']);
+echo "{$response['result']}\n";
 
-$resposne = $bar->post('string', 123, ['string in array']);
-echo "{$resposne['result']}\n";
+$response = $bar->post('string', 123, ['string in array']);
+echo "{$response['result']}\n";
 
-$resposne = $bar->put('string', 123, ['string in array']);
-echo "{$resposne['result']}\n";
+$response = $bar->put('string', 123, ['string in array']);
+echo "{$response['result']}\n";
 
-$resposne = $bar->patch('string', 123, ['string in array']);
-echo "{$resposne['result']}\n";
+$response = $bar->patch('string', 123, ['string in array']);
+echo "{$response['result']}\n";
 
-$resposne = $bar->delete('string', 123, ['string in array']);
-echo "{$resposne['result']}\n";
+$response = $bar->delete('string', 123, ['string in array']);
+echo "{$response['result']}\n";
 
-$resposne = $general->redirect();
-echo "{$resposne['result']}\n";
+$response = $general->redirect();
+echo "{$response['result']}\n";
 
-$resposne = $general->upload('string', 123, ['string in array'], new \CURLFile(__DIR__.'/../../resources/file.png', 'image/png', 'file.png'));
-echo "{$resposne['result']}\n";
+$response = $general->upload('string', 123, ['string in array'], new \CURLFile(__DIR__.'/../../resources/file.png', 'image/png', 'file.png'));
+echo "{$response['result']}\n";

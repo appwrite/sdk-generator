@@ -197,3 +197,8 @@ protected $containers = [
     'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli php tests/languages/tests-for-php.php',
 ];
 ```
+
+Finally, you can run the tests using
+```sh
+$ docker run --rm -v $(pwd):/app -w /app php:7.4-cli vendor/bin/phpunit tests/SDKTest.php    
+```
