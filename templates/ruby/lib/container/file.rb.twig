@@ -1,7 +1,7 @@
 require 'mime/types'
 
 module {{spec.title | caseUcfirst}}
-    class AppwriteFile
+    class {{spec.title | caseUcfirst}}File
         def initialize(path)
             @name = File.basename(path)
             @content = File.read(path)

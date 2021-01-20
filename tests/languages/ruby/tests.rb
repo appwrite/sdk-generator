@@ -47,7 +47,6 @@ response = general.redirect();
 puts response['result']
 
 
-path = './tests/resources/file.png'
-file = AppwriteFile.new(File.basename(path),File.read(path), MIME::Types.type_for(value))
+file = AppwriteFile.new('./tests/resources/file.png')
 response = general.upload(x:'string',y: 123,z:['string in array'], file: file);
 puts response['result']

@@ -100,7 +100,7 @@ module {{spec.title | caseUcfirst}}
             when nil   then ''
             else
                 post_body = []
-                if(value.instance_of? AppwriteFile)
+                if(value.instance_of? {{spec.title | caseUcfirst}}File)
                     post_body << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{value.name}\"\r\n"
                     post_body << "Content-Type: #{value.mimeType}\r\n\r\n"
                     post_body << value.content
