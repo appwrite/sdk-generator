@@ -1,9 +1,11 @@
+require 'mime/types'
+
 module {{spec.title | caseUcfirst}}
     class AppwriteFile
-        def initialize(name, content, mimeType)
-            @name = name
-            @content = content
-            @mimeType = mimeType
+        def initialize(path)
+            @name = File.basename(path)
+            @content = File.read(path)
+            @mimeType = MIME::Types.type_for(value)
         end
     end
 end
