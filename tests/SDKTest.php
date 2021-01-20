@@ -205,6 +205,9 @@ class SDKTest extends TestCase
                 ->setLicense('BSD-3-Clause')
                 ->setLicenseContent('demo license')
                 ->setChangelog('--changelog--')
+                ->setDefaultHeaders([
+                    'X-Appwrite-Response-Format' => '0.7.0',
+                ])
             ;
 
             $sdk->generate(__DIR__ . '/sdks/' . $language);

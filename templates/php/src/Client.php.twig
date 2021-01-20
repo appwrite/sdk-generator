@@ -45,6 +45,9 @@ class Client
      */
     public function __construct()
     {
+{% for key,header in spec.global.defaultHeaders %}
+        $this->headers['{{key}}'] = '{{header}}';
+{% endfor %} 
     }
 
 {% for header in spec.global.headers %}
