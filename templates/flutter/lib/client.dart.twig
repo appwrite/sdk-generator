@@ -36,9 +36,9 @@ class Client {
         this.headers = {
             'content-type': 'application/json',
             'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
-    {% for key,header in spec.global.defaultHeaders %}
-        '{{key}}' : '{{header}}',
-    {% endfor %}
+{% for key,header in spec.global.defaultHeaders %}
+            '{{key}}' : '{{header}}',
+{% endfor %}
         };
 
         this.config = {};
