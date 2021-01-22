@@ -24,7 +24,7 @@ $cli
     ->action(function ( $help, {% for parameter in method.parameters.all %}${{ parameter.name}} {% if not loop.last %}, {% endif %}{% endfor %}) use ($parser) {
         if($help !== null) {
                 printf("Usage : appwrite {{ service.name }} {{ method.name }} --[OPTIONS] \n\n");
-                printf("{{ method.description |  }}\n\n");
+                printf("{{ method.description }}\n\n");
                 printf("Options:\n");
                 $mask = "\t%-20.20s %-125.125s\n";
 {% for parameter in method.parameters.all %}

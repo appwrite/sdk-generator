@@ -144,15 +144,15 @@ class Client
         try {
             
             $endpoint = getenv('endpoint') ?: '';
-            $project = getenv('X-Appwrite-Project') ?: '';
-            $key = getenv('X-Appwrite-Key') ?: '';
-            $locale = getenv('X-Appwrite-Locale') ?: '';
-
             $this->setPreference(self::PREFERENCE_ENDPOINT, $endpoint);
-            $this->setPreference('X-Appwrite-Project', $project);
-            $this->setPreference('X-Appwrite-Key', $key);
-            $this->setPreference('X-Appwrite-Locale', $locale);
 
+{% for header in spec.global.headers %}
+{% if header.key != 'Mode' %}
+            ${{header.key | caseCamel}} = getenv('{{ header.name }}') ?: '';
+            $this->setPreference('{{header.name}}', ${{header.key | caseCamel }});
+
+{% endif %}
+{% endfor %}
             if (!$this->isPreferenceLoaded()) {
                 return false;
             }
