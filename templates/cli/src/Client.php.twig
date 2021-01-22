@@ -45,7 +45,7 @@ class Client
         /* Load user defaults from a json file if available
            Else Propmt the user to enter the details
         */
-        if (!$this->loadPreferences()) {
+        if (!$this->loadPreferences() && !$this->loadEnvVariables()) {
             $this->promptUser();
         }
 
@@ -135,6 +135,34 @@ class Client
         return true;
     }
 
+    /**
+     * Function to load user preferences from
+     * environment variables
+     */
+    private function loadEnvVariables(): bool
+    {
+        try {
+            
+            $endpoint = getenv('endpoint') ?: '';
+            $project = getenv('X-Appwrite-Project') ?: '';
+            $key = getenv('X-Appwrite-Key') ?: '';
+            $locale = getenv('X-Appwrite-Locale') ?: '';
+
+            $this->setPreference(self::PREFERENCE_ENDPOINT, $endpoint);
+            $this->setPreference('X-Appwrite-Project', $project);
+            $this->setPreference('X-Appwrite-Key', $key);
+            $this->setPreference('X-Appwrite-Locale', $locale);
+
+            if (!$this->isPreferenceLoaded()) {
+                return false;
+            }
+        } catch (Exception $e) {
+            return false;
+        }
+
+        return true;
+    }
+
     private function isPreferenceLoaded() : bool {
         if(empty($this->getPreference(self::PREFERENCE_ENDPOINT))) return false;
 {% for header in spec.global.headers %}
@@ -196,7 +224,7 @@ class Client
      */
     public function setEndpoint($endpoint)
     {
-        $this->setPreference(self::PREFERENCE_ENDPOINT. $endpoint);
+        $this->setPreference(self::PREFERENCE_ENDPOINT, $endpoint);
         return $this;
     }
 

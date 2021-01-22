@@ -7,9 +7,9 @@ require_once './vendor/autoload.php';
 use {{ spec.title | caseUcfirst }}\Client;
 use {{ spec.title | caseUcfirst }}\Parser;
 use Utopia\CLI\CLI;
+use Utopia\CLI\Console;
 use Utopia\Validator\Mock;
 
-$client = new Client();
 $parser = new Parser();
 
 $cli = new CLI();
@@ -17,11 +17,22 @@ $cli = new CLI();
 {% for method in service.methods %}
 $cli
     ->task('{{ method.name | caseCamel }}')
+    ->param('help', null, new Mock(), 'Provide documentation about a command', true)
 {% for parameter in method.parameters.all %}
     ->param('{{ parameter.name }}', {{ parameter | paramDefault }} , new Mock(), '{{ parameter.description}}', {%if not parameter.required %} true{% else %} false{% endif %})
 {% endfor %}
-    ->action(function ({% for parameter in method.parameters.all %}${{ parameter.name}} {% if not loop.last %}, {% endif %}{% endfor %}) use ($client, $parser) {
-
+    ->action(function ( $help, {% for parameter in method.parameters.all %}${{ parameter.name}} {% if not loop.last %}, {% endif %}{% endfor %}) use ($parser) {
+        if($help !== null) {
+                printf("Usage : appwrite {{ service.name }} {{ method.name }} --[OPTIONS] \n\n");
+                printf("{{ method.description |  }}\n\n");
+                printf("Options:\n");
+                $mask = "\t%-20.20s %-125.125s\n";
+{% for parameter in method.parameters.all %}
+                printf($mask, "{{ parameter.name }}", "{{ parameter.description }}");
+{% endfor %}
+                return;
+        }
+        $client = new Client();
         $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
         $params = [];
 
@@ -48,5 +59,18 @@ $cli
     });
 
 {% endfor %}
+
+$cli
+    ->task('help')
+    ->action(function() {
+        printf("Usage : appwrite {{ service.name }} [METHOD]\n\n");
+        printf("Methods:\n");
+        $mask = "\t%-20.20s %-125.125s\n";
+{% for method in service.methods %}
+        printf($mask, "{{ method.name | caseCamel }}", "{{ method.description }}");
+{% endfor %}
+        printf("\nRun 'appwrite {{ service.name }} METHOD --help' for more information on a command.\n");
+    });
+
 
 $cli->run();

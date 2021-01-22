@@ -298,6 +298,7 @@ try {
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setVersion('0.0.1')
     ;
     $sdk->generate(__DIR__ . '/examples/CLI');
 
