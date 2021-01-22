@@ -139,6 +139,12 @@ class CLI extends PHP {
                 'minify'        => false,
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '/bin/help',
+                'template'      => '/cli/bin/help.twig',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '/src/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
                 'template'      => '/cli/src/Services/Service.php.twig',
@@ -148,6 +154,12 @@ class CLI extends PHP {
                 'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/Services/Client.php',
                 'template'      => '/cli/src/Services/Client.php.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Services/Help.php',
+                'template'      => '/cli/src/Services/Help.php.twig',
                 'minify'        => false,
             ],
         ];

@@ -65,7 +65,11 @@ class SDK
         $this->language = $language;
         $this->spec     = $spec;
 
-        $this->twig = new Environment(new FilesystemLoader(__DIR__ . '/../../templates'));
+        $this->twig = new Environment(new FilesystemLoader(__DIR__ . '/../../templates'), [
+            'debug' => true
+        ] );
+        $this->twig->addExtension(new \Twig\Extension\DebugExtension());
+
         $this->twig->addFilter(new TwigFilter('caseLower', function ($value) {
             return strtolower((string)$value);
         }));
