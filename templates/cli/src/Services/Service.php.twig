@@ -24,7 +24,7 @@ $cli
     ->action(function ( $help {% for parameter in method.parameters.all %}, ${{ parameter.name}} {% endfor %}) use ($parser) {
         if($help !== null) {
                 printf("Usage : appwrite {{ service.name }} {{ method.name }} {% if method.parameters.all is not empty %} --[OPTIONS] {% endif %} \n\n");
-                printf("{{ method.description }}\n\n");
+                printf("{{ method.description | raw }}\n\n");
 {% if method.parameters.all is not empty %}
                 printf("Options:\n");
 {% endif %}
