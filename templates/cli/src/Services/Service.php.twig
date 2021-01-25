@@ -23,7 +23,16 @@ $cli
 {% endfor %}
     ->action(function ( $help {% for parameter in method.parameters.all %}, ${{ parameter.name}} {% endfor %}) use ($parser) {
         if($help !== null) {
-                printf("Usage : appwrite {{ service.name }} {{ method.name }} {% if method.parameters.all is not empty %} --[OPTIONS] {% endif %} \n\n");
+                printf("
+   _                            _ _       
+  /_\  _ __  _ ____      ___ __(_) |_ ___ 
+ //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \
+/  _  \ |_) | |_) \ V  V /| |  | | ||  __/
+\_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___|
+      |_|   |_|                           
+      
+      ");
+                printf("\nUsage : appwrite {{ service.name }} {{ method.name }} {% if method.parameters.all is not empty %} --[OPTIONS] {% endif %} \n\n");
                 printf("{{ method.description | raw }}\n\n");
 {% if method.parameters.all is not empty %}
                 printf("Options:\n");
@@ -65,11 +74,20 @@ $cli
 $cli
     ->task('help')
     ->action(function() {
-        printf("Usage : appwrite {{ service.name }} [COMMAND]\n\n");
+        printf("
+   _                            _ _       
+  /_\  _ __  _ ____      ___ __(_) |_ ___ 
+ //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \
+/  _  \ |_) | |_) \ V  V /| |  | | ||  __/
+\_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___|
+      |_|   |_|                           
+      
+      ");
+        printf("\nUsage : appwrite {{ service.name }} [COMMAND]\n\n");
         printf("Commands :\n");
         $mask = "\t%-20.20s %-125.125s\n";
 {% for method in service.methods %}
-        printf($mask, "{{ method.name | caseCamel }}", "{{ method.description }}");
+        printf($mask, "{{ method.name | caseCamel }}", "{{ method.description | raw }}");
 {% endfor %}
         printf("\nRun 'appwrite {{ service.name }} COMMAND --help' for more information on a command.\n");
     });
