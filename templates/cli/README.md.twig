@@ -15,10 +15,69 @@
 
 ## Installation
 
-To install via [Composer](http://getcomposer.org/):
+This tutorial assumes that you have docker setup and running on your machine. 
 
 ```bash
-composer require {{ language.params.composerVendor }}/{{ language.params.composerPackage }}
+$ wget http://appwrite.io/install_cli.sh
+$ chmod +x install_cli.sh
+$ ./install_cli.sh
+```
+
+## Usage
+Once the installation is successfull, you can start the cli using 
+```sh
+$ appwrite-cli [SERVICE] [COMMAND] --[OPTIONS] 
+```
+
+The CLI requires an endpoint, project ID, API key and a 
+locale to be able to communicate with the appwrite backend. There are two ways to achieve this 
+
+## 1. Environment file 
+```sh
+$ appwrite-cli --env-file path/to/your/environment/file [SERVICE] [COMMAND] --[OPTIONS]     
+```
+The .env file must have the following keys 
+
+```sh
+endpoint=http://192.168.1.6/v1
+X-Appwrite-Project=5ff450422d42f
+X-Appwrite-Key=0773c7...a2672a
+X-Appwrite-Locale=en-US
+```
+
+## 2. Using the prompt
+
+Invoking the `appwrite-cli` without an env file triggers an interactive prompt where you can manually enter the details. 
+These values are then stored in a `.prefs.json` file for future usage.
+
+
+The CLI is divided into {{spec.services | length }} services and the usage of 
+each service is summarised below.
+
+{% for service in spec.services %}
+## {{ service.name | caseUcfirst }} 
+The {{ service.name | caseUcfirst }} service has {{ service.methods | length }} methods and 
+its description and sample usage is summarised as shown below
+
+
+{% for method in service.methods %}
+### {{ method.name | caseUcfirst }} 
+{{ method.description | replace({"\n": "", "\r": "", "\t": ""}) }}
+```bash
+$ docker run -i cli {{ service.name }} {{ method.name }} {% for parameter in method.parameters.all %} --{{ parameter.name }}="{{ parameter.example }}" {% endfor %} {{ "\n" }}
+```
+
+{% endfor %}
+
+{% endfor %}
+
+Additionally we also have a client service which allows us to configure the endpoint, project ID, 
+project key, and the locale.
+
+## Client 
+
+```sh
+
 ```
 
 ## Contribution
