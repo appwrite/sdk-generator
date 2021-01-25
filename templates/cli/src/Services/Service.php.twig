@@ -32,7 +32,7 @@ $cli
       |_|   |_|                           
       
       ");
-                printf("\nUsage : appwrite {{ service.name }} {{ method.name }} {% if method.parameters.all is not empty %} --[OPTIONS] {% endif %} \n\n");
+                printf("\nUsage : appwrite {{ service.name }} {{ method.name }} {% if method.parameters.all is not empty %}--[OPTIONS]{% endif %} \n\n");
                 printf("{{ method.description | raw }}\n\n");
 {% if method.parameters.all is not empty %}
                 printf("Options:\n");

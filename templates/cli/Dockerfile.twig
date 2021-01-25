@@ -6,9 +6,14 @@ RUN composer update --ignore-platform-reqs --optimize-autoloader \
     --no-plugins --no-scripts --prefer-dist \
     `if [ "$TESTING" != "true" ]; then echo "--no-dev"; fi`
 
+
+FROM php:7.4-alpine 
+
+WORKDIR /usr/local/code/
 # Add Source Code
 COPY ./src /usr/local/code/src
 COPY ./bin /usr/local/bin
+COPY --from=step0 /usr/local/code/vendor /usr/local/code/vendor
 
 # Executables
 {% for service in spec.services %}
@@ -16,4 +21,3 @@ RUN chmod +x /usr/local/bin/{{service.name}}
 {% endfor %}
 RUN chmod +x /usr/local/bin/client
 RUN chmod +x /usr/local/bin/help
-
