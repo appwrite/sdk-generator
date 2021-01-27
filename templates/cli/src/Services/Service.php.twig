@@ -15,16 +15,16 @@ $parser = new Parser();
 
 $cli = new CLI();
 
-{% for method in service.methods %}
-$cli
-    ->task('{{ method.name | caseCamel }}')
-    ->param('help', null, new Mock(), 'Provide documentation about a command', true)
-{% for parameter in method.parameters.all %}
-    ->param('{{ parameter.name }}', {{ parameter | paramDefault }} , new Mock(), '{{ parameter.description}}', {% if not parameter.required %} true{% else %} false{% endif %})
-{% endfor %}
-    ->action(function ( $help {% for parameter in method.parameters.all %}, ${{ parameter.name}} {% endfor %}) use ($parser) {
-        if($help !== null) {
-                printf("
+$cli->
+      init(function() use ($cli) {
+        
+        if (array_key_exists('help', $cli->getArgs())) {
+            $taskName = $cli->match()->getName();
+            $task = $cli->getTasks()[$taskName];
+            $description = $task->getLabel('description', '');
+            $params = $task->getParams();
+
+            echo "\e[0;31;m
    _                            _ _       
   /_\  _ __  _ ____      ___ __(_) |_ ___ 
  //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \
@@ -32,18 +32,29 @@ $cli
 \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___|
       |_|   |_|                           
       
-      ");
-                printf("\nUsage : appwrite {{ service.name }} {{ method.name }} {% if method.parameters.all is not empty %}--[OPTIONS]{% endif %} \n\n");
-                printf("{{ method.description | raw }}\n\n");
-{% if method.parameters.all is not empty %}
-                printf("Options:\n");
-{% endif %}
-                $mask = "\t%-20.20s %-125.125s\n";
-{% for parameter in method.parameters.all %}
-                printf($mask, "{{ parameter.name }}", "{{ parameter.description }}");
-{% endfor %}
-                return;
+      \e[0m" ;
+
+            printf("\nUsage : appwrite {{ service.name }} {$taskName} --[OPTIONS] \n\n");
+            printf($description);
+            printf("Options:\n");
+            $mask = "\t%-20.20s %-125.125s\n";
+
+            foreach ($params as $key => $value) {
+                if ($key !== 'help')
+                    printf($mask, $key, $value['description']);
+            }
+            Console::exit(0);
         }
+      });
+
+{% for method in service.methods %}
+$cli
+    ->task('{{ method.name | caseCamel }}')
+    ->label('description', "{{ method.description | raw }}\n\n")
+{% for parameter in method.parameters.all %}
+    ->param('{{ parameter.name }}', {{ parameter | paramDefault }} , new Mock(), '{{ parameter.description}}', {% if not parameter.required %} true{% else %} false{% endif %})
+{% endfor %}
+    ->action(function ({% for parameter in method.parameters.all %} ${{ parameter.name}}{% if not loop.last %},{% endif %}{% endfor %} ) use ($parser) {
         $client = new Client();
         $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
         $params = [];
@@ -85,7 +96,7 @@ $cli
 $cli
     ->task('help')
     ->action(function() {
-        printf("
+        echo "\e[0;31;m
    _                            _ _       
   /_\  _ __  _ ____      ___ __(_) |_ ___ 
  //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \
@@ -93,7 +104,7 @@ $cli
 \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___|
       |_|   |_|                           
       
-      ");
+      \e[0m" ;
         printf("\nUsage : appwrite {{ service.name }} [COMMAND]\n\n");
         printf("Commands :\n");
         $mask = "\t%-20.20s %-125.125s\n";
