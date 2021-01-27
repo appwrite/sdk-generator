@@ -4,6 +4,7 @@ namespace {{ spec.title | caseUcfirst }}\Services;
 
 require_once './vendor/autoload.php';
 
+use Exception;
 use {{ spec.title | caseUcfirst }}\Client;
 use {{ spec.title | caseUcfirst }}\Parser;
 use Utopia\CLI\CLI;
@@ -50,9 +51,19 @@ $cli
 {% for parameter in method.parameters.query %}
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
 {% endfor %}
+
 {% for parameter in method.parameters.body %}
+{% if parameter.type == 'file' %}
+        if (file_exists(${{ parameter.name | caseCamel }}) === false ) {
+            throw new Exception('File not found...'); 
+        }
+        $cFile = new \CURLFile(${{ parameter.name | caseCamel }}, 'image/png', basename(${{ parameter.name | caseCamel }}));
+        $params['{{ parameter.name }}'] = $cFile;
+{% else %} 
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
+{% endif %}
 {% endfor %}
+
 {% for parameter in method.parameters.formData %}
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
 {% endfor %}

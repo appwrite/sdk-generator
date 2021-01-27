@@ -16,8 +16,4 @@ COPY ./bin /usr/local/bin
 COPY --from=step0 /usr/local/code/vendor /usr/local/code/vendor
 
 # Executables
-{% for service in spec.services %}
-RUN chmod +x /usr/local/bin/{{service.name}}
-{% endfor %}
-RUN chmod +x /usr/local/bin/client
-RUN chmod +x /usr/local/bin/help
+RUN chmod -R +x /usr/local/bin/
