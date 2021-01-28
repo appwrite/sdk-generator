@@ -10,6 +10,10 @@ use {{ spec.title | caseUcfirst }}\Parser;
 use Utopia\CLI\CLI;
 use Utopia\CLI\Console;
 use Utopia\Validator\Mock;
+{% if service.name == 'functions' %}
+use PharData;
+use Phar;
+{% endif %}
 
 $parser = new Parser();
 
@@ -50,7 +54,7 @@ $cli->
 {% for method in service.methods %}
 $cli
     ->task('{{ method.name | caseCamel }}')
-    ->label('description', "{{ method.description | raw }}\n\n")
+    ->label('description', "{{ method.description | replace({'"':'\''}) | raw }}\n\n")
 {% for parameter in method.parameters.all %}
     ->param('{{ parameter.name }}', {{ parameter | paramDefault }} , new Mock(), '{{ parameter.description}}', {% if not parameter.required %} true{% else %} false{% endif %})
 {% endfor %}
@@ -66,8 +70,15 @@ $cli
 {% for parameter in method.parameters.body %}
 {% if parameter.type == 'file' %}
         if (file_exists(${{ parameter.name | caseCamel }}) === false ) {
-            throw new Exception('File not found...'); 
+            throw new Exception("Path doesn't exist. Please ensure that the path is relative to the current directory and levels are lower down."); 
         }
+{% if method.name == 'createTag' %}
+        $archive_file_path = dirname(${{ parameter.name | caseCamel }}, 1).'/code.tar';
+        $archive = new PharData($archive_file_path);
+        $archive->buildFromDirectory(${{ parameter.name | caseCamel }});
+        $archive->compress(Phar::GZ);
+        ${{ parameter.name | caseCamel }} = $archive_file_path;
+{% endif %}
         $cFile = new \CURLFile(${{ parameter.name | caseCamel }}, 'image/png', basename(${{ parameter.name | caseCamel }}));
         $params['{{ parameter.name }}'] = $cFile;
 {% else %} 
@@ -87,6 +98,11 @@ $cli
             '{{ key }}' => '{{ header }}',
 {% endfor %}
         ], $params);
+
+{% if service.name == 'functions' and method.name == 'createTag' %}
+        unlink($archive_file_path); // as we already obtained a tar.gz
+        unlink($archive_file_path.'.gz');
+{% endif %}
 
         $parser->parseResponse($response);
     });
@@ -109,7 +125,7 @@ $cli
         printf("Commands :\n");
         $mask = "\t%-20.20s %-125.125s\n";
 {% for method in service.methods %}
-        printf($mask, "{{ method.name | caseCamel }}", "{{ method.description | raw }}");
+        printf($mask, "{{ method.name | caseCamel }}", "{{ method.description | replace({'"':'\''}) | raw }}");
 {% endfor %}
         printf("\nRun 'appwrite {{ service.name }} COMMAND --help' for more information on a command.\n");
     });
