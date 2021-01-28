@@ -4,7 +4,7 @@
 ![Version](https://img.shields.io/badge/api%20version-{{ spec.version|url_encode }}-blue.svg?v=1)
 {% if sdk.warning %}
 
-{{ sdk.warning }}
+{{ sdk.warning|raw }}
 {% endif %}
 
 {{ sdk.description }}
@@ -16,7 +16,7 @@
 ## Installation
 
 ### .NET
-Add this reference to your projects's `.csproj` file:
+Add this reference to your project's `.csproj` file:
 
 ```xml
 <PackageReference Include="{{ spec.title | caseUcfirst }}" Version="{{ sdk.version }}" />

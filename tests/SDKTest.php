@@ -76,8 +76,8 @@ class SDKTest extends TestCase
                 'dotnet-5.0' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:5.0-alpine pwsh tests.ps1',
                 'dotnet-3.1' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:3.1-alpine pwsh tests.ps1'
             ],
-            'supportRedirect' => false,
-            'supportUpload' => false,
+            'supportRedirect' => true,
+            'supportUpload' => true,
         ],
 
         'typescript' => [
@@ -205,6 +205,9 @@ class SDKTest extends TestCase
                 ->setLicense('BSD-3-Clause')
                 ->setLicenseContent('demo license')
                 ->setChangelog('--changelog--')
+                ->setDefaultHeaders([
+                    'X-Appwrite-Response-Format' => '0.6.2',
+                ])
             ;
 
             $sdk->generate(__DIR__ . '/sdks/' . $language);

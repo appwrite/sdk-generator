@@ -94,6 +94,9 @@
 
             addGlobalHeader('x-sdk-version', '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}');
             addGlobalHeader('content-type', '');
+    {% for key,header in spec.global.defaultHeaders %}
+        addGlobalHeader('{{key}}', '{{header}}');
+    {% endfor %}
 
             /**
              * @param {string} method
