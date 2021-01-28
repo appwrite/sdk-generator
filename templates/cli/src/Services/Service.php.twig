@@ -70,7 +70,7 @@ $cli
 {% for parameter in method.parameters.body %}
 {% if parameter.type == 'file' %}
         if (file_exists(${{ parameter.name | caseCamel }}) === false ) {
-            throw new Exception("Path doesn't exist. Please ensure that the path is relative to the current directory and levels are lower down."); 
+            throw new Exception("Path doesn't exist. Please ensure that the path is relative to the current directory and down the directory tree"); 
         }
 {% if method.name == 'createTag' %}
         $archive_file_path = dirname(${{ parameter.name | caseCamel }}, 1).'/code.tar';
