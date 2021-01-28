@@ -206,7 +206,7 @@ class SDKTest extends TestCase
                 ->setLicenseContent('demo license')
                 ->setChangelog('--changelog--')
                 ->setDefaultHeaders([
-                    'X-Appwrite-Response-Format' => '0.7.0',
+                    'X-Appwrite-Response-Format' => '0.6.2',
                 ])
             ;
 
