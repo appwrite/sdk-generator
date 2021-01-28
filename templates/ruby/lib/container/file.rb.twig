@@ -1,10 +1,10 @@
 require 'mime/types'
 
 module {{spec.title | caseUcfirst}}
-    class {{spec.title | caseUcfirst}}File
+    class File
         def initialize(path)
-            @name = File.basename(path)
-            @content = File.read(path)
+            @name = ::File.basename(path)
+            @content = ::File.read(path)
             @mimeType = MIME::Types.type_for(path)
         end
 
