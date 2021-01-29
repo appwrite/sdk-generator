@@ -17,7 +17,7 @@ class Client
     const METHOD_CONNECT = 'CONNECT';
     const METHOD_TRACE = 'TRACE';
 
-    const USER_PREFERENCES_FILE = __DIR__."/.prefs.json";
+    const USER_PREFERENCES_FILE = __DIR__."/.preferences/.prefs.json";
     const PREFERENCE_ENDPOINT = "endpoint";
 
     /**
@@ -38,27 +38,6 @@ class Client
     ];
 
     /**
-     * SDK constructor.
-     */
-    public function __construct()
-    {
-        /* Load user defaults from a json file if available
-           Else Propmt the user to enter the details
-        */
-        if (!$this->loadPreferences() && !$this->loadEnvVariables()) {
-            $this->promptUser();
-        }
-
-        $this
-{% for header in spec.global.headers %}
-{% if header.key != 'Mode' %}
-            ->set{{header.key | caseUcfirst}}($this->preferences['{{header.name}}'])
-{% endif %}
-{% endfor %}
-        ;
-    }
-
-    /**
      * Default User Preferences
      *
      * @var array
@@ -72,6 +51,28 @@ class Client
 {% endfor %}
     ];
 
+    /**
+     * SDK constructor.
+     */
+    public function __construct()
+    {
+        /* Load user defaults from a json file if available
+           Else Propmt the user to enter the details
+        */
+        if (!$this->loadPreferences()) {
+            Console::error("❌ Oops We were unable to load your preferences. Ensure that you have run 'appwrite init' before using the CLI");
+            Console::exit();
+        }
+
+        $this
+{% for header in spec.global.headers %}
+{% if header.key != 'Mode' %}
+            ->set{{header.key | caseUcfirst}}($this->preferences['{{header.name}}'])
+{% endif %}
+{% endfor %}
+        ;
+    }
+
     public function getPreference(string $key): string
     {
         return $this->preferences[$key];
@@ -82,35 +83,6 @@ class Client
         $this->preferences[$key] = $value;
     }
 
-    private function promptUser()
-    {
-        if(empty($this->getPreference(self::PREFERENCE_ENDPOINT))) {
-            $endpoint = Console::confirm('Choose your API Endpoint: ( default: http://localhost/v1 )');
-            $this->setPreference(self::PREFERENCE_ENDPOINT, ($endpoint) ? $endpoint : 'http://localhost/v1');
-        }
-
-{% for header in spec.global.headers %}
-{% if header.key != 'Mode' %}
-        if(empty($this->getPreference('{{header.name}}'))) {
-            ${{header.key | caseCamel}} = Console::confirm('Enter your {{header.key | caseLower}} from the Appwrite console: ');
-            if (empty(${{header.key | caseCamel}})) {
-                Console::error("You cannot continue without a {{header.key | caseLower }}. Exiting...");
-                exit();
-            } 
-            $this->setPreference('{{header.name}}', ${{header.key | caseCamel }});
-        }
-
-{% endif %}
-{% endfor %}
-        
-        $result = $this->savePreferences();
-        if ($result === false) {
-            throw new Exception('Could not save preferences.');
-        } else {
-            Console::success('Preferences saved successfully');
-        }
-    }
-
     /**
      * Function to load user preferences from
      * the JSON file
@@ -119,40 +91,12 @@ class Client
     {
         try {
             $jsondata = @file_get_contents($filename);
-            if($jsondata === FALSE) {
+            if($jsondata === false || empty($jsondata)) {
                 return false;
             }
 
             $arr_data = json_decode($jsondata, true);
             $this->preferences = array_replace($this->preferences, $arr_data);
-            if (!$this->isPreferenceLoaded()) {
-                return false;
-            }
-        } catch (Exception $e) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Function to load user preferences from
-     * environment variables
-     */
-    private function loadEnvVariables(): bool
-    {
-        try {
-            
-            $endpoint = getenv('endpoint') ?: '';
-            $this->setPreference(self::PREFERENCE_ENDPOINT, $endpoint);
-
-{% for header in spec.global.headers %}
-{% if header.key != 'Mode' %}
-            ${{header.key | caseCamel}} = getenv('{{ header.name }}') ?: '';
-            $this->setPreference('{{header.name}}', ${{header.key | caseCamel }});
-
-{% endif %}
-{% endfor %}
             if (!$this->isPreferenceLoaded()) {
                 return false;
             }
@@ -173,18 +117,6 @@ class Client
         return true;
     }
 
-    /**
-     * Function to write user preferences to
-     * the JSON file
-     * 
-     * @return bool
-     */
-    public function savePreferences(string $filename = self::USER_PREFERENCES_FILE): bool
-    {
-        $jsondata = json_encode($this->preferences, JSON_PRETTY_PRINT);
-        $result = file_put_contents($filename, $jsondata);
-        return $result;
-    }
 
 {% for header in spec.global.headers %}
     /**
@@ -207,26 +139,6 @@ class Client
 
 {% endfor %}
 
-    /***
-     * @param bool $status
-     * @return $this
-     */
-    public function setSelfSigned($status = true)
-    {
-        $this->selfSigned = $status;
-
-        return $this;
-    }
-
-    /***
-     * @param $endpoint
-     * @return $this
-     */
-    public function setEndpoint($endpoint)
-    {
-        $this->setPreference(self::PREFERENCE_ENDPOINT, $endpoint);
-        return $this;
-    }
 
     /**
      * @param $key

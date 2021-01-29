@@ -1,0 +1,158 @@
+<?php
+
+namespace Appwrite;
+
+require_once './vendor/autoload.php';
+
+use Exception;
+use Utopia\CLI\Console;
+
+class Init
+{
+
+    /**
+     * Default User Preferences
+     *
+     * @var array
+     */
+    private $preferences = [
+        self::PREFERENCE_ENDPOINT => '',
+        'X-Appwrite-Project' => '',
+        'X-Appwrite-Key' => '',
+        'X-Appwrite-Locale' => '',
+    ];
+  
+    const USER_PREFERENCES_FILE = __DIR__."/.preferences/.prefs.json";
+    const PREFERENCE_ENDPOINT = "endpoint";
+
+    /**
+     * SDK constructor.
+     */
+    public function __construct()
+    {
+        /* Load user defaults from a json file if available
+           Else Prompt the user to enter the details
+        */
+        if (!$this->loadEnvVariables()) {
+            $this->promptUser();
+        }
+
+    }
+
+    public function getPreference(string $key): string
+    {
+        return $this->preferences[$key];
+    }
+
+    public function setPreference(string $key , string $value) 
+    {
+        $this->preferences[$key] = $value;
+    }
+
+    private function promptUser()
+    {
+        Console::info("🟢 Starting prompt\n");
+
+        if(empty($this->getPreference(self::PREFERENCE_ENDPOINT))) {
+            $endpoint = Console::confirm('🟢 Choose your API Endpoint: ( default: http://localhost/v1 )');
+            $this->setPreference(self::PREFERENCE_ENDPOINT, empty($endpoint) ? 'http://localhost/v1' : $endpoint);
+        }
+
+        if(empty($this->getPreference('X-Appwrite-Project'))) {
+            $project = Console::confirm('🟢 Enter your project from the Appwrite console: ');
+            if (empty($project)) {
+                Console::error("❌ You cannot continue without a project. Exiting...");
+                exit();
+            } 
+            $this->setPreference('X-Appwrite-Project', $project);
+        }
+
+        if(empty($this->getPreference('X-Appwrite-Key'))) {
+            $key = Console::confirm('🟢 Enter your key from the Appwrite console: ');
+            if (empty($key)) {
+                Console::error("❌ You cannot continue without a key. Exiting...");
+                exit();
+            } 
+            $this->setPreference('X-Appwrite-Key', $key);
+        }
+
+        if(empty($this->getPreference('X-Appwrite-Locale'))) {
+            $locale = Console::confirm('🟢 Enter your locale: : ( default: en-US )');
+            $this->setPreference('X-Appwrite-Locale', empty($locale) ? 'en-US' : $locale );
+        }
+
+        
+        $result = $this->savePreferences();
+        if ($result === false) {
+            throw new Exception('❌ Could not save preferences.');
+        } else {
+            Console::success('✅ Preferences saved successfully');
+        }
+    }
+
+    
+    /**
+     * Function to load user preferences from
+     * environment variables
+     */
+    private function loadEnvVariables(): bool
+    {
+        try {
+            
+            $endpoint = getenv('endpoint') ?: '';
+            $this->setPreference(self::PREFERENCE_ENDPOINT, $endpoint);
+
+            $project = getenv('X-Appwrite-Project') ?: '';
+            $this->setPreference('X-Appwrite-Project', $project);
+
+            $key = getenv('X-Appwrite-Key') ?: '';
+            $this->setPreference('X-Appwrite-Key', $key);
+
+            $locale = getenv('X-Appwrite-Locale') ?: '';
+            $this->setPreference('X-Appwrite-Locale', $locale);
+
+            if (!$this->isPreferenceLoaded()) {
+                return false;
+            }
+
+            $result = $this->savePreferences();
+            if ($result === false) {
+                return false;
+            } else {
+                Console::success('✅ Preferences saved successfully');
+            }
+            
+        } catch (Exception $e) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function isPreferenceLoaded() : bool {
+        if(empty($this->getPreference(self::PREFERENCE_ENDPOINT))) return false;
+        if(empty($this->getPreference('X-Appwrite-Project'))) return false;
+        if(empty($this->getPreference('X-Appwrite-Key'))) return false;
+        if(empty($this->getPreference('X-Appwrite-Locale'))) return false;
+        return true;
+    }
+
+    /**
+     * Function to write user preferences to
+     * the JSON file
+     * 
+     * @return int
+     */
+    public function savePreferences(string $filename = self::USER_PREFERENCES_FILE): int
+    {
+        $jsondata = json_encode($this->preferences, JSON_PRETTY_PRINT);
+        $result = file_put_contents($filename, $jsondata);
+        var_dump($filename);
+        var_dump($result);
+        return $result;
+    }
+
+}
+
+
+$var = new Init();
