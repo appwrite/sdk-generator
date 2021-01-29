@@ -147,8 +147,6 @@ class Init
     {
         $jsondata = json_encode($this->preferences, JSON_PRETTY_PRINT);
         $result = file_put_contents($filename, $jsondata);
-        var_dump($filename);
-        var_dump($result);
         return $result;
     }
 
