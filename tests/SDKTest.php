@@ -124,15 +124,16 @@ class SDKTest extends TestCase
         'ruby' => [
             'class' => 'Appwrite\SDK\Language\Ruby',
             'build' => [
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/ruby --env GEM_HOME=/app/vendor ruby:2.7-alpine sh -c "apk add git build-base && bundle install"'
             ],
             'envs' => [
-                'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.7-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.6-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.5-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.4-alpine ruby tests/languages/ruby/tests.rb',
+                'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.7-alpine ruby tests/languages/ruby/tests.rb',
+                'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.6-alpine ruby tests/languages/ruby/tests.rb',
+                'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.5-alpine ruby tests/languages/ruby/tests.rb',
+                'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.4-alpine ruby tests/languages/ruby/tests.rb',
             ],
             'supportRedirect' => true,
-            'supportUpload' => false,
+            'supportUpload' => true,
         ],
 
         'python' => [
@@ -184,7 +185,6 @@ class SDKTest extends TestCase
         }
 
         $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
-
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
                 continue;
@@ -228,7 +228,6 @@ class SDKTest extends TestCase
                     }
                 }
             }
-
             /**
              * Run tests on all different envs
              */

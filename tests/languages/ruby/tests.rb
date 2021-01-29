@@ -45,3 +45,8 @@ puts response['result']
 
 response = general.redirect();
 puts response['result']
+
+
+file = Appwrite::File.new('./tests/resources/file.png')
+response = general.upload(x:'string',y: 123,z:['string in array'], file: file);
+puts response['result']
