@@ -49,21 +49,4 @@ $cli
        Console::log('Server Version : {{ spec.version | url_encode }}');
     });
 
-    $cli
-    ->task('help')
-    ->action(function() {
-       Console::log('CLI Version : {{ sdk.version }}');
-       Console::log('Server Version : {{ spec.version | url_encode }}');
-    });
-
 $cli->run();
-
-appwrite help
-/usr/local/bin/appwrite 
-docker run -v appwrite-cli:/usr/local/code/src/ -i cli client version  
-
-
-1. Option 1  
-2. Option 2
-3. Option 3 
-4. Option 4

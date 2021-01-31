@@ -146,6 +146,12 @@ class CLI extends PHP {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/bin/version',
+                'template'      => '/cli/bin/version.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/bin/init',
                 'template'      => '/cli/bin/init.twig',
                 'minify'        => false,
