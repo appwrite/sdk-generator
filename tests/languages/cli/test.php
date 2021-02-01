@@ -76,7 +76,7 @@ echo substr($output[0],9)."\n";
 $volume = '--volume '.realpath(__DIR__.'/../../resources').':/appwrite:rw';
 // var_dump($volume);
 // var_dump(scandir(realpath(__DIR__.'/../../resources')));
-$command = "${baseCommand} cli general upload --x='string'  --y='123' --z[]='string in array' --file='/appwrite/file.png'";
+$command = "${baseCommand} ${volume} cli general upload --x='string'  --y='123' --z[]='string in array' --file='/appwrite/file.png'";
 
 // $command = "${baseCommand} ${volume} cli ls /app";
 // var_dump($command);
