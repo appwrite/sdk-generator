@@ -30,6 +30,11 @@ class SDK
     /**
      * @var array
      */
+    protected $defaultHeaders = [];
+
+    /**
+     * @var array
+     */
     protected $params = [
         'namespace' => '',
         'name' => '',
@@ -173,6 +178,14 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseHTML', function ($value) {
             return $value;
         }, ['is_safe' => ['html']]));
+    }
+
+    /**
+     * @param array $headers
+     * @return $this
+     */
+    public function setDefaultHeaders($headers) {
+        $this->defaultHeaders = $headers;
     }
 
     /**
@@ -460,6 +473,7 @@ class SDK
                 'services' => $this->spec->getServices(),
                 'global' => [
                     'headers' => $this->spec->getGlobalHeaders(),
+                    'defaultHeaders' => $this->defaultHeaders,
                 ],
             ],
             'language' => [

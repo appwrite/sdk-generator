@@ -74,6 +74,11 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		req.Header.Set(key, ToString(val))
 	}
 
+	//Set default headers
+{% for key,header in spec.global.defaultHeaders %}
+	req.Header.Set("{{key}}", "{{header}}")
+{% endfor %}
+
 	// Set Custom headers
 	for key, val := range headers {
 		req.Header.Set(key, ToString(val))

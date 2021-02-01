@@ -87,8 +87,8 @@ class SDKTest extends TestCase
                 'dotnet-5.0' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:5.0-alpine pwsh tests.ps1',
                 'dotnet-3.1' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:3.1-alpine pwsh tests.ps1'
             ],
-            'supportRedirect' => false,
-            'supportUpload' => false,
+            'supportRedirect' => true,
+            'supportUpload' => true,
         ],
 
         'typescript' => [
@@ -135,15 +135,16 @@ class SDKTest extends TestCase
         'ruby' => [
             'class' => 'Appwrite\SDK\Language\Ruby',
             'build' => [
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/ruby --env GEM_HOME=/app/vendor ruby:2.7-alpine sh -c "apk add git build-base && bundle install"'
             ],
             'envs' => [
-                'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.7-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.6-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.5-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app ruby:2.4-alpine ruby tests/languages/ruby/tests.rb',
+                'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.7-alpine ruby tests/languages/ruby/tests.rb',
+                'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.6-alpine ruby tests/languages/ruby/tests.rb',
+                'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.5-alpine ruby tests/languages/ruby/tests.rb',
+                'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.4-alpine ruby tests/languages/ruby/tests.rb',
             ],
             'supportRedirect' => true,
-            'supportUpload' => false,
+            'supportUpload' => true,
         ],
 
         'python' => [
@@ -197,6 +198,7 @@ class SDKTest extends TestCase
         // $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
         $whitelist = ['cli'];
 
+        $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
                 continue;
@@ -217,6 +219,9 @@ class SDKTest extends TestCase
                 ->setLicense('BSD-3-Clause')
                 ->setLicenseContent('demo license')
                 ->setChangelog('--changelog--')
+                ->setDefaultHeaders([
+                    'X-Appwrite-Response-Format' => '0.6.2',
+                ])
             ;
 
             $sdk->generate(__DIR__ . '/sdks/' . $language);
@@ -237,7 +242,6 @@ class SDKTest extends TestCase
                     }
                 }
             }
-
             /**
              * Run tests on all different envs
              */
