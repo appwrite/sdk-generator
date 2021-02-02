@@ -9,16 +9,13 @@
     },
     "autoload": {
         "psr-4": {
-            "{{spec.title | caseUcfirst}}\\": "src/{{spec.title | caseUcfirst}}"
+            "{{spec.title | caseUcfirst}}\\": "app/{{spec.title | caseUcfirst}}"
         }
     },
     "require": {
         "php": ">=7.4.0",
         "utopia-php/cli": "0.10.0",
         "jc21/clitable": "^1.2"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "3.7.35"
     },
     "minimum-stability": "dev"
 }

@@ -1,4 +1,4 @@
 ```sh
-$ docker run -i cli {{ service.name }} {{ method.name }} {% for parameter in method.parameters.all %} --{{ parameter.name }}="{{ parameter.example }}" {% endfor %}
+$ appwrite {{ service.name }} {{ method.name }} {% for parameter in method.parameters.all %} --{{ parameter.name }}="{{ parameter.example }}" {% endfor %}
 
 ```

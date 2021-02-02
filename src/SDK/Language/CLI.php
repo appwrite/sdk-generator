@@ -110,8 +110,8 @@ class CLI extends PHP {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Client.php',
-                'template'      => '/cli/src/Client.php.twig',
+                'destination'   => 'app/{{ spec.title | caseUcfirst}}/Client.php',
+                'template'      => '/cli/app/Client.php.twig',
                 'minify'        => false,
             ],
             [
@@ -122,8 +122,8 @@ class CLI extends PHP {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Parser.php',
-                'template'      => '/cli/src/Parser.php.twig',
+                'destination'   => 'app/{{ spec.title | caseUcfirst}}/Parser.php',
+                'template'      => '/cli/app/Parser.php.twig',
                 'minify'        => false,
             ],
             [
@@ -158,26 +158,26 @@ class CLI extends PHP {
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
-                'template'      => '/cli/src/Services/Service.php.twig',
+                'destination'   => '/app/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
+                'template'      => '/cli/app/Services/Service.php.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Services/Client.php',
-                'template'      => '/cli/src/Services/Client.php.twig',
+                'destination'   => 'app/{{ spec.title | caseUcfirst}}/Services/Client.php',
+                'template'      => '/cli/app/Services/Client.php.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Services/Help.php',
-                'template'      => '/cli/src/Services/Help.php.twig',
+                'destination'   => 'app/{{ spec.title | caseUcfirst}}/Services/Help.php',
+                'template'      => '/cli/app/Services/Help.php.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Init.php',
-                'template'      => '/cli/src/Init.php.twig',
+                'destination'   => 'app/{{ spec.title | caseUcfirst}}/Init.php',
+                'template'      => '/cli/app/Init.php.twig',
                 'minify'        => false,
             ],
         ];
