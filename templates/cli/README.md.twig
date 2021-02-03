@@ -59,16 +59,6 @@ each service is summarised below.
 The {{ service.name | caseUcfirst }} service has {{ service.methods | length }} methods and 
 its description and sample usage is summarised as shown below
 
-
-{% for method in service.methods %}
-### {{ method.name | caseUcfirst }} 
-{{ method.description | replace({"\n": "", "\r": "", "\t": ""}) }}
-```bash
-$ docker run -i cli {{ service.name }} {{ method.name }} {% for parameter in method.parameters.all %} --{{ parameter.name }}="{{ parameter.example }}" {% endfor %} {{ "\n" }}
-```
-
-{% endfor %}
-
 {% endfor %}
 
 Additionally we also have a client service which allows us to configure the endpoint, project ID, 
