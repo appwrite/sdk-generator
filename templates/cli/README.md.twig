@@ -18,26 +18,22 @@
 This tutorial assumes that you have docker setup and running on your machine. 
 
 ```bash
-$ wget http://appwrite.io/install_cli.sh
-$ chmod +x install_cli.sh
-$ ./install_cli.sh
+$ wget -q https://appwrite.io/cli/install.sh  -O - | /bin/bash  
 ```
 
-## Usage
-Once the installation is successfull, you can start the cli using 
+## Initialisation 
+The CLI needs to be initialised with your project settings. This can be done using 
 ```sh
-$ appwrite init
-$ appwrite [SERVICE] [COMMAND] --[OPTIONS] 
+$ appwrite init 
 ```
 
-The CLI requires an endpoint, project ID, API key and a locale to be able to communicate with the appwrite backend. There are two ways to achieve this 
+The CLI requires an endpoint, project ID, API key and a locale to be able to communicate with the Appwrite backend server. There are two ways to achieve this 
 
-## 1. Environment file 
+### 1. Environment file 
 ```sh
-$ appwrite-cli --env-file path/to/your/environment/file [SERVICE] [COMMAND] --[OPTIONS]     
+$ appwrite --env-file path/to/your/environment/file init     
 ```
 The .env file must have the following keys 
-
 ```sh
 endpoint=http://192.168.1.6/v1
 X-Appwrite-Project=5ff450422d42f
@@ -45,29 +41,40 @@ X-Appwrite-Key=0773c7...a2672a
 X-Appwrite-Locale=en-US
 ```
 
-## 2. Using the prompt
+### 2. Using the prompt
 
-Invoking the `appwrite-cli` without an env file triggers an interactive prompt where you can manually enter the details. 
-These values are then stored in a `.prefs.json` file for future usage.
+Invoking `appwrite init` without an env file triggers an interactive prompt where you can manually enter the details. These values are saved locally so that you dont have to re-enter them everytime. 
 
+## Usage 
 
-The CLI is divided into {{spec.services | length }} services and the usage of 
-each service is summarised below.
+The Appwrite CLI follows the following general syntax.
+```sh
+$ appwrite [SERVICE] [COMMAND] --[OPTIONS]
+```
 
-{% for service in spec.services %}
-## {{ service.name | caseUcfirst }} 
-The {{ service.name | caseUcfirst }} service has {{ service.methods | length }} methods and 
-its description and sample usage is summarised as shown below
-
-{% endfor %}
-
-Additionally we also have a client service which allows us to configure the endpoint, project ID, 
-project key, and the locale.
-
-## Client 
+A few sample commands to get you started 
 
 ```sh
+$ appwrite users create --email="hello@appwrite.io" --password="very_strong_password"
+$ appwrite users list 
+```
 
+To get information about the different services available, you can use 
+```sh
+$ appwrite help
+```
+
+To get information about a particular service and the commands available in a service you can use 
+```sh
+$ appwrite users help
+$ appwrite accounts help
+```
+
+To get information about a particular command and the parameters it accepts, you can use
+
+```sh
+$ appwrite users list --help
+$ appwrite account get --help 
 ```
 
 ## Contribution
