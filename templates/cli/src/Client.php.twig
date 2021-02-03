@@ -75,7 +75,7 @@ class Client
 
     public function getPreference(string $key): string
     {
-        return $this->preferences[$key];
+        return $this->preferences[$key] ?? '';
     }
 
     public function setPreference(string $key , string $value) 
