@@ -12,6 +12,7 @@ FROM php:7.4-alpine
 WORKDIR /usr/local/code/
 # Add Source Code
 COPY ./app /usr/local/code/app
+COPY ./src /usr/local/code/src
 COPY ./bin /usr/local/bin
 COPY --from=step0 /usr/local/code/vendor /usr/local/code/vendor
 

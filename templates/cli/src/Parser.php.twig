@@ -3,16 +3,6 @@
 namespace {{ spec.title | caseUcfirst }};
 
 use jc21\CliTable;
-use jc21\CliTableManipulator;
-
-class Manipulators extends CliTableManipulator {
-    public function truncate($value) {
-		if (is_bool($value)) {
-            $value = $value ? 'true' : 'false';
-        }
-		return strlen(empty($value) ?? '') > 15 ? substr($value,0,15).'...' : $value;
-    }    
-}
 
 class Parser {
 
