@@ -18,6 +18,6 @@ class Manipulators extends CliTableManipulator {
       if (is_bool($value)) {
               $value = $value ? 'true' : 'false';
           }
-      return strlen(empty($value) ?? '') > self::TRUNCATE_THRESHOLD ? substr($value,0,self::TRUNCATE_THRESHOLD).'...' : $value;
+      return strlen(empty($value) ? '' : $value) > self::TRUNCATE_THRESHOLD ? substr($value,0,self::TRUNCATE_THRESHOLD).'...' : $value;
     }    
 }
