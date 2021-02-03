@@ -345,9 +345,9 @@ try {
         ->setVersion('0.0.1')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
-        ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
-        ])
+        // ->setDefaultHeaders([
+        //     'X-Appwrite-Response-Format' => '0.7.0',
+        // ])
     ;
     $sdk->generate(__DIR__ . '/examples/CLI');
 

@@ -59,9 +59,6 @@ class Client
      */
     public function __construct()
     {
-        /* Load user defaults from a json file if available
-           Else Propmt the user to enter the details
-        */
         if (!$this->loadPreferences()) {
             Console::error("❌ Oops We were unable to load your preferences. Ensure that you have run 'appwrite init' before using the CLI");
             Console::exit();
@@ -76,19 +73,33 @@ class Client
         ;
     }
 
+    /**
+     * Getter for preferences
+     *
+     * @param string $key
+     * @return string
+     */
     public function getPreference(string $key): string
     {
         return $this->preferences[$key] ?? '';
     }
 
+    /**
+     * Setter for preferences
+     *
+     * @param string $key
+     * @param string $value
+     */
     public function setPreference(string $key , string $value) 
     {
         $this->preferences[$key] = $value;
     }
 
-    /**
-     * Function to load user preferences from
-     * the JSON file
+     /**
+     * Load user preferences from the JSON file
+     * 
+     * @param string $filename 
+     * @return bool
      */
     private function loadPreferences(string $filename = self::USER_PREFERENCES_FILE): bool
     {
@@ -110,6 +121,11 @@ class Client
         return true;
     }
 
+     /**
+     * Check if all the preferences have been successfully loaded.
+     * 
+     * @return bool
+     */
     private function isPreferenceLoaded() : bool {
         if(empty($this->getPreference(self::PREFERENCE_ENDPOINT))) return false;
 {% for header in spec.global.headers %}

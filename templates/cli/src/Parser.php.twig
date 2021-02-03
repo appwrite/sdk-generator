@@ -103,6 +103,8 @@ class Parser {
             foreach ($data as $key => $value) {
                 if (is_array($value)) {
                     $data[$key] = 'array('.count($value).')';
+                } else if (is_object($value)) {
+                    $data[$key] = 'Object';
                 }
             }
             return $data;
