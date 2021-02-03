@@ -18,9 +18,11 @@ const PREFERENCE_ENDPOINT = "endpoint";
  */
 $preferences = [
     PREFERENCE_ENDPOINT => '',
-    'X-Appwrite-Project' => '',
-    'X-Appwrite-Key' => '',
-    'X-Appwrite-Locale' => '',
+{% for header in spec.global.headers %}
+{% if header.key != 'Mode' %}
+    '{{header.name}}' => '',
+{% endif %}
+{% endfor %}
 ];
 
 
@@ -32,17 +34,16 @@ function loadEnvVariables(): bool
 {
     try {
         
-        $endpoint = getenv('endpoint') ?: '';
+        $endpoint = getenv(PREFERENCE_ENDPOINT) ?: '';
         setPreference(PREFERENCE_ENDPOINT, $endpoint);
 
-        $project = getenv('X-Appwrite-Project') ?: '';
-        setPreference('X-Appwrite-Project', $project);
+{% for header in spec.global.headers %}
+{% if header.key != 'Mode' %}
+        ${{ header.key | caseCamel }} = getenv('{{ header.name}}') ?: '';
+        setPreference('{{ header.name }}', ${{ header.key | caseCamel }});
 
-        $key = getenv('X-Appwrite-Key') ?: '';
-        setPreference('X-Appwrite-Key', $key);
-
-        $locale = getenv('X-Appwrite-Locale') ?: '';
-        setPreference('X-Appwrite-Locale', $locale);
+{% endif %}
+{% endfor %}
 
         if (!isPreferenceLoaded()) {
             return false;
@@ -64,9 +65,11 @@ function loadEnvVariables(): bool
 
 function isPreferenceLoaded() : bool {
     if(empty(getPreference(PREFERENCE_ENDPOINT))) return false;
-    if(empty(getPreference('X-Appwrite-Project'))) return false;
-    if(empty(getPreference('X-Appwrite-Key'))) return false;
-    if(empty(getPreference('X-Appwrite-Locale'))) return false;
+{% for header in spec.global.headers %}
+{% if header.key != 'Mode' %}
+    if(empty(getPreference('{{header.name}}'))) return false;
+{% endif %}
+{% endfor %}
     return true;
 }
 
@@ -87,7 +90,7 @@ function savePreferences(string $filename = USER_PREFERENCES_FILE): int
 function getPreference(string $key): string
 {
     global $preferences;
-    return $preferences[$key];
+    return $preferences[$key] ?? '';
 }
 
 function setPreference(string $key , string $value) 
@@ -127,7 +130,6 @@ function promptUser()
         $locale = Console::confirm('🟢 Enter your locale: : ( default: en-US )');
         setPreference('X-Appwrite-Locale', empty($locale) ? 'en-US' : $locale );
     }
-
     
     $result = savePreferences();
     if ($result === false) {
