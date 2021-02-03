@@ -6,6 +6,11 @@ use jc21\CliTable;
 
 class Parser {
 
+    /**
+     * List of colors supported by the library 
+     *
+     * @var array
+     */
     private const colors = array(
         'blue',
         'red',
@@ -17,10 +22,27 @@ class Parser {
         'grey'
     );
 
+    /**
+     * Color for the table borders
+     *
+     * @var bool
+     */
     private const tableColor = self::colors[0];
+
+    /**
+     * Color for the table column headers
+     *
+     * @var string
+     */
     private const headerColor = self::colors[2];
 
-    public function parseResponse($response, $properties = array()) {
+     /**
+     * Parse the response from the server 
+     *
+     * @param string $value 
+     * @return void
+     */
+    public function parseResponse($response) {
         
         foreach ($response as $key => $value) {
             if (is_array($value)) {
@@ -33,16 +55,37 @@ class Parser {
         }
     }
 
+    /**
+     * Print a key value pair
+     *
+     * @param string $key
+     * @param string $value 
+     * @return void
+     */
     private function drawKeyValue($key, $value){
         printf("%s : %s\n", $key, $value);
     }
 
+    /**
+     * Get a column color based on the index
+     *
+     * @param int $index
+     * @return string
+     */
     private function getColor($index = -1) : string {
         if ($index != -1) return self::colors[$index % count(self::colors) ];
         return self::colors[array_rand(self::colors)];
     }
 
-    private function drawTable($data, $headerColor, $tableColor, $columnProps = []) {
+    /**
+     * Creates a table from the passed data
+     *
+     * @param array $data
+     * @param string $headerColor
+     * @param string $tableColor
+     * @return void
+     */
+    private function drawTable($data, $headerColor, $tableColor) {
         if (!is_array($data) || count($data) == 0 || !is_array($data[0])) return;
 
         $keys = array_keys($data[0]);
