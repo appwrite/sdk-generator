@@ -143,6 +143,7 @@ class Swagger2 extends Spec {
                         'path' => $pathName,
                         'fullPath' => parse_url($this->getEndpoint(), PHP_URL_PATH).$pathName,
                         'name' => $method['x-appwrite']['method'] ?? ($method['operationId'] ?? ''),
+                        'packaging' => $method['x-appwrite']['packaging'] ?? false,
                         'title' => $method['summary'] ?? '',
                         'description' => $method['description'] ?? '',
                         'security' => $method['security'] ?? [],

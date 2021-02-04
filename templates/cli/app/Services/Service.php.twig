@@ -68,22 +68,25 @@ $cli
 {% endfor %}
 
 {% for parameter in method.parameters.body %}
+
 {% if parameter.type == 'file' %}
+        ${{ parameter.name | caseCamel }} = realpath(__DIR__.'/../../../files/'.${{ parameter.name | caseCamel }});
         if (file_exists(${{ parameter.name | caseCamel }}) === false ) {
-            throw new Exception("Path doesn't exist. Please ensure that the path is relative to the current directory and down the directory tree"); 
+            throw new Exception("Path doesn't exist. Please ensure that the path is within the current directory. "); 
         }
-{% if method.name == 'createTag' %}
+{% if method.packaging %}
         $archive_file_path = dirname(${{ parameter.name | caseCamel }}, 1).'/code.tar';
         $archive = new PharData($archive_file_path);
         $archive->buildFromDirectory(${{ parameter.name | caseCamel }});
         $archive->compress(Phar::GZ);
         ${{ parameter.name | caseCamel }} = $archive_file_path;
 {% endif %}
-        $cFile = new \CURLFile(${{ parameter.name | caseCamel }}, 'image/png', basename(${{ parameter.name | caseCamel }}));
+        $cFile = new \CURLFile(${{ parameter.name | caseCamel }}, {% if method.packaging %} 'application/x-gzip' {% else %} 'image/png' {% endif %}, basename(${{ parameter.name | caseCamel }}));
         $params['{{ parameter.name }}'] = $cFile;
 {% else %} 
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
 {% endif %}
+
 {% endfor %}
 
 {% for parameter in method.parameters.formData %}
@@ -99,7 +102,7 @@ $cli
 {% endfor %}
         ], $params);
 
-{% if service.name == 'functions' and method.name == 'createTag' %}
+{% if method.packaging %}
         unlink($archive_file_path); // as we already obtained a tar.gz
         unlink($archive_file_path.'.gz');
 {% endif %}
