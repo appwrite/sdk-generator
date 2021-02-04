@@ -35,6 +35,7 @@ class SDKTest extends TestCase
         'cli' => [
             'class' => 'Appwrite\SDK\Language\CLI',
             'build' => [
+                'cp tests/resources/file.png tests/sdks/cli/files/',
                 'docker build -t cli tests/sdks/cli'
             ],
             'envs' => [
@@ -197,7 +198,6 @@ class SDKTest extends TestCase
 
         $whitelist = ['php', 'cli', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
 
-        // $whitelist = ['php', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
                 continue;

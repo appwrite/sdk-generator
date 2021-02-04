@@ -1,6 +1,6 @@
 <?php
 
-$baseCommand = "docker run -i --rm --volume appwrite-cli:/usr/local/code/src/Appwrite/.preferences/";
+$baseCommand = "docker run -i --rm --volume appwrite-cli:/usr/local/code/app/.preferences/";
 $envVars = "-e endpoint=https://appwrite.io/v1 -e X-Appwrite-Project=6013fbefdfa41 -e X-Appwrite-Key=35y3h5h345 -e X-Appwrite-Locale=en-US";
 
 // Initialise the CLI 
@@ -68,19 +68,8 @@ $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-// $command = "ls /app/tests/resources";
-// $output = [];
-// exec($command, $output);
-// var_dump($output);
 
-$volume = '--volume '.realpath(__DIR__.'/../../resources').':/appwrite:rw';
-// var_dump($volume);
-// var_dump(scandir(realpath(__DIR__.'/../../resources')));
-$command = "${baseCommand} ${volume} cli general upload --x='string'  --y='123' --z[]='string in array' --file='/appwrite/file.png'";
-
-// $command = "${baseCommand} ${volume} cli ls /app";
-// var_dump($command);
+$command = "${baseCommand} cli general upload --x='string'  --y='123' --z[]='string in array' --file='file.png'";
 $output = [];
 exec($command, $output);
-// var_dump($output);
 echo substr($output[0],9)."\n";
