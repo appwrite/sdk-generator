@@ -75,11 +75,12 @@ $cli
             throw new Exception("Path doesn't exist. Please ensure that the path is within the current directory. "); 
         }
 {% if method.packaging %}
-        $archive_file_path = dirname(${{ parameter.name | caseCamel }}, 1).'/code.tar';
+        $archive_file_name = '{{ parameter.name | caseCamel }}.tar';
+        $archive_file_path = dirname(${{ parameter.name | caseCamel }}, 1)."/${archive_file_name}";
         $archive = new PharData($archive_file_path);
         $archive->buildFromDirectory(${{ parameter.name | caseCamel }});
         $archive->compress(Phar::GZ);
-        ${{ parameter.name | caseCamel }} = $archive_file_path;
+        ${{ parameter.name | caseCamel }} = $archive_file_path.'.gz';
 {% endif %}
         $cFile = new \CURLFile(${{ parameter.name | caseCamel }}, {% if method.packaging %} 'application/x-gzip' {% else %} 'image/png' {% endif %}, basename(${{ parameter.name | caseCamel }}));
         $params['{{ parameter.name }}'] = $cFile;
