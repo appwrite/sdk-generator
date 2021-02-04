@@ -32,7 +32,6 @@ class {{ service.name | caseUcfirst }} extends Service
 {% endfor %}
 {% for parameter in method.parameters.body %}
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
-        {{dump(parameter)}}
 {% endfor %}
 {% for parameter in method.parameters.formData %}
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
