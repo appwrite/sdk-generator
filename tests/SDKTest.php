@@ -35,6 +35,8 @@ class SDKTest extends TestCase
         'cli' => [
             'class' => 'Appwrite\SDK\Language\CLI',
             'build' => [
+                'printf "\nCOPY ./files /usr/local/code/files" >> tests/sdks/cli/Dockerfile',
+                'cat tests/sdks/cli/Dockerfile',
                 'cp tests/resources/file.png tests/sdks/cli/files/',
                 'docker build -t cli tests/sdks/cli'
             ],
