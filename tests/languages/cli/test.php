@@ -61,13 +61,11 @@ $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-
 // General 
 $command = "${baseCommand} cli general redirect";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
-
 
 $command = "${baseCommand} cli general upload --x='string'  --y='123' --z[]='string in array' --file='file.png'";
 $output = [];
