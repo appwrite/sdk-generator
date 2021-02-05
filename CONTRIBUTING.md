@@ -16,19 +16,19 @@ To install a working development environment follow these instructions:
 
 **Composer CLI**
 ```bash
-composer update --ignore-platform-reqs --optimize-autoloader
+composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-scripts --prefer-dist
 ```
 
 **Docker (UNIX)**
 
 ```bash
-docker run --rm --interactive --tty --volume "$(pwd)":/app composer install
+docker run --rm --interactive --tty --volume "$(pwd)":/app composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-scripts --prefer-dist
 ```
 
 **Docker (Windows)**
 
 ```bash
-docker run --rm --interactive --tty --volume "%cd%":/app composer install
+docker run --rm --interactive --tty --volume "%cd%":/app composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-scripts --prefer-dist
 ```
 
 3. Follow our contribution guide to learn how you can add support for more languages.
