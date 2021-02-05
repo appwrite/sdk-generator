@@ -200,5 +200,5 @@ protected $containers = [
 
 Finally, you can run the tests using
 ```sh
-$ docker run --rm -v $(pwd):/app -w /app php:7.4-cli vendor/bin/phpunit tests/SDKTest.php    
+docker run --rm -v $(pwd):/app:rw -w /app -v /var/run/docker.sock:/var/run/docker.sock  php:7.4-cli-alpine sh -c "apk add docker-cli && vendor/bin/phpunit tests/SDKTest.php"
 ```
