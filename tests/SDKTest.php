@@ -36,7 +36,7 @@ class SDKTest extends TestCase
             'class' => 'Appwrite\SDK\Language\CLI',
             'build' => [
                 'printf "\nCOPY ./files /usr/local/code/files" >> tests/sdks/cli/Dockerfile',
-                'cat tests/sdks/cli/Dockerfile',
+                'mkdir tests/sdks/cli/files/',
                 'cp tests/resources/file.png tests/sdks/cli/files/',
                 'docker build -t cli tests/sdks/cli'
             ],
@@ -198,7 +198,8 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'cli', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
+        // $whitelist = ['php', 'cli', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
+        $whitelist = ['cli'];
 
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
