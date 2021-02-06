@@ -485,8 +485,7 @@ class SDK
 
         foreach ($this->language->getFiles() as $file) {
             var_dump($file['template']);
-            var_dump(__DIR__);
-            var_dump(realpath($file['template']));
+            var_dump(realpath(__DIR__.'/../../'.$file['template']));
             $template       = $this->twig->load($file['template']); /* @var $template \Twig\TemplateWrapper */
             $destination    = $target . '/' . $file['destination'];
             $block          = $file['block'] ?? null;
