@@ -165,25 +165,25 @@ class CLI extends PHP {
             [
                 'scope'         => 'service',
                 'destination'   => '/app/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseDash}}.php',
-                'template'      => '/cli/app/Services/service.php.twig',
+                'template'      => '/cli/app/services/service.php.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'app/{{ spec.title | caseUcfirst}}/Services/client.php',
-                'template'      => '/cli/app/Services/client.php.twig',
+                'template'      => '/cli/app/services/client.php.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'app/{{ spec.title | caseUcfirst}}/Services/help.php',
-                'template'      => '/cli/app/Services/help.php.twig',
+                'template'      => '/cli/app/services/help.php.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'app/{{ spec.title | caseUcfirst}}/Services/init.php',
-                'template'      => '/cli/app/Services/init.php.twig',
+                'template'      => '/cli/app/services/init.php.twig',
                 'minify'        => false,
             ],
         ];
