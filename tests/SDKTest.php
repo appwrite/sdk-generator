@@ -36,9 +36,10 @@ class SDKTest extends TestCase
             'class' => 'Appwrite\SDK\Language\CLI',
             'build' => [
                 'printf "\nCOPY ./files /usr/local/code/files" >> tests/sdks/cli/Dockerfile',
-                'mkdir tests/sdks/cli/files/',
+                'cat tests/sdks/cli/Dockerfile',
+                'mkdir tests/sdks/cli/files',
                 'cp tests/resources/file.png tests/sdks/cli/files/',
-                'docker build -t cli tests/sdks/cli'
+                'docker build -t cli:latest tests/sdks/cli'
             ],
             'envs' => [
                 'default' => 'php tests/languages/cli/test.php',
@@ -237,6 +238,9 @@ class SDKTest extends TestCase
                 
                 foreach ($options['build'] as $key => $command) {
                     echo "Building phase #{$key} for {$language} package...\n";
+                    echo "Executing: {$command}\n";
+                    
+                    $output = [];
                     exec($command, $output);
 
                     foreach($output as $i => $row) {
@@ -244,6 +248,7 @@ class SDKTest extends TestCase
                     }
                 }
             }
+
             /**
              * Run tests on all different envs
              */
