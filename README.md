@@ -1,4 +1,4 @@
-# Appwrite SDK Generator ⚙️
+# ⚙️ Appwrite SDK Generator
 
 [![Discord](https://img.shields.io/discord/564160730845151244?label=discord&style=flat-square)](https://appwrite.io/discord)
 [![Build Status](https://img.shields.io/travis/com/appwrite/sdk-generator?style=flat-square)](https://travis-ci.com/appwrite/sdk-generator)
