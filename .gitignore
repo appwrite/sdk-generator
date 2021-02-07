@@ -4,6 +4,7 @@
 /tests/sdks
 /.vscode
 .vs
+.env
 
 # exclude everything
 examples/*

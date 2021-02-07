@@ -1,0 +1,21 @@
+{
+    "name": "{{spec.title | caseLower}}/{{spec.title | caseLower}}",
+    "description": "{{ sdk.description }}",
+    "type": "library",
+    "license": "{{ spec.licenseName }}",
+    "support": {
+        "url": "{{ spec.contactURL }}",
+        "email": "{{ spec.contactEmail }}"
+    },
+    "autoload": {
+        "psr-4": {
+            "{{spec.title | caseUcfirst}}\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=7.4.0",
+        "utopia-php/cli": "0.10.0",
+        "jc21/clitable": "^1.2"
+    },
+    "minimum-stability": "dev"
+}

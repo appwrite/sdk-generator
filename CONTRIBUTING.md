@@ -16,19 +16,19 @@ To install a working development environment follow these instructions:
 
 **Composer CLI**
 ```bash
-composer update --ignore-platform-reqs --optimize-autoloader
+composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-scripts --prefer-dist
 ```
 
 **Docker (UNIX)**
 
 ```bash
-docker run --rm --interactive --tty --volume "$(pwd)":/app composer install
+docker run --rm --interactive --tty --volume "$(pwd)":/app composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-scripts --prefer-dist
 ```
 
 **Docker (Windows)**
 
 ```bash
-docker run --rm --interactive --tty --volume "%cd%":/app composer install
+docker run --rm --interactive --tty --volume "%cd%":/app composer update --ignore-platform-reqs --optimize-autoloader --no-plugins --no-scripts --prefer-dist
 ```
 
 3. Follow our contribution guide to learn how you can add support for more languages.
@@ -196,4 +196,9 @@ protected $containers = [
     'php-7.3' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli php tests/languages/tests-for-php.php',
     'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli php tests/languages/tests-for-php.php',
 ];
+```
+
+Finally, you can run the tests using
+```sh
+docker run --rm -v $(pwd):/app:rw -w /app -v /var/run/docker.sock:/var/run/docker.sock  php:7.4-cli-alpine sh -c "apk add docker-cli && vendor/bin/phpunit tests/SDKTest.php"
 ```

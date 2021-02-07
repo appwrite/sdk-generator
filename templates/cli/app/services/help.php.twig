@@ -1,0 +1,20 @@
+<?php
+
+namespace {{ spec.title | caseUcfirst }}\Services;
+
+printf("
+   _                            _ _       
+  /_\  _ __  _ ____      ___ __(_) |_ ___ 
+ //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \
+/  _  \ |_) | |_) \ V  V /| |  | | ||  __/
+\_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___|
+      |_|   |_|                           
+      
+      ");
+printf("\nUsage : appwrite [SERVICE] [COMMAND] --[OPTION]\n\n");
+printf("Services :\n");
+$mask = "\t%-20.20s %-125.125s\n";
+{% for service in spec.services %}
+printf($mask, "{{ service.name }}", "{{ service.description }}");
+{% endfor %}
+printf("\nRun 'appwrite [SERVICE] help' for more information on a service.\n");

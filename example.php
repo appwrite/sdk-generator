@@ -2,6 +2,7 @@
 
 include_once 'vendor/autoload.php';
 
+use Appwrite\SDK\Language\CLI;
 use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\Web;
@@ -329,6 +330,26 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/dotnet');
+
+    // CLI
+    $sdk  = new SDK(new CLI(), new Swagger2($spec));
+    $sdk
+        ->setName('NAME')
+        ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
+        ->setURL('https://example.com')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
+        ->setVersion('0.0.1')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
+        // ->setDefaultHeaders([
+        //     'X-Appwrite-Response-Format' => '0.7.0',
+        // ])
+    ;
+    $sdk->generate(__DIR__ . '/examples/CLI');
 
 }
 catch (Exception $exception) {
