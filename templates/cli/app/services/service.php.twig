@@ -100,7 +100,6 @@ $cli
         $params['key'] = $client->getPreference('X-Appwrite-Key');
         $path = $client->getPreference(Client::PREFERENCE_ENDPOINT).$path . "?" . http_build_query($params);
         echo "Please follow this URL to view your file \n".$path;
-        $response['url'] = $path;
 
 {% else %}
 
@@ -114,7 +113,7 @@ $cli
         ], $params);
 
         $parser->parseResponse($response);
-        
+
 {% endif %}
 
 {% if method.packaging %}
