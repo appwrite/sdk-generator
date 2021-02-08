@@ -1,4 +1,4 @@
-# Appwrite SDK Generator
+# ⚙️ Appwrite SDK Generator
 
 [![Discord](https://img.shields.io/discord/564160730845151244?label=discord&style=flat-square)](https://appwrite.io/discord)
 [![Build Status](https://img.shields.io/travis/com/appwrite/sdk-generator?style=flat-square)](https://travis-ci.com/appwrite/sdk-generator)
@@ -106,6 +106,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | D          |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Kotlin     |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Swift      |                     |                        | Swift Pkg Manager  | [@armino-dev]  |
+| Docker CLI |                     |                        | Docker Hub         | [@christyjacob4]  |
 
 [@Almoullim]:           https://github.com/Almoullim
 [@eldadfux]:            https://github.com/eldadfux
@@ -114,7 +115,8 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 [@bartektartanus]:      https://github.com/bartektartanus
 [@komemi]:              https://github.com/komemi
 [@TorstenDittmann]:     https://github.com/TorstenDittmann
-[@lohanidamodar]:     https://github.com/lohanidamodar
+[@lohanidamodar]:       https://github.com/lohanidamodar
+[@christyjacob4]:       https://github.com/christyjacob4
 
 [PHP FIG]:              https://www.php-fig.org/
 [NPM Coding Style]:     https://docs.npmjs.com/misc/coding-style
