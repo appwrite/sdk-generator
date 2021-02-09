@@ -99,7 +99,7 @@ $cli
         $params['project'] = $client->getPreference('X-Appwrite-Project');
         $params['key'] = $client->getPreference('X-Appwrite-Key');
         $path = $client->getPreference(Client::PREFERENCE_ENDPOINT).$path . "?" . http_build_query($params);
-        echo "Please follow this URL to view your file \n".$path;
+        echo $path;
 
 {% else %}
 
