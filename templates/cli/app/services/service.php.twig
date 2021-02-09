@@ -94,6 +94,15 @@ $cli
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
 {% endfor %}
 
+{% if method.type == 'location' %}
+
+        $params['project'] = $client->getPreference('X-Appwrite-Project');
+        $params['key'] = $client->getPreference('X-Appwrite-Key');
+        $path = $client->getPreference(Client::PREFERENCE_ENDPOINT).$path . "?" . http_build_query($params);
+        echo $path;
+
+{% else %}
+
         $response =  $client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},
@@ -103,12 +112,14 @@ $cli
 {% endfor %}
         ], $params);
 
+        $parser->parseResponse($response);
+
+{% endif %}
+
 {% if method.packaging %}
         unlink($archive_file_path); // as we already obtained a tar.gz
         unlink($archive_file_path.'.gz');
 {% endif %}
-
-        $parser->parseResponse($response);
     });
 
 {% endfor %}
