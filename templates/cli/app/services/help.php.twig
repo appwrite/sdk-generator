@@ -2,7 +2,7 @@
 
 namespace {{ spec.title | caseUcfirst }}\Services;
 
-printf("
+echo "\e[0;31;m
    _                            _ _       
   /_\  _ __  _ ____      ___ __(_) |_ ___ 
  //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \
@@ -10,7 +10,8 @@ printf("
 \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___|
       |_|   |_|                           
       
-      ");
+      \e[0m" ;
+
 printf("\nUsage : appwrite [SERVICE] [COMMAND] --[OPTION]\n\n");
 printf("Services :\n");
 $mask = "\t%-20.20s %-125.125s\n";
