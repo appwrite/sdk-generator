@@ -89,18 +89,8 @@ class Client {
             final Directory cookieDir = await _getCookiePath();
             cookieJar = new PersistCookieJar(dir:cookieDir.path);
             this.http.interceptors.add(CookieManager(cookieJar));
-            if(Platform.isAndroid || Platform.isIOS) {
-              PackageInfo packageInfo = await PackageInfo.fromPlatform();
-              addHeader('Origin', 'appwrite-' + type + '://' + packageInfo.packageName);
-            } else if(Platform.isLinux) {
-              addHeader('Origin', 'appwrite-linux://');
-            } else if(Platform.isMacOS) {
-              addHeader('Origin', 'appwrite-macos://');
-            } else if(Platform.isWindows) {
-              addHeader('Origin', 'appwrite-windows://');
-            } else if(Platform.isFuchsia) {
-              addHeader('Origin', 'appwrite-fuchsia://');
-            }
+            PackageInfo packageInfo = await PackageInfo.fromPlatform();
+            addHeader('Origin', 'appwrite-$type://${packageInfo.packageName ?? packageInfo.appName}');
           }else{
             // if web set httpClientAdapter as BrowserHttpClientAdapter with withCredentials true to make cookies work
             this.http.options.extra['withCredentials'] = true;
