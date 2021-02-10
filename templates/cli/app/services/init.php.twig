@@ -6,6 +6,7 @@ require_once './vendor/autoload.php';
 
 use Exception;
 use Utopia\CLI\CLI;
+use Utopia\Validator\Mock;
 use Utopia\CLI\Console;
 
 const USER_PREFERENCES_FILE = __DIR__."/../../.preferences/.prefs.json";
@@ -143,10 +144,20 @@ $cli = new CLI();
 
 $cli
     ->task('init')
-    ->action(function() {
-        /* Load user defaults from a json file if available
-        Else Prompt the user to enter the details
+    ->param('endpoint', '', new Mock(), 'Your Appwrite endpoint', true)
+{% for header in spec.global.headers %}
+    ->param('{{ header.key | lower }}', '', new Mock(), '{{ header.description }}', true)
+{% endfor %}
+    ->action(function( $endpoint, {% for header in spec.global.headers %} ${{ header.key | lower }}{% if not loop.last %},{% endif %}{% endfor %} ) {
+        /* Check if enviroment variables exist
+        * Else prompt the user
         */
+        
+        putenv("endpoint=$endpoint");
+{% for header in spec.global.headers %}
+        putenv("{{ header.name }}=${{ header.key | lower }}");
+{% endfor %}
+
         if (!loadEnvVariables()) {
             promptUser();
         }
