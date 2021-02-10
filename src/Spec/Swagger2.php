@@ -96,6 +96,7 @@ class Swagger2 extends Spec {
         $list = [];
 
         $paths = $this->getAttribute('paths', []);
+        $tags = $this->getAttribute('tags', []);
 
         foreach ($paths as $path) {
             foreach ($path as $method) {
@@ -109,6 +110,14 @@ class Swagger2 extends Spec {
                         }
                     }
                 }
+            }
+        }
+
+        foreach($tags as $tag) { // Fetch descriptions
+            $name = $tag['name'];
+
+            if(isset($list[$name])) {
+                $list[$name]['description'] = $tag['description'] ?? '';
             }
         }
 
