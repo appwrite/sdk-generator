@@ -13,11 +13,6 @@ class CLI extends PHP {
     }
 
     /**
-     * @var array
-     */
-    protected $params = [];
-
-    /**
      * @param array $param
      * @return string
      */

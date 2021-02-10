@@ -10,8 +10,8 @@ class PHP extends Language {
      * @var array
      */
     protected $params = [
-        'composerVendor' => 'vendorName',
-        'composerPackage' => 'packageName',
+        'composerVendor' => 'vendor-name',
+        'composerPackage' => 'package-name',
     ];
 
     /**
