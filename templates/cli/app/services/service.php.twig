@@ -69,21 +69,31 @@ $cli
 
 {% for parameter in method.parameters.body %}
 
-{% if parameter.type == 'file' %}
+{% if parameter.type == 'file' and method.packaging %}
+        $cloudFunctionPath = realpath(__DIR__.'/../../../files/'.${{ parameter.name | caseCamel }});
+        $cloudFunctionParentDir = dirname($cloudFunctionPath, 1);
+        $cloudFunctionDirName = basename(${{ parameter.name | caseCamel }});
+        if (file_exists($cloudFunctionPath) === false ) {
+            throw new Exception("Path doesn't exist. Please ensure that the path is within the current directory. "); 
+        }
+        $archiveName = 'code.tar.gz';
+        $volumeMountPoint = realpath(__DIR__.'/../../../files/');
+        exec("tar -zcvf $archiveName -C ${cloudFunctionParentDir} $cloudFunctionDirName && mv ${archiveName} ${volumeMountPoint}");
+        $archivePath = realpath($volumeMountPoint."/$archiveName");$archivePath = realpath($volumeMountPoint."/$archiveName");
+        $cFile = new \CURLFile($archivePath,  'application/x-gzip' , basename($archivePath));
+        
+        $params['{{ parameter.name }}'] = $cFile;
+
+{% elseif parameter.type == 'file' %}
+
         ${{ parameter.name | caseCamel }} = realpath(__DIR__.'/../../../files/'.${{ parameter.name | caseCamel }});
         if (file_exists(${{ parameter.name | caseCamel }}) === false ) {
             throw new Exception("Path doesn't exist. Please ensure that the path is within the current directory. "); 
         }
-{% if method.packaging %}
-        $archive_file_name = '{{ parameter.name | caseCamel }}.tar';
-        $archive_file_path = dirname(${{ parameter.name | caseCamel }}, 1)."/${archive_file_name}";
-        $archive = new PharData($archive_file_path);
-        $archive->buildFromDirectory(${{ parameter.name | caseCamel }});
-        $archive->compress(Phar::GZ);
-        ${{ parameter.name | caseCamel }} = $archive_file_path.'.gz';
-{% endif %}
+
         $cFile = new \CURLFile(${{ parameter.name | caseCamel }}, {% if method.packaging %} 'application/x-gzip' {% else %} 'image/png' {% endif %}, basename(${{ parameter.name | caseCamel }}));
         $params['{{ parameter.name }}'] = $cFile;
+        
 {% else %} 
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
 {% endif %}
@@ -117,8 +127,7 @@ $cli
 {% endif %}
 
 {% if method.packaging %}
-        unlink($archive_file_path); // as we already obtained a tar.gz
-        unlink($archive_file_path.'.gz');
+        unlink($archivePath);
 {% endif %}
     });
 
