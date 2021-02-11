@@ -16,6 +16,6 @@ printf("\nUsage : appwrite [SERVICE] [COMMAND] --[OPTION]\n\n");
 printf("Services :\n");
 $mask = "\t%-20.20s %-125.125s\n";
 {% for service in spec.services %}
-printf($mask, "{{ service.name }}", "{{ service.description }}");
+printf($mask, "{{ service.name }}", "{{ service.description | replace({'"':'\''}) | raw }}");
 {% endfor %}
 printf("\nRun 'appwrite [SERVICE] help' for more information on a service.\n");
