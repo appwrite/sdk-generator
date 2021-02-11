@@ -121,6 +121,20 @@ class Client
         return true;
     }
 
+    /**
+    * Function to write user preferences to
+    * the JSON file
+    * 
+    * @param string $filename 
+    * @return int
+    */
+    function savePreferences(string $filename = self::USER_PREFERENCES_FILE): int
+    {
+        $jsondata = json_encode($this->preferences, JSON_PRETTY_PRINT);
+        $result = file_put_contents($filename, $jsondata);
+        return $result;
+    }
+
      /**
      * Check if all the preferences have been successfully loaded.
      * 
