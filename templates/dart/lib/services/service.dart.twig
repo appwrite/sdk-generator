@@ -26,7 +26,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {{ method.description|dartComment }}
      ///
 {% endif %}
-    {% if method.type == 'webAuth' %}Future{% elseif method.type == 'location' %}String{% else %}Future<Response>{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) {
+    {% if method.type == 'webAuth' %}Future{% else %}Future<Response>{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) {
         final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
 
         final Map<String, dynamic> params = {
@@ -52,15 +52,7 @@ class {{ service.name | caseUcfirst }} extends Service {
           params[key] = params[key].toString();
         }});
         
-        Uri endpoint = Uri.parse(client.endPoint);
-        Uri location = new Uri(scheme: endpoint.scheme,
-          host: endpoint.host,
-          port: endpoint.port,
-          path: endpoint.path + path,
-          queryParameters:params,
-        );
-
-        return location.toString();
+        return client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, responseType: ResponseType.bytes);
 {% else %}
         final Map<String, String> headers = {
 {% for key, header in method.headers %}
