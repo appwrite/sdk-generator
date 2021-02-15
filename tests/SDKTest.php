@@ -26,26 +26,26 @@ class SDKTest extends TestCase
                 'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli-alpine php tests/languages/php/test.php',
                 'php-7.3' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli-alpine php tests/languages/php/test.php',
                 'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli-alpine php tests/languages/php/test.php',
-                'php-8.0' => 'docker run --rm -v $(pwd):/app -w /app php:8.0-cli-alpine php tests/languages/php/test.php',
+                'php-8.0' => 'docker run --rm -v $(pwd):/app -w /app php:8.0.0rc1-cli-alpine php tests/languages/php/test.php',
             ],
             'supportRedirect' => true,
             'supportUpload' => true,
         ],
 
-        'cli' => [
-            'class' => 'Appwrite\SDK\Language\CLI',
-            'build' => [
-                'printf "\nCOPY ./files /usr/local/code/files" >> tests/sdks/cli/Dockerfile',
-                'cat tests/sdks/cli/Dockerfile',
-                'mkdir tests/sdks/cli/files',
-                'cp tests/resources/file.png tests/sdks/cli/files/',
-                'docker build -t cli:latest tests/sdks/cli'
-            ],
-            'envs' => [
-                'default' => 'php tests/languages/cli/test.php',
-            ],
-            'supportUpload' => true,
-        ],
+        // 'cli' => [
+        //     'class' => 'Appwrite\SDK\Language\CLI',
+        //     'build' => [
+        //         'printf "\nCOPY ./files /usr/local/code/files" >> tests/sdks/cli/Dockerfile',
+        //         'cat tests/sdks/cli/Dockerfile',
+        //         'mkdir tests/sdks/cli/files',
+        //         'cp tests/resources/file.png tests/sdks/cli/files/',
+        //         'docker build -t cli:latest tests/sdks/cli'
+        //     ],
+        //     'envs' => [
+        //         'default' => 'php tests/languages/cli/test.php',
+        //     ],
+        //     'supportUpload' => true,
+        // ],
         
         'dart' => [
             'class' => 'Appwrite\SDK\Language\Dart',
