@@ -101,7 +101,7 @@ class Client {
         }
     }
 
-    Future<Response> call(HttpMethod method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}}) async {
+    Future<Response> call(HttpMethod method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}, ResponseType responseType}) async {
         if(selfSigned && !kIsWeb) {
             // Allow self signed requests
             (http.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate = (HttpClient client) {
@@ -116,6 +116,7 @@ class Client {
         Options options = Options(
             headers: {...this.headers, ...headers},
             method: method.name(),
+            responseType: responseType
         );
 
         if(headers['content-type'] == 'multipart/form-data') {
