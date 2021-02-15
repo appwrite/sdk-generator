@@ -17,8 +17,6 @@ before_install:
     if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
       echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
     fi
-  - TOKEN=$(curl "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$IMAGE:pull" | jq -r .token)
-  - curl --head -H "Authorization: Bearer $TOKEN" https://registry-1.docker.io/v2/$IMAGE/manifests/latest
 
 
 install:
