@@ -32,20 +32,20 @@ class SDKTest extends TestCase
             'supportUpload' => true,
         ],
 
-        // 'cli' => [
-        //     'class' => 'Appwrite\SDK\Language\CLI',
-        //     'build' => [
-        //         'printf "\nCOPY ./files /usr/local/code/files" >> tests/sdks/cli/Dockerfile',
-        //         'cat tests/sdks/cli/Dockerfile',
-        //         'mkdir tests/sdks/cli/files',
-        //         'cp tests/resources/file.png tests/sdks/cli/files/',
-        //         'docker build -t cli:latest tests/sdks/cli'
-        //     ],
-        //     'envs' => [
-        //         'default' => 'php tests/languages/cli/test.php',
-        //     ],
-        //     'supportUpload' => true,
-        // ],
+        'cli' => [
+            'class' => 'Appwrite\SDK\Language\CLI',
+            'build' => [
+                'printf "\nCOPY ./files /usr/local/code/files" >> tests/sdks/cli/Dockerfile',
+                'cat tests/sdks/cli/Dockerfile',
+                'mkdir tests/sdks/cli/files',
+                'cp tests/resources/file.png tests/sdks/cli/files/',
+                'docker build -t cli:latest tests/sdks/cli'
+            ],
+            'envs' => [
+                'default' => 'php tests/languages/cli/test.php',
+            ],
+            'supportUpload' => true,
+        ],
         
         'dart' => [
             'class' => 'Appwrite\SDK\Language\Dart',
@@ -240,6 +240,11 @@ class SDKTest extends TestCase
                     echo "Executing: {$command}\n";
                     
                     $output = [];
+
+                    ob_end_clean();
+                    var_dump('Build Executing: '.$command);
+                    ob_start();
+
                     exec($command, $output);
 
                     foreach($output as $i => $row) {
@@ -255,7 +260,11 @@ class SDKTest extends TestCase
                 echo "Running tests for the {$key} environment...\n";
 
                 $output = [];
-
+                
+                ob_end_clean();
+                var_dump('Env Executing: '.$command);
+                ob_start();
+                
                 exec($command, $output);
 
                 foreach($output as $i => $row) {
