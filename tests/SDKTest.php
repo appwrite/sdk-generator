@@ -240,6 +240,11 @@ class SDKTest extends TestCase
                     echo "Executing: {$command}\n";
                     
                     $output = [];
+
+                    ob_end_clean();
+                    var_dump('Build Executing: '.$command);
+                    ob_start();
+
                     exec($command, $output);
 
                     foreach($output as $i => $row) {
@@ -255,7 +260,11 @@ class SDKTest extends TestCase
                 echo "Running tests for the {$key} environment...\n";
 
                 $output = [];
-
+                
+                ob_end_clean();
+                var_dump('Env Executing: '.$command);
+                ob_start();
+                
                 exec($command, $output);
 
                 foreach($output as $i => $row) {
