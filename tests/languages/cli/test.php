@@ -1,10 +1,10 @@
 <?php
 
 $baseCommand = "docker run -i --rm --volume cli:/usr/local/code/app/.preferences/";
-$envVars = "-e endpoint=https://appwrite.io/v1 -e X-Appwrite-Project=6013fbefdfa41 -e X-Appwrite-Key=35y3h5h345 -e X-Appwrite-Locale=en-US";
+$envVars = "";
 
 // Initialise the CLI 
-$command = "${baseCommand} ${envVars} cli init";
+$command = "${baseCommand} ${envVars} cli init --endpoint=https://appwrite.io/v1 --project=6013fbefdfa41 --key=35y3h5h345 --locale=en-US";
 $output = [];
 exec($command, $output);
 

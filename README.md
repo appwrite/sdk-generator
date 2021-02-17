@@ -6,7 +6,6 @@
 [![Follow Appwrite on StackShare](https://img.shields.io/badge/follow%20on-stackshare-blue?style=flat-square)](https://stackshare.io/appwrite)
 [![appwrite.io](https://img.shields.io/badge/appwrite-.io-f02e65?style=flat-square)](https://appwrite.io)
 
-
 **WORK IN PROGRESS - NOT READY FOR GENERAL USAGE**
 
 [Appwrite](https://appwrite.io) SDK generator is a PHP library for auto generating SDK libraries for multiple languages and platforms.
