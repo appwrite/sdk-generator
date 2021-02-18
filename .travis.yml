@@ -18,6 +18,7 @@ before_install:
       echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
     fi
 
+
 install:
   - docker --version
   - composer install
