@@ -64,7 +64,7 @@ class Parser {
      */
     private function drawKeyValue($key, $value){
         if(is_bool($value)) {
-            $value = $$value ? 'true' : 'false';
+            $value = $value ? 'true' : 'false';
         } else if (is_array($value)) {
             $value = '{}';
         }
