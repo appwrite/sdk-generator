@@ -109,7 +109,7 @@ class Parser {
             foreach ($data as $key => $value) {
                 if (is_array($value)) {
                     if (count($value) == 0) {
-                        $data[$key] = "{}";
+                        $data[$key] = '{}';
                     } else {
                         $data[$key] = 'array('.count($value).')';
                     }
