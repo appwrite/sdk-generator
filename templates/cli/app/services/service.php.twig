@@ -10,13 +10,8 @@ use {{ spec.title | caseUcfirst }}\Parser;
 use Utopia\CLI\CLI;
 use Utopia\CLI\Console;
 use Utopia\Validator\Mock;
-{% if service.name == 'functions' %}
-use PharData;
-use Phar;
-{% endif %}
 
 $parser = new Parser();
-
 $cli = new CLI();
 
 $cli->
