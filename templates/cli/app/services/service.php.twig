@@ -28,7 +28,7 @@ $cli->
             $description = $task->getLabel('description', '');
             $params = $task->getParams();
 
-            echo "\e[0;31;m
+            Console::log("\e[0;31;m
    _                            _ _       
   /_\  _ __  _ ____      ___ __(_) |_ ___ 
  //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \
@@ -36,7 +36,7 @@ $cli->
 \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___|
       |_|   |_|                           
       
-      \e[0m" ;
+      \e[0m") ;
 
             printf("\nUsage : appwrite {{ service.name }} {$taskName} --[OPTIONS] \n\n");
             printf($description);
@@ -109,7 +109,7 @@ $cli
         $params['project'] = $client->getPreference('X-Appwrite-Project');
         $params['key'] = $client->getPreference('X-Appwrite-Key');
         $path = $client->getPreference(Client::PREFERENCE_ENDPOINT).$path . "?" . http_build_query($params);
-        echo $path;
+        Console::success($path);
 
 {% else %}
 
@@ -136,7 +136,7 @@ $cli
 $cli
     ->task('help')
     ->action(function() {
-        echo "\e[0;31;m
+        Console::log("\e[0;31;m
    _                            _ _       
   /_\  _ __  _ ____      ___ __(_) |_ ___ 
  //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \
@@ -144,7 +144,7 @@ $cli
 \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___|
       |_|   |_|                           
       
-      \e[0m" ;
+      \e[0m");
         printf("\nUsage : appwrite {{ service.name }} [COMMAND]\n\n");
         printf("Commands :\n");
         $mask = "\t%-20.20s %-125.125s\n";
