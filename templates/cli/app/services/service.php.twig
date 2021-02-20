@@ -62,13 +62,10 @@ $cli
         $client = new Client();
         $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
         $params = [];
-
 {% for parameter in method.parameters.query %}
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
 {% endfor %}
-
 {% for parameter in method.parameters.body %}
-
 {% if parameter.type == 'file' and method.packaging %}
         $cloudFunctionPath = realpath(__DIR__.'/../../../files/'.${{ parameter.name | caseCamel }});
         $cloudFunctionParentDir = dirname($cloudFunctionPath, 1);
@@ -81,36 +78,26 @@ $cli
         exec("tar -zcvf $archiveName -C $cloudFunctionParentDir $cloudFunctionDirName && mv $archiveName $volumeMountPoint");
         $archivePath = realpath($volumeMountPoint."/$archiveName");
         $cFile = new \CURLFile($archivePath,  'application/x-gzip' , basename($archivePath));
-        
         $params['{{ parameter.name }}'] = $cFile;
-
 {% elseif parameter.type == 'file' %}
-
         ${{ parameter.name | caseCamel }} = realpath(__DIR__.'/../../../files/'.${{ parameter.name | caseCamel }});
         if (file_exists(${{ parameter.name | caseCamel }}) === false ) {
             throw new Exception("Path doesn't exist. Please ensure that the path is within the current directory. "); 
         }
-
         $cFile = new \CURLFile(${{ parameter.name | caseCamel }}, {% if method.packaging %} 'application/x-gzip' {% else %} 'image/png' {% endif %}, basename(${{ parameter.name | caseCamel }}));
         $params['{{ parameter.name }}'] = $cFile;
-        
-{% else %} 
+{% else %}
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
 {% endif %}
-
 {% endfor %}
-
 {% for parameter in method.parameters.formData %}
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
 {% endfor %}
-
 {% if method.type == 'location' %}
-
         $params['project'] = $client->getPreference('X-Appwrite-Project');
         $params['key'] = $client->getPreference('X-Appwrite-Key');
         $path = $client->getPreference(Client::PREFERENCE_ENDPOINT).$path . "?" . http_build_query($params);
         Console::success($path);
-
 {% else %}
 
         $response =  $client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
@@ -121,11 +108,8 @@ $cli
             '{{ key }}' => '{{ header }}',
 {% endfor %}
         ], $params);
-
         $parser->parseResponse($response);
-
 {% endif %}
-
 {% if method.packaging %}
         unlink($archivePath);
 {% endif %}
