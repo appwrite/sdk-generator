@@ -14,7 +14,7 @@ $cli = new CLI();
 
 $cli
     ->task('setEndpoint')
-    ->param('endpoint', '', new Mock(), 'Your Appwrite endpoint', false)
+    ->param('endpoint', '', new Mock(), 'Your {{ spec.title | title }} endpoint', false)
     ->action(function($endpoint) use ($client) {
         $client->setPreference('endpoint', $endpoint);
         $result = $client->savePreferences();

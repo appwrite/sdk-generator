@@ -139,10 +139,16 @@ class CLI extends PHP {
                 'template'      => '/cli/bin/client.twig',
                 'minify'        => false,
             ],
-             [
+            [
                 'scope'         => 'default',
                 'destination'   => '/install.sh',
                 'template'      => '/cli/install.sh.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/install.ps1',
+                'template'      => '/cli/install.ps1.twig',
                 'minify'        => false,
             ],
             [
