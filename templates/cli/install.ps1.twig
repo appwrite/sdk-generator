@@ -10,25 +10,25 @@ $version = $this->getParam('version', '');
 # Love open-source, dev-tooling and passionate about code as much as we do?
 # ---
 # We're always looking for awesome hackers like you to join our 100% remote team!
-# Check and see if you find any relevant position @ https://appwrite.io/company/careers
+# Check and see if you find any relevant position @ https://{{ spec.title | lower }}.io/company/careers
 # (and let us know you found this message...)
 
 # This script contains hidden JS code to allow better readability and syntax highlighting
 # You can use "View source" of this page to see the full script.
 
-# Appwrite CLI location
-$APPWRITE_INSTALL_DIR = Join-Path -Path $env:LOCALAPPDATA -ChildPath "Appwrite"
+# {{ spec.title | caseUcfirst }} CLI location
+$APPWRITE_INSTALL_DIR = Join-Path -Path $env:LOCALAPPDATA -ChildPath "{{ spec.title | caseUcfirst }}"
 
-# Appwrite CLI Executable name 
+# {{ spec.title | caseUcfirst }} CLI Executable name 
 $APPWRITE_EXECUTABLE_NAME = "{{ language.params.executableName }}.ps1"
 
-# Appwrite executable file path 
+# {{ spec.title | caseUcfirst }} executable file path 
 $APPWRITE_EXECUTABLE_FILEPATH = Join-Path -Path $APPWRITE_INSTALL_DIR -ChildPath $APPWRITE_EXECUTABLE_NAME
 
-# Appwrite CLI image name
-$APPWRITE_CLI_IMAGE_NAME = "appwrite/cli"
+# {{ spec.title | caseUcfirst }} CLI image name
+$APPWRITE_CLI_IMAGE_NAME = "{{ spec.title | lower }}/cli"
 
-# Appwrite CLI image version 
+# {{ spec.title | caseUcfirst }} CLI image version 
 $APPWRITE_CLI_IMAGE_VERSION = "$version"
 
 $APPWRITE_EXECUTABLE_CONTENT = @"
@@ -43,14 +43,14 @@ if ( -not ($allowList -contains $args[0])) {
     exit 1
 }
 
-docker run -i --rm --volume appwrite-cli:/usr/local/code/app/.preferences/ --volume `$pwd``:/usr/local/code/files:rw  $APPWRITE_CLI_IMAGE_NAME`:$APPWRITE_CLI_IMAGE_VERSION (`$args | % {[uri]::EscapeUriString(`$_)})"@
+docker run -i --rm --volume {{ spec.title | lower }}-cli:/usr/local/code/app/.preferences/ --volume `$pwd``:/usr/local/code/files:rw  $APPWRITE_CLI_IMAGE_NAME`:$APPWRITE_CLI_IMAGE_VERSION (`$args | % {[uri]::EscapeUriString(`$_)})"@
 
 $USER_PATH_ENV_VAR = [Environment]::GetEnvironmentVariable("PATH", "User")
 
 function Greeting {
     Write-Host @"{{ language.params.logo | raw }}
 "@ -ForegroundColor red
-    Write-Host "Welcome to the Appwrite CLI install shield."
+    Write-Host "Welcome to the {{ spec.title | caseUcfirst }} CLI install shield."
     
 }
 
@@ -88,8 +88,8 @@ function Install {
 
     [void](New-Item -Path $APPWRITE_EXECUTABLE_FILEPATH -Value $APPWRITE_EXECUTABLE_CONTENT -ItemType File -Force)
 
-    if ($USER_PATH_ENV_VAR -like '*Appwrite*') {
-        Write-Host "Skipping to add Appwrite to User Path."
+    if ($USER_PATH_ENV_VAR -like '*{{ spec.title | caseUcfirst }}*') {
+        Write-Host "Skipping to add {{ spec.title | caseUcfirst }} to User Path."
     }
     else {
         [System.Environment]::SetEnvironmentVariable("PATH", $USER_PATH_ENV_VAR + ";$APPWRITE_INSTALL_DIR", "User")
@@ -104,7 +104,7 @@ function InstallCompleted {
     Write-Host "[4/4] Finishing Installation ... "
     cleanup
     Write-Host "🤘 May the force be with you."
-    Write-Host "To get started with Appwrite CLI, please visit https://appwrite.io/docs/command-line"
+    Write-Host "To get started with {{ spec.title | caseUcfirst }} CLI, please visit https://{{ spec.title | lower }}.io/docs/command-line"
 }
 
 Greeting
