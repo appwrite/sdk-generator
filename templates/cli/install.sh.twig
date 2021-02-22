@@ -18,21 +18,22 @@ $version = $this->getParam('version', '');
 # You can use "View source" of this page to see the full script.
 
 # {{ spec.title | caseUcfirst }} CLI location
-: ${APPWRITE_INSTALL_DIR:="/usr/local/bin"}
+{{ spec.title | upper }}_INSTALL_DIR="/usr/local/bin"
 
 # {{ spec.title | caseUcfirst }} CLI Executable name 
-APPWRITE_EXECUTABLE_NAME={{ language.params.executableName }}
+{{ spec.title | upper }}_EXECUTABLE_NAME={{ language.params.executableName }}
 
 # {{ spec.title | caseUcfirst }} executable file path 
-APPWRITE_EXECUTABLE_FILEPATH="${APPWRITE_INSTALL_DIR}/${APPWRITE_EXECUTABLE_NAME}"
+{{ spec.title | upper }}_EXECUTABLE_FILEPATH="${{ spec.title | upper }}_INSTALL_DIR/${{ spec.title | upper }}_EXECUTABLE_NAME"
 
 # {{ spec.title | caseUcfirst }} CLI image name
-APPWRITE_CLI_IMAGE_NAME={{ spec.title | lower }}/cli
+{{ spec.title | upper }}_CLI_IMAGE_NAME={{ spec.title | lower }}/cli
 
 # {{ spec.title | caseUcfirst }} CLI image version 
-APPWRITE_CLI_IMAGE_VERSION=$version
-# sudo is required to copy executable to APPWRITE_INSTALL_DIR for linux
-: ${USE_SUDO:="false"}]
+{{ spec.title | upper }}_CLI_IMAGE_VERSION=$version
+
+# sudo is required to copy executable to {{ spec.title | upper }}_INSTALL_DIR for linux
+USE_SUDO="false"
 
 # Add some color to life
 RED='\033[0;31m'
@@ -60,7 +61,7 @@ getSystemInfo() {
     OS=$(echo `uname`|tr '[:upper:]' '[:lower:]')
 
     # Need root access if its a linux system
-    if [ "$OS" == "linux" ] && [ "$APPWRITE_INSTALL_DIR" == "/usr/local/bin" ]; then
+    if [ "$OS" == "linux" ] && [ "${{ spec.title | upper }}_INSTALL_DIR" == "/usr/local/bin" ]; then
         USE_SUDO="true"
     fi
 
@@ -108,7 +109,7 @@ install() {
 
     # Fetch the {{ spec.title | caseUcfirst }} CLI Image.
     printf "${GREEN}🐳 Pulling docker image ... ${NC}\n"
-    out=$(docker pull "${APPWRITE_CLI_IMAGE_NAME}:${APPWRITE_CLI_IMAGE_VERSION}")
+    out=$(docker pull "${{ spec.title | upper }}_CLI_IMAGE_NAME:${{ spec.title | upper }}_CLI_IMAGE_VERSION")
     if [[ $out != *"Image is up to date"* ]] && [[ $out != *"Downloaded newer image"* ]]; then
         printf "${RED}❌ Failed to fetch docker image. Exiting ... ${NC}\n"
         exit 1
@@ -140,20 +141,20 @@ for x in "${@}" ; do
     _args=$_args" "$x
 done
 
-bash -c "docker run -i --rm --volume {{ spec.title | lower }}-cli:/usr/local/code/app/.preferences/ --volume $(pwd):/usr/local/code/files:rw --network host '$APPWRITE_CLI_IMAGE_NAME:$APPWRITE_CLI_IMAGE_VERSION' $_args" ' > $APPWRITE_EXECUTABLE_NAME
+bash -c "docker run -i --rm --volume {{ spec.title | lower }}-cli:/usr/local/code/app/.preferences/ --volume $(pwd):/usr/local/code/files:rw --network host '${{ spec.title | upper }}_CLI_IMAGE_NAME:${{ spec.title | upper }}_CLI_IMAGE_VERSION' $_args" ' > ${{ spec.title | upper }}_EXECUTABLE_NAME
 
     printf "${GREEN}🚧 Setting Permissions ${NC}\n"
-    chmod +x $APPWRITE_EXECUTABLE_NAME
+    chmod +x ${{ spec.title | upper }}_EXECUTABLE_NAME
     if [ $? -ne 0 ]; then
         printf "${RED}❌ Failed to set permissions ... ${NC}\n"
         exit 1
     fi
     printSuccess
 
-    printf "${GREEN}📝 Copying file to $APPWRITE_EXECUTABLE_FILEPATH ... ${NC}\n"
-    runAsRoot cp $APPWRITE_EXECUTABLE_NAME $APPWRITE_EXECUTABLE_FILEPATH
+    printf "${GREEN}📝 Copying file to ${{ spec.title | upper }}_EXECUTABLE_FILEPATH ... ${NC}\n"
+    runAsRoot cp ${{ spec.title | upper }}_EXECUTABLE_NAME ${{ spec.title | upper }}_EXECUTABLE_FILEPATH
     if [ $? -ne 0 ]; then
-        printf "${RED}❌ Failed to copy file to $APPWRITE_EXECUTABLE_FILEPATH ... ${NC}\n"
+        printf "${RED}❌ Failed to copy file to ${{ spec.title | upper }}_EXECUTABLE_FILEPATH ... ${NC}\n"
         exit 1
     fi
     printSuccess
@@ -161,9 +162,9 @@ bash -c "docker run -i --rm --volume {{ spec.title | lower }}-cli:/usr/local/cod
 
 cleanup() {
     echo "🧹 Cleaning up mess ... "
-    rm $APPWRITE_EXECUTABLE_NAME 
+    rm ${{ spec.title | upper }}_EXECUTABLE_NAME 
     if [ $? -ne 0 ]; then
-        printf "${RED}❌ Failed to remove $APPWRITE_EXECUTABLE_NAME ... ${NC}\n"
+        printf "${RED}❌ Failed to remove ${{ spec.title | upper }}_EXECUTABLE_NAME ... ${NC}\n"
         exit 1
     fi
     printSuccess
