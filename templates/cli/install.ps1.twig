@@ -48,13 +48,7 @@ docker run -i --rm --volume appwrite-cli:/usr/local/code/app/.preferences/ --vol
 $USER_PATH_ENV_VAR = [Environment]::GetEnvironmentVariable("PATH", "User")
 
 function Greeting {
-    Write-Host @"
-   _                            _ _           ___   __   _____ 
-  /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
- //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
-/  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
-\_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
-      |_|   |_|                                                  
+    Write-Host @"{{ language.params.logo | raw }}
 "@ -ForegroundColor red
     Write-Host "Welcome to the Appwrite CLI install shield."
     
