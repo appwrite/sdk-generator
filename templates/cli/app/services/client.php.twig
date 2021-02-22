@@ -19,9 +19,9 @@ $cli
         $client->setPreference('endpoint', $endpoint);
         $result = $client->savePreferences();
         if ($result === false) {
-            Console::error('Could not save preferences.');
+            Console::error('❌ Could not save preferences.');
         } else {
-            Console::success('Preferences saved successfully');
+            Console::success('✅ Preferences saved successfully');
         }
     });
 
@@ -34,9 +34,9 @@ $cli
         $client->setPreference('{{ header.name }}', ${{ header.key | lower }});
         $result = $client->savePreferences();
         if ($result === false) {
-            Console::error('Could not save preferences.');
+            Console::error('❌ Could not save preferences.');
         } else {
-            Console::success('Preferences saved successfully');
+            Console::success('✅ Preferences saved successfully');
         }
     });
 
