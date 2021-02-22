@@ -1,7 +1,3 @@
-<?php
-$version = $this->getParam('version', '');
-?>
-
 ## <script src="/dist/scripts/cli-powershell.js"></script>
 ## <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism-okaidia.min.css" rel="stylesheet" />
 ## <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-core.min.js" data-manual></script>
@@ -29,7 +25,7 @@ ${{ spec.title | upper }}_EXECUTABLE_FILEPATH = Join-Path -Path ${{ spec.title |
 ${{ spec.title | upper }}_CLI_IMAGE_NAME = "{{ spec.title | lower }}/cli"
 
 # {{ spec.title | caseUcfirst }} CLI image version 
-${{ spec.title | upper }}_CLI_IMAGE_VERSION = "$version"
+${{ spec.title | upper }}_CLI_IMAGE_VERSION = "{{ spec.version }}"
 
 ${{ spec.title | upper }}_EXECUTABLE_CONTENT = @"
 $allowList = 'help', 'init', 'client' {% for service in spec.services %}, '{{ service.name }}'{% endfor %}

@@ -1,6 +1,3 @@
-<?php
-$version = $this->getParam('version', '');
-?>
 #!/bin/bash
 
 ## <script src="/dist/scripts/cli-bash.js"></script>
@@ -30,7 +27,7 @@ $version = $this->getParam('version', '');
 {{ spec.title | upper }}_CLI_IMAGE_NAME={{ spec.title | lower }}/cli
 
 # {{ spec.title | caseUcfirst }} CLI image version 
-{{ spec.title | upper }}_CLI_IMAGE_VERSION=$version
+{{ spec.title | upper }}_CLI_IMAGE_VERSION={{ spec.version }}
 
 # sudo is required to copy executable to {{ spec.title | upper }}_INSTALL_DIR for linux
 USE_SUDO="false"
