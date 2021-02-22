@@ -18,6 +18,7 @@ export 'package:dio/dio.dart' show Response;
 part 'client.dart';
 part 'enums.dart';
 part 'service.dart';
+part 'exception.dart';
 {% for service in spec.services %}
 part 'services/{{service.name | caseDash}}.dart';
 {% endfor %}
