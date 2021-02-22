@@ -6,15 +6,7 @@ require_once './vendor/autoload.php';
 
 use Utopia\CLI\Console;
 
-Console::log("\e[0;31;m
-   _                            _ _       
-  /_\  _ __  _ ____      ___ __(_) |_ ___ 
- //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \
-/  _  \ |_) | |_) \ V  V /| |  | | ||  __/
-\_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___|
-      |_|   |_|                           
-      
-      \e[0m") ;
+Console::log("\e[0;31;m {{ language.params.logo | raw }} \e[0m") ;
 
 printf("\nUsage : {{ language.params.executableName }} [SERVICE] [COMMAND] --[OPTION]\n\n");
 printf("Services :\n");

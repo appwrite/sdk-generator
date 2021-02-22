@@ -334,6 +334,15 @@ try {
     // CLI
     $cli = new CLI();
     $cli->setExecutableName('appwrite');
+    $cli->setLogo("
+    _                            _ _       
+   /_\  _ __  _ ____      ___ __(_) |_ ___ 
+  //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \
+ /  _  \ |_) | |_) \ V  V /| |  | | ||  __/
+ \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___|
+       |_|   |_|                           
+       
+       ");
     $sdk  = new SDK($cli, new Swagger2($spec));
     $sdk
         ->setName('NAME')

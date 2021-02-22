@@ -10,7 +10,8 @@ class CLI extends PHP {
     protected $params = [
         'composerVendor' => 'vendor-name',
         'composerPackage' => 'package-name',
-        'executableName' => 'executable'
+        'executableName' => 'executable',
+        'logo' => 'logo'
     ];
 
     /**
@@ -20,6 +21,17 @@ class CLI extends PHP {
     public function setExecutableName($name)
     {
         $this->setParam('executableName', $name);
+
+        return $this;
+    }
+
+    /**
+     * @param string $logo
+     * @return $this
+     */
+    public function setLogo($logo)
+    {
+        $this->setParam('logo', $logo);
 
         return $this;
     }
