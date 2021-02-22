@@ -32,14 +32,14 @@ $ iwr -useb https://appwrite.io/cli/install.ps1 | iex
 ## Initialisation 
 The CLI needs to be initialised with your project settings. This can be done using 
 ```sh
-$ appwrite init 
+$ {{ language.params.executableName }} init 
 ```
 
 The CLI requires an endpoint, project ID, API key and a locale to be able to communicate with the Appwrite backend server. There are two ways to achieve this 
 
 ### 1. Environment file 
 ```sh
-$ appwrite --env-file path/to/your/environment/file init     
+$ {{ language.params.executableName }} --env-file path/to/your/environment/file init     
 ```
 The .env file must have the following keys 
 ```sh
@@ -51,38 +51,38 @@ X-Appwrite-Locale=en-US
 
 ### 2. Using the prompt
 
-Invoking `appwrite init` without an env file triggers an interactive prompt where you can manually enter the details. These values are saved locally so that you dont have to re-enter them everytime. 
+Invoking `{{ language.params.executableName }} init` without an env file triggers an interactive prompt where you can manually enter the details. These values are saved locally so that you dont have to re-enter them everytime. 
 
 ## Usage 
 
 The Appwrite CLI follows the following general syntax.
 ```sh
-$ appwrite [SERVICE] [COMMAND] --[OPTIONS]
+$ {{ language.params.executableName }} [SERVICE] [COMMAND] --[OPTIONS]
 ```
 
 A few sample commands to get you started 
 
 ```sh
-$ appwrite users create --email="hello@appwrite.io" --password="very_strong_password"
-$ appwrite users list 
+$ {{ language.params.executableName }} users create --email="hello@appwrite.io" --password="very_strong_password"
+$ {{ language.params.executableName }} users list 
 ```
 
 To get information about the different services available, you can use 
 ```sh
-$ appwrite help
+$ {{ language.params.executableName }} help
 ```
 
 To get information about a particular service and the commands available in a service you can use 
 ```sh
-$ appwrite users help
-$ appwrite accounts help
+$ {{ language.params.executableName }} users help
+$ {{ language.params.executableName }} accounts help
 ```
 
 To get information about a particular command and the parameters it accepts, you can use
 
 ```sh
-$ appwrite users list --help
-$ appwrite account get --help 
+$ {{ language.params.executableName }} users list --help
+$ {{ language.params.executableName }} account get --help 
 ```
 
 ## Contribution

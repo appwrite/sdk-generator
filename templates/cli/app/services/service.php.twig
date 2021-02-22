@@ -33,7 +33,7 @@ $cli->
       
       \e[0m") ;
 
-            printf("\nUsage : appwrite {{ service.name }} {$taskName} --[OPTIONS] \n\n");
+            printf("\nUsage : {{ language.params.executableName }} {{ service.name }} {$taskName} --[OPTIONS] \n\n");
             printf($description);
             printf("Options:\n");
             $mask = "\t%-20.20s %-125.125s\n";
@@ -124,13 +124,13 @@ $cli
       |_|   |_|                           
       
       \e[0m");
-        printf("\nUsage : appwrite {{ service.name }} [COMMAND]\n\n");
+        printf("\nUsage : {{ language.params.executableName }} {{ service.name }} [COMMAND]\n\n");
         printf("Commands :\n");
         $mask = "\t%-20.20s %-125.125s\n";
 {% for method in service.methods %}
         printf($mask, "{{ method.name | caseCamel }}", "{{ method.description | replace({'"':'\''}) | raw }}");
 {% endfor %}
-        printf("\nRun 'appwrite {{ service.name }} COMMAND --help' for more information on a command.\n");
+        printf("\nRun '{{ language.params.executableName }} {{ service.name }} COMMAND --help' for more information on a command.\n");
     });
 
 

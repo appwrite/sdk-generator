@@ -4,6 +4,14 @@ namespace Appwrite\SDK\Language;
 
 class CLI extends PHP {
 
+    /**
+     * @var array
+     */
+    protected $params = [
+        'composerVendor' => 'vendor-name',
+        'composerPackage' => 'package-name',
+        'executableName' => 'executable'
+    ];
 
     /**
      * @param string $name
@@ -11,7 +19,7 @@ class CLI extends PHP {
      */
     public function setExecutableName($name)
     {
-        $this->setParam('composerVendor', $name);
+        $this->setParam('executableName', $name);
 
         return $this;
     }

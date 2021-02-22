@@ -332,7 +332,9 @@ try {
     $sdk->generate(__DIR__ . '/examples/dotnet');
 
     // CLI
-    $sdk  = new SDK(new CLI(), new Swagger2($spec));
+    $cli = new CLI();
+    $cli->setExecutableName('appwrite');
+    $sdk  = new SDK($cli, new Swagger2($spec));
     $sdk
         ->setName('NAME')
         ->setDescription('Repo description goes here')

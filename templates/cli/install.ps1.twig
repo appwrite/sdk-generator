@@ -20,7 +20,7 @@ $version = $this->getParam('version', '');
 $APPWRITE_INSTALL_DIR = Join-Path -Path $env:LOCALAPPDATA -ChildPath "Appwrite"
 
 # Appwrite CLI Executable name 
-$APPWRITE_EXECUTABLE_NAME = "appwrite.ps1"
+$APPWRITE_EXECUTABLE_NAME = "{{ language.params.executableName }}.ps1"
 
 # Appwrite executable file path 
 $APPWRITE_EXECUTABLE_FILEPATH = Join-Path -Path $APPWRITE_INSTALL_DIR -ChildPath $APPWRITE_EXECUTABLE_NAME
@@ -34,12 +34,12 @@ $APPWRITE_CLI_IMAGE_VERSION = "$version"
 $APPWRITE_EXECUTABLE_CONTENT = @"
 $allowList = 'help', 'init', 'client' {% for service in spec.services %}, '{{ service.name }}'{% endfor %}
 
-if ( $args.count -eq 1 ) {
+if ( $args.count -eq 0 ) {
     $args += 'help'
 }
 
-if ( -not ($allowList -contains $args[1])) {
-    Write-Host "Looks like a crazy hamster flipped a bit.`n`nUse appwrite help for a list of supported commands."
+if ( -not ($allowList -contains $args[0])) {
+    Write-Host "Looks like a crazy hamster flipped a bit.`n`nUse {{ language.params.executableName }} help for a list of supported commands."
     exit 1
 }
 

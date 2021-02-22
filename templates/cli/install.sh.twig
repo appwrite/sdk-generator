@@ -21,7 +21,7 @@ $version = $this->getParam('version', '');
 : ${APPWRITE_INSTALL_DIR:="/usr/local/bin"}
 
 # Appwrite CLI Executable name 
-APPWRITE_EXECUTABLE_NAME=appwrite
+APPWRITE_EXECUTABLE_NAME={{ language.params.executableName }}
 
 # Appwrite executable file path 
 APPWRITE_EXECUTABLE_FILEPATH="${APPWRITE_INSTALL_DIR}/${APPWRITE_EXECUTABLE_NAME}"
@@ -132,7 +132,7 @@ fi
 
 # Check if the command is in the whitelist
 if [[ ! " ${allowList[@]} " =~ " ${1} " ]]; then
-    echo "\nLooks like a crazy hamster 🐹 flipped a bit.\n\nUse appwrite help for a list of supported commands."
+    echo "\nLooks like a crazy hamster 🐹 flipped a bit.\n\nUse {{ language.params.executableName }} help for a list of supported commands."
     exit 1
 fi
 
