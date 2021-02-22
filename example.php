@@ -196,7 +196,10 @@ try {
     $sdk->generate(__DIR__ . '/examples/python');
 
     // Dart
-    $sdk  = new SDK(new Dart(), new Swagger2($spec));
+    $dart = new Dart();
+    $dart->setPackageName('dart_appwrite');
+
+    $sdk  = new SDK($dart, new Swagger2($spec));
 
     $sdk
         ->setName('NAME')
@@ -219,7 +222,9 @@ try {
     $sdk->generate(__DIR__ . '/examples/dart');
 
     // Flutter
-    $sdk  = new SDK(new Flutter(), new Swagger2($spec));
+    $flutter = new Flutter();
+    $flutter->setPackageName('appwrite');
+    $sdk  = new SDK($flutter, new Swagger2($spec));
 
     $sdk
         ->setName('NAME')

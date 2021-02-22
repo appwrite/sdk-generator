@@ -1,7 +1,16 @@
+library {{ language.params.packageName }};
+
+import 'dart:io';
+import 'package:dio/dio.dart';
+import 'package:meta/meta.dart';
+import 'package:dio/adapter.dart';
+
+
 export 'package:dio/dio.dart' show Response, MultipartFile;
 
-export 'client.dart';
-export 'enums.dart';
+part 'client.dart';
+part 'enums.dart';
+part 'service.dart';
 {% for service in spec.services %}
-export 'services/{{service.name | caseDash}}.dart';
+part 'services/{{service.name | caseDash}}.dart';
 {% endfor %}
