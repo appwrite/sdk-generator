@@ -126,6 +126,10 @@ install() {
 
 allowList=(help init client{% for service in spec.services %} {{ service.name }}{% endfor %})
 
+if [[ -z $1 ]]; then 
+    set -- "$@" help
+fi 
+
 # Check if the command is in the whitelist
 if [[ ! " ${allowList[@]} " =~ " ${1} " ]]; then
     echo "\nLooks like a crazy hamster 🐹 flipped a bit.\n\nUse appwrite help for a list of supported commands."
