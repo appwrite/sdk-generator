@@ -123,4 +123,21 @@ class Parser {
         $table->injectData($transformedData);
         $table->display();
     }
+
+    public function formatArray(Array $arr) {
+        $descriptionColumnLimit = 60;
+        $commandNameColumnLimit = 20;
+        $mask = "\t%-${commandNameColumnLimit}.${commandNameColumnLimit}s %-${descriptionColumnLimit}.${descriptionColumnLimit}s\n";
+        
+        array_walk($arr, function(&$key) use ($descriptionColumnLimit){
+            $key = explode("\n", wordwrap($key, $descriptionColumnLimit));
+        });
+        
+        foreach($arr as $key => $value) {
+            foreach($value as $sentence) {
+                 printf($mask, $key, $sentence);
+                 $key = "";
+            }
+        }
+    }
 }

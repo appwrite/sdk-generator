@@ -15,7 +15,7 @@ $parser = new Parser();
 $cli = new CLI();
 
 $cli->
-      init(function() use ($cli) {
+      init(function() use ($cli, $parser) {
         
         if (array_key_exists('help', $cli->getArgs())) {
             $taskName = $cli->match()->getName();
@@ -24,16 +24,13 @@ $cli->
             $params = $task->getParams();
 
             Console::log("\e[0;31;m {{ language.params.logo | raw }} \e[0m") ;
-
-            printf("\nUsage : {{ language.params.executableName }} {{ service.name }} {$taskName} --[OPTIONS] \n\n");
-            printf($description);
-            printf("Options:\n");
-            $mask = "\t%-20.20s %-125.125s\n";
-
-            foreach ($params as $key => $value) {
-                if ($key !== 'help')
-                    printf($mask, $key, $value['description']);
-            }
+            Console::log("\nUsage : {{ language.params.executableName }} {{ service.name }} {$taskName} --[OPTIONS] \n");
+            Console::log($description);
+            Console::log("Options:");
+            array_walk($params, function(&$key) {
+                $key = $key['description'];
+            });
+            $parser->formatArray($params);
             Console::exit(0);
         }
       });
@@ -106,15 +103,17 @@ $cli
 
 $cli
     ->task('help')
-    ->action(function() {
+    ->action(function() use ($parser) {
         Console::log("\e[0;31;m {{ language.params.logo | raw }} \e[0m");
-        printf("\nUsage : {{ language.params.executableName }} {{ service.name }} [COMMAND]\n\n");
-        printf("Commands :\n");
-        $mask = "\t%-20.20s %-125.125s\n";
+        Console::log("\nUsage : {{ language.params.executableName }} {{ service.name }} [COMMAND]\n");
+        Console::log("Commands :");
+        $commands = [
 {% for method in service.methods %}
-        printf($mask, "{{ method.name | caseCamel }}", "{{ method.description | replace({'"':'\''}) | raw }}");
+                "{{ method.name | caseCamel }}" => "{{ method.description | replace({'"':'\''}) | raw }}",
 {% endfor %}
-        printf("\nRun '{{ language.params.executableName }} {{ service.name }} COMMAND --help' for more information on a command.\n");
+        ];
+        $parser->formatArray($commands);
+        Console::log("\nRun '{{ language.params.executableName }} {{ service.name }} COMMAND --help' for more information on a command.");
     });
 
 

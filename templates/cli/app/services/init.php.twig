@@ -8,6 +8,7 @@ use Exception;
 use Utopia\CLI\CLI;
 use Utopia\Validator\Mock;
 use Utopia\CLI\Console;
+use {{ spec.title | caseUcfirst }}\Parser;
 
 const USER_PREFERENCES_FILE = __DIR__."/../../.preferences/.prefs.json";
 const PREFERENCE_ENDPOINT = "endpoint";
@@ -141,9 +142,10 @@ function promptUser()
 }
 
 $cli = new CLI();
+$parser = new Parser();
 
 $cli->
-      init(function() use ($cli) {
+      init(function() use ($cli, $parser) {
         
         if (array_key_exists('help', $cli->getArgs())) {
             $taskName = $cli->match()->getName();
@@ -152,23 +154,20 @@ $cli->
             $params = $task->getParams();
 
             Console::log("\e[0;31;m {{ language.params.logo | raw }} \e[0m") ;
-
-            printf("\nUsage : {{ language.params.executableName }} {$taskName} --[OPTIONS] \n\n");
-            printf($description);
-            printf("Options:\n");
-            $mask = "\t%-20.20s %-125.125s\n";
-
-            foreach ($params as $key => $value) {
-                if ($key !== 'help')
-                    printf($mask, $key, $value['description']);
-            }
+            Console::log("\nUsage : {{ language.params.executableName }} {$taskName} --[OPTIONS] \n");
+            Console::log($description);
+            Console::log("Options:");
+            array_walk($params, function(&$key) {
+                $key = $key['description'];
+            });
+            $parser->formatArray($params);
             Console::exit(0);
         }
       });
 
 $cli
     ->task('init')
-    ->label('description', "The init command is used to initialise your CLI\n\n")
+    ->label('description', "The init command is used to initialise your CLI\n")
     ->param('endpoint', '', new Mock(), 'Your {{ spec.title | caseUcfirst }} endpoint', true)
 {% for header in spec.global.headers %}
     ->param('{{ header.key | lower }}', '', new Mock(), '{{ header.description }}', true)

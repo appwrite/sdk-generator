@@ -5,13 +5,17 @@ namespace {{ spec.title | caseUcfirst }}\Services;
 require_once './vendor/autoload.php';
 
 use Utopia\CLI\Console;
+use {{ spec.title | caseUcfirst }}\Parser;
+
+$parser = new Parser();
 
 Console::log("\e[0;31;m {{ language.params.logo | raw }} \e[0m") ;
-
-printf("\nUsage : {{ language.params.executableName }} [SERVICE] [COMMAND] --[OPTION]\n\n");
-printf("Services :\n");
-$mask = "\t%-20.20s %-125.125s\n";
+Console::log("\nUsage : {{ language.params.executableName }} [SERVICE] [COMMAND] --[OPTION]\n");
+Console::log("Services :");
+$commands = [
 {% for service in spec.services %}
-printf($mask, "{{ service.name }}", "{{ service.description | replace({'"':'\''}) | raw }}");
+        "{{ service.name }}" => "{{ service.description | replace({'"':'\''}) | raw }}",
 {% endfor %}
-printf("\nRun '{{ language.params.executableName }} [SERVICE] help' for more information on a service.\n");
+        ];
+$parser->formatArray($commands);
+Console::log("\nRun '{{ language.params.executableName }} [SERVICE] help' for more information on a service.");
