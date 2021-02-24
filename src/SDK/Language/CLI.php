@@ -11,7 +11,7 @@ class CLI extends PHP {
         'composerVendor' => 'vendor-name',
         'composerPackage' => 'package-name',
         'executableName' => 'executable',
-        'logo' => 'logo'
+        'logo' => ''
     ];
 
     /**
