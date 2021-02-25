@@ -72,6 +72,12 @@ class Web extends JS {
                 'template'      => '/web/tsconfig.json.twig',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => '.travis.yml',
+                'template'      => '/web/.travis.yml.twig',
+                'minify'        => false,
+            ],
         ];
     }
 
