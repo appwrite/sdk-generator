@@ -72,6 +72,12 @@ class Node extends JS
                 'template'      => '/node/docs/example.md.twig',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => '.travis.yml',
+                'template'      => '/node/.travis.yml.twig',
+                'minify'        => false,
+            ],
         ];
     }
 
