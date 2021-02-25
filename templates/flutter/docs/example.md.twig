@@ -17,7 +17,7 @@ void main() { // Init SDK
 {% endfor %}  ;
 
 {% endif %}
-  {% if method.type == 'location' %}String{% else %}Future{% endif %} result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
 {% if loop.first %}
 
 {% endif %}
@@ -26,14 +26,10 @@ void main() { // Init SDK
 {% endif %}
 {% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %});
 
-{% if method.type == 'location' %}
-  print(result); // Resource URL string
-{% else %}
   result
     .then((response) {
       print(response);
     }).catchError((error) {
       print(error.response);
   });
-{% endif %}
 }
