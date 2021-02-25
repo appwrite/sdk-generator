@@ -124,7 +124,7 @@ class Client {
             }
         } on DioError catch(e) {
           if(e.response == null) {
-            throw {{spec.title | caseUcfirst}}AppwriteException(e.message);
+            throw {{spec.title | caseUcfirst}}Exception(e.message);
           }
           throw {{spec.title | caseUcfirst}}Exception(e.response.data['message'],e.response.data['code'], e.response.data);
         } catch(e) {
