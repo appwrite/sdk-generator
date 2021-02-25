@@ -30,15 +30,23 @@ class MyApp extends StatelessWidget {
       ),
       body: Container(
         child: FutureBuilder(
-              future: storage.getFilePreview(fileId: [FileId] ), //works for both public file and private file, for private files you need to be logged in
-              builder: (context, snapshot) {
-                return snapshot.hasData && snapshot.data != null
-                    ? Image.memory(
-                        snapshot.data.data,
-                      )
-                    : CircularProgressIndicator();
-              },
-            ),
+          future: {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+{% if loop.first %}
+
+{% endif %}
+{% if parameter.required %}
+            {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
+{% endif %}
+{% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %}
+        ), //works for both public file and private file, for private files you need to be logged in
+          builder: (context, snapshot) {
+            return snapshot.hasData && snapshot.data != null
+                ? Image.memory(
+                    snapshot.data.data,
+                  )
+                : CircularProgressIndicator();
+          },
+        ),
       )
     )
   }
