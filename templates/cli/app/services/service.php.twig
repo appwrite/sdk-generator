@@ -10,17 +10,12 @@ use {{ spec.title | caseUcfirst }}\Parser;
 use Utopia\CLI\CLI;
 use Utopia\CLI\Console;
 use Utopia\Validator\Mock;
-{% if service.name == 'functions' %}
-use PharData;
-use Phar;
-{% endif %}
 
 $parser = new Parser();
-
 $cli = new CLI();
 
 $cli->
-      init(function() use ($cli) {
+      init(function() use ($cli, $parser) {
         
         if (array_key_exists('help', $cli->getArgs())) {
             $taskName = $cli->match()->getName();
@@ -28,25 +23,14 @@ $cli->
             $description = $task->getLabel('description', '');
             $params = $task->getParams();
 
-            echo "\e[0;31;m
-   _                            _ _       
-  /_\  _ __  _ ____      ___ __(_) |_ ___ 
- //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \
-/  _  \ |_) | |_) \ V  V /| |  | | ||  __/
-\_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___|
-      |_|   |_|                           
-      
-      \e[0m" ;
-
-            printf("\nUsage : appwrite {{ service.name }} {$taskName} --[OPTIONS] \n\n");
-            printf($description);
-            printf("Options:\n");
-            $mask = "\t%-20.20s %-125.125s\n";
-
-            foreach ($params as $key => $value) {
-                if ($key !== 'help')
-                    printf($mask, $key, $value['description']);
-            }
+            Console::log("\e[0;31;m {{ language.params.logo | raw }} \e[0m") ;
+            Console::log("\nUsage : {{ language.params.executableName }} {{ service.name }} {$taskName} --[OPTIONS] \n");
+            Console::log($description);
+            Console::log("Options:");
+            array_walk($params, function(&$key) {
+                $key = $key['description'];
+            });
+            $parser->formatArray($params);
             Console::exit(0);
         }
       });
@@ -62,13 +46,10 @@ $cli
         $client = new Client();
         $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
         $params = [];
-
 {% for parameter in method.parameters.query %}
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
 {% endfor %}
-
 {% for parameter in method.parameters.body %}
-
 {% if parameter.type == 'file' and method.packaging %}
         $cloudFunctionPath = realpath(__DIR__.'/../../../files/'.${{ parameter.name | caseCamel }});
         $cloudFunctionParentDir = dirname($cloudFunctionPath, 1);
@@ -81,36 +62,26 @@ $cli
         exec("tar -zcvf $archiveName -C $cloudFunctionParentDir $cloudFunctionDirName && mv $archiveName $volumeMountPoint");
         $archivePath = realpath($volumeMountPoint."/$archiveName");
         $cFile = new \CURLFile($archivePath,  'application/x-gzip' , basename($archivePath));
-        
         $params['{{ parameter.name }}'] = $cFile;
-
 {% elseif parameter.type == 'file' %}
-
         ${{ parameter.name | caseCamel }} = realpath(__DIR__.'/../../../files/'.${{ parameter.name | caseCamel }});
         if (file_exists(${{ parameter.name | caseCamel }}) === false ) {
             throw new Exception("Path doesn't exist. Please ensure that the path is within the current directory. "); 
         }
-
         $cFile = new \CURLFile(${{ parameter.name | caseCamel }}, {% if method.packaging %} 'application/x-gzip' {% else %} 'image/png' {% endif %}, basename(${{ parameter.name | caseCamel }}));
         $params['{{ parameter.name }}'] = $cFile;
-        
-{% else %} 
+{% else %}
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
 {% endif %}
-
 {% endfor %}
-
 {% for parameter in method.parameters.formData %}
         $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
 {% endfor %}
-
 {% if method.type == 'location' %}
-
         $params['project'] = $client->getPreference('X-Appwrite-Project');
         $params['key'] = $client->getPreference('X-Appwrite-Key');
         $path = $client->getPreference(Client::PREFERENCE_ENDPOINT).$path . "?" . http_build_query($params);
-        echo $path;
-
+        Console::success($path);
 {% else %}
 
         $response =  $client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
@@ -121,11 +92,8 @@ $cli
             '{{ key }}' => '{{ header }}',
 {% endfor %}
         ], $params);
-
         $parser->parseResponse($response);
-
 {% endif %}
-
 {% if method.packaging %}
         unlink($archivePath);
 {% endif %}
@@ -135,23 +103,17 @@ $cli
 
 $cli
     ->task('help')
-    ->action(function() {
-        echo "\e[0;31;m
-   _                            _ _       
-  /_\  _ __  _ ____      ___ __(_) |_ ___ 
- //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \
-/  _  \ |_) | |_) \ V  V /| |  | | ||  __/
-\_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___|
-      |_|   |_|                           
-      
-      \e[0m" ;
-        printf("\nUsage : appwrite {{ service.name }} [COMMAND]\n\n");
-        printf("Commands :\n");
-        $mask = "\t%-20.20s %-125.125s\n";
+    ->action(function() use ($parser) {
+        Console::log("\e[0;31;m {{ language.params.logo | raw }} \e[0m");
+        Console::log("\nUsage : {{ language.params.executableName }} {{ service.name }} [COMMAND]\n");
+        Console::log("Commands :");
+        $commands = [
 {% for method in service.methods %}
-        printf($mask, "{{ method.name | caseCamel }}", "{{ method.description | replace({'"':'\''}) | raw }}");
+                "{{ method.name | caseCamel }}" => "{{ method.description | replace({'"':'\''}) | raw }}",
 {% endfor %}
-        printf("\nRun 'appwrite {{ service.name }} COMMAND --help' for more information on a command.\n");
+        ];
+        $parser->formatArray($commands);
+        Console::log("\nRun '{{ language.params.executableName }} {{ service.name }} COMMAND --help' for more information on a command.");
     });
 
 

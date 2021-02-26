@@ -337,7 +337,17 @@ try {
     $sdk->generate(__DIR__ . '/examples/dotnet');
 
     // CLI
-    $sdk  = new SDK(new CLI(), new Swagger2($spec));
+    $cli = new CLI();
+    $cli->setExecutableName('appwrite');
+    $cli->setLogo("
+    _                            _ _           ___   __   _____ 
+   /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
+  //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
+ /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
+ \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
+       |_|   |_|                                                  
+ ");
+    $sdk  = new SDK($cli, new Swagger2($spec));
     $sdk
         ->setName('NAME')
         ->setDescription('Repo description goes here')
