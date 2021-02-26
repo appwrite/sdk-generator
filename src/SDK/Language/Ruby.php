@@ -148,6 +148,12 @@ class Ruby extends Language {
                 'template'      => '/ruby/docs/example.md.twig',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => '.travis.yml',
+                'template'      => '/ruby/.travis.yml.twig',
+                'minify'        => false,
+            ],
         ];
     }
 
