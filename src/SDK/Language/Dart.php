@@ -317,6 +317,12 @@ class Dart extends Language {
                 'template'      => '/dart/docs/example.md.twig',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => '.travis.yml',
+                'template'      => '/dart/.travis.yml.twig',
+                'minify'        => false,
+            ],
         ];
     }
 }
