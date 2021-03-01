@@ -23,6 +23,9 @@
 # {{ spec.title | caseUcfirst }} executable file path 
 {{ spec.title | upper }}_EXECUTABLE_FILEPATH="${{ spec.title | upper }}_INSTALL_DIR/${{ spec.title | upper }}_EXECUTABLE_NAME"
 
+# {{ spec.title | caseUcfirst }} CLI temp name 
+{{ spec.title | upper }}_TEMP_NAME=temp
+
 # {{ spec.title | caseUcfirst }} CLI image name
 {{ spec.title | upper }}_CLI_IMAGE_NAME={{ spec.title | lower }}/cli
 
@@ -124,7 +127,7 @@ fi
 
 # Check if the command is in the whitelist
 if [[ ! " ${allowList[@]} " =~ " ${1} " ]]; then
-    echo "\nLooks like a crazy hamster 🐹 flipped a bit.\n\nUse {{ language.params.executableName }} help for a list of supported commands."
+    printf "\nLooks like a crazy hamster 🐹 flipped a bit.\n\nUse {{ language.params.executableName }} help for a list of supported commands.\n"
     exit 1
 fi
 
@@ -138,20 +141,20 @@ for x in "${@}" ; do
     _args=$_args" "$x
 done
 
-bash -c "docker run -i --rm --volume {{ spec.title | lower }}-cli:/usr/local/code/app/.preferences/ --volume $(pwd):/usr/local/code/files:rw --network host '${{ spec.title | upper }}_CLI_IMAGE_NAME:${{ spec.title | upper }}_CLI_IMAGE_VERSION' $_args" ' > ${{ spec.title | upper }}_EXECUTABLE_NAME
+bash -c "docker run -i --rm --volume {{ spec.title | lower }}-cli:/usr/local/code/app/.preferences/ --volume $(pwd):/usr/local/code/files:rw --network host '${{ spec.title | upper }}_CLI_IMAGE_NAME:${{ spec.title | upper }}_CLI_IMAGE_VERSION' $_args" ' > ${{ spec.title | upper }}_TEMP_NAME
 
     printf "${GREEN}🚧 Setting Permissions ${NC}\n"
-    chmod +x ${{ spec.title | upper }}_EXECUTABLE_NAME
+    chmod +x ${{ spec.title | upper }}_TEMP_NAME
     if [ $? -ne 0 ]; then
         printf "${RED}❌ Failed to set permissions ... ${NC}\n"
         exit 1
     fi
     printSuccess
 
-    printf "${GREEN}📝 Copying file to ${{ spec.title | upper }}_EXECUTABLE_FILEPATH ... ${NC}\n"
-    runAsRoot cp ${{ spec.title | upper }}_EXECUTABLE_NAME ${{ spec.title | upper }}_EXECUTABLE_FILEPATH
+    printf "${GREEN}📝 Copying ${{ spec.title | upper }}_TEMP_NAME to ${{ spec.title | upper }}_EXECUTABLE_FILEPATH ... ${NC}\n"
+    runAsRoot cp ${{ spec.title | upper }}_TEMP_NAME ${{ spec.title | upper }}_EXECUTABLE_FILEPATH
     if [ $? -ne 0 ]; then
-        printf "${RED}❌ Failed to copy file to ${{ spec.title | upper }}_EXECUTABLE_FILEPATH ... ${NC}\n"
+        printf "${RED}❌ Failed to copy ${{ spec.title | upper }}_TEMP_NAME to ${{ spec.title | upper }}_EXECUTABLE_FILEPATH ... ${NC}\n"
         exit 1
     fi
     printSuccess
@@ -159,9 +162,9 @@ bash -c "docker run -i --rm --volume {{ spec.title | lower }}-cli:/usr/local/cod
 
 cleanup() {
     echo "🧹 Cleaning up mess ... "
-    rm ${{ spec.title | upper }}_EXECUTABLE_NAME 
+    rm ${{ spec.title | upper }}_TEMP_NAME 
     if [ $? -ne 0 ]; then
-        printf "${RED}❌ Failed to remove ${{ spec.title | upper }}_EXECUTABLE_NAME ... ${NC}\n"
+        printf "${RED}❌ Failed to remove ${{ spec.title | upper }}_TEMP_NAME ... ${NC}\n"
         exit 1
     fi
     printSuccess
