@@ -1,6 +1,6 @@
 <?php
 
-namespace Appwrite\Services;
+namespace {{ spec.title | caseUcfirst }}\Services;
 
 require_once './vendor/autoload.php';
 
@@ -8,6 +8,7 @@ use Exception;
 use Utopia\CLI\CLI;
 use Utopia\Validator\Mock;
 use Utopia\CLI\Console;
+use {{ spec.title | caseUcfirst }}\Parser;
 
 const USER_PREFERENCES_FILE = __DIR__."/../../.preferences/.prefs.json";
 const PREFERENCE_ENDPOINT = "endpoint";
@@ -110,7 +111,7 @@ function promptUser()
     }
 
     if(empty(getPreference('X-Appwrite-Project'))) {
-        $project = Console::confirm('🟢 Enter your project from the Appwrite console: ');
+        $project = Console::confirm('🟢 Enter your project from the {{ spec.title | caseUcfirst }} console: ');
         if (empty($project)) {
             Console::error("❌ You cannot continue without a project. Exiting...");
             exit();
@@ -119,7 +120,7 @@ function promptUser()
     }
 
     if(empty(getPreference('X-Appwrite-Key'))) {
-        $key = Console::confirm('🟢 Enter your key from the Appwrite console: ');
+        $key = Console::confirm('🟢 Enter your key from the {{ spec.title | caseUcfirst }} console: ');
         if (empty($key)) {
             Console::error("❌ You cannot continue without a key. Exiting...");
             exit();
@@ -141,10 +142,33 @@ function promptUser()
 }
 
 $cli = new CLI();
+$parser = new Parser();
+
+$cli->
+      init(function() use ($cli, $parser) {
+        
+        if (array_key_exists('help', $cli->getArgs())) {
+            $taskName = $cli->match()->getName();
+            $task = $cli->getTasks()[$taskName];
+            $description = $task->getLabel('description', '');
+            $params = $task->getParams();
+
+            Console::log("\e[0;31;m {{ language.params.logo | raw }} \e[0m") ;
+            Console::log("\nUsage : {{ language.params.executableName }} {$taskName} --[OPTIONS] \n");
+            Console::log($description);
+            Console::log("Options:");
+            array_walk($params, function(&$key) {
+                $key = $key['description'];
+            });
+            $parser->formatArray($params);
+            Console::exit(0);
+        }
+      });
 
 $cli
     ->task('init')
-    ->param('endpoint', '', new Mock(), 'Your Appwrite endpoint', true)
+    ->label('description', "The init command is used to initialise your CLI\n")
+    ->param('endpoint', '', new Mock(), 'Your {{ spec.title | caseUcfirst }} endpoint', true)
 {% for header in spec.global.headers %}
     ->param('{{ header.key | lower }}', '', new Mock(), '{{ header.description }}', true)
 {% endfor %}

@@ -5,6 +5,39 @@ namespace Appwrite\SDK\Language;
 class CLI extends PHP {
 
     /**
+     * @var array
+     */
+    protected $params = [
+        'composerVendor' => 'vendor-name',
+        'composerPackage' => 'package-name',
+        'executableName' => 'executable',
+        'logo' => ''
+    ];
+
+    /**
+     * @param string $name
+     * @return $this
+     */
+    public function setExecutableName($name)
+    {
+        $this->setParam('executableName', $name);
+
+        return $this;
+    }
+
+    /**
+     * @param string $logo
+     * @return $this
+     */
+    public function setLogo($logo)
+    {
+        $this->setParam('logo', $logo);
+
+        return $this;
+    }
+
+
+    /**
      * @return string
      */
     public function getName()
@@ -137,6 +170,18 @@ class CLI extends PHP {
                 'scope'         => 'default',
                 'destination'   => '/bin/client',
                 'template'      => '/cli/bin/client.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/install.sh',
+                'template'      => '/cli/install.sh.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/install.ps1',
+                'template'      => '/cli/install.ps1.twig',
                 'minify'        => false,
             ],
             [

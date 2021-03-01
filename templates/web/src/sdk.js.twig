@@ -279,7 +279,7 @@
 
 {% endfor %}
 {% for parameter in method.parameters.body %}
-                if({{ parameter.name | caseCamel }}) {
+                if(typeof {{ parameter.name | caseCamel }} !== 'undefined') {
                     payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
                 }
 

@@ -45,7 +45,7 @@ class Parser {
     public function parseResponse($response) {
         
         foreach ($response as $key => $value) {
-            if (is_array($value)) {
+            if (is_array($value) && count($value) !== 0 ) {
                 $this->drawKeyValue($key, '');
                 $this->drawTable($value, self::headerColor, self::tableColor);
             } 
@@ -63,6 +63,12 @@ class Parser {
      * @return void
      */
     private function drawKeyValue($key, $value){
+        if(is_bool($value)) {
+            $value = $value ? 'true' : 'false';
+        } else if (is_array($value)) {
+            $value = '{}';
+        }
+
         printf("%s : %s\n", $key, $value);
     }
 
@@ -86,7 +92,7 @@ class Parser {
      * @return void
      */
     private function drawTable($data, $headerColor, $tableColor) {
-        if (!is_array($data) || count($data) == 0 || !is_array($data[0])) return;
+        if (!is_array($data) || !is_array($data[0])) return;
 
         $keys = array_keys($data[0]);
         
@@ -102,7 +108,11 @@ class Parser {
         $transformedData = array_map (function ($data) { 
             foreach ($data as $key => $value) {
                 if (is_array($value)) {
-                    $data[$key] = 'array('.count($value).')';
+                    if (count($value) == 0) {
+                        $data[$key] = '{}';
+                    } else {
+                        $data[$key] = 'array('.count($value).')';
+                    }
                 } else if (is_object($value)) {
                     $data[$key] = 'Object';
                 }
@@ -112,5 +122,22 @@ class Parser {
 
         $table->injectData($transformedData);
         $table->display();
+    }
+
+    public function formatArray(Array $arr) {
+        $descriptionColumnLimit = 60;
+        $commandNameColumnLimit = 20;
+        $mask = "\t%-${commandNameColumnLimit}.${commandNameColumnLimit}s %-${descriptionColumnLimit}.${descriptionColumnLimit}s\n";
+        
+        array_walk($arr, function(&$key) use ($descriptionColumnLimit){
+            $key = explode("\n", wordwrap($key, $descriptionColumnLimit));
+        });
+        
+        foreach($arr as $key => $value) {
+            foreach($value as $sentence) {
+                 printf($mask, $key, $sentence);
+                 $key = "";
+            }
+        }
     }
 }
