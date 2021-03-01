@@ -76,19 +76,28 @@ class Client {
             headers: {...this.headers, ...headers},
             method: method.name(),
         );
+        try {
 
-        if(headers['content-type'] == 'multipart/form-data') {
-            return http.request(path, data: FormData.fromMap(params), options: options);
-        }
+            if(headers['content-type'] == 'multipart/form-data') {
+                return http.request(path, data: FormData.fromMap(params), options: options);
+            }
 
-        if (method == HttpMethod.get) {
-            params.keys.forEach((key) {if (params[key] is int || params[key] is double) {
-              params[key] = params[key].toString();
-            }});
-            
-            return http.get(path, queryParameters: params, options: options);
-        } else {
-            return http.request(path, data: params, options: options);
+            if (method == HttpMethod.get) {
+                params.keys.forEach((key) {if (params[key] is int || params[key] is double) {
+                params[key] = params[key].toString();
+                }});
+                
+                return http.get(path, queryParameters: params, options: options);
+            } else {
+                return http.request(path, data: params, options: options);
+            }
+        } on DioError catch(e) {
+          if(e.response == null) {
+            throw {{spec.title | caseUcfirst}}Exception(e.message);
+          }
+          throw {{spec.title | caseUcfirst}}Exception(e.response.data['message'],e.response.data['code'], e.response.data);
+        } catch(e) {
+          throw {{spec.title | caseUcfirst}}Exception(e.message);
         }
     }
 }
