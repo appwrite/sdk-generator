@@ -103,10 +103,12 @@ class Client {
             data: (method.toUpperCase() === 'GET' || contentType.startsWith('multipart/form-data')) ? formData : params,
             json: (contentType.startsWith('application/json'))
         };
-
-        let response = await axios(options);
-
-        return response.data;
+        try {
+            let response = await axios(options);
+            return response.data;
+        } catch(error) {
+            throw new {{spec.title | caseUcfirst}}Exception(error.message, error.response?.code, error.response);
+        }
     }
 
     flatten(data, prefix = '') {
