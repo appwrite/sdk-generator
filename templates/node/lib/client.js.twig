@@ -110,7 +110,7 @@ class Client {
         } catch(error) {
             if('response' in error) {
                 if('data' in error.response) {
-                    throw new {{spec.title | caseUcfirst}}Exception(error.response.data.message, error.response?.status, error.response.data);
+                    throw new {{spec.title | caseUcfirst}}Exception(error.response.data.message, error.response.status, error.response.data);
                 }else{
                     throw new {{spec.title | caseUcfirst}}Exception(error.response.statusText, error.response.status, error.response.data);
                 }
