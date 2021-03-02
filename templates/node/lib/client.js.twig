@@ -1,6 +1,7 @@
 const URL = require('url').URL;
 const axios = require('axios');
 const FormData = require('form-data');
+const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
 
 class Client {
     
@@ -107,7 +108,7 @@ class Client {
             let response = await axios(options);
             return response.data;
         } catch(error) {
-            throw new {{spec.title | caseUcfirst}}Exception(error.message, error.response?.code, error.response);
+            throw new {{spec.title | caseUcfirst}}Exception(error.response?.data?.message || error.message, error.response?.status, error.response?.data);
         }
     }
 
