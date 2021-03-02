@@ -283,6 +283,12 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/exception.dart',
+                'template'      => '/dart/lib/exception.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/{{ language.params.packageName }}.dart',
                 'template'      => '/dart/lib/package.dart.twig',
                 'minify'        => false,
