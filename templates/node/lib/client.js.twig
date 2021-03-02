@@ -108,7 +108,15 @@ class Client {
             let response = await axios(options);
             return response.data;
         } catch(error) {
-            throw new {{spec.title | caseUcfirst}}Exception(error.response?.data?.message || error.message, error.response?.status, error.response?.data);
+            if('response' in error) {
+                if('data' in error.response) {
+                    throw new {{spec.title | caseUcfirst}}Exception(error.response.data.message, error.response?.status, error.response.data);
+                }else{
+                    throw new {{spec.title | caseUcfirst}}Exception(error.response.statusText, error.response.status, error.response.data);
+                }
+            }else{
+                throw new {{spec.title | caseUcfirst}}Exception(error.message);
+            }
         }
     }
 
