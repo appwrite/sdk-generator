@@ -30,7 +30,7 @@
 {{ spec.title | upper }}_CLI_IMAGE_NAME={{ spec.title | lower }}/cli
 
 # {{ spec.title | caseUcfirst }} CLI image version 
-{{ spec.title | upper }}_CLI_IMAGE_VERSION={{ spec.version }}
+{{ spec.title | upper }}_CLI_IMAGE_VERSION={{ sdk.version }}
 
 # sudo is required to copy executable to {{ spec.title | upper }}_INSTALL_DIR for linux
 USE_SUDO="false"
