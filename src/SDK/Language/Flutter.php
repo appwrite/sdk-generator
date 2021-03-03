@@ -80,6 +80,12 @@ class Flutter extends Dart {
 				'minify'        => false,
 			],
             [
+				'scope'         => 'default',
+				'destination'   => '/lib/exception.dart',
+				'template'      => '/flutter/lib/exception.dart.twig',
+				'minify'        => false,
+			],
+            [
                 'scope'         => 'service',
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
                 'template'      => '/flutter/lib/services/service.dart.twig',
