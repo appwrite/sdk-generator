@@ -1,0 +1,13 @@
+module Appwrite
+    class Exception
+        @message = '';
+        @code = 0;
+        @response = Null;
+
+        def initialize(message, code, response)
+            @message = message;
+            @code = code;
+            @response = response;
+        end
+    end
+end
