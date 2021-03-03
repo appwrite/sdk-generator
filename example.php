@@ -45,7 +45,11 @@ try {
     }
 
     // PHP
-    $sdk  = new SDK(new PHP(), new Swagger2($spec));
+    $php = new PHP();
+    $php
+        ->setComposerVendor('appwrite')
+        ->setComposerPackage('appwrite');
+    $sdk  = new SDK($php, new Swagger2($spec));
 
     $sdk
         ->setName('NAME')
