@@ -1,3 +1,5 @@
+import { AppwriteException } from './exception.ts';
+
 export interface DocumentData {
     [key: string]: any;
 }
@@ -87,14 +89,18 @@ export class Client {
             body: body,
         };
 
-        let response = await fetch(url.toString(), options);
-        const contentType = response.headers.get('content-type');
+        try {
+            let response = await fetch(url.toString(), options);
+            const contentType = response.headers.get('content-type');
 
-        if (contentType && contentType.includes('application/json')) {
-            return response.json()
+            if (contentType && contentType.includes('application/json')) {
+                return response.json()
+            }
+
+            return response;
+        } catch(error) {
+            throw new {{ spec.title | caseUcfirst}}Exception(error?.response?.message || error.message, error?.response?.code, error.response);
         }
-
-        return response;
     }
 
     flatten(data: DocumentData, prefix = '') {
