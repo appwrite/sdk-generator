@@ -186,7 +186,7 @@ class Client
         
         curl_close($ch);
 
-        if($responseStatus < 200 || $responseStatus >= 300) {
+        if($responseStatus >= 400) {
             throw new {{spec.title | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody);
         }
 
