@@ -6,6 +6,7 @@
 
         let config = {
             endpoint: '{{ spec.endpoint }}',
+            endpointRealtime: '',
 {% for header in spec.global.headers %}
             {{ header.key | caseCamel }}: '',
 {% endfor %}
@@ -17,6 +18,16 @@
          */
         let setEndpoint = function(endpoint) {
             config.endpoint = endpoint;
+
+            return this;
+        };
+
+        /**
+         * @param {string} endpointRealtime
+         * @returns {this}
+         */
+        let setEndpointRealtime = function(endpointRealtime) {
+            config.endpointRealtime = endpointRealtime;
 
             return this;
         };
@@ -241,6 +252,43 @@
             }
         }(window.document);
 
+        let realtime = {
+            socket: undefined,
+            channels: {},
+            subscribe: function(channel, callback) {
+                if (!(channel in realtime.channels)) {
+                    realtime.channels[channel] = [];
+                }
+                realtime.channels[channel].push(callback);
+                
+                const channels = new URLSearchParams();
+                channels.set('project', config.project);
+                for (const property in realtime.channels) {
+                    channels.append('channels[]', property);
+                }
+
+                if (realtime.socket && realtime.socket.readyState && realtime.socket.readyState === WebSocket.OPEN) {
+                    realtime.socket.close();
+                }
+
+                realtime.socket = new WebSocket(config.endpointRealtime + '/realtime?' + channels.toString());
+                realtime.socket.addEventListener('message', function (event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.channels && data.channels.includes(channel)) {
+                            callback(data);          
+                        }
+                    } catch (e) {
+                        console.error('Realtime:', event.data);
+                    }
+                });
+            
+                return function() {
+                    realtime.channels[channel].splice(realtime.channels[channel].indexOf(callback), 1);
+                }
+            }
+        }
+
 {% for service in spec.services %}
         let {{service.name | caseCamel}} = {
 {% for method in service.methods %}
@@ -335,9 +383,11 @@
 {% endfor %}
         return {
             setEndpoint: setEndpoint,
+            setEndpointRealtime: setEndpointRealtime,
 {% for header in spec.global.headers %}
             set{{header.key | caseUcfirst}}: set{{header.key | caseUcfirst}},
 {% endfor %}
+            realtime: realtime,
 {% for service in spec.services %}
             {{service.name | caseCamel}}: {{service.name | caseCamel}}{% if not loop.last %},{% endif %}
 
