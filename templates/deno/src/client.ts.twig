@@ -94,8 +94,8 @@ export class Client {
             const contentType = response.headers.get('content-type');
 
             if(response.status >= 400) {
-                response = await response.json();
-                throw new {{ spec.title | caseUcfirst}}Exception(response.message, response.status, response);
+                let res = await response.json();
+                throw new {{ spec.title | caseUcfirst}}Exception(res.message, res.status, res);
             }
 
             if (contentType && contentType.includes('application/json')) {
