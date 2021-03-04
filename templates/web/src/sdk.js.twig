@@ -43,6 +43,17 @@
         };
 
 {% endfor %}
+        function {{spec.title | caseUcfirst}}Exception(message, code = 0, response = null) {
+            const error = new Error();
+            error.message = message;
+            error.code = code;
+            error.response = response;
+
+            return error;
+        }
+
+        {{spec.title | caseUcfirst}}Exception.prototype = Object.create(Error.prototype);
+
         let http = function(document) {
             let globalParams    = [],
                 globalHeaders   = [];
@@ -112,15 +123,15 @@
                 path = config.endpoint + path;
 
                 if (-1 === ['GET', 'POST', 'PUT', 'DELETE', 'TRACE', 'HEAD', 'OPTIONS', 'CONNECT', 'PATCH'].indexOf(method)) {
-                    throw new Error('var method must contain a valid HTTP method name');
+                    throw new {{spec.title | caseUcfirst}}Exception('var method must contain a valid HTTP method name');
                 }
 
                 if (typeof path !== 'string') {
-                    throw new Error('var path must be of type string');
+                    throw new {{spec.title | caseUcfirst}}Exception('var path must be of type string');
                 }
 
                 if (typeof headers !== 'object') {
-                    throw new Error('var headers must be of type object');
+                    throw new {{spec.title | caseUcfirst}}Exception('var headers must be of type object');
                 }
 
                 for (i = 0; i < globalParams.length; i++) { // Add global params to URL
@@ -202,7 +213,7 @@
                         if (4 === request.readyState && 399 >= request.status) {
                             resolve(data);
                         } else {
-                            reject(data);
+                            reject(new {{spec.title | caseUcfirst}}Exception(data.message, request.status, data));
                         }
                     };
 
@@ -213,7 +224,7 @@
 
                     // Handle network errors
                     request.onerror = function () {
-                        reject(new Error("Network Error"));
+                        reject(new {{spec.title | caseUcfirst}}Exception('Network Error'));
                     };
 
                     request.send(params);
@@ -255,7 +266,7 @@
 {% for parameter in method.parameters.all %}
              * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
-             * @throws {Error}
+             * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
              * @return {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
              
              */
@@ -263,7 +274,7 @@
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
                 if({{ parameter.name | caseCamel }} === undefined) {
-                    throw new Error('Missing required parameter: "{{ parameter.name | caseCamel }}"');
+                    throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel }}"');
                 }
                 
 {% endif %}
