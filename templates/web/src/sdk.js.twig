@@ -271,8 +271,7 @@
                     realtime.socket.close();
                 }
 
-                realtime.socket = new WebSocket(config.endpointRealtime + '/realtime?' + channels.toString());
-                realtime.socket.addEventListener('message', function (event) {
+                const onMessage = function (event) {
                     try {
                         const data = JSON.parse(event.data);
                         if (data.channels && data.channels.includes(channel)) {
@@ -281,9 +280,13 @@
                     } catch (e) {
                         console.error('Realtime:', event.data);
                     }
-                });
+                }
+
+                realtime.socket = new WebSocket(config.endpointRealtime + '/realtime?' + channels.toString());
+                realtime.socket.addEventListener('message', onMessage);
             
                 return function() {
+                    realtime.socket.removeEventlistener('message', onMessage);
                     realtime.channels[channel].splice(realtime.channels[channel].indexOf(callback), 1);
                 }
             }
