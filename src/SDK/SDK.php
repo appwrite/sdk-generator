@@ -187,6 +187,8 @@ class SDK
      */
     public function setDefaultHeaders($headers) {
         $this->defaultHeaders = $headers;
+        
+        return $this;
     }
 
     /**
