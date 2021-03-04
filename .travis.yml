@@ -5,10 +5,10 @@ arch:
 
 os: linux
 
-language: php
+language: shell
 
-php:
-  - 7.4
+# php:
+#   - 7.4
 
 notifications:
   email:
@@ -33,4 +33,4 @@ install:
   - composer install
 
 script:
-  - vendor/bin/phpunit
+  # - vendor/bin/phpunit
