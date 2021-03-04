@@ -5,10 +5,10 @@ arch:
 
 os: linux
 
-language: shell
+language: php
 
-# php:
-#   - 7.4
+php:
+  - 7.4
 
 notifications:
   email:
@@ -25,7 +25,7 @@ before_install:
   - sudo service docker start
   - >
     if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
-      echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
+      docker login -u "${DOCKERHUB_PULL_USERNAME}" -p "${DOCKERHUB_PULL_PASSWORD}
     fi
 
 install:
@@ -33,4 +33,4 @@ install:
   - composer install
 
 script:
-  # - vendor/bin/phpunit
+  - vendor/bin/phpunit
