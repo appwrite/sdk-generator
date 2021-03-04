@@ -254,43 +254,44 @@
 
         let realtime = {
             socket: undefined,
-            channels: {},
-            subscribe: function(channel, callback) {
-                if (!(channel in realtime.channels)) {
-                    realtime.channels[channel] = [];
-                }
-                realtime.channels[channel].push(callback);
-                
-                const channels = new URLSearchParams();
-                channels.set('project', config.project);
-                for (const property in realtime.channels) {
-                    channels.append('channels[]', property);
-                }
+            channels: {}
+        };
 
-                if (realtime.socket && realtime.socket.readyState && realtime.socket.readyState === WebSocket.OPEN) {
-                    realtime.socket.close();
-                }
-
-                const onMessage = function (event) {
-                    try {
-                        const data = JSON.parse(event.data);
-                        if (data.channels && data.channels.includes(channel)) {
-                            callback(data);          
-                        }
-                    } catch (e) {
-                        console.error('Realtime:', event.data);
-                    }
-                }
-
-                realtime.socket = new WebSocket(config.endpointRealtime + '/realtime?' + channels.toString());
-                realtime.socket.addEventListener('message', onMessage);
+        let subscribe = function(channel, callback) {
+            if (!(channel in realtime.channels)) {
+                realtime.channels[channel] = [];
+            }
+            realtime.channels[channel].push(callback);
             
-                return function() {
-                    realtime.socket.removeEventlistener('message', onMessage);
-                    realtime.channels[channel].splice(realtime.channels[channel].indexOf(callback), 1);
+            const channels = new URLSearchParams();
+            channels.set('project', config.project);
+            for (const property in realtime.channels) {
+                channels.append('channels[]', property);
+            }
+
+            if (realtime.socket && realtime.socket.readyState && realtime.socket.readyState === WebSocket.OPEN) {
+                realtime.socket.close();
+            }
+
+            const onMessage = function (event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.channels && data.channels.includes(channel)) {
+                        callback(data);          
+                    }
+                } catch (e) {
+                    console.error('Realtime:', event.data);
                 }
             }
-        }
+
+            realtime.socket = new WebSocket(config.endpointRealtime + '/realtime?' + channels.toString());
+            realtime.socket.addEventListener('message', onMessage);
+        
+            return function() {
+                realtime.socket.removeEventlistener('message', onMessage);
+                realtime.channels[channel].splice(realtime.channels[channel].indexOf(callback), 1);
+            }
+        };
 
 {% for service in spec.services %}
         let {{service.name | caseCamel}} = {
@@ -390,7 +391,7 @@
 {% for header in spec.global.headers %}
             set{{header.key | caseUcfirst}}: set{{header.key | caseUcfirst}},
 {% endfor %}
-            realtime: realtime,
+            subscribe: subscribe,
 {% for service in spec.services %}
             {{service.name | caseCamel}}: {{service.name | caseCamel}}{% if not loop.last %},{% endif %}
 
