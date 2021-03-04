@@ -96,7 +96,7 @@ module {{spec.title | caseUcfirst}}
 
             res = JSON.parse(response.body);
 
-            if(res.status >= 400)
+            if(res['status'] >= 400)
                 raise {{spec.title | caseUcfirst}}Exception(res['message'], res['status'], res)
             end
 
