@@ -42,7 +42,7 @@
         "summary": "Mock a get request for SDK tests",
         "operationId": "barGet",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["bar"],
         "description": "",
         "responses": {
@@ -50,16 +50,17 @@
         },
         "x-appwrite": {
           "method": "get",
-          "weight": 173,
+          "weight": 174,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/bar/get.md",
+          "demo": "bar/get.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a get request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }],
         "parameters": [
@@ -94,7 +95,7 @@
         "summary": "Mock a post request for SDK tests",
         "operationId": "barPost",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["bar"],
         "description": "",
         "responses": {
@@ -102,16 +103,17 @@
         },
         "x-appwrite": {
           "method": "post",
-          "weight": 174,
+          "weight": 175,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/bar/post.md",
+          "demo": "bar/post.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a post request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }],
         "parameters": [
@@ -150,7 +152,7 @@
         "summary": "Mock a put request for SDK tests",
         "operationId": "barPut",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["bar"],
         "description": "",
         "responses": {
@@ -158,16 +160,17 @@
         },
         "x-appwrite": {
           "method": "put",
-          "weight": 176,
+          "weight": 177,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/bar/put.md",
+          "demo": "bar/put.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a put request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }],
         "parameters": [
@@ -206,7 +209,7 @@
         "summary": "Mock a patch request for SDK tests",
         "operationId": "barPatch",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["bar"],
         "description": "",
         "responses": {
@@ -214,16 +217,17 @@
         },
         "x-appwrite": {
           "method": "patch",
-          "weight": 175,
+          "weight": 176,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/bar/patch.md",
+          "demo": "bar/patch.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a get request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }],
         "parameters": [
@@ -262,7 +266,7 @@
         "summary": "Mock a delete request for SDK tests",
         "operationId": "barDelete",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["bar"],
         "description": "",
         "responses": {
@@ -270,16 +274,17 @@
         },
         "x-appwrite": {
           "method": "delete",
-          "weight": 177,
+          "weight": 178,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/bar/delete.md",
+          "demo": "bar/delete.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a delete request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }],
         "parameters": [
@@ -320,7 +325,7 @@
         "summary": "Mock a get request for SDK tests",
         "operationId": "fooGet",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["foo"],
         "description": "",
         "responses": {
@@ -328,16 +333,17 @@
         },
         "x-appwrite": {
           "method": "get",
-          "weight": 168,
+          "weight": 169,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/foo/get.md",
+          "demo": "foo/get.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a get request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }],
         "parameters": [
@@ -372,7 +378,7 @@
         "summary": "Mock a post request for SDK tests",
         "operationId": "fooPost",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["foo"],
         "description": "",
         "responses": {
@@ -380,16 +386,17 @@
         },
         "x-appwrite": {
           "method": "post",
-          "weight": 169,
+          "weight": 170,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/foo/post.md",
+          "demo": "foo/post.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a post request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }],
         "parameters": [
@@ -428,7 +435,7 @@
         "summary": "Mock a put request for SDK tests",
         "operationId": "fooPut",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["foo"],
         "description": "",
         "responses": {
@@ -436,16 +443,17 @@
         },
         "x-appwrite": {
           "method": "put",
-          "weight": 171,
+          "weight": 172,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/foo/put.md",
+          "demo": "foo/put.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a put request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }],
         "parameters": [
@@ -484,7 +492,7 @@
         "summary": "Mock a patch request for SDK tests",
         "operationId": "fooPatch",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["foo"],
         "description": "",
         "responses": {
@@ -492,16 +500,17 @@
         },
         "x-appwrite": {
           "method": "patch",
-          "weight": 170,
+          "weight": 171,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/foo/patch.md",
+          "demo": "foo/patch.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a get request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }],
         "parameters": [
@@ -540,7 +549,7 @@
         "summary": "Mock a delete request for SDK tests",
         "operationId": "fooDelete",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["foo"],
         "description": "",
         "responses": {
@@ -548,16 +557,17 @@
         },
         "x-appwrite": {
           "method": "delete",
-          "weight": 172,
+          "weight": 173,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/foo/delete.md",
+          "demo": "foo/delete.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a delete request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }],
         "parameters": [
@@ -593,12 +603,68 @@
         ]
       }
     },
+    "/mock/tests/general/400-error": {
+      "get": {
+        "summary": "Mock a an 400 failed request",
+        "operationId": "generalError400",
+        "consumes": ["application/json"],
+        "produces": [],
+        "tags": ["general"],
+        "description": "",
+        "responses": {
+          "500": { "description": "File", "schema": { "type": "file" } }
+        },
+        "x-appwrite": {
+          "method": "error400",
+          "weight": 185,
+          "cookies": false,
+          "type": "",
+          "demo": "general/error400.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock an 400 error",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": ["client", "server"],
+          "packaging": false
+        },
+        "security": [{ "Project": [] }]
+      }
+    },
+    "/mock/tests/general/500-error": {
+      "get": {
+        "summary": "Mock a an 500 failed request",
+        "operationId": "generalError500",
+        "consumes": ["application/json"],
+        "produces": [],
+        "tags": ["general"],
+        "description": "",
+        "responses": {
+          "500": { "description": "File", "schema": { "type": "file" } }
+        },
+        "x-appwrite": {
+          "method": "error500",
+          "weight": 186,
+          "cookies": false,
+          "type": "",
+          "demo": "general/error500.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock an 500 error",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": ["client", "server"],
+          "packaging": false
+        },
+        "security": [{ "Project": [] }]
+      }
+    },
     "/mock/tests/general/empty": {
       "get": {
         "summary": "Mock a post request for SDK tests",
         "operationId": "generalEmpty",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["general"],
         "description": "",
         "responses": {
@@ -606,16 +672,17 @@
         },
         "x-appwrite": {
           "method": "empty",
-          "weight": 183,
+          "weight": 184,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/general/empty.md",
+          "demo": "general/empty.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a redirected request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }]
       }
@@ -625,7 +692,7 @@
         "summary": "Mock a cookie request for SDK tests",
         "operationId": "generalGetCookie",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["general"],
         "description": "",
         "responses": {
@@ -633,16 +700,17 @@
         },
         "x-appwrite": {
           "method": "getCookie",
-          "weight": 182,
+          "weight": 183,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/general/get-cookie.md",
+          "demo": "general/get-cookie.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a get cookie request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }]
       }
@@ -652,7 +720,7 @@
         "summary": "Mock a post request for SDK tests",
         "operationId": "generalRedirect",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["general"],
         "description": "",
         "responses": {
@@ -660,16 +728,17 @@
         },
         "x-appwrite": {
           "method": "redirect",
-          "weight": 179,
+          "weight": 180,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/general/redirect.md",
+          "demo": "general/redirect.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a redirect request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }]
       }
@@ -679,7 +748,7 @@
         "summary": "Mock a post request for SDK tests",
         "operationId": "generalRedirected",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["general"],
         "description": "",
         "responses": {
@@ -687,16 +756,17 @@
         },
         "x-appwrite": {
           "method": "redirected",
-          "weight": 180,
+          "weight": 181,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/general/redirected.md",
+          "demo": "general/redirected.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a redirected request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }]
       }
@@ -706,7 +776,7 @@
         "summary": "Mock a cookie request for SDK tests",
         "operationId": "generalSetCookie",
         "consumes": ["application/json"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["general"],
         "description": "",
         "responses": {
@@ -714,16 +784,17 @@
         },
         "x-appwrite": {
           "method": "setCookie",
-          "weight": 181,
+          "weight": 182,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/general/set-cookie.md",
+          "demo": "general/set-cookie.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a set cookie request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }]
       }
@@ -733,7 +804,7 @@
         "summary": "Mock a post request for SDK tests",
         "operationId": "generalUpload",
         "consumes": ["multipart/form-data"],
-        "produces": ["application/json"],
+        "produces": [],
         "tags": ["general"],
         "description": "",
         "responses": {
@@ -741,16 +812,17 @@
         },
         "x-appwrite": {
           "method": "upload",
-          "weight": 178,
+          "weight": 179,
           "cookies": false,
           "type": "",
-          "demo": "docs/examples/general/upload.md",
+          "demo": "general/upload.md",
           "edit": "https://github.com/appwrite/appwrite/edit/masterMock a delete request for SDK tests",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server"]
+          "platforms": ["client", "server"],
+          "packaging": false
         },
         "security": [{ "Project": [] }],
         "parameters": [
@@ -790,6 +862,48 @@
       }
     }
   },
+  "tags": [
+    {
+      "name": "account",
+      "description": "The Account service allows you to authenticate and manage a user account."
+    },
+    {
+      "name": "avatars",
+      "description": "The Avatars service aims to help you complete everyday tasks related to your app image, icons, and avatars."
+    },
+    {
+      "name": "database",
+      "description": "The Database service allows you to create structured collections of documents, query and filter lists of documents"
+    },
+    {
+      "name": "locale",
+      "description": "The Locale service allows you to customize your app based on your users' location."
+    },
+    {
+      "name": "health",
+      "description": "The Health service allows you to both validate and monitor your Appwrite server's health."
+    },
+    {
+      "name": "projects",
+      "description": "The Project service allows you to manage all the projects in your Appwrite server."
+    },
+    {
+      "name": "storage",
+      "description": "The Storage service allows you to manage your project files."
+    },
+    {
+      "name": "teams",
+      "description": "The Teams service allows you to group users of your project and to enable them to share read and write access to your project resources"
+    },
+    {
+      "name": "users",
+      "description": "The Users service allows you to manage your project users."
+    },
+    {
+      "name": "functions",
+      "description": "The Functions Service allows you view, create and manage your Cloud Functions."
+    }
+  ],
   "definitions": {
     "none": { "description": "None", "type": "object" },
     "any": {
@@ -832,7 +946,8 @@
         "collections": {
           "type": "array",
           "description": "List of collections.",
-          "items": { "type": "object", "$ref": "#/definitions/collection" }
+          "items": { "type": "object", "$ref": "#/definitions/collection" },
+          "x-example": ""
         }
       },
       "required": ["sum", "collections"]
@@ -850,7 +965,8 @@
         "documents": {
           "type": "array",
           "description": "List of documents.",
-          "items": { "type": "object", "$ref": "#/definitions/any" }
+          "items": { "type": "object", "$ref": "#/definitions/any" },
+          "x-example": ""
         }
       },
       "required": ["sum", "documents"]
@@ -868,7 +984,8 @@
         "users": {
           "type": "array",
           "description": "List of users.",
-          "items": { "type": "object", "$ref": "#/definitions/user" }
+          "items": { "type": "object", "$ref": "#/definitions/user" },
+          "x-example": ""
         }
       },
       "required": ["sum", "users"]
@@ -886,7 +1003,8 @@
         "sessions": {
           "type": "array",
           "description": "List of sessions.",
-          "items": { "type": "object", "$ref": "#/definitions/session" }
+          "items": { "type": "object", "$ref": "#/definitions/session" },
+          "x-example": ""
         }
       },
       "required": ["sum", "sessions"]
@@ -898,7 +1016,8 @@
         "logs": {
           "type": "array",
           "description": "List of logs.",
-          "items": { "type": "object", "$ref": "#/definitions/log" }
+          "items": { "type": "object", "$ref": "#/definitions/log" },
+          "x-example": ""
         }
       },
       "required": ["logs"]
@@ -916,7 +1035,8 @@
         "files": {
           "type": "array",
           "description": "List of files.",
-          "items": { "type": "object", "$ref": "#/definitions/file" }
+          "items": { "type": "object", "$ref": "#/definitions/file" },
+          "x-example": ""
         }
       },
       "required": ["sum", "files"]
@@ -934,7 +1054,8 @@
         "teams": {
           "type": "array",
           "description": "List of teams.",
-          "items": { "type": "object", "$ref": "#/definitions/team" }
+          "items": { "type": "object", "$ref": "#/definitions/team" },
+          "x-example": ""
         }
       },
       "required": ["sum", "teams"]
@@ -952,7 +1073,8 @@
         "memberships": {
           "type": "array",
           "description": "List of memberships.",
-          "items": { "type": "object", "$ref": "#/definitions/membership" }
+          "items": { "type": "object", "$ref": "#/definitions/membership" },
+          "x-example": ""
         }
       },
       "required": ["sum", "memberships"]
@@ -970,7 +1092,8 @@
         "functions": {
           "type": "array",
           "description": "List of functions.",
-          "items": { "type": "object", "$ref": "#/definitions/function" }
+          "items": { "type": "object", "$ref": "#/definitions/function" },
+          "x-example": ""
         }
       },
       "required": ["sum", "functions"]
@@ -988,7 +1111,8 @@
         "tags": {
           "type": "array",
           "description": "List of tags.",
-          "items": { "type": "object", "$ref": "#/definitions/tag" }
+          "items": { "type": "object", "$ref": "#/definitions/tag" },
+          "x-example": ""
         }
       },
       "required": ["sum", "tags"]
@@ -1006,7 +1130,8 @@
         "executions": {
           "type": "array",
           "description": "List of executions.",
-          "items": { "type": "object", "$ref": "#/definitions/execution" }
+          "items": { "type": "object", "$ref": "#/definitions/execution" },
+          "x-example": ""
         }
       },
       "required": ["sum", "executions"]
@@ -1024,7 +1149,8 @@
         "countries": {
           "type": "array",
           "description": "List of countries.",
-          "items": { "type": "object", "$ref": "#/definitions/country" }
+          "items": { "type": "object", "$ref": "#/definitions/country" },
+          "x-example": ""
         }
       },
       "required": ["sum", "countries"]
@@ -1042,12 +1168,13 @@
         "continents": {
           "type": "array",
           "description": "List of continents.",
-          "items": { "type": "object", "$ref": "#/definitions/continent" }
+          "items": { "type": "object", "$ref": "#/definitions/continent" },
+          "x-example": ""
         }
       },
       "required": ["sum", "continents"]
     },
-    "langaugeList": {
+    "languageList": {
       "description": "Languages List",
       "type": "object",
       "properties": {
@@ -1060,7 +1187,8 @@
         "languages": {
           "type": "array",
           "description": "List of languages.",
-          "items": { "type": "object", "$ref": "#/definitions/langauge" }
+          "items": { "type": "object", "$ref": "#/definitions/language" },
+          "x-example": ""
         }
       },
       "required": ["sum", "languages"]
@@ -1078,7 +1206,8 @@
         "currencies": {
           "type": "array",
           "description": "List of currencies.",
-          "items": { "type": "object", "$ref": "#/definitions/currency" }
+          "items": { "type": "object", "$ref": "#/definitions/currency" },
+          "x-example": ""
         }
       },
       "required": ["sum", "currencies"]
@@ -1096,7 +1225,8 @@
         "phones": {
           "type": "array",
           "description": "List of phones.",
-          "items": { "type": "object", "$ref": "#/definitions/phone" }
+          "items": { "type": "object", "$ref": "#/definitions/phone" },
+          "x-example": ""
         }
       },
       "required": ["sum", "phones"]
@@ -1108,12 +1238,14 @@
         "read": {
           "type": "array",
           "description": "Read permissions.",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "x-example": "user:5e5ea5c16897e"
         },
         "write": {
           "type": "array",
           "description": "Write permissions.",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "x-example": "user:5e5ea5c16897e"
         }
       },
       "required": ["read", "write"]
@@ -1153,7 +1285,8 @@
         "rules": {
           "type": "array",
           "description": "Collection rules.",
-          "items": { "type": "object", "$ref": "#/definitions/rule" }
+          "items": { "type": "object", "$ref": "#/definitions/rule" },
+          "x-example": ""
         }
       },
       "required": [
@@ -1212,7 +1345,8 @@
         "list": {
           "type": "array",
           "description": "List of allowed values",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "x-example": "5e5ea5c168099"
         }
       },
       "required": [
@@ -1360,7 +1494,7 @@
         },
         "status": {
           "type": "integer",
-          "description": "User status. 0 for Unavtivated, 1 for active and 2 is blocked.",
+          "description": "User status. 0 for Unactivated, 1 for active and 2 is blocked.",
           "x-example": 0,
           "format": "int32"
         },
@@ -1540,6 +1674,18 @@
         }
       },
       "required": ["$id", "userId", "secret", "expire"]
+    },
+    "jwt": {
+      "description": "JWT",
+      "type": "object",
+      "properties": {
+        "jwt": {
+          "type": "string",
+          "description": "JWT encoded string.",
+          "x-example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        }
+      },
+      "required": ["jwt"]
     },
     "locale": {
       "description": "Locale",
@@ -1722,7 +1868,8 @@
         "roles": {
           "type": "array",
           "description": "User list of roles",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "x-example": "admin"
         }
       },
       "required": [
@@ -1745,6 +1892,12 @@
           "type": "string",
           "description": "Function ID.",
           "x-example": "5e5ea5c16897e"
+        },
+        "$permissions": {
+          "type": "object",
+          "description": "Function permissions.",
+          "x-example": {},
+          "items": { "type": "object", "$ref": "#/definitions/permissions" }
         },
         "name": {
           "type": "string",
@@ -1786,7 +1939,8 @@
         "events": {
           "type": "array",
           "description": "Function trigger events.",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "x-example": "account.create"
         },
         "schedule": {
           "type": "string",
@@ -1814,6 +1968,7 @@
       },
       "required": [
         "$id",
+        "$permissions",
         "name",
         "dateCreated",
         "dateUpdated",
@@ -1960,7 +2115,7 @@
       },
       "required": ["name", "code"]
     },
-    "langauge": {
+    "language": {
       "description": "Language",
       "type": "object",
       "properties": {
