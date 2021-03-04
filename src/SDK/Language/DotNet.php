@@ -340,7 +340,12 @@ class DotNet extends Language {
                 'template'      => '/dotnet/src/Appwrite/Models/Rule.cs.twig',
                 'minify'        => false,
             ],
-
+            [
+                'scope'         => 'default',
+                'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Models/Exception.cs',
+                'template'      => '/dotnet/src/Appwrite/Models/Exception.cs.twig',
+                'minify'        => false,
+            ],
             [
                 'scope'         => 'default',
                 'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Services/Service.cs',
