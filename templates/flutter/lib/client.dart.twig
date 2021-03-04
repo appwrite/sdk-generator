@@ -127,6 +127,10 @@ class Client {
           if(e.response == null) {
             throw {{spec.title | caseUcfirst}}Exception(e.message);
           }
+          if(responseType == ResponseType.bytes) {
+            final res = json.decode(utf8.decode(e.response.data));
+            throw AppwriteException(res['message'],res['code'], res);
+          }
           throw {{spec.title | caseUcfirst}}Exception(e.response.data['message'],e.response.data['code'], e.response.data);
         } catch(e) {
           throw {{spec.title | caseUcfirst}}Exception(e.message);
