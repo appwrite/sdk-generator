@@ -1,3 +1,10 @@
+dist: xenial
+
+arch:
+  - amd64
+
+os: linux
+
 language: php
 
 php:
@@ -6,6 +13,9 @@ php:
 notifications:
   email:
     - team@appwrite.io
+
+services:
+  - docker
 
 before_install:
   - curl -fsSL https://get.docker.com | sh
@@ -17,7 +27,6 @@ before_install:
     if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
       echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
     fi
-
 
 install:
   - docker --version
