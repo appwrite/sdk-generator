@@ -25,7 +25,7 @@ before_install:
   - sudo service docker start
   - >
     if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
-      docker login -u "${DOCKERHUB_PULL_USERNAME}" -p "${DOCKERHUB_PULL_PASSWORD}
+      docker login -u "${DOCKERHUB_PULL_USERNAME}" -p "${DOCKERHUB_PULL_PASSWORD}"
     fi
 
 install:
