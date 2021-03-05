@@ -18,7 +18,7 @@
          */
         let setEndpoint = function(endpoint) {
             config.endpoint = endpoint;
-            config.endpointRealtime = endpoint.replace("https://", "wss://").replace("http://", "ws://");
+            config.endpointRealtime = config.endpointRealtime || endpoint.replace("https://", "wss://").replace("http://", "ws://");
 
             return this;
         };
