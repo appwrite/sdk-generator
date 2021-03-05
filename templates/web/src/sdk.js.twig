@@ -269,12 +269,12 @@
 
                 realtime.socket = new WebSocket(config.endpointRealtime + '/realtime?' + channels.toString());
 
-                const onMessage = (channel, callback) => 
+                const onMessage = (channel, callback) =>
                     (event) => {
                         try {
                             const data = JSON.parse(event.data);
                             if (data.channels && data.channels.includes(channel)) {
-                                callback(data);          
+                                callback(data);
                             }
                         } catch (e) {
                             console.error('Realtime:', event.data);
@@ -296,20 +296,37 @@
             }
         };
 
-        let subscribe = (channel, callback) => {
-            if (!(channel in realtime.channels)) {
-                realtime.channels[channel] = [];
+        /**
+         * Subscribes to Appwrite events and passes you the payload in realtime.
+         * 
+         * @param {string|string[]} channels 
+         * @param {(payload: object) => void} callback 
+         * @returns {() => void} Unsubscribes from updates.
+         */
+        let subscribe = (channels, callback) => {
+            if (typeof channels === 'string' || channels instanceof String) {
+                channels = [channels];
+            } else if (!(channels instanceof Array)) {
+                console.log(channels)
+                throw Error("Channels must be of type String or Array.");
             }
-            realtime.channels[channel].push(callback);
-            
-            clearTimeout(realtime.timeout);
-            realtime.timeout = setTimeout(() => {
-                realtime.createSocket();
-            }, 1);
-            
+            channels.forEach(channel => {
+                if (!(channel in realtime.channels)) {
+                    realtime.channels[channel] = [];
+                }
+                realtime.channels[channel].push(callback);
+
+                clearTimeout(realtime.timeout);
+                realtime.timeout = setTimeout(() => {
+                    realtime.createSocket();
+                }, 1);
+            });
+
             return () => {
-                realtime.socket.removeEventlistener('message', onMessage);
-                realtime.channels[channel].splice(realtime.channels[channel].indexOf(callback), 1);
+                channels.forEach(channel => {
+                    realtime.socket.removeEventlistener('message', onMessage);
+                    realtime.channels[channel].splice(realtime.channels[channel].indexOf(callback), 1);
+                })
             }
         };
 
