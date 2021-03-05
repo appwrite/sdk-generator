@@ -54,6 +54,7 @@ class SDK
         'shareVia' => '',
         'shareTags' => '',
         'warning' => '',
+        'gettingStarted' => '',
         'readme' => '',
         'changelog' => '',
         'examples' => '',
@@ -186,6 +187,8 @@ class SDK
      */
     public function setDefaultHeaders($headers) {
         $this->defaultHeaders = $headers;
+        
+        return $this;
     }
 
     /**
@@ -382,6 +385,17 @@ class SDK
     public function setWarning($message)
     {
         $this->setParam('warning', $message);
+
+        return $this;
+    }
+
+    /**
+     * @param $message string
+     * @return $this
+     */
+    public function setGettingStarted($message)
+    {
+        $this->setParam('gettingStarted', $message);
 
         return $this;
     }
