@@ -253,41 +253,60 @@
         }(window.document);
 
         let realtime = {
-            socket: undefined,
-            channels: {}
+            socket: null,
+            timeout: null,
+            channels: {},
+            createSocket: () => {
+                const channels = new URLSearchParams();
+                channels.set('project', config.project);
+                for (const property in realtime.channels) {
+                    channels.append('channels[]', property);
+                }
+                if (realtime.socket && realtime.socket.readyState && realtime.socket.readyState === WebSocket.OPEN) {
+                    realtime.socket.close();
+                }
+
+                realtime.socket = new WebSocket(config.endpointRealtime + '/realtime?' + channels.toString());
+
+                const onMessage = (channel, callback) => 
+                    (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            if (data.channels && data.channels.includes(channel)) {
+                                callback(data);          
+                            }
+                        } catch (e) {
+                            console.error('Realtime:', event.data);
+                        }
+                    };
+
+                for (const channel in realtime.channels) {
+                    realtime.channels[channel].forEach(callback => {
+                        realtime.socket.addEventListener('message', onMessage(channel, callback));
+                    });
+                }
+
+                realtime.socket.addEventListener('close', e => {
+                    console.error('Realtime got disconnected. Reconnect will be attempted in 1 second.', e.reason);
+                    setTimeout(() => {
+                        realtime.createSocket();
+                    }, 1000);
+                })
+            }
         };
 
-        let subscribe = function(channel, callback) {
+        let subscribe = (channel, callback) => {
             if (!(channel in realtime.channels)) {
                 realtime.channels[channel] = [];
             }
             realtime.channels[channel].push(callback);
             
-            const channels = new URLSearchParams();
-            channels.set('project', config.project);
-            for (const property in realtime.channels) {
-                channels.append('channels[]', property);
-            }
-
-            if (realtime.socket && realtime.socket.readyState && realtime.socket.readyState === WebSocket.OPEN) {
-                realtime.socket.close();
-            }
-
-            const onMessage = function (event) {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.channels && data.channels.includes(channel)) {
-                        callback(data);          
-                    }
-                } catch (e) {
-                    console.error('Realtime:', event.data);
-                }
-            }
-
-            realtime.socket = new WebSocket(config.endpointRealtime + '/realtime?' + channels.toString());
-            realtime.socket.addEventListener('message', onMessage);
-        
-            return function() {
+            clearTimeout(realtime.timeout);
+            realtime.timeout = setTimeout(() => {
+                realtime.createSocket();
+            }, 1);
+            
+            return () => {
                 realtime.socket.removeEventlistener('message', onMessage);
                 realtime.channels[channel].splice(realtime.channels[channel].indexOf(callback), 1);
             }
