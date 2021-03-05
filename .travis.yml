@@ -6,55 +6,30 @@ arch:
 
 os: linux
 
-language: shell
+language: php
+
+php:
+  - 7.4
 
 notifications:
   email:
-  - team@appwrite.io
-  
-services:
-- docker
+    - team@appwrite.io
 
 before_install:
-- curl -fsSL https://get.docker.com | sh
-- echo '{"experimental":"enabled"}' | sudo tee /etc/docker/daemon.json
-- mkdir -p $HOME/.docker
-- echo '{"experimental":"enabled"}' | sudo tee $HOME/.docker/config.json
-- sudo service docker start
-- >
-  if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
-    echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
-  fi
-- docker --version
-- docker buildx create --use
+  - curl -fsSL https://get.docker.com | sh
+  - echo '{"experimental":"enabled"}' | sudo tee /etc/docker/daemon.json
+  - mkdir -p $HOME/.docker
+  - echo '{"experimental":"enabled"}' | sudo tee $HOME/.docker/config.json
+  - sudo service docker start
+  - >
+    if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
+      echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
+    fi
+
+
+install:
+  - docker --version
+  - composer install
 
 script:
-- docker ps
-
-# language: php
-
-# php:
-#   - 7.4
-
-# notifications:
-#   email:
-#     - team@appwrite.io
-
-# before_install:
-#   - curl -fsSL https://get.docker.com | sh
-#   - echo '{"experimental":"enabled"}' | sudo tee /etc/docker/daemon.json
-#   - mkdir -p $HOME/.docker
-#   - echo '{"experimental":"enabled"}' | sudo tee $HOME/.docker/config.json
-#   - sudo service docker start
-#   - >
-#     if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
-#       echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
-#     fi
-
-
-# install:
-#   - docker --version
-#   - composer install
-
-# script:
-#   - vendor/bin/phpunit
+  - vendor/bin/phpunit
