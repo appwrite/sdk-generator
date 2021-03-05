@@ -42,11 +42,14 @@
         "summary": "Mock a get request for SDK tests",
         "operationId": "barGet",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["bar"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "get",
@@ -95,11 +98,14 @@
         "summary": "Mock a post request for SDK tests",
         "operationId": "barPost",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["bar"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "post",
@@ -152,11 +158,14 @@
         "summary": "Mock a put request for SDK tests",
         "operationId": "barPut",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["bar"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "put",
@@ -209,11 +218,14 @@
         "summary": "Mock a patch request for SDK tests",
         "operationId": "barPatch",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["bar"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "patch",
@@ -266,11 +278,14 @@
         "summary": "Mock a delete request for SDK tests",
         "operationId": "barDelete",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["bar"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "delete",
@@ -325,11 +340,14 @@
         "summary": "Mock a get request for SDK tests",
         "operationId": "fooGet",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["foo"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "get",
@@ -378,11 +396,14 @@
         "summary": "Mock a post request for SDK tests",
         "operationId": "fooPost",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["foo"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "post",
@@ -435,11 +456,14 @@
         "summary": "Mock a put request for SDK tests",
         "operationId": "fooPut",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["foo"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "put",
@@ -492,11 +516,14 @@
         "summary": "Mock a patch request for SDK tests",
         "operationId": "fooPatch",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["foo"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "patch",
@@ -549,11 +576,14 @@
         "summary": "Mock a delete request for SDK tests",
         "operationId": "fooDelete",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["foo"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "delete",
@@ -605,14 +635,17 @@
     },
     "/mock/tests/general/400-error": {
       "get": {
-        "summary": "Mock a an 400 failed request",
+        "summary": "400 Error",
         "operationId": "generalError400",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["general"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "400": {
+            "description": "Error",
+            "schema": { "$ref": "#/definitions/error" }
+          }
         },
         "x-appwrite": {
           "method": "error400",
@@ -620,7 +653,7 @@
           "cookies": false,
           "type": "",
           "demo": "general/error400.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock an 400 error",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a an 400 failed request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
@@ -633,14 +666,17 @@
     },
     "/mock/tests/general/500-error": {
       "get": {
-        "summary": "Mock a an 500 failed request",
+        "summary": "500 Error",
         "operationId": "generalError500",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["general"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "500": {
+            "description": "Error",
+            "schema": { "$ref": "#/definitions/error" }
+          }
         },
         "x-appwrite": {
           "method": "error500",
@@ -648,7 +684,7 @@
           "cookies": false,
           "type": "",
           "demo": "general/error500.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock an 500 error",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a an 500 failed request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
@@ -661,22 +697,20 @@
     },
     "/mock/tests/general/empty": {
       "get": {
-        "summary": "Mock a post request for SDK tests",
+        "summary": "Empty Response",
         "operationId": "generalEmpty",
         "consumes": ["application/json"],
         "produces": [],
         "tags": ["general"],
         "description": "",
-        "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
-        },
+        "responses": { "204": { "description": "No content" } },
         "x-appwrite": {
           "method": "empty",
           "weight": 184,
           "cookies": false,
           "type": "",
           "demo": "general/empty.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a redirected request for SDK tests",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a an empty response body.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
@@ -689,14 +723,17 @@
     },
     "/mock/tests/general/get-cookie": {
       "get": {
-        "summary": "Mock a cookie request for SDK tests",
+        "summary": "Get Cookie",
         "operationId": "generalGetCookie",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["general"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "getCookie",
@@ -704,7 +741,7 @@
           "cookies": false,
           "type": "",
           "demo": "general/get-cookie.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a get cookie request for SDK tests",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a cookie response.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
@@ -717,14 +754,14 @@
     },
     "/mock/tests/general/redirect": {
       "get": {
-        "summary": "Mock a post request for SDK tests",
+        "summary": "Redirect",
         "operationId": "generalRedirect",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["text/html"],
         "tags": ["general"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "301": { "description": "File", "schema": { "type": "file" } }
         },
         "x-appwrite": {
           "method": "redirect",
@@ -745,14 +782,17 @@
     },
     "/mock/tests/general/redirect/done": {
       "get": {
-        "summary": "Mock a post request for SDK tests",
+        "summary": "Redirect Target",
         "operationId": "generalRedirected",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["general"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "redirected",
@@ -773,14 +813,17 @@
     },
     "/mock/tests/general/set-cookie": {
       "get": {
-        "summary": "Mock a cookie request for SDK tests",
+        "summary": "Set Cookie",
         "operationId": "generalSetCookie",
         "consumes": ["application/json"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["general"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "setCookie",
@@ -788,7 +831,7 @@
           "cookies": false,
           "type": "",
           "demo": "general/set-cookie.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a set cookie request for SDK tests",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a set cookie request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
@@ -801,14 +844,17 @@
     },
     "/mock/tests/general/upload": {
       "post": {
-        "summary": "Mock a post request for SDK tests",
+        "summary": "Upload File",
         "operationId": "generalUpload",
         "consumes": ["multipart/form-data"],
-        "produces": [],
+        "produces": ["application/json"],
         "tags": ["general"],
         "description": "",
         "responses": {
-          "500": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "upload",
@@ -2210,6 +2256,18 @@
         }
       },
       "required": ["code", "countryCode", "countryName"]
+    },
+    "mock": {
+      "description": "Mock",
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "string",
+          "description": "Result message.",
+          "x-example": "Success"
+        }
+      },
+      "required": ["result"]
     }
   },
   "externalDocs": {
