@@ -166,14 +166,14 @@ namespace {{ spec.title | caseUcfirst }}
                 
                 if (code >= 400) {
                     var message = response["message"].ToString();
-                    throw new AppwriteException(message, code, response.ToString());
+                    throw new {{spec.title | caseUcfirst}}Exception(message, code, response.ToString());
                 }
 
                 return httpResponseMessage;
             }
             catch (System.Exception e)
             {
-                throw new AppwriteException(e.Message, e);
+                throw new {{spec.title | caseUcfirst}}Exception(e.Message, e);
             }
 
         }
