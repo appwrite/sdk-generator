@@ -96,7 +96,15 @@ class Client {
           if(e.response == null) {
             throw {{spec.title | caseUcfirst}}Exception(e.message);
           }
-          throw {{spec.title | caseUcfirst}}Exception(e.response!.data['message'],e.response!.data['code'], e.response!.data);
+          if(responseType == ResponseType.bytes) {
+            if(e.response!.headers['content-type'].contains('application/json')) {
+              final res = json.decode(utf8.decode(e.response!.data));
+              throw {{spec.title | caseUcfirst}}Exception(res['message'],res['code'], res);
+            } else {
+              throw {{spec.title | caseUcfirst}}Exception(e.message);
+            }
+          }
+          throw {{spec.title | caseUcfirst}}Exception(e.response.data['message'],e.response.data['code'], e.response.data);
         } catch(e) {
           throw {{spec.title | caseUcfirst}}Exception(e.toString());
         }
