@@ -300,8 +300,19 @@
          * Subscribes to Appwrite events and passes you the payload in realtime.
          * 
          * @param {string|string[]} channels 
-         * @param {(payload: object) => void} callback 
-         * @returns {() => void} Unsubscribes from updates.
+         * Channel to subscribe - pass a single channel as a string or multiple with an array of strings.
+         * 
+         * Possible channels are:
+         * - account
+         * - collections
+         * - collections.[ID]
+         * - collections.[ID].documents
+         * - documents
+         * - documents.[ID]
+         * - files
+         * - files.[ID]
+         * @param {(payload: object) => void} callback Is called on every realtime update.
+         * @returns {() => void} Unsubscribes from events.
          */
         let subscribe = (channels, callback) => {
             if (typeof channels === 'string' || channels instanceof String) {
