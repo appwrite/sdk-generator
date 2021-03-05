@@ -318,7 +318,6 @@
             if (typeof channels === 'string' || channels instanceof String) {
                 channels = [channels];
             } else if (!(channels instanceof Array)) {
-                console.log(channels)
                 throw Error("Channels must be of type String or Array.");
             }
             channels.forEach(channel => {
