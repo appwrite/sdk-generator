@@ -1,0 +1,38 @@
+use appwrite;
+use appwrite::client::ParamType;
+
+#[test]
+fn client_creation() {
+    let mut client = appwrite::client::Client::new();
+
+    client.addHeader("test".to_string(), "test".to_string());
+}
+
+#[tokio::test]
+async fn test_request() {
+    // Create test server
+    use httptest::{matchers::*, responders::*, Expectation, Server};
+
+    let server = Server::run();
+
+    server.expect(
+        Expectation::matching(request::method_path("GET", "/test")).respond_with(status_code(200)),
+    );
+
+    let server_url = server.url_str("");
+
+    std::thread::spawn(move || {
+        let mut client = appwrite::client::Client::new();
+
+        // Start building normal request
+        let mut data: Vec<(String, ParamType)> = Default::default();
+
+        data.push(("test".to_string(), ParamType::String("test".to_string())));
+
+        client.addHeader("test".to_string(), "test".to_string());
+        client.setEndpoint(&server_url);
+        client.call("GET", "/test", None, None);
+    })
+    .join()
+    .expect("Task Panicked");
+}

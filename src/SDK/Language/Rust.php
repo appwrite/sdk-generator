@@ -22,6 +22,7 @@ class Rust extends Language {
     public function getKeywords()
     {
         return [
+          "type",
           "as",
           "break",
           "const",
@@ -83,20 +84,23 @@ class Rust extends Language {
     public function getTypeName($type)
     {
         switch ($type) {
+            case self::TYPE_OBJECT:
+                return 'Option<HashMap<String, crate::client::ParamType>>';
+            break;
             case self::TYPE_INTEGER:
-                return 'u32';
+                return 'i64';
             break;
             case self::TYPE_STRING:
-                return 'String';
+                return '&str';
             break;
             case self::TYPE_FILE:
-                return 'File';
+                return 'std::path::PathBuf';
             break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
             break;
             case self::TYPE_ARRAY:
-              return 'Vec';
+              return 'Vec<String> ';
             break;
         }
 
@@ -136,7 +140,7 @@ class Rust extends Language {
                     $output .= 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "''";
+                    $output .= 'String::new()';
                     break;
                 case self::TYPE_OBJECT:
                     $output .= 'new Object()';
@@ -175,6 +179,12 @@ class Rust extends Language {
         return [
             [
                 'scope'         => 'default',
+                'destination'   => 'Cargo.toml',
+                'template'      => '/rust/Cargo.toml.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => '/rust/README.md.twig',
                 'minify'        => false,
@@ -191,36 +201,42 @@ class Rust extends Language {
                 'template'      => '/rust/LICENSE.twig',
                 'minify'        => false,
             ],
-	    [
+	          [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => '/rust/docs/example.md.twig',
                 'minify'        => false,
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/Client.java',
-                'template'      => '/java/src/main/java/io/appwrite/Client.java.twig',
-                'minify'        => false,
+              'scope'         => 'method',
+              'destination'   => 'src/lib.rs',
+              'template'      => '/rust/src/lib.rs.twig',
+              'minify'        => false,
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/enums/OrderType.java',
-                'template'      => '/java/src/main/java/io/appwrite/enums/OrderType.java.twig',
-                'minify'        => false,
+              'scope'         => 'method',
+              'destination'   => 'src/client.rs',
+              'template'      => '/rust/src/client.rs.twig',
+              'minify'        => false,
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/services/Service.java',
-                'template'      => '/java/src/main/java/io/appwrite/services/Service.java.twig',
-                'minify'        => false,
+              'scope'         => 'method',
+              'destination'   => 'src/services/mod.rs',
+              'template'      => '/rust/src/services/mod.rs.twig',
+              'minify'        => false,
             ],
             [
-                'scope'         => 'service',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.java',
-                'template'      => '/java/src/main/java/io/appwrite/services/ServiceTemplate.java.twig',
-                'minify'        => false,
-            ]
+              'scope'         => 'method',
+              'destination'   => 'tests/client_creation.rs',
+              'template'      => '/rust/tests/client_creation.rs.twig',
+              'minify'        => false,
+            ],
+            [
+              'scope'         => 'service',
+              'destination'   => 'src/services/{{service.name | caseDash}}.rs',
+              'template'      => '/rust/src/services/service.rs.twig',
+              'minify'        => false,
+          ],
         ];
     }
 }

@@ -1,0 +1,7 @@
+{% for service in spec.services %}
+mod {{service.name}};
+{% endfor %}
+
+{% for service in spec.services %}
+pub use self::{{service.name}}::{{service.name|caseUcfirst}};
+{% endfor %}

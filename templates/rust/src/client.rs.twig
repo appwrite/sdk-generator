@@ -1,0 +1,236 @@
+use core::panic;
+use reqwest::header::HeaderMap;
+use std::{collections::HashMap, str::FromStr};
+use std::path::PathBuf;
+
+#[derive(Clone)]
+pub struct Client {
+    endpoint: url::Url,
+    headers: HeaderMap,
+    client: reqwest::blocking::Client,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub enum ParamType {
+    Bool(bool),
+    Number(i64),
+    String(String),
+    Array(Vec<ParamType>),
+    FilePath(PathBuf),
+    Object(HashMap<String, ParamType>)
+}
+
+/// Example
+/// ```rust
+/// let mut client = Client::new();
+/// 
+/// client.setEndpoint("Your Endpoint URL");
+/// client.setProject("Your Project ID");
+/// client.setKey("Your API Key");
+/// 
+/// // Create a user as a example
+/// let userService = appwrite::services::Users::new(&client);
+/// let response = userService.create("amadeus@example.com", "supersecurepassword", "Wolfgang Amadeus Mozart");
+/// 
+/// println!("{}", response.text().unwrap()); // Here you can also check the status code to see success
+/// ```
+impl Client {
+    pub fn new() -> Self {
+        let mut new_headers = HeaderMap::new();
+
+        new_headers.insert("x-sdk-version", "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}".parse().unwrap());
+{% for key,header in spec.global.defaultHeaders %}
+        new_headers.insert("{{key}}", "{{header}}".parse().unwrap());
+{% endfor %}
+
+        Self {
+            endpoint: "{{spec.endpoint}}".parse().unwrap(),
+            headers: new_headers,
+            client: reqwest::blocking::Client::builder()
+            .danger_accept_invalid_certs(match std::env::var_os("RUST_TLS_REJECT_UNAUTHORIZED") {Some(_) => true, None => false })
+            .build().unwrap(),
+        }
+    }
+
+    pub fn addHeader(&mut self, key: String, value: String) {
+        self.headers.append(
+            reqwest::header::HeaderName::from_str(&key).unwrap(),
+            (&value.to_lowercase()).parse().unwrap(),
+        );
+    }
+
+{% for header in spec.global.headers %}
+{% if header.description %}
+    /// Sets {{ header.description }}
+{% endif %}
+    pub fn set{{header.key | caseUcfirst}}(&mut self, value: &str) {
+        self.addHeader("{{header.name}}".to_string(), value.to_string())
+    }
+
+{% endfor %}
+
+    pub fn setEndpoint(&mut self, endpoint: &str) {
+        self.endpoint = endpoint.parse().unwrap()
+    }
+
+    pub fn call(
+        self,
+        method: &str,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: Option<HashMap<String, ParamType>>,
+    ) -> reqwest::blocking::Response {
+        // If we have headers in the function call we combine them with the client headers.
+
+        let request_headers: HeaderMap = match headers {
+            Some(data) => {
+                let mut headers = self.headers.clone();
+
+                for (k, v) in data {
+                    headers.append(
+                        reqwest::header::HeaderName::from_lowercase(k.as_bytes()).unwrap(),
+                        (&v.to_lowercase()).parse().unwrap(),
+                    );
+                }
+
+                headers
+            }
+            None => self.headers.clone(),
+        };
+
+        let content_type = match &request_headers.get("content-type") {
+            Some(data) => data.to_str().unwrap(),
+            None => "",
+        };
+
+        // Now start building request with reqwest
+        let methodType = match method {
+            "GET" => reqwest::Method::GET,
+            "POST" => reqwest::Method::POST,
+            "OPTIONS" => reqwest::Method::OPTIONS,
+            "PUT" => reqwest::Method::PUT,
+            "DELETE" => reqwest::Method::DELETE,
+            "HEAD" => reqwest::Method::HEAD,
+            _ => reqwest::Method::GET,
+        };
+
+        let mut request = self
+            .client
+            .request(methodType, self.endpoint.join(&format!("{}{}", "v1", path)).unwrap());
+
+        match params {
+            Some(data) => {
+                let flattened_data = flatten(FlattenType::Normal(data.clone()), None);
+
+                // First flatten the data and feed it into a FormData
+                if content_type.starts_with("multipart/form-data") {
+                    let mut form = reqwest::blocking::multipart::Form::new();
+
+                    for (k, v) in flattened_data.clone() {
+                        match v {
+                            ParamType::Bool(data) => {
+                                form = form.text(k, data.to_string());
+                            }
+                            ParamType::String(data) => form = form.text(k, data),
+                            ParamType::FilePath(data) => form = form.file(k, data).unwrap(),
+                            ParamType::Number(data) => form = form.text(k, data.to_string()),
+                            // This shouldn't be possible due to the flatten function, so we won't handle this for now
+                            ParamType::Array(_data) => {
+                                //todo: Feed this back into a flatten function if needed
+                            },
+                            ParamType::Object(data) => {
+                              // Same for this
+                            }
+                        }
+                    }
+                    request = request.multipart(form);
+                }
+
+                if content_type.starts_with("application/json") {
+                    request = request.json(&data);
+                }
+
+                if method == "GET" {
+                    request =
+                        request.query(&queryizeData(flatten(FlattenType::Normal(data), None)));
+                }
+            }
+            None => {}
+        }
+
+        request = request.headers(request_headers);
+
+        match request.send() {
+            Ok(data) => data,
+            Err(err) => panic!("{}", err),
+        }
+    }
+}
+
+enum FlattenType {
+    Normal(HashMap<String, ParamType>),
+    Nested(Vec<ParamType>),
+}
+
+fn queryizeData(data: Vec<(String, ParamType)>) -> Vec<(String, String)> {
+    let mut output: Vec<(String, String)> = Default::default();
+
+    for (k, v) in data {
+        match v {
+            ParamType::Bool(value) => output.push((k, value.to_string())),
+            ParamType::String(value) => output.push((k, value)),
+            ParamType::Number(value) => output.push((k, value.to_string())),
+            _ => {}
+        }
+    }
+
+    output
+}
+
+fn flatten(data: FlattenType, prefix: Option<String>) -> Vec<(String, ParamType)> {
+    let mut output: Vec<(String, ParamType)> = Default::default();
+
+    match data {
+        FlattenType::Normal(data) => {
+            for (k, v) in data {
+                let final_key = match &prefix {
+                    Some(current_prefix) => format!("{}[{}]", current_prefix, k),
+                    None => k,
+                };
+
+                match v {
+                    ParamType::Array(value) => {
+                        flatten(FlattenType::Nested(value), Some(final_key)).append(&mut output);
+                    }
+                    ParamType::Object(value) => {
+                        output.extend(flatten(FlattenType::Normal(value), Some(final_key)).into_iter())
+                    },
+                    value => {
+                        output.push((final_key, value));
+                    }
+                }
+            }
+        }
+
+        FlattenType::Nested(data) => {
+            for (k, v) in data.iter().enumerate() {
+                let final_key = match &prefix {
+                    Some(current_prefix) => format!("{}[{}]", current_prefix, k),
+                    None => k.to_string(),
+                };
+
+                match v {
+                    ParamType::Array(value) => {
+                        flatten(FlattenType::Nested(value.to_owned()), Some(final_key))
+                            .append(&mut output);
+                    }
+                    value => {
+                        output.push((final_key, value.to_owned()));
+                    }
+                }
+            }
+        }
+    }
+
+    output
+}
