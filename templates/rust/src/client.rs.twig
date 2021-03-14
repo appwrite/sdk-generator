@@ -11,6 +11,7 @@ pub struct Client {
 }
 
 #[derive(Clone, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum ParamType {
     Bool(bool),
     Number(i64),
@@ -22,11 +23,11 @@ pub enum ParamType {
 
 /// Example
 /// ```rust
-/// let mut client = Client::new();
+/// let mut client = appwrite::client::Client::new();
 /// 
-/// client.setEndpoint("Your Endpoint URL");
-/// client.setProject("Your Project ID");
-/// client.setKey("Your API Key");
+/// client.set_endpoint("Your Endpoint URL");
+/// client.set_project("Your Project ID");
+/// client.set_key("Your API Key");
 /// 
 /// // Create a user as a example
 /// let userService = appwrite::services::Users::new(&client);
@@ -52,7 +53,7 @@ impl Client {
         }
     }
 
-    pub fn addHeader(&mut self, key: String, value: String) {
+    pub fn add_header(&mut self, key: String, value: String) {
         self.headers.append(
             reqwest::header::HeaderName::from_str(&key).unwrap(),
             (&value.to_lowercase()).parse().unwrap(),
@@ -63,13 +64,13 @@ impl Client {
 {% if header.description %}
     /// Sets {{ header.description }}
 {% endif %}
-    pub fn set{{header.key | caseUcfirst}}(&mut self, value: &str) {
-        self.addHeader("{{header.name}}".to_string(), value.to_string())
+    pub fn set_{{header.key | caseSnake}}(&mut self, value: &str) {
+        self.add_header("{{header.name}}".to_string(), value.to_string())
     }
 
 {% endfor %}
 
-    pub fn setEndpoint(&mut self, endpoint: &str) {
+    pub fn set_endpoint(&mut self, endpoint: &str) {
         self.endpoint = endpoint.parse().unwrap()
     }
 
@@ -82,15 +83,21 @@ impl Client {
     ) -> reqwest::blocking::Response {
         // If we have headers in the function call we combine them with the client headers.
 
+        let mut content_type: String = "application/json".to_string();
+
         let request_headers: HeaderMap = match headers {
             Some(data) => {
                 let mut headers = self.headers.clone();
 
                 for (k, v) in data {
+                  if k == "content-type" {
+                    content_type = v.to_string()
+                  } else {
                     headers.append(
                         reqwest::header::HeaderName::from_lowercase(k.as_bytes()).unwrap(),
                         (&v.to_lowercase()).parse().unwrap(),
                     );
+                  }
                 }
 
                 headers
@@ -98,25 +105,21 @@ impl Client {
             None => self.headers.clone(),
         };
 
-        let content_type = match &request_headers.get("content-type") {
-            Some(data) => data.to_str().unwrap(),
-            None => "",
-        };
-
         // Now start building request with reqwest
-        let methodType = match method {
+        let method_type = match method {
             "GET" => reqwest::Method::GET,
             "POST" => reqwest::Method::POST,
             "OPTIONS" => reqwest::Method::OPTIONS,
             "PUT" => reqwest::Method::PUT,
             "DELETE" => reqwest::Method::DELETE,
             "HEAD" => reqwest::Method::HEAD,
+            "PATCH" => reqwest::Method::PATCH,
             _ => reqwest::Method::GET,
         };
 
         let mut request = self
             .client
-            .request(methodType, self.endpoint.join(&format!("{}{}", "v1", path)).unwrap());
+            .request(method_type, self.endpoint.join(&format!("{}{}", "v1", path)).unwrap());
 
         match params {
             Some(data) => {
@@ -138,7 +141,7 @@ impl Client {
                             ParamType::Array(_data) => {
                                 //todo: Feed this back into a flatten function if needed
                             },
-                            ParamType::Object(data) => {
+                            ParamType::Object(_data) => {
                               // Same for this
                             }
                         }
@@ -146,13 +149,12 @@ impl Client {
                     request = request.multipart(form);
                 }
 
-                if content_type.starts_with("application/json") {
+                if content_type.starts_with("application/json") && method != "GET" {
                     request = request.json(&data);
                 }
 
                 if method == "GET" {
-                    request =
-                        request.query(&queryizeData(flatten(FlattenType::Normal(data), None)));
+                    request = request.query(&queryize_data(flatten(FlattenType::Normal(data), None)));
                 }
             }
             None => {}
@@ -172,7 +174,7 @@ enum FlattenType {
     Nested(Vec<ParamType>),
 }
 
-fn queryizeData(data: Vec<(String, ParamType)>) -> Vec<(String, String)> {
+fn queryize_data(data: Vec<(String, ParamType)>) -> Vec<(String, String)> {
     let mut output: Vec<(String, String)> = Default::default();
 
     for (k, v) in data {
@@ -200,7 +202,7 @@ fn flatten(data: FlattenType, prefix: Option<String>) -> Vec<(String, ParamType)
 
                 match v {
                     ParamType::Array(value) => {
-                        flatten(FlattenType::Nested(value), Some(final_key)).append(&mut output);
+                        output.append(&mut flatten(FlattenType::Nested(value), Some(final_key)));
                     }
                     ParamType::Object(value) => {
                         output.extend(flatten(FlattenType::Normal(value), Some(final_key)).into_iter())

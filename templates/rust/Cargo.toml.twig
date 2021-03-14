@@ -12,13 +12,7 @@ repository = "{{ sdk.gitURL }}"
 [dependencies]
 url = "2.2.1"
 reqwest = { version = "0.11", features = ["json", "blocking", "multipart"] }
-tokio = { version = "1", features = ["full"] }
 
 # Serde
 serde = "1.0.124"
 serde_derive = "1.0.124"
-serde_json = "1.0.64"
-
-[dev-dependencies]
-# Test Dependencies
-httptest = "0.15.1"

@@ -1,6 +1,7 @@
 use crate::client::{Client, ParamType};
 use std::collections::HashMap;
 
+#[derive(Clone)]
 pub struct {{ service.name | caseUcfirst }} {
   client: Client
 }
@@ -16,7 +17,7 @@ impl {{ service.name | caseUcfirst }} {
 {% if method.description %}
 {{ method.description|dartComment }}
 {% endif %}
-    pub fn {{ method.name | caseSnake }}(self{% if method.parameters.all|length >= 1 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword}}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}) -> reqwest::blocking::Response {
+    pub fn {{ method.name | caseSnake }}(&self{% if method.parameters.all|length >= 1 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword}}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}) -> reqwest::blocking::Response {
         let path = "{{ method.path|replace({'{': '', '}': ""}) }}"{% for parameter in method.parameters.path %}.replace("{{ parameter.name | caseSnake }}", &{{ parameter.name | caseSnake }}){% endfor %};
 
     {% if method.headers %}
@@ -39,7 +40,7 @@ impl {{ service.name | caseUcfirst }} {
       {% endfor %}
       ].iter().cloned().collect();
 
-      return self.client.call("{{ method.method | caseUpper }}", &path, {% if method.headers %}Some(headers){% else %}None{% endif %}, Some(params) );
+      return self.client.clone().call("{{ method.method | caseUpper }}", &path, {% if method.headers %}Some(headers){% else %}None{% endif %}, Some(params) );
     }
   {% endfor %}
 }

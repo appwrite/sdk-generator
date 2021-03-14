@@ -227,8 +227,8 @@ class Rust extends Language {
             ],
             [
               'scope'         => 'method',
-              'destination'   => 'tests/client_creation.rs',
-              'template'      => '/rust/tests/client_creation.rs.twig',
+              'destination'   => 'examples/foo_test.rs',
+              'template'      => '/rust/examples/foo_test.rs.twig',
               'minify'        => false,
             ],
             [

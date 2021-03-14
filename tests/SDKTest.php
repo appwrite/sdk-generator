@@ -150,6 +150,15 @@ class SDKTest extends TestCase
             'supportRedirect' => true,
             'supportUpload' => true,
         ],
+        'rust' => [
+          'class' => 'Appwrite\SDK\Language\Rust',
+          'build' => [],
+          'envs' => [
+              'rust-1.50' => 'docker run --rm -v "$(pwd):/app" -w /app/tests/sdks/rust rust:1.50 cargo run -q --example foo_test',
+          ],
+          'supportRedirect' => true,
+          'supportUpload' => true,
+      ],
 
         'python' => [
             'class' => 'Appwrite\SDK\Language\Python',
@@ -199,7 +208,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'cli', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
+        $whitelist = ['php', 'cli', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart', 'rust'];
 
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
@@ -222,7 +231,7 @@ class SDKTest extends TestCase
                 ->setLicenseContent('demo license')
                 ->setChangelog('--changelog--')
                 ->setDefaultHeaders([
-                    'X-Appwrite-Response-Format' => '0.6.2',
+                  'X-Appwrite-Response-Format' => '0.7.0',
                 ])
             ;
 
