@@ -130,7 +130,7 @@ class Rust extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'new File("./path-to-files/image.jpg")';
+                    $output .= 'std::path::PathBuf::from("./path-to-files/image.jpg")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:

@@ -40,6 +40,7 @@ impl Client {
         let mut new_headers = HeaderMap::new();
 
         new_headers.insert("x-sdk-version", "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}".parse().unwrap());
+        new_headers.insert("user-agent", format!("{}-rust-{}", std::env::consts::OS, "{{sdk.version}}").parse().unwrap());
 {% for key,header in spec.global.defaultHeaders %}
         new_headers.insert("{{key}}", "{{header}}".parse().unwrap());
 {% endfor %}
