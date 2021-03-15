@@ -201,6 +201,7 @@ class SDKTest extends TestCase
         }
 
         $whitelist = ['php', 'cli', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
+        $whitelist = ['dart'];
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
                 continue;
