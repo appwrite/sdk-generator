@@ -63,6 +63,7 @@ class SDKTest extends TestCase
             ],
             'supportRedirect' => true,
             'supportUpload' => true,
+            'supportException' => true
         ],
 
         'java' => [
@@ -200,7 +201,6 @@ class SDKTest extends TestCase
         }
 
         $whitelist = ['php', 'cli', 'java', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
-
         foreach ($this->languages as $language => $options) {
             if(!empty($whitelist) && !in_array($language, $whitelist)) {
                 continue;
@@ -287,8 +287,19 @@ class SDKTest extends TestCase
                 
                 $this->assertEquals('GET:/v1/mock/tests/general/redirect/done:passed', $output[10]);
                 
-                if($options['supportUpload']) {
+                $supportsUpload = $options['supportUpload'];
+                if($supportsUpload) {
                     $this->assertEquals($output[11], 'POST:/v1/mock/tests/general/upload:passed');
+                }
+                
+                if($options['supportException']) {
+                    if($supportsUpload) {
+                        $this->assertEquals($output[12], 'Mock 400 error');
+                        $this->assertEquals($output[13], 'Server Error');
+                    } else {
+                        $this->assertEquals($output[11], 'Mock 400 error');
+                        $this->assertEquals($output[12], 'Server Error');
+                    }
                 }
             }
         }
