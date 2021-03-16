@@ -263,7 +263,7 @@ class SDKTest extends TestCase
                 }
 
                 $this->assertIsArray($output);
-                $this->assertGreaterThan(11, count($output));
+                $this->assertGreaterThan(10, count($output));
 
                 $this->assertEquals('GET:/v1/mock/tests/foo:passed', $output[0] ?? '');
                 $this->assertEquals('POST:/v1/mock/tests/foo:passed', $output[1] ?? '');
