@@ -60,9 +60,6 @@ public class ServiceTest {
         response = general.redirect().execute();
         printResponse(response);
 
-        //dummy output for upload
-        System.out.println('POST:/v1/mock/tests/general/upload:passed');
-
         // response = await general.setCookie();
         // System.out.println(response.data["result"]);
 
