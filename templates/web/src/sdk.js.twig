@@ -274,7 +274,7 @@
                     (event) => {
                         try {
                             const data = JSON.parse(event.data);
-                            realtime.lastMessage = event.data;
+                            realtime.lastMessage = data;
 
                             if (data.channels && data.channels.includes(channel)) {
                                 callback(data);
