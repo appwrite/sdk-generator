@@ -257,6 +257,7 @@
             socket: null,
             timeout: null,
             channels: {},
+            lastMessage: {},
             createSocket: () => {
                 const channels = new URLSearchParams();
                 channels.set('project', config.project);
@@ -273,11 +274,15 @@
                     (event) => {
                         try {
                             const data = JSON.parse(event.data);
+                            realtime.lastMessage = event.data;
+
                             if (data.channels && data.channels.includes(channel)) {
                                 callback(data);
+                            } else if (data.code) {
+                                throw data;
                             }
                         } catch (e) {
-                            console.error('Realtime:', event.data);
+                            console.error(e);
                         }
                     };
 
@@ -287,8 +292,11 @@
                     });
                 }
 
-                realtime.socket.addEventListener('close', e => {
-                    console.error('Realtime got disconnected. Reconnect will be attempted in 1 second.', e.reason);
+                realtime.socket.addEventListener('close', event => {
+                    if (realtime.lastMessage.code && realtime.lastMessage.code === 1008) {
+                        return;
+                    }
+                    console.error('Realtime got disconnected. Reconnect will be attempted in 1 second.', event.reason);
                     setTimeout(() => {
                         realtime.createSocket();
                     }, 1000);
