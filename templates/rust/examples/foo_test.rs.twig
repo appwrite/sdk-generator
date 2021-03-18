@@ -43,23 +43,23 @@ fn main() {
 
     // Foo
 
-    println!("{}", parse_response(foo.get("string", 123, vec!["string in array".to_string()])));
-    println!("{}", parse_response(foo.post("string", 123, vec!["string in array".to_string()])));
-    println!("{}", parse_response(foo.put("string", 123, vec!["string in array".to_string()])));
-    println!("{}", parse_response(foo.patch("string", 123, vec!["string in array".to_string()])));
-    println!("{}", parse_response(foo.delete("string", 123, vec!["string in array".to_string()])));
+    println!("{}", parse_response(foo.get("string", 123, &["string in array"])));
+    println!("{}", parse_response(foo.post("string", 123, &["string in array"])));
+    println!("{}", parse_response(foo.put("string", 123, &["string in array"])));
+    println!("{}", parse_response(foo.patch("string", 123, &["string in array"])));
+    println!("{}", parse_response(foo.delete("string", 123, &["string in array"])));
 
     // Bar
 
-    println!("{}", parse_response(bar.get("string", 123, vec!["string in array".to_string()])));
-    println!("{}", parse_response(bar.post("string", 123, vec!["string in array".to_string()])));
-    println!("{}", parse_response(bar.put("string", 123, vec!["string in array".to_string()])));
-    println!("{}", parse_response(bar.patch("string", 123, vec!["string in array".to_string()])));
-    println!("{}", parse_response(bar.delete("string", 123, vec!["string in array".to_string()])));
+    println!("{}", parse_response(bar.get("string", 123, &["string in array"])));
+    println!("{}", parse_response(bar.post("string", 123, &["string in array"])));
+    println!("{}", parse_response(bar.put("string", 123, &["string in array"])));
+    println!("{}", parse_response(bar.patch("string", 123, &["string in array"])));
+    println!("{}", parse_response(bar.delete("string", 123, &["string in array"])));
 
     // General
 
     println!("{}", parse_response(general.redirect()));
-    println!("{}", parse_response(general.upload("string", 123, vec!["string in array".to_string()], PathBuf::from("../../resources/file.png"))));
+    println!("{}", parse_response(general.upload("string", 123, &["string in array"], PathBuf::from("../../resources/file.png"))));
 
 }

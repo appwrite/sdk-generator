@@ -117,7 +117,7 @@ class Rust extends Language {
                 return 'bool';
             break;
             case self::TYPE_ARRAY:
-              return 'Vec<String> ';
+              return '&[&str]';
             break;
         }
 
@@ -163,7 +163,7 @@ class Rust extends Language {
                     $output .= 'new Object()';
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= 'vec![]';
+                    $output .= '&[]';
                     break;
             }
         }
