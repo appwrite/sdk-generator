@@ -32,14 +32,14 @@ fn parse_response(data: Response) -> String {
 }
 
 fn main() {
-    let mut client = appwrite::client::Client::new();
+    let mut client = {{ language.params.packageName }}::client::Client::new();
 
     client.set_endpoint("https://appwrite.io/");
     client.set_project("");
 
-    let foo = appwrite::services::Foo::new(&client);
-    let bar = appwrite::services::Bar::new(&client);
-    let general = appwrite::services::General::new(&client);
+    let foo = {{ language.params.packageName }}::services::Foo::new(&client);
+    let bar = {{ language.params.packageName }}::services::Bar::new(&client);
+    let general = {{ language.params.packageName }}::services::General::new(&client);
 
     // Foo
 
