@@ -16,11 +16,11 @@ class {{ service.name | caseUcfirst }} extends Service {
     {{ service.name | caseUcfirst }}(Client client): super(client);
 {% for method in service.methods %}
 
-     /// {{ method.title }}
+    /// {{ method.title }}
 {% if method.description %}
-     ///
+    ///
 {{ method.description|dartComment }}
-     ///
+    ///
 {% endif %}
     {% if method.type == 'webAuth' %}Future{% else %}Future<Response>{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) {
         final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
