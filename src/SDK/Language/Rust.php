@@ -5,6 +5,23 @@ namespace Appwrite\SDK\Language;
 use Appwrite\SDK\Language;
 
 class Rust extends Language {
+    /**
+     * @var array
+     */
+    protected $params = [
+      'packageName' => 'packageName',
+    ];
+
+    /**
+     * @param string $name
+     * @return $this
+     */
+    public function setPackageName($name)
+    {
+        $this->setParam('packageName', $name);
+
+        return $this;
+    }
 
     /**
      * @return string

@@ -372,7 +372,10 @@ try {
     $sdk->generate(__DIR__ . '/examples/CLI');
 
     // Rust
-    $sdk  = new SDK(new Rust(), new Swagger2($spec));
+    $rust = new Rust();
+    $rust->setPackageName('appwrite');
+
+    $sdk  = new SDK($rust, new Swagger2($spec));
 
     $sdk
         ->setName('NAME')
