@@ -128,8 +128,12 @@ class Client {
             throw {{spec.title | caseUcfirst}}Exception(e.message);
           }
           if(responseType == ResponseType.bytes) {
-            final res = json.decode(utf8.decode(e.response.data));
-            throw AppwriteException(res['message'],res['code'], res);
+            if(e.response.headers['content-type'].contains('application/json')) {
+              final res = json.decode(utf8.decode(e.response.data));
+              throw {{spec.title | caseUcfirst}}Exception(res['message'],res['code'], e.response);
+            } else {
+              throw {{spec.title | caseUcfirst}}Exception(e.message);
+            }
           }
           throw {{spec.title | caseUcfirst}}Exception(e.response.data['message'],e.response.data['code'], e.response.data);
         } catch(e) {

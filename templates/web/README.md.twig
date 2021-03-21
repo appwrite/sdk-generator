@@ -37,6 +37,11 @@ To install with a CDN (content delivery network) add the following scripts to th
 <script src="https://cdn.jsdelivr.net/npm/{{ language.params.npmPackage }}@{{sdk.version}}"></script>
 ```
 
+{% if sdk.gettingStarted %}
+
+{{ sdk.gettingStarted|raw }}
+{% endif %}
+
 {{ sdk.readme|html }}
 
 ## Contribution
