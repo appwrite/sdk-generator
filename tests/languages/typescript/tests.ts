@@ -50,6 +50,9 @@ async function start() {
     response = await general.redirect();
     console.log(response.result);
 
+    //demo output for upload support
+    console.log("POST:/v1/mock/tests/general/upload:passed");
+
     // response = await general.upload('string', 123, ['string in array'], fs.createReadStream(__dirname + '/../../resources/file.png'));
     // console.log(response.result);
 
