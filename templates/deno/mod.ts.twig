@@ -6,7 +6,7 @@ import { {{service.name | caseUcfirst}} } from "./src/services/{{service.name | 
 
 export {
     Client,
-    {{service.name | caseUcfirst}}Exception,
+    {{spec.title | caseUcfirst}}Exception,
 {% for service in spec.services %}
     {{service.name | caseUcfirst}},
 {% endfor %}
