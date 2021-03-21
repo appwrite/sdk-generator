@@ -81,7 +81,7 @@ class Client {
         try {
 
             if(headers['content-type'] == 'multipart/form-data') {
-                return await http.request(path, data: FormData.fromMap(params), options: options);
+                return await http.request(path, data: FormData.fromMap(params,ListFormat.multiCompatible), options: options);
             }
 
             if (method == HttpMethod.get) {
