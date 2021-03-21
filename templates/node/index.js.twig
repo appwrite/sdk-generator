@@ -6,7 +6,7 @@ const {{service.name | caseUcfirst}} = require('./lib/services/{{service.name | 
 
 module.exports = {
     Client,
-    AppwriteException,
+    {{spec.title | caseUcfirst}}Exception,
 {% for service in spec.services %}
     {{service.name | caseUcfirst}},
 {% endfor %}
