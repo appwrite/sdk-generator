@@ -60,7 +60,7 @@ class Client {
         }
     }
 
-    Future<Response> call(HttpMethod method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}}) async {
+    Future<Response> call(HttpMethod method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}, ResponseType responseType}) async {
         if(selfSigned) {
             // Allow self signed requests
             (http.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate = (HttpClient client) {
@@ -75,20 +75,38 @@ class Client {
         Options options = Options(
             headers: {...this.headers, ...headers},
             method: method.name(),
+            responseType: responseType
         );
+        try {
 
-        if(headers['content-type'] == 'multipart/form-data') {
-            return http.request(path, data: FormData.fromMap(params), options: options);
-        }
+            if(headers['content-type'] == 'multipart/form-data') {
+                return await http.request(path, data: FormData.fromMap(params), options: options);
+            }
 
-        if (method == HttpMethod.get) {
-            params.keys.forEach((key) {if (params[key] is int || params[key] is double) {
-              params[key] = params[key].toString();
-            }});
-            
-            return http.get(path, queryParameters: params, options: options);
-        } else {
-            return http.request(path, data: params, options: options);
+            if (method == HttpMethod.get) {
+                params.keys.forEach((key) {if (params[key] is int || params[key] is double) {
+                params[key] = params[key].toString();
+                }});
+                
+                return await http.get(path, queryParameters: params, options: options);
+            } else {
+                return await http.request(path, data: params, options: options);
+            }
+        } on DioError catch(e) {
+          if(e.response == null) {
+            throw {{spec.title | caseUcfirst}}Exception(e.message);
+          }
+          if(responseType == ResponseType.bytes) {
+            if(e.response.headers['content-type'].contains('application/json')) {
+              final res = json.decode(utf8.decode(e.response.data));
+              throw {{spec.title | caseUcfirst}}Exception(res['message'],res['code'], e.response);
+            } else {
+              throw {{spec.title | caseUcfirst}}Exception(e.message);
+            }
+          }
+          throw {{spec.title | caseUcfirst}}Exception(e.response.data['message'],e.response.data['code'], e.response.data);
+        } catch(e) {
+          throw {{spec.title | caseUcfirst}}Exception(e.message);
         }
     }
 }

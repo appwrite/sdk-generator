@@ -1,6 +1,7 @@
 library {{ language.params.packageName }};
 
 import 'dart:io';
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:meta/meta.dart';
 import 'package:dio/adapter.dart';
@@ -11,6 +12,7 @@ export 'package:dio/dio.dart' show Response, MultipartFile;
 part 'client.dart';
 part 'enums.dart';
 part 'service.dart';
+part 'exception.dart';
 {% for service in spec.services %}
 part 'services/{{service.name | caseDash}}.dart';
 {% endfor %}

@@ -15,9 +15,31 @@ void main() { // Init SDK
     .set{{header}}('{{node[header]['x-appwrite']['demo']}}') // {{node[header].description}}
 {% endfor %}
 {% endfor %}  ;
+{% endif %}
+{% if method.type == 'location' %}
+}
+
+//displaying image
+FutureBuilder(
+  future: {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+{% if loop.first %}
 
 {% endif %}
-  {% if method.type == 'location' %}String{% else %}Future{% endif %} result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+{% if parameter.required %}
+    {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
+{% endif %}
+{% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %}
+), //works for both public file and private file, for private files you need to be logged in
+  builder: (context, snapshot) {
+    return snapshot.hasData && snapshot.data != null
+      ? Image.memory(
+          snapshot.data.data,
+        )
+      : CircularProgressIndicator();
+  },
+);
+{% else %}
+  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
 {% if loop.first %}
 
 {% endif %}
@@ -26,14 +48,11 @@ void main() { // Init SDK
 {% endif %}
 {% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %});
 
-{% if method.type == 'location' %}
-  print(result); // Resource URL string
-{% else %}
   result
     .then((response) {
       print(response);
     }).catchError((error) {
       print(error.response);
   });
-{% endif %}
 }
+{% endif %}

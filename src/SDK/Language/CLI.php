@@ -226,6 +226,12 @@ class CLI extends PHP {
                 'template'      => '/cli/app/services/init.php.twig',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => '.travis.yml',
+                'template'      => '/cli/.travis.yml.twig',
+                'minify'        => false,
+            ],
         ];
     }
 

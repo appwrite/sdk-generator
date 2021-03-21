@@ -25,7 +25,7 @@ ${{ spec.title | upper }}_EXECUTABLE_FILEPATH = Join-Path -Path ${{ spec.title |
 ${{ spec.title | upper }}_CLI_IMAGE_NAME = "{{ spec.title | lower }}/cli"
 
 # {{ spec.title | caseUcfirst }} CLI image version 
-${{ spec.title | upper }}_CLI_IMAGE_VERSION = "{{ spec.version }}"
+${{ spec.title | upper }}_CLI_IMAGE_VERSION = "{{ sdk.version }}"
 
 ${{ spec.title | upper }}_EXECUTABLE_CONTENT = @"
 $allowList = 'help', 'init', 'client' {% for service in spec.services %}, '{{ service.name }}'{% endfor %}
