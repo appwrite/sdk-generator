@@ -75,7 +75,8 @@ class Client {
         Options options = Options(
             headers: {...this.headers!, ...headers},
             method: method.name(),
-            responseType: responseType
+            responseType: responseType,
+            listFormat: ListFormat.multiCompatible,
         );
         try {
 
