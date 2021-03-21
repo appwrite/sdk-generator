@@ -53,6 +53,18 @@ void main() async {
   response = await general.upload(x:'string',y: 123,z:['string in array'], file: file);
   print(response.data['result']);
 
+  try {
+    await general.error400();
+  } on AppwriteException catch(e) {
+    print(e.message);
+  }
+
+  try {
+    await general.error500();
+  } on AppwriteException catch(e) {
+    print(e.message);
+  }
+
   // response = await general.setCookie();
   // print(response.data['result']);
 
