@@ -52,3 +52,13 @@ print(response['result'])
 
 response = general.upload('string', 123, ['string in array'], open('./tests/resources/file.png', 'rb'))
 print(response['result'])
+
+try:
+    response = general.error400()
+except AppwriteException as e:
+    print(e.message)
+
+try:
+    response = general.error500()
+except AppwriteException as e:
+    print(e.message)
