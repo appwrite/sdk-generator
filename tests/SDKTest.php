@@ -28,7 +28,7 @@ class SDKTest extends TestCase
                 'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli-alpine php tests/languages/php/test.php',
                 'php-8.0' => 'docker run --rm -v $(pwd):/app -w /app php:8.0.0rc1-cli-alpine php tests/languages/php/test.php',
             ],
-            'supportException' => false,
+            'supportException' => true,
         ],
 
         'cli' => [
