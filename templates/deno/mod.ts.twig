@@ -1,5 +1,5 @@
 import { Client } from "./src/client.ts";
-import { Client } from "./src/exception.ts";
+import { {{spec.title | caseUcfirst}}Exception } from "./src/exception.ts";
 {% for service in spec.services %}
 import { {{service.name | caseUcfirst}} } from "./src/services/{{service.name | caseDash}}.ts";
 {% endfor %}
