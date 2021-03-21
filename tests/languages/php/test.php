@@ -63,11 +63,11 @@ echo "{$response['result']}\n";
 try {
     $response = $general->error400();
 } catch(AppwriteException $e) {
-    print($e->message);
+    echo "{$e->getMessage()}\n";
 }
 
 try {
     $response = $general->error500();
 } catch(AppwriteException $e) {
-    print($e->message);
+    echo "{$e->getMessage()}\n";
 }
