@@ -87,7 +87,7 @@ class Client:
             return response._content
         except Exception as e:
             if response:
-                raise AppwriteException(response.json()['message'], response.status_code, response.json())
+                raise {{spec.title | caseUcfirst}}Exception(response.json()['message'], response.status_code, response.json())
             else:
                 raise {{spec.title | caseUcfirst}}Exception(e.message)
 
