@@ -67,6 +67,12 @@ class Node extends JS
                 'minify'        => false,
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'lib/exception.js',
+                'template'      => '/node/lib/exception.js.twig',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => '/node/docs/example.md.twig',

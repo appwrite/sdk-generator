@@ -124,7 +124,7 @@ class SDKTest extends TestCase
                 'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12-alpine node tests/languages/node/test.js',
                 'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14.5-alpine node tests/languages/node/test.js',
             ],
-            'supportException' => false,
+            'supportException' => true,
         ],
 
         'ruby' => [
