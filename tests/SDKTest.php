@@ -86,7 +86,7 @@ class SDKTest extends TestCase
                 'dotnet-5.0' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:5.0-alpine pwsh tests.ps1',
                 'dotnet-3.1' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:3.1-alpine pwsh tests.ps1',
             ],
-            'supportException' => false,
+            'supportException' => true,
         ],
 
         'typescript' => [

@@ -162,10 +162,10 @@ namespace {{ spec.title | caseUcfirst }}
             {
                 var httpResponseMessage = await http.SendAsync(request);
                 var code = (int) httpResponseMessage.StatusCode;
-                var response = JObject.Parse(await httpResponseMessage.Content.ReadAsStringAsync());
-                
+                var response = await httpResponseMessage.Content.ReadAsStringAsync();
+
                 if (code >= 400) {
-                    var message = response["message"].ToString();
+                    string message = (JObject.Parse(response))["message"].ToString();
                     throw new {{spec.title | caseUcfirst}}Exception(message, code, response.ToString());
                 }
 
