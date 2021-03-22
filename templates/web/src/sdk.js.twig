@@ -254,6 +254,7 @@
         }(window.document);
 
         let realtime = {
+            /** @type {WebSocket}  */
             socket: null,
             timeout: null,
             channels: {},
@@ -270,25 +271,9 @@
 
                 realtime.socket = new WebSocket(config.endpointRealtime + '/realtime?' + channels.toString());
 
-                const onMessage = (channel, callback) =>
-                    (event) => {
-                        try {
-                            const data = JSON.parse(event.data);
-                            realtime.lastMessage = data;
-
-                            if (data.channels && data.channels.includes(channel)) {
-                                callback(data);
-                            } else if (data.code) {
-                                throw data;
-                            }
-                        } catch (e) {
-                            console.error(e);
-                        }
-                    };
-
                 for (const channel in realtime.channels) {
                     realtime.channels[channel].forEach(callback => {
-                        realtime.socket.addEventListener('message', onMessage(channel, callback));
+                        realtime.socket.addEventListener('message', callback);
                     });
                 }
 
@@ -301,7 +286,22 @@
                         realtime.createSocket();
                     }, 1000);
                 })
-            }
+            },
+            onMessage: (channel, callback) =>
+                (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        realtime.lastMessage = data;
+
+                        if (data.channels && data.channels.includes(channel)) {
+                            callback(data);
+                        } else if (data.code) {
+                            throw data;
+                        }
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }
         };
 
         /**
@@ -328,12 +328,14 @@
             } else if (!(channels instanceof Array)) {
                 throw Error("Channels must be of type String or Array.");
             }
-            channels.forEach(channel => {
+            channels.forEach((channel, index) => {
                 if (!(channel in realtime.channels)) {
                     realtime.channels[channel] = [];
                 }
-                realtime.channels[channel].push(callback);
-
+                channels[index] = {
+                    name: channel, 
+                    index: (realtime.channels[channel].push(realtime.onMessage(channel, callback)) - 1)
+                };
                 clearTimeout(realtime.timeout);
                 realtime.timeout = setTimeout(() => {
                     realtime.createSocket();
@@ -342,8 +344,8 @@
 
             return () => {
                 channels.forEach(channel => {
-                    realtime.socket.removeEventlistener('message', onMessage);
-                    realtime.channels[channel].splice(realtime.channels[channel].indexOf(callback), 1);
+                    realtime.socket.removeEventListener('message', realtime.channels[channel.name][channel.index]);
+                    realtime.channels[channel.name].splice(channel.index, 1);
                 })
             }
         };
