@@ -130,7 +130,7 @@ class Rust extends Language {
      */
     public function getParamDefault(array $param)
     {
-        return '';
+        return "";
     }
 
     /**
@@ -180,7 +180,7 @@ class Rust extends Language {
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "'{$example}'";
+                    $output .= sprintf('"%s"', $example);
                     break;
             }
         }
