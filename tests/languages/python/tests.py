@@ -2,6 +2,7 @@ from appwrite.client import Client
 from appwrite.services.foo import Foo
 from appwrite.services.bar import Bar
 from appwrite.services.general import General
+from appwrite.exception import AppwriteException
 import os.path
 
 
