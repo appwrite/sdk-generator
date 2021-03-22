@@ -1,3 +1,11 @@
+
+dist: xenial
+
+arch:
+  - amd64
+
+os: linux
+
 language: php
 
 php:

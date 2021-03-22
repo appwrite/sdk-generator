@@ -71,6 +71,18 @@ async function start() {
   response = await general.upload('string', 123, ['string in array'], file)
   // @ts-ignore
   console.log(response.result)
+
+  try {
+    response = await general.error400();
+  }catch(error){
+    console.log(error.message);
+  }
+
+  try {
+    response = await general.error500();
+  }catch(error){
+    console.log(error.message);
+  }
 }
 
 start()
