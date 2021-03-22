@@ -60,6 +60,20 @@ class SDKTest extends TestCase
             'supportException' => true,
         ],
 
+        'flutter' => [
+            'class' => 'Appwrite\SDK\Language\Flutter',
+            'build' => [
+                'mkdir -p tests/sdks/flutter/tests',
+                'cp tests/languages/flutter/tests.dart tests/sdks/flutter/tests/tests.dart',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:stable flutter pub get',
+            ],
+            'envs' => [
+                'flutter-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:stable flutter pub run tests/tests.dart',
+                'flutter-dev' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:dev flutter pub run tests/tests.dart',
+            ],
+            'supportException' => true,
+        ],
+
         //Skipping for now, enable it once Java SDK is in Good enough shape
         /* 'java' => [
             'class' => 'Appwrite\SDK\Language\Java',
@@ -189,7 +203,7 @@ class SDKTest extends TestCase
         }
 
         $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
-
+        $whitelist = ['flutter'];
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
                 continue;
