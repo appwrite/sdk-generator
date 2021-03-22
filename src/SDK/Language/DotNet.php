@@ -294,6 +294,12 @@ class DotNet extends Language {
                 'minify'        => false,
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '.travis.yml',
+                'template'      => '/dotnet/.travis.yml.twig',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => '/dotnet/docs/example.md.twig',
