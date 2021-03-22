@@ -148,6 +148,7 @@ class SDKTest extends TestCase
           ],
           'supportRedirect' => true,
           'supportUpload' => true,
+          'supportException' => true
       ],
 
         'python' => [
