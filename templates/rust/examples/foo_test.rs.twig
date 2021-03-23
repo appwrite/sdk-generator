@@ -62,4 +62,13 @@ fn main() {
     println!("{}", parse_response(general.redirect().unwrap()));
     println!("{}", parse_response(general.upload("string", 123, &["string in array"], PathBuf::from("../../resources/file.png")).unwrap()));
 
+    match general.error400() {
+      Ok(data) => println!("{}", data.text().unwrap()),
+      Err(err) => println!("{}", err.message)
+    }
+
+    match general.error500() {
+      Ok(data) => println!("{}", data.text().unwrap()),
+      Err(err) => println!("{}", err.message)
+    }
 }

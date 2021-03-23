@@ -3,9 +3,9 @@ use std::error::Error;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct {{spec.title | caseUcfirst}}Exception {
-    message: String,
-    code: i32,
-    version: String
+    pub message: String,
+    pub code: i32,
+    pub version: String
 }
 
 impl fmt::Display for {{spec.title | caseUcfirst}}Exception {
