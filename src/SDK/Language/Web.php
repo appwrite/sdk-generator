@@ -28,7 +28,7 @@ class Web extends JS {
                 'scope'         => 'default',
                 'destination'   => 'src/sdk.min.js',
                 'template'      => '/web/src/sdk.js.twig',
-                'minify'        => true,
+                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
@@ -62,14 +62,32 @@ class Web extends JS {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'types/index.d.ts',
-                'template'      => '/web/types/index.d.ts.twig',
+                'destination'   => 'tsconfig.json',
+                'template'      => '/web/tsconfig.json.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tsconfig.json',
-                'template'      => '/web/tsconfig.json.twig',
+                'destination'   => 'tsconfig-base.json',
+                'template'      => '/web/tsconfig-base.json.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tsconfig-cjs.json',
+                'template'      => '/web/tsconfig-cjs.json.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'dist/cjs/package.json',
+                'template'      => '/web/dist/cjs/package.json.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'dist/mjs/package.json',
+                'template'      => '/web/dist/mjs/package.json.twig',
                 'minify'        => false,
             ],
             [

@@ -1,352 +1,346 @@
-(function (window) {
-     
-    'use strict';
+export const {{ spec.title | caseUcfirst }} = () => {
 
-    window.{{ spec.title | caseUcfirst }} = function () {
-
-        let config = {
-            endpoint: '{{ spec.endpoint }}',
+    let config = {
+        endpoint: '{{ spec.endpoint }}',
 {% for header in spec.global.headers %}
-            {{ header.key | caseCamel }}: '',
+        {{ header.key | caseCamel }}: '',
 {% endfor %}
-        };
+    };
 
-        /**
-         * @param {string} endpoint
-         * @returns {this}
-         */
-        let setEndpoint = function(endpoint) {
-            config.endpoint = endpoint;
+    /**
+     * Set Endpoint
+     *
+     * Your project ID
+     *
+     * @param {string} endpoint
+     *
+     * @returns {this}
+     */
+    let setEndpoint = (endpoint) => {
+        config.endpoint = endpoint;
 
-            return this;
-        };
+        return this;
+    };
 
 {% for header in spec.global.headers %}
-        /**
-         * Set {{header.key | caseUcfirst}}
-         *
+    /**
+     * Set {{header.key | caseUcfirst}}
+     *
 {% if header.description %}
 {{header.description|comment2}}
-         *
+     *
 {% endif %}
-         * @param value string
-         *
-         * @return this
-         */
-        let set{{header.key | caseUcfirst}} = function (value)
-        {
-            http.addGlobalHeader('{{ header.name }}', value);
+     * @param value string
+     *
+     * @return this
+     */
+    let set{{header.key | caseUcfirst}} = (value) => {
+        http.addGlobalHeader('{{ header.name }}', value);
 
-            config.{{ header.key | caseCamel }} = value;
+        config.{{ header.key | caseCamel }} = value;
 
-            return this;
-        };
+        return this;
+    };
 
 {% endfor %}
-        let http = function(document) {
-            let globalParams    = [],
-                globalHeaders   = [];
+    let http = ((document) => {
+        let globalParams    = [],
+            globalHeaders   = [];
 
-            let addParam = function (url, param, value) {
-                let a = document.createElement('a'), regex = /(?:\?|&amp;|&)+([^=]+)(?:=([^&]*))*/g;
-                let match, str = [];
-                a.href = url;
-                param = encodeURIComponent(param);
+        let addParam = (url, param, value) => {
+            let a = document.createElement('a'), regex = /(?:\?|&amp;|&)+([^=]+)(?:=([^&]*))*/g;
+            let match, str = [];
+            a.href = url;
+            param = encodeURIComponent(param);
 
-                while (match = regex.exec(a.search)) if (param !== match[1]) str.push(match[1] + (match[2] ? "=" + match[2] : ""));
+            while (match = regex.exec(a.search)) if (param !== match[1]) str.push(match[1] + (match[2] ? "=" + match[2] : ""));
 
-                str.push(param + (value ? "=" + encodeURIComponent(value) : ""));
+            str.push(param + (value ? "=" + encodeURIComponent(value) : ""));
 
-                a.search = str.join("&");
+            a.search = str.join("&");
 
-                return a.href;
-            };
+            return a.href;
+        };
 
-            /**
-             * @param {Object} params
-             * @returns {string}
-             */
-            let buildQuery = function(params) {
-                let str = [];
+        /**
+         * @param {Object} params
+         * @returns {string}
+         */
+        let buildQuery = (params) => {
+            let str = [];
 
-                for (let p in params) {
-                    if(Array.isArray(params[p])) {
-                        for (let index = 0; index < params[p].length; index++) {
-                            let param = params[p][index];
-                            str.push(encodeURIComponent(p + '[]') + "=" + encodeURIComponent(param));
-                        }
-                    }
-                    else {
-                        str.push(encodeURIComponent(p) + "=" + encodeURIComponent(params[p]));
+            for (let p in params) {
+                if (Array.isArray(params[p])) {
+                    for (let index = 0; index < params[p].length; index++) {
+                        let param = params[p][index];
+                        str.push(encodeURIComponent(p + '[]') + "=" + encodeURIComponent(param));
                     }
                 }
-
-                return str.join("&");
-            };
-
-            let addGlobalHeader = function(key, value) {
-                globalHeaders[key] = {key: key.toLowerCase(), value: value.toLowerCase()};
-            };
-            
-            let addGlobalParam = function(key, value) {
-                globalParams.push({key: key, value: value});
-            };
-
-            addGlobalHeader('x-sdk-version', '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}');
-            addGlobalHeader('content-type', '');
-    {% for key,header in spec.global.defaultHeaders %}
-        addGlobalHeader('{{key}}', '{{header}}');
-    {% endfor %}
-
-            /**
-             * @param {string} method
-             * @param {string} path string
-             * @param {Object} headers
-             * @param {Object} params
-             * @param {function} progress
-             * @returns {Promise}
-             */
-            let call = function (method, path, headers = {}, params = {}, progress = null) {
-                let i;
-
-                path = config.endpoint + path;
-
-                if (-1 === ['GET', 'POST', 'PUT', 'DELETE', 'TRACE', 'HEAD', 'OPTIONS', 'CONNECT', 'PATCH'].indexOf(method)) {
-                    throw new Error('var method must contain a valid HTTP method name');
+                else {
+                    str.push(encodeURIComponent(p) + "=" + encodeURIComponent(params[p]));
                 }
-
-                if (typeof path !== 'string') {
-                    throw new Error('var path must be of type string');
-                }
-
-                if (typeof headers !== 'object') {
-                    throw new Error('var headers must be of type object');
-                }
-
-                for (i = 0; i < globalParams.length; i++) { // Add global params to URL
-                    path = addParam(path, globalParams[i].key, globalParams[i].value);
-                }
-
-                if(window.localStorage && window.localStorage.getItem('cookieFallback')) {
-                    headers['X-Fallback-Cookies'] = window.localStorage.getItem('cookieFallback');
-                }
-
-                for (let key in globalHeaders) { // Add Global Headers
-                    if (globalHeaders.hasOwnProperty(key)) {
-                        if (!headers[globalHeaders[key].key]) {
-                            headers[globalHeaders[key].key] = globalHeaders[key].value;
-                        }
-                    }
-                }
-
-                if(method === 'GET') {
-                    for (let param in params) {
-                        if (param.hasOwnProperty(key)) {
-                            path = addParam(path, key + (Array.isArray(param) ? '[]' : ''), params[key]);
-                        }
-                    }
-                }
-
-                switch (headers['content-type']) { // Parse request by content type
-                    case 'application/json':
-                        params = JSON.stringify(params);
-                    break;
-
-                    case 'multipart/form-data':
-                        let formData = new FormData();
-
-                        Object.keys(params).forEach(function(key) {
-                            let param = params[key];
-                            formData.append(key + (Array.isArray(param) ? '[]' : ''), param);
-                        });
-
-                        params = formData;
-                    break;
-                }
-
-                return new Promise(function (resolve, reject) {
-
-                    let request = new XMLHttpRequest(), key;
-
-                    request.withCredentials = true;
-                    request.open(method, path, true);
-
-                    for (key in headers) { // Set Headers
-                        if (headers.hasOwnProperty(key)) {
-                            if (key === 'content-type' && headers[key] === 'multipart/form-data') { // Skip to avoid missing boundary
-                                continue;
-                            }
-
-                            request.setRequestHeader(key, headers[key]);
-                        }
-                    }
-
-                    request.onload = function () {
-                        let data = request.response;
-                        let contentType = this.getResponseHeader('content-type') || '';
-                        contentType = contentType.substring(0, contentType.indexOf(';'));
-
-                        switch (contentType) {
-                            case 'application/json':
-                                data = JSON.parse(data);
-                                break;
-                        }
-
-                        let cookieFallback = this.getResponseHeader('X-Fallback-Cookies') || '';
-                        
-                        if(window.localStorage && cookieFallback) {
-                            window.console.warn('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
-                            window.localStorage.setItem('cookieFallback', cookieFallback);
-                        }
-
-                        if (4 === request.readyState && 399 >= request.status) {
-                            resolve(data);
-                        } else {
-                            reject(data);
-                        }
-                    };
-
-                    if (progress) {
-                        request.addEventListener('progress', progress);
-                        request.upload.addEventListener('progress', progress, false);
-                    }
-
-                    // Handle network errors
-                    request.onerror = function () {
-                        reject(new Error("Network Error"));
-                    };
-
-                    request.send(params);
-                })
-            };
-
-            return {
-                'get': function(path, headers = {}, params = {}) {
-                    return call('GET', path + ((Object.keys(params).length > 0) ? '?' + buildQuery(params) : ''), headers, {});
-                },
-                'post': function(path, headers = {}, params = {}, progress = null) {
-                    return call('POST', path, headers, params, progress);
-                },
-                'put': function(path, headers = {}, params = {}, progress = null) {
-                    return call('PUT', path, headers, params, progress);
-                },
-                'patch': function(path, headers = {}, params = {}, progress = null) {
-                    return call('PATCH', path, headers, params, progress);
-                },
-                'delete': function(path, headers = {}, params = {}, progress = null) {
-                    return call('DELETE', path, headers, params, progress);
-                },
-                'addGlobalParam': addGlobalParam,
-                'addGlobalHeader': addGlobalHeader
             }
-        }(window.document);
+
+            return str.join("&");
+        };
+
+        let addGlobalHeader = (key, value) => {
+            globalHeaders[key] = {key: key.toLowerCase(), value: value.toLowerCase()};
+        };
+        
+        let addGlobalParam = (key, value) => {
+            globalParams.push({key: key, value: value});
+        };
+
+        addGlobalHeader('x-sdk-version', '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}');
+        addGlobalHeader('content-type', '');
+{% for key,header in spec.global.defaultHeaders %}
+        addGlobalHeader('{{key}}', '{{header}}');
+{% endfor %}
+
+        /**
+         * @param {string} method
+         * @param {string} path string
+         * @param {Object} headers
+         * @param {Object} params
+         * @param {function} progress
+         * @returns {Promise}
+         */
+        let call = (method, path, headers = {}, params = {}, progress = null) => {
+            let i;
+
+            path = config.endpoint + path;
+
+            if (-1 === ['GET', 'POST', 'PUT', 'DELETE', 'TRACE', 'HEAD', 'OPTIONS', 'CONNECT', 'PATCH'].indexOf(method)) {
+                throw new Error('var method must contain a valid HTTP method name');
+            }
+
+            if (typeof path !== 'string') {
+                throw new Error('var path must be of type string');
+            }
+
+            if (typeof headers !== 'object') {
+                throw new Error('var headers must be of type object');
+            }
+
+            for (i = 0; i < globalParams.length; i++) { // Add global params to URL
+                path = addParam(path, globalParams[i].key, globalParams[i].value);
+            }
+
+            if (window.localStorage && window.localStorage.getItem('cookieFallback')) {
+                headers['X-Fallback-Cookies'] = window.localStorage.getItem('cookieFallback');
+            }
+
+            for (let key in globalHeaders) { // Add Global Headers
+                if (globalHeaders.hasOwnProperty(key)) {
+                    if (!headers[globalHeaders[key].key]) {
+                        headers[globalHeaders[key].key] = globalHeaders[key].value;
+                    }
+                }
+            }
+
+            if (method === 'GET') {
+                for (let param in params) {
+                    if (param.hasOwnProperty(key)) {
+                        path = addParam(path, key + (Array.isArray(param) ? '[]' : ''), params[key]);
+                    }
+                }
+            }
+
+            switch (headers['content-type']) { // Parse request by content type
+                case 'application/json':
+                    params = JSON.stringify(params);
+                break;
+
+                case 'multipart/form-data':
+                    let formData = new FormData();
+
+                    Object.keys(params).forEach((key) => {
+                        let param = params[key];
+                        formData.append(key + (Array.isArray(param) ? '[]' : ''), param);
+                    });
+
+                    params = formData;
+                break;
+            }
+
+            return new Promise((resolve, reject) => {
+
+                let request = new XMLHttpRequest(), key;
+
+                request.withCredentials = true;
+                request.open(method, path, true);
+
+                for (key in headers) { // Set Headers
+                    if (headers.hasOwnProperty(key)) {
+                        if (key === 'content-type' && headers[key] === 'multipart/form-data') { // Skip to avoid missing boundary
+                            continue;
+                        }
+
+                        request.setRequestHeader(key, headers[key]);
+                    }
+                }
+
+                request.onload = () => {
+                    let data = request.response;
+                    let contentType = this.getResponseHeader('content-type') || '';
+                    contentType = contentType.substring(0, contentType.indexOf(';'));
+
+                    switch (contentType) {
+                        case 'application/json':
+                            data = JSON.parse(data);
+                            break;
+                    }
+
+                    let cookieFallback = this.getResponseHeader('X-Fallback-Cookies') || '';
+                    
+                    if (window.localStorage && cookieFallback) {
+                        window.console.warn('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
+                        window.localStorage.setItem('cookieFallback', cookieFallback);
+                    }
+
+                    if (4 === request.readyState && 399 >= request.status) {
+                        resolve(data);
+                    } else {
+                        reject(data);
+                    }
+                };
+
+                if (progress) {
+                    request.addEventListener('progress', progress);
+                    request.upload.addEventListener('progress', progress, false);
+                }
+
+                // Handle network errors
+                request.onerror = () => {
+                    reject(new Error("Network Error"));
+                };
+
+                request.send(params);
+            })
+        };
+
+        return {
+            'get': (path, headers = {}, params = {}) => {
+                return call('GET', path + ((Object.keys(params).length > 0) ? '?' + buildQuery(params) : ''), headers, {});
+            },
+            'post': (path, headers = {}, params = {}, progress = null) => {
+                return call('POST', path, headers, params, progress);
+            },
+            'put': (path, headers = {}, params = {}, progress = null) => {
+                return call('PUT', path, headers, params, progress);
+            },
+            'patch': (path, headers = {}, params = {}, progress = null) => {
+                return call('PATCH', path, headers, params, progress);
+            },
+            'delete': (path, headers = {}, params = {}, progress = null) => {
+                return call('DELETE', path, headers, params, progress);
+            },
+            'addGlobalParam': addGlobalParam,
+            'addGlobalHeader': addGlobalHeader
+        }
+    })(window.document);
 
 {% for service in spec.services %}
-        let {{service.name | caseCamel}} = {
+    let {{service.name | caseCamel}} = {
 {% for method in service.methods %}
 
-            /**
-             * {{ method.title }}
-             *
+        /**
+         * {{ method.title }}
+         *
 {% if method.description %}
 {{ method.description|comment3 }}
 {% endif %}
-             *
+         *
 {% for parameter in method.parameters.all %}
-             * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
+         * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
-             * @throws {Error}
-             * @return {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
-             
-             */
-            {{ method.name }}: function({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) {
+         * @throws {Error}
+         * @return {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
+
+         */
+        {{ method.name }}: ({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) => {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
-                if({{ parameter.name | caseCamel }} === undefined) {
-                    throw new Error('Missing required parameter: "{{ parameter.name | caseCamel }}"');
-                }
-                
+            if ({{ parameter.name | caseCamel }} === undefined) {
+                throw new Error('Missing required parameter: "{{ parameter.name | caseCamel }}"');
+            }
+            
 {% endif %}
 {% endfor %}
-                let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace(new RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', 'g'), {{ parameter.name | caseCamel }}){% endfor %};
+            let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace(new RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', 'g'), {{ parameter.name | caseCamel }}){% endfor %};
 
-                let payload = {};
+            let payload = {};
 
 {% for parameter in method.parameters.query %}
-                if({{ parameter.name | caseCamel }}) {
-                    payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
-                }
+            if ({{ parameter.name | caseCamel }}) {
+                payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
+            }
 
 {% endfor %}
 {% for parameter in method.parameters.body %}
-                if(typeof {{ parameter.name | caseCamel }} !== 'undefined') {
-                    payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
-                }
+            if (typeof {{ parameter.name | caseCamel }} !== 'undefined') {
+                payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
+            }
 
 {% endfor %}
 {% if method.type == 'location' or method.type == 'webAuth' %}
 {% if method.security|length > 0 %}
 {% for node in method.security %}
 {% for key,header in node|keys %}
-                payload['{{header|caseLower}}'] = config.{{header|caseLower}};
+            payload['{{header|caseLower}}'] = config.{{header|caseLower}};
 
 {% endfor %}
 {% endfor %}
 {% endif %}
 
-                let query = [];
+            let query = [];
 
-                for (let p in payload) {
-                    if(Array.isArray(payload[p])) {
-                        for (let index = 0; index < payload[p].length; index++) {
-                            let param = payload[p][index];
-                            query.push(encodeURIComponent(p + '[]') + "=" + encodeURIComponent(param));
-                        }
-                    }
-                    else {
-                        query.push(encodeURIComponent(p) + "=" + encodeURIComponent(payload[p]));
+            for (let p in payload) {
+                if (Array.isArray(payload[p])) {
+                    for (let index = 0; index < payload[p].length; index++) {
+                        let param = payload[p][index];
+                        query.push(encodeURIComponent(p + '[]') + "=" + encodeURIComponent(param));
                     }
                 }
+                else {
+                    query.push(encodeURIComponent(p) + "=" + encodeURIComponent(payload[p]));
+                }
+            }
 
-                query =  query.join("&");
-                
+            query =  query.join("&");
+
 {% endif %}
 {% if method.type == 'webAuth' %}
-                window.location = config.endpoint + path + ((query) ? '?' + query : '');
+            window.location = config.endpoint + path + ((query) ? '?' + query : '');
 {% elseif method.type == 'location' %}
-                return config.endpoint + path + ((query) ? '?' + query : '');
+            return config.endpoint + path + ((query) ? '?' + query : '');
 {% else %}
-                return http
-                    .{{ method.method | caseLower }}(path, {
+            return http
+                .{{ method.method | caseLower }}(path, {
 {% for parameter in method.parameters.header %}
-                        '{{ parameter.name }}': ${{ parameter.name | caseCamel }},
+                    '{{ parameter.name }}': ${{ parameter.name | caseCamel }},
 {% endfor %}
 {% for key, header in method.headers %}
-                        '{{ key }}': '{{ header }}',
+                    '{{ key }}': '{{ header }}',
 {% endfor %}
-                    }, payload);
+                }, payload);
 {% endif %}
-            }{% if not loop.last %},
+        }{% if not loop.last %},
 {% endif %}
 {% endfor %}
 
-        };
-
-{% endfor %}
-        return {
-            setEndpoint: setEndpoint,
-{% for header in spec.global.headers %}
-            set{{header.key | caseUcfirst}}: set{{header.key | caseUcfirst}},
-{% endfor %}
-{% for service in spec.services %}
-            {{service.name | caseCamel}}: {{service.name | caseCamel}}{% if not loop.last %},{% endif %}
-
-{% endfor %}
-        };
     };
 
-    if(typeof module !== "undefined") {
-        module.exports = window.Appwrite;
-    }
+{% endfor %}
+    return {
+        setEndpoint: setEndpoint,
+{% for header in spec.global.headers %}
+        set{{header.key | caseUcfirst}}: set{{header.key | caseUcfirst}},
+{% endfor %}
+{% for service in spec.services %}
+        {{service.name | caseCamel}}: {{service.name | caseCamel}}{% if not loop.last %},{% endif %}
 
-})((typeof window !== "undefined") ? window : {});
+{% endfor %}
+    };
+};
