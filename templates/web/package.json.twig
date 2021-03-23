@@ -6,8 +6,10 @@
   "license": "{{ sdk.license }}",
   "main": "./dist/cjs/sdk.js",
   "exports": {
-    "import": "./dist/mjs/sdk.js",
-    "require": "./dist/cjs/sdk.js"
+    ".": {
+      "import": "./dist/mjs/sdk.js",
+      "require": "./dist/cjs/sdk.js"
+    }
   },
   "module": "./dist/mjs/sdk.js",
   "repository": {
