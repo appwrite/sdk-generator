@@ -8,7 +8,6 @@ namespace {{ spec.title | caseUcfirst }}
 {
     public static class ExtensionMethods
     {
-
         public static string ToJson(this Dictionary<string, object> dict)
         {
             var settings = new JsonSerializerSettings
@@ -43,6 +42,5 @@ namespace {{ spec.title | caseUcfirst }}
             }
             return string.Join("&", query);
         }
-
     }
 }
