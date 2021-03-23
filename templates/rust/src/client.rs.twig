@@ -1,7 +1,7 @@
-use core::panic;
 use reqwest::header::HeaderMap;
 use std::{collections::HashMap, str::FromStr};
 use std::path::PathBuf;
+use crate::services::{{spec.title | caseUcfirst}}Exception;
 
 #[derive(Clone)]
 pub struct Client {
@@ -81,7 +81,7 @@ impl Client {
         path: &str,
         headers: Option<HashMap<String, String>>,
         params: Option<HashMap<String, ParamType>>,
-    ) -> reqwest::blocking::Response {
+    ) -> Result<reqwest::blocking::Response, {{spec.title | caseUcfirst}}Exception> {
         // If we have headers in the function call we combine them with the client headers.
 
         let mut content_type: String = "application/json".to_string();
@@ -164,8 +164,23 @@ impl Client {
         request = request.headers(request_headers);
 
         match request.send() {
-            Ok(data) => data,
-            Err(err) => panic!("{}", err),
+            Ok(data) => {
+                if data.status().is_success() {
+                    Ok(data)    
+                } else {
+                    // Format error
+                    Err(match data.json() {
+                        Ok(data) => data,
+                        Err(err) => {
+                            AppwriteException::new(format!("A error occoured. ERR: {}, This could either be a connection error or an internal Appwrite error. Please check your Appwrite instance logs. ", err), 0, "".to_string())
+                        }
+                    })
+                }
+            },
+            Err(err) => {
+                // Throw Appwrite Exception
+                Err(AppwriteException::new(format!("A error occoured. ERR: {}, This could either be a connection error or an internal Appwrite error. Please check your Appwrite instance logs. ", err), 0, "".to_string()))
+             },
         }
     }
 }

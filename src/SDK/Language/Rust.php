@@ -249,6 +249,12 @@ class Rust extends Language {
               'minify'        => false,
             ],
             [
+              'scope'         => 'method',
+              'destination'   => 'src/services/exception.rs',
+              'template'      => '/rust/src/services/exception.rs.twig',
+              'minify'        => false,
+            ],
+            [
               'scope'         => 'service',
               'destination'   => 'src/services/{{service.name | caseDash}}.rs',
               'template'      => '/rust/src/services/service.rs.twig',

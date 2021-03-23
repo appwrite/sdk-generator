@@ -9,6 +9,6 @@ client.set_{{header|caseSnake}}("{{node[header]['x-appwrite']['demo']}}"); // {{
 
 let {{ service.name | caseSnake }} = {{ language.params.packageName }}::services::{{ service.name | caseUcfirst }}::new(&client);
 
-let response = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{% if parameter | paramExample == "File.new()" %}{{spec.title | caseUcfirst}}::{{ parameter | paramExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% endif %}{% endfor %});
+let response = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{% if parameter | paramExample == "File.new()" %}{{spec.title | caseUcfirst}}::{{ parameter | paramExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% endif %}{% endfor %}).unwrap();
 
 println!("{}", response.text().unwrap());
