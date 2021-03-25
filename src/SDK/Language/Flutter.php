@@ -86,6 +86,12 @@ class Flutter extends Dart {
 				'minify'        => false,
 			],
             [
+				'scope'         => 'default',
+				'destination'   => '/lib/realtime.dart',
+				'template'      => '/flutter/lib/realtime.dart.twig',
+				'minify'        => false,
+			],
+            [
                 'scope'         => 'service',
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
                 'template'      => '/flutter/lib/services/service.dart.twig',

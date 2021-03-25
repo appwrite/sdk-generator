@@ -9,6 +9,7 @@ class Client {
     bool initialized = false;
     Dio http;
     PersistCookieJar cookieJar;
+    Realtime _realtime = Realtime.instance;
 
     Client({this.endPoint = '{{spec.endpoint}}', this.selfSigned = false, Dio http}) : this.http = http ?? Dio() {
         // Platform is not supported in web so if web, set type to web automatically and skip Platform check
@@ -62,8 +63,39 @@ class Client {
 
     Client setEndpoint(String endPoint) {
         this.endPoint = endPoint;
+        _realtime.endPoint = endPoint.replaceFirst('https://', 'wss://').replaceFirst('http://', 'ws://');
         this.http.options.baseUrl = this.endPoint;
         return this;
+    }
+
+    Client setEndPointRealtime(String endPointRealtime) {
+      _realtime.endPoint = endPointRealtime;
+      return this;
+    }
+
+    RTSub subscribe(List<String> channels) {
+      StreamController controller = StreamController();
+      channels.forEach((channel) {
+        if(!_realtime.channels.containsKey(channel)) {
+          _realtime.channels[channel] = [];
+        }
+        _realtime.channels[channel].add(controller);
+      });
+      Future.delayed(Duration.zero, () => _realtime.createSocket());
+      RTSub subscription = RTSub(
+        stream: controller.stream,
+        close: () {
+          controller.close();
+          channels.forEach((channel) {
+            _realtime.channels[channel].remove(controller);
+            if(_realtime.channels[channel].length < 1) {
+              _realtime.channels.remove(channel);
+            }
+          });
+          Future.delayed(Duration.zero, () => _realtime.createSocket());
+        }
+      );
+      return subscription; 
     }
 
     Client addHeader(String key, String value) {
