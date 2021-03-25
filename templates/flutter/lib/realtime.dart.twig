@@ -47,7 +47,7 @@ class Realtime {
       },
       path: uri.path + "/realtime"
     );
-    if(lastUrl == uri.toString() && websok.closeCode != null) {
+    if(lastUrl == uri.toString() && websok.closeCode == null) {
       return;
     }
     lastUrl = uri.toString();
