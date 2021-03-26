@@ -93,11 +93,11 @@ class SDKTest extends TestCase
             'class' => 'Appwrite\SDK\Language\Web',
             'build' => [
                 'cp tests/languages/web/tests.js tests/sdks/web/tests.js',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web buildkite/puppeteer npm install', //  npm list --depth 0 &&
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web buildkite/puppeteer npm run build',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web node:14.5-alpine npm install', //  npm list --depth 0 &&
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web node:14.5-alpine npm run build',
             ],
             'envs' => [
-                'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app buildkite/puppeteer node tests/sdks/web/tests.js',
+                'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14.5-alpine node tests/sdks/web/tests.js',
             ],
             'supportException' => true,
         ],
@@ -201,9 +201,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['web',
-        // 'php', 'cli', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'
-    ];
+        $whitelist = ['web', 'php', 'cli', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
