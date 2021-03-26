@@ -294,6 +294,12 @@ class DotNet extends Language {
                 'minify'        => false,
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '.travis.yml',
+                'template'      => '/dotnet/.travis.yml.twig',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => '/dotnet/docs/example.md.twig',
@@ -340,7 +346,12 @@ class DotNet extends Language {
                 'template'      => '/dotnet/src/Appwrite/Models/Rule.cs.twig',
                 'minify'        => false,
             ],
-
+            [
+                'scope'         => 'default',
+                'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Models/Exception.cs',
+                'template'      => '/dotnet/src/Appwrite/Models/Exception.cs.twig',
+                'minify'        => false,
+            ],
             [
                 'scope'         => 'default',
                 'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Services/Service.cs',

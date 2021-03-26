@@ -1,6 +1,7 @@
 const URL = require('url').URL;
 const axios = require('axios');
 const FormData = require('form-data');
+const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
 
 class Client {
     
@@ -103,10 +104,20 @@ class Client {
             data: (method.toUpperCase() === 'GET' || contentType.startsWith('multipart/form-data')) ? formData : params,
             json: (contentType.startsWith('application/json'))
         };
-
-        let response = await axios(options);
-
-        return response.data;
+        try {
+            let response = await axios(options);
+            return response.data;
+        } catch(error) {
+            if('response' in error) {
+                if('data' in error.response) {
+                    throw new {{spec.title | caseUcfirst}}Exception(error.response.data.message, error.response.status, error.response.data);
+                }else{
+                    throw new {{spec.title | caseUcfirst}}Exception(error.response.statusText, error.response.status, error.response.data);
+                }
+            }else{
+                throw new {{spec.title | caseUcfirst}}Exception(error.message);
+            }
+        }
     }
 
     flatten(data, prefix = '') {

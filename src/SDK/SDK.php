@@ -54,6 +54,7 @@ class SDK
         'shareVia' => '',
         'shareTags' => '',
         'warning' => '',
+        'gettingStarted' => '',
         'readme' => '',
         'changelog' => '',
         'examples' => '',
@@ -145,6 +146,13 @@ class SDK
             }
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('dotnetComment', function ($value) {
+            $value = explode("\n", $value);
+            foreach ($value as $key => $line) {
+                $value[$key] = "        /// " . wordwrap($value[$key], 75, "\n        /// ");
+            }
+            return implode("\n", $value);
+        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value) {
             return str_replace('$', '\$', $value);
         }));
@@ -186,6 +194,8 @@ class SDK
      */
     public function setDefaultHeaders($headers) {
         $this->defaultHeaders = $headers;
+        
+        return $this;
     }
 
     /**
@@ -382,6 +392,17 @@ class SDK
     public function setWarning($message)
     {
         $this->setParam('warning', $message);
+
+        return $this;
+    }
+
+    /**
+     * @param $message string
+     * @return $this
+     */
+    public function setGettingStarted($message)
+    {
+        $this->setParam('gettingStarted', $message);
 
         return $this;
     }

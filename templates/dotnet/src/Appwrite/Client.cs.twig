@@ -1,3 +1,4 @@
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,22 +12,14 @@ namespace {{ spec.title | caseUcfirst }}
 {
     public class Client
     {
-        
         private readonly HttpClient http;
-
         private readonly Dictionary<string, string> headers;
-
         private readonly Dictionary<string, string> config;
-
         private string endPoint;
-        
         private bool selfSigned;
         
-        CookieContainer cookieJar = new CookieContainer();
-
         public Client() : this("https://appwrite.io/v1", false, new HttpClient())
         {
-
         }
 
         public Client(string endPoint, bool selfSigned, HttpClient http)
@@ -44,9 +37,7 @@ namespace {{ spec.title | caseUcfirst }}
 
             };
             this.config = new Dictionary<string, string>();
-            this.http = http;
-
-            // coockie container ??                     
+            this.http = http;                 
         }
 
         public Client SetSelfSigned(bool selfSigned)
@@ -71,10 +62,9 @@ namespace {{ spec.title | caseUcfirst }}
             return config;
         }
 
-
 {% for header in spec.global.headers %}
 {% if header.description %}
-        /// {{header.description}}
+        /// <summary>{{header.description}}</summary>
 {% endif %}
         public Client Set{{header.key | caseUcfirst}}(string value) {
             config.Add("{{ header.key | caseCamel }}", value);
@@ -83,8 +73,6 @@ namespace {{ spec.title | caseUcfirst }}
         }
 
 {% endfor %}
-
-
         public Client AddHeader(String key, String value)
         {
             headers.Add(key, value);
@@ -106,8 +94,6 @@ namespace {{ spec.title | caseUcfirst }}
 
             if ("multipart/form-data".Equals(headers["content-type"], StringComparison.InvariantCultureIgnoreCase))
             {
-
-
                 MultipartFormDataContent form = new MultipartFormDataContent();
 
                 foreach (var parameter in parameters)
@@ -172,10 +158,24 @@ namespace {{ spec.title | caseUcfirst }}
                     request.Headers.Add(header.Key, header.Value);
                 }
             }
-            HttpResponseMessage httpResponseMessage = await http.SendAsync(request);
+            try
+            {
+                var httpResponseMessage = await http.SendAsync(request);
+                var code = (int) httpResponseMessage.StatusCode;
+                var response = await httpResponseMessage.Content.ReadAsStringAsync();
 
-            return httpResponseMessage;
+                if (code >= 400) {
+                    string message = (JObject.Parse(response))["message"].ToString();
+                    throw new {{spec.title | caseUcfirst}}Exception(message, code, response.ToString());
+                }
+
+                return httpResponseMessage;
+            }
+            catch (System.Exception e)
+            {
+                throw new {{spec.title | caseUcfirst}}Exception(e.Message, e);
+            }
+
         }
-
     }
 }
