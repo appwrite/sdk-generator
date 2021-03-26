@@ -2,7 +2,7 @@ interface assoc {
     [key: string]: any;
 }
 
-class {{spec.title | caseUcfirst}}Exception extends Error {
+export class {{spec.title | caseUcfirst}}Exception extends Error {
     code: number;
     response: string;
     constructor(message: string, code: number = 0, response: string = '') {
@@ -58,7 +58,7 @@ export class {{ spec.title | caseUcfirst }} {
     };
 
 {% endfor %}
-    async call(method: string, url: URL, headers: Headers = new Headers(), params:assoc = {}) {
+    async call(method: string, url: URL, headers: Headers = new Headers(), params:assoc = {}): Promise<any> {
         method = method.toUpperCase();
         this.headers.forEach((value, key) => {
             headers.set(key, value);
@@ -134,7 +134,7 @@ export class {{ spec.title | caseUcfirst }} {
          * @return {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
 
          */
-        {{ method.name | caseCamel }}: async ({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'webAuth' %}void{% elseif method.type == 'location' %}URL{% else %}Response{% endif %}> => {
+        {{ method.name | caseCamel }}: async ({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'webAuth' %}void{% elseif method.type == 'location' %}URL{% else %}any{% endif %}> => {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
             if ({{ parameter.name | caseCamel }} === undefined) {
