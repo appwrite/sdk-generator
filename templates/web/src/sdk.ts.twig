@@ -2,9 +2,19 @@ interface assoc {
     [key: string]: any;
 }
 
-export class {{ spec.title | caseUcfirst }} {
+class {{spec.title | caseUcfirst}}Exception extends Error {
+    code: number;
+    response: string;
+    constructor(message: string, code: number = 0, response: string = '') {
+        super(message);
+        this.name = '{{spec.title | caseUcfirst}}Exception';
+        this.message = message;
+        this.code = code;
+        this.response = response;
+    }
+}
 
-    //endpoint: string = 'https://engltdkunvgppvc.m.pipedream.net';
+export class {{ spec.title | caseUcfirst }} {
     endpoint: string = '{{ spec.endpoint }}';
     headers: Headers = new Headers({
         'content-type': 'application/json',
@@ -68,17 +78,24 @@ export class {{ spec.title | caseUcfirst }} {
         } else {
             options.body = JSON.stringify(params);
         }
+        try {
+            const response = await fetch(url.toString(), options);
+            const data = await response.json();
+            if (400 <= response.status) {
+                throw new {{spec.title | caseUcfirst}}Exception(data.message, response.status, data);
+            }
 
-        let response = await fetch(url.toString(), options);
-
-        const cookieFallback = response.headers.get('X-Fallback-Cookies');
+            const cookieFallback = response.headers.get('X-Fallback-Cookies');
         
-        if (window.localStorage && cookieFallback) {
-            window.console.warn('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
-            window.localStorage.setItem('cookieFallback', cookieFallback);
-        }
+            if (window.localStorage && cookieFallback) {
+                window.console.warn('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
+                window.localStorage.setItem('cookieFallback', cookieFallback);
+            }
 
-        return await response.json();
+            return data;
+        } catch (e) {
+            throw new {{spec.title | caseUcfirst}}Exception(e.message);
+        }
     }
 
     private flatten(data: assoc, prefix = ''): assoc {
@@ -113,7 +130,7 @@ export class {{ spec.title | caseUcfirst }} {
 {% for parameter in method.parameters.all %}
          * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
-         * @throws {Error}
+         * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
          * @return {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
 
          */
@@ -121,7 +138,7 @@ export class {{ spec.title | caseUcfirst }} {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
             if ({{ parameter.name | caseCamel }} === undefined) {
-                throw new Error('Missing required parameter: "{{ parameter.name | caseCamel }}"');
+                throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel }}"');
             }
             
 {% endif %}

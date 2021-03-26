@@ -99,7 +99,7 @@ class SDKTest extends TestCase
             'envs' => [
                 'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14.5-alpine node tests/sdks/web/tests.js',
             ],
-            'supportException' => false,
+            'supportException' => true,
         ],
 
         'typescript' => [

@@ -54,8 +54,20 @@ async function start() {
     response = await sdk.general.redirect();
     console.log(response.result);
 
-    // //demo output for upload support
+    // couldn't mock file object yet inside nodejs
     console.log("POST:/v1/mock/tests/general/upload:passed");
+
+    try {
+        response = await sdk.general.error400();
+    } catch (error) {
+        console.log(error.message);
+    }
+
+    try {
+        response = await sdk.general.error500();
+    } catch (error) {
+        console.log(error.message);
+    }
 }
 
  start();
