@@ -4,9 +4,10 @@ interface assoc {
 
 export class {{ spec.title | caseUcfirst }} {
 
+    //endpoint: string = 'https://engltdkunvgppvc.m.pipedream.net';
     endpoint: string = '{{ spec.endpoint }}';
     headers: Headers = new Headers({
-        'content-type': '',
+        'content-type': 'application/json',
         'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
 {% for key,header in spec.global.defaultHeaders %}
         '{{key}}' : '{{header}}',
@@ -48,12 +49,13 @@ export class {{ spec.title | caseUcfirst }} {
 
 {% endfor %}
     async call(method: string, url: URL, headers: Headers = new Headers(), params:assoc = {}) {
-        headers = {...this.headers, ...headers};
         method = method.toUpperCase();
-        let contentType = headers.get("content-type")?.toLowerCase();
+        this.headers.forEach((value, key) => {
+            headers.set(key, value);
+        });
         let options: RequestInit = {
-            method: method.toUpperCase(),
-            headers: headers,
+            method,
+            headers,
             credentials: 'include',
         };
 
@@ -62,9 +64,7 @@ export class {{ spec.title | caseUcfirst }} {
         }
 
         if (method === 'GET') {
-            url.search = new URLSearchParams(params).toString();
-        } else if (contentType?.startsWith('multipart/form-data')) {
-            options.body = this.flatten(params);
+            url.search = new URLSearchParams(this.flatten(params)).toString();
         } else {
             options.body = JSON.stringify(params);
         }
@@ -78,14 +78,10 @@ export class {{ spec.title | caseUcfirst }} {
             window.localStorage.setItem('cookieFallback', cookieFallback);
         }
 
-        if(contentType === 'application/json') {
-            response = await response.json();
-        }
-
-        return response;
+        return await response.json();
     }
 
-    private flatten(data: assoc, prefix = '') {
+    private flatten(data: assoc, prefix = ''): assoc {
         let output: assoc = {};
 
         for (const key in data) {
@@ -100,7 +96,7 @@ export class {{ spec.title | caseUcfirst }} {
             }
         }
 
-        return JSON.stringify(output);
+        return output;
     }
 
 {% for service in spec.services %}
