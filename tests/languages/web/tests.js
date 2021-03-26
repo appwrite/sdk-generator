@@ -1,14 +1,14 @@
 
 require('isomorphic-fetch');
-const jsdom = require("jsdom");
+const jsdom = require('jsdom');
 const { JSDOM } = jsdom;
 const dom = new JSDOM(``, {
-    url: "https://appwrite.io"
+    url: 'https://appwrite.io'
 });
 global.window = dom.window;
-global.localStorage = require("localStorage");
+global.localStorage = require('localStorage');
 
-const Appwrite = require("./dist/cjs/sdk.js");
+const Appwrite = require('./dist/cjs/sdk.js');
 const fs = require('fs');
 
 async function start() {
@@ -55,7 +55,7 @@ async function start() {
     console.log(response.result);
 
     // couldn't mock file object yet inside nodejs
-    console.log("POST:/v1/mock/tests/general/upload:passed");
+    console.log('POST:/v1/mock/tests/general/upload:passed');
 
     try {
         response = await sdk.general.error400();
@@ -70,4 +70,4 @@ async function start() {
     }
 }
 
- start();
+start();

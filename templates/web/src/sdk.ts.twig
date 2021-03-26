@@ -15,9 +15,13 @@ export class {{spec.title | caseUcfirst}}Exception extends Error {
 }
 
 export class {{ spec.title | caseUcfirst }} {
-    endpoint: string = '{{ spec.endpoint }}';
+    config = {
+        endpoint: '{{ spec.endpoint }}',
+{% for header in spec.global.headers %}
+        {{ header.key | caseCamel }}: '',
+{% endfor %}
+    };
     headers: Headers = new Headers({
-        'content-type': 'application/json',
         'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
 {% for key,header in spec.global.defaultHeaders %}
         '{{key}}' : '{{header}}',
@@ -34,7 +38,7 @@ export class {{ spec.title | caseUcfirst }} {
      * @returns {this}
      */
     setEndpoint(endpoint: string): this {
-        this.endpoint = endpoint;
+        this.config.endpoint = endpoint;
 
         return this;
     }
@@ -53,7 +57,7 @@ export class {{ spec.title | caseUcfirst }} {
      */
     set{{header.key | caseUcfirst}} = (value: string): this => {
         this.headers.set('{{header.name}}', value);
-
+        this.config.{{ header.key | caseCamel }} = value;
         return this;
     };
 
@@ -66,7 +70,7 @@ export class {{ spec.title | caseUcfirst }} {
         let options: RequestInit = {
             method,
             headers,
-            credentials: 'include',
+            credentials: 'include'
         };
 
         if (window.localStorage) {
@@ -76,8 +80,24 @@ export class {{ spec.title | caseUcfirst }} {
         if (method === 'GET') {
             url.search = new URLSearchParams(this.flatten(params)).toString();
         } else {
-            options.body = JSON.stringify(params);
+            switch (headers.get('content-type')) {
+                case 'application/json':
+                    options.body = JSON.stringify(params);
+                break;
+
+                case 'multipart/form-data':
+                    let formData = new FormData();
+
+                    for (const key in params) {
+                        formData.append(key + (Array.isArray(params[key]) ? '[]' : ''), params[key]);
+                    }
+
+                    options.body = formData;
+                    headers.delete('content-type');
+                break;
+            }
         }
+
         try {
             const response = await fetch(url.toString(), options);
             const data = await response.json();
@@ -134,7 +154,7 @@ export class {{ spec.title | caseUcfirst }} {
          * @return {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
 
          */
-        {{ method.name | caseCamel }}: async ({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'webAuth' %}void{% elseif method.type == 'location' %}URL{% else %}any{% endif %}> => {
+        {{ method.name | caseCamel }}: {% if method.type != "location" and method.type != 'webAuth'%}async{% endif %} ({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void{% elseif method.type == 'location' %}URL{% else %}Promise<any>{% endif %} => {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
             if ({{ parameter.name | caseCamel }} === undefined) {
@@ -160,12 +180,12 @@ export class {{ spec.title | caseUcfirst }} {
             }
 
 {% endfor %}
-            const uri = new URL(this.endpoint + path);
+            const uri = new URL(this.config.endpoint + path);
 {% if method.type == 'location' or method.type == 'webAuth' %}
 {% if method.security|length > 0 %}
 {% for node in method.security %}
 {% for key,header in node|keys %}
-            payload['{{header|caseLower}}'] = this.headers.get('{{header|caseLower}}');
+            payload['{{header|caseLower}}'] = this.config.{{header|caseLower}};
 
 {% endfor %}
 {% endfor %}
@@ -182,23 +202,13 @@ export class {{ spec.title | caseUcfirst }} {
             return await this.call('{{ method.method | caseLower }}', uri, new Headers(
                     {
 {% for parameter in method.parameters.header %}
-                    '{{ parameter.name }}': ${{ parameter.name | caseCamel }},
+                    '{{ parameter.name }}': this.${{ parameter.name | caseCamel }},
 {% endfor %}
 {% for key, header in method.headers %}
                     '{{ key }}': '{{ header }}',
 {% endfor %}
                     }
-                ),
-                {
-{% for parameter in method.parameters.query %}
-                '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %},{% endif %}
-
-{% endfor %}
-{% for parameter in method.parameters.body %}
-                '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %},{% endif %}
-
-{% endfor %}
-            });
+                ), payload);
 {% endif %}
         }{% if not loop.last %},
 {% endif %}
