@@ -75,21 +75,16 @@
 const puppeteer = require('puppeteer');
 
 (async function () {
-    try {
-        const browser = await puppeteer.launch({
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage'
-            ]
-          });
-        const page = await browser.newPage();
-        await page.goto('https://appwrite.io', { waitUntil: 'domcontentloaded' });
-        await page.addScriptTag({ path: require.resolve('./dist/esm/sdk.js') });
-    
-        await browser.close();
-    } catch (error) {
-        console.log(error)
-    }
+    const browser = await puppeteer.launch({
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage'
+        ]
+      });
+    const page = await browser.newPage();
+    await page.goto('https://appwrite.io', { waitUntil: 'domcontentloaded' });
+    await page.addScriptTag({ path: './dist/esm/sdk.js.js' });
 
+    await browser.close();
 })();
