@@ -1,0 +1,197 @@
+interface assoc {
+    [key: string]: any;
+}
+
+export class {{ spec.title | caseUcfirst }} {
+
+    endpoint: string = '{{ spec.endpoint }}';
+    headers: Headers = new Headers({
+        'content-type': '',
+        'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
+{% for key,header in spec.global.defaultHeaders %}
+        '{{key}}' : '{{header}}',
+{% endfor %}
+    });
+
+    /**
+     * Set Endpoint
+     *
+     * Your project ID
+     *
+     * @param {string} endpoint
+     *
+     * @returns {this}
+     */
+    setEndpoint(endpoint: string): this {
+        this.endpoint = endpoint;
+
+        return this;
+    }
+
+{% for header in spec.global.headers %}
+    /**
+     * Set {{header.key | caseUcfirst}}
+     *
+{% if header.description %}
+{{header.description|comment2}}
+     *
+{% endif %}
+     * @param value string
+     *
+     * @return this
+     */
+    set{{header.key | caseUcfirst}} = (value: string): this => {
+        this.headers.set('{{header.name}}', value);
+
+        return this;
+    };
+
+{% endfor %}
+    async call(method: string, url: URL, headers: Headers = new Headers(), params:assoc = {}) {
+        headers = {...this.headers, ...headers};
+        method = method.toUpperCase();
+        let contentType = headers.get("content-type")?.toLowerCase();
+        let options: RequestInit = {
+            method: method.toUpperCase(),
+            headers: headers,
+            credentials: 'include',
+        };
+
+        if (window.localStorage) {
+            headers.set('X-Fallback-Cookies', window.localStorage.getItem('cookieFallback') ?? "");
+        }
+
+        if (method === 'GET') {
+            url.search = new URLSearchParams(params).toString();
+        } else if (contentType?.startsWith('multipart/form-data')) {
+            options.body = this.flatten(params);
+        } else {
+            options.body = JSON.stringify(params);
+        }
+
+        let response = await fetch(url.toString(), options);
+
+        const cookieFallback = response.headers.get('X-Fallback-Cookies');
+        
+        if (window.localStorage && cookieFallback) {
+            window.console.warn('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
+            window.localStorage.setItem('cookieFallback', cookieFallback);
+        }
+
+        if(contentType === 'application/json') {
+            response = await response.json();
+        }
+
+        return response;
+    }
+
+    private flatten(data: assoc, prefix = '') {
+        let output: assoc = {};
+
+        for (const key in data) {
+            let value = data[key];
+            let finalKey = prefix ? prefix + '[' + key +']' : key;
+
+            if (Array.isArray(value)) {
+                output = Object.assign(output, this.flatten(value, finalKey)); // @todo: handle name collision here if needed
+            }
+            else {
+                output[finalKey] = value;
+            }
+        }
+
+        return JSON.stringify(output);
+    }
+
+{% for service in spec.services %}
+    {{service.name | caseCamel}} = {
+{% for method in service.methods %}
+
+        /**
+         * {{ method.title }}
+         *
+{% if method.description %}
+{{ method.description|comment3 }}
+{% endif %}
+         *
+{% for parameter in method.parameters.all %}
+         * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
+{% endfor %}
+         * @throws {Error}
+         * @return {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
+
+         */
+        {{ method.name | caseCamel }}: async ({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'webAuth' %}void{% elseif method.type == 'location' %}URL{% else %}Response{% endif %}> => {
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+            if ({{ parameter.name | caseCamel }} === undefined) {
+                throw new Error('Missing required parameter: "{{ parameter.name | caseCamel }}"');
+            }
+            
+{% endif %}
+{% endfor %}
+            let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace(new RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', 'g'), {{ parameter.name | caseCamel }}){% endfor %};
+
+{% if method.parameters.query|length > 0 or method.parameters.body|length > 0 or method.security|keys|length > 0 %}
+            let payload: assoc = {};
+{% endif %}
+{% for parameter in method.parameters.query %}
+            if ({{ parameter.name | caseCamel }}) {
+                payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
+            }
+
+{% endfor %}
+{% for parameter in method.parameters.body %}
+            if (typeof {{ parameter.name | caseCamel }} !== 'undefined') {
+                payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
+            }
+
+{% endfor %}
+            const uri = new URL(this.endpoint + path);
+{% if method.type == 'location' or method.type == 'webAuth' %}
+{% if method.security|length > 0 %}
+{% for node in method.security %}
+{% for key,header in node|keys %}
+            payload['{{header|caseLower}}'] = this.headers.get('{{header|caseLower}}');
+
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+            const query = new URLSearchParams(payload);
+            uri.search = query.toString();
+{% endif %}
+{% if method.type == 'webAuth' %}
+            window.location.href = uri.toString();
+{% elseif method.type == 'location' %}
+            return uri;
+{% else %}
+            return await this.call('{{ method.method | caseLower }}', uri, new Headers(
+                    {
+{% for parameter in method.parameters.header %}
+                    '{{ parameter.name }}': ${{ parameter.name | caseCamel }},
+{% endfor %}
+{% for key, header in method.headers %}
+                    '{{ key }}': '{{ header }}',
+{% endfor %}
+                    }
+                ),
+                {
+{% for parameter in method.parameters.query %}
+                '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %},{% endif %}
+
+{% endfor %}
+{% for parameter in method.parameters.body %}
+                '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %},{% endif %}
+
+{% endfor %}
+            });
+{% endif %}
+        }{% if not loop.last %},
+{% endif %}
+{% endfor %}
+
+    };
+
+{% endfor %}
+};
