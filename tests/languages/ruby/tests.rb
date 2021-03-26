@@ -53,6 +53,12 @@ puts response['result']
 
 begin
     response = general.error400()
-rescue Appwrite::AppwriteException => error
-    puts  error.message
+rescue Appwrite::Exception => error
+    puts error.message
+end
+
+begin
+    response = general.error500()
+rescue Appwrite::Exception => error
+    puts error.message
 end
