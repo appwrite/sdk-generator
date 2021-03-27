@@ -93,11 +93,14 @@ class SDKTest extends TestCase
             'class' => 'Appwrite\SDK\Language\Web',
             'build' => [
                 'cp tests/languages/web/tests.js tests/sdks/web/tests.js',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web buildkite/puppeteer npm install', //  npm list --depth 0 &&
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web buildkite/puppeteer npm run build',
+                'cp tests/languages/web/index.html tests/sdks/web/index.html',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic npm install', //  npm list --depth 0 &&
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic npm run build',
             ],
             'envs' => [
-                'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app buildkite/puppeteer node tests/sdks/web/tests.js',
+                'chromium' => 'docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/playwright:bionic -e BROWSER=chromium node tests/sdks/web/tests.js',
+                'firefox' => 'docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/playwright:bionic -e BROWSER=firefox node tests/sdks/web/tests.js',
+                'webkit' => 'docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/playwright:bionic -e BROWSER=webkit node tests/sdks/web/tests.js',
             ],
             'supportException' => true,
         ],
