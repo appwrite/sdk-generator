@@ -9,7 +9,8 @@
     ".": {
       "import": "./dist/mjs/sdk.js",
       "require": "./dist/cjs/sdk.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "module": "./dist/mjs/sdk.js",
   "repository": {
@@ -20,6 +21,7 @@
     "build": "tsc -p tsconfig-esm.json && tsc -p tsconfig-cjs.json"
   },
   "devDependencies": {
+    "puppeteer-core": "^8.0.0",
     "typescript": "^4.2.3",
     "isomorphic-fetch": "^3.0.0",
     "jsdom": "^16.5.1",
