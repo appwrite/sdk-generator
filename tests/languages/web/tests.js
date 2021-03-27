@@ -1,6 +1,7 @@
 const playwright = require('playwright');
 const handler = require('serve-handler');
 const http = require('http');
+const path = require('path');
 
 const server = http.createServer((request, response) => {
     return handler(request, response)
@@ -16,6 +17,9 @@ server.listen(3000, async () => {
         }
     });
     await page.goto('http://localhost:3000');
+    await page.setInputFiles('#file', path.join(__dirname, '/../../resources/file.png'));
+    await page.click('#start');
+
     setTimeout(async () => {
         await browser.close();
         server.close();

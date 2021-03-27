@@ -9,9 +9,12 @@
 </head>
 
 <body>
+    <input type="file" id="file">
+    <button id="start">Start</button>
     <script type="module">
-        import { Appwrite } from "./dist/mjs/sdk.js";
-        (async () => {
+        import { Appwrite } from './dist/mjs/sdk.js';
+
+        document.getElementById('start').addEventListener('click', async () => {
             let response;
 
             // Init SDK
@@ -54,8 +57,8 @@
             response = await sdk.general.redirect();
             console.log(response.result);
 
-            // couldn't mock file object yet inside nodejs
-            console.log('POST:/v1/mock/tests/general/upload:passed');
+            response = await sdk.general.upload('string', 123, ['string in array'], document.getElementById('file').files[0]);
+            console.log(response.result);
 
             try {
                 response = await sdk.general.error400();
@@ -68,7 +71,7 @@
             } catch (error) {
                 console.log(error.message);
             }
-        })();
+        });
     </script>
 
 </body>
