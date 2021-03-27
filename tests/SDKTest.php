@@ -98,9 +98,9 @@ class SDKTest extends TestCase
                 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic npm run build',
             ],
             'envs' => [
-                'chromium' => 'docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/playwright:bionic -e BROWSER=chromium node tests/sdks/web/tests.js',
-                'firefox' => 'docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/playwright:bionic -e BROWSER=firefox node tests/sdks/web/tests.js',
-                'webkit' => 'docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/playwright:bionic -e BROWSER=webkit node tests/sdks/web/tests.js',
+                'chromium' => 'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app mcr.microsoft.com/playwright:bionic xvfb-run node tests/sdks/web/tests.js',
+                'firefox' => 'docker run --rm -v $(pwd):/app -e BROWSER=firefox -w /app mcr.microsoft.com/playwright:bionic xvfb-run node tests/sdks/web/tests.js',
+                'webkit' => 'docker run --rm -v $(pwd):/app  -e BROWSER=webkit -w /app mcr.microsoft.com/playwright:bionic xvfb-run node tests/sdks/web/tests.js',
             ],
             'supportException' => true,
         ],
