@@ -14,7 +14,7 @@ server.listen(3000, async () => {
     const page = await context.newPage();
     page.on('console', message => {
         if (message.type() == 'log') {
-            console.log(message)
+            console.log(message);
         }
     });
     await page.goto('http://localhost:3000');
