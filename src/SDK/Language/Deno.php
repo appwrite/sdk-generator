@@ -37,6 +37,12 @@ class Deno extends JS
                 'minify'        => false,
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '/src/exception.ts',
+                'template'      => '/deno/src/exception.ts.twig',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '/src/services/{{service.name | caseDash}}.ts',
                 'template'      => '/deno/src/services/service.ts.twig',

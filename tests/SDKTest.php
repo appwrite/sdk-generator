@@ -28,7 +28,7 @@ class SDKTest extends TestCase
                 'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli-alpine php tests/languages/php/test.php',
                 'php-8.0' => 'docker run --rm -v $(pwd):/app -w /app php:8.0.0rc1-cli-alpine php tests/languages/php/test.php',
             ],
-            'supportException' => false,
+            'supportException' => true,
         ],
 
         'cli' => [
@@ -100,7 +100,7 @@ class SDKTest extends TestCase
                 'dotnet-5.0' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:5.0-alpine pwsh tests.ps1',
                 'dotnet-3.1' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:3.1-alpine pwsh tests.ps1',
             ],
-            'supportException' => false,
+            'supportException' => true,
         ],
 
         'typescript' => [
@@ -124,7 +124,7 @@ class SDKTest extends TestCase
             'envs' => [
                 'deno-1.1.3' => 'docker run --rm -v $(pwd):/app -w /app hayd/alpine-deno:1.1.3 run --allow-net --allow-read tests/languages/deno/tests.ts', // TODO: use official image when its out
             ],
-            'supportException' => false,
+            'supportException' => true,
         ],
 
         'node' => [
@@ -138,7 +138,7 @@ class SDKTest extends TestCase
                 'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12-alpine node tests/languages/node/test.js',
                 'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14.5-alpine node tests/languages/node/test.js',
             ],
-            'supportException' => false,
+            'supportException' => true,
         ],
 
         'ruby' => [

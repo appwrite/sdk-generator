@@ -1,10 +1,12 @@
 const Client = require('./lib/client.js');
+const {{spec.title | caseUcfirst}}Exception = require('./lib/exception.js');
 {% for service in spec.services %}
 const {{service.name | caseUcfirst}} = require('./lib/services/{{service.name | caseDash}}.js');
 {% endfor %}
 
 module.exports = {
     Client,
+    {{spec.title | caseUcfirst}}Exception,
 {% for service in spec.services %}
     {{service.name | caseUcfirst}},
 {% endfor %}
