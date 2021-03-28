@@ -62,18 +62,6 @@ class Web extends JS {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tsconfig-esm.json',
-                'template'      => '/web/tsconfig-esm.json.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'tsconfig-cjs.json',
-                'template'      => '/web/tsconfig-cjs.json.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'dist/cjs/package.json',
                 'template'      => '/web/dist/cjs/package.json.twig',
                 'minify'        => false,

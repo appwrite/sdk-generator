@@ -23,10 +23,10 @@ To install via [NPM](https://www.npmjs.com/):
 npm install {{ language.params.npmPackage }} --save
 ```
 
-If you're using a bundler (like [Browserify](http://browserify.org/) or [webpack](https://webpack.js.org/)), you can import the {{ spec.title }} module when you need it:
+If you're using a bundler (like [Rollup](https://rollupjs.org/) or [webpack](https://webpack.js.org/)), you can import the {{ spec.title }} module when you need it:
 
 ```js
-import * as {{ language.params.npmPackage|caseUcfirst }} from "{{ language.params.npmPackage }}";
+import {{ '{' }}{{ language.params.npmPackage|caseUcfirst }}{{ '}' }} from "{{ language.params.npmPackage }}";
 ```
 
 ### CDN

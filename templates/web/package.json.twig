@@ -7,23 +7,28 @@
   "main": "./dist/cjs/sdk.js",
   "exports": {
     ".": {
-      "import": "./dist/mjs/sdk.js",
+      "import": "./dist/esm/sdk.js",
       "require": "./dist/cjs/sdk.js"
     },
     "./package.json": "./package.json"
   },
-  "module": "./dist/mjs/sdk.js",
+  "module": "./dist/esm/sdk.js",
   "repository": {
     "type": "git",
     "url": "{{ sdk.gitURL }}"
   },
   "scripts": {
-    "build": "tsc -p tsconfig-esm.json && tsc -p tsconfig-cjs.json"
+    "build": "npm run build:esm && npm run build:cjs && npm run build:umd",
+    "build:esm": "tsc --module es6 --outDir dist/esm",
+    "build:cjs": "tsc --module commonjs --outDir dist/cjs",
+    "build:umd": "rollup dist/esm/sdk.js --format umd --name Appwrite -m --no-esModule -o dist/umd/sdk.js"
   },
   "devDependencies": {
     "playwright": "^1.10.0",
+    "rollup": "^2.43.0",
+    "serve-handler": "^6.1.3",
     "typescript": "^4.2.3",
-    "serve-handler": "^6.1.3"
+    "uglify-js": "^3.13.2"
   },
   "dependencies": {}
 }
