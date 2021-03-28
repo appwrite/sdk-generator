@@ -1,69 +1,72 @@
 import '../lib/packageName.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() async {
-  Client client = Client();
-  Foo foo = Foo(client);
-  Bar bar = Bar(client);
-  General general = General(client);
+    Client client = Client();
+    Foo foo = Foo(client);
+    Bar bar = Bar(client);
+    General general = General(client);
 
-  client.addHeader('Origin', 'http://localhost');
-  client.setSelfSigned();
+    client.addHeader('Origin', 'http://localhost');
+    client.setSelfSigned();
 
-  // Foo Tests
+    // Foo Tests
 
-  Response response;
-  response = await foo.get(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+    Response response;
+    response = await foo.get(x: 'string', y: 123, z: ['string in array']);
+    print(response.data['result']);
 
-  response = await foo.post(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+    response = await foo.post(x: 'string', y: 123, z: ['string in array']);
+    print(response.data['result']);
 
-  response = await foo.put(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+    response = await foo.put(x: 'string', y: 123, z: ['string in array']);
+    print(response.data['result']);
 
-  response = await foo.patch(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+    response = await foo.patch(x: 'string', y: 123, z: ['string in array']);
+    print(response.data['result']);
 
-  response = await foo.delete(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+    response = await foo.delete(x: 'string', y: 123, z: ['string in array']);
+    print(response.data['result']);
 
-  // Bar Tests
+    // Bar Tests
 
-  response = await bar.get(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+    response = await bar.get(x: 'string', y: 123, z: ['string in array']);
+    print(response.data['result']);
 
-  response = await bar.post(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+    response = await bar.post(x: 'string', y: 123, z: ['string in array']);
+    print(response.data['result']);
 
-  response = await bar.put(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+    response = await bar.put(x: 'string', y: 123, z: ['string in array']);
+    print(response.data['result']);
 
-  response = await bar.patch(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+    response = await bar.patch(x: 'string', y: 123, z: ['string in array']);
+    print(response.data['result']);
 
-  response = await bar.delete(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+    response = await bar.delete(x: 'string', y: 123, z: ['string in array']);
+    print(response.data['result']);
 
-  // General Tests
+    // General Tests
 
-  response = await general.redirect();
-  print(response.data['result']);
+    response = await general.redirect();
+    print(response.data['result']);
 
-  final file = await MultipartFile.fromFile('../../resources/file.png',filename: 'file.png');
-  response = await general.upload(x:'string',y: 123,z:['string in array'], file: file);
-  print(response.data['result']);
+    final file = await MultipartFile.fromFile('../../resources/file.png',
+        filename: 'file.png');
+    response = await general.upload(
+        x: 'string', y: 123, z: ['string in array'], file: file);
+    print(response.data['result']);
 
-  try {
-    await general.error400();
-  } on AppwriteException catch(e) {
-    print(e.message);
-  }
+    try {
+      await general.error400();
+    } on AppwriteException catch (e) {
+      print(e.message);
+    }
 
-  try {
-    await general.error500();
-  } on AppwriteException catch(e) {
-    print(e.message);
-  }
+    try {
+      await general.error500();
+    } on AppwriteException catch (e) {
+      print(e.message);
+    }
 
   // response = await general.setCookie();
   // print(response.data['result']);
