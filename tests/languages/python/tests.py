@@ -13,11 +13,12 @@ general = General(client)
 client.add_header('Origin', 'http://localhost')
 client.set_self_signed()
 
-print("Test Started");
+print("Test Started")
 
 # Foo Tests
 
-print("GET:/v1/mock/tests/foo:passed")
+response = foo.get('string',123, ['string in array'])
+print(response['result'])
 
 response = foo.post('string', 123, ['string in array'])
 print(response['result'])
@@ -33,7 +34,8 @@ print(response['result'])
 
 # Bar Tests
 
-print("GET:/v1/mock/tests/bar:passed")
+response = bar.get('string',123, ['string in array'])
+print(response['result'])
 
 response = bar.post('string', 123, ['string in array'])
 print(response['result'])
