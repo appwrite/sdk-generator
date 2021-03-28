@@ -13,6 +13,8 @@ general = General(client)
 client.add_header('Origin', 'http://localhost')
 client.set_self_signed()
 
+print("Test Started");
+
 # Foo Tests
 
 print("GET:/v1/mock/tests/foo:passed")

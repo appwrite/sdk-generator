@@ -14,6 +14,8 @@ async function start() {
 
     client.addHeader('Origin', 'http://localhost');
 
+    console.log('Test Started');
+
     // Foo
 
     response = await foo.get('string', 123, ['string in array']);

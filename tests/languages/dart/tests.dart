@@ -9,8 +9,9 @@ void main() async {
   client.addHeader('Origin', 'http://localhost');
   client.setSelfSigned();
 
+  print('Test Started');
+  
   // Foo Tests
-
   Response response;
   response = await foo.get(x: 'string', y: 123, z: ['string in array']);
   print(response.data['result']);

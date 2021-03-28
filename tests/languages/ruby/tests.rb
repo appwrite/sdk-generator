@@ -7,6 +7,8 @@ foo = Appwrite::Foo.new(client)
 bar = Appwrite::Bar.new(client)  
 general = Appwrite::General.new(client)  
 
+puts 'Test Started'
+
 # Foo
 
 response = foo.get(x: 'string', y: 123, z: ['string in array']);

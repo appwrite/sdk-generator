@@ -1,5 +1,4 @@
 import '../lib/packageName.dart';
-import 'package:flutter_test/flutter_test.dart';
 
 void main() async {
     Client client = Client();
@@ -11,6 +10,7 @@ void main() async {
     client.setSelfSigned();
 
     // Foo Tests
+    print('Test started');
 
     Response response;
     response = await foo.get(x: 'string', y: 123, z: ['string in array']);
