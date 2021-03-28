@@ -34,6 +34,7 @@ class Client {
         this.config = {};
 
         assert(endPoint.startsWith(RegExp("http://|https://")), "endPoint $endPoint must start with 'http'");
+        init();
     }
     
     Future<Directory> _getCookiePath() async {
@@ -73,22 +74,21 @@ class Client {
     }
 
     Future init() async {
-        if(!initialized) {
-          // if web skip cookie implementation and origin header as those are automatically handled by browsers
-          if(!kIsWeb) {
-            final Directory cookieDir = await _getCookiePath();
-            cookieJar = new PersistCookieJar(dir:cookieDir.path);
-            this.http.interceptors.add(CookieManager(cookieJar));
-            PackageInfo packageInfo = await PackageInfo.fromPlatform();
-            addHeader('Origin', 'appwrite-$type://${packageInfo.packageName ?? packageInfo.appName}');
-          }else{
-            // if web set httpClientAdapter as BrowserHttpClientAdapter with withCredentials true to make cookies work
-            this.http.options.extra['withCredentials'] = true;
-          }
-
-          this.http.options.baseUrl = this.endPoint;
-          this.http.options.validateStatus = (status) => status < 400;
+        // if web skip cookie implementation and origin header as those are automatically handled by browsers
+        if(!kIsWeb) {
+        final Directory cookieDir = await _getCookiePath();
+        cookieJar = new PersistCookieJar(dir:cookieDir.path);
+        this.http.interceptors.add(CookieManager(cookieJar));
+        PackageInfo packageInfo = await PackageInfo.fromPlatform();
+        addHeader('Origin', 'appwrite-$type://${packageInfo.packageName ?? packageInfo.appName}');
+        }else{
+        // if web set httpClientAdapter as BrowserHttpClientAdapter with withCredentials true to make cookies work
+        this.http.options.extra['withCredentials'] = true;
         }
+
+        this.http.options.baseUrl = this.endPoint;
+        this.http.options.validateStatus = (status) => status < 400;
+        initialized = true;
     }
 
     Future<Response> call(HttpMethod method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}, ResponseType responseType}) async {
@@ -100,7 +100,9 @@ class Client {
             };
         }
 
-        await this.init();
+        if(!initialized) {
+            await this.init();
+        }
 
         // Origin is hardcoded for testing
         Options options = Options(
