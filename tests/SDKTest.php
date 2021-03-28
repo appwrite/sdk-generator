@@ -65,11 +65,10 @@ class SDKTest extends TestCase
             'build' => [
                 'mkdir -p tests/sdks/flutter/test',
                 'cp tests/languages/flutter/tests.dart tests/sdks/flutter/test/appwrite_test.dart',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:stable flutter pub get',
             ],
             'envs' => [
-                'flutter-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:stable flutter test test/appwrite_test.dart',
-                'flutter-dev' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:dev flutter test test/appwrite_test.dart',
+                'flutter-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart"',
+                'flutter-dev' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:dev sh -c "flutter pub get && flutter test test/appwrite_test.dart"',
             ],
             'supportException' => true,
         ],
