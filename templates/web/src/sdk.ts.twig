@@ -59,10 +59,10 @@ export class {{ spec.title | caseUcfirst }} {
         this.headers.set('{{header.name}}', value);
         this.config.{{ header.key | caseCamel }} = value;
         return this;
-    };
+    }
 
 {% endfor %}
-    async call(method: string, url: URL, headers: Headers = new Headers(), params:assoc = {}): Promise<any> {
+    private async call(method: string, url: URL, headers: Headers = new Headers(), params:assoc = {}): Promise<any> {
         method = method.toUpperCase();
         this.headers.forEach((value, key) => {
             headers.set(key, value);
