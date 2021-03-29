@@ -24,7 +24,8 @@ $foo = New-Object Appwrite.Foo -ArgumentList $client
 $bar = New-Object Appwrite.Bar -ArgumentList $client
 $general = New-Object Appwrite.General -ArgumentList $client
 
-Write-Host "\nTest Started"
+Write-Host
+Write-Host "Test Started"
 
 $list = $("string in array")
 $response = $foo.Get("string", 123, $list) | Await-Task
