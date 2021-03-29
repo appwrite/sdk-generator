@@ -441,6 +441,30 @@ class SDK
     }
 
     /**
+     * @param string $channel
+     * @param string $url
+     * @return $this
+     */
+    public function setDiscord(string $channel, string $url)
+    {
+        $this->setParam('discordChannel', $channel);
+        $this->setParam('discordUrl', $url);
+
+        return $this;
+    }
+
+    /**
+     * @param string $handle
+     * @return $this
+     */
+    public function setTwitter(string $handle)
+    {
+        $this->setParam('twitterHandle', $handle);
+
+        return $this;
+    }
+
+    /**
      * @param string $key
      * @param string $value
      * @return SDK
