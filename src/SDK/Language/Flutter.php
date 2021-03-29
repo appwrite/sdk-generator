@@ -39,6 +39,12 @@ class Flutter extends Dart {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/example/pubspec.yaml',
+                'template'      => '/flutter/example/pubspec.yaml.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => '/flutter/CHANGELOG.md.twig',
                 'minify'        => false,
