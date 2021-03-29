@@ -9,7 +9,7 @@ void main() async {
   client.addHeader('Origin', 'http://localhost');
   client.setSelfSigned();
 
-  print('Test Started');
+  print('\nTest Started');
   
   // Foo Tests
   Response response;

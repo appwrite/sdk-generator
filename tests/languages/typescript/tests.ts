@@ -13,7 +13,7 @@ async function start() {
 
     client.addHeader('Origin', 'http://localhost');
 
-    console.log('Test Started');
+    console.log('\nTest Started');
 
     // Foo
 

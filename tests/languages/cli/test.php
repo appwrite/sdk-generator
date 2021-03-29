@@ -8,7 +8,7 @@ $command = "${baseCommand} ${envVars} cli init --endpoint=https://appwrite.io/v1
 $output = [];
 exec($command, $output);
 
-echo "Test Started";
+echo "\nTest Started\n";
 
 // Foo Service
 $command = "${baseCommand} cli foo get  --x='string'  --y='123' --z[]='string in array'";

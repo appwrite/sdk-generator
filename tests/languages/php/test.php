@@ -20,7 +20,7 @@ $general = new General($client);
 
 $client->addHeader('Origin', 'http://localhost');
 
-echo "Test Started";
+echo "\nTest Started\n";
 
 // Foo Service
 
