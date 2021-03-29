@@ -21,7 +21,7 @@
     "build": "npm run build:esm && npm run build:cjs && npm run build:umd",
     "build:esm": "tsc --module es6 --outDir dist/esm",
     "build:cjs": "tsc --module commonjs --outDir dist/cjs",
-    "build:umd": "rollup dist/esm/sdk.js --format umd --name Appwrite -m --no-esModule -o dist/umd/sdk.js"
+    "build:umd": "rollup dist/esm/sdk.js --format umd --name Appwrite --context window -m --no-esModule -o dist/umd/sdk.js"
   },
   "devDependencies": {
     "playwright": "^1.10.0",

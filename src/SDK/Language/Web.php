@@ -68,8 +68,8 @@ class Web extends JS {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'dist/mjs/package.json',
-                'template'      => '/web/dist/mjs/package.json.twig',
+                'destination'   => 'dist/esm/package.json',
+                'template'      => '/web/dist/esm/package.json.twig',
                 'minify'        => false,
             ],
             [
