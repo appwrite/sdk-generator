@@ -7,7 +7,8 @@ foo = Appwrite::Foo.new(client)
 bar = Appwrite::Bar.new(client)  
 general = Appwrite::General.new(client)  
 
-puts '\nTest Started'
+puts ''
+puts 'Test Started'
 
 # Foo
 
