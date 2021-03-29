@@ -274,11 +274,12 @@ class SDKTest extends TestCase
                 }
 
                 $this->assertIsArray($output);
+                
                 $removed = '';
                 do {
                     $removed = array_shift($output);
-                }while($removed != 'Test Started');
-                
+                }while($removed != 'Test Started' && sizeof($output) != 0);
+
                 $this->assertGreaterThan(10, count($output));
 
                 $this->assertEquals('GET:/v1/mock/tests/foo:passed', $output[0] ?? '');

@@ -11,7 +11,7 @@ void main() async {
   await Future.delayed(Duration(seconds: 4));
   client.addHeader('Origin', 'http://localhost');
   // Foo Tests
-  print('\nTest started');
+  print('\nTest Started');
 
   Response response;
   response = await foo.get(x: 'string', y: 123, z: ['string in array']);
