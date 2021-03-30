@@ -62,6 +62,8 @@ try {
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
         ])
@@ -85,6 +87,8 @@ try {
         ->setReadme("## Getting Started")
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
         ])
@@ -107,6 +111,8 @@ try {
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
         ])
@@ -129,6 +135,8 @@ try {
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
         ])
@@ -150,6 +158,8 @@ try {
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
         ])
@@ -171,6 +181,8 @@ try {
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
         ])
@@ -192,6 +204,8 @@ try {
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
         ])
@@ -218,6 +232,8 @@ try {
         ->setVersion('0.0.1')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
         ])
@@ -243,6 +259,8 @@ try {
         ->setVersion('0.0.1')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
         ])
@@ -265,6 +283,8 @@ try {
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
         ->setChangelog('**CHANGELOG**')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
         ])
@@ -289,6 +309,8 @@ try {
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
         ->setChangelog('**CHANGELOG**')
         ->setVersion('0.0.1')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
         ])
@@ -311,6 +333,8 @@ try {
         ->setVersion('0.0.1')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
         ])
@@ -333,6 +357,8 @@ try {
         ->setVersion('0.0.1')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
         ])
@@ -364,6 +390,8 @@ try {
         ->setVersion('0.0.1')
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         // ->setDefaultHeaders([
         //     'X-Appwrite-Response-Format' => '0.7.0',
         // ])
