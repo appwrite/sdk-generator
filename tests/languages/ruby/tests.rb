@@ -50,3 +50,15 @@ puts response['result']
 file = Appwrite::File.new('./tests/resources/file.png')
 response = general.upload(x:'string',y: 123,z:['string in array'], file: file);
 puts response['result']
+
+begin
+    response = general.error400()
+rescue Appwrite::Exception => error
+    puts error.message
+end
+
+begin
+    response = general.error500()
+rescue Appwrite::Exception => error
+    puts error.message
+end
