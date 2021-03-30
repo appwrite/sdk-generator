@@ -172,14 +172,14 @@ impl Client {
                     Err(match data.json() {
                         Ok(data) => data,
                         Err(err) => {
-                            AppwriteException::new(format!("A error occoured. ERR: {}, This could either be a connection error or an internal Appwrite error. Please check your Appwrite instance logs. ", err), 0, "".to_string())
+                            {{spec.title | caseUcfirst}}Exception::new(format!("A error occoured. ERR: {}, This could either be a connection error or an internal Appwrite error. Please check your Appwrite instance logs. ", err), 0, "".to_string())
                         }
                     })
                 }
             },
             Err(err) => {
-                // Throw Appwrite Exception
-                Err(AppwriteException::new(format!("A error occoured. ERR: {}, This could either be a connection error or an internal Appwrite error. Please check your Appwrite instance logs. ", err), 0, "".to_string()))
+                // Throw {{spec.title | caseUcfirst}} Exception
+                Err({{spec.title | caseUcfirst}}Exception::new(format!("A error occoured. ERR: {}, This could either be a connection error or an internal Appwrite error. Please check your Appwrite instance logs. ", err), 0, "".to_string()))
              },
         }
     }
