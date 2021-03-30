@@ -4,23 +4,24 @@
   "description": "{{ sdk.shortDescription }}",
   "version": "{{ sdk.version }}",
   "license": "{{ sdk.license }}",
-  "main": "./dist/cjs/sdk.js",
+  "main": "./dist/umd/sdk.js",
   "exports": {
     ".": {
       "import": "./dist/esm/sdk.js",
-      "require": "./dist/cjs/sdk.js"
+      "require": "./dist/umd/sdk.js"
     },
     "./package.json": "./package.json"
   },
   "module": "./dist/esm/sdk.js",
+  "types": "./types/sdk.d.ts",
   "repository": {
     "type": "git",
     "url": "{{ sdk.gitURL }}"
   },
   "scripts": {
-    "build": "npm run build:esm && npm run build:cjs && npm run build:umd",
+    "build": "npm run build:types && npm run build:esm && npm run build:umd",
+    "build:types": "tsc --declaration --emitDeclarationOnly --outDir types",
     "build:esm": "tsc --module es6 --outDir dist/esm",
-    "build:cjs": "tsc --module commonjs --outDir dist/cjs",
     "build:umd": "rollup dist/esm/sdk.js --format umd --name Appwrite --context window -m --no-esModule -o dist/umd/sdk.js"
   },
   "devDependencies": {

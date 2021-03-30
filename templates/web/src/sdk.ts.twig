@@ -53,7 +53,7 @@ class {{ spec.title | caseUcfirst }} {
 {% endif %}
      * @param value string
      *
-     * @return this
+     * @return {this}
      */
     set{{header.key | caseUcfirst}}(value: string): this {
         this.headers.set('{{header.name}}', value);

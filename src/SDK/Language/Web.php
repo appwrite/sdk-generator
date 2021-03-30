@@ -62,8 +62,8 @@ class Web extends JS {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'dist/cjs/package.json',
-                'template'      => '/web/dist/cjs/package.json.twig',
+                'destination'   => 'dist/umd/package.json',
+                'template'      => '/web/dist/umd/package.json.twig',
                 'minify'        => false,
             ],
             [
