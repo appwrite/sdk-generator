@@ -2,7 +2,7 @@ interface assoc {
     [key: string]: any;
 }
 
-export class {{spec.title | caseUcfirst}}Exception extends Error {
+class {{spec.title | caseUcfirst}}Exception extends Error {
     code: number;
     response: string;
     constructor(message: string, code: number = 0, response: string = '') {
@@ -14,7 +14,7 @@ export class {{spec.title | caseUcfirst}}Exception extends Error {
     }
 }
 
-export class {{ spec.title | caseUcfirst }} {
+class {{ spec.title | caseUcfirst }} {
     config = {
         endpoint: '{{ spec.endpoint }}',
 {% for header in spec.global.headers %}
@@ -55,14 +55,14 @@ export class {{ spec.title | caseUcfirst }} {
      *
      * @return this
      */
-    set{{header.key | caseUcfirst}} = (value: string): this => {
+    set{{header.key | caseUcfirst}}(value: string): this {
         this.headers.set('{{header.name}}', value);
         this.config.{{ header.key | caseCamel }} = value;
         return this;
     }
 
 {% endfor %}
-    private async call(method: string, url: URL, headers: Headers = new Headers(), params:assoc = {}): Promise<any> {
+    private async call(method: string, url: URL, headers: Headers = new Headers(), params: assoc = {}): Promise<any> {
         method = method.toUpperCase();
         this.headers.forEach((value, key) => {
             headers.set(key, value);
@@ -218,3 +218,6 @@ export class {{ spec.title | caseUcfirst }} {
 
 {% endfor %}
 };
+
+export { {{spec.title | caseUcfirst}} }
+export type { {{spec.title | caseUcfirst}}Exception }
