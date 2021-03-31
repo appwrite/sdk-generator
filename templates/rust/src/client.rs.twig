@@ -179,7 +179,7 @@ impl Client {
             },
             Err(err) => {
                 // Throw {{spec.title | caseUcfirst}} Exception
-                Err({{spec.title | caseUcfirst}}Exception::new(format!("A error occoured. ERR: {}, This could either be a connection error or an internal Appwrite error. Please check your Appwrite instance logs. ", err), 0, "".to_string()))
+                Err({{spec.title | caseUcfirst}}Exception::new(format!("{}", err), 0, "".to_string()))
              },
         }
     }
