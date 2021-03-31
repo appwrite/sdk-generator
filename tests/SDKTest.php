@@ -202,6 +202,7 @@ class SDKTest extends TestCase
         }
 
         $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart', 'flutter'];
+
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
                 continue;
@@ -273,11 +274,11 @@ class SDKTest extends TestCase
                 }
 
                 $this->assertIsArray($output);
-                
+ 
                 $removed = '';
                 do {
                     $removed = array_shift($output);
-                }while($removed != 'Test Started' && sizeof($output) != 0);
+                } while ($removed != 'Test Started' && sizeof($output) != 0);
 
                 $this->assertGreaterThan(10, count($output));
 
