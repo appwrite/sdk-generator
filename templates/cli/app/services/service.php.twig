@@ -43,6 +43,10 @@ $cli
     ->param('{{ parameter.name }}', {{ parameter | paramDefault }} , new Mock(), '{{ parameter.description}}', {% if not parameter.required %} true{% else %} false{% endif %})
 {% endfor %}
     ->action(function ({% for parameter in method.parameters.all %} ${{ parameter.name}}{% if not loop.last %},{% endif %}{% endfor %} ) use ($parser) {
+        {% for parameter in method.parameters.all %}
+                {{parameter.name}}  {{ parameter.type | typeName }}
+        {% endfor %}
+        
         $client = new Client();
         $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
         $params = [];

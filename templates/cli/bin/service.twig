@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [[ -z "$@" ]]; then
+if [[ $# -eq 0 ]]; then
    php /usr/local/code/app/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseDash}}.php help
 else
    php /usr/local/code/app/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseDash}}.php $@
