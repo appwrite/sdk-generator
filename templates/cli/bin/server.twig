@@ -1,7 +1,0 @@
-#!/bin/sh
-
-if [[ $# -eq 0 ]]; then
-   php /usr/local/code/app/{{ spec.title | caseUcfirst}}/services/server.php help
-else
-   php /usr/local/code/app/{{ spec.title | caseUcfirst}}/services/server.php $@
-fi
