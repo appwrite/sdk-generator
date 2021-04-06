@@ -82,13 +82,12 @@ class Client {
             PackageInfo packageInfo = await PackageInfo.fromPlatform();
             addHeader('Origin', 'appwrite-$type://${packageInfo.packageName}');
         } else {
-            // if web set httpClientAdapter as BrowserHttpClientAdapter with withCredentials true to make cookies work
+            // if web set withCredentials true to make cookies work
             this.http.options.extra['withCredentials'] = true;
         }
 
         this.http.options.baseUrl = this.endPoint;
         this.http.options.validateStatus = (status) => status! < 400;
-        initialized = true;
     }
 
     Future<Response> call(HttpMethod method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}, ResponseType? responseType}) async {
