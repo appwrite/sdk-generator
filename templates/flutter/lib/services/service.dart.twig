@@ -68,15 +68,15 @@ class {{ service.name | caseUcfirst }} extends Service {
 
         if(kIsWeb) {
           html.window.location.href = url.toString();
-          return null;
+          return Future.value();
         }else{
 
           return FlutterWebAuth.authenticate(
             url: url.toString(),
-            callbackUrlScheme: "appwrite-callback-" + client.config['project']
+            callbackUrlScheme: "appwrite-callback-" + client.config['project']!
             ).then((value) async {
                 Uri url = Uri.parse(value);
-                Cookie cookie = new Cookie(url.queryParameters['key'], url.queryParameters['secret']);
+                Cookie cookie = new Cookie(url.queryParameters['key']!, url.queryParameters['secret']!);
                 cookie.domain = Uri.parse(client.endPoint).host;
                 cookie.httpOnly = true;
                 cookie.path = '/';
