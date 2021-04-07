@@ -154,7 +154,7 @@ class {{ spec.title | caseUcfirst }} {
          * @return {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
 
          */
-        {{ method.name | caseCamel }}: {% if method.type != "location" and method.type != 'webAuth'%}async{% endif %} ({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void{% elseif method.type == 'location' %}URL{% else %}Promise<any>{% endif %} => {
+        {{ method.name | caseCamel }}: {% if method.type != "location" and method.type != 'webAuth'%}async <T extends unknown>{% endif %} ({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void{% elseif method.type == 'location' %}URL{% else %}Promise<T>{% endif %} => {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
             if ({{ parameter.name | caseCamel }} === undefined) {
