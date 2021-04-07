@@ -24,7 +24,7 @@ class {{ spec.title | caseUcfirst }} {
     headers: Headers = new Headers({
         'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
 {% for key,header in spec.global.defaultHeaders %}
-        '{{key}}' : '{{header}}',
+        '{{key}}': '{{header}}',
 {% endfor %}
     });
 
@@ -83,7 +83,7 @@ class {{ spec.title | caseUcfirst }} {
             switch (headers.get('content-type')) {
                 case 'application/json':
                     options.body = JSON.stringify(params);
-                break;
+                    break;
 
                 case 'multipart/form-data':
                     let formData = new FormData();
@@ -94,7 +94,7 @@ class {{ spec.title | caseUcfirst }} {
 
                     options.body = formData;
                     headers.delete('content-type');
-                break;
+                    break;
             }
         }
 
@@ -106,7 +106,7 @@ class {{ spec.title | caseUcfirst }} {
             }
 
             const cookieFallback = response.headers.get('X-Fallback-Cookies');
-        
+
             if (window.localStorage && cookieFallback) {
                 window.console.warn('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
                 window.localStorage.setItem('cookieFallback', cookieFallback);
@@ -123,7 +123,7 @@ class {{ spec.title | caseUcfirst }} {
 
         for (const key in data) {
             let value = data[key];
-            let finalKey = prefix ? prefix + '[' + key +']' : key;
+            let finalKey = prefix ? `${prefix}[${key}]` : key;
 
             if (Array.isArray(value)) {
                 output = Object.assign(output, this.flatten(value, finalKey)); // @todo: handle name collision here if needed
@@ -154,20 +154,18 @@ class {{ spec.title | caseUcfirst }} {
          * @return {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
 
          */
-        {{ method.name | caseCamel }}: {% if method.type != "location" and method.type != 'webAuth'%}async <T extends unknown>{% endif %} ({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void{% elseif method.type == 'location' %}URL{% else %}Promise<T>{% endif %} => {
+        {{ method.name | caseCamel }}: {% if method.type != "location" and method.type != 'webAuth'%}async <T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void{% elseif method.type == 'location' %}URL{% else %}Promise<T>{% endif %} => {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
             if ({{ parameter.name | caseCamel }} === undefined) {
                 throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel }}"');
             }
-            
+
 {% endif %}
 {% endfor %}
             let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace(new RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', 'g'), {{ parameter.name | caseCamel }}){% endfor %};
-
-{% if method.parameters.query|length > 0 or method.parameters.body|length > 0 or method.security|keys|length > 0 %}
             let payload: assoc = {};
-{% endif %}
+
 {% for parameter in method.parameters.query %}
             if ({{ parameter.name | caseCamel }}) {
                 payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
@@ -200,15 +198,15 @@ class {{ spec.title | caseUcfirst }} {
             return uri;
 {% else %}
             return await this.call('{{ method.method | caseLower }}', uri, new Headers(
-                    {
+                {
 {% for parameter in method.parameters.header %}
                     '{{ parameter.name }}': this.${{ parameter.name | caseCamel }},
 {% endfor %}
 {% for key, header in method.headers %}
                     '{{ key }}': '{{ header }}',
 {% endfor %}
-                    }
-                ), payload);
+                }
+            ), payload);
 {% endif %}
         }{% if not loop.last %},
 {% endif %}
