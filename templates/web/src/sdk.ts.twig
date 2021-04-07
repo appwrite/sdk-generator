@@ -163,7 +163,7 @@ class {{ spec.title | caseUcfirst }} {
 
 {% endif %}
 {% endfor %}
-            let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace(new RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', 'g'), {{ parameter.name | caseCamel }}){% endfor %};
+            let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel }}){% endfor %};
             let payload: assoc = {};
 
 {% for parameter in method.parameters.query %}
