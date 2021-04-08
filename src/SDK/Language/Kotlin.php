@@ -110,9 +110,9 @@ class Kotlin extends Language {
                 return 'Boolean';
             break;
             case self::TYPE_ARRAY:
-            	return 'List<Any>';
+            	return 'List<Any>?';
 			case self::TYPE_OBJECT:
-				return 'Any';
+				return 'Any?';
             break;
         }
 
@@ -125,7 +125,52 @@ class Kotlin extends Language {
      */
     public function getParamDefault(array $param)
     {
-        return '';
+        $type       = $param['type'] ?? '';
+        $default    = $param['default'] ?? '';
+        $required   = $param['required'] ?? '';
+
+        if($required) {
+            return '';
+        }
+
+        $output = ' = ';
+
+        if(empty($default) && $default !== 0 && $default !== false) {
+            switch ($type) {
+                case self::TYPE_INTEGER:
+                    $output .= '-1';
+                    break;
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
+                    $output .= 'null';
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= '""';
+                    break;
+            }
+        }
+        else {
+            switch ($type) {
+                case self::TYPE_INTEGER:
+                    $output .= $default;
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= ($default) ? 'true' : 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "\"{$default}\"";
+                    break;
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
+                    $output .= 'null';
+                    break;
+            }
+        }
+
+        return $output;
     }
 
     /**
@@ -235,6 +280,12 @@ class Kotlin extends Language {
                 'scope'         => 'default',
                 'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/JsonExtensions.kt',
                 'template'      => '/kotlin/src/main/java/io/appwrite/extensions/JsonExtensions.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/models/Error.kt',
+                'template'      => '/kotlin/src/main/java/io/appwrite/models/Error.kt.twig',
                 'minify'        => false,
             ],
             [
