@@ -273,4 +273,28 @@ class Swagger2 extends Spec {
 
         return $list;
     }
+
+    public function getDefinitions() {
+        $list = [];
+        $definition = $this->getAttribute('definitions',[]);
+        foreach ($definition as $key => $schema) {
+            $sch = [
+                "name" => $key,
+                "properties"=> $schema['properties'],
+                "required" => $schema['required'],
+            ];
+            if(isset($sch['properties'])) {
+                foreach($sch['properties'] as $name => $def) {
+                    $sch['properties'][$name]['name'] = $name;
+                    $sch['properties'][$name]['required'] =  in_array($name,$sch['required']);
+                    if(isset($def['items']['$ref'])) {
+                        //nested model
+                        $sch['properties'][$name]['sub_schema'] = substr($def['items']['$ref'],13);
+                    }
+                }
+            }
+            $list[$key] = $sch;
+        }
+        return $list;
+    }
 }
