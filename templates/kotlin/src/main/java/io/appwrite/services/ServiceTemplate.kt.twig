@@ -1,0 +1,76 @@
+package {{ sdk.namespace | caseDot }}.services
+
+{% macro parameter(parameter) %}
+{% if parameter.name == 'orderType' %}{{ 'orderType: OrderType = OrderType.ASC' }}{% else %}
+{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% endif %}
+{% endmacro %}
+{% macro method_parameters(parameters) %}
+{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% endif %}
+{% endmacro %}
+{% macro map_parameter(parameter) %}
+{% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.name'}}{% else %}
+{{ parameter.name | caseCamel }}{% endif %}
+{% endmacro %}
+{% macro methodNeedsSecurityParameters(method) %}
+{% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
+{% endmacro %}
+import {{ sdk.namespace | caseDot }}.{{ spec.title | caseUcfirst }}Client
+import {{ sdk.namespace | caseDot }}.enums.OrderType
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception;
+import okhttp3.Response
+{% if (service.features.webAuth or service.features.location) %}
+import okhttp3.HttpUrl
+{% endif %}
+import java.io.File
+
+class {{ service.name | caseUcfirst }}Service(private val client: {{ spec.title | caseUcfirst }}Client) : BaseService(client) {
+
+{% for method in service.methods %}
+    /**
+     * {{ method.title }}
+     *
+{% if method.description %}
+{{ method.description|comment1 }}
+     *
+{% endif %}
+{% for parameter in method.parameters.all %}
+     * @param {{ parameter.name | caseCamel }}
+{% endfor %}
+     * @return The request response with a JSON body 
+     */
+    @Throws({{ spec.title | caseUcfirst }}Exception::class)
+    suspend fun {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}): {% if method.type == "location" %}String{% else %}Response{% endif %} {
+        val path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %}
+
+        val params = mapOf<String, Any?>(
+{% for parameter in method.parameters.query | merge(method.parameters.body) %}
+            "{{ parameter.name }}" to {{ _self.map_parameter(parameter) }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
+
+{% endfor %}
+{% if _self.methodNeedsSecurityParameters(method) %}
+{% for node in method.security %}
+{% for key,header in node|keys %}
+            "{{header|caseLower}}" to client.config["{{header|caseLower}}"]{% if not loop.last %},{% endif %}
+
+{% endfor %}{% endfor %}{% endif %}
+        )
+{% if method.type == 'location' %}
+
+        val httpBuilder = HttpUrl.Builder().build().newBuilder(client.endPoint + path)
+            ?: throw {{ spec.title | caseUcfirst }}Exception("Badly formed url!")
+
+        params.forEach {
+            httpBuilder.addQueryParameter(it.key, it.value.toString())
+        }
+
+        return httpBuilder.build().toString()
+{% else %}
+        val headers = mapOf(
+{{ method.headers|map((header, key) => "\t\t\t\"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
+        )
+        return client.call("{{ method.method | caseUpper }}", path, headers, params)
+{% endif %}
+    }
+    
+{% endfor %}
+}
