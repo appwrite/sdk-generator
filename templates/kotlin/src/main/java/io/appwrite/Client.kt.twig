@@ -1,0 +1,220 @@
+package {{ sdk.namespace | caseDot }}
+
+import android.annotation.SuppressLint
+import com.google.gson.Gson
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
+import {{ sdk.namespace | caseDot }}.extensions.JsonExtensions.fromJson
+import {{ sdk.namespace | caseDot }}.models.Error
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.suspendCancellableCoroutine
+import okhttp3.*
+import okhttp3.Headers.Companion.toHeaders
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.logging.HttpLoggingInterceptor
+import java.io.File
+import java.io.IOException
+import java.net.CookieManager
+import java.net.CookiePolicy
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+
+class {{ spec.title | caseUcfirst }}Client(
+    var endPoint: String = "https://appwrite.io/v1",
+    private var selfSigned: Boolean = false
+) : CoroutineScope {
+
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Main + job
+
+    private val job = Job()
+
+    private lateinit var http: OkHttpClient
+
+    private val headers: MutableMap<String, String>
+    
+    val config: MutableMap<String, String>
+
+    init {
+        headers = mutableMapOf(
+            "content-type" to "application/json",
+            "x-sdk-version" to "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+            
+{% for key,header in spec.global.defaultHeaders %}
+            "{{key}}" to "{{header}}"{% if not loop.last %},{% endif %}
+{% endfor %}
+
+        )
+        config = mutableMapOf()
+        
+        setSelfSigned(selfSigned)
+    }
+
+{% for header in spec.global.headers %}
+{% if header.description %}
+    /// {{header.description}}
+{% endif %}
+    fun set{{header.key | caseUcfirst}}(value: String): {{ spec.title | caseUcfirst }}Client {
+        config["{{ header.key | caseCamel }}"] = value
+        addHeader("{{header.name}}", value)
+        return this
+    }
+
+{% endfor %}
+    fun setSelfSigned(status: Boolean): {{ spec.title | caseUcfirst }}Client {
+        selfSigned = status
+
+        val cookieManager = CookieManager().apply {
+            setCookiePolicy(CookiePolicy.ACCEPT_ALL)
+        }
+        
+        val builder = OkHttpClient()
+            .newBuilder()
+            .cookieJar(JavaNetCookieJar(cookieManager))
+            .addInterceptor(HttpLoggingInterceptor().apply { setLevel(HttpLoggingInterceptor.Level.BODY) })
+
+        if (!selfSigned) {
+            http = builder.build()
+            return this
+        }
+
+        try {
+            // Create a trust manager that does not validate certificate chains
+            val trustAllCerts = arrayOf<TrustManager>(
+                object : X509TrustManager {
+                    @SuppressLint("TrustAllX509TrustManager")
+                    override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {
+                    }
+                    @SuppressLint("TrustAllX509TrustManager")
+                    override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {
+                    }
+                    override fun getAcceptedIssuers(): Array<X509Certificate> {
+                        return arrayOf()
+                    }
+                }
+            )
+            // Install the all-trusting trust manager
+            val sslContext = SSLContext.getInstance("SSL")
+            sslContext.init(null, trustAllCerts, SecureRandom())
+
+            // Create an ssl socket factory with our all-trusting manager
+            val sslSocketFactory: SSLSocketFactory = sslContext.socketFactory
+            builder.sslSocketFactory(sslSocketFactory, trustAllCerts[0] as X509TrustManager)
+            builder.hostnameVerifier { _, _ -> true }
+
+            http = builder.build()
+        } catch (e: Exception) {
+            throw RuntimeException(e)
+        }
+
+        return this
+    }
+
+    fun setEndpoint(endPoint: String): {{ spec.title | caseUcfirst }}Client {
+        this.endPoint = endPoint
+        return this
+    }
+
+    fun addHeader(key: String, value: String): {{ spec.title | caseUcfirst }}Client {
+        headers[key] = value
+        return this
+    }
+
+    @Throws({{ spec.title | caseUcfirst }}Exception::class)
+    suspend fun call(
+        method: String, 
+        path: String, 
+        headers:  Map<String, String>, 
+        params: Map<String, Any?>
+    ): Response {
+        val requestHeaders = this.headers.toHeaders().newBuilder()
+            .addAll(headers.toHeaders())
+            .build()
+
+        val httpBuilder = (endPoint + path).toHttpUrl().newBuilder()
+
+        if ("GET" == method) {
+            params.forEach {
+                if (it.value is List<*>) {
+                    httpBuilder.addQueryParameter(it.key + "[]", it.value.toString())
+                } else {
+                    httpBuilder.addQueryParameter(it.key, it.value.toString())
+                }
+            }
+            val request = Request.Builder()
+                .url(httpBuilder.build())
+                .headers(requestHeaders)
+                .get()
+                .build()
+
+            return awaitResponse(request)
+        }
+
+        val body = if (MultipartBody.FORM.toString() == headers["content-type"]) {
+            val builder = MultipartBody.Builder()
+            params.forEach {
+                when {
+                    it.key == "file" -> {
+                        val file = it.value as File
+                        builder.addFormDataPart(it.key, file.name, file.asRequestBody())
+                    }
+                    it.value is List<*> -> {
+                        val list = it.value as List<*>
+                        for (index in list.indices) {
+                            builder.addFormDataPart(
+                                list[index].toString(),
+                                "${it.key}[${index}]"
+                            )
+                        }
+                    }
+                    else -> {
+                        builder.addFormDataPart(it.key, it.value.toString())
+                    }
+                }
+            }
+            builder.build()
+        } else {
+            Gson().toJson(params)
+                .toRequestBody("application/json".toMediaType())
+        }
+
+        val request = Request.Builder()
+            .url(httpBuilder.build())
+            .headers(requestHeaders)
+            .method(method, body)
+            .build()
+
+        return awaitResponse(request)
+    }
+
+    @Throws({{ spec.title | caseUcfirst }}Exception::class)
+    private suspend fun awaitResponse(request: Request) = suspendCancellableCoroutine<Response> {
+        http.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                if (it.isCancelled) {
+                    return
+                }
+                it.resumeWithException(e)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (response.code >= 400) {
+                    val err = response.body?.string()?.fromJson(Error::class.java)
+                    throw {{ spec.title | caseUcfirst }}Exception("${err?.code}: ${err?.message}")
+                }
+                it.resume(response)
+            }
+        })
+    }
+}
