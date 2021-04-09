@@ -252,7 +252,7 @@ class Kotlin extends Language {
                 'template'      => '/kotlin/LICENSE.twig',
                 'minify'        => false,
             ],
-	    [
+	        [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => '/kotlin/docs/example.md.twig',
@@ -260,7 +260,7 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/Client.kt',
+                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/{{ spec.title | caseUcfirst }}Client.kt',
                 'template'      => '/kotlin/src/main/java/io/appwrite/Client.kt.twig',
                 'minify'        => false,
             ],
@@ -292,6 +292,12 @@ class Kotlin extends Language {
                 'scope'         => 'default',
                 'destination'   => '/build.gradle',
                 'template'      => '/kotlin/build.gradle.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/deploy.gradle',
+                'template'      => '/kotlin/deploy.gradle.twig',
                 'minify'        => false,
             ],
             [
