@@ -1,0 +1,9 @@
+package {{ sdk.namespace | caseDot }}.exceptions
+
+import java.lang.Exception
+
+class {{spec.title | caseUcfirst}}Exception(
+    message: String? = null,
+    val code: Int? = null,
+    val response: String? = null
+) : Exception(message)
