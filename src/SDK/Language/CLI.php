@@ -174,18 +174,6 @@ class CLI extends PHP {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/install.sh',
-                'template'      => '/cli/install.sh.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/install.ps1',
-                'template'      => '/cli/install.ps1.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/bin/help',
                 'template'      => '/cli/bin/help.twig',
                 'minify'        => false,
@@ -204,25 +192,25 @@ class CLI extends PHP {
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/app/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseDash}}.php',
+                'destination'   => '/app/{{ spec.title | caseUcfirst}}/services/{{service.name | caseDash}}.php',
                 'template'      => '/cli/app/services/service.php.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'app/{{ spec.title | caseUcfirst}}/Services/client.php',
+                'destination'   => 'app/{{ spec.title | caseUcfirst}}/services/client.php',
                 'template'      => '/cli/app/services/client.php.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'app/{{ spec.title | caseUcfirst}}/Services/help.php',
+                'destination'   => 'app/{{ spec.title | caseUcfirst}}/services/help.php',
                 'template'      => '/cli/app/services/help.php.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'app/{{ spec.title | caseUcfirst}}/Services/init.php',
+                'destination'   => 'app/{{ spec.title | caseUcfirst}}/services/init.php',
                 'template'      => '/cli/app/services/init.php.twig',
                 'minify'        => false,
             ],
@@ -230,6 +218,18 @@ class CLI extends PHP {
                 'scope'         => 'default',
                 'destination'   => '.travis.yml',
                 'template'      => '/cli/.travis.yml.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/install.sh',
+                'template'      => '/cli/install.sh.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/install.ps1',
+                'template'      => '/cli/install.ps1.twig',
                 'minify'        => false,
             ],
         ];
