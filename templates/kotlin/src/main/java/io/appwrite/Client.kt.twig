@@ -147,10 +147,16 @@ class {{ spec.title | caseUcfirst }}Client(
 
         if ("GET" == method) {
             params.forEach {
-                if (it.value is List<*>) {
-                    httpBuilder.addQueryParameter(it.key + "[]", it.value.toString())
-                } else {
-                    httpBuilder.addQueryParameter(it.key, it.value.toString())
+                when (it.value) {
+                    null -> {
+                        return@forEach
+                    }
+                    is List<*> -> {
+                        httpBuilder.addQueryParameter(it.key + "[]", it.value.toString())
+                    }
+                    else -> {
+                        httpBuilder.addQueryParameter(it.key, it.value.toString())
+                    }
                 }
             }
             val request = Request.Builder()
