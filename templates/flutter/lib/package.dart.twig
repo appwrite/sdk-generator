@@ -1,7 +1,8 @@
 library {{ language.params.packageName }};
 
-import 'dart:io';
+import 'dart:io' as io;
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:universal_html/html.dart' as html;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -22,6 +23,7 @@ part 'exception.dart';
 {% for service in spec.services %}
 part 'services/{{service.name | caseSnake}}.dart';
 {% endfor %}
+
 {% for definition in spec.definitions %}
 part 'models/{{definition.name | caseSnake}}.dart';
 {% endfor %}

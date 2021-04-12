@@ -147,6 +147,15 @@ class Swagger2 extends Spec {
                         }
                     }
 
+                    $responses = $method['responses'];
+                    $responseModel = '';
+                    foreach($responses as $code => $desc) {
+                        $responseModel = $desc['schema']['$ref'];
+                        if(!empty($responseModel)) {
+                            $responseModel = substr($responseModel,14);
+                        }
+                    }
+
                     $output = [
                         'method' => $methodName,
                         'path' => $pathName,
@@ -166,7 +175,8 @@ class Swagger2 extends Spec {
                             'path' => [],
                             'query' => [],
                             'body' => [],
-                        ]
+                        ],
+                        'responseModel' => $responseModel
                     ];
 
                     if(isset($method['consumes']) && is_array($method['consumes'])) {
@@ -289,7 +299,7 @@ class Swagger2 extends Spec {
                     $sch['properties'][$name]['required'] =  in_array($name,$sch['required']);
                     if(isset($def['items']['$ref'])) {
                         //nested model
-                        $sch['properties'][$name]['sub_schema'] = substr($def['items']['$ref'],13);
+                        $sch['properties'][$name]['sub_schema'] = substr($def['items']['$ref'],14);
                     }
                 }
             }

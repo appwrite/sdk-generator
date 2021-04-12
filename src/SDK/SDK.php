@@ -519,6 +519,7 @@ class SDK
                 'contactURL' => $this->spec->getContactURL(),
                 'contactEmail' => $this->spec->getContactEmail(),
                 'services' => $this->spec->getServices(),
+                'definitions' => $this->spec->getDefinitions(),
                 'global' => [
                     'headers' => $this->spec->getGlobalHeaders(),
                     'defaultHeaders' => $this->defaultHeaders,

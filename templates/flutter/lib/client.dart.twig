@@ -15,12 +15,12 @@ class Client {
         if(kIsWeb) {
             type = 'web';
         }else{
-            type = (Platform.isIOS) ? 'ios' : type;
-            type = (Platform.isMacOS) ? 'macos' : type;
-            type = (Platform.isAndroid) ? 'android' : type;
-            type = (Platform.isLinux) ? 'linux' : type;
-            type = (Platform.isWindows) ? 'windows' : type;
-            type = (Platform.isFuchsia) ? 'fuchsia' : type;
+            type = (io.Platform.isIOS) ? 'ios' : type;
+            type = (io.Platform.isMacOS) ? 'macos' : type;
+            type = (io.Platform.isAndroid) ? 'android' : type;
+            type = (io.Platform.isLinux) ? 'linux' : type;
+            type = (io.Platform.isWindows) ? 'windows' : type;
+            type = (io.Platform.isFuchsia) ? 'fuchsia' : type;
         }
         
         this.headers = {
@@ -37,10 +37,10 @@ class Client {
         init();
     }
     
-    Future<Directory> _getCookiePath() async {
+    Future<io.Directory> _getCookiePath() async {
         final directory = await getApplicationDocumentsDirectory();
         final path = directory.path;
-        final Directory dir = new Directory('$path/cookies');
+        final io.Directory dir = new io.Directory('$path/cookies');
         await dir.create();
         return dir;
     }
@@ -76,7 +76,7 @@ class Client {
     Future init() async {
         // if web skip cookie implementation and origin header as those are automatically handled by browsers
         if(!kIsWeb) {
-            final Directory cookieDir = await _getCookiePath();
+            final io.Directory cookieDir = await _getCookiePath();
             cookieJar = new PersistCookieJar(storage: FileStorage(cookieDir.path));
             this.http.interceptors.add(CookieManager(cookieJar));
             PackageInfo packageInfo = await PackageInfo.fromPlatform();
@@ -93,8 +93,8 @@ class Client {
     Future<Response> call(HttpMethod method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}, ResponseType? responseType}) async {
         if(selfSigned && !kIsWeb) {
             // Allow self signed requests
-            (http.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate = (HttpClient client) {
-                client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+            (http.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate = (io.HttpClient client) {
+                client.badCertificateCallback = (io.X509Certificate cert, String host, int port) => true;
                 return client;
             };
         }
