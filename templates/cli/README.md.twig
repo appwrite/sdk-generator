@@ -43,21 +43,23 @@ $ {{ language.params.executableName }} init
 
 The CLI requires an endpoint, project ID, API key and a locale to be able to communicate with the {{ spec.title | caseUcfirst }} backend server. There are two ways to achieve this 
 
-### 1. Environment file 
+### 1. Pass in the project settings along with `appwrite init`
+
 ```sh
-$ {{ language.params.executableName }} --env-file path/to/your/environment/file init     
+$ {{ language.params.executableName }} init --endpoint="YOUR ENDPOINT" --project="YOUR PROJECT ID" --key="YOUR API KEY" --locale="YOUR LOCALE"
 ```
-The .env file must have the following keys 
-```sh
-endpoint=http://192.168.1.6/v1
-X-{{ spec.title | caseUcfirst }}-Project=5ff450422d42f
-X-{{ spec.title | caseUcfirst }}-Key=0773c7...a2672a
-X-{{ spec.title | caseUcfirst }}-Locale=en-US
-```
+
+If any of the required values are missing, a prompt will show up, asking for those missing values.
 
 ### 2. Using the prompt
 
-Invoking `{{ language.params.executableName }} init` without an env file triggers an interactive prompt where you can manually enter the details. These values are saved locally so that you dont have to re-enter them everytime. 
+Invoking `{{ language.params.executableName }} init` without any params triggers an interactive prompt where you can manually enter the details. These values are saved locally so that you dont have to re-enter them everytime. 
+
+### Note
+By default, requests to domains with self signed SSL certificates (or no certificates) are disabled. If you trust the domain, you can bypass the certificate validation by using
+```sh
+$ appwrite client setSelfSigned --value=true 
+```
 
 ## Usage 
 

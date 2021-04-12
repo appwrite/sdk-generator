@@ -13,6 +13,8 @@ async function start() {
 
     client.addHeader('Origin', 'http://localhost');
 
+    console.log('\nTest Started');
+
     // Foo
 
     response = await foo.get('string', 123, ['string in array']);

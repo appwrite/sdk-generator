@@ -60,6 +60,18 @@ class SDKTest extends TestCase
             'supportException' => true,
         ],
 
+        'flutter' => [
+            'class' => 'Appwrite\SDK\Language\Flutter',
+            'build' => [
+                'mkdir -p tests/sdks/flutter/test',
+                'cp tests/languages/flutter/tests.dart tests/sdks/flutter/test/appwrite_test.dart',
+            ],
+            'envs' => [
+                'flutter-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart"',
+            ],
+            'supportException' => true,
+        ],
+
         //Skipping for now, enable it once Java SDK is in Good enough shape
         /* 'java' => [
             'class' => 'Appwrite\SDK\Language\Java',
@@ -188,7 +200,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart'];
+        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart', 'flutter'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
@@ -261,6 +273,12 @@ class SDKTest extends TestCase
                 }
 
                 $this->assertIsArray($output);
+ 
+                $removed = '';
+                do {
+                    $removed = array_shift($output);
+                } while ($removed != 'Test Started' && sizeof($output) != 0);
+
                 $this->assertGreaterThan(10, count($output));
 
                 $this->assertEquals('GET:/v1/mock/tests/foo:passed', $output[0] ?? '');
