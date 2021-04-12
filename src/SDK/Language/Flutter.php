@@ -98,6 +98,12 @@ class Flutter extends Dart {
                 'minify'        => false,
             ],
             [
+                'scope'         => 'definition',
+                'destination'   => '/lib/models/{{definition.name | caseSnake }}.dart',
+                'template'      => '/flutter/lib/models/model.dart.twig',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'flutter/docs/example.md.twig',

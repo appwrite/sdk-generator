@@ -20,5 +20,8 @@ part 'enums.dart';
 part 'service.dart';
 part 'exception.dart';
 {% for service in spec.services %}
-part 'services/{{service.name | caseDash}}.dart';
+part 'services/{{service.name | caseSnake}}.dart';
+{% endfor %}
+{% for definition in spec.definitions %}
+part 'models/{{definition.name | caseSnake}}.dart';
 {% endfor %}

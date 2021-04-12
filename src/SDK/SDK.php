@@ -186,6 +186,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseHTML', function ($value) {
             return $value;
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('removeDollarSign', function ($value) {
+            return str_replace('$','',$value);
+        }));
     }
 
     /**
@@ -553,6 +556,14 @@ class SDK
                             ],
                             'methods' => $methods,
                         ];
+
+                        $this->render($template, $destination, $block, $params, $minify);
+                    }
+                    break;
+                case 'definition':
+                    foreach ($this->spec->getDefinitions() as $key => $definition) {
+                        
+                        $params['definition'] = $definition;
 
                         $this->render($template, $destination, $block, $params, $minify);
                     }
