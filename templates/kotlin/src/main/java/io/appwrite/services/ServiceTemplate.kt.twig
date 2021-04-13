@@ -116,7 +116,7 @@ class {{ service.name | caseUcfirst }}Service(private val client: {{ spec.title 
             httpBuilder.addQueryParameter(it.key, it.value.toString())
         }
 
-        return httpBuilder.build().toString()
+        return client.call("{{ method.method | caseUpper }}", path, params = params)
 {% else %}
         val headers = mapOf(
 {{ method.headers|map((header, key) => "\t\t\t\"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
