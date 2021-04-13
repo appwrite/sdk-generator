@@ -1,0 +1,18 @@
+package {{ sdk.namespace | caseDot }}.views
+
+import android.app.Activity
+import android.os.Bundle
+import {{ sdk.namespace | caseDot }}.WebAuthComponent
+
+class CallbackActivity: Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        val url = intent?.data
+        val scheme = url?.scheme
+        if (scheme != null) {
+            WebAuthComponent.onCallback(scheme, url)
+        }
+        finish()
+    }
+}
