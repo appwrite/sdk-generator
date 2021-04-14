@@ -308,6 +308,24 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/WebAuthComponent.kt',
+                'template'      => '/kotlin/src/main/java/io/appwrite/WebAuthComponent.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/views/CallbackActivity.kt',
+                'template'      => '/kotlin/src/main/java/io/appwrite/views/CallbackActivity.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/services/KeepAliveService.kt',
+                'template'      => '/kotlin/src/main/java/io/appwrite/services/KeepAliveService.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/services/BaseService.kt',
                 'template'      => '/kotlin/src/main/java/io/appwrite/services/Service.kt.twig',
                 'minify'        => false,
