@@ -183,7 +183,7 @@ class {{ spec.title | caseUcfirst }}Client(
                         val list = it.value as List<*>
                         for (index in list.indices) {
                             builder.addFormDataPart(
-                                "${it.key}[${index}]",
+                                "${it.key}[]",
                                 list[index].toString()
                             )
                         }
