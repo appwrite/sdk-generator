@@ -27,31 +27,31 @@ class Web extends JS {
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
-                'template'      => '/web/README.md.twig',
+                'template'      => 'web/README.md.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
-                'template'      => '/web/CHANGELOG.md.twig',
+                'template'      => 'web/CHANGELOG.md.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
-                'template'      => '/web/LICENSE.twig',
+                'template'      => 'web/LICENSE.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'package.json',
-                'template'      => '/web/package.json.twig',
+                'template'      => 'web/package.json.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => '/web/docs/example.md.twig',
+                'template'      => 'web/docs/example.md.twig',
                 'minify'        => false,
             ],
             [
@@ -75,7 +75,7 @@ class Web extends JS {
             [
                 'scope'         => 'default',
                 'destination'   => '.travis.yml',
-                'template'      => '/web/.travis.yml.twig',
+                'template'      => 'web/.travis.yml.twig',
                 'minify'        => false,
             ],
         ];

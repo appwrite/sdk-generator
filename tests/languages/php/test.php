@@ -7,18 +7,20 @@ include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Foo.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Bar.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Services/General.php';
 
-use Appwrite\Client;
-use Appwrite\Services\Foo;
-use Appwrite\Services\Bar;
-use Appwrite\Services\General;
 use Appwrite\AppwriteException;
+use Appwrite\Client;
+use Appwrite\Services\Bar;
+use Appwrite\Services\Foo;
+use Appwrite\Services\General;
 
-$client     = new Client();
-$foo        = new Foo($client);
-$bar        = new Bar($client);
-$general    = new General($client);
+$client = new Client();
+$foo = new Foo($client);
+$bar = new Bar($client);
+$general = new General($client);
 
 $client->addHeader('Origin', 'http://localhost');
+
+echo "\nTest Started\n";
 
 // Foo Service
 
@@ -57,17 +59,17 @@ echo "{$response['result']}\n";
 $response = $general->redirect();
 echo "{$response['result']}\n";
 
-$response = $general->upload('string', 123, ['string in array'], new \CURLFile(__DIR__.'/../../resources/file.png', 'image/png', 'file.png'));
+$response = $general->upload('string', 123, ['string in array'], new \CURLFile(__DIR__ . '/../../resources/file.png', 'image/png', 'file.png'));
 echo "{$response['result']}\n";
 
 try {
     $response = $general->error400();
-} catch(AppwriteException $e) {
+} catch (AppwriteException $e) {
     echo "{$e->getMessage()}\n";
 }
 
 try {
     $response = $general->error500();
-} catch(AppwriteException $e) {
+} catch (AppwriteException $e) {
     echo "{$e->getMessage()}\n";
 }
