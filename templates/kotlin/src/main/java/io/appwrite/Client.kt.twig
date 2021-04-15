@@ -220,23 +220,21 @@ class {{ spec.title | caseUcfirst }}Client(
             }
 
             override fun onResponse(call: Call, response: Response) {
-                response.use { res ->
-                    if (res.code >= 400) {
-                        val bodyString = res.body
-                            ?.charStream()
-                            ?.buffered()
-                            ?.use(BufferedReader::readText)
+                if (response.code >= 400) {
+                    val bodyString = response.body
+                        ?.charStream()
+                        ?.buffered()
+                        ?.use(BufferedReader::readText)
 
-                        val error = bodyString?.fromJson(Error::class.java)
+                    val error = bodyString?.fromJson(Error::class.java)
 
-                        it.cancel({{ spec.title | caseUcfirst }}Exception(
-                            error?.message,
-                            error?.code,
-                            bodyString
-                        ))
-                    }
-                    it.resume(res)
+                    it.cancel({{ spec.title | caseUcfirst }}Exception(
+                        error?.message,
+                        error?.code,
+                        bodyString
+                    ))
                 }
+                it.resume(response)
             }
         })
     }
