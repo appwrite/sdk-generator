@@ -6,7 +6,7 @@ require_once './vendor/autoload.php';
 
 use {{ spec.title | caseUcfirst }}\Client;
 use Utopia\CLI\CLI;
-use Utopia\Validator\Mock;
+use Utopia\Validator\Wildcard;
 use Utopia\CLI\Console;
 use {{ spec.title | caseUcfirst }}\Parser;
 
@@ -37,7 +37,7 @@ $cli->
 
 $cli
     ->task('setEndpoint')
-    ->param('endpoint', '', new Mock(), 'Your {{ spec.title | title }} endpoint', false)
+    ->param('endpoint', '', new Wildcard(), 'Your {{ spec.title | title }} endpoint', false)
     ->action(function($endpoint) use ($client) {
         $result = $client->setPreference('endpoint', $endpoint)
                          ->savePreferences();
@@ -50,7 +50,7 @@ $cli
 
 $cli
     ->task('setSelfSigned')
-    ->param('value', '', new Mock(), 'A boolean representing whether you are using a self signed certificate', false)
+    ->param('value', '', new Wildcard(), 'A boolean representing whether you are using a self signed certificate', false)
     ->action(function($value) use ($client) {
         $result = $client->setPreference('selfSigned', $value)
                          ->savePreferences();
@@ -65,7 +65,7 @@ $cli
 {% for header in spec.global.headers %}
 $cli
     ->task('set{{ header.key }}')
-    ->param('{{ header.key | lower }}', '', new Mock(), '{{ header.description }}', false)
+    ->param('{{ header.key | lower }}', '', new Wildcard(), '{{ header.description }}', false)
     ->action(function(${{ header.key | lower }}) use ($client) {
         $result = $client->setPreference('{{ header.name }}', ${{ header.key | lower }})
                          ->savePreferences();
