@@ -174,8 +174,8 @@ class HTTP extends Language {
         return [
           [
             'scope'         => 'method',
-            'destination'   => 'services/{{service.name | caseLower}}/{{method.name | caseDash}}',
-            'template'      => '/http/services/service.twig',
+            'destination'   => 'docs/{{service.name | caseLower}}/{{method.name | caseDash}}',
+            'template'      => '/http/docs/service.twig',
             'minify'        => false,
           ],
         ];

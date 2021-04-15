@@ -13,6 +13,8 @@ Host: {{spec.endpoint}}
 {% endif %}
 {% endfor %}
 
+{% for key, header in method.headers %}
+{% if header == 'application/json' %}
 {% if method.parameters.body %}
 json: {
 {% for parameter in method.parameters.body %}
@@ -21,3 +23,5 @@ json: {
 {% endfor %}
 }
 {% endif %}
+{% endif %}
+{% endfor %}
