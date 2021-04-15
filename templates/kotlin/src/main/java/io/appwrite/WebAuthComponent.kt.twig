@@ -30,8 +30,6 @@ internal class WebAuthComponent {
             callbackUrlScheme: String,
             onComplete: ((Result<String>) -> Unit)?
         ) {
-            callbacks.clear()
-
             val intent = CustomTabsIntent.Builder().build()
             val keepAliveIntent = Intent(activity, KeepAliveService::class.java)
 
@@ -49,6 +47,7 @@ internal class WebAuthComponent {
             while (suspended) {
                 delay(200)
             }
+            cleanUp()
         }
 
         fun onCallback(scheme: String, url: Uri) {
@@ -56,6 +55,15 @@ internal class WebAuthComponent {
                 Result.success(url.toString())
             )
             suspended = false
+        }
+
+        private fun cleanUp() {
+            callbacks.forEach { (_, danglingResultCallback) ->
+                danglingResultCallback?.invoke(
+                    Result.failure(IllegalStateException("User cancelled login"))
+                )
+            }
+            callbacks.clear()
         }
     }
 }
