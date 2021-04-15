@@ -67,7 +67,7 @@ class HTTP extends Language {
             return '';
         }
 
-        $output = ' = ';
+        $output = '';
 
         if(empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
@@ -85,7 +85,7 @@ class HTTP extends Language {
                     $output .= '[]';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "''";
+                    $output .= '""';
                     break;
             }
         }
@@ -97,13 +97,13 @@ class HTTP extends Language {
                     $output .= $default;
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= 'const '.$default;
+                    $output .= $default;
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "'{$default}'";
+                    $output .= '"'.$default .'"';
                     break;
             }
         }
@@ -172,12 +172,12 @@ class HTTP extends Language {
     public function getFiles()
     {
         return [
-            [
-                'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => '/http/docs/example.md.twig',
-                'minify'        => false,
-            ],
+          [
+            'scope'         => 'method',
+            'destination'   => 'services/{{service.name | caseLower}}/{{method.name | caseDash}}',
+            'template'      => '/http/services/service.twig',
+            'minify'        => false,
+          ],
         ];
     }
 }

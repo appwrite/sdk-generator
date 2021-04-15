@@ -1,0 +1,23 @@
+{{ method.method | caseUpper }} {{ method.path }} HTTP/1.1
+Host: {{spec.endpoint}}
+{% for key, header in method.headers %}
+{{ key }}: {{ header }}
+{% endfor %}
+{% for key,header in spec.global.defaultHeaders %}
+{{key}}: {{header}}
+{% endfor %}
+{% for header in spec.global.headers %}
+{% if header.key != 'Mode' and header.key != 'Locale' %}
+{{header.name}}: {% for node in method.security %}{% for key,x in node|keys %}{% if x == header.key %}{{node[x]['x-appwrite']['demo']}}{% endif %}{% endfor %}{% endfor %}
+
+{% endif %}
+{% endfor %}
+
+{% if method.parameters.body %}
+json: {
+{% for parameter in method.parameters.body %}
+  "{{ parameter.name }}": {{ parameter | paramDefault }}{% if parameter.required %}<{{parameter.name}}>{% endif %}{% if not loop.last %},{% endif %}
+
+{% endfor %}
+}
+{% endif %}

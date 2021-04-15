@@ -366,6 +366,27 @@ try {
 
     $sdk->generate(__DIR__ . '/examples/dotnet');
 
+    // HTTP
+    $sdk  = new SDK(new HTTP(), new Swagger2($spec));
+
+    $sdk
+        ->setName('NAME')
+        ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
+        ->setURL('https://example.com')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
+        ->setVersion('0.0.1')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/HTTP');
+
     // CLI
     $cli = new CLI();
     $cli->setExecutableName('appwrite');
