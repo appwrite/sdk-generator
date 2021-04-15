@@ -73,7 +73,7 @@ class {{ spec.title | caseUcfirst }} {
             credentials: 'include'
         };
 
-        if (window.localStorage) {
+        if (window?.localStorage) {
             headers.set('X-Fallback-Cookies', window.localStorage.getItem('cookieFallback') ?? "");
         }
 
@@ -107,7 +107,7 @@ class {{ spec.title | caseUcfirst }} {
 
             const cookieFallback = response.headers.get('X-Fallback-Cookies');
 
-            if (window.localStorage && cookieFallback) {
+            if (window?.localStorage && cookieFallback) {
                 window.console.warn('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
                 window.localStorage.setItem('cookieFallback', cookieFallback);
             }
@@ -151,10 +151,10 @@ class {{ spec.title | caseUcfirst }} {
          * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
          * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
-         * @return {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
+         * @returns {% if method.type == 'webAuth' %}{void|string}{% elseif method.type == 'location' %}{URL}{% else %}{Promise}{% endif %}
 
          */
-        {{ method.name | caseCamel }}: {% if method.type != "location" and method.type != 'webAuth'%}async <T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void{% elseif method.type == 'location' %}URL{% else %}Promise<T>{% endif %} => {
+        {{ method.name | caseCamel }}: {% if method.type != "location" and method.type != 'webAuth'%}async <T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void | URL{% elseif method.type == 'location' %}URL{% else %}Promise<T>{% endif %} => {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
             if ({{ parameter.name | caseCamel }} === undefined) {
@@ -163,7 +163,7 @@ class {{ spec.title | caseUcfirst }} {
 
 {% endif %}
 {% endfor %}
-            let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel }}){% endfor %};
+            let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel }}){% endfor %};
             let payload: assoc = {};
 
 {% for parameter in method.parameters.query %}
@@ -193,7 +193,11 @@ class {{ spec.title | caseUcfirst }} {
             uri.search = query.toString();
 {% endif %}
 {% if method.type == 'webAuth' %}
-            window.location.href = uri.toString();
+            if (window?.location) {
+                window.location.href = uri.toString();
+            } else {
+                return uri;
+            }
 {% elseif method.type == 'location' %}
             return uri;
 {% else %}
