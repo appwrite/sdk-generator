@@ -215,14 +215,24 @@ class {{ spec.title | caseUcfirst }}Client(
                 if (it.isCancelled) {
                     return
                 }
-                it.resumeWithException(e)
+                it.cancel(e)
             }
 
             override fun onResponse(call: Call, response: Response) {
                 response.use { res ->
                     if (res.code >= 400) {
-                        val err = response.body?.string()?.fromJson(Error::class.java)
-                        throw AppwriteException("${err?.code}: ${err?.message}")
+                        val bodyString = res.body
+                            ?.charStream()
+                            ?.buffered()
+                            ?.use(BufferedReader::readText)
+
+                        val error = bodyString?.fromJson(Error::class.java)
+
+                        it.cancel({{ spec.title | caseUcfirst }}Exception(
+                            error?.message,
+                            error?.code,
+                            bodyString
+                        ))
                     }
                     it.resume(res)
                 }
