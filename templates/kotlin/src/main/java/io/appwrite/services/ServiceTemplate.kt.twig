@@ -108,15 +108,14 @@ class {{ service.name | caseUcfirst }}Service(private val client: {{ spec.title 
         }
 
 {% elseif method.type == 'location' %}
-
-        val httpBuilder = HttpUrl.Builder().build().newBuilder(client.endPoint + path)
-            ?: throw {{ spec.title | caseUcfirst }}Exception("Badly formed url!")
-
-        params.forEach {
-            httpBuilder.addQueryParameter(it.key, it.value.toString())
+        val stringParams = params.mapValues {
+            if (it.value is Int || it.value is Double) {
+                it.value.toString()
+            }
+            it.value
         }
 
-        return client.call("{{ method.method | caseUpper }}", path, params = params)
+        return client.call("{{ method.method | caseUpper }}", path, params = stringParams)
 {% else %}
         val headers = mapOf(
 {{ method.headers|map((header, key) => "\t\t\t\"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
