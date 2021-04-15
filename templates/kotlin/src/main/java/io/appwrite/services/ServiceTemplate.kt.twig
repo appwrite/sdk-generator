@@ -80,7 +80,7 @@ class {{ service.name | caseUcfirst }}Service(private val client: {{ spec.title 
         }
 
         val url = Uri.parse("${client.endPoint}${path}?${query.joinToString("&")}")
-        val callbackUrlScheme = "callback-${client.config["project"]}"
+        val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.config["project"]}"
 
         WebAuthComponent.authenticate(activity, url, callbackUrlScheme) {
             if (it.isFailure) {
@@ -92,7 +92,7 @@ class {{ service.name | caseUcfirst }}Service(private val client: {{ spec.title 
             val key = uri.getQueryParameter("key")
             val secret = uri.getQueryParameter("secret")
             if (key == null || secret == null) {
-                throw AppwriteException("Authentication cookie missing!")
+                throw {{ spec.title | caseUcfirst }}Exception("Authentication cookie missing!")
             }
             val cookie = Cookie.Builder()
                 .name(key)
@@ -102,7 +102,7 @@ class {{ service.name | caseUcfirst }}Service(private val client: {{ spec.title 
                 .build()
                 
             client.cookieJar.saveFromResponse(
-                resultUrl.toHttpUrl(),
+                client.endPoint.toHttpUrl(),
                 listOf(cookie)
             )
         }

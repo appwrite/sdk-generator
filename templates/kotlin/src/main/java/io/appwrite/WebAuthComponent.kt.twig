@@ -21,12 +21,6 @@ internal class WebAuthComponent {
         private val callbacks = mutableMapOf<String, (((Result<String>) -> Unit)?)>()
 
         override fun onResume(owner: LifecycleOwner) {
-            callbacks.forEach { (_, danglingResultCallback) ->
-                danglingResultCallback?.invoke(
-                    Result.failure(IllegalStateException("User cancelled login"))
-                )
-            }
-            callbacks.clear()
             suspended = false
         }
 
