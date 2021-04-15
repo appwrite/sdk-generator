@@ -38,9 +38,10 @@ try {
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1&platform=console'); // Enable only with Appwrite local server running on port 80
     
-    $spec = file_get_contents('./specs/swagger-appwrite.0.7.0.json');
+    $specClient = file_get_contents('./specs/swagger-appwrite.0.7.2-client.json');
+    $specServer = file_get_contents('./specs/swagger-appwrite.0.7.2-server.json');
 
-    if(empty($spec)) {
+    if(empty($specClient) || empty($specServer)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
     }
 
@@ -49,7 +50,7 @@ try {
     $php
         ->setComposerVendor('appwrite')
         ->setComposerPackage('appwrite');
-    $sdk  = new SDK($php, new Swagger2($spec));
+    $sdk  = new SDK($php, new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -72,7 +73,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/php');
 
     // Web
-    $sdk  = new SDK(new Web(), new Swagger2($spec));
+    $sdk  = new SDK(new Web(), new Swagger2($specClient));
 
     $sdk
         ->setName('NAME')
@@ -97,7 +98,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/web');
 
     // TypeScript
-    $sdk  = new SDK(new Typescript(), new Swagger2($spec));
+    $sdk  = new SDK(new Typescript(), new Swagger2($specClient));
 
     $sdk
         ->setName('NAME')
@@ -121,7 +122,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/typescript');
 
     // Deno
-    $sdk  = new SDK(new Deno(), new Swagger2($spec));
+    $sdk  = new SDK(new Deno(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -145,7 +146,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/deno');
 
     // Node
-    $sdk  = new SDK(new Node(), new Swagger2($spec));
+    $sdk  = new SDK(new Node(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -168,7 +169,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/node');
 
     // Ruby
-    $sdk  = new SDK(new Ruby(), new Swagger2($spec));
+    $sdk  = new SDK(new Ruby(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -191,7 +192,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/ruby');
 
     // Python
-    $sdk  = new SDK(new Python(), new Swagger2($spec));
+    $sdk  = new SDK(new Python(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -217,7 +218,7 @@ try {
     $dart = new Dart();
     $dart->setPackageName('dart_appwrite');
 
-    $sdk  = new SDK($dart, new Swagger2($spec));
+    $sdk  = new SDK($dart, new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -244,7 +245,7 @@ try {
     // Flutter
     $flutter = new Flutter();
     $flutter->setPackageName('appwrite');
-    $sdk  = new SDK($flutter, new Swagger2($spec));
+    $sdk  = new SDK($flutter, new Swagger2($specClient));
 
     $sdk
         ->setName('NAME')
@@ -270,7 +271,7 @@ try {
 
     // GO
 
-    $sdk  = new SDK(new Go(), new Swagger2($spec));
+    $sdk  = new SDK(new Go(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -294,7 +295,7 @@ try {
 
     // Java
 
-    $sdk  = new SDK(new Java(), new Swagger2($spec));
+    $sdk  = new SDK(new Java(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -319,7 +320,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/java');
 
     // Swift
-    $sdk  = new SDK(new Swift(), new Swagger2($spec));
+    $sdk  = new SDK(new Swift(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -343,7 +344,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/swift');
     
     // DotNet
-    $sdk  = new SDK(new DotNet(), new Swagger2($spec));
+    $sdk  = new SDK(new DotNet(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -377,7 +378,7 @@ try {
  \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
        |_|   |_|                                                  
  ");
-    $sdk  = new SDK($cli, new Swagger2($spec));
+    $sdk  = new SDK($cli, new Swagger2($specServer));
     $sdk
         ->setName('NAME')
         ->setDescription('Repo description goes here')
