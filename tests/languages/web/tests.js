@@ -8,6 +8,7 @@ const server = http.createServer((request, response) => {
 });
 
 server.listen(3000, async () => {
+    console.log('Test Started');
     const browser = await playwright[process.env.BROWSER].launch();
     const context = await browser.newContext();
     const page = await context.newPage();

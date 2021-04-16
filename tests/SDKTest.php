@@ -307,12 +307,12 @@ class SDKTest extends TestCase
                 $this->assertEquals('PUT:/v1/mock/tests/bar:passed', $output[7] ?? '');
                 $this->assertEquals('PATCH:/v1/mock/tests/bar:passed', $output[8] ?? '');
                 $this->assertEquals('DELETE:/v1/mock/tests/bar:passed', $output[9] ?? '');
-                $this->assertEquals('GET:/v1/mock/tests/general/redirect/done:passed', $output[10]);
-                $this->assertEquals($output[11], 'POST:/v1/mock/tests/general/upload:passed');
+                $this->assertEquals('GET:/v1/mock/tests/general/redirect/done:passed', $output[10] ?? '');
+                $this->assertEquals('POST:/v1/mock/tests/general/upload:passed', $output[11] ?? '');
 
                 if ($options['supportException']) {
-                    $this->assertEquals($output[12], 'Mock 400 error');
-                    $this->assertEquals($output[13], 'Server Error');
+                    $this->assertEquals('Mock 400 error',$output[12] ?? '');
+                    $this->assertEquals('Server Error', $output[13] ?? '');
                 }
             }
         }
