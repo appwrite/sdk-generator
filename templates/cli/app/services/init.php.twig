@@ -6,7 +6,7 @@ require_once './vendor/autoload.php';
 
 use Exception;
 use Utopia\CLI\CLI;
-use Utopia\Validator\Mock;
+use Utopia\Validator\Wildcard;
 use Utopia\CLI\Console;
 use {{ spec.title | caseUcfirst }}\Parser;
 
@@ -168,9 +168,9 @@ $cli->
 $cli
     ->task('init')
     ->label('description', "The init command is used to initialise your CLI\n")
-    ->param('endpoint', '', new Mock(), 'Your {{ spec.title | caseUcfirst }} endpoint', true)
+    ->param('endpoint', '', new Wildcard(), 'Your {{ spec.title | caseUcfirst }} endpoint', true)
 {% for header in spec.global.headers %}
-    ->param('{{ header.key | lower }}', '', new Mock(), '{{ header.description }}', true)
+    ->param('{{ header.key | lower }}', '', new Wildcard(), '{{ header.description }}', true)
 {% endfor %}
     ->action(function( $endpoint, {% for header in spec.global.headers %} ${{ header.key | lower }}{% if not loop.last %},{% endif %}{% endfor %} ) {
         /* Check if enviroment variables exist

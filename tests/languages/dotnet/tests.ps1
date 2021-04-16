@@ -6,7 +6,7 @@ function Await-Task {
 
     process {
         while (-not $task.AsyncWaitHandle.WaitOne(200)) { }
-        $task.GetAwaiter().GetResult()
+        $task.GetAwaiter()
     }
 }
 
@@ -24,39 +24,56 @@ $foo = New-Object Appwrite.Foo -ArgumentList $client
 $bar = New-Object Appwrite.Bar -ArgumentList $client
 $general = New-Object Appwrite.General -ArgumentList $client
 
+Write-Host
+Write-Host "Test Started"
+
 $list = $("string in array")
-$response = $foo.get("string", 123, $list) | Await-Task
-Print-Response $response
+$response = $foo.Get("string", 123, $list) | Await-Task
+Print-Response $response.GetResult()
 
-$response = $foo.post("string", 123, $list) | Await-Task
-Print-Response $response
+$response = $foo.Post("string", 123, $list) | Await-Task
+Print-Response $response.GetResult()
 
-$response = $foo.put("string", 123, $list) | Await-Task
-Print-Response $response
+$response = $foo.Put("string", 123, $list) | Await-Task
+Print-Response $response.GetResult()
 
-$response = $foo.patch("string", 123, $list) | Await-Task
-Print-Response $response
+$response = $foo.Patch("string", 123, $list) | Await-Task
+Print-Response $response.GetResult()
 
-$response = $foo.delete("string", 123, $list) | Await-Task
-Print-Response $response
+$response = $foo.Delete("string", 123, $list) | Await-Task
+Print-Response $response.GetResult()
 
-$response = $bar.get("string", 123, $list) | Await-Task
-Print-Response $response
+$response = $bar.Get("string", 123, $list) | Await-Task
+Print-Response $response.GetResult()
 
-$response = $bar.post("string", 123, $list) | Await-Task
-Print-Response $response
+$response = $bar.Post("string", 123, $list) | Await-Task
+Print-Response $response.GetResult()
 
-$response = $bar.put("string", 123, $list) | Await-Task
-Print-Response $response
+$response = $bar.Put("string", 123, $list) | Await-Task
+Print-Response $response.GetResult()
 
-$response = $bar.patch("string", 123, $list) | Await-Task
-Print-Response $response
+$response = $bar.Patch("string", 123, $list) | Await-Task
+Print-Response $response.GetResult()
 
-$response = $bar.delete("string", 123, $list) | Await-Task
-Print-Response $response
+$response = $bar.Delete("string", 123, $list) | Await-Task
+Print-Response $response.GetResult()
 
 $response = $general.Redirect() | Await-Task
-Print-Response $response
+Print-Response $response.GetResult()
 
 $response = $general.Upload("string", 123, $list, (Get-Item "../../../../resources/file.png"))  | Await-Task
-Print-Response $response
+Print-Response $response.GetResult()
+
+try {
+    $response = $general.Error400() | Await-Task
+    $response.GetResult()
+} catch [Appwrite.AppwriteException] {
+    Write-Host $_.Exception.Message
+}
+
+try {
+    $response = $general.Error500() | Await-Task
+    $response.GetResult()
+} catch [Appwrite.AppwriteException] {
+    Write-Host $_.Exception.Message
+}
