@@ -37,6 +37,8 @@ fn main() {
     client.set_endpoint("https://appwrite.io/");
     client.set_project("");
 
+    println!("Test Started");
+
     let foo = {{ language.params.packageName }}::services::Foo::new(&client);
     let bar = {{ language.params.packageName }}::services::Bar::new(&client);
     let general = {{ language.params.packageName }}::services::General::new(&client);
