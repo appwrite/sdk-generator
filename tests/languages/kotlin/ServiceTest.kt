@@ -5,8 +5,10 @@ import io.appwrite.AppwriteClient
 import io.appwrite.Foo
 import io.appwrite.Bar
 import io.appwrite.General
+import io.appwrite.AppwriteException
 import okhttp3.Response
 import org.junit.jupiter.api.Test
+import kotlinx.coroutines.runBlocking
 import java.io.IOException
 
 class ServiceTest {
@@ -49,6 +51,22 @@ class ServiceTest {
         // General Tests
         response = general.redirect().execute()
         printResponse(response)
+        
+        runBlocking {
+            try {
+                general.error400()
+            } catch(e: AppwriteException) {
+                e.printStackTrace()
+            }
+        }
+
+        runBlocking {
+            try {
+                general.error500()
+            } catch(e: AppwriteException) {
+                e.printStackTrace()
+            }
+        }
 
         // response = await general.setCookie();
         // System.out.println(response.data["result"]);

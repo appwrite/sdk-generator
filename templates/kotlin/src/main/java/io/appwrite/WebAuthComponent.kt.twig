@@ -14,6 +14,10 @@ import kotlin.collections.forEach
 import kotlin.collections.mutableMapOf
 import kotlin.collections.set
 
+/**
+ * Used to authenticate with external OAuth2 providers. Launches browser windows and handles
+ * suspension until the user completes the process or otherwise returns to the app.
+ */
 internal class WebAuthComponent {
 
     companion object : DefaultLifecycleObserver {
@@ -24,6 +28,21 @@ internal class WebAuthComponent {
             suspended = false
         }
 
+        /**
+         * Authenticate Session with OAuth2
+         *
+         * Launches a chrome custom tab from the given activity and directs to the given url,
+         * suspending until the user returns to the app, at which point the given [onComplete] callback
+         * will run, passing the callback url from the intent used to launch the [CallbackActivity],
+         * or an [IllegalStateException] in the case the user closed the window or returned to the
+         * app without passing through the [CallbackActivity].
+         *
+         *
+         * @param activity              The activity to launch the browser from and observe the lifecycle of
+         * @param url                   The url to launch
+         * @param callbackUrlScheme     The callback url scheme used to key the given callback
+         * @param onComplete            The callback to run when a result (success or failure) is received
+         */
         suspend fun authenticate(
             activity: ComponentActivity,
             url: Uri,
@@ -43,6 +62,7 @@ internal class WebAuthComponent {
                 activity.lifecycle.addObserver(this)
             }
 
+            // Need to dirty poll block so execution doesn't continue at the callsite of this function
             suspended = true
             while (suspended) {
                 delay(200)
@@ -50,6 +70,17 @@ internal class WebAuthComponent {
             cleanUp()
         }
 
+        /**
+         * Trigger a web auth callback
+         *
+         * Attempts to find a callback for the given [scheme] and if found, invokes it, passing the
+         * given [url]. Calling this method stops auth suspension, so any calls to [authenticate]
+         * will continue execution from their suspension points immediately after this method
+         * is called.
+         *
+         * @param scheme    The scheme to match to a callback's key
+         * @param url       The url received through intent data from the [CallbackActivity]
+         */
         fun onCallback(scheme: String, url: Uri) {
             callbacks.remove(scheme)?.invoke(
                 Result.success(url.toString())

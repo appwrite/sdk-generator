@@ -11,6 +11,8 @@ class CallbackActivity: Activity() {
         val url = intent?.data
         val scheme = url?.scheme
         if (scheme != null) {
+            // Found a scheme, try to callback to web auth component.
+            // Will only suceed if the scheme matches one launched by this sdk.
             WebAuthComponent.onCallback(scheme, url)
         }
         finish()
