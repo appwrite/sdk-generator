@@ -9,7 +9,7 @@ use {{ spec.title | caseUcfirst }}\Client;
 use {{ spec.title | caseUcfirst }}\Parser;
 use Utopia\CLI\CLI;
 use Utopia\CLI\Console;
-use Utopia\Validator\Mock;
+use Utopia\Validator\Wildcard;
 
 $parser = new Parser();
 $cli = new CLI();
@@ -40,9 +40,12 @@ $cli
     ->task('{{ method.name | caseCamel }}')
     ->label('description', "{{ method.description | replace({'"':'\''}) | raw }}\n\n")
 {% for parameter in method.parameters.all %}
-    ->param('{{ parameter.name }}', {{ parameter | paramDefault }} , new Mock(), '{{ parameter.description}}', {% if not parameter.required %} true{% else %} false{% endif %})
+    ->param('{{ parameter.name }}', {{ parameter | paramDefault }} , new Wildcard() , '{{ parameter.description}}', {% if not parameter.required %} true{% else %} false{% endif %})
 {% endfor %}
-    ->action(function ({% for parameter in method.parameters.all %} ${{ parameter.name}}{% if not loop.last %},{% endif %}{% endfor %} ) use ($parser) {        
+    ->action(function ({% for parameter in method.parameters.all %} ${{ parameter.name}}{% if not loop.last %},{% endif %}{% endfor %} ) use ($parser) {
+{% for parameter in method.parameters.all %}
+        /** @var {{ parameter.type }} ${{ parameter.name }} */
+{% endfor %}
         $client = new Client();
         $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
         $params = [];
@@ -71,7 +74,7 @@ $cli
         $cFile = new \CURLFile(${{ parameter.name | caseCamel }}, {% if method.packaging %} 'application/x-gzip' {% else %} 'image/png' {% endif %}, basename(${{ parameter.name | caseCamel }}));
         $params['{{ parameter.name }}'] = $cFile;
 {% else %}
-        $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
+        $params['{{ parameter.name }}'] = {% if parameter.type == 'integer' %}(int){% endif %} ${{ parameter.name | caseCamel }};
 {% endif %}
 {% endfor %}
 {% for parameter in method.parameters.formData %}
