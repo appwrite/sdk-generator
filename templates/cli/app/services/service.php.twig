@@ -50,10 +50,16 @@ $cli
         $client = new Client();
         $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
         $params = [];
+{% if method.parameters.query|length > 0 %}
+        /** Query Params */
+{% endif %}
 {% for parameter in method.parameters.query %}
-        $params['{{ parameter.name }}'] = {% if parameter.type == 'array' %}!is_array(${{ parameter.name | caseCamel }}) ? array(${{ parameter.name | caseCamel }}) : ${{ parameter.name | caseCamel }};{% elseif parameter.type == 'integer' %}(int)${{ parameter.name | caseCamel }};{% else %}${{ parameter.name | caseCamel }};{% endif %}
-        
+        $params['{{ parameter.name }}'] = {% if parameter.type == 'array' %}!is_array(${{ parameter.name | caseCamel }}) ? array(${{ parameter.name | caseCamel }}) : ${{ parameter.name | caseCamel }};{% else %}${{ parameter.name | caseCamel }};{% endif %}
+
 {% endfor %}
+{% if method.parameters.body|length > 0 %}
+        /** Body Params */
+{% endif %}
 {% for parameter in method.parameters.body %}
 {% if parameter.type == 'file' and method.packaging %}
         $cloudFunctionPath = realpath(__DIR__.'/../../../files/'.${{ parameter.name | caseCamel }});
@@ -80,6 +86,9 @@ $cli
 
 {% endif %}
 {% endfor %}
+{% if method.parameters.formData|length > 0 %}
+        /** Form Data Params */
+{% endif %}
 {% for parameter in method.parameters.formData %}
         $params['{{ parameter.name }}'] = {% if parameter.type == 'array' %}!is_array(${{ parameter.name | caseCamel }}) ? array(${{ parameter.name | caseCamel }}) : ${{ parameter.name | caseCamel }};{% elseif parameter.type == 'integer' %}(int)${{ parameter.name | caseCamel }};{% else %}${{ parameter.name | caseCamel }};{% endif %}
 
