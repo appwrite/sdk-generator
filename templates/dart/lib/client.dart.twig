@@ -22,6 +22,7 @@ class Client {
         this.config = {};
 
         assert(endPoint.startsWith(RegExp("http://|https://")), "endPoint $endPoint must start with 'http'");
+        init();
     }
 
 
@@ -53,11 +54,9 @@ class Client {
         return this;
     }
 
-    Future init() async {
-        if(!initialized) {
+    void init() {
           this.http.options.baseUrl = this.endPoint;
           this.http.options.validateStatus = (status) => status! < 400;
-        }
     }
 
     Future<Response> call(HttpMethod method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}, ResponseType? responseType}) async {
@@ -68,8 +67,6 @@ class Client {
                 return client;
             };
         }
-
-        await this.init();
 
         // Origin is hardcoded for testing
         Options options = Options(

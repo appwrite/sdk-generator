@@ -6,7 +6,7 @@ require_once './vendor/autoload.php';
 
 use {{ spec.title | caseUcfirst }}\Client;
 use Utopia\CLI\CLI;
-use Utopia\Validator\Mock;
+use Utopia\Validator\Wildcard;
 use Utopia\CLI\Console;
 use {{ spec.title | caseUcfirst }}\Parser;
 
@@ -37,10 +37,23 @@ $cli->
 
 $cli
     ->task('setEndpoint')
-    ->param('endpoint', '', new Mock(), 'Your {{ spec.title | title }} endpoint', false)
+    ->param('endpoint', '', new Wildcard(), 'Your {{ spec.title | title }} endpoint', false)
     ->action(function($endpoint) use ($client) {
-        $client->setPreference('endpoint', $endpoint);
-        $result = $client->savePreferences();
+        $result = $client->setPreference('endpoint', $endpoint)
+                         ->savePreferences();
+        if ($result === false) {
+            Console::error('❌ Could not save preferences.');
+        } else {
+            Console::success('✅ Preferences saved successfully');
+        }
+    });
+
+$cli
+    ->task('setSelfSigned')
+    ->param('value', '', new Wildcard(), 'A boolean representing whether you are using a self signed certificate', false)
+    ->action(function($value) use ($client) {
+        $result = $client->setPreference('selfSigned', $value)
+                         ->savePreferences();
         if ($result === false) {
             Console::error('❌ Could not save preferences.');
         } else {
@@ -52,10 +65,10 @@ $cli
 {% for header in spec.global.headers %}
 $cli
     ->task('set{{ header.key }}')
-    ->param('{{ header.key | lower }}', '', new Mock(), '{{ header.description }}', false)
+    ->param('{{ header.key | lower }}', '', new Wildcard(), '{{ header.description }}', false)
     ->action(function(${{ header.key | lower }}) use ($client) {
-        $client->setPreference('{{ header.name }}', ${{ header.key | lower }});
-        $result = $client->savePreferences();
+        $result = $client->setPreference('{{ header.name }}', ${{ header.key | lower }})
+                         ->savePreferences();
         if ($result === false) {
             Console::error('❌ Could not save preferences.');
         } else {
@@ -83,7 +96,9 @@ $cli
             "setEndpoint" => "Set your server endpoint.",
             "setProject" => "Set the project you want to connect to.",
             "setKey" => "Set the API key for the project.",
-            "setLocale" => "Set your preferred locale (eg: en-US)."
+            "setLocale" => "Set your preferred locale (eg: en-US).",
+            "setSelfSigned" => "Set whether you are using a self signed certificate",
+            "version" => "Get the current cli version"
         ];
         $parser->formatArray($commands);
         Console::log("\nRun '{{ language.params.executableName }} client COMMAND --help' for more information on a command.");
