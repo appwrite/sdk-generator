@@ -175,7 +175,7 @@ e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...';
         return [
           [
             'scope'         => 'method',
-            'destination'   => 'docs/{{service.name | caseLower}}/{{method.name | caseDash}}',
+            'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}',
             'template'      => '/http/docs/service.twig',
             'minify'        => false,
           ],

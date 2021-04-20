@@ -19,6 +19,8 @@ public class ServiceTest {
 
         client.addHeader("Origin", "http://localhost");
         client.setSelfSigned(true);
+        
+        System.out.println("\nTest Started");
 
         // Foo Tests
 

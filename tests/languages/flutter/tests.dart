@@ -6,12 +6,13 @@ void main() async {
   Bar bar = Bar(client);
   General general = General(client);
 
-  client.addHeader('Origin', 'http://localhost');
   client.setSelfSigned();
 
-  print('\nTest Started');
-  
+  await Future.delayed(Duration(seconds: 4));
+  client.addHeader('Origin', 'http://localhost');
   // Foo Tests
+  print('\nTest Started');
+
   Response response;
   response = await foo.get(x: 'string', y: 123, z: ['string in array']);
   print(response.data['result']);
@@ -50,19 +51,21 @@ void main() async {
   response = await general.redirect();
   print(response.data['result']);
 
-  final file = await MultipartFile.fromFile('../../resources/file.png',filename: 'file.png');
-  response = await general.upload(x:'string',y: 123,z:['string in array'], file: file);
+  final file = await MultipartFile.fromFile('../../resources/file.png',
+      filename: 'file.png');
+  response = await general.upload(
+      x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.data['result']);
 
   try {
     await general.error400();
-  } on AppwriteException catch(e) {
+  } on AppwriteException catch (e) {
     print(e.message);
   }
 
   try {
     await general.error500();
-  } on AppwriteException catch(e) {
+  } on AppwriteException catch (e) {
     print(e.message);
   }
 

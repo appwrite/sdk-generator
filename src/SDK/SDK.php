@@ -539,7 +539,7 @@ class SDK
                     $this->render($template, $destination, $block, $params, $minify);
                     break;
                 case 'copy':
-                    copy(realpath(__DIR__.'/../../templates' . $file['template']), $destination);
+                    copy(realpath(__DIR__.'/../../templates/' . $file['template']), $destination);
                     break;
                 case 'service':
                     foreach ($this->spec->getServices() as $key => $service) {
