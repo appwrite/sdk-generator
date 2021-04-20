@@ -83,6 +83,18 @@ class Client {
             addHeader('Origin', 'appwrite-$type://${packageInfo.packageName}');
 
             //creating custom user agent
+            DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
+            var device = '';
+            if (Platform.isAndroid) {
+                final andinfo = await deviceInfoPlugin.androidInfo;
+                device =
+                    '(Linux; U; Android ${andinfo.version.release}; ${andinfo.brand} ${andinfo.model})';
+            }
+            if (Platform.isIOS) {
+                final iosinfo = await deviceInfoPlugin.iosInfo;
+                device = '${iosinfo.utsname.machine} iOS/${iosinfo.systemVersion}';
+            }
+            addHeader('user-agent', '${packageInfo.appName}/${packageInfo.version} $device');
         } else {
             // if web set withCredentials true to make cookies work
             this.http.options.extra['withCredentials'] = true;
@@ -90,6 +102,7 @@ class Client {
 
         this.http.options.baseUrl = this.endPoint;
         this.http.options.validateStatus = (status) => status! < 400;
+        initialized = true;
     }
 
     Future<Response> call(HttpMethod method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}, ResponseType? responseType}) async {
