@@ -125,7 +125,8 @@ class HTTP extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'await MultipartFile.fromFile(\'./path-to-files/image.jpg\', \'image.jpg\')';
+                    $output .= 'cf 94 84 24 8d c4 91 10 0f dc 54 26 6c 8e 4b bc 
+e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:

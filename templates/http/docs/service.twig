@@ -18,10 +18,24 @@ Host: {{spec.endpoint}}
 {% if method.parameters.body %}
 json: {
 {% for parameter in method.parameters.body %}
-  "{{ parameter.name }}": {{ parameter | paramDefault }}{% if parameter.required %}<{{parameter.name}}>{% endif %}{% if not loop.last %},{% endif %}
+  "{{ parameter.name }}": {{ parameter | paramExample }}{% if not loop.last %},{% endif %}
 
 {% endfor %}
 }
 {% endif %}
+{% endif %}
+{% if header == 'multipart/form-data' %}
+{% set boundary = random() %}
+boundary={{boundary}}
+Content-Length: *Length of your entity body in bytes*
+{% for parameter in method.parameters.body %}
+--{{boundary}}
+Content-Disposition: form-data; name="{{parameter.name}}{% if parameter.type == "array" %}[0]{% endif %}"
+{% if parameter.type != 'file' %}{% endif %}
+
+{{ parameter | paramExample }}
+
+{% endfor %}
+--{{boundary}}--
 {% endif %}
 {% endfor %}
