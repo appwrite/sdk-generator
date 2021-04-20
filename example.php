@@ -3,26 +3,26 @@
 include_once 'vendor/autoload.php';
 
 use Appwrite\SDK\Language\CLI;
-use Appwrite\Spec\Swagger2;
-use Appwrite\SDK\SDK;
-use Appwrite\SDK\Language\Web;
+use Appwrite\SDK\Language\Dart;
+use Appwrite\SDK\Language\Deno;
+use Appwrite\SDK\Language\DotNet;
+use Appwrite\SDK\Language\Flutter;
+use Appwrite\SDK\Language\Go;
+use Appwrite\SDK\Language\Java;
 use Appwrite\SDK\Language\Node;
 use Appwrite\SDK\Language\PHP;
 use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
-use Appwrite\SDK\Language\Dart;
-use Appwrite\SDK\Language\Go;
-use Appwrite\SDK\Language\Java;
-use Appwrite\SDK\Language\Typescript;
-use Appwrite\SDK\Language\Deno;
-use Appwrite\SDK\Language\HTTP;
 use Appwrite\SDK\Language\Swift;
-use Appwrite\SDK\Language\DotNet;
-use Appwrite\SDK\Language\Flutter;
+use Appwrite\SDK\Language\Typescript;
+use Appwrite\SDK\Language\Web;
+use Appwrite\SDK\SDK;
+use Appwrite\Spec\Swagger2;
 
 try {
 
-    function getSSLPage($url) {
+    function getSSLPage($url)
+    {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_HEADER, false);
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -37,11 +37,11 @@ try {
     //$spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1&platform=console'); // Enable only with Appwrite local server running on port 80
-    
-    $specClient = file_get_contents('./specs/swagger-appwrite.0.7.2-client.json');
-    $specServer = file_get_contents('./specs/swagger-appwrite.0.7.2-server.json');
 
-    if(empty($specClient) || empty($specServer)) {
+    $specClient = file_get_contents('./specs/swagger-appwrite.0.8.x-client.json');
+    $specServer = file_get_contents('./specs/swagger-appwrite.0.8.x-server.json');
+
+    if (empty($specClient) || empty($specServer)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
     }
 
@@ -50,7 +50,7 @@ try {
     $php
         ->setComposerVendor('appwrite')
         ->setComposerPackage('appwrite');
-    $sdk  = new SDK($php, new Swagger2($specServer));
+    $sdk = new SDK($php, new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -66,14 +66,14 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '0.8.0',
         ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/php');
 
     // Web
-    $sdk  = new SDK(new Web(), new Swagger2($specClient));
+    $sdk = new SDK(new Web(), new Swagger2($specClient));
 
     $sdk
         ->setName('NAME')
@@ -91,14 +91,14 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '0.8.0',
         ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/web');
 
     // TypeScript
-    $sdk  = new SDK(new Typescript(), new Swagger2($specClient));
+    $sdk = new SDK(new Typescript(), new Swagger2($specClient));
 
     $sdk
         ->setName('NAME')
@@ -115,14 +115,14 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '0.8.0',
         ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/typescript');
 
     // Deno
-    $sdk  = new SDK(new Deno(), new Swagger2($specServer));
+    $sdk = new SDK(new Deno(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -139,14 +139,14 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '0.8.0',
         ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/deno');
 
     // Node
-    $sdk  = new SDK(new Node(), new Swagger2($specServer));
+    $sdk = new SDK(new Node(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -162,14 +162,14 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '0.8.0',
         ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/node');
 
     // Ruby
-    $sdk  = new SDK(new Ruby(), new Swagger2($specServer));
+    $sdk = new SDK(new Ruby(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -185,14 +185,14 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '0.8.0',
         ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/ruby');
 
     // Python
-    $sdk  = new SDK(new Python(), new Swagger2($specServer));
+    $sdk = new SDK(new Python(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -208,7 +208,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '0.8.0',
         ])
     ;
 
@@ -218,7 +218,7 @@ try {
     $dart = new Dart();
     $dart->setPackageName('dart_appwrite');
 
-    $sdk  = new SDK($dart, new Swagger2($specServer));
+    $sdk = new SDK($dart, new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -236,7 +236,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '0.8.0',
         ])
     ;
 
@@ -245,7 +245,7 @@ try {
     // Flutter
     $flutter = new Flutter();
     $flutter->setPackageName('appwrite');
-    $sdk  = new SDK($flutter, new Swagger2($specClient));
+    $sdk = new SDK($flutter, new Swagger2($specClient));
 
     $sdk
         ->setName('NAME')
@@ -263,7 +263,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '0.8.0',
         ])
     ;
 
@@ -271,7 +271,7 @@ try {
 
     // GO
 
-    $sdk  = new SDK(new Go(), new Swagger2($specServer));
+    $sdk = new SDK(new Go(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -287,7 +287,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '0.8.0',
         ])
     ;
 
@@ -295,7 +295,7 @@ try {
 
     // Java
 
-    $sdk  = new SDK(new Java(), new Swagger2($specServer));
+    $sdk = new SDK(new Java(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -313,14 +313,14 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '0.8.0',
         ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/java');
 
     // Swift
-    $sdk  = new SDK(new Swift(), new Swagger2($specServer));
+    $sdk = new SDK(new Swift(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -337,14 +337,14 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '0.8.0',
         ])
     ;
 
     $sdk->generate(__DIR__ . '/examples/swift');
-    
+
     // DotNet
-    $sdk  = new SDK(new DotNet(), new Swagger2($specServer));
+    $sdk = new SDK(new DotNet(), new Swagger2($specServer));
 
     $sdk
         ->setName('NAME')
@@ -361,7 +361,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '0.8.0',
         ])
     ;
 
@@ -371,14 +371,14 @@ try {
     $cli = new CLI();
     $cli->setExecutableName('appwrite');
     $cli->setLogo("
-    _                            _ _           ___   __   _____ 
+    _                            _ _           ___   __   _____
    /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
   //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
- /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
- \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
-       |_|   |_|                                                  
+ /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_
+ \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
+       |_|   |_|
  ");
-    $sdk  = new SDK($cli, new Swagger2($specServer));
+    $sdk = new SDK($cli, new Swagger2($specServer));
     $sdk
         ->setName('NAME')
         ->setDescription('Repo description goes here')
@@ -394,16 +394,14 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         // ->setDefaultHeaders([
-        //     'X-Appwrite-Response-Format' => '0.7.0',
+        //     'X-Appwrite-Response-Format' => '0.8.0',
         // ])
     ;
     $sdk->generate(__DIR__ . '/examples/CLI');
 
-}
-catch (Exception $exception) {
+} catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
-}
-catch (Throwable $exception) {
+} catch (Throwable $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
 }
 
