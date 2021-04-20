@@ -87,6 +87,12 @@ class Flutter extends Dart {
 			],
             [
 				'scope'         => 'default',
+				'destination'   => '/lib/file_input.dart',
+				'template'      => 'flutter/lib/file_input.dart.twig',
+				'minify'        => false,
+			],
+            [
+				'scope'         => 'default',
 				'destination'   => '/lib/exception.dart',
 				'template'      => 'flutter/lib/exception.dart.twig',
 				'minify'        => false,

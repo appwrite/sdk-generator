@@ -118,7 +118,7 @@ class Dart extends Language {
                 return 'String';
             break;
             case self::TYPE_FILE:
-                return 'MultipartFile';
+                return 'FileInput';
             break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
