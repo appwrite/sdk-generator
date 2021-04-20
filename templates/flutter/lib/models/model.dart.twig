@@ -1,21 +1,21 @@
-{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}>{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% endmacro %}
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}Model>{% else %}{{property.sub_schema | caseUcfirst}}Model{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% endmacro %}
 part of {{ language.params.packageName }};
 
-class {{ definition.name | caseUcfirst }} {
+class {{ definition.name | caseUcfirst }}Model {
 {% for property in definition.properties %}
-    {% if not property.required %}{{_self.sub_schema(property)}}? {{ property.name | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ property.name | escapeKeyword }}{% endif %};
+    late final {% if not property.required %}{{_self.sub_schema(property)}}? {{ property.name | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ property.name | escapeKeyword }}{% endif %};
 {% endfor %}
 
-    {{ definition.name | caseUcfirst}}({
+    {{ definition.name | caseUcfirst}}Model({
 {% for property in definition.properties %}{% if property.required %}
         required {% endif %}this.{{ property.name | escapeKeyword }},
 {% endfor %}
     });
 
-    factory {{ definition.name | caseUcfirst}}.fromMap(Map<String, dynamic> map) {
-        return {{ definition.name | caseUcfirst }}(
+    factory {{ definition.name | caseUcfirst}}Model.fromMap(Map<String, dynamic> map) {
+        return {{ definition.name | caseUcfirst }}Model(
 {% for property in definition.properties %}
-            {{ property.name | escapeKeyword }}: {% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | caseUcfirst}}.fromMap(p))){% else %}{{property.sub_schema | caseUcfirst}}.fromMap(map['{{property.name | escapeDollarSign }}']){% endif %}{% else %}map['{{property.name | escapeDollarSign }}']{% endif %},
+            {{ property.name | escapeKeyword }}: {% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}Model>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | caseUcfirst}}Model.fromMap(p))){% else %}{{property.sub_schema | caseUcfirst}}Model.fromMap(map['{{property.name | escapeDollarSign }}']){% endif %}{% else %}map['{{property.name | escapeDollarSign }}']{% endif %},
 {% endfor %}
         );
     }
