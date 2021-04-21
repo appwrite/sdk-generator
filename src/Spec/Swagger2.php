@@ -176,7 +176,7 @@ class Swagger2 extends Spec {
                             'query' => [],
                             'body' => [],
                         ],
-                        'responseModel' => $responseModel == 'locale' ? 'LocaleModel' : $responseModel
+                        'responseModel' => $responseModel
                     ];
 
                     if(isset($method['consumes']) && is_array($method['consumes'])) {
@@ -290,9 +290,10 @@ class Swagger2 extends Spec {
         foreach ($definition as $key => $schema) {
             if($key == 'any' || $key == 'error') continue;
             $sch = [
-                "name" => $key == 'locale' ? 'LocaleModel' : $key,
+                "name" => $key,
                 "properties"=> $schema['properties'],
                 "required" => $schema['required'],
+                "additionalProperties" => $schema['additionalProperties']
             ];
             if(isset($sch['properties'])) {
                 foreach($sch['properties'] as $name => $def) {

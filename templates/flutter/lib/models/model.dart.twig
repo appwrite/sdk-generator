@@ -5,11 +5,17 @@ class {{ definition.name | caseUcfirst }}Model {
 {% for property in definition.properties %}
     late final {% if not property.required %}{{_self.sub_schema(property)}}? {{ property.name | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ property.name | escapeKeyword }}{% endif %};
 {% endfor %}
+{% if definition.additionalProperties %}
+    late final Map<String, dynamic> data;
+{% endif %}
 
     {{ definition.name | caseUcfirst}}Model({
 {% for property in definition.properties %}{% if property.required %}
         required {% endif %}this.{{ property.name | escapeKeyword }},
 {% endfor %}
+{% if definition.additionalProperties %}
+        required this.data,
+{% endif %}
     });
 
     factory {{ definition.name | caseUcfirst}}Model.fromMap(Map<String, dynamic> map) {
@@ -17,6 +23,9 @@ class {{ definition.name | caseUcfirst }}Model {
 {% for property in definition.properties %}
             {{ property.name | escapeKeyword }}: {% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}Model>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | caseUcfirst}}Model.fromMap(p))){% else %}{{property.sub_schema | caseUcfirst}}Model.fromMap(map['{{property.name | escapeDollarSign }}']){% endif %}{% else %}map['{{property.name | escapeDollarSign }}']{% endif %},
 {% endfor %}
+{% if definition.additionalProperties %}
+            data: map,
+{% endif %}
         );
     }
 
@@ -25,6 +34,9 @@ class {{ definition.name | caseUcfirst }}Model {
 {% for property in definition.properties %}
             "{{ property.name | escapeDollarSign }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword}}.map((p) => p.toMap()){% else %}{{property.name | escapeKeyword}}.toMap(){% endif %}{% else %}{{property.name | escapeKeyword }}{% endif %},
 {% endfor %}
+{% if definition.additionalProperties %}
+            "data": data,
+{% endif %}
         };
     }
 }
