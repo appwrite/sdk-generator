@@ -173,7 +173,8 @@ $cli
     ->param('{{ header.key | lower }}', '', new Wildcard(), '{{ header.description }}', true)
 {% endfor %}
     ->action(function( $endpoint, {% for header in spec.global.headers %} ${{ header.key | lower }}{% if not loop.last %},{% endif %}{% endfor %} ) {
-        /* Check if enviroment variables exist
+        /* 
+        * Check if enviroment variables exist
         * Else prompt the user
         */
         
