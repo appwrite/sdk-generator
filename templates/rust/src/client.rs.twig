@@ -50,6 +50,7 @@ impl Client {
             headers: new_headers,
             client: reqwest::blocking::Client::builder()
             .danger_accept_invalid_certs(match std::env::var_os("RUST_TLS_REJECT_UNAUTHORIZED") {Some(_) => true, None => false })
+            .cookie_store(true)
             .build().unwrap(),
         }
     }
