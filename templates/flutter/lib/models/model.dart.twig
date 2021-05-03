@@ -21,7 +21,7 @@ class {{ definition.name | caseUcfirst }}Model {
     factory {{ definition.name | caseUcfirst}}Model.fromMap(Map<String, dynamic> map) {
         return {{ definition.name | caseUcfirst }}Model(
 {% for property in definition.properties %}
-            {{ property.name | escapeKeyword }}: {% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}Model>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | caseUcfirst}}Model.fromMap(p))){% else %}{{property.sub_schema | caseUcfirst}}Model.fromMap(map['{{property.name | escapeDollarSign }}']){% endif %}{% else %}map['{{property.name | escapeDollarSign }}']{% endif %},
+            {{ property.name | escapeKeyword }}: {% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}Model>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | caseUcfirst}}Model.fromMap(p))){% else %}{{property.sub_schema | caseUcfirst}}Model.fromMap(map['{{property.name | escapeDollarSign }}']){% endif %}{% else %}map['{{property.name | escapeDollarSign }}']{% if property.type == "number" %}.toDouble(){% endif %}{% endif %},
 {% endfor %}
 {% if definition.additionalProperties %}
             data: map,
