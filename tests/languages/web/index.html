@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="./dist/iife/sdk.js"></script>
     <title>Appwrite</title>
 </head>
 
@@ -12,13 +13,11 @@
     <input type="file" id="file">
     <button id="start">Start</button>
     <script type="module">
-        import { Appwrite } from './dist/esm/sdk.js';
-
         document.getElementById('start').addEventListener('click', async () => {
             let response;
 
             // Init SDK
-            let sdk = new Appwrite();
+            let sdk = new Appwrite.Appwrite();
 
             // Foo
 
