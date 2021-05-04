@@ -49,8 +49,6 @@ impl Client {
             endpoint: "{{spec.endpoint}}".parse().unwrap(),
             headers: new_headers,
             client: reqwest::blocking::Client::builder()
-            .danger_accept_invalid_certs(match std::env::var_os("RUST_TLS_REJECT_UNAUTHORIZED") {Some(_) => true, None => false })
-            .cookie_store(true)
             .build().unwrap(),
         }
     }
@@ -60,6 +58,10 @@ impl Client {
             reqwest::header::HeaderName::from_str(&key).unwrap(),
             (&value.to_lowercase()).parse().unwrap(),
         );
+    }
+
+    pub fn add_self_signed(&mut self, value: bool) {
+      self.client = reqwest::blocking::Client::builder().danger_accept_invalid_certs(value).build().unwrap();
     }
 
 {% for header in spec.global.headers %}
