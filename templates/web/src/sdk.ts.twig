@@ -111,11 +111,15 @@ class {{ spec.title | caseUcfirst }} {
         }
 
         try {
+            let data = null;
             const response = await fetch(url.toString(), options);
-            const data = await response.json();
 
+            if (response.headers.get("content-type")?.includes('application/json')) {
+                data = await response.json();
+            }
+            
             if (400 <= response.status) {
-                throw new {{spec.title | caseUcfirst}}Exception(data.message, response.status, data);
+                throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data);
             }
 
             const cookieFallback = response.headers.get('X-Fallback-Cookies');
