@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="./dist/iife/sdk.js"></script>
+    <title>Appwrite</title>
+</head>
+
+<body>
+    <input type="file" id="file">
+    <button id="start">Start</button>
+    <script type="module">
+        document.getElementById('start').addEventListener('click', async () => {
+            let response;
+
+            // Init SDK
+            let sdk = new Appwrite.Appwrite();
+
+            // Foo
+
+            response = await sdk.foo.get('string', 123, ['string in array']);
+            console.log(response.result);
+
+            response = await sdk.foo.post('string', 123, ['string in array']);
+            console.log(response.result);
+
+            response = await sdk.foo.put('string', 123, ['string in array']);
+            console.log(response.result);
+
+            response = await sdk.foo.patch('string', 123, ['string in array']);
+            console.log(response.result);
+
+            response = await sdk.foo.delete('string', 123, ['string in array']);
+            console.log(response.result);
+
+            // // Bar
+
+            response = await sdk.bar.get('string', 123, ['string in array']);
+            console.log(response.result);
+
+            response = await sdk.bar.post('string', 123, ['string in array']);
+            console.log(response.result);
+
+            response = await sdk.bar.put('string', 123, ['string in array']);
+            console.log(response.result);
+
+            response = await sdk.bar.patch('string', 123, ['string in array']);
+            console.log(response.result);
+
+            response = await sdk.bar.delete('string', 123, ['string in array']);
+            console.log(response.result);
+
+            response = await sdk.general.redirect();
+            console.log(response.result);
+
+            response = await sdk.general.upload('string', 123, ['string in array'], document.getElementById('file').files[0]);
+            console.log(response.result);
+
+            try {
+                response = await sdk.general.error400();
+            } catch (error) {
+                console.log(error.message);
+            }
+
+            try {
+                response = await sdk.general.error500();
+            } catch (error) {
+                console.log(error.message);
+            }
+        });
+    </script>
+
+</body>
+
+</html>
