@@ -25,7 +25,7 @@ class {{ spec.title | caseUcfirst }} {
     config = {
         endpoint: '{{ spec.endpoint }}',
 {% for header in spec.global.headers %}
-        {{ header.key | caseCamel }}: '',
+        {{ header.key | caseLower }}: '',
 {% endfor %}
     };
     headers: Headers = {
@@ -64,7 +64,7 @@ class {{ spec.title | caseUcfirst }} {
      */
     set{{header.key | caseUcfirst}}(value: string): this {
         this.headers['{{header.name}}'] = value;
-        this.config.{{ header.key | caseCamel }} = value;
+        this.config.{{ header.key | caseLower }} = value;
         return this;
     }
 
