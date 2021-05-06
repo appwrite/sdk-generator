@@ -158,14 +158,14 @@ class Client {
             throw {{spec.title | caseUcfirst}}Exception(e.message);
           }
           if(responseType == ResponseType.bytes) {
-            if(e.response!.headers['content-type']!.contains('application/json')) {
+            if ((e.response!.headers.value('content-type') ?? '').contains('application/json')) {
               final res = json.decode(utf8.decode(e.response!.data));
               throw {{spec.title | caseUcfirst}}Exception(res['message'],res['code'], e.response);
             } else {
               throw {{spec.title | caseUcfirst}}Exception(e.message);
             }
           }
-          if(e.response!.headers['content-type']!.contains('application/json')) {
+          if ((e.response!.headers.value('content-type') ?? '').contains('application/json')) {
             throw {{spec.title | caseUcfirst}}Exception(e.response!.data['message'],e.response!.data['code'], e.response!.data);
           } else {
             throw {{spec.title | caseUcfirst}}Exception(e.response!.data,e.response!.statusCode, e.response!.data);
