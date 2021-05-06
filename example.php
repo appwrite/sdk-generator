@@ -404,13 +404,13 @@ try {
     $sdk = new SDK(new Kotlin(), new Swagger2($spec));
     
     $sdk
-        ->setName('NAME')
+        ->setName('Kotlin')
         ->setNamespace('io appwrite')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
+        ->setDescription('Appwrite is an open-source backend as a service server that abstract and simplify complex and repetitive development tasks behind a very simple to use REST API. Appwrite aims to help you develop your apps faster and in a more secure way. Use the Flutter SDK to integrate your app with the Appwrite server to easily start interacting with all of Appwrite backend APIs and tools. For full API documentation and tutorials go to https://appwrite.io/docs')
+        ->setShortDescription('Appwrite Kotlin SDK')
         ->setURL('https://example.com')
         ->setGitUserName('appwrite')
-        ->setGitRepoName('kotlin-sdk')
+        ->setGitRepoName('sdk-for-kotlin')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**This SDK is compatible with Appwrite server version 0.7.x. For older versions, please check previous releases.**')
@@ -490,7 +490,7 @@ val user = accountService.create(
 ```
 
 ### Learn more
-You can use followng resources to learn more and get help
+You can use following resources to learn more and get help
 - 📜 [Appwrite Docs](https://appwrite.io/docs)
 - 💬 [Discord Community](https://appwrite.io/discord)
         ")
