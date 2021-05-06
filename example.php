@@ -499,7 +499,7 @@ You can use followng resources to learn more and get help
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'x-appwrite-response-format' => '0.7.0',
         ])
     ;
     $sdk->generate(__DIR__ . '/examples/kotlin-android');
