@@ -102,7 +102,11 @@ class Client {
               throw {{spec.title | caseUcfirst}}Exception(e.message);
             }
           }
-          throw {{spec.title | caseUcfirst}}Exception(e.response?.data['message'],e.response?.data['code'], e.response?.data);
+          if(e.response!.headers['content-type']!.contains('application/json')) {
+            throw {{spec.title | caseUcfirst}}Exception(e.response!.data['message'],e.response!.data['code'], e.response!.data);
+          } else {
+            throw {{spec.title | caseUcfirst}}Exception(e.response!.data,e.response!.statusCode, e.response!.data);
+          }
         } catch(e) {
           throw {{spec.title | caseUcfirst}}Exception(e.toString());
         }
