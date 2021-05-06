@@ -260,7 +260,7 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/{{ spec.title | caseUcfirst }}Client.kt',
+                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/Client.kt',
                 'template'      => '/kotlin/src/main/java/io/appwrite/Client.kt.twig',
                 'minify'        => false,
             ],
@@ -326,7 +326,7 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}Service.kt',
+                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
                 'template'      => '/kotlin/src/main/java/io/appwrite/services/ServiceTemplate.kt.twig',
                 'minify'        => false,
             ]
