@@ -111,8 +111,9 @@ class {{ service.name | caseUcfirst }}Service(private val client: {{ spec.title 
         return client.call("{{ method.method | caseUpper }}", path, params = params)
 {% else %}
         val headers = mapOf(
-{{ method.headers|map((header, key) => "\t\t\t\"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
+{{ method.headers|map((header, key) => "            \"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
         )
+
         return client.call("{{ method.method | caseUpper }}", path, headers, params)
 {% endif %}
     }
