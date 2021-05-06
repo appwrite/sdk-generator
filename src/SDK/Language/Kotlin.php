@@ -242,6 +242,12 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/example/README.md',
+                'template'      => '/kotlin/example/README.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => '/kotlin/CHANGELOG.md.twig',
                 'minify'        => false,
