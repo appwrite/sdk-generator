@@ -40,6 +40,8 @@ async function start() {
     response = await sdk.bar.delete('string', 123, ['string in array']);
     console.log(response.result);
 
+    // General
+
     response = await sdk.general.redirect();
     console.log(response.result);
 

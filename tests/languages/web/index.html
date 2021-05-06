@@ -36,7 +36,7 @@
             response = await sdk.foo.delete('string', 123, ['string in array']);
             console.log(response.result);
 
-            // // Bar
+            // Bar
 
             response = await sdk.bar.get('string', 123, ['string in array']);
             console.log(response.result);
@@ -53,11 +53,19 @@
             response = await sdk.bar.delete('string', 123, ['string in array']);
             console.log(response.result);
 
+            // General
+
             response = await sdk.general.redirect();
             console.log(response.result);
 
             response = await sdk.general.upload('string', 123, ['string in array'], document.getElementById('file').files[0]);
             console.log(response.result);
+
+            try {
+                response = await sdk.general.empty();
+            } catch (error) {
+                console.log(error);
+            }
 
             try {
                 response = await sdk.general.error400();
