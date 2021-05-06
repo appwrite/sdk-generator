@@ -47,6 +47,12 @@ async function start() {
     console.log(response.result);
 
     try {
+        response = await sdk.general.empty();
+    } catch (error) {
+        console.log(error);
+    }
+
+    try {
         response = await sdk.general.error400();
     } catch(error) {
         console.log(error.message);
