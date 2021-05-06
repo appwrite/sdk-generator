@@ -34,7 +34,7 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-class {{ spec.title | caseUcfirst }}Client(
+class Client(
     context: Context,
     var endPoint: String = "https://appwrite.io/v1",
     private var selfSigned: Boolean = false
@@ -75,14 +75,14 @@ class {{ spec.title | caseUcfirst }}Client(
 {% if header.description %}
     /// {{header.description}}
 {% endif %}
-    fun set{{header.key | caseUcfirst}}(value: String): {{ spec.title | caseUcfirst }}Client {
+    fun set{{header.key | caseUcfirst}}(value: String): Client {
         config["{{ header.key | caseCamel }}"] = value
         addHeader("{{header.name}}", value)
         return this
     }
 
 {% endfor %}
-    fun setSelfSigned(status: Boolean): {{ spec.title | caseUcfirst }}Client {
+    fun setSelfSigned(status: Boolean): Client {
         selfSigned = status
 
         val builder = OkHttpClient()
@@ -125,12 +125,12 @@ class {{ spec.title | caseUcfirst }}Client(
         return this
     }
 
-    fun setEndpoint(endPoint: String): {{ spec.title | caseUcfirst }}Client {
+    fun setEndpoint(endPoint: String): Client {
         this.endPoint = endPoint
         return this
     }
 
-    fun addHeader(key: String, value: String): {{ spec.title | caseUcfirst }}Client {
+    fun addHeader(key: String, value: String): Client {
         headers[key] = value
         return this
     }

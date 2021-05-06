@@ -1,7 +1,7 @@
-import {{ sdk.namespace | caseDot }}.{{ spec.title | caseUcfirst }}Client
-import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }}Service
+import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }}
 
-val client = {{ spec.title | caseUcfirst }}Client(context)
+val client = Client(context)
 {% if method.security|length > 0 %}
   .setEndpoint("https://[HOSTNAME_OR_IP]/v1") // Your API Endpoint
 {% for node in method.security %}
@@ -9,6 +9,6 @@ val client = {{ spec.title | caseUcfirst }}Client(context)
   .set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo']}}") // {{node[header].description}}
 {% endfor %}{% endfor %}{% endif %}
 
-val {{ service.name | caseCamel }}Service = {{ service.name | caseUcfirst }}Service(client)
+val {{ service.name | caseCamel }}Service = {{ service.name | caseUcfirst }}(client)
 val response = {{ service.name | caseCamel }}Service.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %})
 val json = response.body?.string()

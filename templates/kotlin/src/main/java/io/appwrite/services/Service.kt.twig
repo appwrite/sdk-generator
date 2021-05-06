@@ -1,5 +1,5 @@
 package {{ sdk.namespace | caseDot }}.services
 
-import {{ sdk.namespace | caseDot }}.{{ spec.title | caseUcfirst }}Client
+import {{ sdk.namespace | caseDot }}.Client
 
-abstract class BaseService(private val client: {{ spec.title | caseUcfirst }}Client)
+abstract class BaseService(private val client: Client)

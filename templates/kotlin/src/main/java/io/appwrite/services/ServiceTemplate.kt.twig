@@ -15,7 +15,7 @@ package {{ sdk.namespace | caseDot }}.services
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
 import android.net.Uri
-import {{ sdk.namespace | caseDot }}.{{ spec.title | caseUcfirst }}Client
+import {{ sdk.namespace | caseDot }}.Client
 {% if service.features.webAuth %}
 import {{ sdk.namespace | caseDot }}.WebAuthComponent
 import androidx.activity.ComponentActivity
@@ -30,7 +30,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 {% endif %}
 import java.io.File
 
-class {{ service.name | caseUcfirst }}Service(private val client: {{ spec.title | caseUcfirst }}Client) : BaseService(client) {
+class {{ service.name | caseUcfirst }}(private val client: Client) : BaseService(client) {
 
 {% for method in service.methods %}
     /**
