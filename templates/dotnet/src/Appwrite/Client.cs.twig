@@ -2,6 +2,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -162,10 +163,16 @@ namespace {{ spec.title | caseUcfirst }}
             {
                 var httpResponseMessage = await http.SendAsync(request);
                 var code = (int) httpResponseMessage.StatusCode;
-                var response = await httpResponseMessage.Content.ReadAsStringAsync();
-
+                var response = code == 204 ? null : await httpResponseMessage.Content.ReadAsStringAsync();
+                
                 if (code >= 400) {
-                    string message = (JObject.Parse(response))["message"].ToString();
+                    var message = response.ToString();
+                    var isJson = httpResponseMessage.Content.Headers.GetValues("Content-Type").FirstOrDefault().Contains("application/json");
+
+                    if (isJson) {
+                        message = (JObject.Parse(message))["message"].ToString();
+                    }
+
                     throw new {{spec.title | caseUcfirst}}Exception(message, code, response.ToString());
                 }
 
