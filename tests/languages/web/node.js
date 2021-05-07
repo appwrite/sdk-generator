@@ -6,8 +6,9 @@ async function start() {
 
     console.log('\nTest Started');
     const { Appwrite } = requireAppwrite;
-    // Foo
     const sdk = new Appwrite();
+
+    // Foo
     response = await sdk.foo.get('string', 123, ['string in array']);
     console.log(response.result);
 
@@ -24,7 +25,6 @@ async function start() {
     console.log(response.result);
 
     // Bar
-
     response = await sdk.bar.get('string', 123, ['string in array']);
     console.log(response.result);
 
@@ -41,7 +41,6 @@ async function start() {
     console.log(response.result);
 
     // General
-
     response = await sdk.general.redirect();
     console.log(response.result);
 
@@ -53,7 +52,6 @@ async function start() {
     } catch (error) {
         console.log(error);
     }
-
     try {
         response = await sdk.general.error400();
     } catch(error) {
@@ -63,6 +61,11 @@ async function start() {
         response = await sdk.general.error500();
     } catch(error) {
         console.log(error.message);
+    }
+    try {
+        response = await sdk.general.error502();
+    } catch (error) {
+        console.log(error);
     }
 
 }
