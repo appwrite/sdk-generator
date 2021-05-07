@@ -114,8 +114,12 @@ class {{ spec.title | caseUcfirst }} {
             let data = null;
             const response = await fetch(url.toString(), options);
 
-            if (response.headers.get("content-type")?.includes('application/json')) {
+            if (response.headers.get("content-type")?.includes("application/json")) {
                 data = await response.json();
+            } else {
+                data = {
+                    message: await response.text()
+                };
             }
             
             if (400 <= response.status) {

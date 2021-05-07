@@ -65,7 +65,7 @@ async function start() {
     try {
         response = await sdk.general.error502();
     } catch (error) {
-        console.log(error);
+        console.log(error.message);
     }
 
 }
