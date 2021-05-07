@@ -93,15 +93,20 @@ export class Client {
             let response = await fetch(url.toString(), options);
             const contentType = response.headers.get('content-type');
 
-            if(response.status >= 400) {
-                let res = await response.json();
-                throw new {{ spec.title | caseUcfirst}}Exception(res.message, res.status, res);
-            }
-
             if (contentType && contentType.includes('application/json')) {
+                if(response.status >= 400) {
+                    let res = await response.json();
+                    throw new {{ spec.title | caseUcfirst}}Exception(res.message, res.status, res);
+                }
+
                 return response.json()
+            } else {
+                if(response.status >= 400) {
+                    let res = await response.text();
+                    throw new {{ spec.title | caseUcfirst}}Exception(res, response.status, null);
+                }
+                return response;
             }
-            return response;
         } catch(error) {
             throw new {{ spec.title | caseUcfirst}}Exception(error?.response?.message || error.message, error?.response?.code, error.response);
         }
