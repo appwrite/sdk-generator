@@ -1,5 +1,5 @@
-{{ method.method | caseUpper }} {{ method.path }} HTTP/1.1
-Host: {{spec.endpoint}}
+{{ method.method | caseUpper }} {{spec.basePath}}{{ method.path }} HTTP/1.1
+Host: {{spec.host}}
 {% for key, header in method.headers %}
 {{ key }}: {{ header }}
 {% endfor %}
@@ -16,9 +16,9 @@ Host: {{spec.endpoint}}
 {% for key, header in method.headers %}
 {% if header == 'application/json' %}
 {% if method.parameters.body %}
-json: {
+{
 {% for parameter in method.parameters.body %}
-  "{{ parameter.name }}": {{ parameter | paramExample }}{% if not loop.last %},{% endif %}
+  "{{ parameter.name }}": "{{ parameter | paramExample }}"{% if not loop.last %},{% endif %}
 
 {% endfor %}
 }
