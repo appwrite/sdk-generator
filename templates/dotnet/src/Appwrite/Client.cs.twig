@@ -163,7 +163,7 @@ namespace {{ spec.title | caseUcfirst }}
             {
                 var httpResponseMessage = await http.SendAsync(request);
                 var code = (int) httpResponseMessage.StatusCode;
-                var response = code == 204 ? null : await httpResponseMessage.Content.ReadAsStringAsync();
+                var response = await httpResponseMessage.Content.ReadAsStringAsync();
                 
                 if (code >= 400) {
                     var message = response.ToString();
