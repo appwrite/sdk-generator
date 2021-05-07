@@ -39,7 +39,7 @@ try {
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1&platform=console'); // Enable only with Appwrite local server running on port 80
     
-    $spec = file_get_contents('./specs/swagger-appwrite.0.7.0.json');
+    $spec = file_get_contents('./specs/swagger-appwrite.0.8.0.json');
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -366,6 +366,27 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/dotnet');
+
+    // HTTP
+    $sdk  = new SDK(new HTTP(), new Swagger2($spec));
+
+    $sdk
+        ->setName('NAME')
+        ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
+        ->setURL('https://example.com')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
+        ->setVersion('0.0.1')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/HTTP');
 
     // CLI
     $cli = new CLI();

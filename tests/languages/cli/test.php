@@ -11,54 +11,54 @@ exec($command, $output);
 echo "\nTest Started\n";
 
 // Foo Service
-$command = "${baseCommand} cli foo get  --x='string'  --y='123' --z[]='string in array'";
+$command = "${baseCommand} cli foo get  --x='string'  --y='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-$command = "${baseCommand} cli foo post  --x='string'  --y='123' --z[]='string in array'";
+$command = "${baseCommand} cli foo post  --x='string'  --y='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-$command = "${baseCommand} cli foo put  --x='string'  --y='123' --z[]='string in array'";
+$command = "${baseCommand} cli foo put  --x='string'  --y='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-$command = "${baseCommand} cli foo patch  --x='string'  --y='123' --z[]='string in array'";
+$command = "${baseCommand} cli foo patch  --x='string'  --y='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-$command = "${baseCommand} cli foo delete  --x='string'  --y='123' --z[]='string in array'";
+$command = "${baseCommand} cli foo delete  --x='string'  --y='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
 
 // Bar Service
-$command = "${baseCommand} cli bar get  --x='string'  --y='123' --z[]='string in array'";
+$command = "${baseCommand} cli bar get  --x='string'  --y='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-$command = "${baseCommand} cli bar post  --x='string'  --y='123' --z[]='string in array'";
+$command = "${baseCommand} cli bar post  --x='string'  --y='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-$command = "${baseCommand} cli bar put  --x='string'  --y='123' --z[]='string in array'";
+$command = "${baseCommand} cli bar put  --x='string'  --y='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-$command = "${baseCommand} cli bar patch  --x='string'  --y='123' --z[]='string in array'";
+$command = "${baseCommand} cli bar patch  --x='string'  --y='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-$command = "${baseCommand} cli bar delete  --x='string'  --y='123' --z[]='string in array'";
+$command = "${baseCommand} cli bar delete  --x='string'  --y='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
@@ -69,7 +69,7 @@ $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-$command = "${baseCommand} cli general upload --x='string'  --y='123' --z[]='string in array' --file='file.png'";
+$command = "${baseCommand} cli general upload --x='string'  --y='123' --z='string in array' --file='file.png'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";

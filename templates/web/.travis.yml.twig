@@ -7,7 +7,12 @@ jobs:
   include:
     - stage: npm release
       node_js: "14.16"
-      script: echo "Deploying to npm ..."
+      script: 
+        - echo "Installing dependencies ..."
+        - npm i
+        - echo "Building library ..."
+        - npm run build
+        - echo "Deploying to npm ..."
       deploy:
         provider: npm
         email: $NPM_EMAIL

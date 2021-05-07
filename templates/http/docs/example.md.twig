@@ -1,38 +1,40 @@
-{{ method.method | caseUpper }} {{method.fullPath}} HTTP/1.1
-host: {hostname_or_ip}
+{{ method.method | caseUpper }} {{ method.path }} HTTP/1.1
+Host: {{spec.endpoint}}
 {% for key, header in method.headers %}
 {{ key }}: {{ header }}
 {% endfor %}
-accept-encoding: gzip, deflate
-
-{% for parameter in method.parameters.query %}{% if parameter.required %}{% if not loop.first %}&{% endif %}{{parameter.name}}={{ parameter | paramExample }}{% endif %}{% endfor %}
-{% for parameter in method.parameters.body %}{% if parameter.required %}{% if not loop.first %}&{% endif %}{{parameter.name}}={{ parameter | paramExample }}{% endif %}{% endfor %}
-
-
-
-
-
-{{method|caseJson}}
-
-let sdk = new {{ spec.title | caseUcfirst }}();
-
-{% if method.security|length > 0 %}
-sdk
-    .setEndpoint('https://[HOSTNAME_OR_IP]/v1') // Your API Endpoint
-{% for node in method.security %}
-{% for key,header in node|keys %}
-    .set{{header}}('{{node[header]['x-appwrite']['demo']}}') // {{node[header].description}}
+{% for key,header in spec.global.defaultHeaders %}
+{{key}}: {{header}}
 {% endfor %}
-{% endfor %};
+{% for header in spec.global.headers %}
+{% if header.key != 'Mode' and header.key != 'Locale' %}
+{{header.name}}: {% for node in method.security %}{% for key,x in node|keys %}{% if x == header.key %}{{node[x]['x-appwrite']['demo']}}{% endif %}{% endfor %}{% endfor %}
 
 {% endif %}
-let {% if method.type == 'location' %}result{% else %}promise{% endif %} = sdk.{{ service.name | caseLower }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
+{% endfor %}
 
-{% if method.type == 'location' %}
-console.log(result); // Resource URL
-{% else %}
-promise.then(function (response) {
-    console.log(response); // Success
-}, function (error) {
-    console.log(error); // Failure
-});{% endif %}
+{% for key, header in method.headers %}
+{% if header == 'application/json' %}
+{% if method.parameters.body %}
+json: {
+{% for parameter in method.parameters.body %}
+  "{{ parameter.name }}": {{ parameter | paramExample }}{% if not loop.last %},{% endif %}
+
+{% endfor %}
+}
+{% endif %}
+{% endif %}
+{% if header == 'multipart/form-data' %}
+{% set boundary = random() %}
+boundary={{boundary}}
+Content-Length: *Length of your entity body in bytes*
+{% for parameter in method.parameters.body %}
+--{{boundary}}
+Content-Disposition: form-data; name="{{parameter.name}}{% if parameter.type == "array" %}[]{% endif %}"
+
+{{ parameter | paramExample }}
+
+{% endfor %}
+--{{boundary}}--
+{% endif %}
+{% endfor %}
