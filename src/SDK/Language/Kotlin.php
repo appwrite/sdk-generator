@@ -290,6 +290,12 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/models/Error.kt',
+                'template'      => '/kotlin/src/main/java/io/appwrite/models/Error.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/build.gradle',
                 'template'      => '/kotlin/build.gradle.twig',
                 'minify'        => false,
