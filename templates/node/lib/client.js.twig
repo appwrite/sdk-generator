@@ -110,7 +110,11 @@ class Client {
         } catch(error) {
             if('response' in error) {
                 if('data' in error.response) {
-                    throw new {{spec.title | caseUcfirst}}Exception(error.response.data.message, error.response.status, error.response.data);
+                    if (typeof(error.response.data) === 'string') {
+                        throw new {{spec.title | caseUcfirst}}Exception(error.response.data, error.response.status, error.response.data);   
+                    } else {
+                        throw new {{spec.title | caseUcfirst}}Exception(error.response.data.message, error.response.status, error.response.data);
+                    }
                 }else{
                     throw new {{spec.title | caseUcfirst}}Exception(error.response.statusText, error.response.status, error.response.data);
                 }
