@@ -109,7 +109,7 @@ class Client {
             return response.data;
         } catch(error) {
             if('response' in error) {
-                if('data' in error.response) {
+                if(error.response && 'data' in error.response) {
                     if (typeof(error.response.data) === 'string') {
                         throw new {{spec.title | caseUcfirst}}Exception(error.response.data, error.response.status, error.response.data);   
                     } else {
