@@ -93,8 +93,12 @@ module {{spec.title | caseUcfirst}}
                 
                 return fetch(method, uri, headers, {}, limit - 1)
             end
-
-            res = JSON.parse(response.body);
+            
+            begin
+                res = JSON.parse(response.body);
+            rescue JSON::ParserError => e
+                raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, nil)
+            end
 
             if(response.code.to_i >= 400)
                 raise {{spec.title | caseUcfirst}}::Exception.new(res['message'], res['status'], res)
