@@ -695,6 +695,54 @@
         "security": [{ "Project": [] }]
       }
     },
+    "/mock/tests/general/502-error": {
+      "get": {
+        "summary": "502 Error",
+        "operationId": "generalError502",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "",
+        "responses": {
+          "502": {
+            "description": "File",
+            "schema": {
+              "type": "file"
+            }
+          }
+        },
+        "x-appwrite": {
+          "method": "error502",
+          "weight": 188,
+          "cookies": false,
+          "type": "",
+          "demo": "general/error502.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a 502 bad gateway.",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false
+        },
+        "security": [
+          {
+            "Project": [
+              
+            ]
+          }
+        ]
+      }
+    },
     "/mock/tests/general/empty": {
       "get": {
         "summary": "Empty Response",
