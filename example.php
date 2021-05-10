@@ -445,10 +445,10 @@ In order to capture the Appwrite OAuth callback url, the following activity need
 <p>Initialize your SDK code with your project ID, which can be found in your project settings page.
 
 ```kotlin
-import io.appwrite.AppwriteClient
-import io.appwrite.services.AccountService
+import io.appwrite.Client
+import io.appwrite.services.Account
 
-val client = AppwriteClient(context)
+val client = Client(context)
   .setEndpoint(\"https://[HOSTNAME_OR_IP]/v1\") // Your API Endpoint
   .setProject(\"5df5acd0d48c2\") // Your project ID
   .setSelfSigned(true) // Remove in production
@@ -464,7 +464,7 @@ When trying to connect to Appwrite from an emulator or a mobile device, localhos
 
 ```kotlin
 // Register User
-val accountService = AccountService(client)
+val accountService = Account(client)
 val user = accountService.create(
     \"email@example.com\", 
     \"password\"
@@ -474,15 +474,15 @@ val user = accountService.create(
 ### Full Example
 
 ```kotlin
-import io.appwrite.AppwriteClient
-import io.appwrite.services.AccountService
+import io.appwrite.Client
+import io.appwrite.services.Account
 
-val client = AppwriteClient(context)
+val client = Client(context)
   .setEndpoint(\"https://[HOSTNAME_OR_IP]/v1\") // Your API Endpoint
   .setProject(\"5df5acd0d48c2\") // Your project ID
   .setSelfSigned(true) // Remove in production
 
-val accountService = AccountService(client)
+val accountService = Account(client)
 val user = accountService.create(
     \"email@example.com\", 
     \"password\"

@@ -1,7 +1,7 @@
 package io.appwrite.services
 
 import com.google.gson.Gson
-import io.appwrite.AppwriteClient
+import io.appwrite.Client
 import io.appwrite.Foo
 import io.appwrite.Bar
 import io.appwrite.General
@@ -16,7 +16,7 @@ class ServiceTest {
     @Throws(IOException::class)
     fun test() {
 
-        val client = AppwriteClient()
+        val client = Client()
         val foo = Foo(client)
         val bar = Bar(client)
         val general = General(client)
