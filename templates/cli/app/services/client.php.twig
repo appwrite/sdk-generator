@@ -63,6 +63,7 @@ $cli
 
 
 {% for header in spec.global.headers %}
+{%if header.key != 'JWT' %}
 $cli
     ->task('set{{ header.key }}')
     ->param('{{ header.key | lower }}', '', new Wildcard(), '{{ header.description }}', false)
@@ -75,7 +76,7 @@ $cli
             Console::success('✅ Preferences saved successfully');
         }
     });
-
+{% endif %}
 {% endfor %}
 
 $cli
