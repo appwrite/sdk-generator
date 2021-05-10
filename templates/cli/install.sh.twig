@@ -119,7 +119,7 @@ install() {
     echo '
 #!/bin/bash
 
-allowList=(version, help init client{% for service in spec.services %} {{ service.name }}{% endfor %})
+allowList=(version help init client{% for service in spec.services %} {{ service.name }}{% endfor %})
 
 if [[ -z $1 ]]; then 
     set -- "$@" help
