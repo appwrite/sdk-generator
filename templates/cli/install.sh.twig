@@ -116,8 +116,7 @@ install() {
     fi
     printSuccess
     
-    echo '
-#!/bin/bash
+    echo '#!/bin/bash
 
 allowList=(version help init client{% for service in spec.services %} {{ service.name }}{% endfor %})
 
