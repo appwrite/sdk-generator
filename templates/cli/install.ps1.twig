@@ -28,7 +28,7 @@ ${{ spec.title | upper }}_CLI_IMAGE_NAME = "{{ spec.title | lower }}/cli"
 ${{ spec.title | upper }}_CLI_IMAGE_VERSION = "{{ sdk.version }}"
 
 ${{ spec.title | upper }}_EXECUTABLE_CONTENT = @"
-$allowList = 'help', 'init', 'client' {% for service in spec.services %}, '{{ service.name }}'{% endfor %}
+$allowList = 'version', 'help', 'init', 'client' {% for service in spec.services %}, '{{ service.name }}'{% endfor %}
 
 if ( $args.count -eq 0 ) {
     $args += 'help'
