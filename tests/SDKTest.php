@@ -86,6 +86,19 @@ class SDKTest extends TestCase
             'supportException' => false,
         ], */
 
+        'kotlin' => [
+            'class' => 'Appwrite\SDK\Language\Kotlin',
+            'build' => [
+                'mkdir -p tests/sdks/kotlin/src/test/java/io/appwrite/services',
+                'cp tests/languages/kotlin/ServiceTest.kt tests/sdks/kotlin/src/test/java/io/appwrite/services/ServiceTest.kt',
+            ],
+            'envs' => [
+                'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-8-slim mvn clean install test -q',
+                'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-11-slim mvn clean install test -q',
+            ],
+            'supportException' => false,
+        ],
+
         'dotnet' => [
             'class' => 'Appwrite\SDK\Language\DotNet',
             'build' => [

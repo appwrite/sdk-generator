@@ -1,0 +1,107 @@
+apply(plugin: "maven-publish")
+
+def artifactGroup = project.properties["packageGroup"] as String
+def artifactModule = project.properties["packageArchive"] as String
+def artifactVersion = project.properties["packageVersion"] as String
+
+def pomUrl = "{{ sdk.URL }}"
+def pomScmUrl = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}"
+def pomIssueUrl = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}/issues"
+def pomDesc = "{{ sdk.description }}"
+
+def pomLicenseName = "GPL-3.0"
+def pomLicenseUrl = "https://opensource.org/licenses/GPL-3.0"
+
+def pomDeveloperId = "{{ spec.namespace | caseDot }}"
+def pomDeveloperName = "{{ sdk.gitUserName }}"
+def pomDeveloperEmail = "{{ sdk.gitUserEmail }}"
+
+def githubUrl = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}"
+def githubRepository = "{{ sdk.gitRepoName }}"
+def githubReadme = "README.md"
+def githubScmConnection = "scm:git:git://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}.git"
+
+tasks.register("sourcesJar", Jar) {
+    archiveClassifier.set("sources")
+    from(android.sourceSets.getByName("main").java.srcDirs)
+}
+
+tasks.register("javadoc", Javadoc) {
+    source = android.sourceSets.getByName("main").java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    setDestinationDir(file("../javadoc/"))
+    failOnError false
+}
+
+tasks.register("javadocJar", Jar) {
+    dependsOn(javadoc)
+    archiveClassifier.set("javadoc")
+    from(javadoc)
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+
+            url = uri(githubUrl)
+            credentials {
+                username = System.getenv("GITHUB_USER_NAME")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+    publications {
+        aar(MavenPublication) {
+            groupId = artifactGroup
+            artifactId = artifactModule
+            version = artifactVersion
+
+            artifacts {
+                artifact(sourcesJar)
+                artifact(javadocJar)
+                artifact("$buildDir/outputs/aar/${artifactId}-release.aar")
+            }
+
+            pom {
+                name = artifactModule
+                description = pomDesc
+                url = pomUrl
+
+                licenses {
+                    license {
+                        name = pomLicenseName
+                        url = pomLicenseUrl
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = pomDeveloperId
+                        name = pomDeveloperName
+                        email = pomDeveloperEmail
+                    }
+                }
+
+                scm {
+                    connection = githubScmConnection
+                    url = pomScmUrl
+                }
+
+                withXml {
+                    def dependencies = asNode().appendNode("dependencies")
+
+                    configurations
+                            .getByName("releaseCompileClasspath")
+                            .resolvedConfiguration
+                            .firstLevelModuleDependencies.forEach {
+                        def dependency = dependencies.appendNode("dependency")
+                        dependency.appendNode("groupId", it.moduleGroup)
+                        dependency.appendNode("artifactId", it.moduleName)
+                        dependency.appendNode("version", it.moduleVersion)
+                    }
+                }
+            }
+        }
+    }
+}
