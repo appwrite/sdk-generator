@@ -22,8 +22,8 @@
     "build": "npm run build:types && npm run build:esm && npm run build:cjs && npm run build:iife",
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir types",
     "build:esm": "tsc --module es6 --outDir dist/esm",
-    "build:cjs": "rollup dist/esm/sdk.js --format cjs --name Appwrite -e cross-fetch/polyfill --context global -m --no-esModule -o dist/cjs/sdk.js",
-    "build:iife": "rollup dist/esm/sdk.js --format iife --name Appwrite -e cross-fetch/polyfill --context window -m --no-esModule -o dist/iife/sdk.js"
+    "build:cjs": "rollup dist/esm/sdk.js --format cjs --name Appwrite --context global -m --no-esModule -o dist/cjs/sdk.js",
+    "build:iife": "rollup dist/esm/sdk.js --format iife --name Appwrite --context window -m --no-esModule -o dist/iife/sdk.js"
   },
   "devDependencies": {
     "playwright": "^1.10.0",
