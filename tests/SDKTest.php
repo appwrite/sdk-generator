@@ -328,6 +328,7 @@ class SDKTest extends TestCase
                 if ($options['supportException']) {
                     $this->assertEquals('Mock 400 error',$output[12] ?? '');
                     $this->assertEquals('Server Error', $output[13] ?? '');
+                    $this->assertEquals('This is a text error', $output[14] ?? '');
                 }
             }
         }
