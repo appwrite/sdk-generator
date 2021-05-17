@@ -2,7 +2,7 @@ package {{ sdk.namespace | caseDot }}.services;
 
 {% macro parameter(parameter) %}
 {% if parameter.name == 'orderType' %}{{ 'OrderType orderType' }}{% else %}
-{{ parameter.type | typeName }} {{ parameter.name | caseCamel }}{{ parameter | escapeDollarSign | paramDefault }}{% endif %}
+{{ parameter.type | typeName }} {{ parameter.name | caseCamel }}{{ parameter | paramDefault | escapeDollarSign }}{% endif %}
 {% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ', ' }}{% endif %}{% endfor %}{% endif %}
