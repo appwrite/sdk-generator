@@ -162,6 +162,7 @@ class Client {
                 if(cookieFallback != null) {
                     print('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
                     prefs.setString('cookieFallback', cookieFallback);
+                    addHeader('X-Fallback-Cookies',cookieFallback);
                 }
             }
             return res;
