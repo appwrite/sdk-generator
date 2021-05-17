@@ -200,6 +200,13 @@ class Client
         $responseType       = '';
         $responseBody       = '';
 
+        $params = array_map(function ($param) {
+            if (is_string($param)) {
+                $param = \urldecode($param);
+            }
+            return $param;
+        }, $params);
+
         switch ($headers['content-type']) {
             case 'application/json':
                 $query = json_encode($params);
