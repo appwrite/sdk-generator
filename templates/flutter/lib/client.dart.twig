@@ -157,10 +157,12 @@ class Client {
             } else {
                 res = await http.request(path, data: params, options: options);
             }
-            final cookieFallback = res.headers.value('X-Fallback-Cookies');
-            if(cookieFallback != null) {
-                print('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
-                prefs.setString('cookieFallback', cookieFallback);
+            if(kIsWeb) {
+                final cookieFallback = res.headers.value('X-Fallback-Cookies');
+                if(cookieFallback != null) {
+                    print('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
+                    prefs.setString('cookieFallback', cookieFallback);
+                }
             }
             return res;
         } on DioError catch(e) {
