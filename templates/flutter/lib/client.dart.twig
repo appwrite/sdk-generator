@@ -146,9 +146,7 @@ class Client {
         try {
             if(headers['content-type'] == 'multipart/form-data') {
                 res = await http.request(path, data: FormData.fromMap(params, ListFormat.multiCompatible), options: options);
-            }
-
-            if (method == HttpMethod.get) {
+            } else if (method == HttpMethod.get) {
                 params.keys.forEach((key) {if (params[key] is int || params[key] is double) {
                 params[key] = params[key].toString();
                 }});
