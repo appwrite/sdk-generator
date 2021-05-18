@@ -6,6 +6,33 @@ type Headers = {
     [key: string]: string;
 }
 
+type RealtimeEvent = {
+    project: string;
+    permissions: string[];
+    data: string;
+}
+
+type RealtimeMessage = {
+    code?: number;
+    event: string;
+    channels: string[];
+    timestamp: number;
+    payload: unknown;
+}
+
+type RealtimeObject = {
+    socket?: WebSocket;
+    timeout?: number;
+    lastMessage?: RealtimeMessage;
+    channels: {
+        [key: string]: [
+            (payload: unknown) => () => void
+        ]
+    },
+    createSocket: () => void;
+    onMessage: (channel: string, callback: (payload: unknown) => void) => (event: RealtimeEvent) => void;
+}
+
 const FormData = typeof window === 'undefined' ? require('form-data') : window.FormData; 
 const fetch = typeof window === 'undefined' ? require('cross-fetch') : window.fetch; 
 
@@ -24,6 +51,7 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
 class {{ spec.title | caseUcfirst }} {
     config = {
         endpoint: '{{ spec.endpoint }}',
+        endpointRealtime: '',
 {% for header in spec.global.headers %}
         {{ header.key | caseLower }}: '',
 {% endfor %}
@@ -46,6 +74,20 @@ class {{ spec.title | caseUcfirst }} {
      */
     setEndpoint(endpoint: string): this {
         this.config.endpoint = endpoint;
+        this.config.endpointRealtime = this.config.endpointRealtime || this.config.endpoint.replace("https://", "wss://").replace("http://", "ws://");
+
+        return this;
+    }
+
+    /**
+     * Set Realtime Endpoint
+     *
+     * @param {string} endpointRealtime
+     *
+     * @returns {this}
+     */
+    setEndpointRealtime(endpointRealtime: string): this {
+        this.config.endpointRealtime = endpointRealtime;
 
         return this;
     }
@@ -69,6 +111,57 @@ class {{ spec.title | caseUcfirst }} {
     }
 
 {% endfor %}
+
+    private realtime: RealtimeObject = {
+        socket: undefined,
+        timeout: undefined,
+        channels: {},
+        lastMessage: undefined,
+        createSocket: () => {
+            const channels = new URLSearchParams();
+            channels.set('project', this.config.project);
+            for (const property in this.realtime.channels) {
+                channels.append('channels[]', property);
+            }
+            if (this.realtime.socket?.readyState === WebSocket.OPEN) {
+                this.realtime.socket.close();
+            }
+
+            this.realtime.socket = new WebSocket(this.config.endpointRealtime + '/realtime?' + channels.toString());
+
+            for (const channel in this.realtime.channels) {
+                this.realtime.channels[channel].forEach(callback => {
+                    this.realtime.socket?.addEventListener('message', callback);
+                });
+            }
+
+            this.realtime.socket.addEventListener('close', event => {
+                if (this.realtime?.lastMessage?.code === 1008) {
+                    return;
+                }
+                console.error('Realtime got disconnected. Reconnect will be attempted in 1 second.', event.reason);
+                setTimeout(() => {
+                    this.realtime.createSocket();
+                }, 1000);
+            })
+        },
+        onMessage: (channel, callback) =>
+            (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    this.realtime.lastMessage = data;
+
+                    if (data.channels && data.channels.includes(channel)) {
+                        callback(data);
+                    } else if (data.code) {
+                        throw data;
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+    }
+
     private async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<any> {
         method = method.toUpperCase();
         headers = {
