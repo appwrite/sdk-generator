@@ -51,11 +51,10 @@ class SDKTest extends TestCase
             'build' => [
                 'mkdir -p tests/sdks/dart/tests',
                 'cp tests/languages/dart/tests.dart tests/sdks/dart/tests/tests.dart',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.12 pub get',
             ],
             'envs' => [
-                'dart-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor dart:stable dart pub run tests/tests.dart',
-                'dart-beta' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor dart:beta dart pub run tests/tests.dart',
+                'dart-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart dart:stable sh -c "dart pub get && dart pub run tests/tests.dart"',
+                'dart-beta' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart dart:beta sh -c "dart pub get && dart pub run tests/tests.dart"',
             ],
             'supportException' => true,
         ],
