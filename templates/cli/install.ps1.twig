@@ -28,13 +28,13 @@ ${{ spec.title | upper }}_CLI_IMAGE_NAME = "{{ spec.title | lower }}/cli"
 ${{ spec.title | upper }}_CLI_IMAGE_VERSION = "{{ sdk.version }}"
 
 ${{ spec.title | upper }}_EXECUTABLE_CONTENT = @"
-$allowList = 'version', 'help', 'init', 'client' {% for service in spec.services %}, '{{ service.name }}'{% endfor %}
+`$allowList` = 'version', 'help', 'init', 'client' {% for service in spec.services %}, '{{ service.name }}'{% endfor %}
 
-if ( $args.count -eq 0 ) {
-    $args += 'help'
+if ( `$args.count` -eq 0 ) {
+    `$args` += 'help'
 }
 
-if ( -not ($allowList -contains $args[0])) {
+if ( -not (`$allowList` -contains `$args[0]`)) {
     Write-Host "Looks like a crazy hamster flipped a bit.`n`nUse {{ language.params.executableName }} help for a list of supported commands."
     exit 1
 }
