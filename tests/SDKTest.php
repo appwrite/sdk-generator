@@ -54,8 +54,8 @@ class SDKTest extends TestCase
                 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.12 pub get',
             ],
             'envs' => [
-                'dart-2.12' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.12 dart pub run tests/tests.dart',
-                'dart-2.13-dev' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.13-dev dart pub run tests/tests.dart',
+                'dart-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor dart:stable dart pub run tests/tests.dart',
+                'dart-beta' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor dart:beta dart pub run tests/tests.dart',
             ],
             'supportException' => true,
         ],
