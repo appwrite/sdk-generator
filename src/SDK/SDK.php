@@ -155,7 +155,7 @@ class SDK
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value) {
             return str_replace('$', '\$', $value);
-        }));
+        }, ['is_safe'=>['html']]));
         $this->twig->addFilter(new TwigFilter('paramsQuery', function ($value) {
             $query = '';
 
