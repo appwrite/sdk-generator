@@ -79,7 +79,7 @@ open class Client {
     ///
     open func addHeader(key: String, value: String) -> Client {
 
-        self.headers[key.lowercased()] = value.lowercased()
+        self.headers[key.lowercased()] = value
 
         return self
     }

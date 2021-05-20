@@ -23,7 +23,7 @@ class Client:
         return self
 
     def add_header(self, key, value):
-        self._global_headers[key.lower()] = value.lower()
+        self._global_headers[key.lower()] = value
         return self
 {% for header in spec.global.headers %}
 
