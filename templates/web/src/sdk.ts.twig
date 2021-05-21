@@ -214,7 +214,7 @@ class {{ spec.title | caseUcfirst }} {
             uri.search = query.toString();
 {% endif %}
 {% if method.type == 'webAuth' %}
-            if (window?.location) {
+            if (typeof window !== 'undefined' && window?.location) {
                 window.location.href = uri.toString();
             } else {
                 return uri;
