@@ -100,6 +100,7 @@ class Dart extends Language {
             "if",
             "set",
             "yield",
+            "required"
         ];
     }
 
@@ -124,8 +125,10 @@ class Dart extends Language {
             break;
             case self::TYPE_ARRAY:
             	return 'List';
-			case self::TYPE_OBJECT:
-				return 'Map';
+	        case self::TYPE_OBJECT:
+		        return 'Map';
+            case self::TYPE_NUMBER:
+                return 'double';
             break;
         }
 
