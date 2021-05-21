@@ -89,7 +89,6 @@ class {{ spec.title | caseUcfirst }} {
             for (const [key, value] of Object.entries(this.flatten(params))) {
                 url.searchParams.append(key, value);
             }
-            url.search = new URLSearchParams(this.flatten(params)).toString();
         } else {
             switch (headers['content-type']) {
                 case 'application/json':
