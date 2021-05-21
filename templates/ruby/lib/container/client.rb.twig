@@ -45,7 +45,7 @@ module {{spec.title | caseUcfirst}}
         end
         
         def add_header(key, value)
-            @headers[key.downcase] = value.downcase
+            @headers[key.downcase] = value
 
             return self
         end
