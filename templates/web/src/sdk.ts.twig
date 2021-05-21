@@ -210,7 +210,7 @@ class {{ spec.title | caseUcfirst }} {
 {% endfor %}
 {% endif %}
 
-            const query = new URLSearchParams(payload);
+            const query = new URLSearchParams(this.flatten(payload));
             uri.search = query.toString();
 {% endif %}
 {% if method.type == 'webAuth' %}
