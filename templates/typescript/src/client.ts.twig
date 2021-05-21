@@ -50,7 +50,7 @@ export class Client {
      * @param value string
      */
     addHeader(key: string, value: string): this {
-        this.headers[key.toLowerCase()] = value.toLowerCase();
+        this.headers[key.toLowerCase()] = value;
         
         return this;
     }
