@@ -8,7 +8,6 @@ class Client {
     bool selfSigned;
     bool initialized = false;
     Dio http;
-    PersistCookieJar cookieJar;
     Realtime _realtime = Realtime.instance;
     late PersistCookieJar cookieJar;
     late SharedPreferences _prefs;
@@ -82,7 +81,7 @@ class Client {
         if(!_realtime.channels.containsKey(channel)) {
           _realtime.channels[channel] = [];
         }
-        _realtime.channels[channel].add(controller);
+        _realtime.channels[channel]!.add(controller);
       });
       Future.delayed(Duration.zero, () => _realtime.createSocket());
       RTSub subscription = RTSub(
@@ -90,8 +89,8 @@ class Client {
         close: () {
           controller.close();
           channels.forEach((channel) {
-            _realtime.channels[channel].remove(controller);
-            if(_realtime.channels[channel].length < 1) {
+            _realtime.channels[channel]!.remove(controller);
+            if(_realtime.channels[channel]!.length < 1) {
               _realtime.channels.remove(channel);
             }
           });
