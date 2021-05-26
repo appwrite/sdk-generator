@@ -1,7 +1,13 @@
 # {{ spec.title }} {{sdk.name}} SDK
 
-![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?v=1)
-![Version](https://img.shields.io/badge/api%20version-{{ spec.version|url_encode }}-blue.svg?v=1)
+![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?style=flat-square)
+![Version](https://img.shields.io/badge/api%20version-{{ spec.version|url_encode }}-blue.svg?style=flat-square)
+{% if sdk.twitterHandle %}
+[![Twitter Account](https://img.shields.io/twitter/follow/{{ sdk.twitterHandle }}?color=00acee&label=twitter&style=flat-square)](https://twitter.com/{{ sdk.twitterHandle }})
+{% endif %}
+{% if sdk.discordChannel %}
+[![Discord](https://img.shields.io/discord/{{ sdk.discordChannel }}?label=discord&style=flat-square)]({{ sdk.discordUrl }})
+{% endif %}
 {% if sdk.warning %}
 
 {{ sdk.warning|raw }}
@@ -23,10 +29,10 @@ To install via [NPM](https://www.npmjs.com/):
 npm install {{ language.params.npmPackage }} --save
 ```
 
-If you're using a bundler (like [Browserify](http://browserify.org/) or [webpack](https://webpack.js.org/)), you can import the {{ spec.title }} module when you need it:
+If you're using a bundler (like [Rollup](https://rollupjs.org/) or [webpack](https://webpack.js.org/)), you can import the {{ spec.title }} module when you need it:
 
 ```js
-import * as {{ language.params.npmPackage|caseUcfirst }} from "{{ language.params.npmPackage }}";
+import {{ '{' }} {{ language.params.npmPackage|caseUcfirst }} {{ '}' }} from "{{ language.params.npmPackage }}";
 ```
 
 ### CDN
@@ -41,8 +47,6 @@ To install with a CDN (content delivery network) add the following scripts to th
 
 {{ sdk.gettingStarted|raw }}
 {% endif %}
-
-{{ sdk.readme|html }}
 
 ## Contribution
 

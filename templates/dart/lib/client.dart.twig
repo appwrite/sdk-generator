@@ -22,6 +22,7 @@ class Client {
         this.config = {};
 
         assert(endPoint.startsWith(RegExp("http://|https://")), "endPoint $endPoint must start with 'http'");
+        init();
     }
 
 
@@ -53,11 +54,9 @@ class Client {
         return this;
     }
 
-    Future init() async {
-        if(!initialized) {
+    void init() {
           this.http.options.baseUrl = this.endPoint;
           this.http.options.validateStatus = (status) => status! < 400;
-        }
     }
 
     Future<Response> call(HttpMethod method, {String path = '', Map<String, String> headers = const {}, Map<String, dynamic> params = const {}, ResponseType? responseType}) async {
@@ -68,8 +67,6 @@ class Client {
                 return client;
             };
         }
-
-        await this.init();
 
         // Origin is hardcoded for testing
         Options options = Options(
@@ -98,14 +95,18 @@ class Client {
             throw {{spec.title | caseUcfirst}}Exception(e.message);
           }
           if(responseType == ResponseType.bytes) {
-            if(e.response!.headers['content-type']?.contains('application/json') ?? false) {
+            if ((e.response!.headers.value('content-type') ?? '').contains('application/json')) {
               final res = json.decode(utf8.decode(e.response!.data));
               throw {{spec.title | caseUcfirst}}Exception(res['message'],res['code'], res);
             } else {
               throw {{spec.title | caseUcfirst}}Exception(e.message);
             }
           }
-          throw {{spec.title | caseUcfirst}}Exception(e.response?.data['message'],e.response?.data['code'], e.response?.data);
+          if ((e.response!.headers.value('content-type') ?? '').contains('application/json')) {
+            throw {{spec.title | caseUcfirst}}Exception(e.response!.data['message'],e.response!.data['code'], e.response!.data);
+          } else {
+            throw {{spec.title | caseUcfirst}}Exception(e.response!.data,e.response!.statusCode, e.response!.data);
+          }
         } catch(e) {
           throw {{spec.title | caseUcfirst}}Exception(e.toString());
         }

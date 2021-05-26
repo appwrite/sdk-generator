@@ -1,0 +1,29 @@
+package {{ sdk.namespace | caseDot }}.models
+
+{% macro parameter(parameter) %}
+{% if parameter.name == 'orderType' %}{{ 'val orderType: OrderType' }}{% else %}
+val {{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault | escapeDollarSign }}{% endif %}
+{% endmacro %}
+{% macro method_parameters(parameters) %}
+{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ', ' }}{% endif %}{% endfor %}{% endif %}
+{% endmacro %}
+{% macro map_parameter(parameter) %}
+{% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.name'}}{% else %}
+{{ parameter.name | caseCamel }}{% endif %}
+{% endmacro %}
+{% macro methodNeedsSecurityParameters(method) %}
+{% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
+{% endmacro %}
+
+{% macro response_parameters(method) %}
+{# TODO: Define how to get response parameters, to return strongly typed objects instead of JSON #}
+{% endmacro %}
+
+class {{ service.name | caseUcfirst }}Models() {
+{% for method in service.methods %}
+
+    data class {{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Request({{ _self.method_parameters(method.parameters) }}): Model()
+    data class {{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}Response({{ _self.response_parameters(method) }}): Model()
+
+{% endfor %}
+}

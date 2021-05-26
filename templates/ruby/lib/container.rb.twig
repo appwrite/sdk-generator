@@ -4,6 +4,7 @@ require 'json'
 require 'mime/types'
 require_relative '{{ spec.title | caseDash }}/client'
 require_relative '{{ spec.title | caseDash }}/service'
+require_relative '{{ spec.title | caseDash }}/exception'
 require_relative '{{ spec.title | caseDash }}/file'
 {% for service in spec.services %}
 require_relative '{{ spec.title | caseDash }}/services/{{ service.name | caseDash }}'

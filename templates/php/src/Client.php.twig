@@ -97,7 +97,7 @@ class Client
      */
     public function addHeader($key, $value)
     {
-        $this->headers[strtolower($key)] = strtolower($value);
+        $this->headers[strtolower($key)] = $value;
         
         return $this;
     }
@@ -187,7 +187,11 @@ class Client
         curl_close($ch);
 
         if($responseStatus >= 400) {
-            throw new {{spec.title | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody);
+            if(is_array($responseBody)) {
+                throw new {{spec.title | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody);
+            } else {
+                throw new {{spec.title | caseUcfirst}}Exception($responseBody, $responseStatus);
+            }
         }
 
 

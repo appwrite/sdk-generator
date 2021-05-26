@@ -9,8 +9,9 @@ void main() async {
   client.addHeader('Origin', 'http://localhost');
   client.setSelfSigned();
 
+  print('\nTest Started');
+  
   // Foo Tests
-
   Response response;
   response = await foo.get(x: 'string', y: 123, z: ['string in array']);
   print(response.data['result']);
@@ -61,6 +62,12 @@ void main() async {
 
   try {
     await general.error500();
+  } on AppwriteException catch(e) {
+    print(e.message);
+  }
+
+  try {
+    await general.error502();
   } on AppwriteException catch(e) {
     print(e.message);
   }

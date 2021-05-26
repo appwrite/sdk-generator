@@ -1,0 +1,122 @@
+package {{ sdk.namespace | caseDot }}.services
+
+{% macro parameter(parameter) %}
+{% if parameter.name == 'orderType' %}{{ 'orderType: OrderType = OrderType.ASC' }}{% else %}
+{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% endif %}
+{% endmacro %}
+{% macro method_parameters(parameters) %}
+{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% endif %}
+{% endmacro %}
+{% macro map_parameter(parameter) %}
+{% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.name'}}{% else %}
+{{ parameter.name | caseCamel }}{% endif %}
+{% endmacro %}
+{% macro methodNeedsSecurityParameters(method) %}
+{% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
+{% endmacro %}
+import android.net.Uri
+import {{ sdk.namespace | caseDot }}.Client
+{% if service.features.webAuth %}
+import {{ sdk.namespace | caseDot }}.WebAuthComponent
+import androidx.activity.ComponentActivity
+{% endif %}
+import {{ sdk.namespace | caseDot }}.enums.OrderType
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
+import okhttp3.Cookie
+import okhttp3.Response
+{% if (service.features.webAuth or service.features.location) %}
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
+{% endif %}
+import java.io.File
+
+class {{ service.name | caseUcfirst }}(private val client: Client) : BaseService(client) {
+
+{% for method in service.methods %}
+    /**
+     * {{ method.title }}
+     *
+{% if method.description %}
+{{ method.description|comment1 }}
+     *
+{% endif %}
+{% for parameter in method.parameters.all %}
+     * @param {{ parameter.name | caseCamel }}
+{% endfor %}
+     * @return The request response with a JSON body 
+     */
+    @JvmOverloads
+    @Throws({{ spec.title | caseUcfirst }}Exception::class)
+    suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ _self.method_parameters(method.parameters) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: Response{% endif %} {
+        val path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %}
+
+        val params = mapOf<String, Any?>(
+{% for parameter in method.parameters.query | merge(method.parameters.body) %}
+            "{{ parameter.name }}" to {{ _self.map_parameter(parameter) }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
+
+{% endfor %}
+{% if _self.methodNeedsSecurityParameters(method) %}
+{% for node in method.security %}
+{% for key,header in node|keys %}
+            "{{header|caseLower}}" to client.config["{{header|caseLower}}"]{% if not loop.last %},{% endif %}
+
+{% endfor %}{% endfor %}{% endif %}
+        )
+
+{% if method.type == 'webAuth' %}
+        val query = mutableListOf<String>()
+        params.forEach {
+            when (it.value) {
+                null -> {
+                    return@forEach
+                }
+                is List<*> -> {
+                    query.add("${it.key}[]=${it.value.toString()}")
+                }
+                else -> {
+                   query.add("${it.key}=${it.value.toString()}")
+                }
+            }
+        }
+
+        val url = Uri.parse("${client.endPoint}${path}?${query.joinToString("&")}")
+        val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.config["project"]}"
+
+        WebAuthComponent.authenticate(activity, url, callbackUrlScheme) {
+            if (it.isFailure) {
+                throw it.exceptionOrNull()!!
+            }
+
+            val resultUrl = it.getOrNull()!!
+            val uri = Uri.parse(resultUrl)
+            val key = uri.getQueryParameter("key")
+            val secret = uri.getQueryParameter("secret")
+            if (key == null || secret == null) {
+                throw {{ spec.title | caseUcfirst }}Exception("Authentication cookie missing!")
+            }
+            val cookie = Cookie.Builder()
+                .name(key)
+                .value(secret)
+                .domain(Uri.parse(client.endPoint).host!!)
+                .httpOnly()
+                .build()
+                
+            client.cookieJar.saveFromResponse(
+                client.endPoint.toHttpUrl(),
+                listOf(cookie)
+            )
+        }
+
+{% elseif method.type == 'location' %}
+        return client.call("{{ method.method | caseUpper }}", path, params = params)
+{% else %}
+        val headers = mapOf(
+{{ method.headers|map((header, key) => "            \"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
+        )
+
+        return client.call("{{ method.method | caseUpper }}", path, headers, params)
+{% endif %}
+    }
+    
+{% endfor %}
+}

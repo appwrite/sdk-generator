@@ -20,50 +20,38 @@ class Web extends JS {
         return [
             [
                 'scope'         => 'default',
-                'destination'   => 'src/sdk.js',
-                'template'      => '/web/src/sdk.js.twig',
+                'destination'   => 'src/sdk.ts',
+                'template'      => '/web/src/sdk.ts.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/sdk.min.js',
-                'template'      => '/web/src/sdk.js.twig',
-                'minify'        => true,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'README.md',
-                'template'      => '/web/README.md.twig',
+                'template'      => 'web/README.md.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
-                'template'      => '/web/CHANGELOG.md.twig',
+                'template'      => 'web/CHANGELOG.md.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
-                'template'      => '/web/LICENSE.twig',
+                'template'      => 'web/LICENSE.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'package.json',
-                'template'      => '/web/package.json.twig',
+                'template'      => 'web/package.json.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => '/web/docs/example.md.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'types/index.d.ts',
-                'template'      => '/web/types/index.d.ts.twig',
+                'template'      => 'web/docs/example.md.twig',
                 'minify'        => false,
             ],
             [
@@ -74,8 +62,26 @@ class Web extends JS {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'rollup.config.js',
+                'template'      => '/web/rollup.config.js.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'dist/cjs/package.json',
+                'template'      => '/web/dist/cjs/package.json.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'dist/esm/package.json',
+                'template'      => '/web/dist/esm/package.json.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '.travis.yml',
-                'template'      => '/web/.travis.yml.twig',
+                'template'      => 'web/.travis.yml.twig',
                 'minify'        => false,
             ],
         ];

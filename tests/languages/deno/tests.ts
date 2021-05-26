@@ -14,6 +14,8 @@ async function start() {
 
   client.addHeader('Origin', 'http://localhost')
 
+  console.log('\nTest Started');
+
   // Foo
 
   response = await foo.get('string', 123, ['string in array'])
@@ -80,6 +82,12 @@ async function start() {
 
   try {
     response = await general.error500();
+  }catch(error){
+    console.log(error.message);
+  }
+
+  try {
+    response = await general.error502();
   }catch(error){
     console.log(error.message);
   }

@@ -116,16 +116,15 @@ install() {
     fi
     printSuccess
     
-    echo '
-#!/bin/bash
+    echo '#!/bin/bash
 
-allowList=(help init client{% for service in spec.services %} {{ service.name }}{% endfor %})
+allowList=(version help init client{% for service in spec.services %} {{ service.name }}{% endfor %})
 
 if [[ -z $1 ]]; then 
     set -- "$@" help
 fi 
 
-# Check if the command is in the whitelist
+# Check if the command is in the allowList
 if [[ ! " ${allowList[@]} " =~ " ${1} " ]]; then
     printf "\nLooks like a crazy hamster 🐹 flipped a bit.\n\nUse {{ language.params.executableName }} help for a list of supported commands.\n"
     exit 1

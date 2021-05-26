@@ -19,13 +19,8 @@ class Client
 
     const USER_PREFERENCES_FILE = __DIR__."/../app/.preferences/.prefs.json";
     const PREFERENCE_ENDPOINT = "endpoint";
-
-    /**
-     * Is Self Signed Certificates Allowed?
-     *
-     * @var bool
-     */
-    private $selfSigned = false;
+    const PREFERENCE_SELF_SIGNED = "selfSigned";
+    const SELF_SIGNED_CERTIFICATE_ERROR_CODE = 18;
 
     /**
      * Global Headers
@@ -38,7 +33,7 @@ class Client
 {% for key,header in spec.global.defaultHeaders %}
         '{{key}}' => '{{header}}' {% if not loop.last %}, {% endif %}
 {% endfor %}
-];
+    ];
 
     /**
      * Default User Preferences
@@ -47,8 +42,9 @@ class Client
      */
     private $preferences = [
         self::PREFERENCE_ENDPOINT => '',
+        self::PREFERENCE_SELF_SIGNED => '',
 {% for header in spec.global.headers %}
-{% if header.key != 'Mode' %}
+{% if header.key != 'Mode' and header.key != 'JWT' %}
         '{{header.name}}' => '',
 {% endif %}
 {% endfor %}
@@ -63,10 +59,9 @@ class Client
             Console::error("❌ Oops We were unable to load your preferences. Ensure that you have run '{{ language.params.executableName }} init' before using the CLI");
             Console::exit();
         }
-
         $this
 {% for header in spec.global.headers %}
-{% if header.key != 'Mode' %}
+{% if header.key != 'Mode' and header.key != 'JWT' %}
             ->set{{header.key | caseUcfirst}}($this->preferences['{{header.name}}'])
 {% endif %}
 {% endfor %}
@@ -93,6 +88,8 @@ class Client
     public function setPreference(string $key , string $value) 
     {
         $this->preferences[$key] = $value;
+        
+        return $this;
     }
 
      /**
@@ -143,15 +140,15 @@ class Client
     private function isPreferenceLoaded() : bool {
         if(empty($this->getPreference(self::PREFERENCE_ENDPOINT))) return false;
 {% for header in spec.global.headers %}
-{% if header.key != 'Mode' %}
+{% if header.key != 'Mode' and header.key != 'JWT' %}
         if(empty($this->getPreference('{{header.name}}'))) return false;
 {% endif %}
 {% endfor %}
         return true;
     }
 
-
 {% for header in spec.global.headers %}
+{% if header.key != 'JWT' %}
     /**
      * Set {{header.key | caseUcfirst}}
      *
@@ -166,20 +163,18 @@ class Client
     public function set{{header.key | caseUcfirst}}($value)
     {
         $this->addHeader('{{header.name}}', $value);
-
         return $this;
     }
 
+{% endif %}
 {% endfor %}
-
-
     /**
      * @param $key
      * @param $value
      */
     public function addHeader($key, $value)
     {
-        $this->headers[strtolower($key)] = strtolower($value);
+        $this->headers[strtolower($key)] = $value;
         
         return $this;
     }
@@ -204,6 +199,13 @@ class Client
         $responseStatus     = -1;
         $responseType       = '';
         $responseBody       = '';
+
+        $params = array_map(function ($param) {
+            if (is_string($param)) {
+                $param = \urldecode($param);
+            }
+            return $param;
+        }, $params);
 
         switch ($headers['content-type']) {
             case 'application/json':
@@ -246,8 +248,12 @@ class Client
             curl_setopt($ch, CURLOPT_POSTFIELDS, $query);
         }
 
-        // Allow self signed certificates
-        if ($this->selfSigned) {
+        /**
+        * Allow self-signed certificates
+        * Default to false if no preference is found
+        */
+        $selfSigned = $this->getPreference(self::PREFERENCE_SELF_SIGNED) === 'true';
+        if ($selfSigned) {
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         }
@@ -263,7 +269,12 @@ class Client
         }
 
         if ((curl_errno($ch)/* || 200 != $responseStatus*/)) {
-            throw new Exception(curl_error($ch) . ' with status code ' . $responseStatus, $responseStatus);
+            // Self signed certificate error
+            if(curl_getinfo($ch, CURLINFO_SSL_VERIFYRESULT) === self::SELF_SIGNED_CERTIFICATE_ERROR_CODE) {
+                throw new Exception("Your server is using a self signed certificate. If you trust this domain, disable certificate check by running `appwrite client setSelfSigned --value=true`", $responseStatus);
+            } else {
+                 throw new Exception(curl_error($ch) . ' with status code ' . $responseStatus, $responseStatus);
+            }
         }
 
         curl_close($ch);
