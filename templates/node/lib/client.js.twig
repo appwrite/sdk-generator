@@ -67,7 +67,7 @@ class Client {
         return this;
     }
       
-    async call(method, path = '', headers = {}, params = {}) {
+    async call(method, path = '', headers = {}, params = {}, responseType = 'json') {
         if(this.selfSigned) { // Allow self signed requests
             process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
         }
@@ -102,7 +102,8 @@ class Client {
             params: (method.toUpperCase() === 'GET') ? params : {},
             headers: headers,
             data: (method.toUpperCase() === 'GET' || contentType.startsWith('multipart/form-data')) ? formData : params,
-            json: (contentType.startsWith('application/json'))
+            json: (contentType.startsWith('application/json')),
+            responseType: responseType
         };
         try {
             let response = await axios(options);
