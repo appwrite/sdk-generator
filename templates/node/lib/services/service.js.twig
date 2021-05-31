@@ -17,7 +17,7 @@ class {{ service.name | caseUcfirst }} extends Service {
      * @throws Exception
      * @return {}
      */
-    async {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not parameter.required %} = undefined{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) {
+    async {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}) {
         let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel }}){% endfor %};
         let payload = {};
 {% for parameter in method.parameters.all %}
