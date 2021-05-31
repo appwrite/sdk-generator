@@ -1,4 +1,5 @@
 const Service = require('../service.js');
+const AppwriteException = require('../exception.js');
 
 class {{ service.name | caseUcfirst }} extends Service {
 {% for method in service.methods %}
