@@ -16,27 +16,27 @@ class {{ service.name | caseUcfirst }} extends Service {
      * @throws Exception
      * @return {}
      */
-    async {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) {
+    async {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not parameter.required %} = undefined{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) {
         let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel }}){% endfor %};
-        
+        let payload = {};
+{% for parameter in method.parameters.all %}
+
+        if ({{ parameter.name | caseCamel }} !== undefined) {
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
+        }{% if parameter.required %} else {
+            throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel }}"');
+        }{% endif %}
+
+{% endfor %}
+
         return await this.client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
-                    '{{ parameter.name }}': ${{ parameter.name | caseCamel }},
+            '{{ parameter.name }}': ${{ parameter.name | caseCamel }},
 {% endfor %}
 {% for key, header in method.headers %}
-                    '{{ key }}': '{{ header }}',
+            '{{ key }}': '{{ header }}',
 {% endfor %}
-               },
-               {
-{% for parameter in method.parameters.query %}
-                '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %},{% endif %}
-
-{% endfor %}
-{% for parameter in method.parameters.body %}
-                '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %},{% endif %}
-
-{% endfor %}
-            }{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+        }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
     }
 {% endfor %}
 }
