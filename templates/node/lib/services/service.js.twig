@@ -12,10 +12,11 @@ class {{ service.name | caseUcfirst }} extends Service {
      *
 {% endif %}
 {% for parameter in method.parameters.all %}
-     * @param {{ parameter.type | typeName }} {{ parameter.name | caseCamel }}
+     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
-     * @throws Exception
-     * @return {}
+     * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
+     * @returns {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
+
      */
     async {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}) {
         let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel }}){% endfor %};

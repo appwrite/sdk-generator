@@ -57,9 +57,9 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
      *
 {% endif %}
 {% for parameter in method.parameters.all %}
-     * @param {{"{"}}{{ parameter.type | typeName }}{{"}"}} {{ parameter.name | caseCamel }}
+     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
-     * @throws Exception
+     * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
 
      */

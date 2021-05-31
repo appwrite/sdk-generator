@@ -29,7 +29,7 @@ class Client {
      *
      * @return self
      */
-    set{{header.key | caseUcfirst}}({{header.key}}) {
+    set{{header.key | caseUcfirst}}({{header.key | caseLower}}) {
         this.addHeader('{{header.name}}', {{header.key | caseLower}});
 
         return this;
