@@ -174,7 +174,7 @@ class Client
      */
     public function addHeader($key, $value)
     {
-        $this->headers[strtolower($key)] = strtolower($value);
+        $this->headers[strtolower($key)] = $value;
         
         return $this;
     }
@@ -199,6 +199,13 @@ class Client
         $responseStatus     = -1;
         $responseType       = '';
         $responseBody       = '';
+
+        $params = array_map(function ($param) {
+            if (is_string($param)) {
+                $param = \urldecode($param);
+            }
+            return $param;
+        }, $params);
 
         switch ($headers['content-type']) {
             case 'application/json':

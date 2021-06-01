@@ -264,7 +264,7 @@ class SDKTest extends TestCase
                 ->setLicenseContent('demo license')
                 ->setChangelog('--changelog--')
                 ->setDefaultHeaders([
-                    'X-Appwrite-Response-Format' => '0.7.0',
+                    'X-Appwrite-Response-Format' => '0.8.0',
                 ])
             ;
 
@@ -338,6 +338,7 @@ class SDKTest extends TestCase
                 if ($options['supportException']) {
                     $this->assertEquals('Mock 400 error',$output[12] ?? '');
                     $this->assertEquals('Server Error', $output[13] ?? '');
+                    $this->assertEquals('This is a text error', $output[14] ?? '');
                 }
             }
         }

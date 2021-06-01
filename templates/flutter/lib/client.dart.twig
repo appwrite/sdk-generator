@@ -9,6 +9,7 @@ class Client {
     bool initialized = false;
     Dio http;
     late PersistCookieJar cookieJar;
+    late SharedPreferences _prefs;
 
     Client({this.endPoint = '{{spec.endpoint}}', this.selfSigned = false, Dio? http}) : this.http = http ?? Dio() {
         // Platform is not supported in web so if web, set type to web automatically and skip Platform check
@@ -110,6 +111,8 @@ class Client {
             addHeader('user-agent', '${packageInfo.appName}/${packageInfo.version} $device');
         } else {
             // if web set withCredentials true to make cookies work
+            _prefs = await SharedPreferences.getInstance();
+            addHeader('X-Fallback-Cookies', _prefs.getString('cookieFallback') ?? '');
             this.http.options.extra['withCredentials'] = true;
         }
 
@@ -131,6 +134,12 @@ class Client {
             await this.init();
         }
 
+        params.keys.forEach((key) {
+          if (params[key] == null) {
+            params.remove(key);
+          }
+        });
+
         // Origin is hardcoded for testing
         Options options = Options(
             headers: {...this.headers!, ...headers},
@@ -139,20 +148,28 @@ class Client {
             listFormat: ListFormat.multiCompatible
         );
 
+        late Response res;
         try {
             if(headers['content-type'] == 'multipart/form-data') {
-                return await http.request(path, data: FormData.fromMap(params, ListFormat.multiCompatible), options: options);
-            }
-
-            if (method == HttpMethod.get) {
+                res = await http.request(path, data: FormData.fromMap(params, ListFormat.multiCompatible), options: options);
+            } else if (method == HttpMethod.get) {
                 params.keys.forEach((key) {if (params[key] is int || params[key] is double) {
                 params[key] = params[key].toString();
                 }});
                 
-                return await http.get(path, queryParameters: params, options: options);
+                res = await http.get(path, queryParameters: params, options: options);
             } else {
-                return await http.request(path, data: params, options: options);
+                res = await http.request(path, data: params, options: options);
             }
+            if(kIsWeb) {
+                final cookieFallback = res.headers.value('X-Fallback-Cookies');
+                if(cookieFallback != null) {
+                    print('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
+                    addHeader('X-Fallback-Cookies',cookieFallback);
+                    _prefs.setString('cookieFallback', cookieFallback);
+                }
+            }
+            return res;
         } on DioError catch(e) {
           if(e.response == null) {
             throw {{spec.title | caseUcfirst}}Exception(e.message);

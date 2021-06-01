@@ -36,7 +36,7 @@ class {{ service.name | caseUcfirst }} extends Service {
                 '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %},{% endif %}
 
 {% endfor %}
-            });
+            }{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
     }
 {% endfor %}
 }

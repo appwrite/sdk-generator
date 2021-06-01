@@ -67,3 +67,8 @@ try:
     response = general.error500()
 except AppwriteException as e:
     print(e.message)
+
+try:
+    response = general.error502()
+except AppwriteException as e:
+    print(e.message)

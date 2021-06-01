@@ -2,7 +2,7 @@ part of {{ language.params.packageName }};
 
 {% macro parameter(parameter) %}
 {% if parameter.name == 'orderType' %}{% if parameter.required %}required {% endif %}{{ 'OrderType orderType = OrderType.asc' }}{% else %}
-{% if parameter.required %}required {% endif %}{{ parameter.type | typeName }} {{ parameter.name | caseCamel }}{{ parameter | escapeDollarSign | paramDefault }}{% endif %}
+{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel }}{% if parameter.required %}{{ parameter | paramDefault | escapeDollarSign }}{% endif %}{% endif %}
 {% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}

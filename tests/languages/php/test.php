@@ -73,3 +73,9 @@ try {
 } catch (AppwriteException $e) {
     echo "{$e->getMessage()}\n";
 }
+
+try {
+    $response = $general->error502();
+} catch (AppwriteException $e) {
+    echo "{$e->getMessage()}\n";
+}
