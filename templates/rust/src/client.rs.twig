@@ -171,11 +171,19 @@ impl Client {
                 if data.status().is_success() {
                     Ok(data)    
                 } else {
+                    let dataString = match data.text() {
+                      Ok(data) => {data},
+                      Err(err) => {
+                        // Last Resort. Called if string isn't even readable text.
+                        return Err({{spec.title | caseUcfirst}}Exception::new(format!("A error occoured. ERR: {}, This could either be a connection error or an internal Appwrite error. Please check your Appwrite instance logs. ", err), 0, "".to_string()))
+                      }
+                    };
+
                     // Format error
-                    Err(match data.json() {
+                    Err(match serde_json::from_str(&dataString) {
                         Ok(data) => data,
-                        Err(err) => {
-                            {{spec.title | caseUcfirst}}Exception::new(format!("A error occoured. ERR: {}, This could either be a connection error or an internal Appwrite error. Please check your Appwrite instance logs. ", err), 0, "".to_string())
+                        Err(_err) => {
+                            {{spec.title | caseUcfirst}}Exception::new(format!("{}", dataString), 0, "".to_string())
                         }
                     })
                 }

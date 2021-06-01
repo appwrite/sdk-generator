@@ -73,4 +73,9 @@ fn main() {
       Ok(data) => println!("{}", data.text().unwrap()),
       Err(err) => println!("{}", err.message)
     }
+
+    match general.error502() {
+      Ok(data) => println!("{}", data.text().unwrap()),
+      Err(err) => println!("{}", err.message)
+    }
 }
