@@ -5,6 +5,37 @@ namespace Appwrite\SDK\Language;
 class Flutter extends Dart {
 
     /**
+     * @param $type
+     * @return string
+     */
+    public function getTypeName($type)
+    {
+        switch ($type) {
+            case self::TYPE_INTEGER:
+                return 'int';
+            break;
+            case self::TYPE_STRING:
+                return 'String';
+            break;
+            case self::TYPE_FILE:
+                return 'FileInput';
+            break;
+            case self::TYPE_BOOLEAN:
+                return 'bool';
+            break;
+            case self::TYPE_ARRAY:
+            	return 'List';
+			case self::TYPE_OBJECT:
+				return 'Map';
+            case self::TYPE_NUMBER:
+                return 'double';
+            break;
+        }
+
+        return $type;
+    }
+
+    /**
      * @var array
      */
     protected $params = [
