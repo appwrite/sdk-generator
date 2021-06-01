@@ -1,0 +1,70 @@
+declare module "{{ language.params.npmPackage|caseDash }}" {
+  export class Client {
+    /**
+     * Set endpoint.
+     *
+     * @param {string} endpoint
+     *
+     * @return {this}
+     */
+    setEndpoint(endpoint: string): Client;
+
+    /**
+     * Set self signed.
+     *
+     * @param {bool} status
+     *
+     * @return {this}
+     */
+    setSelfSigned(status?: boolean): Client;
+{% for header in spec.global.headers %}
+
+    /**
+     * Set {{header.key | caseUcfirst}}
+     *
+{% if header.description %}
+     * {{header.description}}
+     *
+{% endif %}
+     * @param {string} value
+     *
+     * @returns {this}
+     */
+    set{{header.key | caseUcfirst}}({{header.key | caseLower}}: string): Client;
+{% endfor %}
+  }
+
+  export class AppwriteException extends Error {
+    public code: number | null;
+    public response: string | null;
+    constructor(message: string, code?: number, response?: string);
+  }
+
+  export class Service {
+    public client: Client;
+    constructor(client: Client);
+  }
+
+{% for service in spec.services %}
+  export class {{ service.name | caseUcfirst }} extends Service {
+{% for method in service.methods %}
+
+    /**
+     * {{ method.title }}
+     *
+{% if method.description %}
+{{ method.description|comment1 }}
+     *
+{% endif %}
+{% for parameter in method.parameters.all %}
+     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
+{% endfor %}
+     * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
+     * @returns {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
+
+     */
+    {{ method.name | caseCamel }}{% if method.type != 'location' %}<T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not parameter.required %}?{% endif %}: {% if parameter.type == 'array' %}{{attribute(parameter, 'array').type}}[]{% else %}{{ parameter.type | typeName }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'location' %}string{% else %}Promise<T>{% endif %};
+{% endfor %}
+  }
+{% endfor %}
+}
