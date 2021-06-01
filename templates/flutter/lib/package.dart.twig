@@ -1,7 +1,9 @@
 library {{ language.params.packageName }};
 
-import 'dart:io' as io;
+import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:dio/dio.dart';
