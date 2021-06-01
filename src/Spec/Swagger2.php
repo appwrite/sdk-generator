@@ -149,9 +149,11 @@ class Swagger2 extends Spec {
                     $responses = $method['responses'];
                     $responseModel = '';
                     foreach($responses as $code => $desc) {
-                        $responseModel = $desc['schema']['$ref'];
-                        if(!empty($responseModel)) {
-                            $responseModel = substr($responseModel,14);
+                        if(isset($desc['schema']) && isset($desc['schema']['$ref'])) {
+                            $responseModel = $desc['schema']['$ref'];
+                            if(!empty($responseModel)) {
+                                $responseModel = substr($responseModel,14);
+                            }
                         }
                     }
 
@@ -290,9 +292,9 @@ class Swagger2 extends Spec {
             if($key == 'any' || $key == 'error') continue;
             $sch = [
                 "name" => $key,
-                "properties"=> $schema['properties'],
-                "required" => $schema['required'],
-                "additionalProperties" => $schema['additionalProperties']
+                "properties"=> $schema['properties'] ?? [],
+                "required" => $schema['required'] ?? [],
+                "additionalProperties" => $schema['additionalProperties'] ?? []
             ];
             if(isset($sch['properties'])) {
                 foreach($sch['properties'] as $name => $def) {
