@@ -289,7 +289,7 @@ class Swagger2 extends Spec {
         $list = [];
         $definition = $this->getAttribute('definitions',[]);
         foreach ($definition as $key => $schema) {
-            if($key == 'any' || $key == 'error') continue;
+            if($key == 'any') continue;
             $sch = [
                 "name" => $key,
                 "properties"=> $schema['properties'] ?? [],
@@ -304,7 +304,7 @@ class Swagger2 extends Spec {
                         //nested model
                         $sch['properties'][$name]['sub_schema'] = substr($def['items']['$ref'],14);
                     }
-                }
+            }
             }
             $list[$key] = $sch;
         }
