@@ -100,7 +100,7 @@ class Dart extends Language {
             "if",
             "set",
             "yield",
-            "required",
+            "required"
         ];
     }
 

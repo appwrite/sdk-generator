@@ -65,3 +65,9 @@ begin
 rescue Appwrite::Exception => error
     puts error.message
 end
+
+begin
+    response = general.error502()
+rescue Appwrite::Exception => error
+    puts error.message
+end

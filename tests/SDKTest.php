@@ -86,6 +86,19 @@ class SDKTest extends TestCase
             'supportException' => false,
         ], */
 
+        'kotlin' => [
+            'class' => 'Appwrite\SDK\Language\Kotlin',
+            'build' => [
+                'mkdir -p tests/sdks/kotlin/src/test/java/io/appwrite/services',
+                'cp tests/languages/kotlin/ServiceTest.kt tests/sdks/kotlin/src/test/java/io/appwrite/services/ServiceTest.kt',
+            ],
+            'envs' => [
+                'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-8-slim mvn clean install test -q',
+                'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-11-slim mvn clean install test -q',
+            ],
+            'supportException' => false,
+        ],
+
         'dotnet' => [
             'class' => 'Appwrite\SDK\Language\DotNet',
             'build' => [
@@ -97,6 +110,24 @@ class SDKTest extends TestCase
             'envs' => [
                 'dotnet-5.0' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:5.0-alpine pwsh tests.ps1',
                 'dotnet-3.1' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:3.1-alpine pwsh tests.ps1',
+            ],
+            'supportException' => true,
+        ],
+
+        'web' => [
+            'class' => 'Appwrite\SDK\Language\Web',
+            'build' => [
+                'cp tests/languages/web/tests.js tests/sdks/web/tests.js',
+                'cp tests/languages/web/node.js tests/sdks/web/node.js',
+                'cp tests/languages/web/index.html tests/sdks/web/index.html',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic npm install', //  npm list --depth 0 &&
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic npm run build',
+            ],
+            'envs' => [
+                'chromium' => 'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node tests.js',
+                'firefox' => 'docker run --rm -v $(pwd):/app -e BROWSER=firefox -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node tests.js',
+                'webkit' => 'docker run --rm -v $(pwd):/app -e BROWSER=webkit -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node tests.js',
+                'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node node.js',
             ],
             'supportException' => true,
         ],
@@ -200,7 +231,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart', 'flutter'];
+        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart', 'flutter', 'web'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
@@ -223,7 +254,7 @@ class SDKTest extends TestCase
                 ->setLicenseContent('demo license')
                 ->setChangelog('--changelog--')
                 ->setDefaultHeaders([
-                    'X-Appwrite-Response-Format' => '0.7.0',
+                    'X-Appwrite-Response-Format' => '0.8.0',
                 ])
             ;
 
@@ -291,12 +322,13 @@ class SDKTest extends TestCase
                 $this->assertEquals('PUT:/v1/mock/tests/bar:passed', $output[7] ?? '');
                 $this->assertEquals('PATCH:/v1/mock/tests/bar:passed', $output[8] ?? '');
                 $this->assertEquals('DELETE:/v1/mock/tests/bar:passed', $output[9] ?? '');
-                $this->assertEquals('GET:/v1/mock/tests/general/redirect/done:passed', $output[10]);
-                $this->assertEquals($output[11], 'POST:/v1/mock/tests/general/upload:passed');
+                $this->assertEquals('GET:/v1/mock/tests/general/redirect/done:passed', $output[10] ?? '');
+                $this->assertEquals('POST:/v1/mock/tests/general/upload:passed', $output[11] ?? '');
 
                 if ($options['supportException']) {
-                    $this->assertEquals($output[12], 'Mock 400 error');
-                    $this->assertEquals($output[13], 'Server Error');
+                    $this->assertEquals('Mock 400 error',$output[12] ?? '');
+                    $this->assertEquals('Server Error', $output[13] ?? '');
+                    $this->assertEquals('This is a text error', $output[14] ?? '');
                 }
             }
         }

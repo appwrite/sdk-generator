@@ -44,7 +44,7 @@ class Client
         self::PREFERENCE_ENDPOINT => '',
         self::PREFERENCE_SELF_SIGNED => '',
 {% for header in spec.global.headers %}
-{% if header.key != 'Mode' %}
+{% if header.key != 'Mode' and header.key != 'JWT' %}
         '{{header.name}}' => '',
 {% endif %}
 {% endfor %}
@@ -61,7 +61,7 @@ class Client
         }
         $this
 {% for header in spec.global.headers %}
-{% if header.key != 'Mode' %}
+{% if header.key != 'Mode' and header.key != 'JWT' %}
             ->set{{header.key | caseUcfirst}}($this->preferences['{{header.name}}'])
 {% endif %}
 {% endfor %}
@@ -140,15 +140,15 @@ class Client
     private function isPreferenceLoaded() : bool {
         if(empty($this->getPreference(self::PREFERENCE_ENDPOINT))) return false;
 {% for header in spec.global.headers %}
-{% if header.key != 'Mode' %}
+{% if header.key != 'Mode' and header.key != 'JWT' %}
         if(empty($this->getPreference('{{header.name}}'))) return false;
 {% endif %}
 {% endfor %}
         return true;
     }
 
-
 {% for header in spec.global.headers %}
+{% if header.key != 'JWT' %}
     /**
      * Set {{header.key | caseUcfirst}}
      *
@@ -163,20 +163,18 @@ class Client
     public function set{{header.key | caseUcfirst}}($value)
     {
         $this->addHeader('{{header.name}}', $value);
-
         return $this;
     }
 
+{% endif %}
 {% endfor %}
-
-
     /**
      * @param $key
      * @param $value
      */
     public function addHeader($key, $value)
     {
-        $this->headers[strtolower($key)] = strtolower($value);
+        $this->headers[strtolower($key)] = $value;
         
         return $this;
     }
@@ -201,6 +199,13 @@ class Client
         $responseStatus     = -1;
         $responseType       = '';
         $responseBody       = '';
+
+        $params = array_map(function ($param) {
+            if (is_string($param)) {
+                $param = \urldecode($param);
+            }
+            return $param;
+        }, $params);
 
         switch ($headers['content-type']) {
             case 'application/json':

@@ -6,7 +6,7 @@ require_once './vendor/autoload.php';
 
 use Exception;
 use Utopia\CLI\CLI;
-use Utopia\Validator\Mock;
+use Utopia\Validator\Wildcard;
 use Utopia\CLI\Console;
 use {{ spec.title | caseUcfirst }}\Parser;
 
@@ -21,7 +21,7 @@ const PREFERENCE_ENDPOINT = "endpoint";
 $preferences = [
     PREFERENCE_ENDPOINT => '',
 {% for header in spec.global.headers %}
-{% if header.key != 'Mode' %}
+{% if header.key != 'Mode' and header.key != 'JWT' %}
     '{{header.name}}' => '',
 {% endif %}
 {% endfor %}
@@ -40,7 +40,7 @@ function loadEnvVariables(): bool
         setPreference(PREFERENCE_ENDPOINT, $endpoint);
 
 {% for header in spec.global.headers %}
-{% if header.key != 'Mode' %}
+{% if header.key != 'Mode' and header.key != 'JWT' %}
         ${{ header.key | caseCamel }} = getenv('{{ header.name}}') ?: '';
         setPreference('{{ header.name }}', ${{ header.key | caseCamel }});
 
@@ -68,7 +68,7 @@ function loadEnvVariables(): bool
 function isPreferenceLoaded() : bool {
     if(empty(getPreference(PREFERENCE_ENDPOINT))) return false;
 {% for header in spec.global.headers %}
-{% if header.key != 'Mode' %}
+{% if header.key != 'Mode' and header.key != 'JWT' %}
     if(empty(getPreference('{{header.name}}'))) return false;
 {% endif %}
 {% endfor %}
@@ -167,19 +167,24 @@ $cli->
 
 $cli
     ->task('init')
-    ->label('description', "The init command is used to initialise your CLI\n")
-    ->param('endpoint', '', new Mock(), 'Your {{ spec.title | caseUcfirst }} endpoint', true)
+    ->label('description', "The init command is used to initialize your CLI\n")
+    ->param('endpoint', '', new Wildcard(), 'Your {{ spec.title | caseUcfirst }} endpoint', true)
 {% for header in spec.global.headers %}
-    ->param('{{ header.key | lower }}', '', new Mock(), '{{ header.description }}', true)
+{% if header.key != 'JWT' %}
+    ->param('{{ header.key | lower }}', '', new Wildcard(), '{{ header.description }}', true)
+{% endif %}
 {% endfor %}
-    ->action(function( $endpoint, {% for header in spec.global.headers %} ${{ header.key | lower }}{% if not loop.last %},{% endif %}{% endfor %} ) {
-        /* Check if enviroment variables exist
+    ->action(function( $endpoint,{% for header in spec.global.headers %}{% if header.key != 'JWT' %} ${{ header.key | lower }}{% if not loop.last %},{% endif %}{% endif %}{% endfor %} ) {
+        /* 
+        * Check if environment variables exist
         * Else prompt the user
         */
         
         putenv("endpoint=$endpoint");
 {% for header in spec.global.headers %}
+{% if header.key != 'JWT' %}
         putenv("{{ header.name }}=${{ header.key | lower }}");
+{% endif %}
 {% endfor %}
 
         if (!loadEnvVariables()) {

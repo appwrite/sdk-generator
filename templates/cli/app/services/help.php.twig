@@ -16,6 +16,8 @@ $commands = [
 {% for service in spec.services %}
         "{{ service.name }}" => "{{ service.description | replace({'"':'\''}) | raw }}",
 {% endfor %}
+        "client" => "The Client service allows you to set preferences of your Appwrite CLI",
+        "init" => "Init allows you to reset your Appwrite CLI."
         ];
 $parser->formatArray($commands);
 Console::log("\nRun '{{ language.params.executableName }} [SERVICE] help' for more information on a service.");

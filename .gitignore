@@ -11,3 +11,4 @@ examples/*
 
 # exception to the rule
 !examples/.gitkeep 
+.DS_Store

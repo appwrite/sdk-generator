@@ -1,1 +1,1 @@
-{{ language.params.executableName }} {{ service.name }} {{ method.name }} {% for parameter in method.parameters.all %}{% if parameter.type == 'array' %}"--{{ parameter.name }}[]={{ parameter.example }}"{% else %}--{{ parameter.name }}="{{ parameter.example }}"{% endif %} {% endfor %}
+{{ language.params.executableName }} {{ service.name }} {{ method.name }} {% for parameter in method.parameters.all %}--{{ parameter.name }}="{{ parameter.example }}" {% endfor %}

@@ -65,6 +65,13 @@ $response = $general.Upload("string", 123, $list, (Get-Item "../../../../resourc
 Print-Response $response.GetResult()
 
 try {
+    $response = $general.Empty() | Await-Task
+    $response.GetResult() | Out-Null
+} catch [Appwrite.AppwriteException] {
+    Write-Host $_.Exception.Message
+}
+
+try {
     $response = $general.Error400() | Await-Task
     $response.GetResult()
 } catch [Appwrite.AppwriteException] {
@@ -73,6 +80,13 @@ try {
 
 try {
     $response = $general.Error500() | Await-Task
+    $response.GetResult()
+} catch [Appwrite.AppwriteException] {
+    Write-Host $_.Exception.Message
+}
+
+try {
+    $response = $general.Error502() | Await-Task
     $response.GetResult()
 } catch [Appwrite.AppwriteException] {
     Write-Host $_.Exception.Message
