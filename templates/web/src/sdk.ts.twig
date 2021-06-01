@@ -178,18 +178,29 @@ class {{ spec.title | caseUcfirst }} {
 
          */
         {{ method.name | caseCamel }}: {% if method.type != "location" and method.type != 'webAuth'%}async <T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void | URL{% elseif method.type == 'location' %}URL{% else %}Promise<T>{% endif %} => {
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+            if ({{ parameter.name | caseCamel }} === undefined) {
+                throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel }}"');
+            }
+
+{% endif %}
+{% endfor %}
             let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel }}){% endfor %};
             let payload: Payload = {};
-{% for parameter in method.parameters.all %}
 
-            if (typeof {{ parameter.name | caseCamel }} !== 'undefined') {
+{% for parameter in method.parameters.query %}
+            if ({{ parameter.name | caseCamel }}) {
                 payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
-            }{% if parameter.required %} else {
-                throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel }}"');
-            }{% endif %}
+            }
 
 {% endfor %}
+{% for parameter in method.parameters.body %}
+            if (typeof {{ parameter.name | caseCamel }} !== 'undefined') {
+                payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
+            }
 
+{% endfor %}
             const uri = new URL(this.config.endpoint + path);
 {% if method.type == 'location' or method.type == 'webAuth' %}
 {% if method.security|length > 0 %}
