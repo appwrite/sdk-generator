@@ -13,49 +13,49 @@ void main() async {
   // Foo Tests
   print('\nTest Started');
 
-  Response response;
+  var response;
   response = await foo.get(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+  print(response.result);
 
   response = await foo.post(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+  print(response.result);
 
   response = await foo.put(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+  print(response.result);
 
   response = await foo.patch(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+  print(response.result);
 
   response = await foo.delete(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+  print(response.result);
 
   // Bar Tests
 
   response = await bar.get(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+  print(response.result);
 
   response = await bar.post(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+  print(response.result);
 
   response = await bar.put(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+  print(response.result);
 
   response = await bar.patch(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+  print(response.result);
 
   response = await bar.delete(x: 'string', y: 123, z: ['string in array']);
-  print(response.data['result']);
+  print(response.result);
 
   // General Tests
 
   response = await general.redirect();
-  print(response.data['result']);
+  print(response["result"]);
 
-  final file = await MultipartFile.fromFile('../../resources/file.png',
+  final file = await FileInput.fromFile('../../resources/file.png',
       filename: 'file.png');
   response = await general.upload(
       x: 'string', y: 123, z: ['string in array'], file: file);
-  print(response.data['result']);
+  print(response.result);
 
   try {
     await general.error400();
@@ -76,8 +76,8 @@ void main() async {
   }
 
   // response = await general.setCookie();
-  // print(response.data['result']);
+  // print(response.result);
 
   // response = await general.getCookie();
-  // print(response.data['result']);
+  // print(response.result);
 }
