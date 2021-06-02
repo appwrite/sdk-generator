@@ -95,9 +95,9 @@ class Deno extends JS
                 return 'boolean';
             break;
             case self::TYPE_ARRAY:
-            	return 'Array<any>';
+            	return 'string[]';
 			case self::TYPE_OBJECT:
-				return 'DocumentData';
+				return 'object';
             break;
         }
 
