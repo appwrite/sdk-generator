@@ -54,6 +54,9 @@ void main() async {
   response = await general.upload(x:'string',y: 123,z:['string in array'], file: file);
   print(response.data['result']);
 
+  response = await general.download();
+  print(response);
+
   try {
     await general.error400();
   } on AppwriteException catch(e) {

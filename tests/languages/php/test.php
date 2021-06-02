@@ -62,6 +62,9 @@ echo "{$response['result']}\n";
 $response = $general->upload('string', 123, ['string in array'], new \CURLFile(__DIR__ . '/../../resources/file.png', 'image/png', 'file.png'));
 echo "{$response['result']}\n";
 
+$response = $general->download();
+echo "{$response}\n";
+
 try {
     $response = $general->error400();
 } catch (AppwriteException $e) {

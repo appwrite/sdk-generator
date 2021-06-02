@@ -63,6 +63,9 @@
             );
             console.log(response.result);
 
+            response = sdk.general.download() instanceof URL ? "Download test passed." : "Download test failed.";
+            console.log(response);
+
             try {
                 response = await sdk.general.empty();
             } catch (error) {

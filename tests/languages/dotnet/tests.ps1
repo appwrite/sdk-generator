@@ -64,6 +64,9 @@ Print-Response $response.GetResult()
 $response = $general.Upload("string", 123, $list, (Get-Item "../../../../resources/file.png"))  | Await-Task
 Print-Response $response.GetResult()
 
+$response = $general.Download() | Await-Task
+Print-Response $response.GetResult()
+
 try {
     $response = $general.Empty() | Await-Task
     $response.GetResult() | Out-Null

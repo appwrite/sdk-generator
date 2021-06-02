@@ -74,6 +74,10 @@ async function start() {
   // @ts-ignore
   console.log(response.result)
 
+  response = await general.download()
+  // @ts-ignore
+  console.log(await response.text())
+
   try {
     response = await general.error400();
   }catch(error){

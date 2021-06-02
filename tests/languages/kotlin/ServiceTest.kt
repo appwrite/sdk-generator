@@ -51,6 +51,9 @@ class ServiceTest {
         // General Tests
         response = general.redirect().execute()
         printResponse(response)
+
+        response = general.download().execute()
+        printResponse(response)
         
         runBlocking {
             try {

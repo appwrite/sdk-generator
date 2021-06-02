@@ -57,6 +57,9 @@ void main() async {
       x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.data['result']);
 
+  response = await general.download();
+  print(response);
+
   try {
     await general.error400();
   } on AppwriteException catch (e) {

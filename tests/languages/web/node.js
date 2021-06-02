@@ -47,6 +47,9 @@ async function start() {
     response = await sdk.general.upload('string', 123, ['string in array'], fs.createReadStream(__dirname + '/../../resources/file.png'));
     console.log(response.result);
 
+    response = sdk.general.download() instanceof URL ? "Download test passed." : "Download test failed.";
+    console.log(response);
+
     try {
         response = await sdk.general.empty();
     } catch (error) {

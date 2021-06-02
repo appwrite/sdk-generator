@@ -73,3 +73,13 @@ $command = "${baseCommand} cli general upload --x='string'  --y='123' --z='strin
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
+
+$command = "${baseCommand} cli general download";
+$output = [];
+exec($command, $output);
+$string = file_get_contents($output[0]);
+if($string === FALSE) {
+        echo "Download test failed.\n";
+} else {
+        echo $string."\n";
+}

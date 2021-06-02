@@ -54,6 +54,9 @@ file = Appwrite::File.new('./tests/resources/file.png')
 response = general.upload(x:'string',y: 123,z:['string in array'], file: file);
 puts response['result']
 
+response = general.download();
+puts response
+
 begin
     response = general.error400()
 rescue Appwrite::Exception => error

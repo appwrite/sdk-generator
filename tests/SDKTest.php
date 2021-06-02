@@ -310,7 +310,7 @@ class SDKTest extends TestCase
                     $removed = array_shift($output);
                 } while ($removed != 'Test Started' && sizeof($output) != 0);
 
-                $this->assertGreaterThan(10, count($output));
+                $this->assertGreaterThan(12, count($output));
 
                 $this->assertEquals('GET:/v1/mock/tests/foo:passed', $output[0] ?? '');
                 $this->assertEquals('POST:/v1/mock/tests/foo:passed', $output[1] ?? '');
@@ -324,11 +324,12 @@ class SDKTest extends TestCase
                 $this->assertEquals('DELETE:/v1/mock/tests/bar:passed', $output[9] ?? '');
                 $this->assertEquals('GET:/v1/mock/tests/general/redirect/done:passed', $output[10] ?? '');
                 $this->assertEquals('POST:/v1/mock/tests/general/upload:passed', $output[11] ?? '');
+                $this->assertEquals('Download test passed.', $output[12] ?? '');
 
                 if ($options['supportException']) {
-                    $this->assertEquals('Mock 400 error',$output[12] ?? '');
-                    $this->assertEquals('Server Error', $output[13] ?? '');
-                    $this->assertEquals('This is a text error', $output[14] ?? '');
+                    $this->assertEquals('Mock 400 error',$output[13] ?? '');
+                    $this->assertEquals('Mock 500 error', $output[14] ?? '');
+                    $this->assertEquals('This is a text error', $output[15] ?? '');
                 }
             }
         }

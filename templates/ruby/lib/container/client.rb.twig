@@ -95,7 +95,11 @@ module {{spec.title | caseUcfirst}}
             end
             
             begin
-                res = JSON.parse(response.body);
+                if (response.header['content-type'].include? 'application/json')
+                    res = JSON.parse(response.body);
+                else
+                    res = response.body;
+                end
             rescue JSON::ParserError => e
                 raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, nil)
             end

@@ -58,6 +58,9 @@ print(response['result'])
 response = general.upload('string', 123, ['string in array'], open('./tests/resources/file.png', 'rb'))
 print(response['result'])
 
+response = general.download()
+print(response.decode('utf-8'))
+
 try:
     response = general.error400()
 except AppwriteException as e:
