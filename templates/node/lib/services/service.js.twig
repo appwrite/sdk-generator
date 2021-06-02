@@ -21,7 +21,7 @@ class {{ service.name | caseUcfirst }} extends Service {
     async {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}) {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
-        if (typeof {{ parameter.name | caseCamel }} === undefined) {
+        if (typeof {{ parameter.name | caseCamel }} === 'undefined') {
             throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel }}"');
         }
 
@@ -31,13 +31,13 @@ class {{ service.name | caseUcfirst }} extends Service {
         let payload = {};
 {% for parameter in method.parameters.query %}
 
-        if (typeof {{ parameter.name | caseCamel }} !== undefined) {
+        if (typeof {{ parameter.name | caseCamel }} !== 'undefined') {
             payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
         }
 {% endfor %}
 {% for parameter in method.parameters.body %}
 
-        if (typeof {{ parameter.name | caseCamel }} !== undefined) {
+        if (typeof {{ parameter.name | caseCamel }} !== 'undefined') {
             payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
         }
 {% endfor %}
