@@ -15,7 +15,7 @@ class {{ service.name | caseUcfirst }} extends Service {
      * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
-     * @returns {% if method.type == 'location' %}{string}{% else %}{Promise}{% endif %}
+     * @returns {Promise}
 
      */
     async {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}) {
