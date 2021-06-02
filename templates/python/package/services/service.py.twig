@@ -1,5 +1,5 @@
 from ..service import Service
-
+from ..exception import AppwriteException
 
 class {{ service.name | caseUcfirst }}(Service):
 
@@ -7,26 +7,39 @@ class {{ service.name | caseUcfirst }}(Service):
         super({{ service.name | caseUcfirst }}, self).__init__(client)
 {% for method in service.methods %}
 
-    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}):
+    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}):
 {% if method.title %}
         """{{ method.title }}"""
 
 {% endif %}
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+        if {{ parameter.name | escapeKeyword | caseSnake }} is None: 
+            raise {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseSnake }}"')
+
+{% endif %}
+{% endfor %}
         params = {}
         path = '{{ method.path }}'
 {% for parameter in method.parameters.path %}
         path = path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | escapeKeyword | caseSnake }})                
 {% endfor %}
+
 {% for parameter in method.parameters.query %}
-        params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None: 
+            params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+
 {% endfor %}
 {% for parameter in method.parameters.body %}
-        params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None: 
+            params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+
 {% endfor %}
 {% for parameter in method.parameters.formData %}
-        params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
-{% endfor %}
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None: 
+            params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 
+{% endfor %}
         return self.client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
