@@ -62,7 +62,7 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {Promise}
      */
-    {{ method.name | caseCamel }}{% if method.type != 'location' %}<T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not parameter.required %}?{% endif %}: {% if parameter.type == 'array' %}{{attribute(parameter, 'array').type}}[]{% else %}{{ parameter.type | typeName }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}string{% else %}T{% endif %}>;
+    {{ method.name | caseCamel }}{% if method.type != 'location' %}<T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not parameter.required %}?{% endif %}: {% if parameter.type == 'array' %}{{attribute(parameter, 'array').type}}[]{% else %}{{ parameter.type | typeName }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Buffer{% else %}T{% endif %}>;
 {% endfor %}
   }
 {% endfor %}
