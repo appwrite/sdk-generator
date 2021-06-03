@@ -1,4 +1,5 @@
 const Service = require('../service.js');
+const {{spec.title | caseUcfirst}}Exception = require('../exception.js');
 
 class {{ service.name | caseUcfirst }} extends Service {
 {% for method in service.methods %}
@@ -11,32 +12,44 @@ class {{ service.name | caseUcfirst }} extends Service {
      *
 {% endif %}
 {% for parameter in method.parameters.all %}
-     * @param {{ parameter.type | typeName }} {{ parameter.name | caseCamel }}
+     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
-     * @throws Exception
-     * @return {}
-     */
-    async {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) {
-        let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace(new RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', 'g'), {{ parameter.name | caseCamel }}){% endfor %};
-        
-        return await this.client.call('{{ method.method | caseLower }}', path, {
-{% for parameter in method.parameters.header %}
-                    '{{ parameter.name }}': ${{ parameter.name | caseCamel }},
-{% endfor %}
-{% for key, header in method.headers %}
-                    '{{ key }}': '{{ header }}',
-{% endfor %}
-               },
-               {
-{% for parameter in method.parameters.query %}
-                '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %},{% endif %}
+     * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
+     * @returns {Promise}
 
+     */
+    async {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}) {
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+        if (typeof {{ parameter.name | caseCamel }} === 'undefined') {
+            throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel }}"');
+        }
+
+{% endif %}
+{% endfor %}
+        let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel }}){% endfor %};
+        let payload = {};
+{% for parameter in method.parameters.query %}
+
+        if (typeof {{ parameter.name | caseCamel }} !== 'undefined') {
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
+        }
 {% endfor %}
 {% for parameter in method.parameters.body %}
-                '{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if not loop.last %},{% endif %}
 
+        if (typeof {{ parameter.name | caseCamel }} !== 'undefined') {
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
+        }
 {% endfor %}
-            }{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+
+        return await this.client.call('{{ method.method | caseLower }}', path, {
+{% for parameter in method.parameters.header %}
+            '{{ parameter.name }}': ${{ parameter.name | caseCamel }},
+{% endfor %}
+{% for key, header in method.headers %}
+            '{{ key }}': '{{ header }}',
+{% endfor %}
+        }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
     }
 {% endfor %}
 }
