@@ -39,5 +39,13 @@ class {{ definition.name | caseUcfirst }}Model {
 {% endif %}
         };
     }
+
+{% if definition.additionalProperties %}
+    T convertTo<T>(T Function(Map) fromJson) => fromJson(data);
+{% endif %}
+{% if definition.name == 'documentList' %}
+    List<T> convertTo<T>(T Function(Map) fromJson) =>
+      documents.map((d) => d.convertTo<T>(fromJson)).toList();
+{% endif %}
 }
 
