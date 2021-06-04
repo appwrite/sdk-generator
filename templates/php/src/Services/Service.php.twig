@@ -2,7 +2,7 @@
 
 namespace {{ spec.title | caseUcfirst }}\Services;
 
-use Exception;
+use {{ spec.title | caseUcfirst }}\{{spec.title | caseUcfirst}}Exception;
 use {{ spec.title | caseUcfirst }}\Client;
 use {{ spec.title | caseUcfirst }}\Service;
 
@@ -19,24 +19,42 @@ class {{ service.name | caseUcfirst }} extends Service
 {% for parameter in method.parameters.all %}
      * @param {{ parameter.type | typeName }}${{ parameter.name | caseCamel }}
 {% endfor %}
-     * @throws Exception
-     * @return array
+     * @throws {{spec.title | caseUcfirst}}Exception
+     * @return {% if method.type == 'location' %}string{% else %}array{% endif %}
+
      */
-    public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.type | typeName }}${{ parameter.name | caseCamel }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}):array
+    public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.type | typeName }}${{ parameter.name | caseCamel }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'location' %}string{% else %}array{% endif %}
+
     {
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+        if (empty(${{ parameter.name | caseCamel }})) {
+            throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel }}"');
+        }
+
+{% endif %}
+{% endfor %}
         $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
         $params = [];
 
 {% for parameter in method.parameters.query %}
-        $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
+        if (!is_null(${{ parameter.name | caseCamel }})) {
+            $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
+        }
+
 {% endfor %}
 {% for parameter in method.parameters.body %}
-        $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
+        if (!is_null(${{ parameter.name | caseCamel }})) {
+            $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
+        }
+
 {% endfor %}
 {% for parameter in method.parameters.formData %}
-        $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
-{% endfor %}
+        if (!is_null(${{ parameter.name | caseCamel }})) {
+            $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel }};
+        }
 
+{% endfor %}
         return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},

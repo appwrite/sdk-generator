@@ -26,6 +26,12 @@ class Node extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'index.d.ts',
+                'template'      => 'node/index.d.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/client.js',
                 'template'      => 'node/lib/client.js.twig',
                 'minify'        => false,

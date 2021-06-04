@@ -25,19 +25,22 @@ class Client {
      * {{header.description}}
      *
 {% endif %}
-     * @param string value
+     * @param {string} {{header.key | caseLower}}
      *
      * @return self
      */
-    set{{header.key | caseUcfirst}}(value) {
-        this.addHeader('{{header.name}}', value);
+    set{{header.key | caseUcfirst}}({{header.key | caseLower}}) {
+        this.addHeader('{{header.name}}', {{header.key | caseLower}});
 
         return this;
     }
 
 {% endfor %}
-    /***
-     * @param bool status
+    /**
+     * Set self signed.
+     *
+     * @param {bool} status
+     *
      * @return this
      */
     setSelfSigned(status = true) {
@@ -46,8 +49,11 @@ class Client {
         return this;
     }
 
-    /***
-     * @param endpoint
+    /**
+     * Set endpoint.
+     *
+     * @param {string} endpoint
+     *
      * @return this
      */
     setEndpoint(endpoint)
@@ -58,16 +64,16 @@ class Client {
     }
 
     /**
-     * @param key string
-     * @param value string
+     * @param {string} key
+     * @param {string} value
      */
     addHeader(key, value) {
-        this.headers[key.toLowerCase()] = value.toLowerCase();
+        this.headers[key.toLowerCase()] = value;
         
         return this;
     }
       
-    async call(method, path = '', headers = {}, params = {}) {
+    async call(method, path = '', headers = {}, params = {}, responseType = 'json') {
         if(this.selfSigned) { // Allow self signed requests
             process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
         }
@@ -102,7 +108,8 @@ class Client {
             params: (method.toUpperCase() === 'GET') ? params : {},
             headers: headers,
             data: (method.toUpperCase() === 'GET' || contentType.startsWith('multipart/form-data')) ? formData : params,
-            json: (contentType.startsWith('application/json'))
+            json: (contentType.startsWith('application/json')),
+            responseType: responseType
         };
         try {
             let response = await axios(options);

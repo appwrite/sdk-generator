@@ -1,14 +1,14 @@
 part of {{ language.params.packageName }};
 
 {% macro parameter(parameter) %}
-{% if parameter.name == 'orderType' %}{% if parameter.required %}required {% endif %}{{ 'OrderType orderType = OrderType.asc' }}{% else %}
-{% if parameter.required %}required {% endif %}{{ parameter.type | typeName }} {{ parameter.name | caseCamel }}{{ parameter | paramDefault | escapeDollarSign }}{% endif %}
+{% if parameter.name == 'orderType' %}{% if parameter.required %}required {{ 'OrderType orderType' }}{% else %}OrderType? orderType{% endif %}{% else %}
+{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel }}{% endif %}
 {% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}
 {% endmacro %}
 {% macro map_parameter(parameter) %}
-{% if parameter.name == 'orderType' %}'{{ parameter.name }}': {{ parameter.name | caseCamel }}.name(),{% else %}
+{% if parameter.name == 'orderType' %}'{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if parameter.required %}{% else %}?{% endif %}.name(),{% else %}
 '{{ parameter.name }}': {{ parameter.name | caseCamel }},{% endif %}
 {% endmacro %}
 

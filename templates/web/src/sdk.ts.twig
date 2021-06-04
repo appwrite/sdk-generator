@@ -1,3 +1,6 @@
+import "isomorphic-form-data";
+import { fetch } from "cross-fetch";
+
 type Payload = {
     [key: string]: any;
 }
@@ -31,9 +34,6 @@ type RealtimeObject = {
     onMessage: (channel: string, callback: (payload: unknown) => void) => (event: unknown) => void;
 }
 
-const FormData = typeof window === 'undefined' ? require('form-data') : window.FormData; 
-const fetch = typeof window === 'undefined' ? require('cross-fetch') : window.fetch; 
-
 class {{spec.title | caseUcfirst}}Exception extends Error {
     code: number;
     response: string;
@@ -64,7 +64,7 @@ class {{ spec.title | caseUcfirst }} {
     /**
      * Set Endpoint
      *
-     * Your project ID
+     * Your project endpoint
      *
      * @param {string} endpoint
      *
@@ -223,7 +223,9 @@ class {{ spec.title | caseUcfirst }} {
         }
 
         if (method === 'GET') {
-            url.search = new URLSearchParams(this.flatten(params)).toString();
+            for (const [key, value] of Object.entries(this.flatten(params))) {
+                url.searchParams.append(key, value);
+            }
         } else {
             switch (headers['content-type']) {
                 case 'application/json':
@@ -312,10 +314,10 @@ class {{ spec.title | caseUcfirst }} {
          * @returns {% if method.type == 'webAuth' %}{void|string}{% elseif method.type == 'location' %}{URL}{% else %}{Promise}{% endif %}
 
          */
-        {{ method.name | caseCamel }}: {% if method.type != "location" and method.type != 'webAuth'%}async <T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void | URL{% elseif method.type == 'location' %}URL{% else %}Promise<T>{% endif %} => {
+        {{ method.name | caseCamel }}: {% if method.type != "location" and method.type != 'webAuth'%}async <T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void | URL{% elseif method.type == 'location' %}URL{% else %}Promise<T>{% endif %} => {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
-            if ({{ parameter.name | caseCamel }} === undefined) {
+            if (typeof {{ parameter.name | caseCamel }} === 'undefined') {
                 throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel }}"');
             }
 
@@ -325,7 +327,7 @@ class {{ spec.title | caseUcfirst }} {
             let payload: Payload = {};
 
 {% for parameter in method.parameters.query %}
-            if ({{ parameter.name | caseCamel }}) {
+            if (typeof {{ parameter.name | caseCamel }} !== 'undefined') {
                 payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
             }
 
@@ -347,11 +349,12 @@ class {{ spec.title | caseUcfirst }} {
 {% endfor %}
 {% endif %}
 
-            const query = new URLSearchParams(payload);
-            uri.search = query.toString();
+            for (const [key, value] of Object.entries(this.flatten(payload))) {
+                uri.searchParams.append(key, value);
+            }
 {% endif %}
 {% if method.type == 'webAuth' %}
-            if (window?.location) {
+            if (typeof window !== 'undefined' && window?.location) {
                 window.location.href = uri.toString();
             } else {
                 return uri;

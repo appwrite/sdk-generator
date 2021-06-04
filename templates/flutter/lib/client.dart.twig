@@ -134,6 +134,8 @@ class Client {
             await this.init();
         }
 
+        params.removeWhere((key,value) => value == null);
+
         // Origin is hardcoded for testing
         Options options = Options(
             headers: {...this.headers!, ...headers},
