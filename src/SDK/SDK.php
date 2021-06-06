@@ -101,7 +101,14 @@ class SDK
             return str_replace([' ', '_'], '.', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1.', $value)));
         }));
         $this->twig->addFilter(new TwigFilter('caseSnake', function ($value) {
-            return str_replace([' ', '-'], '_', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1_', $value)));
+            preg_match_all('!([A-Z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $value, $matches);
+            $ret = $matches[0];
+            foreach ($ret as &$match) {
+                $match = $match == strtoupper($match)
+                    ? strtolower($match)
+                    : lcfirst($match);
+            }
+            return implode('_', $ret);
         }));
         $this->twig->addFilter(new TwigFilter('caseJson', function ($value) {
             return (is_array($value)) ? json_encode($value) : $value;
