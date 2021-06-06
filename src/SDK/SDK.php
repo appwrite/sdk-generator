@@ -101,7 +101,7 @@ class SDK
             return str_replace([' ', '_'], '.', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1.', $value)));
         }));
         $this->twig->addFilter(new TwigFilter('caseSnake', function ($value) {
-            preg_match_all('!([A-Z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $value, $matches);
+            preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $value, $matches);
             $ret = $matches[0];
             foreach ($ret as &$match) {
                 $match = $match == strtoupper($match)
