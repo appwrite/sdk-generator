@@ -72,20 +72,6 @@ class SDKTest extends TestCase
             'supportException' => true,
         ],
 
-        //Skipping for now, enable it once Java SDK is in Good enough shape
-        /* 'java' => [
-            'class' => 'Appwrite\SDK\Language\Java',
-            'build' => [
-                'mkdir -p tests/sdks/java/src/test/java/io/appwrite/services',
-                'cp tests/languages/java/ServiceTest.java tests/sdks/java/src/test/java/io/appwrite/services/ServiceTest.java',
-            ],
-            'envs' => [
-                'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-11-slim mvn clean install test -q',
-                //'java-14' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-14-slim mvn clean install test -q',
-            ],
-            'supportException' => false,
-        ], */
-
         'kotlin' => [
             'class' => 'Appwrite\SDK\Language\Kotlin',
             'build' => [
@@ -130,20 +116,6 @@ class SDKTest extends TestCase
                 'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node node.js',
             ],
             'supportException' => true,
-        ],
-
-        'typescript' => [
-            'class' => 'Appwrite\SDK\Language\Typescript',
-            'build' => [
-                'cp tests/languages/typescript/tests.ts tests/sdks/typescript/tests.ts',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:14.5-alpine npm install', //  npm list --depth 0 &&
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:14.5-alpine ls node_modules/.bin',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/typescript node:14.5-alpine node_modules/.bin/tsc --lib ES6,DOM tests',
-            ],
-            'envs' => [
-                'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14.5-alpine node tests/sdks/typescript/tests.js',
-            ],
-            'supportException' => false,
         ],
 
         'deno' => [
@@ -231,7 +203,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'typescript', 'deno', 'dotnet', 'dart', 'flutter', 'web'];
+        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
