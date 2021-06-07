@@ -39,7 +39,7 @@ try {
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1&platform=console'); // Enable only with Appwrite local server running on port 80
     
-    $spec = file_get_contents('./specs/swagger-appwrite.0.8.0.json');
+    $spec = file_get_contents('./specs/swagger-appwrite.0.7.0.json');
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -98,28 +98,28 @@ try {
     $sdk->generate(__DIR__ . '/examples/web');
 
     // TypeScript
-    $sdk  = new SDK(new Typescript(), new Swagger2($spec));
+    // $sdk  = new SDK(new Typescript(), new Swagger2($spec));
 
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setVersion('0.0.0')
-        ->setURL('https://example.com')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
-        ->setTwitter('appwrite_io')
-        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
-        ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setVersion('0.0.0')
+    //     ->setURL('https://example.com')
+    //     ->setLogo('https://appwrite.io/v1/images/console.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    //     ->setGitUserName('repoowner')
+    //     ->setGitRepoName('reponame')
+    //     ->setTwitter('appwrite_io')
+    //     ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
+    //     ->setDefaultHeaders([
+    //         'X-Appwrite-Response-Format' => '0.7.0',
+    //     ])
+    // ;
 
-    $sdk->generate(__DIR__ . '/examples/typescript');
+    // $sdk->generate(__DIR__ . '/examples/typescript');
 
     // Deno
     $sdk  = new SDK(new Deno(), new Swagger2($spec));
@@ -293,31 +293,31 @@ try {
 
     $sdk->generate(__DIR__ . '/examples/go');
 
-    // Java
+    // // Java
 
-    $sdk  = new SDK(new Java(), new Swagger2($spec));
+    // $sdk  = new SDK(new Java(), new Swagger2($spec));
 
-    $sdk
-        ->setName('NAME')
-        ->setNamespace('io appwrite')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setURL('https://example.com')
-        ->setGitUserName('appwrite')
-        ->setGitRepoName('java-sdk')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setVersion('0.0.1')
-        ->setTwitter('appwrite_io')
-        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
-        ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
+    // $sdk
+    //     ->setName('NAME')
+    //     ->setNamespace('io appwrite')
+    //     ->setDescription('Repo description goes here')
+    //     ->setShortDescription('Repo short description goes here')
+    //     ->setURL('https://example.com')
+    //     ->setGitUserName('appwrite')
+    //     ->setGitRepoName('java-sdk')
+    //     ->setLogo('https://appwrite.io/v1/images/console.png')
+    //     ->setLicenseContent('test test test')
+    //     ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+    //     ->setChangelog('**CHANGELOG**')
+    //     ->setVersion('0.0.1')
+    //     ->setTwitter('appwrite_io')
+    //     ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
+    //     ->setDefaultHeaders([
+    //         'X-Appwrite-Response-Format' => '0.7.0',
+    //     ])
+    // ;
 
-    $sdk->generate(__DIR__ . '/examples/java');
+    // $sdk->generate(__DIR__ . '/examples/java');
 
     // Swift
     $sdk  = new SDK(new Swift(), new Swagger2($spec));
