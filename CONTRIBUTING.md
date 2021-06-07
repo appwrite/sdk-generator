@@ -151,7 +151,6 @@ The following checklist aims to balance consistency among languages, and follow 
 - [ ] Service Class (extends the service abstraction if exists)
     - [ ] Headers Support (Content Type)
     - [ ] Parameters Support
-        - [ ] Default Values Support
         - [ ] Required Values Support
         - [ ] String Support
         - [ ] Integer Support
