@@ -25,19 +25,22 @@ class Client {
      * {{header.description}}
      *
 {% endif %}
-     * @param string value
+     * @param {string} {{header.key | caseLower}}
      *
      * @return self
      */
-    set{{header.key | caseUcfirst}}(value) {
-        this.addHeader('{{header.name}}', value);
+    set{{header.key | caseUcfirst}}({{header.key | caseLower}}) {
+        this.addHeader('{{header.name}}', {{header.key | caseLower}});
 
         return this;
     }
 
 {% endfor %}
-    /***
-     * @param bool status
+    /**
+     * Set self signed.
+     *
+     * @param {bool} status
+     *
      * @return this
      */
     setSelfSigned(status = true) {
@@ -46,8 +49,11 @@ class Client {
         return this;
     }
 
-    /***
-     * @param endpoint
+    /**
+     * Set endpoint.
+     *
+     * @param {string} endpoint
+     *
      * @return this
      */
     setEndpoint(endpoint)
@@ -58,8 +64,8 @@ class Client {
     }
 
     /**
-     * @param key string
-     * @param value string
+     * @param {string} key
+     * @param {string} value
      */
     addHeader(key, value) {
         this.headers[key.toLowerCase()] = value;

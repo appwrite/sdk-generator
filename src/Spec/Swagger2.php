@@ -219,7 +219,9 @@ class Swagger2 extends Spec {
                                     $param['required'] = (in_array($key, $bodyRequired));
                                     $param['default'] = $value['default'] ?? null;
                                     $param['example'] = $value['x-example'] ?? null;
-
+                                    $param['array'] = [
+                                        'type' => $value['items']['type'] ?? '',
+                                    ];
                                     if($value['type'] === 'object' && is_array($value['default'])) {
                                         $value['default'] = (empty($value['default'])) ? new stdClass() : $value['default'];
                                     }
