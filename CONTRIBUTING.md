@@ -147,6 +147,7 @@ The following checklist aims to balance consistency among languages, and follow 
             - [ ] Parse request params by content type header
             - [ ] Parse response params by content type header
             - [ ] Throw error on bad response
+    - [ ] Handle errors and throw `AppwriteException` with proper information
 - [ ] Service Abstraction (optional)
     - [ ] Constructor receiving an instance of the client class 
 - [ ] Service Class (extends the service abstraction if exists)
