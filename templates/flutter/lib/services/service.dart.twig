@@ -1,7 +1,7 @@
 part of {{ language.params.packageName }};
 
 {% macro parameter(parameter) %}
-{% if parameter.name == 'orderType' %}{% if parameter.required %}required {{ 'OrderType orderType' }}{% else %}OrderType? orderType{% endif %}{% else %}
+{% if parameter.name == 'orderType' %}OrderType? orderType{% elseif parameter.name == 'gravity' %} Gravity? gravity {% else %}
 {% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel }}{% endif %}
 {% endmacro %}
 {% macro method_parameters(parameters) %}
