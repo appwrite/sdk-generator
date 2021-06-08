@@ -1,16 +1,10 @@
 package {{ sdk.namespace | caseDot }}.services
 
-{% macro parameter(parameter) %}
-{% if parameter.name == 'orderType' %}{{ 'orderType: OrderType = OrderType.ASC' }}{% else %}
-{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% endif %}
-{% endmacro %}
+{% macro parameter(parameter) %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% endif %}
 {% endmacro %}
-{% macro map_parameter(parameter) %}
-{% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.name'}}{% else %}
-{{ parameter.name | caseCamel }}{% endif %}
-{% endmacro %}
+{% macro map_parameter(parameter) %}{{ parameter.name | caseCamel }}{% endmacro %}
 {% macro methodNeedsSecurityParameters(method) %}
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
@@ -20,7 +14,6 @@ import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.WebAuthComponent
 import androidx.activity.ComponentActivity
 {% endif %}
-import {{ sdk.namespace | caseDot }}.enums.OrderType
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import okhttp3.Cookie
 import okhttp3.Response
@@ -52,7 +45,7 @@ class {{ service.name | caseUcfirst }}(private val client: Client) : BaseService
 
         val params = mapOf<String, Any?>(
 {% for parameter in method.parameters.query | merge(method.parameters.body) %}
-            "{{ parameter.name }}" to {{ _self.map_parameter(parameter) }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
+            "{{ parameter.name }}" to {{ parameter.name | caseCamel }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
 
 {% endfor %}
 {% if _self.methodNeedsSecurityParameters(method) %}

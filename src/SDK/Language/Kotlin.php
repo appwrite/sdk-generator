@@ -342,12 +342,6 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/enums/OrderType.kt',
-                'template'      => '/kotlin/library/src/main/java/io/appwrite/enums/OrderType.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.title | caseUcfirst}}Exception.kt',
                 'template'      => '/kotlin/library/src/main/java/io/appwrite/exceptions/Exception.kt.twig',
                 'minify'        => false,
