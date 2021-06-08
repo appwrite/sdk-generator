@@ -99,21 +99,18 @@ class Kotlin extends Language {
         switch ($type) {
             case self::TYPE_INTEGER:
                 return 'Int';
-            break;
+            case self::TYPE_NUMBER:
+                return 'Double';
             case self::TYPE_STRING:
                 return 'String';
-            break;
             case self::TYPE_FILE:
                 return 'File';
-            break;
             case self::TYPE_BOOLEAN:
                 return 'Boolean';
-            break;
             case self::TYPE_ARRAY:
             	return 'List<Any>?';
 			case self::TYPE_OBJECT:
 				return 'Any?';
-            break;
         }
 
         return $type;
@@ -140,6 +137,9 @@ class Kotlin extends Language {
                 case self::TYPE_INTEGER:
                     $output .= '-1';
                     break;
+                case self::TYPE_NUMBER:
+                    $output .= '1.0';
+                    break;
                 case self::TYPE_ARRAY:
                 case self::TYPE_OBJECT:
                     $output .= 'null';
@@ -156,6 +156,9 @@ class Kotlin extends Language {
             switch ($type) {
                 case self::TYPE_INTEGER:
                     $output .= $default;
+                    break;
+                case self::TYPE_NUMBER:
+                    $output .= sprintf("%.1f",$default);;
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
@@ -253,27 +256,27 @@ class Kotlin extends Language {
                 'template'      => 'kotlin/gradle/wrapper/gradle-wrapper.jar',
             ],
             [
-                'scope'         => 'default',
+                'scope'         => 'copy',
                 'destination'   => 'gradle/wrapper/gradle-wrapper.properties',
                 'template'      => '/kotlin/gradle/wrapper/gradle-wrapper.properties',
                 'minify'        => false,
             ],
             [
-                'scope'         => 'default',
+                'scope'         => 'copy',
                 'destination'   => 'scripts/publish-config.gradle',
-                'template'      => '/kotlin/scripts/publish-config.gradle.twig',
+                'template'      => '/kotlin/scripts/publish-config.gradle',
                 'minify'        => false,
             ],
             [
-                'scope'         => 'default',
+                'scope'         => 'copy',
                 'destination'   => 'scripts/publish-module.gradle',
-                'template'      => '/kotlin/scripts/publish-module.gradle.twig',
+                'template'      => '/kotlin/scripts/publish-module.gradle',
                 'minify'        => false,
             ],
             [
-                'scope'         => 'default',
+                'scope'         => 'copy',
                 'destination'   => '.gitignore',
-                'template'      => '/kotlin/.gitignore.twig',
+                'template'      => '/kotlin/.gitignore',
                 'minify'        => false,
             ],
             [
@@ -289,21 +292,21 @@ class Kotlin extends Language {
                 'minify'        => false,
             ],
             [
-                'scope'         => 'default',
+                'scope'         => 'copy',
                 'destination'   => 'gradle.properties',
-                'template'      => '/kotlin/gradle.properties.twig',
+                'template'      => '/kotlin/gradle.properties',
                 'minify'        => false,
             ],
             [
-                'scope'         => 'default',
+                'scope'         => 'copy',
                 'destination'   => 'gradlew',
-                'template'      => '/kotlin/gradlew.twig',
+                'template'      => '/kotlin/gradlew',
                 'minify'        => false,
             ],
             [
-                'scope'         => 'default',
+                'scope'         => 'copy',
                 'destination'   => 'gradlew.bat',
-                'template'      => '/kotlin/gradlew.bat.twig',
+                'template'      => '/kotlin/gradlew.bat',
                 'minify'        => false,
             ],
             [
@@ -319,9 +322,9 @@ class Kotlin extends Language {
                 'minify'        => false,
             ],
             [
-                'scope'         => 'default',
+                'scope'         => 'copy',
                 'destination'   => 'settings.gradle',
-                'template'      => '/kotlin/settings.gradle.twig',
+                'template'      => '/kotlin/settings.gradle',
                 'minify'        => false,
             ],
             // Config for project :library 
@@ -404,71 +407,71 @@ class Kotlin extends Language {
                 'minify'        => false,
             ],
             [
-                'scope'         => 'default',
+                'scope'         => 'copy',
                 'destination'   => '/library/.gitignore',
-                'template'      => '/kotlin/library/.gitignore.twig',
+                'template'      => '/kotlin/library/.gitignore',
                 'minify'        => false,
             ],
             // Config for project :example
-            // [
-            //     'scope'         => 'default',
-            //     'destination'   => '/example/src/main/java/{{ sdk.namespace | caseSlash }}/android/MainActivity.kt',
-            //     'template'      => '/kotlin/example/src/main/java/io/appwrite/android/MainActivity.kt.twig',
-            //     'minify'        => false,
-            // ],
-            // [
-            //     'scope'         => 'copy',
-            //     'destination'   => '/example/src/main/res/drawable/ic_launcher_background.xml',
-            //     'template'      => '/kotlin/example/src/main/res/drawable/ic_launcher_background.xml',
-            // ],
-            // [
-            //     'scope'         => 'copy',
-            //     'destination'   => '/example/src/main/res/layout/activity_main.xml',
-            //     'template'      => '/kotlin/example/src/main/res/layout/activity_main.xml',
-            // ],
-            // [
-            //     'scope'         => 'copy',
-            //     'destination'   => '/example/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml',
-            //     'template'      => '/kotlin/example/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml',
-            // ],
-            // [
-            //     'scope'         => 'copy',
-            //     'destination'   => '/example/src/main/res/mipmap-anydpi-v26/ic_launcher.xml',
-            //     'template'      => '/kotlin/example/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'
-            // ],
-            // [
-            //     'scope'         => 'copy',
-            //     'destination'   => '/example/src/main/res/values/colors.xml',
-            //     'template'      => '/kotlin/example/src/main/res/values/colors.xml',
-            // ],
-            // [
-            //     'scope'         => 'copy',
-            //     'destination'   => '/example/src/main/res/values/strings.xml',
-            //     'template'      => '/kotlin/example/src/main/res/values/strings.xml',
-            // ],
-            // [
-            //     'scope'         => 'copy',
-            //     'destination'   => '/example/src/main/res/values/themes.xml',
-            //     'template'      => '/kotlin/example/src/main/res/values/themes.xml',
-            // ],
-            // [
-            //     'scope'         => 'default',
-            //     'destination'   => '/example/src/main/AndroidManifest.xml',
-            //     'template'      => '/kotlin/example/src/main/AndroidManifest.xml.twig',
-            //     'minify'        => false,
-            // ],
-            // [
-            //     'scope'         => 'default',
-            //     'destination'   => '/example/build.gradle',
-            //     'template'      => '/kotlin/example/build.gradle.twig',
-            //     'minify'        => false,
-            // ],
-            // [
-            //     'scope'         => 'default',
-            //     'destination'   => '/example/.gitignore',
-            //     'template'      => '/kotlin/example/.gitignore.twig',
-            //     'minify'        => false,
-            // ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example/src/main/java/{{ sdk.namespace | caseSlash }}/android/MainActivity.kt',
+                'template'      => '/kotlin/example/src/main/java/io/appwrite/android/MainActivity.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example/src/main/res/drawable/ic_launcher_background.xml',
+                'template'      => '/kotlin/example/src/main/res/drawable/ic_launcher_background.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example/src/main/res/layout/activity_main.xml',
+                'template'      => '/kotlin/example/src/main/res/layout/activity_main.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml',
+                'template'      => '/kotlin/example/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example/src/main/res/mipmap-anydpi-v26/ic_launcher.xml',
+                'template'      => '/kotlin/example/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example/src/main/res/values/colors.xml',
+                'template'      => '/kotlin/example/src/main/res/values/colors.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example/src/main/res/values/strings.xml',
+                'template'      => '/kotlin/example/src/main/res/values/strings.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example/src/main/res/values/themes.xml',
+                'template'      => '/kotlin/example/src/main/res/values/themes.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example/src/main/AndroidManifest.xml',
+                'template'      => '/kotlin/example/src/main/AndroidManifest.xml',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example/build.gradle',
+                'template'      => '/kotlin/example/build.gradle',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example/.gitignore',
+                'template'      => '/kotlin/example/.gitignore',
+                'minify'        => false,
+            ],
             
         ];
     }

@@ -34,10 +34,4 @@ nexusPublishing {
             snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
         }
     }
-
-    /* Override the default useStaging variable. */
-    useStaging.set(provider {
-        !project.version.toString().endsWith("-SNAPSHOT")
-    })
-
 }
