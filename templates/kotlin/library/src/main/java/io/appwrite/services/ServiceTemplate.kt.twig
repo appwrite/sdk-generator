@@ -36,7 +36,8 @@ class {{ service.name | caseUcfirst }}(private val client: Client) : BaseService
 {% for parameter in method.parameters.all %}
      * @param {{ parameter.name | caseCamel }}
 {% endfor %}
-     * @return The request response with a JSON body 
+     * {% if method.type != "webAuth" %}@return [Response]{% endif %}
+     
      */
     @JvmOverloads
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
