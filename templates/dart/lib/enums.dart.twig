@@ -21,8 +21,6 @@ enum Gravity { center, northwest, north, northeast, west, east, southwest, south
 extension GravityValue on Gravity {
   int value() {
     switch(this.toString().split('.').last.toLowerCase()) {
-      case 'center':
-        return 0;
       case 'northwest':
         return 1;
       case 'north':
@@ -39,6 +37,9 @@ extension GravityValue on Gravity {
         return 7;
       case 'southeast':
         return 8;
+      case 'center':
+      default:
+        return 0;
     }
   }
 }
