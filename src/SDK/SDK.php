@@ -537,7 +537,8 @@ class SDK
         ];
 
         foreach ($this->language->getFiles() as $file) {
-            $template       = $this->twig->load($file['template']); /* @var $template \Twig\TemplateWrapper */
+            if ($file['scope'] != 'copy')
+                $template       = $this->twig->load($file['template']); /* @var $template \Twig\TemplateWrapper */
             $destination    = $target . '/' . $file['destination'];
             $block          = $file['block'] ?? null;
             $minify         = $file['minify'] ?? false;
@@ -547,6 +548,9 @@ class SDK
                     $this->render($template, $destination, $block, $params, $minify);
                     break;
                 case 'copy':
+                    if (!file_exists(dirname($destination))) {
+                        mkdir(dirname($destination), 0777, true);
+                    }
                     copy(realpath(__DIR__.'/../../templates/' . $file['template']), $destination);
                     break;
                 case 'service':

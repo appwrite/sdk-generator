@@ -29,7 +29,7 @@ publishing {
             artifacts {
                 artifact(sourcesJar)
                 artifact(javadocJar)
-                artifact("$buildDir/outputs/aar/${artifactId}-release.aar")
+                artifact("$buildDir/outputs/aar/${project.name}-release.aar")
             }
 
             pom {

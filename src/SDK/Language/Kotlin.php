@@ -3,7 +3,6 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
-use MatthiasMullie\Minify\Minify;
 
 class Kotlin extends Language {
 
@@ -248,15 +247,15 @@ class Kotlin extends Language {
                 'template'      => '/kotlin/docs/example.md.twig',
                 'minify'        => false,
             ],
-            // [
-            //     'scope'         => 'copy',
-            //     'destination'   => 'gradle/wrapper/gradle-wrapper.jar',
-            //     'template'      => 'kotlin/gradle/wrapper/gradle-wrapper.jar',
-            // ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'gradle/wrapper/gradle-wrapper.jar',
+                'template'      => 'kotlin/gradle/wrapper/gradle-wrapper.jar',
+            ],
             [
                 'scope'         => 'default',
                 'destination'   => 'gradle/wrapper/gradle-wrapper.properties',
-                'template'      => '/kotlin/gradle/wrapper/gradle-wrapper.properties.twig',
+                'template'      => '/kotlin/gradle/wrapper/gradle-wrapper.properties',
                 'minify'        => false,
             ],
             [
