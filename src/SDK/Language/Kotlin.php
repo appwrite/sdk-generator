@@ -372,14 +372,14 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/views/CallbackActivity.kt',
-                'template'      => '/kotlin/library/src/main/java/io/appwrite/views/CallbackActivity.kt.twig',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/KeepAliveService.kt',
+                'template'      => '/kotlin/library/src/main/java/io/appwrite/KeepAliveService.kt.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/KeepAliveService.kt',
-                'template'      => '/kotlin/library/src/main/java/io/appwrite/services/KeepAliveService.kt.twig',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/views/CallbackActivity.kt',
+                'template'      => '/kotlin/library/src/main/java/io/appwrite/views/CallbackActivity.kt.twig',
                 'minify'        => false,
             ],
             [
