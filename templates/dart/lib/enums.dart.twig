@@ -15,3 +15,30 @@ extension OrderTypeString on OrderType {
     return this.toString().split('.').last.toUpperCase();
   }
 }
+
+enum Gravity { center, northwest, north, northeast, west, east, southwest, south, southeast  }
+
+extension GravityValue on Gravity {
+  int value() {
+    switch(this.toString().split('.').last.toLowerCase()) {
+      case 'center':
+        return 0;
+      case 'northwest':
+        return 1;
+      case 'north':
+        return 2;
+      case 'northeast':
+        return 3;
+      case 'west':
+        return 4;
+      case 'east':
+        return 5;
+      case 'southwest':
+        return 6;
+      case 'south':
+        return 7;
+      case 'southeast':
+        return 8;
+    }
+  }
+}
