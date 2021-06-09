@@ -108,9 +108,9 @@ class Kotlin extends Language {
             case self::TYPE_BOOLEAN:
                 return 'Boolean';
             case self::TYPE_ARRAY:
-            	return 'List<Any>?';
+            	return 'List<Any>';
 			case self::TYPE_OBJECT:
-				return 'Any?';
+				return 'Any';
         }
 
         return $type;
@@ -455,9 +455,9 @@ class Kotlin extends Language {
                 'minify'        => false,
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => '/example/build.gradle',
-                'template'      => '/kotlin/example/build.gradle',
+                'template'      => '/kotlin/example/build.gradle.twig',
                 'minify'        => false,
             ],
             [

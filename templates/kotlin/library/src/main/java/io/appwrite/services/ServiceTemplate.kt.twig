@@ -1,10 +1,9 @@
 package {{ sdk.namespace | caseDot }}.services
 
-{% macro parameter(parameter) %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% endmacro %}
+{% macro parameter(parameter) %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{% if not parameter.required %}? = null{% endif %}{% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% endif %}
 {% endmacro %}
-{% macro map_parameter(parameter) %}{{ parameter.name | caseCamel }}{% endmacro %}
 {% macro methodNeedsSecurityParameters(method) %}
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
