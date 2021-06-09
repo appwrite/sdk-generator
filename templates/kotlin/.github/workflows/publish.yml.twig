@@ -1,8 +1,8 @@
-name: Publish
+name: Publish to Maven Central
 
+# Run this workflow when a release is created
 on:
   release:
-    # Run the workflow when a new GitHub release is created
     types: [released]
 
 jobs:
@@ -16,7 +16,6 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-
         # Base64 decodes and pipes the GPG key content into the secret file
       - name: Prepare environment
         env:
@@ -27,16 +26,23 @@ jobs:
           sudo bash -c "echo '$GPG_KEY_CONTENTS' | base64 -d > '$SIGNING_SECRET_KEY_RING_FILE'"
 
         # Builds the release artifacts of the library
-      - name: Release build
+      - name: Build Release Artifacts
         run: ./gradlew --info library:assembleRelease
 
         # Generates other artifacts (javadocJar is optional)
-      - name: Source jar
+      - name: Generate Source jar
         run: ./gradlew javadocJar
 
         # Runs upload, and then closes & releases the repository
-      - name: Publish to MavenCentral
-        run: ./gradlew publishReleasePublicationToSonatypeRepository --max-workers 1 closeAndReleaseSonatypeStagingRepository
+      - name: Publish Release Version to MavenCentral
+        run: |
+          if ${{ endswith(github.event.release.tag_name, '-SNAPSHOT') }}; then
+            echo "Publising Snapshot Version ${{ github.event.release.tag_name}} to Snapshot repository"
+            ./gradlew publishReleasePublicationToSonatypeRepository
+          else
+            echo "Publising Release Version ${{ github.event.release.tag_name}} to Staging repository"
+            ./gradlew publishReleasePublicationToSonatypeRepository --max-workers 1 closeAndReleaseSonatypeStagingRepository
+          fi
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
