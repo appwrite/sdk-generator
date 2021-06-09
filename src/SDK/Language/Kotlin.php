@@ -239,9 +239,9 @@ class Kotlin extends Language {
         return [
             // Config for root project 
             [
-                'scope'         => 'default',
+                'scope'         => 'copy',
                 'destination'   => '.github/workflows/publish.yml',
-                'template'      => '/kotlin/.github/workflows/publish.yml.twig',
+                'template'      => '/kotlin/.github/workflows/publish.yml',
                 'minify'        => false,
             ],
             [
