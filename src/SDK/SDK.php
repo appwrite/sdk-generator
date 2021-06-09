@@ -537,8 +537,9 @@ class SDK
         ];
 
         foreach ($this->language->getFiles() as $file) {
-            if ($file['scope'] != 'copy')
-                $template       = $this->twig->load($file['template']); /* @var $template \Twig\TemplateWrapper */
+            if ($file['scope'] != 'copy') {
+                $template = $this->twig->load($file['template']); /* @var $template \Twig\TemplateWrapper */
+            }
             $destination    = $target . '/' . $file['destination'];
             $block          = $file['block'] ?? null;
             $minify         = $file['minify'] ?? false;
