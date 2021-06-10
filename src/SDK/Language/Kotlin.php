@@ -414,14 +414,48 @@ class Kotlin extends Language {
                 'minify'        => false,
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '/example/src/main/java/{{ sdk.namespace | caseSlash }}/android/ui/accounts/AccountsFragment.kt',
+                'template'      => '/kotlin/example/src/main/java/io/appwrite/android/ui/accounts/AccountsFragment.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example/src/main/java/{{ sdk.namespace | caseSlash }}/android/ui/accounts/AccountsViewModel.kt',
+                'template'      => '/kotlin/example/src/main/java/io/appwrite/android/ui/accounts/AccountsViewModel.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example/src/main/java/{{ sdk.namespace | caseSlash }}/android/utils/Client.kt',
+                'template'      => '/kotlin/example/src/main/java/io/appwrite/android/utils/Client.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example/src/main/java/{{ sdk.namespace | caseSlash }}/android/utils/Event.kt',
+                'template'      => '/kotlin/example/src/main/java/io/appwrite/android/utils/Event.kt.twig',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'copy',
                 'destination'   => '/example/src/main/res/drawable/ic_launcher_background.xml',
                 'template'      => '/kotlin/example/src/main/res/drawable/ic_launcher_background.xml',
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => '/example/src/main/res/drawable/ic_launcher_foreground.xml',
+                'template'      => '/kotlin/example/src/main/res/drawable/ic_launcher_foreground.xml',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => '/example/src/main/res/layout/activity_main.xml',
                 'template'      => '/kotlin/example/src/main/res/layout/activity_main.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example/src/main/res/layout/fragment_account.xml',
+                'template'      => '/kotlin/example/src/main/res/layout/fragment_account.xml',
             ],
             [
                 'scope'         => 'copy',

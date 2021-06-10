@@ -139,6 +139,7 @@ The following checklist aims to balance consistency among languages, and follow 
     - [ ] Default Headers
         - [ ] 'appwrite-sdk-version' header
         - [ ] Add 'User-Agent' header with device/server name and version + platform name and version (ubuntu-20.04-php-7.0.1 / android-20.0-flutter-3.0)
+        - [ ] Add 'origin' header with the following syntax `<scheme>://<identifier>` where scheme is one of `http`, `https`, `appwrite-android`, `appwrite-ios`, `appwrite-macos`, `appwrite-windows`, `appwrite-linux` and identifier is the host name is case of web apps and the package name in case of ios, android and other platforms.
         - [ ] All Global headers available in spec
     - [ ] Methods
         - [ ] addHeader(key, value)
