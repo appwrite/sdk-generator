@@ -500,7 +500,71 @@ class Kotlin extends Language {
                 'template'      => '/kotlin/example/.gitignore',
                 'minify'        => false,
             ],
-            
+            // Config for project :example-java
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-java/src/main/java/{{ sdk.namespace | caseSlash }}/example_java/MainActivity.java',
+                'template'      => '/kotlin/example-java/src/main/java/io/appwrite/example_java/MainActivity.java.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example-java/src/main/res/drawable/ic_launcher_background.xml',
+                'template'      => '/kotlin/example-java/src/main/res/drawable/ic_launcher_background.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example-java/src/main/res/drawable/ic_launcher_foreground.xml',
+                'template'      => '/kotlin/example-java/src/main/res/drawable/ic_launcher_foreground.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example-java/src/main/res/layout/activity_main.xml',
+                'template'      => '/kotlin/example-java/src/main/res/layout/activity_main.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example-java/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml',
+                'template'      => '/kotlin/example-java/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example-java/src/main/res/mipmap-anydpi-v26/ic_launcher.xml',
+                'template'      => '/kotlin/example-java/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example-java/src/main/res/values/colors.xml',
+                'template'      => '/kotlin/example-java/src/main/res/values/colors.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example-java/src/main/res/values/strings.xml',
+                'template'      => '/kotlin/example-java/src/main/res/values/strings.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example-java/src/main/res/values/themes.xml',
+                'template'      => '/kotlin/example-java/src/main/res/values/themes.xml',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example-java/src/main/AndroidManifest.xml',
+                'template'      => '/kotlin/example-java/src/main/AndroidManifest.xml',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-java/build.gradle',
+                'template'      => '/kotlin/example-java/build.gradle.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example-java/.gitignore',
+                'template'      => '/kotlin/example-java/.gitignore',
+                'minify'        => false,
+            ],
         ];
     }
 }

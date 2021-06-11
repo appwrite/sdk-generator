@@ -9,15 +9,15 @@ ext {
     PUBLISH_GROUP_ID = '{{ sdk.namespace | caseDot }}'
     PUBLISH_ARTIFACT_ID = '{{ sdk.gitRepoName | caseDash }}'
     PUBLISH_VERSION = '{{ sdk.version }}'
-    POM_URL = '{{ sdk.URL }}'
+    POM_URL = 'https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}'
     POM_SCM_URL = 'https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}'
     POM_ISSUE_URL = 'https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}/issues'
     POM_DESCRIPTION = '{{ sdk.description }}'
     POM_LICENSE_URL = 'https://opensource.org/licenses/GPL-3.0'
     POM_LICENSE_NAME = "GPL-3.0"
-    POM_DEVELOPER_ID = '{{ spec.namespace | caseDot }}'
-    POM_DEVELOPER_NAME = '{{ sdk.gitUserName }}'
-    POM_DEVELOPER_EMAIL = '{{ sdk.gitUserEmail }}'
+    POM_DEVELOPER_ID = '{{ sdk.gitUserName }}'
+    POM_DEVELOPER_NAME = '{{ spec.contactName }}'
+    POM_DEVELOPER_EMAIL = '{{ spec.contactEmail }}'
     GITHUB_SCM_CONNECTION = 'scm:git:git://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}.git'
 }
 
