@@ -32,7 +32,7 @@ class Client:
         """{{header.description}}"""
 
 {% endif %}
-        self._global_headers['{{header.name|lower}}'] = value.lower()
+        self._global_headers['{{header.name|lower}}'] = value
         return self
 {% endfor %}
 
