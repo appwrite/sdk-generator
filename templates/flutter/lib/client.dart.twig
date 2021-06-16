@@ -2,13 +2,13 @@ part of {{ language.params.packageName }};
 
 class Client {
     String endPoint;
+    String? endPointRealtime;
     String type = 'unknown';
     Map<String, String>? headers;
     late Map<String, String> config;
     bool selfSigned;
     bool initialized = false;
     Dio http;
-    Realtime _realtime = Realtime.instance;
     late PersistCookieJar cookieJar;
     late SharedPreferences _prefs;
 
@@ -65,39 +65,16 @@ class Client {
 
     Client setEndpoint(String endPoint) {
         this.endPoint = endPoint;
-        _realtime.endPoint = endPoint.replaceFirst('https://', 'wss://').replaceFirst('http://', 'ws://');
+        endPointRealtime = endPoint
+            .replaceFirst('https://', 'wss://')
+            .replaceFirst('http://', 'ws://');
         this.http.options.baseUrl = this.endPoint;
         return this;
     }
 
     Client setEndPointRealtime(String endPointRealtime) {
-      _realtime.endPoint = endPointRealtime;
+      endPointRealtime = endPoint;
       return this;
-    }
-
-    RTSub subscribe(List<String> channels) {
-      StreamController controller = StreamController();
-      channels.forEach((channel) {
-        if(!_realtime.channels.containsKey(channel)) {
-          _realtime.channels[channel] = [];
-        }
-        _realtime.channels[channel]!.add(controller);
-      });
-      Future.delayed(Duration.zero, () => _realtime.createSocket());
-      RTSub subscription = RTSub(
-        stream: controller.stream,
-        close: () {
-          controller.close();
-          channels.forEach((channel) {
-            _realtime.channels[channel]!.remove(controller);
-            if(_realtime.channels[channel]!.length < 1) {
-              _realtime.channels.remove(channel);
-            }
-          });
-          Future.delayed(Duration.zero, () => _realtime.createSocket());
-        }
-      );
-      return subscription; 
     }
 
     Client addHeader(String key, String value) {
