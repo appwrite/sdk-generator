@@ -38,7 +38,7 @@ class {{ spec.title | caseUcfirst }} {
     /**
      * Set Endpoint
      *
-     * Your project ID
+     * Your project endpoint
      *
      * @param {string} endpoint
      *
@@ -177,10 +177,10 @@ class {{ spec.title | caseUcfirst }} {
          * @returns {% if method.type == 'webAuth' %}{void|string}{% elseif method.type == 'location' %}{URL}{% else %}{Promise}{% endif %}
 
          */
-        {{ method.name | caseCamel }}: {% if method.type != "location" and method.type != 'webAuth'%}async <T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void | URL{% elseif method.type == 'location' %}URL{% else %}Promise<T>{% endif %} => {
+        {{ method.name | caseCamel }}: {% if method.type != "location" and method.type != 'webAuth'%}async <T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void | URL{% elseif method.type == 'location' %}URL{% else %}Promise<T>{% endif %} => {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
-            if ({{ parameter.name | caseCamel }} === undefined) {
+            if (typeof {{ parameter.name | caseCamel }} === 'undefined') {
                 throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel }}"');
             }
 
@@ -190,7 +190,7 @@ class {{ spec.title | caseUcfirst }} {
             let payload: Payload = {};
 
 {% for parameter in method.parameters.query %}
-            if ({{ parameter.name | caseCamel }}) {
+            if (typeof {{ parameter.name | caseCamel }} !== 'undefined') {
                 payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
             }
 

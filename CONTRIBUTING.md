@@ -139,6 +139,7 @@ The following checklist aims to balance consistency among languages, and follow 
     - [ ] Default Headers
         - [ ] 'appwrite-sdk-version' header
         - [ ] Add 'User-Agent' header with device/server name and version + platform name and version (ubuntu-20.04-php-7.0.1 / android-20.0-flutter-3.0)
+        - [ ] All Global headers available in spec
     - [ ] Methods
         - [ ] addHeader(key, value)
         - [ ] call(method, path = '', headers = [], params = [])
@@ -146,12 +147,12 @@ The following checklist aims to balance consistency among languages, and follow 
             - [ ] Parse request params by content type header
             - [ ] Parse response params by content type header
             - [ ] Throw error on bad response
+    - [ ] Handle errors and throw `AppwriteException` with proper information
 - [ ] Service Abstraction (optional)
     - [ ] Constructor receiving an instance of the client class 
 - [ ] Service Class (extends the service abstraction if exists)
     - [ ] Headers Support (Content Type)
     - [ ] Parameters Support
-        - [ ] Default Values Support
         - [ ] Required Values Support
         - [ ] String Support
         - [ ] Integer Support

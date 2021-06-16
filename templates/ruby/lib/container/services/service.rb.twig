@@ -2,23 +2,34 @@ module {{spec.title | caseUcfirst}}
     class {{ service.name | caseUcfirst }} < Service
 
 {% for method in service.methods %}
-        def {{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %})
+        def {{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake }}:{% if not parameter.required %} nil{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+            if {{ parameter.name | caseSnake }}.nil?
+                raise {{spec.title | caseUcfirst}}::Exception.new('Missing required parameter: "{{ parameter.name | caseCamel }}"')
+            end
+
+{% endif %}
+{% endfor %}
             path = '{{ method.path }}'
 {% for parameter in method.parameters.path %}
                 .gsub('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseSnake }})
 {% endfor %}
 
-            params = {
+            params = {}
+
 {% for parameter in method.parameters.query %}
-                '{{ parameter.name }}': {{ parameter.name | caseSnake }}{% if not loop.last %}, {% endif %}
+            if !{{ parameter.name | caseSnake }}.nil?
+                params[:{{ parameter.name }}] = {{ parameter.name | caseSnake }}
+            end
 
 {% endfor %}
 {% for parameter in method.parameters.body %}
-                '{{ parameter.name }}': {{ parameter.name | caseSnake }}{% if not loop.last %}, {% endif %}
+            if !{{ parameter.name | caseSnake }}.nil?
+                params[:{{ parameter.name }}] = {{ parameter.name | caseSnake }}
+            end
 
 {% endfor %}
-            }
-
             return @client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
                 '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},

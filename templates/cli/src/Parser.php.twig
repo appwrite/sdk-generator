@@ -11,7 +11,7 @@ class Parser {
      *
      * @var array
      */
-    private const colors = array(
+    protected const colors = array(
         'blue',
         'red',
         'green',
@@ -27,23 +27,23 @@ class Parser {
      *
      * @var bool
      */
-    private const tableColor = self::colors[0];
+    protected const tableColor = self::colors[0];
 
     /**
      * Color for the table column headers
      *
      * @var string
      */
-    private const headerColor = self::colors[2];
+    protected const headerColor = self::colors[2];
 
-     /**
+    /**
      * Parse the response from the server 
      *
-     * @param string $value 
+     * @param array $response 
      * @return void
      */
-    public function parseResponse($response) {
-        
+    public function parseResponse($response)
+    {
         foreach ($response as $key => $value) {
             if (is_array($value) && count($value) !== 0 ) {
                 $this->drawKeyValue($key, '');
@@ -62,10 +62,12 @@ class Parser {
      * @param string $value 
      * @return void
      */
-    private function drawKeyValue($key, $value){
+    protected function drawKeyValue($key, $value)
+    {
         if(is_bool($value)) {
             $value = $value ? 'true' : 'false';
-        } else if (is_array($value)) {
+        }
+        else if (is_array($value)) {
             $value = '{}';
         }
 
@@ -78,7 +80,7 @@ class Parser {
      * @param int $index
      * @return string
      */
-    private function getColor($index = -1) : string {
+    protected function getColor($index = -1) : string {
         if ($index != -1) return self::colors[$index % count(self::colors) ];
         return self::colors[array_rand(self::colors)];
     }
@@ -91,7 +93,7 @@ class Parser {
      * @param string $tableColor
      * @return void
      */
-    private function drawTable($data, $headerColor, $tableColor) {
+    protected function drawTable($data, $headerColor, $tableColor) {
         if (!is_array($data) || !is_array($data[0])) return;
 
         $keys = array_keys($data[0]);
@@ -124,7 +126,7 @@ class Parser {
         $table->display();
     }
 
-    public function formatArray(Array $arr) {
+    public function formatArray(array $arr) {
         $descriptionColumnLimit = 60;
         $commandNameColumnLimit = 20;
         $mask = "\t%-${commandNameColumnLimit}.${commandNameColumnLimit}s %-${descriptionColumnLimit}.${descriptionColumnLimit}s\n";
