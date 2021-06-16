@@ -185,6 +185,8 @@ After you finish initializing, make a series of HTTP calls using your new genera
 1. tests/languages/tests-for-php.js
 2. tests/languages/tests-for-node.js
 
+> Note: In your test files, make sure that you begin the test with the following string "\nTest Started\n". We use this string to filter output from the build tool you're using.
+
 Once done, add a Docker command that can execute your test file to the SDK test algorithm `$containers` array in this location: `./tests/SDKTest.php:17`. Make sure to add one command for each language version you wish to support.
 
 A good example is the PHP test for 5 different PHP versions:
@@ -202,5 +204,5 @@ protected $containers = [
 
 Finally, you can run the tests using
 ```sh
-docker run --rm -v $(pwd):/app:rw -w /app -v /var/run/docker.sock:/var/run/docker.sock  php:7.4-cli-alpine sh -c "apk add docker-cli && vendor/bin/phpunit tests/SDKTest.php"
+docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/docker.sock  php:7.4-cli-alpine sh -c "apk add docker-cli && vendor/bin/phpunit tests/SDKTest.php"
 ```

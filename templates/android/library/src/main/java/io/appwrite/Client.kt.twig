@@ -101,7 +101,6 @@ class Client @JvmOverloads constructor(
         val builder = OkHttpClient()
             .newBuilder()
             .cookieJar(cookieJar)
-            .addInterceptor(HttpLoggingInterceptor().apply { setLevel(HttpLoggingInterceptor.Level.BODY) })
 
         if (!selfSigned) {
             http = builder.build()
@@ -143,7 +142,7 @@ class Client @JvmOverloads constructor(
         return this
     }
 
-    private fun addHeader(key: String, value: String): Client {
+    fun addHeader(key: String, value: String): Client {
         headers[key] = value
         return this
     }
@@ -237,13 +236,18 @@ class Client @JvmOverloads constructor(
                     val bodyString = response.body
                         ?.charStream()
                         ?.buffered()
-                        ?.use(BufferedReader::readText)
+                        ?.use(BufferedReader::readText) ?: ""
 
-                    val error = bodyString?.fromJson(Error::class.java)
+                    val contentType: String = response.headers["content-type"] ?: ""
+                    val error = if (contentType.contains("application/json", ignoreCase = true)) {
+                        bodyString.fromJson(Error::class.java)
+                    } else {
+                        Error(bodyString, response.code)
+                    }
 
-                    it.cancel({{ spec.title | caseUcfirst }}Exception(
-                        error?.message,
-                        error?.code,
+                    it.cancel(AppwriteException(
+                        error.message,
+                        error.code,
                         bodyString
                     ))
                 }

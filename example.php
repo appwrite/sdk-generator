@@ -17,7 +17,7 @@ use Appwrite\SDK\Language\HTTP;
 use Appwrite\SDK\Language\Swift;
 use Appwrite\SDK\Language\DotNet;
 use Appwrite\SDK\Language\Flutter;
-use Appwrite\SDK\Language\Kotlin;
+use Appwrite\SDK\Language\Android;
 
 try {
 
@@ -369,15 +369,15 @@ try {
     ;
     $sdk->generate(__DIR__ . '/examples/CLI');
 
-    // Kotlin
+    // Android
 
-    $sdk = new SDK(new Kotlin(), new Swagger2($spec));
+    $sdk = new SDK(new Android(), new Swagger2($spec));
     
     $sdk
-        ->setName('Kotlin')
+        ->setName('Android')
         ->setNamespace('io appwrite')
         ->setDescription('Appwrite is an open-source backend as a service server that abstract and simplify complex and repetitive development tasks behind a very simple to use REST API. Appwrite aims to help you develop your apps faster and in a more secure way. Use the Flutter SDK to integrate your app with the Appwrite server to easily start interacting with all of Appwrite backend APIs and tools. For full API documentation and tutorials go to https://appwrite.io/docs')
-        ->setShortDescription('Appwrite Kotlin SDK')
+        ->setShortDescription('Appwrite Android SDK')
         ->setURL('https://example.com')
         ->setGitUserName('appwrite')
         ->setGitRepoName('sdk-for-android')
@@ -472,7 +472,7 @@ You can use following resources to learn more and get help
             'x-appwrite-response-format' => '0.7.0',
         ])
     ;
-    $sdk->generate(__DIR__ . '/examples/kotlin-android');
+    $sdk->generate(__DIR__ . '/examples/android');
 }
 catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
