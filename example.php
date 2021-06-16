@@ -18,6 +18,7 @@ use Appwrite\SDK\Language\Swift;
 use Appwrite\SDK\Language\DotNet;
 use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Android;
+use Appwrite\SDK\Language\Kotlin;
 
 try {
 
@@ -36,8 +37,8 @@ try {
     //$spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1&platform=console'); // Enable only with Appwrite local server running on port 80
-    // $spec = file_get_contents('https://appwrite.io/specs/swagger2?platform=client');
-    $spec = file_get_contents('./specs/swagger-appwrite.0.8.0.json');
+    $spec = file_get_contents('https://appwrite.io/specs/swagger2?platform=server');
+    // $spec = file_get_contents('./specs/swagger-appwrite.0.8.0.json');
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -393,6 +394,30 @@ try {
         ])
     ;
     $sdk->generate(__DIR__ . '/examples/android');
+
+    // Kotlin
+    $sdk = new SDK(new Kotlin(), new Swagger2($spec));
+    
+    $sdk
+        ->setName('Kotlin')
+        ->setNamespace('io appwrite')
+        ->setDescription('Appwrite is an open-source backend as a service server that abstract and simplify complex and repetitive development tasks behind a very simple to use REST API. Appwrite aims to help you develop your apps faster and in a more secure way. Use the Flutter SDK to integrate your app with the Appwrite server to easily start interacting with all of Appwrite backend APIs and tools. For full API documentation and tutorials go to https://appwrite.io/docs')
+        ->setShortDescription('Appwrite Kotlin SDK')
+        ->setURL('https://example.com')
+        ->setGitUserName('appwrite')
+        ->setGitRepoName('sdk-for-kotlin')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**This SDK is compatible with Appwrite server version 0.7.x. For older versions, please check previous releases.**')
+        ->setChangelog('**CHANGELOG**')
+        ->setVersion('0.0.0-SNAPSHOT')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
+        ->setDefaultHeaders([
+            'x-appwrite-response-format' => '0.7.0',
+        ])
+    ;
+    $sdk->generate(__DIR__ . '/examples/kotlin');
 }
 catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";

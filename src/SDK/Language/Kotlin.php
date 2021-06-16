@@ -237,7 +237,84 @@ class Kotlin extends Language {
     public function getFiles()
     {
         return [
-            
+            // Config for root project 
+            [
+                'scope'         => 'copy',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => '/kotlin/.github/workflows/publish.yml',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => '/kotlin/docs/example.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'gradle/wrapper/gradle-wrapper.jar',
+                'template'      => 'kotlin/gradle/wrapper/gradle-wrapper.jar',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'gradle/wrapper/gradle-wrapper.properties',
+                'template'      => '/kotlin/gradle/wrapper/gradle-wrapper.properties',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '.gitignore',
+                'template'      => '/kotlin/.gitignore',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'build.gradle',
+                'template'      => '/kotlin/build.gradle',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'CHANGELOG.md',
+                'template'      => '/kotlin/CHANGELOG.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'gradle.properties',
+                'template'      => '/kotlin/gradle.properties',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'gradlew',
+                'template'      => '/kotlin/gradlew',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'gradlew.bat',
+                'template'      => '/kotlin/gradlew.bat',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'LICENSE.md',
+                'template'      => '/kotlin/LICENSE.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'README.md',
+                'template'      => '/kotlin/README.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'settings.gradle',
+                'template'      => '/kotlin/settings.gradle',
+                'minify'        => false,
+            ],
         ];
     }
 }
