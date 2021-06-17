@@ -112,12 +112,6 @@ class Android extends Kotlin {
             // Config for project :library 
             [
                 'scope'         => 'default',
-                'destination'   => '/library/example/README.md',
-                'template'      => '/android/library/example/README.md.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Client.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/Client.kt.twig',
                 'minify'        => false,

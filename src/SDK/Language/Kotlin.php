@@ -190,7 +190,7 @@ class Kotlin extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'new File("./path-to-files/image.jpg")';
+                    $output .= 'File("./path-to-files/image.jpg")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -203,16 +203,18 @@ class Kotlin extends Language {
                     $output .= "\"\"";
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= 'Any()';
+                    $output .= 'mapOf( "a" to "b" )';
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= 'List<Any>()';
+                    $output .= 'listOf()';
                     break;
             }
         }
         else {
             switch ($type) {
                 case self::TYPE_OBJECT:
+                    $output .= 'mapOf( "a" to "b" )';
+                    break;
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -313,6 +315,48 @@ class Kotlin extends Language {
                 'scope'         => 'copy',
                 'destination'   => 'settings.gradle',
                 'template'      => '/kotlin/settings.gradle',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Client.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Client.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.title | caseUcfirst}}Exception.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/exceptions/Exception.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/JsonExtensions.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/extensions/JsonExtensions.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/Error.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Error.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/BaseService.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/Service.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/ServiceTemplate.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/servicesTest/{{service.name | caseUcfirst}}Test.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/servicesTest/ServicesTest.kt.twig',
                 'minify'        => false,
             ],
         ];

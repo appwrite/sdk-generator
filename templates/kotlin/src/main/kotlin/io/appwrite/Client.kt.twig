@@ -1,11 +1,5 @@
 package {{ sdk.namespace | caseDot }}
 
-import android.content.Context
-import android.content.pm.PackageManager
-import com.franmontiel.persistentcookiejar.ClearableCookieJar
-import com.franmontiel.persistentcookiejar.PersistentCookieJar
-import com.franmontiel.persistentcookiejar.cache.SetCookieCache
-import com.franmontiel.persistentcookiejar.persistence.SharedPrefsCookiePersistor
 import com.google.gson.Gson
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.JsonExtensions.fromJson
@@ -33,10 +27,8 @@ import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class Client @JvmOverloads constructor(
-    context: Context,
     var endPoint: String = "https://appwrite.io/v1",
     private var selfSigned: Boolean = false
 ) : CoroutineScope {
@@ -52,26 +44,9 @@ class Client @JvmOverloads constructor(
     
     val config: MutableMap<String, String>
 
-    val cookieJar: ClearableCookieJar = PersistentCookieJar(
-        SetCookieCache(), 
-        SharedPrefsCookiePersistor(context)
-    )
-
-    private val appVersion by lazy {
-        try {
-            val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            return@lazy pInfo.versionName
-        } catch (e: PackageManager.NameNotFoundException) {
-            e.printStackTrace()
-            return@lazy ""
-        }
-    }
-
     init {
         headers = mutableMapOf(
             "content-type" to "application/json",
-            "origin" to "appwrite-android://${context.packageName}",
-            "user-agent" to "${context.packageName}/${appVersion}, ${System.getProperty("http.agent")}",
             "x-sdk-version" to "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
             
 {% for key,header in spec.global.defaultHeaders %}
@@ -100,7 +75,6 @@ class Client @JvmOverloads constructor(
 
         val builder = OkHttpClient()
             .newBuilder()
-            .cookieJar(cookieJar)
 
         if (!selfSigned) {
             http = builder.build()
