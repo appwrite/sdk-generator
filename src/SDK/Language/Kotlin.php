@@ -265,6 +265,18 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'scripts/publish.gradle',
+                'template'      => '/kotlin/scripts/publish.gradle',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'scripts/setup.gradle',
+                'template'      => '/kotlin/scripts/setup.gradle',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => '.gitignore',
                 'template'      => '/kotlin/.gitignore',
                 'minify'        => false,
@@ -272,7 +284,7 @@ class Kotlin extends Language {
             [
                 'scope'         => 'default',
                 'destination'   => 'build.gradle',
-                'template'      => '/kotlin/build.gradle',
+                'template'      => '/kotlin/build.gradle.twig',
                 'minify'        => false,
             ],
             [
@@ -312,9 +324,9 @@ class Kotlin extends Language {
                 'minify'        => false,
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'settings.gradle',
-                'template'      => '/kotlin/settings.gradle',
+                'template'      => '/kotlin/settings.gradle.twig',
                 'minify'        => false,
             ],
             [
