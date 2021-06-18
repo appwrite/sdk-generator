@@ -352,13 +352,7 @@ class Kotlin extends Language {
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/ServiceTemplate.kt.twig',
                 'minify'        => false,
-            ],
-            [
-                'scope'         => 'service',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/servicesTest/{{service.name | caseUcfirst}}Test.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/servicesTest/ServicesTest.kt.twig',
-                'minify'        => false,
-            ],
+            ]
         ];
     }
 }
