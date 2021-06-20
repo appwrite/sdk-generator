@@ -134,7 +134,7 @@ class Client {
             await this.init();
         }
 
-        if(params.isNotEmpty()) {
+        if(params.isNotEmpty) {
             params.removeWhere((key,value) => value == null);
         }
 
