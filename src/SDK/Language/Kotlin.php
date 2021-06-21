@@ -99,21 +99,18 @@ class Kotlin extends Language {
         switch ($type) {
             case self::TYPE_INTEGER:
                 return 'Int';
-            break;
+            case self::TYPE_NUMBER:
+                return 'Double';
             case self::TYPE_STRING:
                 return 'String';
-            break;
             case self::TYPE_FILE:
                 return 'File';
-            break;
             case self::TYPE_BOOLEAN:
                 return 'Boolean';
-            break;
             case self::TYPE_ARRAY:
-            	return 'List<Any>?';
+            	return 'List<Any>';
 			case self::TYPE_OBJECT:
-				return 'Any?';
-            break;
+				return 'Any';
         }
 
         return $type;
@@ -140,6 +137,9 @@ class Kotlin extends Language {
                 case self::TYPE_INTEGER:
                     $output .= '-1';
                     break;
+                case self::TYPE_NUMBER:
+                    $output .= '1.0';
+                    break;
                 case self::TYPE_ARRAY:
                 case self::TYPE_OBJECT:
                     $output .= 'null';
@@ -156,6 +156,9 @@ class Kotlin extends Language {
             switch ($type) {
                 case self::TYPE_INTEGER:
                     $output .= $default;
+                    break;
+                case self::TYPE_NUMBER:
+                    $output .= sprintf("%.1f",$default);;
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
@@ -234,114 +237,7 @@ class Kotlin extends Language {
     public function getFiles()
     {
         return [
-            [
-                'scope'         => 'default',
-                'destination'   => 'README.md',
-                'template'      => '/kotlin/README.md.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/example/README.md',
-                'template'      => '/kotlin/example/README.md.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'CHANGELOG.md',
-                'template'      => '/kotlin/CHANGELOG.md.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'LICENSE',
-                'template'      => '/kotlin/LICENSE.twig',
-                'minify'        => false,
-            ],
-	        [
-                'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => '/kotlin/docs/example.md.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/Client.kt',
-                'template'      => '/kotlin/src/main/java/io/appwrite/Client.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/enums/OrderType.kt',
-                'template'      => '/kotlin/src/main/java/io/appwrite/enums/OrderType.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.title | caseUcfirst}}Exception.kt',
-                'template'      => '/kotlin/src/main/java/io/appwrite/exceptions/Exception.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/JsonExtensions.kt',
-                'template'      => '/kotlin/src/main/java/io/appwrite/extensions/JsonExtensions.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/models/Error.kt',
-                'template'      => '/kotlin/src/main/java/io/appwrite/models/Error.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/build.gradle',
-                'template'      => '/kotlin/build.gradle.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/deploy.gradle',
-                'template'      => '/kotlin/deploy.gradle.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/AndroidManifest.xml',
-                'template'      => '/kotlin/AndroidManifest.xml.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/WebAuthComponent.kt',
-                'template'      => '/kotlin/src/main/java/io/appwrite/WebAuthComponent.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/views/CallbackActivity.kt',
-                'template'      => '/kotlin/src/main/java/io/appwrite/views/CallbackActivity.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/services/KeepAliveService.kt',
-                'template'      => '/kotlin/src/main/java/io/appwrite/services/KeepAliveService.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/services/BaseService.kt',
-                'template'      => '/kotlin/src/main/java/io/appwrite/services/Service.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'service',
-                'destination'   => '/src/main/java/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
-                'template'      => '/kotlin/src/main/java/io/appwrite/services/ServiceTemplate.kt.twig',
-                'minify'        => false,
-            ]
+            
         ];
     }
 }
