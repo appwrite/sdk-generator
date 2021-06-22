@@ -60,9 +60,17 @@ class Client @JvmOverloads constructor(
     }
 
 {% for header in spec.global.headers %}
+    /**
+     * Set {{header.key | caseUcfirst}}
+     *
 {% if header.description %}
-    /// {{header.description}}
+     * {{header.description}}
+     *
 {% endif %}
+     * @param {string} {{header.key | caseLower}}
+     *
+     * @return this
+     */
     fun set{{header.key | caseUcfirst}}(value: String): Client {
         config["{{ header.key | caseCamel }}"] = value
         addHeader("{{ header.name | caseLower }}", value)
@@ -70,6 +78,13 @@ class Client @JvmOverloads constructor(
     }
 
 {% endfor %}
+    /**
+     * Set self Signed
+     * 
+     * @param status
+     *
+     * @return this     
+     */
     fun setSelfSigned(status: Boolean): Client {
         selfSigned = status
 
@@ -111,16 +126,41 @@ class Client @JvmOverloads constructor(
         return this
     }
 
+    /**
+     * Set endpoint
+     * 
+     * @param endpoint
+     *
+     * @return this     
+     */
     fun setEndpoint(endPoint: String): Client {
         this.endPoint = endPoint
         return this
     }
 
+    /**
+     * Add Header
+     * 
+     * @param key
+     * @param value
+     *
+     * @return this     
+     */
     fun addHeader(key: String, value: String): Client {
         headers[key] = value
         return this
     }
 
+    /**
+     * Send the HTTP request
+     * 
+     * @param method
+     * @param path
+     * @param headers
+     * @param params
+     *
+     * @return [Response]    
+     */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun call(
         method: String, 
@@ -198,6 +238,16 @@ class Client @JvmOverloads constructor(
         return awaitResponse(request)
     }
 
+    /**
+     * Await Response
+     * 
+     * @param method
+     * @param path
+     * @param headers
+     * @param params
+     *
+     * @return [Response]    
+     */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
     private suspend fun awaitResponse(request: Request) = suspendCancellableCoroutine<Response> {
         http.newCall(request).enqueue(object : Callback {
