@@ -4,6 +4,10 @@ apply(plugin: "signing")
 java {
     withJavadocJar()
     withSourcesJar()
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+        vendor = JvmVendorSpec.ADOPTOPENJDK
+    }
 }
 
 publishing {
