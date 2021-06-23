@@ -118,6 +118,8 @@ class Rust extends Language {
             break;
             case self::TYPE_ARRAY:
               return '&[&str]';
+            case self::TYPE_NUMBER:
+                return 'f64';
             break;
         }
 

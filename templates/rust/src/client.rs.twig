@@ -18,7 +18,8 @@ pub enum ParamType {
     String(String),
     Array(Vec<ParamType>),
     FilePath(PathBuf),
-    Object(HashMap<String, ParamType>)
+    Object(HashMap<String, ParamType>),
+    Float(f64)
 }
 
 /// Example
@@ -141,6 +142,7 @@ impl Client {
                             ParamType::String(data) => form = form.text(k, data),
                             ParamType::FilePath(data) => form = form.file(k, data).unwrap(),
                             ParamType::Number(data) => form = form.text(k, data.to_string()),
+                            ParamType::Float(data) => form = form.text(k, data.to_string()),
                             // This shouldn't be possible due to the flatten function, so we won't handle this for now
                             ParamType::Array(_data) => {
                                 //todo: Feed this back into a flatten function if needed
