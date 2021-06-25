@@ -19,7 +19,44 @@ pub enum ParamType {
     Array(Vec<ParamType>),
     FilePath(PathBuf),
     Object(HashMap<String, ParamType>),
-    Float(f64)
+    Float(f64),
+    OptionalBool(Option<bool>),
+    OptionalNumber(Option<i64>),
+    OptionalArray(Option<Vec<ParamType>>),
+    OptionalFilePath(Option<PathBuf>),
+    OptionalObject(Option<HashMap<String, ParamType>>),
+    OptionalFloat(Option<f64>)
+}
+
+// Converts optionals into normal ParamTypes
+fn handleOptional(param: ParamType) -> Option<ParamType> {
+    match param {
+        ParamType::OptionalBool(value) => match value {
+            Some(data) => Some(ParamType::Bool(data)),
+            None => None
+        }
+        ParamType::OptionalNumber(value) => match value {
+            Some(data) => Some(ParamType::Number(data)),
+            None => None
+        }
+        ParamType::OptionalArray(value) => match value {
+            Some(data) => Some(ParamType::Array(data)),
+            None => None
+        }
+        ParamType::OptionalFilePath(value) => match value {
+            Some(data) => Some(ParamType::FilePath(data)),
+            None => None
+        }
+        ParamType::OptionalObject(value) => match value {
+            Some(data) => Some(ParamType::Object(data)),
+            None => None
+        }
+        ParamType::OptionalFloat(value) => match value {
+            Some(data) => Some(ParamType::Float(data)),
+            None => None
+        }
+        _ => Some(param)
+    }
 }
 
 /// Example
@@ -130,6 +167,18 @@ impl Client {
             Some(data) => {
                 let flattened_data = flatten(FlattenType::Normal(data.clone()), None);
 
+                // Handle Optional Values
+                // Remove all optionals that result in None
+                // Turn all Optional____ into their non optional equivilants.
+                let mut buffer: Vec<(String, ParamType)> = Vec::new();
+                for (k, v) in flattened_data {
+                    match handleOptional(v) {
+                        Some(data) => buffer.push((k, data)),
+                        None => {}
+                    }
+                }
+                let flattened_data = buffer;
+
                 // First flatten the data and feed it into a FormData
                 if content_type.starts_with("multipart/form-data") {
                     let mut form = reqwest::blocking::multipart::Form::new();
@@ -149,7 +198,8 @@ impl Client {
                             },
                             ParamType::Object(_data) => {
                               // Same for this
-                            }
+                            },
+                            _ => {}
                         }
                     }
                     request = request.multipart(form);
