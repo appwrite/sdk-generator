@@ -2,10 +2,6 @@ package {{ sdk.namespace | caseDot }}
 
 import android.content.Context
 import android.content.pm.PackageManager
-import com.franmontiel.persistentcookiejar.ClearableCookieJar
-import com.franmontiel.persistentcookiejar.PersistentCookieJar
-import com.franmontiel.persistentcookiejar.cache.SetCookieCache
-import com.franmontiel.persistentcookiejar.persistence.SharedPrefsCookiePersistor
 import com.google.gson.Gson
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.JsonExtensions.fromJson
@@ -14,16 +10,18 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.suspendCancellableCoroutine
+import net.gotev.cookiestore.SharedPreferencesCookieStore
 import okhttp3.*
 import okhttp3.Headers.Companion.toHeaders
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.logging.HttpLoggingInterceptor
 import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
+import java.net.CookieManager
+import java.net.CookiePolicy
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import javax.net.ssl.HostnameVerifier
@@ -33,7 +31,6 @@ import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class Client @JvmOverloads constructor(
     context: Context,
@@ -46,15 +43,15 @@ class Client @JvmOverloads constructor(
 
     private val job = Job()
 
-    private lateinit var http: OkHttpClient
+    lateinit var http: OkHttpClient
 
     private val headers: MutableMap<String, String>
     
     val config: MutableMap<String, String>
 
-    val cookieJar: ClearableCookieJar = PersistentCookieJar(
-        SetCookieCache(), 
-        SharedPrefsCookiePersistor(context)
+    private val cookieJar = CookieManager(
+        SharedPreferencesCookieStore(context, "myCookie"),
+        CookiePolicy.ACCEPT_ALL
     )
 
     private val appVersion by lazy {
@@ -115,7 +112,7 @@ class Client @JvmOverloads constructor(
 
         val builder = OkHttpClient()
             .newBuilder()
-            .cookieJar(cookieJar)
+            .cookieJar(JavaNetCookieJar(cookieJar))
 
         if (!selfSigned) {
             http = builder.build()
