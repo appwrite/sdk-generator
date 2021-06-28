@@ -212,7 +212,7 @@ docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/d
 * **spec** -- This object is derived from the appwrite swagger spec
   * **title** -> The title of the SDK you are generating (normally used as package name.)
   * **description** -> Description of Appwrite SDK
-  * **namespace** -> 
+  * **namespace** -> SDK Namespace
   * **version** -> SDK Version
   * **endpoint** -> Default Endpoint (example: "https://appwrite.io/v1")
   * **host** -> Default Host (example: "appwrite.io")
@@ -233,7 +233,7 @@ docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/d
        * **title** -> Title of API Method
        * **description** -> Description of API Method
        * **security** -> 
-           * **stuff** 
+           * **todo** 
        * **consumes** -> Array of Content-Type headers the API Route accepts.
        * **cookies** -> Are cookies required? Bool
        * **type** -> 
@@ -263,7 +263,7 @@ docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/d
   * **params** -> Custom langauge specific parameters
 
 * **sdk** -- Various Metadata used for packaging and categorising
-  * **namespace** ->
+  * **namespace** -> SDK Namespace
   * **name** -> SDK Name
   * **description** -> SDK Desc
   * **shortDescription** -> SDK Short Desc
