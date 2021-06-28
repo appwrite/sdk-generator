@@ -206,3 +206,85 @@ Finally, you can run the tests using
 ```sh
 docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/docker.sock  php:7.4-cli-alpine sh -c "apk add docker-cli && vendor/bin/phpunit tests/SDKTest.php"
 ```
+
+## SDK Generator Interface
+
+* **spec** -- This object is derived from the appwrite swagger spec
+  * **title** -> The title of the SDK you are generating (normally used as package name.)
+  * **description** -> Description of Appwrite SDK
+  * **namespace** -> 
+  * **version** -> SDK Version
+  * **endpoint** -> Default Endpoint (example: "https://appwrite.io/v1")
+  * **host** -> Default Host (example: "appwrite.io")
+  * **basePath** -> Default Path to API (example: "/v1")
+  * **licenseName** -> Name of licence for SDK
+  * **licenseURL** -> URL to SDK Licence
+  * **contactName** -> Name of Person/Team that created the SDK
+  * **contactURL** -> URL to contact for help with the SDK
+  * **contactEmail** -> Email Address to Contact for help with the SDK
+  * **services** -> Array of Services. Each service contains the following:
+    *  **name** -> The name of the service
+    *  **methods** -> Array of Methods that can be used with the service
+       * **method**  ->  HTTP Method to call
+       * **path** -> Path to API without a basePath
+       * **fullPath** -> Path to API with basePath
+       * **name** -> Name of API Method
+       * **packaging** -> Used in the CLI to specify it to create code.tar.gz for the Create Tag Route
+       * **title** -> Title of API Method
+       * **description** -> Description of API Method
+       * **security** -> 
+           * **stuff** 
+       * **consumes** -> Array of Content-Type headers the API Route accepts.
+       * **cookies** -> Are cookies required? Bool
+       * **type** -> 
+       * **headers** -> Array of headers for API
+       * **parameters** -> Parameters for API
+           * **all** -> Array containing all Parameters
+           * **headers** -> Array containing parameters that go in the header
+           * **path** -> Array containing parameters that go into the path of the API URL
+           * **query** -> Array containing parameters that go into the query of the API URL
+           * **body** -> Array containing parameters that go in the body
+
+              All Parameters will have a structure like so:
+              * **name** -> Name of parameter
+              * **type** -> Parameter Type
+              * **description** -> Parameter Description
+              * **required** -> Is parameter required
+              * **default** -> Parameter Defaults
+              * **example** -> Parameter Example
+              * **array**
+                * **type** -> Array Type (only used if param type is "array")
+  * **global**
+    * **headers** -> A object containing all global headers
+    * **defaultHeaders** -> A object containing all default headers
+
+* **language** -- Information on the current language SDK
+  * **name** -> Name of language
+  * **params** -> Custom langauge specific parameters
+
+* **sdk**
+  * **namespace** ->
+  * **name** ->
+  * **description** ->
+  * **shortDescription** ->
+  * **version** ->
+  * **license** ->
+  * **licenseContent** ->
+  * **gitURL** ->
+  * **gitRepo** ->
+  * **gitRepoName** ->
+  * **gitUserName** ->
+  * **logo** ->
+  * **url** ->
+  * **shareText** ->
+  * **shareURL** ->
+  * **shareVia** ->
+  * **shareTags** ->
+  * **warning** ->
+  * **gettingStarted** ->
+  * **readme** ->
+  * **changelog** ->
+  * **examples** ->
+  * **twitterHandle** ->
+  * **discordChannel** ->
+  * **discordUrl** ->
