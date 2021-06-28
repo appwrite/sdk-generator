@@ -262,29 +262,29 @@ docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/d
   * **name** -> Name of language
   * **params** -> Custom langauge specific parameters
 
-* **sdk**
+* **sdk** -- Various Metadata used for packaging and categorising
   * **namespace** ->
-  * **name** ->
-  * **description** ->
-  * **shortDescription** ->
-  * **version** ->
-  * **license** ->
-  * **licenseContent** ->
-  * **gitURL** ->
-  * **gitRepo** ->
-  * **gitRepoName** ->
-  * **gitUserName** ->
-  * **logo** ->
-  * **url** ->
+  * **name** -> SDK Name
+  * **description** -> SDK Desc
+  * **shortDescription** -> SDK Short Desc
+  * **version** -> SDK Version
+  * **license** -> SDK Licence
+  * **licenseContent** -> SDK Licence content
+  * **gitURL** -> GIT URL for SDK
+  * **gitRepo** -> GIT Repo for SDK
+  * **gitRepoName** -> Git Repo Name
+  * **gitUserName** -> Git username of creator
+  * **logo** -> SDK Logo
+  * **url** -> SDK URL
   * **shareText** ->
   * **shareURL** ->
   * **shareVia** ->
   * **shareTags** ->
   * **warning** ->
-  * **gettingStarted** ->
-  * **readme** ->
-  * **changelog** ->
-  * **examples** ->
-  * **twitterHandle** ->
-  * **discordChannel** ->
-  * **discordUrl** ->
+  * **gettingStarted** -> URL to SDK Getting Started
+  * **readme** -> SDK Readme (used to generate readme.md)
+  * **changelog** -> SDK Changelog (used to generate changelog.md)
+  * **examples** -> SDK Examples
+  * **twitterHandle** -> Twitter handle of creator
+  * **discordChannel** -> Discord Channel ID for SDK
+  * **discordUrl** -> Discord Server Invite for SDK
