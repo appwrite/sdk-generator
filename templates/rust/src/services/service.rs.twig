@@ -31,20 +31,21 @@ impl {{ service.name | caseUcfirst }} {
 {% endfor %}
         ].iter().cloned().collect();
 {% endif %}
-
 {% for parameter in method.parameters.all %}
 {% if parameter.required != 1 %}
 {% if parameter.type == 'string' %}
-    let {{ parameter.name | caseSnake | escapeKeyword}}:{{ parameter.type | typeName }} = match {{ parameter.name | caseSnake | escapeKeyword}} {
-        Some(data) => data,
-        None => ""
-    };
+
+        let {{ parameter.name | caseSnake | escapeKeyword}}:{{ parameter.type | typeName }} = match {{ parameter.name | caseSnake | escapeKeyword}} {
+            Some(data) => data,
+            None => ""
+        };
 {% endif %}
 {% if parameter.type == 'array' %}
-    let {{ parameter.name | caseSnake | escapeKeyword}}:{{ parameter.type | typeName }} = match {{ parameter.name | caseSnake | escapeKeyword}} {
-        Some(data) => data,
-        None => &[]
-    };
+
+        let {{ parameter.name | caseSnake | escapeKeyword}}:{{ parameter.type | typeName }} = match {{ parameter.name | caseSnake | escapeKeyword}} {
+            Some(data) => data,
+            None => &[]
+        };
 {% endif %}
 {% endif %}
 {% endfor %}
