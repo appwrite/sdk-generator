@@ -51,24 +51,6 @@ class Client
     ];
 
     /**
-     * SDK constructor.
-     */
-    public function __construct()
-    {
-        if (!$this->loadPreferences()) {
-            Console::error("❌ Oops We were unable to load your preferences. Ensure that you have run '{{ language.params.executableName }} init' before using the CLI");
-            Console::exit();
-        }
-        $this
-{% for header in spec.global.headers %}
-{% if header.key != 'Mode' and header.key != 'JWT' %}
-            ->set{{header.key | caseUcfirst}}($this->preferences['{{header.name}}'])
-{% endif %}
-{% endfor %}
-        ;
-    }
-
-    /**
      * Getter for preferences
      *
      * @param string $key
@@ -193,6 +175,20 @@ class Client
      */
     public function call($method, $path = '', $headers = array(), array $params = array())
     {
+
+        if (!$this->loadPreferences()) {
+            Console::error("❌ Oops We were unable to load your preferences. Ensure that you have run '{{ language.params.executableName }} init' before using the CLI");
+            Console::exit();
+        }
+        
+        $this
+{% for header in spec.global.headers %}
+{% if header.key != 'Mode' and header.key != 'JWT' %}
+            ->set{{header.key | caseUcfirst}}($this->preferences['{{header.name}}'])
+{% endif %}
+{% endfor %}
+        ;
+        
         $headers            = array_merge($this->headers, $headers);
         $ch                 = curl_init($this->getPreference(self::PREFERENCE_ENDPOINT) . $path . (($method == self::METHOD_GET && !empty($params)) ? '?' . http_build_query($params) : ''));
         $responseHeaders    = [];

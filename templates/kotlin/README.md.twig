@@ -1,9 +1,7 @@
 # {{ spec.title }} {{sdk.name}} SDK
 
-[![pub package](https://img.shields.io/pub/v/{{ language.params.packageName }}?style=flat-square)](https://pub.dartlang.org/packages/{{ language.params.packageName }})
 ![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?style=flat-square)
 ![Version](https://img.shields.io/badge/api%20version-{{ spec.version|url_encode }}-blue.svg?style=flat-square)
-[![Build Status](https://img.shields.io/travis/com/appwrite/sdk-generator?style=flat-square)](https://travis-ci.com/appwrite/sdk-generator)
 {% if sdk.twitterHandle %}
 [![Twitter Account](https://img.shields.io/twitter/follow/{{ sdk.twitterHandle }}?color=00acee&label=twitter&style=flat-square)](https://twitter.com/{{ sdk.twitterHandle }})
 {% endif %}
@@ -17,25 +15,49 @@
 
 {{ sdk.description }}
 
-
-
 {% if sdk.logo %}
 ![{{ spec.title }}]({{ sdk.logo }})
 {% endif %}
 
 ## Installation
 
-Add this to your package's `pubspec.yaml` file:
+### Gradle
 
-```yml
-dependencies:
-  {{ language.params.packageName }}: ^{{sdk.version}}
+Appwrite's Kotlin SDK is hosted on Maven Central. In order to fetch the Appwrite SDK, add this to your root level `build.gradle(.kts)` file:
+
+```groovy
+repositories {      
+    mavenCentral()
+}
 ```
 
-You can install packages from the command line:
+If you would like to fetch our SNAPSHOT releases, you need to add the SNAPSHOT maven repository to your `build.gradle(.kts)`:
 
-```bash
-pub get {{ language.params.packageName }}
+```groovy
+repositories {
+    maven {
+        url "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+    }
+}
+```
+
+Next, add the dependency to your project's `build.gradle(.kts)` file:
+
+```groovy
+implementation("{{ sdk.namespace | caseDot }}:{{ sdk.gitRepoName | caseDash }}:{{ sdk.version }}")
+```
+
+### Maven
+Add this to your project's `pom.xml` file:
+
+```xml
+<dependencies>
+    <dependency>
+        <groupId>{{ sdk.namespace | caseDot }}</groupId>
+        <artifactId>{{ sdk.gitRepoName | caseDash }}</artifactId>
+        <version>{{sdk.version}}</version>
+    </dependency>
+</dependencies>
 ```
 
 {% if sdk.gettingStarted %}
