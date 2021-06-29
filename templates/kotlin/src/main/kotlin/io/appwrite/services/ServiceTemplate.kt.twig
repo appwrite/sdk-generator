@@ -7,7 +7,6 @@ package {{ sdk.namespace | caseDot }}.services
 {% macro methodNeedsSecurityParameters(method) %}
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
-import android.net.Uri
 import {{ sdk.namespace | caseDot }}.Client
 {% if service.features.webAuth %}
 import {{ sdk.namespace | caseDot }}.WebAuthComponent
@@ -93,8 +92,8 @@ class {{ service.name | caseUcfirst }}(private val client: Client) : BaseService
                 .domain(Uri.parse(client.endPoint).host!!)
                 .httpOnly()
                 .build()
-            
-            client.http.cookieJar.saveFromResponse(
+                
+            client.cookieJar.saveFromResponse(
                 client.endPoint.toHttpUrl(),
                 listOf(cookie)
             )
