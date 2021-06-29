@@ -276,15 +276,15 @@ docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/d
   * **gitUserName** -> Git username of creator
   * **logo** -> SDK Logo
   * **url** -> SDK URL
-  * **shareText** ->
-  * **shareURL** ->
-  * **shareVia** ->
-  * **shareTags** ->
-  * **warning** ->
-  * **gettingStarted** -> URL to SDK Getting Started
-  * **readme** -> SDK Readme (used to generate readme.md)
-  * **changelog** -> SDK Changelog (used to generate changelog.md)
-  * **examples** -> SDK Examples
+  * **shareText** -> Social Media Metadata
+  * **shareURL** -> Social Media Metadata
+  * **shareVia** -> Social Media Metadata
+  * **shareTags** -> Social Media Metadata
+  * **warning** -> Used for warnings usually communicated within the Readme.md
+  * **gettingStarted** -> Raw Markdown for Getting Started
+  * **readme** -> Stores the raw markdown used to generate the readme.md file. [here](https://github.com/appwrite/sdk-for-flutter/blob/master/README.md)
+  * **changelog** -> Stores the raw markdown used to generate the changelog.md file. [here](https://github.com/appwrite/sdk-for-flutter/blob/master/CHANGELOG.md)
+  * **examples** -> Stores the raw markdown used to generate examples for your SDK. A example can be found [here](https://github.com/appwrite/sdk-for-flutter/tree/master/example)
   * **twitterHandle** -> Twitter handle of creator
   * **discordChannel** -> Discord Channel ID for SDK
   * **discordUrl** -> Discord Server Invite for SDK
