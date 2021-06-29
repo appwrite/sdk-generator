@@ -229,7 +229,7 @@ docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/d
        * **path** -> Path to API without a basePath
        * **fullPath** -> Path to API with basePath
        * **name** -> Name of API Method
-       * **packaging** -> Used in the CLI to specify it to create code.tar.gz for the Create Tag Route
+       * **packaging** -> A flag to indicate if the files at a path need to be packaged as a tarfile  
        * **title** -> Title of API Method
        * **description** -> Description of API Method
        * **security** -> 
