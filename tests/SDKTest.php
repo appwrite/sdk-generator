@@ -85,6 +85,20 @@ class SDKTest extends TestCase
             'supportException' => false,
         ],
 
+        'kotlin' => [
+            'class' => 'Appwrite\SDK\Language\Kotlin',
+            'build' => [
+                'mkdir -p tests/sdks/kotlin/src/test/kotlin',
+                'cp tests/languages/kotlin/ServiceTest.kt tests/sdks/kotlin/src/test/kotlin/ServiceTest.kt',
+                'chmod +x tests/sdks/kotlin/gradlew',
+            ],
+            'envs' => [
+                'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:8-jdk-alpine sh -c "./gradlew :test -q && cat result.txt"',
+            ],
+            'supportException' => false,
+        ],
+
+
         'dotnet' => [
             'class' => 'Appwrite\SDK\Language\DotNet',
             'build' => [
@@ -205,7 +219,7 @@ class SDKTest extends TestCase
 
         echo "\n";
 
-        echo "Generating SDKs files for all langauges...\n";
+        echo "Generating SDKs files for all languages...\n";
 
         $spec = file_get_contents(realpath(__DIR__ . '/resources/spec.json'));
 
@@ -213,8 +227,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'rust', 'android'];
-
+        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin', 'rust'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
