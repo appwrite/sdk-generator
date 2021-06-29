@@ -236,7 +236,7 @@ docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/d
            * **todo** 
        * **consumes** -> Array of Content-Type headers the API Route accepts.
        * **cookies** -> Are cookies required? Bool
-       * **type** -> 
+       * **type** -> Response Type. Tells us whether the endpoint returns a JSON Payload, A URL or redirect to an auth mechanism.
        * **headers** -> Array of headers for API
        * **parameters** -> Parameters for API
            * **all** -> Array containing all Parameters
