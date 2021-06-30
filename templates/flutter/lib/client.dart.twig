@@ -108,7 +108,7 @@ class Client {
                 final macinfo = await deviceInfoPlugin.macOsInfo;
                 device = '(Macintosh; ${macinfo.model})';
             }
-            addHeader('user-agent', '${packageInfo.appName}/${packageInfo.version} $device');
+            addHeader('user-agent', '${packageInfo.packageName}/${packageInfo.version} $device');
         } else {
             // if web set withCredentials true to make cookies work
             _prefs = await SharedPreferences.getInstance();
