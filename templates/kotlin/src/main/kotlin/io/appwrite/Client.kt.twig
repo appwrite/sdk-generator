@@ -184,7 +184,13 @@ class Client @JvmOverloads constructor(
                         return@forEach
                     }
                     is List<*> -> {
-                        httpBuilder.addQueryParameter(it.key + "[]", it.value.toString())
+                        val list = it.value as List<*>
+                        for (index in list.indices) {
+                            httpBuilder.addQueryParameter(
+                                "${it.key}[]",
+                                list[index].toString()
+                            )
+                        }
                     }
                     else -> {
                         httpBuilder.addQueryParameter(it.key, it.value.toString())
