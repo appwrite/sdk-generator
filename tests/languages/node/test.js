@@ -61,8 +61,15 @@ async function start() {
     } catch(error) {
         console.log(error.message);
     }
+    
     try {
         response = await general.error500();
+    } catch(error) {
+        console.log(error.message);
+    }
+    
+    try {
+        response = await general.error502();
     } catch(error) {
         console.log(error.message);
     }

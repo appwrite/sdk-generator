@@ -62,6 +62,12 @@ class Web extends JS {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'rollup.config.js',
+                'template'      => '/web/rollup.config.js.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'dist/cjs/package.json',
                 'template'      => '/web/dist/cjs/package.json.twig',
                 'minify'        => false,

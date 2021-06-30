@@ -101,7 +101,14 @@ class SDK
             return str_replace([' ', '_'], '.', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1.', $value)));
         }));
         $this->twig->addFilter(new TwigFilter('caseSnake', function ($value) {
-            return str_replace([' ', '-'], '_', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1_', $value)));
+            preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $value, $matches);
+            $ret = $matches[0];
+            foreach ($ret as &$match) {
+                $match = $match == strtoupper($match)
+                    ? strtolower($match)
+                    : lcfirst($match);
+            }
+            return implode('_', $ret);
         }));
         $this->twig->addFilter(new TwigFilter('caseJson', function ($value) {
             return (is_array($value)) ? json_encode($value) : $value;
@@ -155,7 +162,7 @@ class SDK
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value) {
             return str_replace('$', '\$', $value);
-        }));
+        }, ['is_safe'=>['html']]));
         $this->twig->addFilter(new TwigFilter('paramsQuery', function ($value) {
             $query = '';
 
@@ -530,7 +537,9 @@ class SDK
         ];
 
         foreach ($this->language->getFiles() as $file) {
-            $template       = $this->twig->load($file['template']); /* @var $template \Twig\TemplateWrapper */
+            if ($file['scope'] != 'copy') {
+                $template = $this->twig->load($file['template']); /* @var $template \Twig\TemplateWrapper */
+            }
             $destination    = $target . '/' . $file['destination'];
             $block          = $file['block'] ?? null;
             $minify         = $file['minify'] ?? false;
@@ -540,6 +549,9 @@ class SDK
                     $this->render($template, $destination, $block, $params, $minify);
                     break;
                 case 'copy':
+                    if (!file_exists(dirname($destination))) {
+                        mkdir(dirname($destination), 0777, true);
+                    }
                     copy(realpath(__DIR__.'/../../templates/' . $file['template']), $destination);
                     break;
                 case 'service':

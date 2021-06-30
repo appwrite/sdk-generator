@@ -23,7 +23,7 @@ class Client:
         return self
 
     def add_header(self, key, value):
-        self._global_headers[key.lower()] = value.lower()
+        self._global_headers[key.lower()] = value
         return self
 {% for header in spec.global.headers %}
 
@@ -32,7 +32,7 @@ class Client:
         """{{header.description}}"""
 
 {% endif %}
-        self._global_headers['{{header.name|lower}}'] = value.lower()
+        self._global_headers['{{header.name|lower}}'] = value
         return self
 {% endfor %}
 
@@ -86,8 +86,12 @@ class Client:
 
             return response._content
         except Exception as e:
-            if response.json():
-                raise {{spec.title | caseUcfirst}}Exception(response.json()['message'], response.status_code, response.json())
+            if response != None:
+                content_type = response.headers['Content-Type']
+                if content_type.startswith('application/json'):
+                    raise {{spec.title | caseUcfirst}}Exception(response.json()['message'], response.status_code, response.json())
+                else:
+                    raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code)
             else:
                 raise {{spec.title | caseUcfirst}}Exception(e)
 

@@ -69,6 +69,12 @@ void main() async {
     print(e.message);
   }
 
+  try {
+    await general.error502();
+  } on AppwriteException catch (e) {
+    print(e.message);
+  }
+
   // response = await general.setCookie();
   // print(response.data['result']);
 
