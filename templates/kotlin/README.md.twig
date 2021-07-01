@@ -3,7 +3,6 @@
 ![Maven Central](https://img.shields.io/maven-central/v/{{ sdk.namespace | caseDot }}/{{ sdk.gitRepoName | caseDash }}.svg?color=green&style=flat-square)
 ![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?style=flat-square)
 ![Version](https://img.shields.io/badge/api%20version-{{ spec.version|url_encode }}-blue.svg?style=flat-square)
-[![Build Status](https://img.shields.io/travis/com/appwrite/sdk-generator?style=flat-square)](https://travis-ci.com/appwrite/sdk-generator)
 {% if sdk.twitterHandle %}
 [![Twitter Account](https://img.shields.io/twitter/follow/{{ sdk.twitterHandle }}?color=00acee&label=twitter&style=flat-square)](https://twitter.com/{{ sdk.twitterHandle }})
 {% endif %}
@@ -25,7 +24,7 @@
 
 ### Gradle
 
-Appwrite's Android SDK is hosted on Maven Central. In order to fetch the Appwrite SDK, add this to your root level `build.gradle(.kts)` file:
+Appwrite's Kotlin SDK is hosted on Maven Central. In order to fetch the Appwrite SDK, add this to your root level `build.gradle(.kts)` file:
 
 ```groovy
 repositories {      
