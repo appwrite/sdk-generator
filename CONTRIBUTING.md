@@ -232,8 +232,7 @@ docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/d
        * **packaging** -> A flag to indicate if the files at a path need to be packaged as a tarfile  
        * **title** -> Title of API Method
        * **description** -> Description of API Method
-       * **security** -> 
-           * **todo** 
+       * **security** -> Array of security methods for this API Call. Primarily used for code examples.
        * **consumes** -> Array of Content-Type headers the API Route accepts.
        * **cookies** -> Are cookies required? Bool
        * **type** -> Response Type. Tells us whether the endpoint returns a JSON Payload, A URL or redirect to an auth mechanism.
