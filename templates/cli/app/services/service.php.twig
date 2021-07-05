@@ -62,9 +62,10 @@ $cli
 {% endif %}
 {% for parameter in method.parameters.body %}
 {% if parameter.type == 'file' and method.packaging %}
+        ${{ parameter.name | caseCamel }} = \urldecode(${{ parameter.name | caseCamel }});
         $cloudFunctionPath = realpath(__DIR__.'/../../../files/'.${{ parameter.name | caseCamel }});
-        $cloudFunctionParentDir = dirname($cloudFunctionPath, 1);
-        $cloudFunctionDirName = basename($cloudFunctionPath);
+        $cloudFunctionParentDir = escapeshellarg(dirname($cloudFunctionPath, 1));
+        $cloudFunctionDirName = escapeshellarg(basename($cloudFunctionPath));
         if (file_exists($cloudFunctionPath) === false ) {
             throw new Exception("Path doesn't exist. Please ensure that the path is within the current directory. "); 
         }
@@ -75,7 +76,7 @@ $cli
         $cFile = new \CURLFile($archivePath,  'application/x-gzip' , basename($archivePath));
         $params['{{ parameter.name }}'] = $cFile;
 {% elseif parameter.type == 'file' %}
-        ${{ parameter.name | caseCamel }} = realpath(__DIR__.'/../../../files/'.${{ parameter.name | caseCamel }});
+        ${{ parameter.name | caseCamel }} = realpath(__DIR__.'/../../../files/'.\urldecode(${{ parameter.name | caseCamel }}));
         if (file_exists(${{ parameter.name | caseCamel }}) === false ) {
             throw new Exception("Path doesn't exist. Please ensure that the path is within the current directory. "); 
         }
