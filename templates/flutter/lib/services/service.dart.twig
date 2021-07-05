@@ -1,14 +1,12 @@
 part of {{ language.params.packageName }};
 
 {% macro parameter(parameter) %}
-{% if parameter.name == 'orderType' %}{% if parameter.required %}required {{ 'OrderType orderType' }}{% else %}OrderType? orderType{% endif %}{% else %}
-{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel }}{% endif %}
-{% endmacro %}
+{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel }}{% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}
 {% endmacro %}
 {% macro map_parameter(parameter) %}
-{% if parameter.name == 'orderType' %}'{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if parameter.required %}{% else %}?{% endif %}.name(),{% elseif parameter.name == 'file' %}'{{ parameter.name }}': {{ parameter.name | caseCamel }}._multipartFile,{% else %}
+{% if parameter.name == 'file' %}'{{ parameter.name }}': {{ parameter.name | caseCamel }}._multipartFile,{% else %}
 '{{ parameter.name }}': {{ parameter.name | caseCamel }},{% endif %}
 {% endmacro %}
 
@@ -52,8 +50,7 @@ class {{ service.name | caseUcfirst }} extends Service {
             for (var item in value) {
               query.add(Uri.encodeComponent(key + '[]') + '=' + Uri.encodeComponent(item));
             }
-          }
-          else {
+          } else if(value != null) {
               query.add(Uri.encodeComponent(key) + '=' + Uri.encodeComponent(value));
           }
         });

@@ -139,6 +139,8 @@ The following checklist aims to balance consistency among languages, and follow 
     - [ ] Default Headers
         - [ ] 'appwrite-sdk-version' header
         - [ ] Add 'User-Agent' header with device/server name and version + platform name and version (ubuntu-20.04-php-7.0.1 / android-20.0-flutter-3.0)
+        - [ ] Add 'origin' header with the following syntax `<scheme>://<identifier>` where scheme is one of `http`, `https`, `appwrite-android`, `appwrite-ios`, `appwrite-macos`, `appwrite-windows`, `appwrite-linux` and identifier is the host name is case of web apps and the package name in case of ios, android and other platforms.
+        - [ ] All Global headers available in spec
     - [ ] Methods
         - [ ] addHeader(key, value)
         - [ ] call(method, path = '', headers = [], params = [])
@@ -146,12 +148,12 @@ The following checklist aims to balance consistency among languages, and follow 
             - [ ] Parse request params by content type header
             - [ ] Parse response params by content type header
             - [ ] Throw error on bad response
+    - [ ] Handle errors and throw `AppwriteException` with proper information
 - [ ] Service Abstraction (optional)
     - [ ] Constructor receiving an instance of the client class 
 - [ ] Service Class (extends the service abstraction if exists)
     - [ ] Headers Support (Content Type)
     - [ ] Parameters Support
-        - [ ] Default Values Support
         - [ ] Required Values Support
         - [ ] String Support
         - [ ] Integer Support
@@ -183,6 +185,8 @@ After you finish initializing, make a series of HTTP calls using your new genera
 1. tests/languages/tests-for-php.js
 2. tests/languages/tests-for-node.js
 
+> Note: In your test files, make sure that you begin the test with the following string "\nTest Started\n". We use this string to filter output from the build tool you're using.
+
 Once done, add a Docker command that can execute your test file to the SDK test algorithm `$containers` array in this location: `./tests/SDKTest.php:17`. Make sure to add one command for each language version you wish to support.
 
 A good example is the PHP test for 5 different PHP versions:
@@ -200,5 +204,5 @@ protected $containers = [
 
 Finally, you can run the tests using
 ```sh
-docker run --rm -v $(pwd):/app:rw -w /app -v /var/run/docker.sock:/var/run/docker.sock  php:7.4-cli-alpine sh -c "apk add docker-cli && vendor/bin/phpunit tests/SDKTest.php"
+docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/docker.sock  php:7.4-cli-alpine sh -c "apk add docker-cli && vendor/bin/phpunit tests/SDKTest.php"
 ```

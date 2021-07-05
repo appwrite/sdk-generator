@@ -27,7 +27,7 @@ class Client
      *
      * @var array
      */
-    private $headers = [
+    protected $headers = [
         'content-type' => '',
         'x-sdk-version' => '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
 {% for key,header in spec.global.defaultHeaders %}
@@ -40,7 +40,7 @@ class Client
      *
      * @var array
      */
-    private $preferences = [
+    protected $preferences = [
         self::PREFERENCE_ENDPOINT => '',
         self::PREFERENCE_SELF_SIGNED => '',
 {% for header in spec.global.headers %}
@@ -49,24 +49,6 @@ class Client
 {% endif %}
 {% endfor %}
     ];
-
-    /**
-     * SDK constructor.
-     */
-    public function __construct()
-    {
-        if (!$this->loadPreferences()) {
-            Console::error("❌ Oops We were unable to load your preferences. Ensure that you have run '{{ language.params.executableName }} init' before using the CLI");
-            Console::exit();
-        }
-        $this
-{% for header in spec.global.headers %}
-{% if header.key != 'Mode' and header.key != 'JWT' %}
-            ->set{{header.key | caseUcfirst}}($this->preferences['{{header.name}}'])
-{% endif %}
-{% endfor %}
-        ;
-    }
 
     /**
      * Getter for preferences
@@ -92,13 +74,13 @@ class Client
         return $this;
     }
 
-     /**
+    /**
      * Load user preferences from the JSON file
      * 
      * @param string $filename 
      * @return bool
      */
-    private function loadPreferences(string $filename = self::USER_PREFERENCES_FILE): bool
+    protected function loadPreferences(string $filename = self::USER_PREFERENCES_FILE): bool
     {
         try {
             $jsondata = @file_get_contents($filename);
@@ -119,12 +101,12 @@ class Client
     }
 
     /**
-    * Function to write user preferences to
-    * the JSON file
-    * 
-    * @param string $filename 
-    * @return int
-    */
+     * Function to write user preferences to
+     * the JSON file
+     * 
+     * @param string $filename 
+     * @return int
+     */
     function savePreferences(string $filename = self::USER_PREFERENCES_FILE): int
     {
         $jsondata = json_encode($this->preferences, JSON_PRETTY_PRINT);
@@ -132,12 +114,12 @@ class Client
         return $result;
     }
 
-     /**
+    /**
      * Check if all the preferences have been successfully loaded.
      * 
      * @return bool
      */
-    private function isPreferenceLoaded() : bool {
+    protected function isPreferenceLoaded() : bool {
         if(empty($this->getPreference(self::PREFERENCE_ENDPOINT))) return false;
 {% for header in spec.global.headers %}
 {% if header.key != 'Mode' and header.key != 'JWT' %}
@@ -193,6 +175,20 @@ class Client
      */
     public function call($method, $path = '', $headers = array(), array $params = array())
     {
+
+        if (!$this->loadPreferences()) {
+            Console::error("❌ Oops We were unable to load your preferences. Ensure that you have run '{{ language.params.executableName }} init' before using the CLI");
+            Console::exit();
+        }
+        
+        $this
+{% for header in spec.global.headers %}
+{% if header.key != 'Mode' and header.key != 'JWT' %}
+            ->set{{header.key | caseUcfirst}}($this->preferences['{{header.name}}'])
+{% endif %}
+{% endfor %}
+        ;
+        
         $headers            = array_merge($this->headers, $headers);
         $ch                 = curl_init($this->getPreference(self::PREFERENCE_ENDPOINT) . $path . (($method == self::METHOD_GET && !empty($params)) ? '?' . http_build_query($params) : ''));
         $responseHeaders    = [];
@@ -289,7 +285,7 @@ class Client
      * @param string $prefix
      * @return array
      */
-    private function flatten(array $data, $prefix = '')
+    protected function flatten(array $data, $prefix = '')
     {
         $output = [];
 
