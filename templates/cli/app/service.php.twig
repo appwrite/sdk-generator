@@ -63,20 +63,20 @@ $cli
 {% for parameter in method.parameters.body %}
 {% if parameter.type == 'file' and method.packaging %}
         ${{ parameter.name | caseCamel }} = \urldecode(${{ parameter.name | caseCamel }});
-        $cloudFunctionPath = realpath(__DIR__.'/../../../files/'.${{ parameter.name | caseCamel }});
+        $cloudFunctionPath = realpath(__DIR__.'/../files/'.${{ parameter.name | caseCamel }});
         $cloudFunctionParentDir = escapeshellarg(dirname($cloudFunctionPath, 1));
         $cloudFunctionDirName = escapeshellarg(basename($cloudFunctionPath));
         if (file_exists($cloudFunctionPath) === false ) {
             throw new Exception("Path doesn't exist. Please ensure that the path is within the current directory. "); 
         }
         $archiveName = 'code.tar.gz';
-        $volumeMountPoint = realpath(__DIR__.'/../../../files/');
+        $volumeMountPoint = realpath(__DIR__.'/../files/');
         exec("tar -zcvf $archiveName -C $cloudFunctionParentDir $cloudFunctionDirName && mv $archiveName $volumeMountPoint");
         $archivePath = realpath($volumeMountPoint."/$archiveName");
         $cFile = new \CURLFile($archivePath,  'application/x-gzip' , basename($archivePath));
         $params['{{ parameter.name }}'] = $cFile;
 {% elseif parameter.type == 'file' %}
-        ${{ parameter.name | caseCamel }} = realpath(__DIR__.'/../../../files/'.\urldecode(${{ parameter.name | caseCamel }}));
+        ${{ parameter.name | caseCamel }} = realpath(__DIR__.'/../files/'.\urldecode(${{ parameter.name | caseCamel }}));
         if (file_exists(${{ parameter.name | caseCamel }}) === false ) {
             throw new Exception("Path doesn't exist. Please ensure that the path is within the current directory. "); 
         }
