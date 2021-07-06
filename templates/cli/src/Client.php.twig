@@ -261,7 +261,13 @@ class Client
         switch (substr($responseType, 0, strpos($responseType, ';'))) {
             case 'application/json':
                 $responseBody = json_decode($responseBody, true);
-            break;
+                break;
+            default:
+                $responseBody = [
+                    "responseCode" => $responseStatus,
+                    "message" => $responseBody
+                ];
+                break;
         }
 
         if ((curl_errno($ch)/* || 200 != $responseStatus*/)) {
