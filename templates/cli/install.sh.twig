@@ -140,7 +140,7 @@ for x in "${@}" ; do
     _args=$_args" "$x
 done
 
-bash -c "docker run -i --rm --volume {{ spec.title | lower }}-cli:/usr/local/code/app/.preferences/ --volume $(pwd):/usr/local/code/files:rw --network host '${{ spec.title | upper }}_CLI_IMAGE_NAME:${{ spec.title | upper }}_CLI_IMAGE_VERSION' $_args" ' > ${{ spec.title | upper }}_TEMP_NAME
+bash -c "docker run -i --rm --volume {{ spec.title | lower }}-cli:/usr/local/code/app/.preferences/ --volume \"$PWD\":/usr/local/code/files:rw --network host '${{ spec.title | upper }}_CLI_IMAGE_NAME:${{ spec.title | upper }}_CLI_IMAGE_VERSION' $_args" ' > ${{ spec.title | upper }}_TEMP_NAME
 
     printf "${GREEN}🚧 Setting Permissions ${NC}\n"
     chmod +x ${{ spec.title | upper }}_TEMP_NAME
