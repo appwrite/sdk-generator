@@ -37,23 +37,28 @@ class Parser {
     protected const headerColor = self::colors[2];
 
     /**
-     * Parse the response from the server 
+     * Parse the response body from the server 
      *
-     * @param array $response 
+     * @param $responseBody 
      * @return void
      */
-    public function parseResponse($response)
+    public function parseResponse($responseBody)
     {
-        foreach ($response as $key => $value) {
-            if (is_array($value) && count($value) !== 0 ) {
-                $this->drawKeyValue($key, '');
-                $this->drawTable($value, self::headerColor, self::tableColor);
-            } 
-            else {
-                $this->drawKeyValue($key, $value);
+        if(is_array($responseBody)) {
+            foreach ($responseBody as $key => $value) {
+                if (is_array($value) && count($value) !== 0 ) {
+                    $this->drawKeyValue($key, '');
+                    $this->drawTable($value, self::headerColor, self::tableColor);
+                } 
+                else {
+                    $this->drawKeyValue($key, $value);
+                }
             }
+        } else {
+            printf($responseBody);
         }
     }
+
 
     /**
      * Print a key value pair
@@ -126,6 +131,13 @@ class Parser {
         $table->display();
     }
 
+
+    /**
+     * Formats an associative array of commands and descriptions using a 80 column mask
+     *
+     * @param array $arr
+     * @return void
+     */
     public function formatArray(array $arr) {
         $descriptionColumnLimit = 60;
         $commandNameColumnLimit = 20;
