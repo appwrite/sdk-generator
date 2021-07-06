@@ -28,8 +28,14 @@ class Android extends Kotlin {
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => '/android/docs/example.md.twig',
+                'destination'   => 'docs/examples/kotlin/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => '/android/docs/kotlin/example.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/java/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => '/android/docs/java/example.md.twig',
                 'minify'        => false,
             ],
             [
