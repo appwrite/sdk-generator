@@ -68,7 +68,9 @@ class Client {
             };
         }
 
-        params.removeWhere((key,value) => value == null);
+        if(params.isNotEmpty) {
+            params.removeWhere((key,value) => value == null);
+        }
 
         // Origin is hardcoded for testing
         Options options = Options(

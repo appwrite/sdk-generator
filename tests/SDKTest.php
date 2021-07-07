@@ -72,18 +72,32 @@ class SDKTest extends TestCase
             'supportException' => true,
         ],
 
-        'kotlin' => [
-            'class' => 'Appwrite\SDK\Language\Kotlin',
+        'android' => [
+            'class' => 'Appwrite\SDK\Language\Android',
             'build' => [
-                'mkdir -p tests/sdks/kotlin/src/test/java/io/appwrite/services',
-                'cp tests/languages/kotlin/ServiceTest.kt tests/sdks/kotlin/src/test/java/io/appwrite/services/ServiceTest.kt',
+                'mkdir -p tests/sdks/android/library/src/test/java',
+                'cp tests/languages/android/ServiceTest.kt tests/sdks/android/library/src/test/java/ServiceTest.kt',
+                'chmod +x tests/sdks/android/gradlew',
             ],
             'envs' => [
-                'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-8-slim mvn clean install test -q',
-                'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/java --env PUB_CACHE=vendor maven:3.6-jdk-11-slim mvn clean install test -q',
+                'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:latest-jdk8 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
             ],
             'supportException' => false,
         ],
+
+        'kotlin' => [
+            'class' => 'Appwrite\SDK\Language\Kotlin',
+            'build' => [
+                'mkdir -p tests/sdks/kotlin/src/test/kotlin',
+                'cp tests/languages/kotlin/ServiceTest.kt tests/sdks/kotlin/src/test/kotlin/ServiceTest.kt',
+                'chmod +x tests/sdks/kotlin/gradlew',
+            ],
+            'envs' => [
+                'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:8-jdk-alpine sh -c "./gradlew :test -q && cat result.txt"',
+            ],
+            'supportException' => false,
+        ],
+
 
         'dotnet' => [
             'class' => 'Appwrite\SDK\Language\DotNet',
@@ -195,7 +209,7 @@ class SDKTest extends TestCase
 
         echo "\n";
 
-        echo "Generating SDKs files for all langauges...\n";
+        echo "Generating SDKs files for all languages...\n";
 
         $spec = file_get_contents(realpath(__DIR__ . '/resources/spec.json'));
 
@@ -203,7 +217,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web'];
+        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {

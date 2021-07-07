@@ -1,0 +1,76 @@
+apply(plugin: "maven-publish")
+apply(plugin: "signing")
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "sonatype"
+            def releaseUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+            def snapshotUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+            url = version.endsWith('-SNAPSHOT') ? snapshotUrl : releaseUrl
+            credentials {
+                username = rootProject.ext["ossrhUsername"]
+                password = rootProject.ext["ossrhPassword"]
+            }
+        }
+    }
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
+
+            groupId = PUBLISH_GROUP_ID
+            artifactId = PUBLISH_ARTIFACT_ID
+            version = PUBLISH_VERSION
+
+            pom {
+                name = PUBLISH_ARTIFACT_ID
+                description = POM_DESCRIPTION
+                url = POM_URL
+
+                licenses {
+                    license {
+                        name = POM_LICENSE_NAME
+                        url = POM_LICENSE_URL
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = POM_DEVELOPER_ID
+                        name = POM_DEVELOPER_NAME
+                        email = POM_DEVELOPER_EMAIL
+                    }
+                }
+
+                scm {
+                    connection = GITHUB_SCM_CONNECTION
+                    url = POM_SCM_URL
+                }
+            }
+        }
+    }
+}
+
+ext["signing.keyId"] = rootProject.ext["signing.keyId"]
+ext["signing.password"] = rootProject.ext["signing.password"]
+ext["signing.secretKeyRingFile"] = rootProject.ext["signing.secretKeyRingFile"]
+
+signing {
+    sign publishing.publications
+}
