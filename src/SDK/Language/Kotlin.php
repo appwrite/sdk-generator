@@ -248,8 +248,14 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => '/kotlin/docs/example.md.twig',
+                'destination'   => 'docs/examples/kotlin/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => '/kotlin/docs/kotlin/example.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/java/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => '/kotlin/docs/java/example.md.twig',
                 'minify'        => false,
             ],
             [
