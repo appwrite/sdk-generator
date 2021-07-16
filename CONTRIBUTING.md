@@ -206,3 +206,84 @@ Finally, you can run the tests using
 ```sh
 docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/docker.sock  php:7.4-cli-alpine sh -c "apk add docker-cli && vendor/bin/phpunit tests/SDKTest.php"
 ```
+
+## SDK Generator Interface
+
+* **spec** -- This object is derived from the appwrite swagger spec
+  * **title** -> The title of the SDK you are generating (normally used as package name.)
+  * **description** -> Description of Appwrite SDK
+  * **namespace** -> SDK Namespace
+  * **version** -> SDK Version
+  * **endpoint** -> Default Endpoint (example: "https://appwrite.io/v1")
+  * **host** -> Default Host (example: "appwrite.io")
+  * **basePath** -> Default Path to API (example: "/v1")
+  * **licenseName** -> Name of licence for SDK
+  * **licenseURL** -> URL to SDK Licence
+  * **contactName** -> Name of Person/Team that created the SDK
+  * **contactURL** -> URL to contact for help with the SDK
+  * **contactEmail** -> Email Address to Contact for help with the SDK
+  * **services** -> Array of Services. Each service contains the following:
+    *  **name** -> The name of the service
+    *  **methods** -> Array of Methods that can be used with the service
+       * **method**  ->  HTTP Method to call
+       * **path** -> Path to API without a basePath
+       * **fullPath** -> Path to API with basePath
+       * **name** -> Name of API Method
+       * **packaging** -> A flag to indicate if the files at a path need to be packaged as a tarfile  
+       * **title** -> Title of API Method
+       * **description** -> Description of API Method
+       * **security** -> Array of security methods for this API Call. Primarily used for code examples.
+       * **consumes** -> Array of Content-Type headers the API Route accepts.
+       * **cookies** -> Are cookies required? Bool
+       * **type** -> Response Type. Tells us whether the endpoint returns a JSON Payload, A URL or redirect to an auth mechanism.
+       * **headers** -> Array of headers for API
+       * **parameters** -> Parameters for API
+           * **all** -> Array containing all Parameters
+           * **headers** -> Array containing parameters that go in the header
+           * **path** -> Array containing parameters that go into the path of the API URL
+           * **query** -> Array containing parameters that go into the query of the API URL
+           * **body** -> Array containing parameters that go in the body
+
+              All Parameters will have a structure like so:
+              * **name** -> Name of parameter
+              * **type** -> Parameter Type
+              * **description** -> Parameter Description
+              * **required** -> Is parameter required
+              * **default** -> Parameter Defaults
+              * **example** -> Parameter Example
+              * **array**
+                * **type** -> Array Type (only used if param type is "array")
+  * **global**
+    * **headers** -> A object containing all global headers
+    * **defaultHeaders** -> A object containing all default headers
+
+* **language** -- Information on the current language SDK
+  * **name** -> Name of language
+  * **params** -> Custom langauge specific parameters
+
+* **sdk** -- Various Metadata used for packaging and categorising
+  * **namespace** -> SDK Namespace
+  * **name** -> SDK Name
+  * **description** -> SDK Desc
+  * **shortDescription** -> SDK Short Desc
+  * **version** -> SDK Version
+  * **license** -> SDK Licence
+  * **licenseContent** -> SDK Licence content
+  * **gitURL** -> GIT URL for SDK
+  * **gitRepo** -> GIT Repo for SDK
+  * **gitRepoName** -> Git Repo Name
+  * **gitUserName** -> Git username of creator
+  * **logo** -> SDK Logo
+  * **url** -> SDK URL
+  * **shareText** -> Social Media Metadata
+  * **shareURL** -> Social Media Metadata
+  * **shareVia** -> Social Media Metadata
+  * **shareTags** -> Social Media Metadata
+  * **warning** -> Used for warnings usually communicated within the Readme.md
+  * **gettingStarted** -> Raw Markdown for Getting Started
+  * **readme** -> Stores the raw markdown used to generate the readme.md file. [here](https://github.com/appwrite/sdk-for-flutter/blob/master/README.md)
+  * **changelog** -> Stores the raw markdown used to generate the changelog.md file. [here](https://github.com/appwrite/sdk-for-flutter/blob/master/CHANGELOG.md)
+  * **examples** -> Stores the raw markdown used to generate examples for your SDK. A example can be found [here](https://github.com/appwrite/sdk-for-flutter/tree/master/example)
+  * **twitterHandle** -> Twitter handle of creator
+  * **discordChannel** -> Discord Channel ID for SDK
+  * **discordUrl** -> Discord Server Invite for SDK
