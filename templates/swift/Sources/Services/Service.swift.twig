@@ -1,4 +1,7 @@
-
+{% macro methodNeedsSecurityParameters(method) %}
+{% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
+{% endmacro %}
+import AsyncHTTPClient
 
 class {{ service.name | caseUcfirst }}: Service
 {
@@ -16,8 +19,7 @@ class {{ service.name | caseUcfirst }}: Service
      * @throws Exception
      * @return array
      */
-
-    func {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}_{{ parameter.name | caseCamel }}: {{ parameter.type | typeName | raw }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> Array<Any> {
+    func {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}_{{ parameter.name | caseCamel }}: {{ parameter.type | typeName | raw }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) throws -> HTTPClient.Response {
         {% if method.parameters.path %}var{% else %}let{% endif %} path: String = "{{ method.path }}"
 
 {% for parameter in method.parameters.path %}
@@ -26,32 +28,40 @@ class {{ service.name | caseUcfirst }}: Service
           with: {% if method.parameters.path %}_{{ parameter.name | caseCamel }}{% else %}""{% endif %}
 
         )
-{% endfor %}
 
-        {% if method.parameters.query or method.parameters.body or method.parameters.formData %}
-        var params: [String: Any] = [:]
-        {% else %}
-        let params: [String: Any] = [:]
-        {% endif %}
+{% endfor %}
+{% if method.parameters.query or method.parameters.body or method.parameters.formData or  _self.methodNeedsSecurityParameters(method) %}
+        let params: [String: Any?] = [
+{% else %}
+        let params: [String: Any?] = [:]
+{% endif %}
+{% for parameter in method.parameters.query | merge(method.parameters.body) %}
+            "{{ parameter.name }}": _{{ parameter.name | caseCamel }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
 
-{% for parameter in method.parameters.query %}
-        params["{{ parameter.name }}"] = _{{ parameter.name | caseCamel }}
 {% endfor %}
-{% for parameter in method.parameters.body %}
-        params["{{ parameter.name }}"] = _{{ parameter.name | caseCamel }}
-{% endfor %}
-{% for parameter in method.parameters.formData %}
-        params["{{ parameter.name }}"] = _{{ parameter.name | caseCamel }}
-{% endfor %}
+{% if _self.methodNeedsSecurityParameters(method) %}
+{% for node in method.security %}
+{% for key,header in node|keys %}
+            "{{header|caseLower}}": client.config["{{header|caseLower}}"]{% if not loop.last %},{% endif %}
 
-        return [self.client.call(method: Client.HTTPMethod.{{ method.method }}.rawValue, path: path, headers: [
-{% for parameter in method.parameters.header %}
-            "{{ parameter.name }}": {{ parameter.name | caseCamel }},
 {% endfor %}
-{% for key, header in method.headers %}
-            "{{ key }}": "{{ header }}",
 {% endfor %}
-        ], params: params)];
+{% endif %}
+{% if method.parameters.query or method.parameters.body or method.parameters.formData or _self.methodNeedsSecurityParameters(method) %}
+        ]
+{% endif %}
+
+{% if method.type == 'webAuth' %}
+
+{% elseif method.type == 'location' %}
+        return try client.call(method: "{{ method.method | caseUpper }}", path: path, params: params)
+{% else %}
+        let headers: [String: String] = [
+{{ method.headers|map((header, key) => "            \"#{key}\": \"#{header}\"")|join(',\n')|raw }}
+        ]
+
+        return try client.call(method: "{{ method.method | caseUpper }}", path: path, headers: headers, params: params)
+{% endif %}
     }
 
 {% endfor %}

@@ -161,19 +161,18 @@ class Swift extends Language {
         switch ($type) {
             case self::TYPE_INTEGER:
                 return 'Int';
-            break;
+            case self::TYPE_NUMBER:
+                return 'Double';
             case self::TYPE_STRING:
                 return 'String';
-            break;
             case self::TYPE_FILE:
-                return 'Array<Any>';
-            break;
+                return 'Data';
             case self::TYPE_BOOLEAN:
                 return 'Bool';
-            break;
             case self::TYPE_ARRAY:
-                 return "Array<Any>";
-            break;
+                 return 'Array<Any>?';
+            case self::TYPE_OBJECT:
+                return 'Any?';
         }
 
         return $type;
@@ -197,12 +196,12 @@ class Swift extends Language {
 
         if(empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
-                case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
+                case self::TYPE_NUMBER:
                     $output = "0";
                     break;
                 case self::TYPE_STRING:
-                    $output .= "\"\"";
+                    $output .= '""';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= 'false';
@@ -210,22 +209,30 @@ class Swift extends Language {
                 case self::TYPE_ARRAY:
                     $output .= '[]';
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= 'nil';
+                    break;
+                default:
+                    echo $type;
             }
         }
         else {
             switch ($type) {
-                case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                     $output .= $default;
                     break;
-                case self::TYPE_ARRAY:
-                    $output .= $default;
+                case self::TYPE_NUMBER:
+                    $output .= sprintf("%.1f",$default);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
                     $output .= "\"{$default}\"";
+                    break;
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
+                    $output .= 'nil';
                     break;
             }
         }

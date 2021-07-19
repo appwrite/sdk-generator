@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import AsyncHTTPClient
 
 open class Client {
 
@@ -20,82 +21,120 @@ open class Client {
       "x-sdk-version": "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
 
 {% for key,header in spec.global.defaultHeaders %}
-      "{{key}}" : "{{header}}"{% if not loop.last %},{% endif %}
+      "{{key}}": "{{header}}"{% if not loop.last %},{% endif %}
 {% endfor %}
     
     ]
 
+    open var config: [String: String] = [:]
+
+    open var http: HTTPClient
 
     // MARK: Methods
 
-    // default constructor
+    // Default constructor
     public init() {
+        let timeout = HTTPClient.Configuration.Timeout(
+            connect: .seconds(30),
+            read: .seconds(30))
 
+        let redirects = HTTPClient.Configuration.RedirectConfiguration
+            .follow(max: 5, allowCycles: false)
+
+        http = HTTPClient(
+            eventLoopGroupProvider: .createNew,
+            configuration: HTTPClient.Configuration(
+            redirectConfiguration: redirects,
+            timeout: timeout,
+            decompression: .enabled(limit: .none)))
     }
 
-    {% for header in spec.global.headers %}
+{% for header in spec.global.headers %}
     ///
     /// Set {{header.key | caseUcfirst}}
     ///
-    {% if header.description %}
+{% if header.description %}
     /// {{header.description}}
     ///
-    {% endif %}
+{% endif %}
     /// @param String value
     ///
     /// @return Client
     ///
-    open func set{{header.key | caseUcfirst}}(value: String) -> Client {
-
-        self.addHeader(key: "{{header.name}}", value: value)
+    open func set{{header.key | caseUcfirst}}(_ value: String) -> Client {
+        config["{{ header.key | caseLower }}"] = value
+        addHeader(key: "{{header.name}}", value: value)
         return self
     }
 
-    {% endfor %}
+{% endfor %}
 
+    ///
+    /// Set self signed
     ///
     /// @param Bool status
+    ///
     /// @return Client
     ///
-    open func setSelfSigned(status: Bool = true) -> Client {
-
+    open func setSelfSigned(_ status: Bool = true) -> Client {
         self.selfSigned = status
         return self
     }
 
     ///
+    /// Set endpoint
+    ///
     /// @param String endpoint
+    ///
     /// @return Client
     ///
-    open func setEndpoint(endpoint: String) -> Client {
-
+    open func setEndpoint(_ endpoint: String) -> Client {
         self.endpoint = endpoint
         return self
     }
 
     ///
+    /// Add header
+    ///
     /// @param String key
     /// @param String value
     ///
+    /// @return Client
+    ///
     open func addHeader(key: String, value: String) -> Client {
-
         self.headers[key.lowercased()] = value
-
         return self
     }
 
     ///
+    /// Build query URL
+    ///
+    /// @param Dictionary<String, Any> params
+    /// @param String prefix
+    ///
+    /// @return String
+    ///
     open func httpBuildQuery(params: [String: Any], prefix: String = "") -> String {
         var output: String = ""
+
         for (key, value) in params {
-            let finalKey: String = prefix.isEmpty ? key : (prefix + "[" + key + "]")
-            if (value is AnyCollection<Any>) {
-                output += self.httpBuildQuery(params: value as! [String : Any], prefix: finalKey)
-            } else {
-                output += "\(value)"
+            let finalKey: String = prefix.isEmpty
+                ? key
+                : (prefix + "[" + key + "]")
+
+            switch value {
+                case nil:
+                    break
+                case is AnyCollection<Any>:
+                    output += self.httpBuildQuery(
+                        params: value as! [String : Any],
+                        prefix: finalKey)
+                default:
+                    output += "\(value)"
             }
             output += "&"
         }
+
         return output
     }
 
@@ -109,77 +148,42 @@ open class Client {
     /// @return Array|String
     /// @throws Exception
     ///
-    func call(method:String, path:String = "", headers:[String: String] = [:], params:[String: Any] = [:]) -> Any {
-
-        self.headers.merge(headers){(_, new) in new}
-        let targetURL:URL = URL(string: self.endpoint + path + (( method == HTTPMethod.get.rawValue && !params.isEmpty ) ? "?" + httpBuildQuery(params: params) : ""))!
-
-        var query: String = ""
-
-        var responseStatus: Int = HTTPStatus.unknown.rawValue
-        var responseType: String = ""
-        var responseBody: Any = ""
-
-        switch (self.headers["content-type"]) {
-            case "application/json":
-              do {
-                let json = try JSONSerialization.data(withJSONObject:params, options: [])
-                query = String( data: json, encoding: String.Encoding.utf8)!
-              } catch {
-                print("Failed to parse json: \(error.localizedDescription)")
-              }
-              break
-            default:
-              query = self.httpBuildQuery(params: params)
-              break
+    func call(method:String, path:String = "", headers:[String: String] = [:], params:[String: Any?] = [:]) throws -> HTTPClient.Response {
+        self.headers.merge(headers) { (_, new) in
+            new
         }
 
-        var request = URLRequest(url: targetURL)
-        let session = URLSession.shared
+        let queryParameters = method == "GET" && !params.isEmpty
+            ? "?" + httpBuildQuery(params: params)
+            : ""
+
+        let targetURL = URL(string: endpoint + path + queryParameters)!
+
+        var request = try HTTPClient.Request(
+            url: targetURL,
+            method: .GET
+        )
 
         for (key, value) in self.headers {
-            request.setValue(value, forHTTPHeaderField: key)
+            request.headers.add(name: key, value: value)
         }
 
-        request.httpMethod = method
-        if (method.uppercased() == "POST") {
-            request.httpBody = query.data(using: .utf8)
+        switch (self.headers["content-type"]) {
+        case "multipart/form-data":
+            // TODO: Form data
+            break
+        default:
+            if (method == "GET") {
+                break
+            }
+            let json = try JSONSerialization.data(
+                withJSONObject: params,
+                options: [])
+
+            request.body = .data(json)
         }
 
-        let semaphore = DispatchSemaphore(value: 0)
-
-        session.dataTask(with: request) { data, response, error in
-            if (error != nil) {
-                print(error!)
-                return
-            }
-            do {
-                let httpResponse = response as! HTTPURLResponse
-                responseStatus = httpResponse.statusCode
-
-                if (responseStatus == HTTPStatus.internalServerError.rawValue) {
-                    print(responseStatus)
-                    return
-                }
-
-                responseType = httpResponse.mimeType ?? ""
-
-                if (responseType == "application/json") {
-                    let json = try JSONSerialization.jsonObject(with: data!, options: [])
-                    responseBody = json
-              } else {
-                    responseBody = String(data: data!, encoding: String.Encoding.utf8)!
-              }
-            } catch {
-                print(error)
-            }
-
-            semaphore.signal()
-        }.resume()
-
-        _ = semaphore.wait(wallTimeout: .distantFuture)
-
-        return responseBody
+        return try http.execute(request: request).wait()
     }
 
 }
@@ -188,14 +192,11 @@ extension Client {
 
     public enum HTTPStatus: Int {
       case unknown = -1
-
       case ok = 200
       case created = 201
       case accepted = 202
-
       case movedPermanently = 301
       case found = 302
-
       case badRequest = 400
       case notAuthorized = 401
       case paymentRequired = 402
@@ -203,25 +204,7 @@ extension Client {
       case notFound = 404
       case methodNotAllowed = 405
       case notAcceptable = 406
-
       case internalServerError = 500
       case notImplemented = 501
     }
-
-    public enum HTTPMethod: String {
-      case get
-
-      case post
-      case put
-      case patch
-
-      case delete
-
-      case head
-      case options
-      case connect
-      case trace
-    }
-
-
 }
