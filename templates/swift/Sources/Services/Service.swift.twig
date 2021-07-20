@@ -2,8 +2,10 @@
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
 import AsyncHTTPClient
+import Foundation
+import NIO
 
-class {{ service.name | caseUcfirst }}: Service
+open class {{ service.name | caseUcfirst }}: Service
 {
 {% for method in service.methods %}
     /**
@@ -14,18 +16,21 @@ class {{ service.name | caseUcfirst }}: Service
      *
 {% endif %}
 {% for parameter in method.parameters.all %}
-     * @param {{ parameter.type | typeName | raw}} _{{ parameter.name | caseCamel }}
+     * @param {{ parameter.type | typeName | raw}} {{ parameter.name | caseCamel }}
 {% endfor %}
      * @throws Exception
      * @return array
      */
-    func {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}_{{ parameter.name | caseCamel }}: {{ parameter.type | typeName | raw }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) throws -> HTTPClient.Response {
+{% if method.type == "webAuth" %}
+    @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+{% endif %}
+    open func {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}_ {{ parameter.name | caseCamel }}: {{ parameter.type | typeName | raw }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) throws{% if method.type != "webAuth" %} -> HTTPClient.Response{% endif %} {
         {% if method.parameters.path %}var{% else %}let{% endif %} path: String = "{{ method.path }}"
 
 {% for parameter in method.parameters.path %}
         path = path.replacingOccurrences(
           of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}",
-          with: {% if method.parameters.path %}_{{ parameter.name | caseCamel }}{% else %}""{% endif %}
+          with: {% if method.parameters.path %}{{ parameter.name | caseCamel }}{% else %}""{% endif %}
 
         )
 
@@ -36,7 +41,7 @@ class {{ service.name | caseUcfirst }}: Service
         let params: [String: Any?] = [:]
 {% endif %}
 {% for parameter in method.parameters.query | merge(method.parameters.body) %}
-            "{{ parameter.name }}": _{{ parameter.name | caseCamel }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
+            "{{ parameter.name }}": {{ parameter.name | caseCamel }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
 
 {% endfor %}
 {% if _self.methodNeedsSecurityParameters(method) %}
