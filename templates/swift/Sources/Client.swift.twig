@@ -49,6 +49,14 @@ open class Client {
             decompression: .enabled(limit: .none)))
     }
 
+    deinit {
+        do {
+            try http.syncShutdown()
+        } catch {
+            print(error)
+        }
+    }
+
 {% for header in spec.global.headers %}
     ///
     /// Set {{header.key | caseUcfirst}}
