@@ -170,7 +170,7 @@ open class Client {
         self.headers.merge(headers) { (_, new) in new }
 
         let queryParameters = method == "GET" && !params.isEmpty
-            ? "?" + httpBuildQuery(params: params)
+            ? "?" + parametersToQueryString(params: params)
             : ""
 
         let targetURL = URL(string: endpoint + path + queryParameters)!
@@ -189,7 +189,7 @@ open class Client {
             // TODO: Form data
             break
         default:
-            if (method == "GET") {
+            if "GET" == method {
                 break
             }
             let json = try JSONSerialization.data(

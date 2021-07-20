@@ -1,0 +1,21 @@
+import SwiftUI
+
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+extension View {
+    public func registerOAuthCallbackHandler() -> some View {
+        onOpenURL { url in
+            let components = URLComponents(string: url.absoluteString)!
+
+            WebAuthComponent.onCallback(
+                scheme: components.scheme!,
+                url: components.url!
+            )
+
+            components.queryItems!.forEach { item in
+                if "secret" == item.name {
+                    print(item.value!)
+                }
+            }
+        }
+    }
+}
