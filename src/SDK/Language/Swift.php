@@ -166,7 +166,7 @@ class Swift extends Language {
             case self::TYPE_STRING:
                 return 'String';
             case self::TYPE_FILE:
-                return 'Data';
+                return 'ByteBuffer';
             case self::TYPE_BOOLEAN:
                 return 'Bool';
             case self::TYPE_ARRAY:

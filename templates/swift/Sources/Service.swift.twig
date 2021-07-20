@@ -5,11 +5,11 @@
 // GitHub: https://github.com/armino-dev/sdk-generator
 //
 
-class Service {
+open class Service {
 
-    var client: Client;
+    internal var client: Client
 
-    init(client: Client)
+    public init(client: Client)
     {
         self.client = client
     }
