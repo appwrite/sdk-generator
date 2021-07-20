@@ -1,0 +1,80 @@
+import AsyncHTTPClient
+import Foundation
+import NIO
+import SwiftUI
+
+///
+/// Used to authenticate with external OAuth2 providers. Launches browser windows and handles
+/// suspension until the user completes the process or otherwise returns to the app.
+///
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+public class WebAuthComponent {
+
+    @Environment(\.openURL)
+    private static var openURL
+
+    public static var suspended = false
+    private static var callbacks = [String: (Result<String, Error>) -> Void]()
+
+    ///
+    /// Authenticate Session with OAuth2
+    ///
+    /// Launches a chrome custom tab from the given activity and directs to the given url,
+    /// suspending until the user returns to the app, at which point the given [onComplete] callback
+    /// will run, passing the callback url from the intent used to launch the [CallbackActivity],
+    /// or an [IllegalStateException] in the case the user closed the window or returned to the
+    /// app without passing through the [CallbackActivity].
+    ///
+    /// - Parameters:
+    ///   - url:                The url to launch
+    ///   - callbackScheme:     The callback url scheme used to key the given callback
+    ///   - onComplete:         The callback to run when a result (success or failure) is received
+    ///
+    internal static func authenticate(
+        url: URL,
+        callbackScheme: String,
+        onComplete: @escaping (Result<String, Error>) -> Void
+    ) {
+        callbacks[callbackScheme] = onComplete
+
+        openURL(url) { result in
+            suspended = result
+        }
+
+        while (suspended) {
+            sleep(200)
+        }
+    }
+
+    ///
+    /// Resumes app
+    ///
+    /// Completes app suspension and resumes execution
+    ///
+    public static func onResume() {
+        suspended = false
+    }
+
+    ///
+    /// Trigger a web auth callback
+    ///
+    /// Attempts to find a callback for the given [scheme] and if found, invokes it, passing the
+    /// given [url]. Calling this method stops auth suspension, so any calls to [authenticate]
+    /// will continue execution from their suspension points immediately after this method
+    /// is called.
+    ///
+    /// - Parameters:
+    ///     - scheme:   The scheme to match to a callback's key
+    ///     - url:      The url received through intent data from the [CallbackActivity]
+    ///
+    public static func onCallback(scheme: String, url: URL) {
+        callbacks.removeValue(forKey: scheme)?(.success(url.absoluteString))
+        onResume()
+    }
+
+    private static func cleanUp() {
+        callbacks.forEach { (_, callback) in
+            callback(.failure(Error.loginCancelled(message: "User cancelled login.")))
+        }
+    }
+}

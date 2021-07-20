@@ -57,7 +57,19 @@ open class {{ service.name | caseUcfirst }}: Service
 {% endif %}
 
 {% if method.type == 'webAuth' %}
+        let query = "?\(client.httpBuildQuery(params: params))"
 
+        let url = URL(string: client.endpoint + path + query)!
+        let callbackUrlScheme = "appwrite-callback-\(client.config["project"] ?? "")"
+
+        WebAuthComponent.authenticate(url: url, callbackScheme: callbackUrlScheme) { result in
+            switch result {
+            case .success(let response):
+                print(response)
+            case .failure(let error):
+                print(error)
+            }
+        }
 {% elseif method.type == 'location' %}
         return try client.call(method: "{{ method.method | caseUpper }}", path: path, params: params)
 {% else %}
