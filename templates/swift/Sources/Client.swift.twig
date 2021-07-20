@@ -115,35 +115,45 @@ open class Client {
     }
 
     ///
-    /// Build query URL
+    /// Builds a query string from parameters
     ///
-    /// @param Dictionary<String, Any> params
+    /// @param Dictionary<String, Any?> params
     /// @param String prefix
     ///
     /// @return String
     ///
-    open func httpBuildQuery(params: [String: Any], prefix: String = "") -> String {
+    open func parametersToQueryString(params: [String: Any?]) -> String {
         var output: String = ""
 
-        for (key, value) in params {
-            let finalKey: String = prefix.isEmpty
-                ? key
-                : (prefix + "[" + key + "]")
-
-            switch value {
-                case nil:
-                    break
-                case is AnyCollection<Any>:
-                    output += self.httpBuildQuery(
-                        params: value as! [String : Any],
-                        prefix: finalKey)
-                default:
-                    output += "\(value)"
+        func appendWhenNotLast(_ index: Int, ofTotal count: Int, outerIndex: Int? = nil, outerCount: Int? = nil) {
+            if (index != count - 1 || (outerIndex != nil
+                && outerCount != nil
+                && index == count - 1
+                && outerIndex! != outerCount! - 1)) {
+                output += "&"
             }
-            output += "&"
         }
 
-        return output
+        for (parameterIndex, element) in params.enumerated() {
+            switch element.value {
+            case nil:
+                break
+            case is Array<Any?>:
+                let list = element.value as! Array<Any?>
+                for (nestedIndex, item) in list.enumerated() {
+                    output += "\(element.key)[]=\(item!)"
+                    appendWhenNotLast(nestedIndex, ofTotal: list.count, outerIndex: parameterIndex, outerCount: params.count)
+                }
+                appendWhenNotLast(parameterIndex, ofTotal: params.count)
+            default:
+                output += "\(element.key)=\(element.value!)"
+                appendWhenNotLast(parameterIndex, ofTotal: params.count)
+            }
+        }
+
+        return output.addingPercentEncoding(
+            withAllowedCharacters: .urlHostAllowed
+        ) ?? ""
     }
 
     ///
