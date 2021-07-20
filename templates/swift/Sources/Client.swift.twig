@@ -71,7 +71,7 @@ open class Client {
     ///
     open func set{{header.key | caseUcfirst}}(_ value: String) -> Client {
         config["{{ header.key | caseLower }}"] = value
-        addHeader(key: "{{header.name}}", value: value)
+        _ = addHeader(key: "{{header.name}}", value: value)
         return self
     }
 
@@ -151,15 +151,13 @@ open class Client {
     ///
     /// @param String method
     /// @param String path
-    /// @param Array params
-    /// @param Array headers
-    /// @return Array|String
+    /// @param Dictionary<String, Any?> params
+    /// @param Dictionary<String, String> headers
+    /// @return Response
     /// @throws Exception
     ///
-    func call(method:String, path:String = "", headers:[String: String] = [:], params:[String: Any?] = [:]) throws -> HTTPClient.Response {
-        self.headers.merge(headers) { (_, new) in
-            new
-        }
+    func call(method: String, path: String = "", headers: [String: String] = [:], params: [String: Any?] = [:]) throws -> HTTPClient.Response {
+        self.headers.merge(headers) { (_, new) in new }
 
         let queryParameters = method == "GET" && !params.isEmpty
             ? "?" + httpBuildQuery(params: params)
@@ -169,7 +167,7 @@ open class Client {
 
         var request = try HTTPClient.Request(
             url: targetURL,
-            method: .GET
+            method: .RAW(value: method)
         )
 
         for (key, value) in self.headers {
@@ -193,7 +191,6 @@ open class Client {
 
         return try http.execute(request: request).wait()
     }
-
 }
 
 extension Client {
