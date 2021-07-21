@@ -58,11 +58,10 @@ open class {{ service.name | caseUcfirst }}: Service
 
 {% if method.type == 'webAuth' %}
         let query = "?\(client.parametersToQueryString(params: params))"
-
         let url = URL(string: client.endpoint + path + query)!
-        let callbackUrlScheme = "appwrite-callback-\(client.config["project"] ?? "")"
+        let callbackScheme = "appwrite-callback-\(client.config["project"] ?? "")"
 
-        WebAuthComponent.authenticate(url: url, callbackScheme: callbackUrlScheme) { result in
+        WebAuthComponent.authenticate(url: url, callbackScheme: callbackScheme) { result in
             switch result {
             case .success(let response):
                 print(response)

@@ -2,20 +2,29 @@ import SwiftUI
 
 @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 extension View {
-    public func registerOAuthCallbackHandler() -> some View {
+    public func registerOauthHandler() -> some View {
         onOpenURL { url in
             let components = URLComponents(string: url.absoluteString)!
+
+            let cookieParts = [String: String](uniqueKeysWithValues: components.queryItems!.map {
+                ($0.name, $0.value!)
+            })
+
+            let cookieHeader = ["Set-Cookie:": "\(cookieParts["key"]!)=\(cookieParts["secret"]!)"]
+
+            let cookie = HTTPCookie.cookies(
+                withResponseHeaderFields: cookieHeader,
+                for: URL(string: "https://demo.appwrite.io/auth/success")!
+            ).first!
+
+            HTTPCookieStorage
+                .sharedCookieStorage(forGroupContainerIdentifier: "testspec.title")
+                .setCookie(cookie)
 
             WebAuthComponent.onCallback(
                 scheme: components.scheme!,
                 url: components.url!
             )
-
-            components.queryItems!.forEach { item in
-                if "secret" == item.name {
-                    print(item.value!)
-                }
-            }
         }
     }
 }

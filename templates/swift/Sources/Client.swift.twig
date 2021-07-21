@@ -114,93 +114,138 @@ open class Client {
         return self
     }
 
-    ///
-    /// Builds a query string from parameters
-    ///
-    /// @param Dictionary<String, Any?> params
-    /// @param String prefix
-    ///
-    /// @return String
-    ///
-    open func parametersToQueryString(params: [String: Any?]) -> String {
-        var output: String = ""
+   ///
+   /// Builds a query string from parameters
+   ///
+   /// @param Dictionary<String, Any?> params
+   /// @param String prefix
+   ///
+   /// @return String
+   ///
+   open func parametersToQueryString(params: [String: Any?]) -> String {
+       var output: String = ""
 
-        func appendWhenNotLast(_ index: Int, ofTotal count: Int, outerIndex: Int? = nil, outerCount: Int? = nil) {
-            if (index != count - 1 || (outerIndex != nil
-                && outerCount != nil
-                && index == count - 1
-                && outerIndex! != outerCount! - 1)) {
-                output += "&"
-            }
-        }
+       func appendWhenNotLast(_ index: Int, ofTotal count: Int, outerIndex: Int? = nil, outerCount: Int? = nil) {
+           if (index != count - 1 || (outerIndex != nil
+               && outerCount != nil
+               && index == count - 1
+               && outerIndex! != outerCount! - 1)) {
+               output += "&"
+           }
+       }
 
-        for (parameterIndex, element) in params.enumerated() {
-            switch element.value {
-            case nil:
-                break
-            case is Array<Any?>:
-                let list = element.value as! Array<Any?>
-                for (nestedIndex, item) in list.enumerated() {
-                    output += "\(element.key)[]=\(item!)"
-                    appendWhenNotLast(nestedIndex, ofTotal: list.count, outerIndex: parameterIndex, outerCount: params.count)
-                }
-                appendWhenNotLast(parameterIndex, ofTotal: params.count)
-            default:
-                output += "\(element.key)=\(element.value!)"
-                appendWhenNotLast(parameterIndex, ofTotal: params.count)
-            }
-        }
+       for (parameterIndex, element) in params.enumerated() {
+           switch element.value {
+           case nil:
+               break
+           case is Array<Any?>:
+               let list = element.value as! Array<Any?>
+               for (nestedIndex, item) in list.enumerated() {
+                   output += "\(element.key)[]=\(item!)"
+                   appendWhenNotLast(nestedIndex, ofTotal: list.count, outerIndex: parameterIndex, outerCount: params.count)
+               }
+               appendWhenNotLast(parameterIndex, ofTotal: params.count)
+           default:
+               output += "\(element.key)=\(element.value!)"
+               appendWhenNotLast(parameterIndex, ofTotal: params.count)
+           }
+       }
 
-        return output.addingPercentEncoding(
-            withAllowedCharacters: .urlHostAllowed
-        ) ?? ""
-    }
+       return output.addingPercentEncoding(
+           withAllowedCharacters: .urlHostAllowed
+       ) ?? ""
+   }
 
-    ///
-    /// Make an API call
-    ///
-    /// @param String method
-    /// @param String path
-    /// @param Dictionary<String, Any?> params
-    /// @param Dictionary<String, String> headers
-    /// @return Response
-    /// @throws Exception
-    ///
-    func call(method: String, path: String = "", headers: [String: String] = [:], params: [String: Any?] = [:]) throws -> HTTPClient.Response {
+   private func buildHeaders(from baseHeaders: [String: String], andCookies cookies: [HTTPCookie]) -> [String: String] {
+       func cookieHeader(from cookies: [HTTPCookie]) -> String {
+           var cookieString = ""
+           for (index, cookie) in cookies.enumerated() {
+               if index > 0 {
+                   cookieString.append("; ")
+               }
+               cookieString = cookieString
+                   .appending("\(cookie.name)")
+                   .appending("=")
+                   .appending("\(cookie.value)")
+
+           }
+           return cookieString
+       }
+       var headers = [String: String]()
+       for (key, value) in self.headers {
+           headers[key] = value
+       }
+       let cookieString = cookieHeader(from: cookies)
+       if !cookieString.isEmpty {
+           headers["Cookie"] = cookieString
+       }
+       return headers
+   }
+
+   ///
+   /// Make an API call
+   ///
+   /// @param String method
+   /// @param String path
+   /// @param Dictionary<String, Any?> params
+   /// @param Dictionary<String, String> headers
+   /// @return Response
+   /// @throws Exception
+   ///
+   func call(method: String, path: String = "", headers: [String: String] = [:], params: [String: Any?] = [:]) throws -> HTTPClient.Response {
         self.headers.merge(headers) { (_, new) in new }
 
-        let queryParameters = method == "GET" && !params.isEmpty
-            ? "?" + parametersToQueryString(params: params)
-            : ""
+       let queryParameters = method == "GET" && !params.isEmpty
+           ? "?" + parametersToQueryString(params: params)
+           : ""
 
-        let targetURL = URL(string: endpoint + path + queryParameters)!
+       let targetURL = URL(string: endpoint + path + queryParameters)!
 
-        var request = try HTTPClient.Request(
-            url: targetURL,
-            method: .RAW(value: method)
-        )
+       var request = try HTTPClient.Request(
+           url: targetURL,
+           method: .RAW(value: method)
+       )
 
-        for (key, value) in self.headers {
-            request.headers.add(name: key, value: value)
-        }
+       let requestCookies = HTTPCookieStorage
+           .sharedCookieStorage(forGroupContainerIdentifier: "testspec.title")
+           .cookies(for: targetURL) ?? []
 
-        switch (self.headers["content-type"]) {
-        case "multipart/form-data":
-            // TODO: Form data
-            break
-        default:
-            if "GET" == method {
-                break
-            }
-            let json = try JSONSerialization.data(
-                withJSONObject: params,
-                options: [])
+       for (key, value) in buildHeaders(from: self.headers, andCookies: requestCookies) {
+           request.headers.add(name: key, value: value)
+       }
 
-            request.body = .data(json)
-        }
+       switch (self.headers["content-type"]) {
+       case "multipart/form-data":
+           // TODO: Form data
+           break
+       default:
+           if "GET" == method {
+               break
+           }
+           let json = try JSONSerialization.data(
+               withJSONObject: params,
+               options: [])
 
-        return try http.execute(request: request).wait()
-    }
+           request.body = .data(json)
+       }
+
+       let response = try http.execute(request: request).wait()
+
+       let responseHeaders = [String: String](uniqueKeysWithValues: response.headers.map {
+           ($0.name, $0.value)
+       })
+
+       let responseCookies = HTTPCookie.cookies(
+           withResponseHeaderFields: responseHeaders,
+           for: targetURL
+       )
+
+       HTTPCookieStorage
+           .sharedCookieStorage(forGroupContainerIdentifier: "testspec.title")
+           .setCookies(responseCookies, for: targetURL, mainDocumentURL: nil)
+
+       return response
+   }
 }
 
 extension Client {
