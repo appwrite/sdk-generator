@@ -3,7 +3,7 @@ part of {{ language.params.packageName }};
 class Query {
   final List<String> _queries = [];
 
-  List<String> queries => _queries;
+  List<String> get queries => _queries;
 
   Query equal(String attribute, dynamic value) {
     _addQuery(attribute, 'equal', value);
