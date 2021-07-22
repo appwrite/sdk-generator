@@ -1,0 +1,50 @@
+part of {{ language.params.packageName }};
+
+class Query {
+  final List<String> _queries = [];
+
+  List<String> get queries => _queries;
+
+  Query equal(String attribute, dynamic value) {
+    _addQuery(attribute, 'equal', value);
+    return this;
+  }
+
+  Query notEqual(String attribute, dynamic value) {
+    _addQuery(attribute, 'notEqual', value);
+    return this;
+  }
+
+  Query lesser(String attribute, dynamic value) {
+    _addQuery(attribute, 'lesser', value);
+    return this;
+  }
+
+  Query lesserEqual(String attribute, dynamic value) {
+    _addQuery(attribute, 'lesserEqual', value);
+    return this;
+  }
+
+  Query greater(String attribute, dynamic value) {
+    _addQuery(attribute, 'greater', value);
+    return this;
+  }
+
+  Query greaterEqual(String attribute, dynamic value) {
+    _addQuery(attribute, 'greaterEqual', value);
+    return this;
+  }
+
+  Query contains(String attribute, List<dynamic> value) {
+    _addQuery(attribute, 'contains', value);
+    return this;
+  }
+
+  _addQuery(String attribute, String oper, dynamic value) {
+    if (value is String) {
+      _queries.add('$attribute.$oper("$value")');
+    } else {
+      _queries.add('$attribute.$oper($value)');
+    }
+  }
+}

@@ -12,6 +12,7 @@ part 'client.dart';
 part 'enums.dart';
 part 'service.dart';
 part 'exception.dart';
+part 'query.dart';
 {% for service in spec.services %}
 part 'services/{{service.name | caseDash}}.dart';
 {% endfor %}
