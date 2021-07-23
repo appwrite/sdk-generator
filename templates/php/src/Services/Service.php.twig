@@ -55,6 +55,39 @@ class {{ service.name | caseUcfirst }} extends Service
         }
 
 {% endfor %}
+{% if method.name == 'createFile' %}
+        $size = filesize($file);
+        //send single file if size is less than or equal to 5MB
+        if ($size <= Client::CHUNK_SIZE) {
+            $params['file'] = curl_file_create($file);
+                return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
+{% for parameter in method.parameters.header %}
+                '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},
+{% endfor %}
+{% for key, header in method.headers %}
+                '{{ key }}' => '{{ header }}',
+{% endfor %}
+                ], $params);
+        } else {
+            $handle = @fopen($file, "rb");
+            $fileId = null;
+            $mimeType = mime_content_type($file);
+            $counter = 0;
+            while (!feof($handle)) {
+                $params['file'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(@fread($handle, Client::CHUNK_SIZE)), $mimeType, pathinfo($file, PATHINFO_FILENAME));
+                $contentRanges = 'bytes ' . ($counter * Client::CHUNK_SIZE) . '-' . min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size) . '/' . $size;
+                $response = $this->client->call(Client::METHOD_POST, $path, [
+                    'content-type' => 'multipart/form-data',
+                    'content-range' => $contentRanges,
+                    'x-appwrite-file-id' => $fileId,
+                ], $params);
+                $counter++;
+                $fileId = $response['body']['$id'];
+            }
+            @fclose($handle);
+            return $response;
+        }
+{% else %}
         return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},
@@ -63,6 +96,7 @@ class {{ service.name | caseUcfirst }} extends Service
             '{{ key }}' => '{{ header }}',
 {% endfor %}
         ], $params);
+{% endif %}
     }
 {% if not loop.last %}
 
