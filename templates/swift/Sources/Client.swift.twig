@@ -156,96 +156,71 @@ open class Client {
        ) ?? ""
    }
 
-   private func buildHeaders(from baseHeaders: [String: String], andCookies cookies: [HTTPCookie]) -> [String: String] {
-       func cookieHeader(from cookies: [HTTPCookie]) -> String {
-           var cookieString = ""
-           for (index, cookie) in cookies.enumerated() {
-               if index > 0 {
-                   cookieString.append("; ")
-               }
-               cookieString = cookieString
-                   .appending("\(cookie.name)")
-                   .appending("=")
-                   .appending("\(cookie.value)")
+    ///
+    /// Make an API call
+    ///
+    /// @param String method
+    /// @param String path
+    /// @param Dictionary<String, Any?> params
+    /// @param Dictionary<String, String> headers
+    /// @return Response
+    /// @throws Exception
+    ///
+    func call(method: String, path: String = "", headers: [String: String] = [:], params: [String: Any?] = [:]) throws -> Promise<HTTPClient.Response> {
+        self.headers.merge(headers) { (_, new) in
+            new
+        }
 
-           }
-           return cookieString
-       }
-       var headers = [String: String]()
-       for (key, value) in self.headers {
-           headers[key] = value
-       }
-       let cookieString = cookieHeader(from: cookies)
-       if !cookieString.isEmpty {
-           headers["Cookie"] = cookieString
-       }
-       return headers
-   }
+        let queryParameters = method == "GET" && !params.isEmpty
+            ? "?" + parametersToQueryString(params: params)
+            : ""
 
-   ///
-   /// Make an API call
-   ///
-   /// @param String method
-   /// @param String path
-   /// @param Dictionary<String, Any?> params
-   /// @param Dictionary<String, String> headers
-   /// @return Response
-   /// @throws Exception
-   ///
-   func call(method: String, path: String = "", headers: [String: String] = [:], params: [String: Any?] = [:]) throws -> HTTPClient.Response {
-        self.headers.merge(headers) { (_, new) in new }
+        let targetURL = URL(string: endpoint + path + queryParameters)!
 
-       let queryParameters = method == "GET" && !params.isEmpty
-           ? "?" + parametersToQueryString(params: params)
-           : ""
+        var request = try HTTPClient.Request(
+            url: targetURL,
+            method: .RAW(value: method)
+        )
 
-       let targetURL = URL(string: endpoint + path + queryParameters)!
+        for (key, value) in self.headers {
+            request.headers.add(name: key, value: value)
+        }
 
-       var request = try HTTPClient.Request(
-           url: targetURL,
-           method: .RAW(value: method)
-       )
+        let name = UserDefaults.standard.string(forKey: "cookie-name-.\(targetURL.host ?? "")")
+        let value = UserDefaults.standard.string(forKey: "cookie-value-.\(targetURL.host ?? "")")
 
-       let requestCookies = HTTPCookieStorage
-           .sharedCookieStorage(forGroupContainerIdentifier: "testspec.title")
-           .cookies(for: targetURL) ?? []
+        if  name != nil && value != nil {
+            request.headers.add(name: "Set-Cookie", value: "\(name!)=\(value!)")
+        }
 
-       for (key, value) in buildHeaders(from: self.headers, andCookies: requestCookies) {
-           request.headers.add(name: key, value: value)
-       }
+        switch (self.headers["content-type"]) {
+        case "multipart/form-data":
+            // TODO: Form data
+            break
+        default:
+            if "GET" == method {
+                break
+            }
+            let json = try JSONSerialization.data(
+                withJSONObject: params,
+                options: [])
 
-       switch (self.headers["content-type"]) {
-       case "multipart/form-data":
-           // TODO: Form data
-           break
-       default:
-           if "GET" == method {
-               break
-           }
-           let json = try JSONSerialization.data(
-               withJSONObject: params,
-               options: [])
+            request.body = .data(json)
+        }
 
-           request.body = .data(json)
-       }
+        let promise = Promise<HTTPClient.Response>()
 
-       let response = try http.execute(request: request).wait()
+        http.execute(request: request).whenComplete {
+            switch $0 {
+            case .failure(let error): promise.reject(with: error)
+                break
+            case .success(let response): promise.resolve(with: response)
+                break
+            }
+        }
 
-       let responseHeaders = [String: String](uniqueKeysWithValues: response.headers.map {
-           ($0.name, $0.value)
-       })
-
-       let responseCookies = HTTPCookie.cookies(
-           withResponseHeaderFields: responseHeaders,
-           for: targetURL
-       )
-
-       HTTPCookieStorage
-           .sharedCookieStorage(forGroupContainerIdentifier: "testspec.title")
-           .setCookies(responseCookies, for: targetURL, mainDocumentURL: nil)
-
-       return response
-   }
+        return promise
+    }
 }
 
 extension Client {
