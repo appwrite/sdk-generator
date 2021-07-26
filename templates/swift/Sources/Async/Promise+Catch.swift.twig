@@ -1,0 +1,16 @@
+extension Promise {
+    typealias Catch = (Error) -> Void
+
+    @discardableResult
+    func `catch`(_ reject: @escaping Catch) -> Promise {
+        Promise { resolve, reject in
+            guard let result = result else {
+                return
+            }
+            switch result {
+            case .failure(let error): reject(error)
+            case .success(_): break
+            }
+        }
+    }
+}

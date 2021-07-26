@@ -149,6 +149,30 @@ class Swift extends Language {
                 'template'      => 'swift/Sources/Services/Service.swift.twig',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/Async/Future.swift.twig',
+                'template'      => 'swift/Sources/Async/Future.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/Async/Promise.swift.twig',
+                'template'      => 'swift/Sources/Async/Promise.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/Async/Promise+Then.swift.twig',
+                'template'      => 'swift/Sources/Async/Promise+Then.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/Async/Promise+Catch.swift.twig',
+                'template'      => 'swift/Sources/Async/Promise+Catch.swift.twig',
+                'minify'        => false,
+            ],
         ];
     }
 

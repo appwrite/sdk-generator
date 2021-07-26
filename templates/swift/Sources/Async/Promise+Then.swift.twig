@@ -1,0 +1,30 @@
+extension Promise {
+    typealias Then<Result> = (Value) throws -> Result
+
+    @discardableResult
+    func then<Result>(_ work: @escaping Then<Promise<Result>>) throws -> Promise<Result> {
+        guard let result = result else {
+            return Promise<Result>(result: nil)
+        }
+
+        switch result {
+        case .failure(let error): return Promise<Result>(error: error)
+        case .success(let value): return try work(value)
+        }
+    }
+
+    @discardableResult
+    func then<Result>(_ work: @escaping Then<Result>) -> Promise<Result> {
+        Promise<Result> { resolve, reject in
+            guard let result = result else {
+                return
+            }
+
+            switch result {
+            case .failure(let error): reject(error)
+            case .success(let value): resolve(try work(value))
+            }
+        }
+    }
+
+}

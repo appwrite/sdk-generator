@@ -1,0 +1,91 @@
+//
+// Created by Jake on 23/07/21.
+//
+
+import Foundation
+
+
+class Promise<Value>: Future<Value> {
+
+    public init(result: Result? = nil) {
+        super.init()
+        self.result = result
+    }
+
+    public convenience init(error: Error) {
+        self.init(result: .failure(error))
+    }
+
+    public convenience init(value: Value) {
+        self.init(result: .success(value))
+    }
+
+    public init(_ work: (
+        _ resolve: @escaping (_ value: Value) -> Void,
+        _ reject: @escaping (_ error: Error) -> Void
+    ) throws -> Void) {
+        super.init()
+
+        try! work({ value in
+            self.resolve(with: value)
+        }, { error in
+            self.reject(with: error)
+        })
+    }
+
+    public convenience init(_ work: @escaping () throws -> Value) {
+        do {
+            let result = try work()
+
+            switch result {
+            case let error as Error:
+                self.init(error: error)
+            default:
+                self.init(value: result)
+            }
+        } catch let error {
+            self.init(error: error)
+        }
+    }
+
+    func resolve(with value: Value) {
+        result = .success(value)
+    }
+
+    func reject(with error: Error) {
+        result = .failure(error)
+    }
+}
+
+extension Promise: CustomStringConvertible {
+    public var description: String {
+        var description = "nil"
+        if isFulfilled, let result = result {
+            let value = try! result.get()
+            description = String(describing: value)
+
+            return "Fulfilled: \(description)"
+        }
+        if isRejected, let result = result {
+            switch result {
+            case .failure(let error): description = String(describing: error)
+            case .success(_): break
+            }
+            return "Rejected: \(description)"
+        }
+        return "Pending: \(Value.self)"
+    }
+}
+
+public extension DispatchQueue {
+    /// Default dispatch queue used for `Promise`, which is `main` if a queue is not specified.
+    private static var __promiseQueue = DispatchQueue.main
+    static var promises: DispatchQueue {
+        get {
+            __promiseQueue
+        }
+        set {
+            __promiseQueue = newValue
+        }
+    }
+}

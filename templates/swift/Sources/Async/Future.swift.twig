@@ -1,0 +1,56 @@
+//
+// Created by Jake on 23/07/21.
+//
+
+import Foundation
+
+enum FutureState {
+    case pending
+    case fulfilled
+    case rejected
+}
+
+class Future<Value> {
+
+    typealias Error = Swift.Error
+    typealias Result = Swift.Result<Value, Error>
+
+    internal var result: Result? {
+        didSet {
+            result.map(report)
+            switch result {
+            case .failure: state = .rejected
+            case .success: state = .fulfilled
+            case .none: state = .pending
+            }
+        }
+    }
+
+    private var callbacks = [(Result) -> Void]()
+
+    private var state: FutureState = .pending
+
+    var isPending: Bool {
+        state == .pending
+    }
+    var isFulfilled: Bool {
+        state == .fulfilled
+    }
+    var isRejected: Bool {
+        state == .rejected
+    }
+
+    func whenComplete(_ callback: @escaping (Result) -> Void) {
+        if let result = result {
+            callback(result)
+        }
+        callbacks.append(callback)
+    }
+
+    private func report(result: Result) {
+        callbacks.forEach {
+            $0(result)
+        }
+        callbacks = []
+    }
+}
