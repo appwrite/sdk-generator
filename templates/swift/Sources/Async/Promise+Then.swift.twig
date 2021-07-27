@@ -1,22 +1,39 @@
 extension Promise {
-    typealias Then<Result> = (Value) throws -> Result
 
+    ///
+    /// Bind a result callback to this promise. If the promise has succeeded or eventually succeeds,
+    /// the given function will execute with the result as a parameter.
+    ///
+    /// - Parameter work: The callback to execute on task success, returning a promise for chaining.
+    /// - Returns: A new promise for chaining.
+    ///
     @discardableResult
-    func then<Result>(_ work: @escaping Then<Promise<Result>>) throws -> Promise<Result> {
-        guard let result = result else {
-            return Promise<Result>(result: nil)
-        }
+    public func then<Result>(_ work: @escaping (Value) throws -> Promise<Result>) -> Promise<Result> {
+        do {
+            guard let result = result else {
+                return Promise<Result>(result: nil)
+            }
 
-        switch result {
-        case .failure(let error): return Promise<Result>(error: error)
-        case .success(let value): return try work(value)
+            switch result {
+            case .failure(let error): return Promise<Result>(error: error)
+            case .success(let value): return try work(value)
+            }
+        } catch let error {
+            return Promise<Result>(error: error)
         }
     }
 
+    ///
+    /// Bind a result callback to this promise. If the promise has succeeded or eventually succeeds,
+    /// the given function will execute with the result as a parameter.
+    ///
+    /// - Parameter work: The callback to execute on task success, returning a result to chain in a new promise.
+    /// - Returns: A new promise for chaining.
+    ///
     @discardableResult
-    func then<Result>(_ work: @escaping Then<Result>) -> Promise<Result> {
+    public func then<Result>(_ work: @escaping (Value) throws -> Result) -> Promise<Result> {
         Promise<Result> { resolve, reject in
-            guard let result = result else {
+            guard let result = self.result else {
                 return
             }
 

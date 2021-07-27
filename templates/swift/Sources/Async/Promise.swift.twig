@@ -4,47 +4,76 @@
 
 import Foundation
 
-
+///
+/// Represents a task that takes place asynchronously and is
+/// guaranteed to either resolve with a result or reject with an error.
+///
 open class Promise<Value>: Future<Value> {
 
-    public init(result: Swift.Result<Value, Swift.Error>? = nil) {
+    public init(result: Result<Value, Error>? = nil) {
         super.init()
         self.result = result
     }
 
-    public convenience init(error: Swift.Error) {
+    ///
+    /// Create a promise immediately rejecting with the given error.
+    ///
+    /// - Parameter error: The error to reject this promise with.
+    ///
+    public convenience init(error: Error) {
         self.init(result: .failure(error))
     }
 
+    ///
+    /// Create a promise immediately resolving with the given value.
+    ///
+    /// - Parameter value: The value to resolve this promise with.
+    ///
     public convenience init(value: Value) {
         self.init(result: .success(value))
     }
 
-    public init(_ work: (
-        _ resolve: @escaping (_ value: Value) -> Void,
-        _ reject: @escaping (_ error: Swift.Error) -> Void
+    ///
+    /// Create a promise that either resolves when the given work is completed,
+    /// or rejects with an error if an exception occurs.
+    ///
+    /// - Parameter work: The function to execute
+    ///
+    public init(_ work: @escaping (
+        _ resolve: (_ value: Value) -> Void,
+        _ reject: (_ error: Error) -> Void
     ) throws -> Void) {
         super.init()
 
-        try! work({ value in
-            self.resolve(with: value)
-        }, { error in
-            self.reject(with: error)
-        })
+        DispatchQueue.futures.async {
+            do {
+                try work({ value in
+                    self.resolve(with: value)
+                }, { error in
+                    self.reject(with: error)
+                })
+            } catch let error {
+                self.reject(with: error)
+            }
+        }
     }
 
-    public convenience init(_ work: @escaping () throws -> Value) {
-        do {
-            let result = try work()
+    public init(_ work: @escaping () throws -> Value) {
+        super.init()
 
-            switch result {
-            case let error as Swift.Error:
-                self.init(error: error)
-            default:
-                self.init(value: result)
+        DispatchQueue.futures.async {
+            do {
+                let result = try work()
+
+                switch result {
+                case let error as NSError:
+                    self.reject(with: error)
+                default:
+                    self.resolve(with: result)
+                }
+            } catch let error {
+                self.reject(with: error)
             }
-        } catch let error {
-            self.init(error: error)
         }
     }
 
@@ -52,7 +81,7 @@ open class Promise<Value>: Future<Value> {
         result = .success(value)
     }
 
-    public func reject(with error: Swift.Error) {
+    public func reject(with error: Error) {
         result = .failure(error)
     }
 }

@@ -10,12 +10,12 @@ enum FutureState {
     case rejected
 }
 
+///
+/// Represents a task that can take place in the future and eventually receive a value.
+///
 open class Future<Value> {
 
-    typealias Error = Swift.Error
-    typealias Result = Swift.Result<Value, Swift.Error>
-
-    internal var result: Result? {
+    internal var result: Result<Value, Error>? {
         didSet {
             result.map(report)
             switch result {
@@ -26,7 +26,7 @@ open class Future<Value> {
         }
     }
 
-    private var callbacks = [(Result) -> Void]()
+    private var callbacks = [(Result<Value, Error>) -> Void]()
 
     private var state: FutureState = .pending
 
@@ -40,14 +40,19 @@ open class Future<Value> {
         state == .rejected
     }
 
-    public func whenComplete(_ callback: @escaping (Result) -> Void) {
+    ///
+    /// Add a callback that executes when this future completes.
+    ///
+    /// - Parameter callback: The callback to run when this future completes.
+    ///
+    public func whenComplete(_ callback: @escaping (Result<Value, Error>) -> Void) {
         if let result = result {
             callback(result)
         }
         callbacks.append(callback)
     }
 
-    private func report(result: Result) {
+    private func report(result: Result<Value, Error>) {
         callbacks.forEach {
             $0(result)
         }

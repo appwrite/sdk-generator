@@ -1,10 +1,16 @@
 extension Promise {
-    typealias Catch = (Error) -> Void
 
+    ///
+    /// Bind an error handling function to this promise. If an error occurs during task execution,
+    /// the given function will execute with the thrown error as a parameter.
+    ///
+    /// - Parameter reject: The callback to execute when an error is thrown in a task call chain.
+    /// - Returns: A promise for chain con
+    ///
     @discardableResult
-    func `catch`(_ reject: @escaping Catch) -> Promise {
+    func `catch`(_ reject: @escaping (Error) -> Void) -> Promise {
         Promise { resolve, reject in
-            guard let result = result else {
+            guard let result = self.result else {
                 return
             }
             switch result {

@@ -1,19 +1,30 @@
+//
+// Created by Jake on 27/07/21.
+//
+
+import Foundation
+
 extension Future {
-    public func await() throws -> Swift.Result<Value, Swift.Error> {
-        var localResult: Result?
+
+    ///
+    /// Await a future synchronously on a background thread.
+    ///
+    /// - Returns: The result of the future work once available.
+    ///
+    public func await() -> Result<Value, Error> {
+        var result: Result<Value, Error>?
 
         let group = DispatchGroup()
 
         group.enter()
-
-        DispatchQueue.promises.async {
-            while self.isPending {}
-            localResult = self.result
+        DispatchQueue.futures.async {
+            while self.isPending {
+            }
+            result = self.result
             group.leave()
         }
-
         group.wait()
 
-        return localResult!
+        return result!
     }
 }
