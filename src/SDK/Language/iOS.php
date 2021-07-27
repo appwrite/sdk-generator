@@ -23,7 +23,7 @@ class iOS extends Swift {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Error.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/{{ spec.title | caseUcfirst}}Error.swift',
                 'template'      => '/swift/Sources/Error.swift.twig',
                 'minify'        => false,
             ],

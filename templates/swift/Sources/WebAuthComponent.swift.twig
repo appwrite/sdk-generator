@@ -74,7 +74,7 @@ public class WebAuthComponent {
 
     private static func cleanUp() {
         callbacks.forEach { (_, callback) in
-            callback(.failure(Error.loginCancelled(message: "User cancelled login.")))
+            callback(.failure({{ spec.title | caseUcfirst}}Error.loginCancelled(message: "User cancelled login.")))
         }
     }
 }
