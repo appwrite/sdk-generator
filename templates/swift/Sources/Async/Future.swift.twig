@@ -10,10 +10,10 @@ enum FutureState {
     case rejected
 }
 
-class Future<Value> {
+open class Future<Value> {
 
     typealias Error = Swift.Error
-    typealias Result = Swift.Result<Value, Error>
+    typealias Result = Swift.Result<Value, Swift.Error>
 
     internal var result: Result? {
         didSet {
@@ -40,7 +40,7 @@ class Future<Value> {
         state == .rejected
     }
 
-    func whenComplete(_ callback: @escaping (Result) -> Void) {
+    public func whenComplete(_ callback: @escaping (Result) -> Void) {
         if let result = result {
             callback(result)
         }

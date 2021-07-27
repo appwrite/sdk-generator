@@ -5,14 +5,14 @@
 import Foundation
 
 
-class Promise<Value>: Future<Value> {
+open class Promise<Value>: Future<Value> {
 
-    public init(result: Result? = nil) {
+    public init(result: Swift.Result<Value, Swift.Error>? = nil) {
         super.init()
         self.result = result
     }
 
-    public convenience init(error: Error) {
+    public convenience init(error: Swift.Error) {
         self.init(result: .failure(error))
     }
 
@@ -22,7 +22,7 @@ class Promise<Value>: Future<Value> {
 
     public init(_ work: (
         _ resolve: @escaping (_ value: Value) -> Void,
-        _ reject: @escaping (_ error: Error) -> Void
+        _ reject: @escaping (_ error: Swift.Error) -> Void
     ) throws -> Void) {
         super.init()
 
@@ -38,7 +38,7 @@ class Promise<Value>: Future<Value> {
             let result = try work()
 
             switch result {
-            case let error as Error:
+            case let error as Swift.Error:
                 self.init(error: error)
             default:
                 self.init(value: result)
@@ -48,11 +48,11 @@ class Promise<Value>: Future<Value> {
         }
     }
 
-    func resolve(with value: Value) {
+    public func resolve(with value: Value) {
         result = .success(value)
     }
 
-    func reject(with error: Error) {
+    public func reject(with error: Swift.Error) {
         result = .failure(error)
     }
 }

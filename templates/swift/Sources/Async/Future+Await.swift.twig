@@ -1,0 +1,19 @@
+extension Future {
+    public func await() throws -> Swift.Result<Value, Swift.Error> {
+        var localResult: Result?
+
+        let group = DispatchGroup()
+
+        group.enter()
+
+        DispatchQueue.promises.async {
+            while self.isPending {}
+            localResult = self.result
+            group.leave()
+        }
+
+        group.wait()
+
+        return localResult!
+    }
+}

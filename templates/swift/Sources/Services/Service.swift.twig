@@ -24,7 +24,7 @@ open class {{ service.name | caseUcfirst }}: Service
 {% if method.type == "webAuth" %}
     @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 {% endif %}
-    open func {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}_ {{ parameter.name | caseCamel }}: {{ parameter.type | typeName | raw }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) throws{% if method.type != "webAuth" %} -> HTTPClient.Response{% endif %} {
+    open func {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}_ {{ parameter.name | caseCamel }}: {{ parameter.type | typeName | raw }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) throws -> {% if method.type != "webAuth" %}Promise<HTTPClient.Response>{% else %}Promise{% endif %} {
         {% if method.parameters.path %}var{% else %}let{% endif %} path: String = "{{ method.path }}"
 
 {% for parameter in method.parameters.path %}
