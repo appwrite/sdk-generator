@@ -59,7 +59,7 @@ class {{ service.name | caseUcfirst }} extends Service
         $size = filesize($file);
         //send single file if size is less than or equal to 5MB
         if ($size <= Client::CHUNK_SIZE) {
-            $params['file'] = curl_file_create($file);
+            $params['file'] = new \CURLFile($file);
                 return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
 {% for parameter in method.parameters.header %}
                 '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},
