@@ -136,8 +136,44 @@ class Android extends Kotlin {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/CollectionExtensions.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/extensions/CollectionExtensions.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/Error.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/models/Error.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/RealtimeError.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/RealtimeError.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/RealtimeCodes.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/RealtimeCodes.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/RealtimeEvent.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/RealtimeEvent.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/RealtimeMessage.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/RealtimeMessage.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/RealtimeSubscription.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/RealtimeSubscription.kt.twig',
                 'minify'        => false,
             ],
             [
@@ -160,8 +196,14 @@ class Android extends Kotlin {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/BaseService.kt',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/Service.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/services/Service.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/Realtime.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/services/Realtime.kt.twig',
                 'minify'        => false,
             ],
             [
