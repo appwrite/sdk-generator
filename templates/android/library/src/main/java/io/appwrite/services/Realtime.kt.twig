@@ -3,6 +3,7 @@ package {{ sdk.namespace | caseDot }}.services
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.JsonParseException
+import com.google.gson.JsonSyntaxException
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.extensions.forEachAsync
 import {{ sdk.namespace | caseDot }}.models.RealtimeCodes
@@ -17,7 +18,7 @@ import okhttp3.internal.ws.RealWebSocket
 import java.util.*
 import kotlin.coroutines.CoroutineContext
 
-class Realtime(client: Client) : BaseService(client), CoroutineScope {
+class Realtime(client: Client) : Service(client), CoroutineScope {
 
     private val job = Job()
 
@@ -28,8 +29,8 @@ class Realtime(client: Client) : BaseService(client), CoroutineScope {
         private const val debounceDelayMillis = 20
 
         private var socket: RealWebSocket? = null
-        private var lastMessage: RealtimeMessage? = null
         private var channelCallbacks = mutableMapOf<String, MutableCollection<(Any) -> Unit>>()
+        private var errorCallbacks = mutableSetOf<(RealtimeError) -> Unit>()
 
         private var goingToConnect = false
         private var subscribeReentered = false
@@ -37,13 +38,11 @@ class Realtime(client: Client) : BaseService(client), CoroutineScope {
 
     private fun createSocket() {
         val queryParamBuilder = StringBuilder()
-            .append("project=")
-            .append(client.config["project"])
+            .append("project=${client.config["project"]}")
 
-        channelCallbacks.forEach {
+        channelCallbacks.keys.forEach {
             queryParamBuilder
-                .append("&channels[]=")
-                .append(it.key)
+                .append("&channels[]=$it")
         }
 
         val request = Request.Builder()
@@ -51,24 +50,28 @@ class Realtime(client: Client) : BaseService(client), CoroutineScope {
             .build()
 
         if (socket != null) {
-            socket?.close(1000, null)
+            closeSocket()
         }
 
         socket = RealWebSocket(
             taskRunner = TaskRunner.INSTANCE,
             originalRequest = request,
-            listener = {{ spec.title | caseUcFirst }}WebSocketListener(),
+            listener = {{ spec.title | caseUcfirst }}WebSocketListener(),
             random = Random(),
             pingIntervalMillis = client.http.pingIntervalMillis.toLong(),
             extensions = null,
             minimumDeflateSize = client.http.minWebSocketMessageToCompress
         )
 
-        socket!!.connect(client.http)
+        socket?.connect(client.http)
+    }
+
+    private fun closeSocket() {
+        socket?.close(RealtimeCodes.POLICY_VIOLATION.value, null)
     }
 
     fun subscribe(
-        channels: Collection<String>,
+        vararg channels: String,
         callback: (Any) -> Unit
     ) : RealtimeSubscription {
         if (goingToConnect) {
@@ -76,6 +79,10 @@ class Realtime(client: Client) : BaseService(client), CoroutineScope {
         }
 
         channels.forEach {
+            if (!channelCallbacks.containsKey(it)) {
+                channelCallbacks[it] = mutableListOf(callback)
+                return@forEach
+            }
             channelCallbacks[it]?.add(callback)
         }
 
@@ -87,20 +94,33 @@ class Realtime(client: Client) : BaseService(client), CoroutineScope {
                 return@launch
             }
 
-            socket?.connect(client.http)
+            createSocket()
             goingToConnect = false
             subscribeReentered = false
         }
 
         return RealtimeSubscription {
-            // TODO: Allow subscription closing
+            unsubscribe(*channels)
         }
     }
 
-    fun subscribe(channel: String, callback: (Any) -> Unit) =
-        subscribe(listOf(channel), callback)
+    fun unsubscribe(vararg channels: String) {
+        channels.forEach {
+            channelCallbacks.remove(it)
+        }
+    }
 
-    private inner class {{ spec.title | caseUcFirst }}WebSocketListener : WebSocketListener() {
+    fun unsubscribe() {
+        channelCallbacks = mutableMapOf()
+        errorCallbacks = mutableSetOf()
+        closeSocket()
+    }
+
+    fun doOnError(callback: (RealtimeError) -> Unit) {
+        errorCallbacks.add(callback)
+    }
+
+    private inner class {{ spec.title | caseUcfirst }}WebSocketListener : WebSocketListener() {
 
         override fun onOpen(webSocket: WebSocket, response: Response) {
             super.onOpen(webSocket, response)
@@ -112,14 +132,14 @@ class Realtime(client: Client) : BaseService(client), CoroutineScope {
             Log.i(this@Realtime::class.java.simpleName, "WebSocket message received.")
 
             launch(IO) {
-                val message = try {
-                    Gson().fromJson(text, RealtimeMessage::class.java)
-                } catch (ex: JsonParseException) {
-                    val error = parseError(text) // TODO: How to propagate this to client?
-                    throw ex
-                } ?: return@launch
-
-                lastMessage = message
+                val message = parse<RealtimeMessage>(text)
+                if (message?.channels == null) {
+                    val error = parse<RealtimeError>(text) ?: return@launch
+                    errorCallbacks.forEach {
+                        it.invoke(error)
+                    }
+                    return@launch
+                }
 
                 message.channels.forEachAsync { channel ->
                     channelCallbacks[channel]?.forEachAsync { callback ->
@@ -132,7 +152,7 @@ class Realtime(client: Client) : BaseService(client), CoroutineScope {
         override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
             super.onClosing(webSocket, code, reason)
             Log.i(this@Realtime::class.java.simpleName, "WebSocket closing with code $code because: $reason. Reconnecting in 1 second.")
-            if (lastMessage?.code == RealtimeCodes.POLICY_VIOLATION.value) {
+            if (code == RealtimeCodes.POLICY_VIOLATION.value) {
                 return
             }
             launch {
@@ -147,12 +167,15 @@ class Realtime(client: Client) : BaseService(client), CoroutineScope {
             t.printStackTrace()
         }
 
-        private fun parseError(text: String) : RealtimeError {
+        private inline fun <reified T> parse(text: String): T? {
             return try {
-                Gson().fromJson(text, RealtimeError::class.java)
+                Gson().fromJson(text, T::class.java)
+            } catch (ex: JsonSyntaxException) {
+                ex.printStackTrace()
+                null
             } catch (ex: JsonParseException) {
                 ex.printStackTrace()
-                throw ex
+                null
             }
         }
     }
