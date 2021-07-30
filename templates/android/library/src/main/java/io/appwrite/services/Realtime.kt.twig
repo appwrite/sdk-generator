@@ -26,14 +26,14 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         get() = Dispatchers.Main + job
 
     private companion object {
-        private const val debounceDelayMillis = 20
+        private const val DEBOUNCE_MILLIS = 1L
+        private const val MAX_PERMITS = Int.MAX_VALUE
 
         private var socket: RealWebSocket? = null
         private var channelCallbacks = mutableMapOf<String, MutableCollection<(Any) -> Unit>>()
         private var errorCallbacks = mutableSetOf<(RealtimeError) -> Unit>()
 
-        private var goingToConnect = false
-        private var subscribeReentered = false
+        private var semaphore = Semaphore(MAX_PERMITS)
     }
 
     private fun createSocket() {
@@ -87,27 +87,16 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         launch {
-            goingToConnect = true
-            delay(debounceDelayMillis.toLong())
-            if (subscribeReentered) {
-                subscribeReentered = false
-                return@launch
+            semaphore.tryAcquire()
+            delay(DEBOUNCE_MILLIS)
+
+            if (semaphore.availablePermits == MAX_PERMITS - 1) {
+                createSocket()
             }
-
-            createSocket()
-            goingToConnect = false
-            subscribeReentered = false
+            semaphore.release()
         }
 
-        return RealtimeSubscription {
-            unsubscribe(*channels)
-        }
-    }
-
-    fun unsubscribe(vararg channels: String) {
-        channels.forEach {
-            channelCallbacks.remove(it)
-        }
+        return RealtimeSubscription { unsubscribe() }
     }
 
     fun unsubscribe() {
@@ -129,7 +118,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onMessage(webSocket: WebSocket, text: String) {
             super.onMessage(webSocket, text)
-            Log.i(this@Realtime::class.java.simpleName, "WebSocket message received.")
+            Log.i(this@Realtime::class.java.simpleName, "WebSocket message received: $text")
 
             launch(IO) {
                 val message = parse<RealtimeMessage>(text)
@@ -151,10 +140,11 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
             super.onClosing(webSocket, code, reason)
-            Log.i(this@Realtime::class.java.simpleName, "WebSocket closing with code $code because: $reason. Reconnecting in 1 second.")
+            Log.i(this@Realtime::class.java.simpleName, "WebSocket closing with code $code because: $reason.")
             if (code == RealtimeCodes.POLICY_VIOLATION.value) {
                 return
             }
+            Log.i(this@Realtime::class.java.simpleName, "Reconnecting in 1 second.")
             launch {
                 delay(1000)
                 createSocket()
