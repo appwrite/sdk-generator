@@ -38,27 +38,27 @@ echo substr($output[0],9)."\n";
 
 
 // Bar Service
-$command = "${baseCommand} cli bar get  --x='string'  --y='123' --z='string in array'";
+$command = "${baseCommand} cli bar get  --required='string'  --xdefault='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-$command = "${baseCommand} cli bar post  --x='string'  --y='123' --z='string in array'";
+$command = "${baseCommand} cli bar post  --required='string'  --xdefault='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-$command = "${baseCommand} cli bar put  --x='string'  --y='123' --z='string in array'";
+$command = "${baseCommand} cli bar put  --required='string'  --xdefault='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-$command = "${baseCommand} cli bar patch  --x='string'  --y='123' --z='string in array'";
+$command = "${baseCommand} cli bar patch  --required='string'  --xdefault='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
 
-$command = "${baseCommand} cli bar delete  --x='string'  --y='123' --z='string in array'";
+$command = "${baseCommand} cli bar delete  --required='string'  --xdefault='123' --z='string in array'";
 $output = [];
 exec($command, $output);
 echo substr($output[0],9)."\n";
