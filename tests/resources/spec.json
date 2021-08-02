@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "version": "0.10.0",
+    "version": "0.9.3",
     "title": "Appwrite",
     "description": "Appwrite backend as a service cuts up to 70% of the time and costs required for building a modern application. We abstract and simplify common development tasks behind a REST APIs, to help you develop your app in a fast and secure way. For full API documentation and tutorials go to [https://appwrite.io/docs](https://appwrite.io/docs)",
     "termsOfService": "https://appwrite.io/policy/terms",
@@ -60,7 +60,7 @@
         },
         "x-appwrite": {
           "method": "get",
-          "weight": 190,
+          "weight": 181,
           "cookies": false,
           "type": "",
           "demo": "bar/get.md",
@@ -76,18 +76,18 @@
         "security": [{ "Project": [], "JWT": [] }],
         "parameters": [
           {
-            "name": "x",
+            "name": "required",
             "description": "Sample string param",
             "required": true,
             "type": "string",
-            "x-example": "[]",
+            "x-example": "[REQUIRED]",
             "in": "query"
           },
           {
-            "name": "y",
+            "name": "default",
             "description": "Sample numeric param",
             "required": true,
-            "type": "mixed",
+            "type": "integer",
             "format": "int32",
             "in": "query"
           },
@@ -117,7 +117,7 @@
         },
         "x-appwrite": {
           "method": "post",
-          "weight": 191,
+          "weight": 182,
           "cookies": false,
           "type": "",
           "demo": "bar/post.md",
@@ -138,14 +138,14 @@
             "schema": {
               "type": "object",
               "properties": {
-                "x": {
+                "required": {
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
-                  "x-example": "[]"
+                  "x-example": "[REQUIRED]"
                 },
-                "y": {
-                  "type": "mixed",
+                "default": {
+                  "type": "integer",
                   "description": "Sample numeric param",
                   "default": null,
                   "x-example": null
@@ -158,7 +158,7 @@
                   "items": { "type": "string" }
                 }
               },
-              "required": ["x", "y", "z"]
+              "required": ["required", "default", "z"]
             }
           }
         ]
@@ -178,7 +178,7 @@
         },
         "x-appwrite": {
           "method": "put",
-          "weight": 193,
+          "weight": 184,
           "cookies": false,
           "type": "",
           "demo": "bar/put.md",
@@ -199,14 +199,14 @@
             "schema": {
               "type": "object",
               "properties": {
-                "x": {
+                "required": {
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
-                  "x-example": "[]"
+                  "x-example": "[REQUIRED]"
                 },
-                "y": {
-                  "type": "mixed",
+                "default": {
+                  "type": "integer",
                   "description": "Sample numeric param",
                   "default": null,
                   "x-example": null
@@ -219,7 +219,7 @@
                   "items": { "type": "string" }
                 }
               },
-              "required": ["x", "y", "z"]
+              "required": ["required", "default", "z"]
             }
           }
         ]
@@ -239,7 +239,7 @@
         },
         "x-appwrite": {
           "method": "patch",
-          "weight": 192,
+          "weight": 183,
           "cookies": false,
           "type": "",
           "demo": "bar/patch.md",
@@ -260,14 +260,14 @@
             "schema": {
               "type": "object",
               "properties": {
-                "x": {
+                "required": {
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
-                  "x-example": "[]"
+                  "x-example": "[REQUIRED]"
                 },
-                "y": {
-                  "type": "mixed",
+                "default": {
+                  "type": "integer",
                   "description": "Sample numeric param",
                   "default": null,
                   "x-example": null
@@ -280,7 +280,7 @@
                   "items": { "type": "string" }
                 }
               },
-              "required": ["x", "y", "z"]
+              "required": ["required", "default", "z"]
             }
           }
         ]
@@ -300,7 +300,7 @@
         },
         "x-appwrite": {
           "method": "delete",
-          "weight": 194,
+          "weight": 185,
           "cookies": false,
           "type": "",
           "demo": "bar/delete.md",
@@ -321,14 +321,14 @@
             "schema": {
               "type": "object",
               "properties": {
-                "x": {
+                "required": {
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
-                  "x-example": "[]"
+                  "x-example": "[REQUIRED]"
                 },
-                "y": {
-                  "type": "mixed",
+                "default": {
+                  "type": "integer",
                   "description": "Sample numeric param",
                   "default": null,
                   "x-example": null
@@ -341,7 +341,7 @@
                   "items": { "type": "string" }
                 }
               },
-              "required": ["x", "y", "z"]
+              "required": ["required", "default", "z"]
             }
           }
         ]
@@ -363,7 +363,7 @@
         },
         "x-appwrite": {
           "method": "get",
-          "weight": 185,
+          "weight": 176,
           "cookies": false,
           "type": "",
           "demo": "foo/get.md",
@@ -390,7 +390,7 @@
             "name": "y",
             "description": "Sample numeric param",
             "required": true,
-            "type": "mixed",
+            "type": "integer",
             "format": "int32",
             "in": "query"
           },
@@ -420,7 +420,7 @@
         },
         "x-appwrite": {
           "method": "post",
-          "weight": 186,
+          "weight": 177,
           "cookies": false,
           "type": "",
           "demo": "foo/post.md",
@@ -448,7 +448,7 @@
                   "x-example": "[]"
                 },
                 "y": {
-                  "type": "mixed",
+                  "type": "integer",
                   "description": "Sample numeric param",
                   "default": null,
                   "x-example": null
@@ -481,7 +481,7 @@
         },
         "x-appwrite": {
           "method": "put",
-          "weight": 188,
+          "weight": 179,
           "cookies": false,
           "type": "",
           "demo": "foo/put.md",
@@ -509,7 +509,7 @@
                   "x-example": "[]"
                 },
                 "y": {
-                  "type": "mixed",
+                  "type": "integer",
                   "description": "Sample numeric param",
                   "default": null,
                   "x-example": null
@@ -542,7 +542,7 @@
         },
         "x-appwrite": {
           "method": "patch",
-          "weight": 187,
+          "weight": 178,
           "cookies": false,
           "type": "",
           "demo": "foo/patch.md",
@@ -570,7 +570,7 @@
                   "x-example": "[]"
                 },
                 "y": {
-                  "type": "mixed",
+                  "type": "integer",
                   "description": "Sample numeric param",
                   "default": null,
                   "x-example": null
@@ -603,7 +603,7 @@
         },
         "x-appwrite": {
           "method": "delete",
-          "weight": 189,
+          "weight": 180,
           "cookies": false,
           "type": "",
           "demo": "foo/delete.md",
@@ -631,7 +631,7 @@
                   "x-example": "[]"
                 },
                 "y": {
-                  "type": "mixed",
+                  "type": "integer",
                   "description": "Sample numeric param",
                   "default": null,
                   "x-example": null
@@ -666,7 +666,7 @@
         },
         "x-appwrite": {
           "method": "error400",
-          "weight": 202,
+          "weight": 193,
           "cookies": false,
           "type": "",
           "demo": "general/error400.md",
@@ -698,7 +698,7 @@
         },
         "x-appwrite": {
           "method": "error500",
-          "weight": 203,
+          "weight": 194,
           "cookies": false,
           "type": "",
           "demo": "general/error500.md",
@@ -730,7 +730,7 @@
         },
         "x-appwrite": {
           "method": "error502",
-          "weight": 204,
+          "weight": 195,
           "cookies": false,
           "type": "",
           "demo": "general/error502.md",
@@ -759,7 +759,7 @@
         },
         "x-appwrite": {
           "method": "download",
-          "weight": 195,
+          "weight": 186,
           "cookies": false,
           "type": "location",
           "demo": "general/download.md",
@@ -786,7 +786,7 @@
         "responses": { "204": { "description": "No content" } },
         "x-appwrite": {
           "method": "empty",
-          "weight": 201,
+          "weight": 192,
           "cookies": false,
           "type": "",
           "demo": "general/empty.md",
@@ -818,7 +818,7 @@
         },
         "x-appwrite": {
           "method": "getCookie",
-          "weight": 200,
+          "weight": 191,
           "cookies": false,
           "type": "",
           "demo": "general/get-cookie.md",
@@ -845,7 +845,7 @@
         "responses": { "301": { "description": "No content" } },
         "x-appwrite": {
           "method": "redirect",
-          "weight": 197,
+          "weight": 188,
           "cookies": false,
           "type": "",
           "demo": "general/redirect.md",
@@ -877,7 +877,7 @@
         },
         "x-appwrite": {
           "method": "redirected",
-          "weight": 198,
+          "weight": 189,
           "cookies": false,
           "type": "",
           "demo": "general/redirected.md",
@@ -909,7 +909,7 @@
         },
         "x-appwrite": {
           "method": "setCookie",
-          "weight": 199,
+          "weight": 190,
           "cookies": false,
           "type": "",
           "demo": "general/set-cookie.md",
@@ -941,7 +941,7 @@
         },
         "x-appwrite": {
           "method": "upload",
-          "weight": 196,
+          "weight": 187,
           "cookies": false,
           "type": "",
           "demo": "general/upload.md",
@@ -968,7 +968,7 @@
             "name": "y",
             "description": "Sample numeric param",
             "required": true,
-            "type": "mixed",
+            "type": "integer",
             "format": "int32",
             "in": "formData"
           },
