@@ -2,7 +2,7 @@ package {{ sdk.namespace | caseDot }}
 
 import com.google.gson.Gson
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
-import {{ sdk.namespace | caseDot }}.extensions.JsonExtensions.fromJson
+import {{ sdk.namespace | caseDot }}.extensions.fromJson
 import {{ sdk.namespace | caseDot }}.models.Error
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +30,7 @@ import kotlin.coroutines.resume
 
 class Client @JvmOverloads constructor(
     var endPoint: String = "https://appwrite.io/v1",
+    var endPointRealtime: String? = null,
     private var selfSigned: Boolean = false
 ) : CoroutineScope {
 
@@ -38,7 +39,7 @@ class Client @JvmOverloads constructor(
 
     private val job = Job()
 
-    private lateinit var http: OkHttpClient
+    lateinit var http: OkHttpClient
 
     private val headers: MutableMap<String, String>
     
@@ -127,14 +128,31 @@ class Client @JvmOverloads constructor(
     }
 
     /**
-     * Set endpoint
-     * 
-     * @param endpoint
-     *
-     * @return this     
-     */
+    * Set endpoint and realtime endpoint.
+    *
+    * @param endpoint
+    *
+    * @return this
+    */
     fun setEndpoint(endPoint: String): Client {
         this.endPoint = endPoint
+
+        if (this.endPointRealtime == null && endPoint.startsWith("http")) {
+            this.endPointRealtime = endPoint.replace("http", "ws")
+        }
+
+        return this
+    }
+
+    /**
+    * Set realtime endpoint
+    *
+    * @param endpoint
+    *
+    * @return this
+    */
+    fun setEndpointRealtime(endPoint: String): Client {
+        this.endPointRealtime = endPoint
         return this
     }
 

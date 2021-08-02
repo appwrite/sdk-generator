@@ -21,7 +21,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 {% endif %}
 import java.io.File
 
-class {{ service.name | caseUcfirst }}(private val client: Client) : BaseService(client) {
+class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 
 {% for method in service.methods %}
     /**
