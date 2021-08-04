@@ -180,6 +180,7 @@ class Swagger2 extends Spec {
                         $param = [
                             'name'          => $parameter['name'] ?? null,
                             'type'          => $parameter['type'] ?? null,
+                            'xType'         => $parameter['x-type'] ?? null,
                             'description'   => $parameter['description'] ?? '',
                             'required'      => $parameter['required'] ?? false,
                             'default'       => $parameter['default'] ?? null,
