@@ -40,7 +40,7 @@ class {{ service.name | caseUcfirst }}(private val client: Client) : BaseService
     @JvmOverloads
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ _self.method_parameters(method.parameters) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: Response{% endif %} {
-        val path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel | escapeKeyword ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %}
+        val path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %}
 
         val params = mapOf<String, Any?>(
 {% for parameter in method.parameters.query | merge(method.parameters.body) %}
