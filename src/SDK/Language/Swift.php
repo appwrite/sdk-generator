@@ -120,12 +120,6 @@ class Swift extends Language {
                 'minify'        => false,
             ],
             [
-                'scope'         => 'service',
-                'destination'   => 'docs/{{service.name | caseLower}}.md',
-                'template'      => 'swift/docs/service.md.twig',
-                'minify'        => false,
-            ],
-            [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'swift/docs/example.md.twig',

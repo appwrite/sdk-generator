@@ -84,6 +84,12 @@ class SwiftClient extends Swift {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/example/Shared/Keyboard.swift',
+                'template'      => '/swift/example/Shared/Keyboard.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/example/Example.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
                 'template'      => '/swift/example/Example.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
                 'minify'        => false,
@@ -130,7 +136,6 @@ class SwiftClient extends Swift {
                 'template'      => '/swift/example/Tests macOS/Tests_macOS.swift',
                 'minify'        => false,
             ],
-
         ]);
     }
 }
