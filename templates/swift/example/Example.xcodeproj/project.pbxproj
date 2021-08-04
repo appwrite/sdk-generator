@@ -3,18 +3,21 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		1D0E30BC26B9430D002ECB40 /* ExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D0E30BB26B9430D002ECB40 /* ExampleApp.swift */; };
 		1D0E30BD26B9430D002ECB40 /* ExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D0E30BB26B9430D002ECB40 /* ExampleApp.swift */; };
+		1DC4093C26BA74470025A85C /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 1DC4093B26BA74470025A85C /* Appwrite */; };
+		1DC4093E26BA744D0025A85C /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 1DC4093D26BA744D0025A85C /* Appwrite */; };
 		4B11518505BC6CF6BEBD216B /* Tests_iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B11557E0F213BC84ED01382 /* Tests_iOS.swift */; };
 		4B115325C5629636F758D520 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B115ABD18947485CC1B05F2 /* ContentView.swift */; };
 		4B11539FB91C8837DCF9E86C /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B115ABD18947485CC1B05F2 /* ContentView.swift */; };
 		4B1153AF12216F7E7AC0CC99 /* Tests_macOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B11562301B29DB7DF72AE29 /* Tests_macOS.swift */; };
 		4B115544F254539A96D47868 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4B115883E8645C18835765B2 /* Assets.xcassets */; };
 		4B1157C67CF5E569FBCB65DD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4B115883E8645C18835765B2 /* Assets.xcassets */; };
+		4B115FDF5335FA3B14FAA66B /* Keyboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B115338FA3067342367ADA9 /* Keyboard.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,8 +39,9 @@
 
 /* Begin PBXFileReference section */
 		1D0E30BB26B9430D002ECB40 /* ExampleApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ExampleApp.swift; sourceTree = "<group>"; };
-		1D953CBC26B93FBC00C2EB2F /* ios */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ios; path = ../../../examples/ios; sourceTree = "<group>"; };
+		1DC4093A26BA73C50025A85C /* swift-client */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "swift-client"; path = "../../../examples/swift-client"; sourceTree = "<group>"; };
 		4B11505C9899942E695B59FF /* test.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = test.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4B115338FA3067342367ADA9 /* Keyboard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Keyboard.swift; sourceTree = "<group>"; };
 		4B11555C2BF19042AB9E45DB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.info; path = Info.plist; sourceTree = "<group>"; };
 		4B11557E0F213BC84ED01382 /* Tests_iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests_iOS.swift; sourceTree = "<group>"; };
 		4B11562301B29DB7DF72AE29 /* Tests_macOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests_macOS.swift; sourceTree = "<group>"; };
@@ -71,6 +75,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1DC4093E26BA744D0025A85C /* Appwrite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,22 +83,31 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1DC4093C26BA74470025A85C /* Appwrite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1DC4093526BA6E7A0025A85C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		4B1152396B94D0F596CEBB52 = {
 			isa = PBXGroup;
 			children = (
-				1D953CBC26B93FBC00C2EB2F /* ios */,
+				1DC4093A26BA73C50025A85C /* swift-client */,
 				4B115B49441350FF784C7745 /* Products */,
 				4B11566FD1E1FA1ABD88E438 /* Shared */,
 				4B115E925CD74030DFF6498C /* iOS */,
 				4B115909955A1ABEA1A8A456 /* macOS */,
 				4B115C8820DA716164AC3081 /* Tests iOS */,
 				4B11573D106E5B7B7D944C97 /* Tests macOS */,
+				1DC4093526BA6E7A0025A85C /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -103,6 +117,7 @@
 				1D0E30BB26B9430D002ECB40 /* ExampleApp.swift */,
 				4B115883E8645C18835765B2 /* Assets.xcassets */,
 				4B115ABD18947485CC1B05F2 /* ContentView.swift */,
+				4B115338FA3067342367ADA9 /* Keyboard.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -169,6 +184,9 @@
 			dependencies = (
 			);
 			name = "test (iOS)";
+			packageProductDependencies = (
+				1DC4093B26BA74470025A85C /* Appwrite */,
+			);
 			productName = "test (iOS)";
 			productReference = 4B115DA4916DAA4E8F13734F /* test.app */;
 			productType = "com.apple.product-type.application";
@@ -186,6 +204,9 @@
 			dependencies = (
 			);
 			name = "test (macOS)";
+			packageProductDependencies = (
+				1DC4093D26BA744D0025A85C /* Appwrite */,
+			);
 			productName = "test (macOS)";
 			productReference = 4B11505C9899942E695B59FF /* test.app */;
 			productType = "com.apple.product-type.application";
@@ -232,6 +253,14 @@
 		4B115A97BA5CA0A597279577 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				TargetAttributes = {
+					4B115DB67D85396641A5CF4E = {
+						TestTargetID = 4B115947BBA7BA3BBD6D5A40;
+					};
+					4B115F7D5C1CD078034D7A09 = {
+						TestTargetID = 4B1155899FD4139AFC990F38;
+					};
+				};
 			};
 			buildConfigurationList = 4B1156B059331CBF2AFC6F05 /* Build configuration list for PBXProject "Example" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -319,6 +348,7 @@
 			files = (
 				1D0E30BC26B9430D002ECB40 /* ExampleApp.swift in Sources */,
 				4B11539FB91C8837DCF9E86C /* ContentView.swift in Sources */,
+				4B115FDF5335FA3B14FAA66B /* Keyboard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -343,7 +373,11 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = "Tests macOS/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "jake.Tests-macOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -355,7 +389,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				INFOPLIST_FILE = "Tests iOS/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "jake.Tests-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -373,9 +411,12 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = macOS/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jake.test;
+				PRODUCT_BUNDLE_IDENTIFIER = io.appwrite.mac;
 				PRODUCT_NAME = test;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
@@ -390,8 +431,11 @@
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = jake.test;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.appwrite.ios;
 				PRODUCT_NAME = test;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
@@ -405,7 +449,11 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = "Tests macOS/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "jake.Tests-macOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -421,8 +469,11 @@
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = jake.test;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = io.appwrite.ios;
 				PRODUCT_NAME = test;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
@@ -439,9 +490,12 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = macOS/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jake.test;
+				PRODUCT_BUNDLE_IDENTIFIER = io.appwrite.mac;
 				PRODUCT_NAME = test;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
@@ -495,7 +549,8 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 			};
 			name = Release;
 		};
@@ -503,7 +558,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				INFOPLIST_FILE = "Tests iOS/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "jake.Tests-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -620,6 +679,17 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1DC4093B26BA74470025A85C /* Appwrite */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Appwrite;
+		};
+		1DC4093D26BA744D0025A85C /* Appwrite */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Appwrite;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4B115A97BA5CA0A597279577 /* Project object */;
 }
