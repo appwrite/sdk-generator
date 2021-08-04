@@ -24,13 +24,13 @@ open class {{ service.name | caseUcfirst }}: Service
 {% if method.type == "webAuth" %}
     @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 {% endif %}
-    open func {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}_ {{ parameter.name | caseCamel }}: {{ parameter.type | typeName | raw }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) throws -> {% if method.type != "webAuth" %}Promise<HTTPClient.Response>{% else %}Promise{% endif %} {
+    open func {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}_ {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{{ parameter | paramDefault }}, {% endfor %}completion: ({% if method.type == "webAuth" %}(Result<Bool, Error>){% else %}(Result<HTTPClient.Response, Error>){% endif%} -> Void)? = nil) throws {
         {% if method.parameters.path %}var{% else %}let{% endif %} path: String = "{{ method.path }}"
 
 {% for parameter in method.parameters.path %}
         path = path.replacingOccurrences(
           of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}",
-          with: {% if method.parameters.path %}{{ parameter.name | caseCamel }}{% else %}""{% endif %}
+          with: {% if method.parameters.path %}{{ parameter.name | caseCamel | escapeKeyword }}{% else %}""{% endif %}
 
         )
 
@@ -41,7 +41,7 @@ open class {{ service.name | caseUcfirst }}: Service
         let params: [String: Any?] = [:]
 {% endif %}
 {% for parameter in method.parameters.query | merge(method.parameters.body) %}
-            "{{ parameter.name }}": {{ parameter.name | caseCamel }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
+            "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
 
 {% endfor %}
 {% if _self.methodNeedsSecurityParameters(method) %}
@@ -62,21 +62,19 @@ open class {{ service.name | caseUcfirst }}: Service
         let callbackScheme = "appwrite-callback-\(client.config["project"] ?? "")"
 
         WebAuthComponent.authenticate(url: url, callbackScheme: callbackScheme) { result in
-            switch result {
-            case .success(let response):
-                print(response)
-            case .failure(let error):
-                print(error)
+            guard let completion = completion else {
+                return
             }
+            completion(result.map { _ in true })
         }
 {% elseif method.type == 'location' %}
-        return try client.call(method: "{{ method.method | caseUpper }}", path: path, params: params)
+        try client.call(method: "{{ method.method | caseUpper }}", path: path, params: params, completion: completion)
 {% else %}
         let headers: [String: String] = [
 {{ method.headers|map((header, key) => "            \"#{key}\": \"#{header}\"")|join(',\n')|raw }}
         ]
 
-        return try client.call(method: "{{ method.method | caseUpper }}", path: path, headers: headers, params: params)
+        try client.call(method: "{{ method.method | caseUpper }}", path: path, headers: headers, params: params, completion: completion)
 {% endif %}
     }
 

@@ -44,9 +44,11 @@ open class Client {
         http = HTTPClient(
             eventLoopGroupProvider: .createNew,
             configuration: HTTPClient.Configuration(
-            redirectConfiguration: redirects,
-            timeout: timeout,
-            decompression: .enabled(limit: .none)))
+                redirectConfiguration: redirects,
+                timeout: timeout,
+                decompression: .enabled(limit: .none)
+            )
+        )
     }
 
     deinit {
@@ -69,7 +71,7 @@ open class Client {
     ///
     /// @return Client
     ///
-    open func set{{header.key | caseUcfirst}}(_ value: String) -> Client {
+    open func set{{ header.key | caseUcfirst }}(_ value: String) -> Client {
         config["{{ header.key | caseLower }}"] = value
         _ = addHeader(key: "{{header.name}}", value: value)
         return self
@@ -110,7 +112,7 @@ open class Client {
     /// @return Client
     ///
     open func addHeader(key: String, value: String) -> Client {
-        self.headers[key.lowercased()] = value
+        self.headers[key] = value
         return self
     }
 
@@ -166,7 +168,7 @@ open class Client {
     /// @return Response
     /// @throws Exception
     ///
-    func call(method: String, path: String = "", headers: [String: String] = [:], params: [String: Any?] = [:]) throws -> Promise<HTTPClient.Response> {
+    func call(method: String, path: String = "", headers: [String: String] = [:], params: [String: Any?] = [:], completion: ((Result<HTTPClient.Response, Error>) -> Void)? = nil) throws {
         self.headers.merge(headers) { (_, new) in
             new
         }
@@ -208,18 +210,11 @@ open class Client {
             request.body = .data(json)
         }
 
-        let promise = Promise<HTTPClient.Response>()
-
         http.execute(request: request).whenComplete {
-            switch $0 {
-            case .failure(let error): promise.reject(with: error)
-                break
-            case .success(let response): promise.resolve(with: response)
-                break
+            if let completion = completion {
+                completion($0)
             }
         }
-
-        return promise
     }
 }
 

@@ -143,42 +143,6 @@ class Swift extends Language {
                 'template'      => 'swift/Sources/Services/Service.swift.twig',
                 'minify'        => false,
             ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Async/DispatchQueue+Promise.swift',
-                'template'      => 'swift/Sources/Async/DispatchQueue+Promise.swift.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Async/Future+Await.swift',
-                'template'      => 'swift/Sources/Async/Future+Await.swift.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Async/Future.swift',
-                'template'      => 'swift/Sources/Async/Future.swift.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Async/Promise+Catch.swift',
-                'template'      => 'swift/Sources/Async/Promise+Catch.swift.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Async/Promise+Then.swift',
-                'template'      => 'swift/Sources/Async/Promise+Then.swift.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Async/Promise.swift',
-                'template'      => 'swift/Sources/Async/Promise.swift.twig',
-                'minify'        => false,
-            ],
         ];
     }
 
