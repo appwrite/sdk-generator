@@ -13,7 +13,6 @@ public class WebAuthComponent {
     @Environment(\.openURL)
     private static var openURL
 
-    public static var suspended = false
     private static var callbacks = [String: (Result<String, Error>) -> Void]()
 
     ///
@@ -36,23 +35,7 @@ public class WebAuthComponent {
         onComplete: @escaping (Result<String, Error>) -> Void
     ) {
         callbacks[callbackScheme] = onComplete
-
-        openURL(url) { result in
-            suspended = result
-        }
-
-        while (suspended) {
-            sleep(200)
-        }
-    }
-
-    ///
-    /// Resumes app
-    ///
-    /// Completes app suspension and resumes execution
-    ///
-    public static func onResume() {
-        suspended = false
+        openURL(url)
     }
 
     ///
@@ -67,9 +50,11 @@ public class WebAuthComponent {
     ///     - scheme:   The scheme to match to a callback's key
     ///     - url:      The url received through intent data from the [CallbackActivity]
     ///
-    public static func onCallback(scheme: String, url: URL) {
-        callbacks.removeValue(forKey: scheme)?(.success(url.absoluteString))
-        onResume()
+    public static func onCallback(scheme: String? = nil, url: URL? = nil) {
+        if let scheme = scheme, let url = url {
+            callbacks.removeValue(forKey: scheme)?(.success(url.absoluteString))
+        }
+        cleanUp()
     }
 
     private static func cleanUp() {
