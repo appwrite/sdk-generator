@@ -39,7 +39,7 @@ struct ContentView: View {
                         try account.createSession("test@test.test", "password") { result in
                             switch result {
                             case .failure(let error): self.response = error.localizedDescription
-                            case .success(var response): self.response = response.body!.readString()
+                            case .success(var response): self.response = response.body!.readString() ?? ""
                             }
                         }
                     } catch let error {
@@ -88,28 +88,5 @@ struct ContentView: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
-    }
-}
-
-import NIO
-import Combine
-
-extension ByteBuffer {
-
-    ///
-    /// Read an entire byte array into a string
-    ///
-    /// - Returns:
-    public mutating func readString() -> String {
-//        readableBytesView.publisher.receive(subscriber:  Subscribers.Sink<UInt8, Never>(receiveCompletion: { completion in
-//
-//        }, receiveValue: { bufferView in
-//
-//        }))
-        readString(length: readableBytes) ?? ""
-    }
-
-    public mutating func readJSONDecodable<T : Decodable>(type: T.Type) throws -> T? {
-        try readJSONDecodable(type, length: readableBytes) ?? nil
     }
 }

@@ -133,6 +133,18 @@ class Swift extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/{{ spec.title | caseUcfirst}}Error.swift',
+                'template'      => '/swift/Sources/Error.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Response+Parsing.swift',
+                'template'      => '/swift/Sources/Response+Parsing.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Service.swift',
                 'template'      => 'swift/Sources/Service.swift.twig',
                 'minify'        => false,

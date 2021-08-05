@@ -23,12 +23,6 @@ class SwiftClient extends Swift {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/{{ spec.title | caseUcfirst}}Error.swift',
-                'template'      => '/swift/Sources/Error.swift.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/View+OAuth.swift',
                 'template'      => '/swift/Sources/View+OAuth.swift.twig',
                 'minify'        => false,
