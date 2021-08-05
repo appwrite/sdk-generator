@@ -9,40 +9,71 @@
 import SwiftUI
 import Appwrite
 
-let client = Client()
-    .setEndpoint("https://demo.appwrite.io/v1")
-    .setProject("60f6a0d6e2a52")
-
 struct ContentView: View {
 
-    @State var response: String = ""
-    @ObservedObject var keyboard: Keyboard = .init()
+    @State var host: String = "https://demo.appwrite.io/v1"
+    @State var projectId: String = "60f6a0d6e2a52"
+    @State var username: String = "test@test.test"
+    @State var password: String = "password"
+    @State var fileId: String = "60f7a0178c3e5"
 
-    let account = Account(client: client)
+    @State var response: String = ""
+
+    @State var image: Image? = nil
+
+    @ObservedObject var keyboard: Keyboard = .init()
 
     var body: some View {
         VStack(spacing: 8) {
 
-            TextEditor(text: $response)
+            image?
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(height: 200)
+
+            TextField("Host", text: $host)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding(.horizontal)
-                .padding(.top, 100)
+                .padding()
+
+            TextField("Project ID", text: $projectId)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+
+            TextField("Username", text: $username)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+
+            TextField("Password", text: $password)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+
+            TextField("File ID", text: $fileId)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+
+            TextEditor(text: $response)
+                .padding()
                 .padding(.bottom, keyboard.height)
                 .edgesIgnoringSafeArea(keyboard.height > 0 ? .bottom : [])
 
-            Divider()
+            HStack(spacing: 8) {
 
-            HStack {
+                let client = Client()
+                    .setEndpoint(host)
+                    .setProject(projectId)
+
+                let account = Account(client: client)
+                let storage = Storage(client: client)
 
                 Button("Login") {
                     do {
-                        try account.createSession("test@test.test", "password") { result in
+                        try account.createSession(username, password) { result in
                             switch result {
                             case .failure(let error): self.response = error.localizedDescription
-                            case .success(var response): self.response = response.body!.readString() ?? ""
+                            case .success(var response): self.response = response.body!.readString()
                             }
                         }
-                    } catch let error {
+                    } catch {
                         print(error)
                     }
                 }
@@ -51,34 +82,54 @@ struct ContentView: View {
                     do {
                         try account.createOAuth2Session(
                             "facebook",
-                            "https://demo.appwrite.io/auth/oauth2/success",
-                            "https://demo.appwrite.io/auth/oauth2/success"
+                            "\(host)/auth/oauth2/success",
+                            "\(host)/auth/oauth2/success"
                         ) { result in
                             switch result {
                             case .failure: self.response = "false"
                             case .success(let response): self.response = response.description
                             }
                         }
-                    } catch let error {
+                    } catch {
                         print(error)
                     }
                 }
 
                 Button("Register") {
                     do {
-                        try account.create("test@test.test", "password") { result in
+                        try account.create(username, password) { result in
                             switch result {
                             case .failure(let error): self.response = error.localizedDescription
                             case .success(var response): self.response = response.body!.readString()
                             }
                         }
-                    } catch let error {
+                    } catch {
                         print(error)
                     }
                 }
 
-                Button("Realtime") {
+//                Button("Realtime") {
+//
+//                }
 
+                Button("Download image") {
+                    do {
+                        try storage.getFileDownload(fileId) { result in
+                            switch result {
+                            case .failure(let error):
+                                print(error)
+                            case .success(var response):
+                                image = Image(uiImage: UIImage(
+                                    data: response.body!.readData(
+                                        length: response.body!.readableBytes
+                                    )!
+                                )!)
+                            }
+                        }
+
+                    } catch {
+                        print(error)
+                    }
                 }
             }
         }.registerOauthHandler()
