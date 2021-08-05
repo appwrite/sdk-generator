@@ -24,7 +24,7 @@ open class {{ service.name | caseUcfirst }}: Service
 {% if method.type == "webAuth" %}
     @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 {% endif %}
-    open func {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}_ {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{{ parameter | paramDefault }}, {% endfor %}completion: ({% if method.type == "webAuth" %}(Result<Bool, Error>){% else %}(Result<HTTPClient.Response, Error>){% endif%} -> Void)? = nil) throws {
+    open func {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}_ {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{{ parameter | paramDefault }}, {% endfor %}completion: ({% if method.type == "webAuth" %}(Result<Bool, Error>){% else %}(Result<HTTPClient.Response, Error>){% endif%} -> Void)? = nil) {
         {% if method.parameters.path %}var{% else %}let{% endif %} path: String = "{{ method.path }}"
 
 {% for parameter in method.parameters.path %}
@@ -68,13 +68,13 @@ open class {{ service.name | caseUcfirst }}: Service
             completion(result.map { _ in true })
         }
 {% elseif method.type == 'location' %}
-        try client.call(method: "{{ method.method | caseUpper }}", path: path, params: params, completion: completion)
+        client.call(method: "{{ method.method | caseUpper }}", path: path, params: params, completion: completion)
 {% else %}
         let headers: [String: String] = [
 {{ method.headers|map((header, key) => "            \"#{key}\": \"#{header}\"")|join(',\n')|raw }}
         ]
 
-        try client.call(method: "{{ method.method | caseUpper }}", path: path, headers: headers, params: params, completion: completion)
+        client.call(method: "{{ method.method | caseUpper }}", path: path, headers: headers, params: params, completion: completion)
 {% endif %}
     }
 

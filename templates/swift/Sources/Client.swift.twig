@@ -168,7 +168,7 @@ open class Client {
     /// @return Response
     /// @throws Exception
     ///
-    func call(method: String, path: String = "", headers: [String: String] = [:], params: [String: Any?] = [:], completion: ((Result<HTTPClient.Response, Error>) -> Void)? = nil) throws {
+    func call(method: String, path: String = "", headers: [String: String] = [:], params: [String: Any?] = [:], completion: ((Result<HTTPClient.Response, Error>) -> Void)? = nil) {
         self.headers.merge(headers) { (_, new) in
             new
         }
@@ -179,10 +179,16 @@ open class Client {
 
         let targetURL = URL(string: endpoint + path + queryParameters)!
 
-        var request = try HTTPClient.Request(
-            url: targetURL,
-            method: .RAW(value: method)
-        )
+        var request: HTTPClient.Request
+        do {
+            request = try HTTPClient.Request(
+                url: targetURL,
+                method: .RAW(value: method)
+            )
+        } catch {
+            completion?(Result.failure(error))
+            return
+        }
 
         for (key, value) in self.headers {
             request.headers.add(name: key, value: value)
@@ -203,9 +209,17 @@ open class Client {
             if "GET" == method {
                 break
             }
-            let json = try JSONSerialization.data(
-                withJSONObject: params,
-                options: [])
+
+            var json: Data
+            do {
+                json = try JSONSerialization.data(
+                    withJSONObject: params,
+                    options: []
+                )
+            } catch {
+                completion?(Result.failure(error))
+                return
+            }
 
             request.body = .data(json)
         }
