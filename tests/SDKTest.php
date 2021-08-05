@@ -98,6 +98,18 @@ class SDKTest extends TestCase
             'supportException' => false,
         ],
 
+        'swift' => [
+            'class' => 'Appwrite\SDK\Language\Swift',
+            'build' => [
+                'mkdir -p tests/sdks/swift/Tests/AppwriteTests',
+                'cp tests/languages/swift/Tests.swift tests/sdks/swift/Tests/AppwriteTests/Tests.swift',
+            ],
+            'envs' => [
+                'swift-5.4' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift swift:5.4 swift test',
+            ],
+            'supportException' => false,
+        ],
+
 
         'dotnet' => [
             'class' => 'Appwrite\SDK\Language\DotNet',
@@ -217,7 +229,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin'];
+        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin', 'swift'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
