@@ -17,9 +17,11 @@ let package = Package(
     targets: [
         .target(
             name: "{{spec.title | caseUcfirst}}",
-            dependencies: [
-                .product(name: "AsyncHTTPClient", package: "async-http-client"),
-            ]
-        )
+            dependencies: [.product(name: "AsyncHTTPClient", package: "async-http-client")]
+        ),
+        .testTarget(
+            name: "{{spec.title | caseUcfirst}}Tests",
+            dependencies: ["{{spec.title | caseUcfirst}}"]
+        ),
     ]
 )

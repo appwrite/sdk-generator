@@ -1,104 +1,132 @@
-//  Tests_iOS.swift
-//  Tests iOS
-//  Created by Jake Barnby on 3/08/21.
-//
-
 import XCTest
+import FoundationNetworking
 import Appwrite
 import AsyncHTTPClient
+import NIO
 
-class Tests_iOS: XCTestCase {
+class Tests: XCTestCase {
 
-    override func setUpWithError() throws {
+    override func setUp() {
+        super.setUp()
         // Put setup code here. This method is called before the invocation of each test method in the class.
-        // In UI tests it is usually best to stop immediately when a failure occurs.
-        continueAfterFailure = false
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
     }
 
-    override func tearDownWithError() throws {
+    override func tearDown() {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
+        super.tearDown()
     }
 
     func test() throws {
+        let group = DispatchGroup()
+
         let client = Client()
-        let foo = Foo(client)
-        let bar = Bar(client)
-        let general = General(client)
-        client.addHeader(key: "Origin", value: "http://localhost")
-        client.setSelfSigned()
+            .addHeader(key: "Origin", value: "http://localhost")
+            .setSelfSigned()
 
-        var response: HTTPClient.Response
+        let foo = Foo(client: client)
+        let bar = Bar(client: client)
+        let general = General(client: client)
+
         // Foo Tests
-
-        response = foo.get("string", 123, ["string in array"]).await()
-        printResponse(response)
-        response = foo.post("string", 123, ["string in array"]).await()
-        printResponse(response)
-        response = foo.put("string", 123, ["string in array"]).await()
-        printResponse(response)
-        response = foo.patch("string", 123, ["string in array"]).await()
-        printResponse(response)
-        response = foo.delete("string", 123, ["string in array"]).await()
-        printResponse(response)
+        group.enter()
+        foo.get("string", 123, ["string in array"]) { result in
+            self.printResult(result)
+            group.leave()
+        }
+        group.enter()
+        foo.post("string", 123, ["string in array"]) { result in
+            self.printResult(result)
+            group.leave()
+        }
+        group.enter()
+        foo.put("string", 123, ["string in array"]) { result in
+            self.printResult(result)
+            group.leave()
+        }
+        group.enter()
+        foo.patch("string", 123, ["string in array"]) { result in
+            self.printResult(result)
+            group.leave()
+        }
+        group.enter()
+        foo.delete("string", 123, ["string in array"]) { result in
+            self.printResult(result)
+            group.leave()
+        }
 
         // Bar Tests
-        response = bar.get("string", 123, ["string in array"]).await()
-        printResponse(response)
-        response = bar.post("string", 123, ["string in array"]).await()
-        printResponse(response)
-        response = bar.put("string", 123, ["string in array"]).await()
-        printResponse(response)
-        response = bar.patch("string", 123, ["string in array"]).await()
-        printResponse(response)
-        response = bar.delete("string", 123, ["string in array"]).await()
-        printResponse(response)
+        group.enter()
+        bar.get("string", 123, ["string in array"]) { result in
+            self.printResult(result)
+            group.leave()
+        }
+        group.enter()
+        bar.post("string", 123, ["string in array"]) { result in
+            self.printResult(result)
+            group.leave()
+        }
+        group.enter()
+        bar.put("string", 123, ["string in array"]) { result in
+            self.printResult(result)
+            group.leave()
+        }
+        group.enter()
+        bar.patch("string", 123, ["string in array"]) { result in
+            self.printResult(result)
+            group.leave()
+        }
+        group.enter()
+        bar.delete("string", 123, ["string in array"]) { result in
+            self.printResult(result)
+            group.leave()
+        }
 
         // General Tests
-        response = general.redirect()
-        printResponse(response)
-
-        response = general.upload("string", 123, ["string in array"], File("../../resources/file.png")).await()
-        printResponse(response)
-
-        do {
-            try general.error400()
-        } catch let error {
-            writeToFile(error.message)
+        group.enter()
+        general.redirect() { result in
+            self.printResult(result)
+            group.leave()
         }
 
+        group.enter()
+        let url = URL(string: "file:///../../resources/file.png")!
+        var str: String
         do {
-            try general.error500()
-        } catch let error {
-            writeToFile(error.message)
+            str = try String(contentsOf: url)
+        } catch {
+            self.printResult(Result.failure(error))
+            throw error
         }
-
-        do {
-            try general.error502()
-        } catch let error {
-            writeToFile(error.message)
+        let buffer = ByteBuffer(string: str)
+        general.upload("string", 123, ["string in array"], buffer) { result in
+            self.printResult(result)
+            group.leave()
         }
-
+        group.enter()
+        general.error400() { result in
+            self.printResult(result)
+            group.leave()
+        }
+        group.enter()
+        general.error500() { result in
+            self.printResult(result)
+            group.leave()
+        }
+        group.enter()
+        general.error502() { result in
+            self.printResult(result)
+            group.leave()
+        }
+        group.wait()
     }
 
-    private func printResponse(response: HTTPClient.Response) {
-        // Store the outputs in a file and
-        try! writeToFile(String(response))
-    }
-
-    private func writeToFile(string: String?) {
-        let file = "result.txt"
-
-        guard let dir = FileManager.default.urls(
-            for: .applicationDirectory,
-            in: .userDomainMask
-        ).first() else {
-            return
+    private func printResult(_ result: Result<HTTPClient.Response, Error>) {
+        var output: String
+        switch result {
+        case .failure(let error): output = error.localizedDescription
+        case .success(var response): output = response.body!.readString(length: response.body!.readableBytes) ?? ""
         }
-
-        let fileURL = dir.appendingPathComponent(file)
-
-        try! text.write(to: fileURL, atomically: false, encoding: .utf8)
+        print(output)
     }
 
 }
