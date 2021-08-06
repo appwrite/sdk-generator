@@ -33,26 +33,31 @@ class Tests: XCTestCase {
             self.printResult(result)
             group.leave()
         }
+        group.wait()
         group.enter()
         foo.post("string", 123, ["string in array"]) { result in
             self.printResult(result)
             group.leave()
         }
+        group.wait()
         group.enter()
         foo.put("string", 123, ["string in array"]) { result in
             self.printResult(result)
             group.leave()
         }
+        group.wait()
         group.enter()
         foo.patch("string", 123, ["string in array"]) { result in
             self.printResult(result)
             group.leave()
         }
+        group.wait()
         group.enter()
         foo.delete("string", 123, ["string in array"]) { result in
             self.printResult(result)
             group.leave()
         }
+        group.wait()
 
         // Bar Tests
         group.enter()
@@ -60,26 +65,31 @@ class Tests: XCTestCase {
             self.printResult(result)
             group.leave()
         }
+        group.wait()
         group.enter()
         bar.post("string", 123, ["string in array"]) { result in
             self.printResult(result)
             group.leave()
         }
+        group.wait()
         group.enter()
         bar.put("string", 123, ["string in array"]) { result in
             self.printResult(result)
             group.leave()
         }
+        group.wait()
         group.enter()
         bar.patch("string", 123, ["string in array"]) { result in
             self.printResult(result)
             group.leave()
         }
+        group.wait()
         group.enter()
         bar.delete("string", 123, ["string in array"]) { result in
             self.printResult(result)
             group.leave()
         }
+        group.wait()
 
         // General Tests
         group.enter()
@@ -87,33 +97,12 @@ class Tests: XCTestCase {
             self.printResult(result)
             group.leave()
         }
-
+        group.wait()
         group.enter()
-        let url = URL(string: "file:///../../resources/file.png")!
-        var str: String
-        do {
-            str = try String(contentsOf: url)
-        } catch {
-            self.printResult(Result.failure(error))
-            throw error
-        }
-        let buffer = ByteBuffer(string: str)
+        // FIXME: "Operation failed"
+        let url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
+        let buffer = ByteBuffer(data: url.dataRepresentation)
         general.upload("string", 123, ["string in array"], buffer) { result in
-            self.printResult(result)
-            group.leave()
-        }
-        group.enter()
-        general.error400() { result in
-            self.printResult(result)
-            group.leave()
-        }
-        group.enter()
-        general.error500() { result in
-            self.printResult(result)
-            group.leave()
-        }
-        group.enter()
-        general.error502() { result in
             self.printResult(result)
             group.leave()
         }
@@ -124,9 +113,46 @@ class Tests: XCTestCase {
         var output: String
         switch result {
         case .failure(let error): output = error.localizedDescription
-        case .success(var response): output = response.body!.readString(length: response.body!.readableBytes) ?? ""
+        case .success(var response):
+            let json = response.body!.readString(length: response.body!.readableBytes) ?? ""
+            let responseObj: Response = try! JSONDecoder().decode(Response.self, from: json.data(using: .utf8)!)
+            output = responseObj.result ?? responseObj.message ?? ""
         }
-        print(output)
+        writeToFile(string: output)
     }
 
+    private func writeToFile(string: String) {
+        let url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../../result.txt")
+        try! string.appendLine(to: url)
+    }
+}
+
+struct Response: Decodable {
+    let result: String?
+    let message: String?
+}
+
+extension String {
+    func appendLine(to url: URL) throws {
+        try self.appending("\n").append(to: url)
+    }
+
+    func append(to url: URL) throws {
+        let data = self.data(using: .utf8)
+        try data?.append(to: url)
+    }
+}
+
+extension Data {
+    func append(to url: URL) throws {
+        if let fileHandle = try? FileHandle(forWritingTo: url) {
+            defer {
+                fileHandle.closeFile()
+            }
+            fileHandle.seekToEndOfFile()
+            fileHandle.write(self)
+        } else {
+            try write(to: url)
+        }
+    }
 }
