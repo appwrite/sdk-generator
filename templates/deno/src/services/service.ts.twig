@@ -13,38 +13,38 @@ export class {{ service.name | caseUcfirst }} extends Service {
      *
 {% endif %}
 {% for parameter in method.parameters.all %}
-     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
+     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
      * @throws {AppwriteException}
      * @returns {Promise}
      */
-    async {{ method.name | caseCamel }}{% if method.type != "location" %}<T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not parameter.required%}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Response{% else %}T{% endif %}> {
+    async {{ method.name | caseCamel }}{% if method.type != "location" %}<T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required%}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Response{% else %}T{% endif %}> {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
-        if (typeof {{ parameter.name | caseCamel }} === 'undefined') {
-            throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel }}"');
+        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
+            throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
         }
 
 {% endif %}
 {% endfor %}
-        let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel }}){% endfor %};
+        let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
         let payload: Payload = {};
 
 {% for parameter in method.parameters.query %}
-        if (typeof {{ parameter.name | caseCamel }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
+        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
 
 {% endfor %}
 {% for parameter in method.parameters.body %}
-        if (typeof {{ parameter.name | caseCamel }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel }};
+        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
 
 {% endfor %}
         return await this.client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
-                    '{{ parameter.name }}': ${{ parameter.name | caseCamel }},
+                    '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
 {% for key, header in method.headers %}
                     '{{ key }}': '{{ header }}',

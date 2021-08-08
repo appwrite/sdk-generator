@@ -2,14 +2,14 @@ part of {{ language.params.packageName }};
 
 {% macro parameter(parameter) %}
 {% if parameter.class == 'query' %}Query? queries{% else %}
-{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel }}{% endif %}
+{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{% endif %}
 {% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}
 {% endmacro %}
 {% macro map_parameter(parameter) %}
 {% if parameter.class == 'query' %}'{{ parameter.name }}': {{ parameter.name | caseCamel }}?.queries,{% else %}
-'{{ parameter.name }}': {{ parameter.name | caseCamel }},{% endif %}
+'{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},{% endif %}
 {% endmacro %}
 
 class {{ service.name | caseUcfirst }} extends Service {
@@ -23,7 +23,7 @@ class {{ service.name | caseUcfirst }} extends Service {
      ///
 {% endif %}
     {% if method.type == 'webAuth' %}Future{% else %}Future<Response>{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) {
-        final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
+        final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
 
         final Map<String, dynamic> params = {
 {% for parameter in method.parameters.query %}
