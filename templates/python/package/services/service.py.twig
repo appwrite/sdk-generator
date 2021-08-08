@@ -15,7 +15,7 @@ class {{ service.name | caseUcfirst }}(Service):
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
         if {{ parameter.name | escapeKeyword | caseSnake }} is None: 
-            raise {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseSnake }}"')
+            raise {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | escapeKeyword | caseSnake }}"')
 
 {% endif %}
 {% endfor %}
