@@ -191,13 +191,13 @@ class {{ spec.title | caseUcfirst }} {
 
 {% for parameter in method.parameters.query %}
             if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-                payload['{{ parameter.name | caseCamel | escapeKeyword }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+                payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
             }
 
 {% endfor %}
 {% for parameter in method.parameters.body %}
             if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-                payload['{{ parameter.name | caseCamel | escapeKeyword }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+                payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
             }
 
 {% endfor %}
