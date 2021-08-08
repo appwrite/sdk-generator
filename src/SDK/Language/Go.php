@@ -39,6 +39,7 @@ class Go extends Language {
             'struct',
             'type',
             'var',
+            'default'
         ];
     }
 

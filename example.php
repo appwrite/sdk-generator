@@ -39,7 +39,7 @@ try {
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1&platform=console'); // Enable only with Appwrite local server running on port 80
     // $spec = file_get_contents('https://appwrite.io/specs/swagger2?platform=client');
-    $spec = file_get_contents('./specs/swagger-appwrite.0.8.0.json');
+    $spec = file_get_contents('./specs/swagger-appwrite.0.10.0.json');
 
     $specClient = file_get_contents('./specs/swagger-appwrite.0.8.x-client.json');
     $specServer = file_get_contents('./specs/swagger-appwrite.0.8.x-server.json');
