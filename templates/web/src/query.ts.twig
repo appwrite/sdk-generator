@@ -1,4 +1,4 @@
-type QueryTypes = string | number | boolean;
+type QueryTypes = string | string[] | number | number [] | boolean | boolean[];
 type QueryTypesList = string[] | number[] | boolean[];
 
 class Query {
@@ -30,11 +30,17 @@ class Query {
     return Query.addQuery(attribute, 'contains', value);
   }
 
-  private static addQuery(attribute: string, oper: string, value: QueryTypes | QueryTypesList): string {
-    if (typeof value === 'string') {
-      return `${attribute}.${oper}("${value}")`;
-    } else {
-      return `${attribute}.${oper}(${value})`;
+  static addQuery(attribute: string, oper: string, value: unknown): string {
+    if (value instanceof Array) {
+      return `${attribute}.${oper}(${value.map(v => Query.parseValues(v)).join(',')})`;
     }
+    return `${attribute}.${oper}(${Query.parseValues(value)})`;
+  }
+
+  static parseValues(value: unknown): string {
+    if (typeof value === 'string' || value instanceof String) {
+      return `"${value}"`;
+    }
+    return `${value}`;
   }
 }
