@@ -30,10 +30,16 @@ class Query {
   }
 
   static String _addQuery(String attribute, String oper, dynamic value) {
-    if (value is String) {
-      return '$attribute.$oper("$value")';
-    } else {
-      return '$attribute.$oper($value)';
+    if (value is List) {
+      return '$attribute.$oper(${value.map((item) => parseValues(item)).join(",")})';
     }
+    return '$attribute.$oper(${parseValues(value)})';
+  }
+
+  static String parseValues(dynamic value) {
+    if (value is String) {
+      return '"$value"';
+    }
+    return '$value';
   }
 }
