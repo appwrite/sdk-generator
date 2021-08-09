@@ -1,33 +1,36 @@
+type QueryTypes = string | number | boolean;
+type QueryTypesList = string[] | number[] | boolean[];
+
 class Query {
-  static equal(attribute: string, value: any): string {
+  static equal(attribute: string, value: QueryTypes): string {
     return Query.addQuery(attribute, 'equal', value);
   }
 
-  static notEqual(attribute: string, value: any): string {
+  static notEqual(attribute: string, value: QueryTypes): string {
     return Query.addQuery(attribute, 'notEqual', value);
   }
 
-  static lesser(attribute: string, value: any): string {
+  static lesser(attribute: string, value: QueryTypes): string {
     return Query.addQuery(attribute, 'lesser', value);
   }
 
-  static lesserEqual(attribute: string, value: any): string {
+  static lesserEqual(attribute: string, value: QueryTypes): string {
     return Query.addQuery(attribute, 'lesserEqual', value);
   }
 
-  static greater(attribute: string, value: any): string {
+  static greater(attribute: string, value: QueryTypes): string {
     return Query.addQuery(attribute, 'greater', value);
   }
 
-  static greaterEqual(attribute: string, value: any): string {
+  static greaterEqual(attribute: string, value: QueryTypes): string {
     return Query.addQuery(attribute, 'greaterEqual', value);
   }
 
-  static contains(attribute: string, value: any): string {
+  static contains(attribute: string, value: QueryTypesList): string {
     return Query.addQuery(attribute, 'contains', value);
   }
 
-  static addQuery(attribute: string, oper: string, value: any): string {
+  static addQuery(attribute: string, oper: string, value: QueryTypes | QueryTypesList): string {
     if (typeof value === 'string') {
       return `${attribute}.${oper}("${value}")`;
     } else {
