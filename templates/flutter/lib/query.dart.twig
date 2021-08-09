@@ -1,35 +1,35 @@
 part of {{ language.params.packageName }};
 
 class Query {
-  String equal(String attribute, dynamic value) {
+  static String equal(String attribute, dynamic value) {
     return _addQuery(attribute, 'equal', value);
   }
 
-  String notEqual(String attribute, dynamic value) {
+  static String notEqual(String attribute, dynamic value) {
     return _addQuery(attribute, 'notEqual', value);
   }
 
-  String lesser(String attribute, dynamic value) {
+  static String lesser(String attribute, dynamic value) {
     return _addQuery(attribute, 'lesser', value);
   }
 
-  String lesserEqual(String attribute, dynamic value) {
+  static String lesserEqual(String attribute, dynamic value) {
     return _addQuery(attribute, 'lesserEqual', value);
   }
 
-  String greater(String attribute, dynamic value) {
+  static String greater(String attribute, dynamic value) {
     return _addQuery(attribute, 'greater', value);
   }
 
-  String greaterEqual(String attribute, dynamic value) {
+  static String greaterEqual(String attribute, dynamic value) {
     return _addQuery(attribute, 'greaterEqual', value);
   }
 
-  String contains(String attribute, List<dynamic> value) {
+  static String contains(String attribute, List<dynamic> value) {
     return _addQuery(attribute, 'contains', value);
   }
 
-  String _addQuery(String attribute, String oper, dynamic value) {
+  static String _addQuery(String attribute, String oper, dynamic value) {
     if (value is String) {
       return '$attribute.$oper("$value")';
     } else {
