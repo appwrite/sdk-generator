@@ -30,12 +30,17 @@ class Query {
       return Query.addQuery(attribute, "contains", value);
     }
 
-    fun addQuery(attribute: String, oper: String, value: Any): String {
-      if (value is String) {
-        return "${attribute}.${oper}(\"${value}\")";
-      } else {
-        return "${attribute}.${oper}(${value})";
-      }
+    private fun addQuery(attribute: String, oper: String, value: Any): String {
+          if (value is List<*>) {
+           	return "${attribute}.${oper}(${value.map{it->parseValues(it!!)}.joinToString(",")})";
+          }
+    	return "${attribute}.${oper}(${Query.parseValues(value)})";
+    }
+    private fun parseValues(value: Any): String {
+        if (value is String) {
+        	return "\"${value}\"";
+      	}
+    	return "${value}";
     }
   }
 }
