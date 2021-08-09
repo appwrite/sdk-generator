@@ -26,7 +26,7 @@ class Query {
       return Query.addQuery(attribute, "greaterEqual", value);
     }
 
-    fun contains(attribute: String, value: Any): String {
+    fun contains(attribute: String, value: List<Any>): String {
       return Query.addQuery(attribute, "contains", value);
     }
 
