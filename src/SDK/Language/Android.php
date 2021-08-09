@@ -124,6 +124,12 @@ class Android extends Kotlin {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Query.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/Query.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.title | caseUcfirst}}Exception.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/exceptions/Exception.kt.twig',
                 'minify'        => false,
