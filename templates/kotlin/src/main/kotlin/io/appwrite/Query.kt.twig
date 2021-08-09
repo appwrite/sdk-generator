@@ -1,39 +1,41 @@
 package {{ sdk.namespace | caseDot }}
 
 class Query {
-  public static String equal(attribute: String, value: Any) {
-    return Query.addQuery(attribute, "equal", value);
-  }
+  companion object {
+    fun equal(attribute: String, value: Any): String {
+      return Query.addQuery(attribute, "equal", value);
+    }
 
-  public static String notEqual(attribute: String, value: Any) {
-    return Query.addQuery(attribute, "notEqual", value);
-  }
+    fun notEqual(attribute: String, value: Any): String {
+      return Query.addQuery(attribute, "notEqual", value);
+    }
 
-  public static String lesser(attribute: String, value: Any) {
-    return Query.addQuery(attribute, "lesser", value);
-  }
+    fun lesser(attribute: String, value: Any): String {
+      return Query.addQuery(attribute, "lesser", value);
+    }
 
-  public static String lesserEqual(attribute: String, value: Any) {
-    return Query.addQuery(attribute, "lesserEqual", value);
-  }
+    fun lesserEqual(attribute: String, value: Any): String {
+      return Query.addQuery(attribute, "lesserEqual", value);
+    }
 
-  public static String greater(attribute: String, value: Any) {
-    return Query.addQuery(attribute, "greater", value);
-  }
+    fun greater(attribute: String, value: Any): String {
+      return Query.addQuery(attribute, "greater", value);
+    }
 
-  public static String greaterEqual(attribute: String, value: Any) {
-    return Query.addQuery(attribute, "greaterEqual", value);
-  }
+    fun greaterEqual(attribute: String, value: Any): String {
+      return Query.addQuery(attribute, "greaterEqual", value);
+    }
 
-  public static String contains(attribute: String, value: Any) {
-    return Query.addQuery(attribute, "contains", value);
-  }
+    fun contains(attribute: String, value: Any): String {
+      return Query.addQuery(attribute, "contains", value);
+    }
 
-  private static String addQuery(attribute: String, oper: String, value: Any) {
-    if (typeof value === "String") {
-      return "${attribute}.${oper}(\"${value}\")";
-    } else {
-      return "${attribute}.${oper}(${value})";
+    fun addQuery(attribute: String, oper: String, value: Any): String {
+      if (value is String) {
+        return "${attribute}.${oper}(\"${value}\")";
+      } else {
+        return "${attribute}.${oper}(${value})";
+      }
     }
   }
 }
