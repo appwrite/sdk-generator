@@ -1,16 +1,10 @@
 part of {{ language.params.packageName }};
 
-{% macro parameter(parameter) %}
-{% if parameter.name == 'queries' %}Query? queries{% else %}
-{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{% endif %}
-{% endmacro %}
+{% macro parameter(parameter) %}{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}
 {% endmacro %}
-{% macro map_parameter(parameter) %}
-{% if parameter.name == 'queries' %}'{{ parameter.name }}': {{ parameter.name | caseCamel }}?.queries,{% else %}
-'{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},{% endif %}
-{% endmacro %}
+{% macro map_parameter(parameter) %}'{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},{% endmacro %}
 
 class {{ service.name | caseUcfirst }} extends Service {
     {{ service.name | caseUcfirst }}(Client client): super(client);

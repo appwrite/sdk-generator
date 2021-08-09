@@ -1,50 +1,39 @@
 part of {{ language.params.packageName }};
 
 class Query {
-  final List<String> _queries = [];
-
-  List<String> get queries => _queries;
-
-  Query equal(String attribute, dynamic value) {
-    _addQuery(attribute, 'equal', value);
-    return this;
+  String equal(String attribute, dynamic value) {
+    return _addQuery(attribute, 'equal', value);
   }
 
-  Query notEqual(String attribute, dynamic value) {
-    _addQuery(attribute, 'notEqual', value);
-    return this;
+  String notEqual(String attribute, dynamic value) {
+    return _addQuery(attribute, 'notEqual', value);
   }
 
-  Query lesser(String attribute, dynamic value) {
-    _addQuery(attribute, 'lesser', value);
-    return this;
+  String lesser(String attribute, dynamic value) {
+    return _addQuery(attribute, 'lesser', value);
   }
 
-  Query lesserEqual(String attribute, dynamic value) {
-    _addQuery(attribute, 'lesserEqual', value);
-    return this;
+  String lesserEqual(String attribute, dynamic value) {
+    return _addQuery(attribute, 'lesserEqual', value);
   }
 
-  Query greater(String attribute, dynamic value) {
-    _addQuery(attribute, 'greater', value);
-    return this;
+  String greater(String attribute, dynamic value) {
+    return _addQuery(attribute, 'greater', value);
   }
 
-  Query greaterEqual(String attribute, dynamic value) {
-    _addQuery(attribute, 'greaterEqual', value);
-    return this;
+  String greaterEqual(String attribute, dynamic value) {
+    return _addQuery(attribute, 'greaterEqual', value);
   }
 
-  Query contains(String attribute, List<dynamic> value) {
-    _addQuery(attribute, 'contains', value);
-    return this;
+  String contains(String attribute, List<dynamic> value) {
+    return _addQuery(attribute, 'contains', value);
   }
 
-  _addQuery(String attribute, String oper, dynamic value) {
+  String _addQuery(String attribute, String oper, dynamic value) {
     if (value is String) {
-      _queries.add('$attribute.$oper("$value")');
+      return '$attribute.$oper("$value")';
     } else {
-      _queries.add('$attribute.$oper($value)');
+      return '$attribute.$oper($value)';
     }
   }
 }
