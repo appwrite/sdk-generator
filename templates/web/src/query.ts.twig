@@ -27,7 +27,7 @@ class Query {
     return Query.addQuery(attribute, 'contains', value);
   }
 
-  static addQuery(attribute: string, oper: string, value: any): string {
+  private static addQuery(attribute: string, oper: string, value: any): string {
     if (typeof value === 'string') {
       return `${attribute}.${oper}("${value}")`;
     } else {
