@@ -1,0 +1,37 @@
+class Query {
+  static equal(attribute, value) {
+    return _addQuery(attribute, 'equal', value);
+  }
+
+  static notEqual(attribute, value) {
+    return _addQuery(attribute, 'notEqual', value);
+  }
+
+  static lesser(attribute, value) {
+    return _addQuery(attribute, 'lesser', value);
+  }
+
+  static lesserEqual(attribute, value) {
+    return _addQuery(attribute, 'lesserEqual', value);
+  }
+
+  static greater(attribute, value) {
+    return _addQuery(attribute, 'greater', value);
+  }
+
+  static greaterEqual(attribute, value) {
+    return _addQuery(attribute, 'greaterEqual', value);
+  }
+
+  static contains(attribute, value) {
+    return _addQuery(attribute, 'contains', value);
+  }
+
+  static _addQuery(attribute, oper, value) {
+    if (typeof value == 'string') {
+      return `${attribute}.${oper}("${value}")`;
+    } else {
+      return `${attribute}.${oper}(${value})`;
+    }
+  }
+}
