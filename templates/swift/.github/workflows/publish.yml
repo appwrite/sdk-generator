@@ -1,0 +1,33 @@
+name: Publish to Cocoapods
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  pod:
+    name: Lint and publish to Cocoapods
+    runs-on: macos-latest
+    steps:
+      - name: Setup Swift
+        uses: fwal/setup-swift@v1
+        with:
+          swift-version: "5.4"
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install cocoapods
+        run: gem install cocoapods
+
+      - name: Set library version from tag
+        run: echo "POD_LIB_VERSION=${{github.event.release.tag_name }}" >> $GITHUB_ENV
+
+      - name: Deploy to Cocoapods
+        run: |
+          set -eo pipefail
+          pod install
+          pod lib lint --allow-warnings
+          pod trunk push --allow-warnings
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
