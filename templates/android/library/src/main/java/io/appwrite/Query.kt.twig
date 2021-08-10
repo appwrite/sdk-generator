@@ -4,41 +4,29 @@ class Query {
   companion object {
     fun equal(attribute: String, value: Any) -> addQuery(attribute, "equal", value)
 
-    fun notEqual(attribute: String, value: Any): String {
-      return Query.addQuery(attribute, "notEqual", value);
-    }
+    fun notEqual(attribute: String, value: Any) -> Query.addQuery(attribute, "notEqual", value)
 
-    fun lesser(attribute: String, value: Any): String {
-      return Query.addQuery(attribute, "lesser", value);
-    }
+    fun lesser(attribute: String, value: Any) -> Query.addQuery(attribute, "lesser", value)
 
-    fun lesserEqual(attribute: String, value: Any): String {
-      return Query.addQuery(attribute, "lesserEqual", value);
-    }
+    fun lesserEqual(attribute: String, value: Any) -> Query.addQuery(attribute, "lesserEqual", value)
 
-    fun greater(attribute: String, value: Any): String {
-      return Query.addQuery(attribute, "greater", value);
-    }
+    fun greater(attribute: String, value: Any) -> Query.addQuery(attribute, "greater", value)
 
-    fun greaterEqual(attribute: String, value: Any): String {
-      return Query.addQuery(attribute, "greaterEqual", value);
-    }
+    fun greaterEqual(attribute: String, value: Any) -> Query.addQuery(attribute, "greaterEqual", value)
 
-    fun contains(attribute: String, value: List<Any>): String {
-      return Query.addQuery(attribute, "contains", value);
-    }
+    fun contains(attribute: String, value: List<Any>) -> Query.addQuery(attribute, "contains", value)
 
     private fun addQuery(attribute: String, oper: String, value: Any): String {
-          if (value is List<*>) {
-           	return "${attribute}.${oper}(${value.map{it->parseValues(it!!)}.joinToString(",")})";
-          }
-    	return "${attribute}.${oper}(${Query.parseValues(value)})";
+      return when (value) {
+        is List<*> -> "${attribute}.${oper}(${value.map{it->parseValues(it!!)}.joinToString(",")})"
+    	  else -> "${attribute}.${oper}(${Query.parseValues(value)})"
+      }
     }
     private fun parseValues(value: Any): String {
-        if (value is String) {
-        	return "\"${value}\"";
-      	}
-    	return "${value}";
+      return when (value) {
+        is String -> "\"${value}\""
+    	  else -> "${value}"
+      }
     }
   }
 }
