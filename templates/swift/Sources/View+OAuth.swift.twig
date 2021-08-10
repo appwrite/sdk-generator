@@ -22,3 +22,20 @@ extension View {
         }
     }
 }
+
+#if canImport(UIKit)
+@available(iOS 14.0, tvOS 14.0, watchOS 7.0, *)
+extension UIViewController {
+    public func registerOAuthHandler() {
+        self.addChild(UIHostingController(rootView: EmptyView().registerOAuthHandler()))
+    }
+}
+#endif
+#if canImport(AppKit)
+@available(macOS 11.0, *)
+extension NSViewController {
+    public func registerOAuthHandler() {
+        self.addChild(NSHostingController(rootView: EmptyView().registerOAuthHandler()))
+    }
+}
+#endif
