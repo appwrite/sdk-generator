@@ -1,45 +1,32 @@
 part of {{ language.params.packageName }};
 
 class Query {
-  static String equal(String attribute, dynamic value) {
-    return _addQuery(attribute, 'equal', value);
-  }
+  static equal(String attribute, dynamic value) =>
+      _addQuery(attribute, 'equal', value);
 
-  static String notEqual(String attribute, dynamic value) {
-    return _addQuery(attribute, 'notEqual', value);
-  }
+  static notEqual(String attribute, dynamic value) =>
+      _addQuery(attribute, 'notEqual', value);
 
-  static String lesser(String attribute, dynamic value) {
-    return _addQuery(attribute, 'lesser', value);
-  }
+  static lesser(String attribute, dynamic value) =>
+      _addQuery(attribute, 'lesser', value);
 
-  static String lesserEqual(String attribute, dynamic value) {
-    return _addQuery(attribute, 'lesserEqual', value);
-  }
+  static lesserEqual(String attribute, dynamic value) =>
+      _addQuery(attribute, 'lesserEqual', value);
 
-  static String greater(String attribute, dynamic value) {
-    return _addQuery(attribute, 'greater', value);
-  }
+  static greater(String attribute, dynamic value) =>
+      _addQuery(attribute, 'greater', value);
 
-  static String greaterEqual(String attribute, dynamic value) {
-    return _addQuery(attribute, 'greaterEqual', value);
-  }
+  static greaterEqual(String attribute, dynamic value) =>
+      _addQuery(attribute, 'greaterEqual', value);
 
-  static String contains(String attribute, List<dynamic> value) {
-    return _addQuery(attribute, 'contains', value);
-  }
+  static contains(String attribute, List<dynamic> value) =>
+      _addQuery(attribute, 'contains', value);
 
-  static String _addQuery(String attribute, String oper, dynamic value) {
-    if (value is List) {
-      return '$attribute.$oper(${value.map((item) => parseValues(item)).join(",")})';
-    }
-    return '$attribute.$oper(${parseValues(value)})';
-  }
+  static String _addQuery(String attribute, String oper, dynamic value) => (value
+          is List)
+      ? '$attribute.$oper(${value.map((item) => parseValues(item)).join(",")})'
+      : '$attribute.$oper(${parseValues(value)})';
 
-  static String parseValues(dynamic value) {
-    if (value is String) {
-      return '"$value"';
-    }
-    return '$value';
-  }
+  static String parseValues(dynamic value) =>
+      (value is String) ? '"$value"' : '$value';
 }
