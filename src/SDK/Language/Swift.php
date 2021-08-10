@@ -139,6 +139,12 @@ class Swift extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Query.swift',
+                'template'      => 'swift/Sources/Query.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Service.swift',
                 'template'      => 'swift/Sources/Service.swift.twig',
                 'minify'        => false,

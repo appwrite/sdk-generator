@@ -1,14 +1,14 @@
 public class Query {
 
-    public static func equal(attribute: String, value: Any) -> String {
+    public static func equal(_ attribute: String, value: Any) -> String {
         buildQueryWhere(attribute, is: "equal", value: value)
     }
 
-    public static func notEqual(attribute: String, value: Any) -> String {
+    public static func notEqual(_ attribute: String, value: Any) -> String {
         buildQueryWhere(attribute, is: "notEqual", to: value)
     }
 
-    public static func lesser(attribute: String, value: Any) -> String {
+    public static func lesser(_ attribute: String, value: Any) -> String {
         buildQueryWhere(attribute, is: "lesser", to: value)
     }
 
@@ -16,15 +16,15 @@ public class Query {
         buildQueryWhere(attribute, is: "lesserEqual", to: value)
     }
 
-    public static func greater(attribute: String, value: Any) -> String {
+    public static func greater(_ attribute: String, value: Any) -> String {
         buildQueryWhere(attribute, is: "greater", to: value)
     }
 
-    public static func greaterEqual(attribute: String, value: Any) -> String {
+    public static func greaterEqual(_ attribute: String, value: Any) -> String {
         buildQueryWhere(attribute, is: "greaterEqual", to: value)
     }
 
-    public static func contains(attribute: String, value: Array<Any>) -> String {
+    public static func contains(_ attribute: String, value: Array<Any>) -> String {
         buildQueryWhere(attribute, is: "contains", to: value)
     }
 
