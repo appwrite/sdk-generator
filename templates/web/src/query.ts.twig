@@ -23,14 +23,14 @@ class Query {
   static contains = (attribute: string, value: QueryTypesList): string =>
     Query.addQuery(attribute, "contains", value);
 
-  static addQuery = (attribute: string, oper: string, value: unknown): string =>
+  private static addQuery = (attribute: string, oper: string, value: unknown): string =>
     value instanceof Array
       ? `${attribute}.${oper}(${value
           .map((v) => Query.parseValues(v))
           .join(",")})`
       : `${attribute}.${oper}(${Query.parseValues(value)})`;
 
-  static parseValues = (value: unknown): string =>
+  private static parseValues = (value: unknown): string =>
     typeof value === "string" || value instanceof String
       ? `"${value}"`
       : `${value}`;
