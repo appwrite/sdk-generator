@@ -1,0 +1,51 @@
+<?php
+
+namespace {{ spec.title | caseUcfirst }};
+
+class Query
+{
+    public static function equal($attribute, $value): string
+    {
+        return self::addQuery($attribute, 'equal', $value);
+    }
+
+    public static function notEqual(string $attribute, $value): string
+    {
+        return self::addQuery($attribute, 'notEqual', $value);
+    }
+
+    public static function lesser(string $attribute, $value): string
+    {
+        return self::addQuery($attribute, 'lesser', $value);
+    }
+
+    public static function lesserEqual(string $attribute, $value): string
+    {
+        return self::addQuery($attribute, 'lesserEqual', $value);
+    }
+
+    public static function greater(string $attribute, $value): string
+    {
+        return self::addQuery($attribute, 'greater', $value);
+    }
+
+    public static function greaterEqual(string $attribute, $value): string
+    {
+        return self::addQuery($attribute, 'greaterEqual', $value);
+    }
+
+    public static function contains(string $attribute, array $value): string
+    {
+        return self::addQuery($attribute, 'contains', $value);
+    }
+
+    private static function addQuery(string $attribute, string $oper, $value)
+    {
+        return is_array($value) ? $attribute . '.' . $oper . '(' . implode(",", array_map(function ($item) {return self::parseValues($item);}, $value)) . ')' : $attribute . '.' . $oper . '(' . self::parseValues($value) . ')';
+    }
+
+    private static function parseValues($value): string
+    {
+        return is_string($value) ? '"' . $value . '"' : $value;
+    }
+}
