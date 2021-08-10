@@ -2,6 +2,7 @@ import AsyncHTTPClient
 import Foundation
 import NIO
 import SwiftUI
+import {{ spec.title | caseUcfirst}}
 
 ///
 /// Used to authenticate with external OAuth2 providers. Launches browser windows and handles
@@ -13,7 +14,7 @@ public class WebAuthComponent {
     @Environment(\.openURL)
     private static var openURL
 
-    private static var callbacks = [String: (Result<String, Error>) -> Void]()
+    private static var callbacks = [String: (Result<String, {{ spec.title | caseUcfirst}}Error>) -> Void]()
 
     ///
     /// Authenticate Session with OAuth2
@@ -32,7 +33,7 @@ public class WebAuthComponent {
     internal static func authenticate(
         url: URL,
         callbackScheme: String,
-        onComplete: @escaping (Result<String, Error>) -> Void
+        onComplete: @escaping (Result<String, {{ spec.title | caseUcfirst}}Error>) -> Void
     ) {
         callbacks[callbackScheme] = onComplete
         openURL(url)
@@ -59,7 +60,7 @@ public class WebAuthComponent {
 
     private static func cleanUp() {
         callbacks.forEach { (_, callback) in
-            callback(.failure({{ spec.title | caseUcfirst}}Error.loginCancelled(message: "User cancelled login.")))
+            callback(.failure({{ spec.title | caseUcfirst}}Error(message: "User cancelled login.")))
         }
     }
 }

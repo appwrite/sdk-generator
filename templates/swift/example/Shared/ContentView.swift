@@ -66,73 +66,53 @@ struct ContentView: View {
                 let storage = Storage(client: client)
 
                 Button("Login") {
-                    do {
-                        try account.createSession(username, password) { result in
-                            switch result {
-                            case .failure(let error): self.response = error.localizedDescription
-                            case .success(var response): self.response = response.body!.readString()
-                            }
+                    account.createSession(username, password) { result in
+                        switch result {
+                        case .failure(let error): self.response = error.message
+                        case .success(var response): self.response = response.body!.readString(length: response.body!.readableBytes) ?? ""
                         }
-                    } catch {
-                        print(error)
                     }
                 }
 
                 Button("Login with Facebook") {
-                    do {
-                        try account.createOAuth2Session(
-                            "facebook",
-                            "\(host)/auth/oauth2/success",
-                            "\(host)/auth/oauth2/success"
-                        ) { result in
-                            switch result {
-                            case .failure: self.response = "false"
-                            case .success(let response): self.response = response.description
-                            }
+                    account.createOAuth2Session(
+                        "facebook",
+                        "\(host)/auth/oauth2/success",
+                        "\(host)/auth/oauth2/failure"
+                    ) { result in
+                        switch result {
+                        case .failure: self.response = "false"
+                        case .success(let response): self.response = response.description
                         }
-                    } catch {
-                        print(error)
                     }
                 }
 
                 Button("Register") {
-                    do {
-                        try account.create(username, password) { result in
-                            switch result {
-                            case .failure(let error): self.response = error.localizedDescription
-                            case .success(var response): self.response = response.body!.readString()
-                            }
+                    account.create(username, password) { result in
+                        switch result {
+                        case .failure(let error): self.response = error.message
+                        case .success(var response): self.response = response.body!.readString(length: response.body!.readableBytes) ?? ""
                         }
-                    } catch {
-                        print(error)
                     }
                 }
 
-//                Button("Realtime") {
-//
-//                }
 
                 Button("Download image") {
-                    do {
-                        try storage.getFileDownload(fileId) { result in
-                            switch result {
-                            case .failure(let error):
-                                print(error)
-                            case .success(var response):
-                                image = Image(uiImage: UIImage(
-                                    data: response.body!.readData(
-                                        length: response.body!.readableBytes
-                                    )!
-                                )!)
-                            }
+                    storage.getFileDownload(fileId) { result in
+                        switch result {
+                        case .failure(let error):
+                            print(error)
+                        case .success(var response):
+                            image = Image(uiImage: UIImage(
+                                data: response.body!.readData(
+                                    length: response.body!.readableBytes
+                                )!
+                            )!)
                         }
-
-                    } catch {
-                        print(error)
                     }
                 }
             }
-        }.registerOauthHandler()
+        }.registerOAuthHandler()
     }
 }
 

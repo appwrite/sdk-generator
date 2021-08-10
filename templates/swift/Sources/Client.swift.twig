@@ -168,7 +168,7 @@ open class Client {
     /// @return Response
     /// @throws Exception
     ///
-    func call(method: String, path: String = "", headers: [String: String] = [:], params: [String: Any?] = [:], completion: ((Result<HTTPClient.Response, Error>) -> Void)? = nil) {
+    func call(method: String, path: String = "", headers: [String: String] = [:], params: [String: Any?] = [:], completion: ((Result<HTTPClient.Response, {{ spec.title | caseUcfirst}}Error>) -> Void)? = nil) {
         self.headers.merge(headers) { (_, new) in
             new
         }
@@ -186,7 +186,7 @@ open class Client {
                 method: .RAW(value: method)
             )
         } catch {
-            completion?(Result.failure(error))
+            completion?(Result.failure({{ spec.title | caseUcfirst }}Error(message: error.localizedDescription)))
             return
         }
 
@@ -201,15 +201,7 @@ open class Client {
             request.headers.add(name: "Set-Cookie", value: "\(name!)=\(value!)")
         }
 
-        switch (self.headers["content-type"]) {
-        case "multipart/form-data":
-            // TODO: Form data
-            break
-        default:
-            if "GET" == method {
-                break
-            }
-
+        if "GET" != method {
             var json: Data
             do {
                 json = try JSONSerialization.data(
@@ -217,16 +209,16 @@ open class Client {
                     options: []
                 )
             } catch {
-                completion?(Result.failure(error))
+                completion?(Result.failure({{ spec.title | caseUcfirst }}Error(message: error.localizedDescription)))
                 return
             }
 
             request.body = .data(json)
         }
 
-        http.execute(request: request).whenComplete {
+        http.execute(request: request).whenComplete { result in
             if let completion = completion {
-                completion($0)
+                completion(result.mapError { {{ spec.title | caseUcfirst }}Error(message: $0.localizedDescription) })
             }
         }
     }

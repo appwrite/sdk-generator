@@ -1,5 +1,10 @@
 import Foundation
 
-enum {{ spec.title | caseUcfirst}}Error : Swift.Error {
-    case loginCancelled(message: String)
+open class {{ spec.title | caseUcfirst}}Error : Swift.Error {
+
+    public let message: String
+
+    init(message: String) {
+        self.message = message
+    }
 }
