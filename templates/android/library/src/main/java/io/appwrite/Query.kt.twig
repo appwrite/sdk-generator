@@ -18,14 +18,14 @@ class Query {
 
     private fun addQuery(attribute: String, oper: String, value: Any): String {
       return when (value) {
-        is List<*> = "${attribute}.${oper}(${value.map{it=parseValues(it!!)}.joinToString(",")})"
-    	  else = "${attribute}.${oper}(${Query.parseValues(value)})"
+        is List<*> -> "${attribute}.${oper}(${value.map{it -> parseValues(it!!)}.joinToString(",")})"
+    	  else -> "${attribute}.${oper}(${Query.parseValues(value)})"
       }
     }
     private fun parseValues(value: Any): String {
       return when (value) {
-        is String = "\"${value}\""
-    	  else = "${value}"
+        is String -> "\"${value}\""
+    	  else -> "${value}"
       }
     }
   }
