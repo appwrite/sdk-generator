@@ -109,7 +109,7 @@ class Tests: XCTestCase {
         group.wait()
     }
 
-    private func printResult(_ result: Result<HTTPClient.Response, Error>) {
+    private func printResult(_ result: Result<HTTPClient.Response, AppwriteError>) {
         var output: String
         switch result {
         case .failure(let error): output = error.localizedDescription

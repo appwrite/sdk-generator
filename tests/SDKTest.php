@@ -105,7 +105,7 @@ class SDKTest extends TestCase
                 'cp tests/languages/swift/Tests.swift tests/sdks/swift/Tests/AppwriteTests/Tests.swift',
             ],
             'envs' => [
-                'swift-5.4' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift swift:5.4 swift test > /dev/null 2>&1 || true && cat result.txt && rm result.txt',
+                'swift-5.4' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift swift:5.4 swift test && cat result.txt && rm result.txt',
             ],
             'supportException' => false,
         ],
