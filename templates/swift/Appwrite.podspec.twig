@@ -1,0 +1,20 @@
+Pod::Spec.new do |s|
+  s.name             = '{{ spec.title }}'
+  s.version          = ENV['_{{ spec.title | caseUpper }}_POD_VERSION'] || '{{ sdk.version }}'
+  s.summary          = '{{ sdk.description }}'
+  s.homepage         = '{{ spec.gitRepo }}'
+  s.license          = { file: 'LICENSE.md' }
+  s.author           = { '{{ spec.contactName }}': '{{ spec.contactEmail }}' }
+  s.source           = { git: '{{ sdk.gitRepo }}', tag: s.version.to_s }
+
+  s.ios.deployment_target     = '14.0'
+  s.macos.deployment_target   = '11.0'
+  s.tvos.deployment_target    = '14.0'
+  s.watchos.deployment_target = '7.0'
+  s.swift_version             = '5.2'
+
+  s.source_files = 'Sources/{{ spec.title }}/**/*'
+
+  # TODO: Pod-ify async-http-server
+  # s.dependency 'AsyncHTTPClient', git: 'https://github.com/swift-server/async-http-client.git'
+end
