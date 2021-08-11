@@ -5,6 +5,7 @@
 // GitHub: https://github.com/armino-dev/sdk-generator
 //
 
+import NIO
 import Foundation
 import AsyncHTTPClient
 
@@ -168,7 +169,7 @@ open class Client {
     /// @return Response
     /// @throws Exception
     ///
-    func call(method: String, path: String = "", headers: [String: String] = [:], params: [String: Any?] = [:], completion: ((Result<HTTPClient.Response, {{ spec.title | caseUcfirst}}Error>) -> Void)? = nil) {
+    func call(method: String, path: String = "", headers: [String: String] = [:], params: [String: Any?] = [:], sink: ((ByteBuffer) -> Void)? = nil,  completion: ((Result<HTTPClient.Response, {{ spec.title | caseUcfirst}}Error>) -> Void)? = nil) {
         self.headers.merge(headers) { (_, new) in
             new
         }
@@ -216,9 +217,23 @@ open class Client {
             request.body = .data(json)
         }
 
-        http.execute(request: request).whenComplete { result in
-            if let completion = completion {
-                completion(result.mapError { {{ spec.title | caseUcfirst }}Error(message: $0.localizedDescription) })
+        if sink == nil {
+            http.execute(
+                request: request,
+                delegate: ResponseAccumulator(request: request)
+            ).futureResult.whenComplete { result in
+                if let completion = completion {
+                    completion(result.mapError { AppwriteError(message: $0.localizedDescription) })
+                }
+            }
+        } else {
+            http.execute(
+                request: request,
+                delegate: StreamingDelegate(request: request, sink: sink)
+            ).futureResult.whenComplete { result in
+                if let completion = completion {
+                    completion(result.mapError { AppwriteError(message: $0.localizedDescription) })
+                }
             }
         }
     }
