@@ -19,6 +19,13 @@
             // Init SDK
             let sdk = new Appwrite();
 
+            sdk.setProject('console');
+            sdk.setEndpointRealtime('wss://realtime.appwrite.org/v1');
+
+            sdk.subscribe('tests', event => {
+                setTimeout(() => console.log(event.payload.response), 5000);
+            });
+
             // Foo
             response = await sdk.foo.get("string", 123, ["string in array"]);
             console.log(response.result);
