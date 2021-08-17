@@ -28,10 +28,7 @@ abstract class Client {
   Client set{{header.key | caseUcfirst}}(value);
 {% endfor %}
 
-  Client addHeader(String key, String value) {
-    _headers![key] = value;
-    return this;
-  }
+  Client addHeader(String key, String value);
 
   Future<Response> call(HttpMethod method, {
     String path = '',
