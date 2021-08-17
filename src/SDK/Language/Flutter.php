@@ -18,7 +18,37 @@ class Flutter extends Dart {
     {
         return 'Flutter';
     }
+    
+    /**
+     * @param $type
+     * @return string
+     */
+    public function getTypeName($type)
+    {
+        switch ($type) {
+            case self::TYPE_INTEGER:
+                return 'int';
+            break;
+            case self::TYPE_STRING:
+                return 'String';
+            break;
+            case self::TYPE_FILE:
+                return 'http.MultipartFile';
+            break;
+            case self::TYPE_BOOLEAN:
+                return 'bool';
+            break;
+            case self::TYPE_ARRAY:
+            	return 'List';
+	        case self::TYPE_OBJECT:
+		        return 'Map';
+            case self::TYPE_NUMBER:
+                return 'double';
+            break;
+        }
 
+        return $type;
+    }
     /**
      * @return array
      */
@@ -57,8 +87,68 @@ class Flutter extends Dart {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/client.dart',
-                'template'      => 'flutter/lib/client.dart.twig',
+                'destination'   => '/lib/src/client.dart',
+                'template'      => 'flutter/lib/src/client.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/client_base.dart',
+                'template'      => 'flutter/lib/src/client_base.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/client_browser.dart',
+                'template'      => 'flutter/lib/src/client_browser.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/client_io.dart',
+                'template'      => 'flutter/lib/src/client_io.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/client_mixin.dart',
+                'template'      => 'flutter/lib/src/client_mixin.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/client_stub.dart',
+                'template'      => 'flutter/lib/src/client_stub.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/cookie_manager.dart',
+                'template'      => 'flutter/lib/src/cookie_manager.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/interceptor.dart',
+                'template'      => 'flutter/lib/src/interceptor.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/redirect_browser.dart',
+                'template'      => 'flutter/lib/src/redirect_browser.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/redirect_stub.dart',
+                'template'      => 'flutter/lib/src/redirect_stub.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/response.dart',
+                'template'      => 'flutter/lib/src/response.dart.twig',
                 'minify'        => false,
             ],
             [
@@ -75,20 +165,20 @@ class Flutter extends Dart {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/service.dart',
-                'template'      => 'flutter/lib/service.dart.twig',
+                'destination'   => '/lib/src/service.dart',
+                'template'      => 'flutter/lib/src/service.dart.twig',
                 'minify'        => false,
             ],
             [
 				'scope'         => 'default',
-				'destination'   => '/lib/enums.dart',
-				'template'      => 'flutter/lib/enums.dart.twig',
+				'destination'   => '/lib/src/enums.dart',
+				'template'      => 'flutter/lib/src/enums.dart.twig',
 				'minify'        => false,
 			],
             [
 				'scope'         => 'default',
-				'destination'   => '/lib/exception.dart',
-				'template'      => 'flutter/lib/exception.dart.twig',
+				'destination'   => '/lib/src/exception.dart',
+				'template'      => 'flutter/lib/src/exception.dart.twig',
 				'minify'        => false,
 			],
             [

@@ -1,5 +1,3 @@
-part of {{ language.params.packageName }};
-
 class {{spec.title | caseUcfirst}}Exception implements Exception {
   final String? message;
   final int? code;
@@ -7,4 +5,8 @@ class {{spec.title | caseUcfirst}}Exception implements Exception {
 
   {{spec.title | caseUcfirst}}Exception([this.message = "", this.code, this.response]);
   
+  String toString() {
+    if (message == null) return "AppwriteException";
+    return "AppwriteException: $message (${code ?? 0})";
+  }
 }
