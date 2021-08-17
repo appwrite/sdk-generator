@@ -2,37 +2,37 @@ module {{spec.title | caseUcfirst}}
     class {{ service.name | caseUcfirst }} < Service
 
 {% for method in service.methods %}
-        def {{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake }}:{% if not parameter.required %} nil{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
+        def {{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword }}:{% if not parameter.required %} nil{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
-            if {{ parameter.name | caseSnake }}.nil?
-                raise {{spec.title | caseUcfirst}}::Exception.new('Missing required parameter: "{{ parameter.name | caseCamel }}"')
+            if {{ parameter.name | caseSnake | escapeKeyword }}.nil?
+                raise {{spec.title | caseUcfirst}}::Exception.new('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"')
             end
 
 {% endif %}
 {% endfor %}
             path = '{{ method.path }}'
 {% for parameter in method.parameters.path %}
-                .gsub('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseSnake }})
+                .gsub('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseSnake | escapeKeyword }})
 {% endfor %}
 
             params = {}
 
 {% for parameter in method.parameters.query %}
-            if !{{ parameter.name | caseSnake }}.nil?
-                params[:{{ parameter.name }}] = {{ parameter.name | caseSnake }}
+            if !{{ parameter.name | caseSnake | escapeKeyword }}.nil?
+                params[:{{ parameter.name }}] = {{ parameter.name | caseSnake | escapeKeyword }}
             end
 
 {% endfor %}
 {% for parameter in method.parameters.body %}
-            if !{{ parameter.name | caseSnake }}.nil?
-                params[:{{ parameter.name }}] = {{ parameter.name | caseSnake }}
+            if !{{ parameter.name | caseSnake | escapeKeyword }}.nil?
+                params[:{{ parameter.name }}] = {{ parameter.name | caseSnake | escapeKeyword }}
             end
 
 {% endfor %}
             return @client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
-                '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},
+                '{{ parameter.name }}' => ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
 {% for key, header in method.headers %}
                 '{{ key }}' => '{{ header }}',

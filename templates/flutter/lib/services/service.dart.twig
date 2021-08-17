@@ -1,11 +1,11 @@
 part of {{ language.params.packageName }};
 
 {% macro parameter(parameter) %}
-{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel }}{% endmacro %}
+{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}
 {% endmacro %}
-{% macro map_parameter(parameter) %}'{{ parameter.name }}': {{ parameter.name | caseCamel }},{% endmacro %}
+{% macro map_parameter(parameter) %}'{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},{% endmacro %}
 
 class {{ service.name | caseUcfirst }} extends Service {
     {{ service.name | caseUcfirst }}(Client client): super(client);
@@ -18,7 +18,7 @@ class {{ service.name | caseUcfirst }} extends Service {
      ///
 {% endif %}
     {% if method.type == 'webAuth' %}Future{% else %}Future<Response>{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) {
-        final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
+        final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
 
         final Map<String, dynamic> params = {
 {% for parameter in method.parameters.query %}
@@ -76,7 +76,7 @@ class {{ service.name | caseUcfirst }} extends Service {
                 cookie.path = '/';
                 List<Cookie> cookies = [cookie];
                 await client.init();
-                client.cookieJar.saveFromResponse(Uri.parse(client.endPoint), cookies);
+                await client.cookieJar.saveFromResponse(Uri.parse(client.endPoint), cookies);
             });
         }
 
