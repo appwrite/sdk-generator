@@ -206,6 +206,9 @@ class ClientIO extends ClientBase with ClientMixin {
     try {
       request = await _interceptRequest(request);
       final streamedResponse = await _httpClient.send(request);
+      if (streamedResponse.statusCode == 204) {
+        return new Response(data: '');
+      }
       res = await http.Response.fromStream(streamedResponse);
       res = await _interceptResponse(res);
 

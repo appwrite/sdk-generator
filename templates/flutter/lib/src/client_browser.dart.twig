@@ -101,6 +101,9 @@ class ClientBrowser extends ClientBase with ClientMixin {
     );
     try {
       final streamedResponse = await httpClient.send(request);
+      if (streamedResponse.statusCode == 204) {
+        return new Response(data: '');
+      }
       res = await http.Response.fromStream(streamedResponse);
 
       final cookieFallback = res.headers['x-fallback-cookies'];
