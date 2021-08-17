@@ -29,19 +29,19 @@ puts response['result']
 
 # Bar
 
-response = bar.get(x: 'string', y: 123, z: ['string in array']);
+response = bar.get(required: 'string', default: 123, z: ['string in array']);
 puts response['result']
 
-response = bar.post(x: 'string', y: 123, z: ['string in array']);
+response = bar.post(required: 'string', default: 123, z: ['string in array']);
 puts response['result']
 
-response = bar.put(x: 'string', y: 123, z: ['string in array']);
+response = bar.put(required: 'string', default: 123, z: ['string in array']);
 puts response['result']
 
-response = bar.patch(x: 'string', y: 123, z: ['string in array']);
+response = bar.patch(required: 'string', default: 123, z: ['string in array']);
 puts response['result']
 
-response = bar.delete(x: 'string', y: 123, z: ['string in array']);
+response = bar.delete(required: 'string', default: 123, z: ['string in array']);
 puts response['result']
 
 # General

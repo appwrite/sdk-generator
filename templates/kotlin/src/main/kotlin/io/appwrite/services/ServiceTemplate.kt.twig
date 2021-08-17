@@ -1,6 +1,6 @@
 package {{ sdk.namespace | caseDot }}.services
 
-{% macro parameter(parameter) %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{% if not parameter.required %}? = null{% endif %}{% endmacro %}
+{% macro parameter(parameter) %}{{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}{% if not parameter.required %}? = null{% endif %}{% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% endif %}
 {% endmacro %}
@@ -32,7 +32,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
      *
 {% endif %}
 {% for parameter in method.parameters.all %}
-     * @param {{ parameter.name | caseCamel }}
+     * @param {{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
      * {% if method.type != "webAuth" %}@return [Response]{% endif %}
      
@@ -40,11 +40,11 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     @JvmOverloads
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ _self.method_parameters(method.parameters) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: Response{% endif %} {
-        val path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %}
+        val path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %}
 
         val params = mapOf<String, Any?>(
 {% for parameter in method.parameters.query | merge(method.parameters.body) %}
-            "{{ parameter.name }}" to {{ parameter.name | caseCamel }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
+            "{{ parameter.name }}" to {{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
 
 {% endfor %}
 {% if _self.methodNeedsSecurityParameters(method) %}
