@@ -317,7 +317,7 @@ class SDKTest extends TestCase
                     $this->assertEquals('Server Error', $output[13] ?? '');
                     $this->assertEquals('This is a text error', $output[14] ?? '');
                 }
-                if ($options['supportRealtime']) {
+                if ($options['supportRealtime'] ?? false) {
                     $this->assertEquals('WS:/v1/realtime:passed', $output[15] ?? '');
                 }
             }
