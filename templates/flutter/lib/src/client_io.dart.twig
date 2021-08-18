@@ -27,7 +27,6 @@ class ClientIO extends ClientBase with ClientMixin {
   String _endPoint;
   Map<String, String>? _headers;
   late Map<String, String> config;
-  bool selfSigned;
   bool _initialized = false;
   late http.Client _httpClient;
   late HttpClient _nativeClient;
@@ -36,7 +35,7 @@ class ClientIO extends ClientBase with ClientMixin {
 
   ClientIO({
     String endPoint = 'https://appwrite.io/v1',
-    this.selfSigned = false,
+    bool selfSigned = false,
   }) : _endPoint = endPoint {
     _nativeClient = new HttpClient()
       ..badCertificateCallback =
@@ -78,9 +77,8 @@ class ClientIO extends ClientBase with ClientMixin {
 {% endfor %}
 
   ClientIO setSelfSigned({bool status = true}) {
-    selfSigned = status;
     _nativeClient.badCertificateCallback =
-        ((X509Certificate cert, String host, int port) => selfSigned);
+        ((X509Certificate cert, String host, int port) => status);
     return this;
   }
 
