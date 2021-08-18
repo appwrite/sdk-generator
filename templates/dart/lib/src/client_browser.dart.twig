@@ -26,7 +26,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
     _httpClient = BrowserClient();
     _headers = {
       'content-type': 'application/json',
-      'x-sdk-version': 'appwrite:flutter:0.6.4',
+      'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
       'X-Appwrite-Response-Format': '0.8.0',
     };
 
