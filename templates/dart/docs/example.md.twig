@@ -22,7 +22,7 @@ void main() { // Init SDK
 
 {% endif %}
 {% if parameter.required %}
-    {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
+    {{ parameter.name | caseCamel }}: {{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }},
 {% endif %}
 {% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %});
 
