@@ -20,7 +20,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
   late BrowserClient _httpClient;
 
   ClientBrowser({
-    String endPoint = 'https://appwrite.io/v1',
+    String endPoint = '{{ spec.endpoint }}',
     bool selfSigned = false,
   }) : _endPoint = endPoint {
     _httpClient = BrowserClient();
