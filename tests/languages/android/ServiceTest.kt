@@ -7,8 +7,14 @@ import io.appwrite.exceptions.AppwriteException
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
+import io.appwrite.services.Realtime
+import io.appwrite.extensions.toJson
+import io.appwrite.extensions.fromJson
 import okhttp3.Response
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,11 +40,18 @@ class ServiceTest {
     fun test() {
 
         val client = Client(ApplicationProvider.getApplicationContext())
+            .setEndpointRealtime("wss://realtime.appwrite.org/v1")
+            .setProject("console")
+
         val foo = Foo(client)
         val bar = Bar(client)
         val general = General(client)
-        client.addHeader("Origin", "http://localhost")
-        client.setSelfSigned(true)
+        val realtime = Realtime(client)
+        var realtimeResponse = "Realtime failed!"
+
+        realtime.subscribe("tests") {
+            realtimeResponse = it.toJson()
+        }
 
         var response: Response
         // Foo Tests
@@ -90,6 +103,9 @@ class ServiceTest {
             } catch(e: AppwriteException) {
                 writeToFile(e.message)
             }
+
+            delay(20000)
+            writeToFile(realtimeResponse)
         }
     }
 
