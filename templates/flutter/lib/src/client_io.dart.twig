@@ -44,8 +44,10 @@ class ClientIO extends ClientBase with ClientMixin {
     this._endPoint = endPoint;
     this._headers = {
       'content-type': 'application/json',
-      'x-sdk-version': 'appwrite:flutter:0.6.4',
-      'X-Appwrite-Response-Format': '0.8.0',
+      'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
+{% for key,header in spec.global.defaultHeaders %}
+      '{{key}}' : '{{header}}',
+{% endfor %
     };
 
     this.config = {};
@@ -215,10 +217,10 @@ class ClientIO extends ClientBase with ClientMixin {
         responseType: responseType,
       );
     } catch (e) {
-      if (e is AppwriteException) {
+      if (e is {{spec.title | caseUcfirst}}Exception) {
         throw e;
       }
-      throw AppwriteException(e.toString());
+      throw {{spec.title | caseUcfirst}}Exception(e.toString());
     }
   }
 }

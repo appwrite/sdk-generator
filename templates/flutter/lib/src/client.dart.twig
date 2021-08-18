@@ -11,7 +11,7 @@ abstract class Client {
   String get endPoint => _endPoint;
 
   factory Client(
-          {String endPoint = 'https://appwrite.io/v1',
+          {String endPoint = '{{ spec.endpoint }}',
           bool selfSigned = false}) =>
       createClient(endPoint: endPoint, selfSigned: selfSigned);
 

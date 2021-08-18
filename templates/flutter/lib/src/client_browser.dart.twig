@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:html' as html;
 import 'package:http/http.dart' as http;
+import 'package:http/browser_client.dart';
 import 'client_mixin.dart';
 import 'enums.dart';
 import 'exception.dart';
 import 'client_base.dart';
-import 'package:http/browser_client.dart';
 
 import 'response.dart';
 
@@ -22,14 +22,16 @@ class ClientBrowser extends ClientBase with ClientMixin {
   late BrowserClient _httpClient;
 
   ClientBrowser({
-    String endPoint = 'https://appwrite.io/v1',
+    String endPoint = '{{ spec.endpoint }}',
     bool selfSigned = false,
   }) : _endPoint = endPoint {
     _httpClient = BrowserClient();
     _headers = {
       'content-type': 'application/json',
-      'x-sdk-version': 'appwrite:flutter:0.6.4',
-      'X-Appwrite-Response-Format': '0.8.0',
+      'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
+{% for key,header in spec.global.defaultHeaders %}
+      '{{key}}' : '{{header}}',
+{% endfor %
     };
 
     this.config = {};
@@ -111,10 +113,10 @@ class ClientBrowser extends ClientBase with ClientMixin {
       }
       return this.prepareResponse(res, responseType: responseType);
     } catch (e) {
-      if (e is AppwriteException) {
+      if (e is {{spec.title | caseUcfirst}}Exception) {
         throw e;
       }
-      throw AppwriteException(e.toString());
+      throw {{spec.title | caseUcfirst}}Exception(e.toString());
     }
   }
 

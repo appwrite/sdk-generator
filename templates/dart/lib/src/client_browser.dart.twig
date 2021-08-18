@@ -27,7 +27,9 @@ class ClientBrowser extends ClientBase with ClientMixin {
     _headers = {
       'content-type': 'application/json',
       'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
-      'X-Appwrite-Response-Format': '0.8.0',
+{% for key,header in spec.global.defaultHeaders %}
+      '{{key}}' : '{{header}}',
+{% endfor %}
     };
 
     this.config = {};
@@ -40,7 +42,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
 {% for header in spec.global.headers %}
 {% if header.description %}
-     /// {{header.description}}
+    /// {{header.description}}
 {% endif %}
     ClientBrowser set{{header.key | caseUcfirst}}(value) {
         config['{{ header.key | caseCamel }}'] = value;
@@ -90,7 +92,10 @@ class ClientBrowser extends ClientBase with ClientMixin {
       }
       return this.prepareResponse(res, responseType: responseType);
     } catch (e) {
-      throw AppwriteException(e.toString());
+      if (e is {{spec.title | caseUcfirst}}Exception) {
+        throw e;
+      }
+      throw {{spec.title | caseUcfirst}}Exception(e.toString());
     }
   }
 }
