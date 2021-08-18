@@ -31,7 +31,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
       'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
 {% for key,header in spec.global.defaultHeaders %}
       '{{key}}' : '{{header}}',
-{% endfor %
+{% endfor %}
     };
 
     this.config = {};
