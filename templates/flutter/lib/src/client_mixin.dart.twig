@@ -19,25 +19,43 @@ class ClientMixin {
     if (headers['content-type'] == 'multipart/form-data') {
       request = http.MultipartRequest(method.name(), uri);
       if (params.isNotEmpty) {
-        params = _encodeParams(params);
         params.forEach((key, value) {
           if (value is http.MultipartFile) {
             (request as http.MultipartRequest).files.add(value);
           } else {
-            (request as http.MultipartRequest)
-                .fields
-                .addAll({key: value.toString()});
+            if (value is List) {
+              value.asMap().forEach((i, v) {
+                (request as http.MultipartRequest)
+                    .fields
+                    .addAll({"$key[$i]": v.toString()});
+              });
+            } else {
+              (request as http.MultipartRequest)
+                  .fields
+                  .addAll({key: value.toString()});
+            }
           }
         });
       }
     } else if (method == HttpMethod.get) {
-      params = _encodeParams(params);
+      final encoded = <String, dynamic>{};
+      if (params.isNotEmpty) {
+        params.keys.forEach((key) {
+          if (params[key] is int || params[key] is double) {
+            encoded[key] = params[key].toString();
+          } else if (params[key] is List) {
+            encoded[key + "[]"] = params[key];
+          } else {
+            encoded[key] = params[key];
+          }
+        });
+      }
       uri = Uri(
           fragment: uri.fragment,
           path: uri.path,
           host: uri.host,
           scheme: uri.scheme,
-          queryParameters: params,
+          queryParameters: encoded,
           port: uri.port);
       request = http.Request(method.name(), uri);
     } else {
@@ -81,20 +99,5 @@ class ClientMixin {
       }
     }
     return Response(data: data);
-  }
-
-  Map<String, dynamic> _encodeParams(Map<String, dynamic> params) {
-    if (params.isEmpty) return {};
-    final encoded = <String, dynamic>{};
-    params.keys.forEach((key) {
-      if (params[key] is int || params[key] is double) {
-        encoded[key] = params[key].toString();
-      } else if (params[key] is List) {
-        encoded[key + "[]"] = params[key];
-      } else {
-        encoded[key] = params[key];
-      }
-    });
-    return encoded;
   }
 }

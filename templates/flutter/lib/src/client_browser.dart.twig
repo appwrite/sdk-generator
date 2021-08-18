@@ -19,15 +19,14 @@ class ClientBrowser extends ClientBase with ClientMixin {
   String _endPoint;
   Map<String, String>? _headers;
   late Map<String, String> config;
-  bool _initialized = false;
-  late BrowserClient httpClient;
+  late BrowserClient _httpClient;
 
   ClientBrowser({
     String endPoint = 'https://appwrite.io/v1',
     bool selfSigned = false,
   }) : _endPoint = endPoint {
-    this.httpClient = BrowserClient();
-    this._headers = {
+    _httpClient = BrowserClient();
+    _headers = {
       'content-type': 'application/json',
       'x-sdk-version': 'appwrite:flutter:0.6.4',
       'X-Appwrite-Response-Format': '0.8.0',
@@ -77,8 +76,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
               .firstWhere((i) => i.key == 'cookieFallback')
               .value);
     }
-    httpClient.withCredentials = true;
-    _initialized = true;
+    _httpClient.withCredentials = true;
   }
 
   Future<Response> call(
@@ -88,9 +86,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
     Map<String, dynamic> params = const {},
     ResponseType? responseType,
   }) async {
-    if (!_initialized) {
-      await this.init();
-    }
+    await this.init();
 
     late http.Response res;
     http.BaseRequest request = this.prepareRequest(
@@ -100,7 +96,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
       params: params,
     );
     try {
-      final streamedResponse = await httpClient.send(request);
+      final streamedResponse = await _httpClient.send(request);
       if (streamedResponse.statusCode == 204) {
         return new Response(data: '');
       }
