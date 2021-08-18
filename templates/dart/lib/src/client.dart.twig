@@ -21,7 +21,7 @@ abstract class Client {
 
 {% for header in spec.global.headers %}
 {% if header.description %}
-    /// {{header.description}}
+  /// {{header.description}}
 {% endif %}
   Client set{{header.key | caseUcfirst}}(value);
 {% endfor %}
