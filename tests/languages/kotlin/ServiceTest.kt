@@ -1,17 +1,20 @@
 import com.google.gson.Gson
 import io.appwrite.Client
 import io.appwrite.exceptions.AppwriteException
+import io.appwrite.extensions.fromJson
+import io.appwrite.extensions.toJson
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
 import io.appwrite.services.Realtime
-import io.appwrite.extensions.toJson
-import io.appwrite.extensions.fromJson
-import okhttp3.Response
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import okhttp3.Response
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import java.io.File
@@ -21,14 +24,20 @@ import java.nio.file.Paths
 
 class ServiceTest {
 
-    data class RealtimeResponse(val response: String)
-
-    val filename: String = "result.txt"
+    private val filename: String = "result.txt"
 
     @Before
-    fun start() {
+    @ExperimentalCoroutinesApi
+    fun setUp() {
+        Dispatchers.setMain(Dispatchers.Unconfined)
         Files.deleteIfExists(Paths.get(filename))
         writeToFile("Test Started")
+    }
+
+    @After
+    @ExperimentalCoroutinesApi
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
 
     @Test
@@ -37,7 +46,6 @@ class ServiceTest {
         val client = Client()
             .setEndpointRealtime("wss://realtime.appwrite.org/v1")
             .setProject("console")
-
         val foo = Foo(client)
         val bar = Bar(client)
         val general = General(client)
@@ -45,12 +53,14 @@ class ServiceTest {
         var realtimeResponse = "Realtime failed!"
 
         realtime.subscribe("tests") {
-            realtimeResponse = it.toJson()
+            realtimeResponse = it
+                .toJson()
+                .fromJson(Map::class.java)["response"]!! as String
         }
 
-        var response: Response
-        // Foo Tests
         runBlocking {
+            var response: Response
+            // Foo Tests
             response = foo.get("string", 123, listOf("string in array"))
             printResponse(response)
             response = foo.post("string", 123, listOf("string in array"))
@@ -83,23 +93,23 @@ class ServiceTest {
 
             try {
                 general.error400()
-            } catch(e: AppwriteException) {
+            } catch (e: AppwriteException) {
                 writeToFile(e.message)
             }
 
             try {
                 general.error500()
-            } catch(e: AppwriteException) {
+            } catch (e: AppwriteException) {
                 writeToFile(e.message)
             }
 
             try {
                 general.error502()
-            } catch(e: AppwriteException) {
+            } catch (e: AppwriteException) {
                 writeToFile(e.message)
             }
 
-            delay(60000)
+            delay(5000)
             writeToFile(realtimeResponse)
         }
     }
