@@ -132,7 +132,6 @@ class SDKTest extends TestCase
                 'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node node.js',
             ],
             'supportException' => true,
-            'supportRealtime' => true
         ],
 
         'deno' => [
