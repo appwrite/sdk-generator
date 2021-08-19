@@ -2,8 +2,13 @@ package {{ sdk.namespace | caseDot }}.extensions
 
 import com.google.gson.Gson
 
+val gson = Gson()
+
 fun Any.toJson(): String =
-    Gson().toJson(this)
+    gson.toJson(this)
 
 fun <T> String.fromJson(clazz: Class<T>): T =
-    Gson().fromJson(this, clazz)
+    gson.fromJson(this, clazz)
+
+fun <T> Any.jsonCast(to: Class<T>): T =
+    toJson().fromJson(to)
