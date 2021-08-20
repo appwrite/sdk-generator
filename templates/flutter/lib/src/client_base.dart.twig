@@ -14,6 +14,8 @@ abstract class ClientBase implements Client {
 
   ClientBase setEndpoint(String endPoint);
 
+  Client setEndPointRealtime(String endPoint);
+
   ClientBase addHeader(String key, String value);
 
   Future<Response> call(

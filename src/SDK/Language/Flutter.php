@@ -93,6 +93,48 @@ class Flutter extends Dart {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/src/realtime.dart',
+                'template'      => 'flutter/lib/src/realtime.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/realtime_base.dart',
+                'template'      => 'flutter/lib/src/realtime_base.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/realtime_browser.dart',
+                'template'      => 'flutter/lib/src/realtime_browser.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/realtime_io.dart',
+                'template'      => 'flutter/lib/src/realtime_io.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/realtime_mixin.dart',
+                'template'      => 'flutter/lib/src/realtime_mixin.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/realtime_stub.dart',
+                'template'      => 'flutter/lib/src/realtime_stub.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/realtime_subscription.dart',
+                'template'      => 'flutter/lib/src/realtime_subscription.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/src/cookie_manager.dart',
                 'template'      => 'flutter/lib/src/cookie_manager.dart.twig',
                 'minify'        => false,

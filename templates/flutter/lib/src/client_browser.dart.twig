@@ -20,12 +20,18 @@ class ClientBrowser extends ClientBase with ClientMixin {
   Map<String, String>? _headers;
   late Map<String, String> config;
   late BrowserClient _httpClient;
+  String? _endPointRealtime;
+
+  String? get endPointRealtime => _endPointRealtime;
 
   ClientBrowser({
     String endPoint = '{{ spec.endpoint }}',
     bool selfSigned = false,
   }) : _endPoint = endPoint {
     _httpClient = BrowserClient();
+    _endPointRealtime = endPoint
+        .replaceFirst('https://', 'wss://')
+        .replaceFirst('http://', 'ws://');
     _headers = {
       'content-type': 'application/json',
       'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
@@ -60,6 +66,14 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
   ClientBrowser setEndpoint(String endPoint) {
     this._endPoint = endPoint;
+    _endPointRealtime = endPoint
+        .replaceFirst('https://', 'wss://')
+        .replaceFirst('http://', 'ws://');
+    return this;
+  }
+
+  ClientBrowser setEndPointRealtime(String endPoint) {
+    _endPointRealtime = endPoint;
     return this;
   }
 

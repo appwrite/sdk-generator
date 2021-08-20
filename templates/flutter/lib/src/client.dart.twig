@@ -7,8 +7,10 @@ import 'response.dart';
 abstract class Client {
   late Map<String, String> config;
   late String _endPoint;
+  late String? _endPointRealtime;
 
   String get endPoint => _endPoint;
+  String? get endPointRealtime => _endPointRealtime;
 
   factory Client(
           {String endPoint = '{{ spec.endpoint }}',

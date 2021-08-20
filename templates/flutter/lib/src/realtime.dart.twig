@@ -1,0 +1,11 @@
+import 'realtime_stub.dart'
+    if (dart.library.html) 'realtime_browser.dart'
+    if (dart.library.io) 'realtime_io.dart';
+import 'realtime_subscription.dart';
+import 'service.dart';
+import 'client.dart';
+
+abstract class Realtime extends Service {
+  factory Realtime(Client client) => createRealtime(client);
+  RealtimeSubscription subscribe(List<String> channels);
+}

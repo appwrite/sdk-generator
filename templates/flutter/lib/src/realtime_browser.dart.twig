@@ -1,0 +1,28 @@
+import 'dart:async';
+import 'package:web_socket_channel/html.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'realtime_subscription.dart';
+import 'realtime_base.dart';
+import 'client.dart';
+import 'client_browser.dart';
+import 'realtime_mixin.dart';
+
+RealtimeBase createRealtime(Client client) => RealtimeBrowser(client);
+
+class RealtimeBrowser extends RealtimeBase with RealtimeMixin {
+  Map<String, dynamic>? lastMessage;
+
+  RealtimeBrowser(Client client) {
+    this.client = client;
+    this.getWebSocketChannel = _getWebSocket;
+  }
+
+  Future<WebSocketChannel> _getWebSocket(Uri uri) async {
+    await (client as ClientBrowser).init();
+    return HtmlWebSocketChannel.connect(uri);
+  }
+
+  RealtimeSubscription subscribe(List<String> channels) {
+    return subscribeTo(channels);
+  }
+}

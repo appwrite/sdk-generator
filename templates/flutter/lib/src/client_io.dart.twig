@@ -27,21 +27,29 @@ class ClientIO extends ClientBase with ClientMixin {
   String _endPoint;
   Map<String, String>? _headers;
   late Map<String, String> config;
+  bool selfSigned;
   bool _initialized = false;
+  String? _endPointRealtime;
   late http.Client _httpClient;
   late HttpClient _nativeClient;
   late CookieJar _cookieJar;
   List<Interceptor> _interceptors = [];
 
+  bool get initialized => _initialized;
+  CookieJar get cookieJar => _cookieJar;
+  String? get endPointRealtime => _endPointRealtime;
+
   ClientIO({
     String endPoint = 'https://appwrite.io/v1',
-    bool selfSigned = false,
+    this.selfSigned = false,
   }) : _endPoint = endPoint {
     _nativeClient = new HttpClient()
       ..badCertificateCallback =
           ((X509Certificate cert, String host, int port) => selfSigned);
     _httpClient = new IOClient(_nativeClient);
-    this._endPoint = endPoint;
+    _endPointRealtime = endPoint
+        .replaceFirst('https://', 'wss://')
+        .replaceFirst('http://', 'ws://');
     this._headers = {
       'content-type': 'application/json',
       'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
@@ -79,6 +87,7 @@ class ClientIO extends ClientBase with ClientMixin {
 {% endfor %}
 
   ClientIO setSelfSigned({bool status = true}) {
+    this.selfSigned = status;
     _nativeClient.badCertificateCallback =
         ((X509Certificate cert, String host, int port) => status);
     return this;
@@ -86,6 +95,14 @@ class ClientIO extends ClientBase with ClientMixin {
 
   ClientIO setEndpoint(String endPoint) {
     this._endPoint = endPoint;
+    _endPointRealtime = endPoint
+        .replaceFirst('https://', 'wss://')
+        .replaceFirst('http://', 'ws://');
+    return this;
+  }
+
+  ClientIO setEndPointRealtime(String endPoint) {
+    _endPointRealtime = endPoint;
     return this;
   }
 
