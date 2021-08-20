@@ -93,7 +93,18 @@ class ClientIO extends ClientBase with ClientMixin {
 
     try {
       final streamedResponse = await _httpClient.send(request);
-      res = await http.Response.fromStream(streamedResponse);
+      if(streamedResponse.statusCode == 204) {
+        res = new http.Response('',
+          streamedResponse.statusCode,
+          headers: streamedResponse.headers.map((k,v) => k.toLowerCase()=='content-type' ? MapEntry(k, 'text/plain') : MapEntry(k,v)),
+          request: streamedResponse.request,
+          isRedirect: streamedResponse.isRedirect,
+          persistentConnection: streamedResponse.persistentConnection,
+          reasonPhrase: streamedResponse.reasonPhrase,
+        );
+      } else {
+        res = await http.Response.fromStream(streamedResponse);
+      }
       return this.prepareResponse(
         res,
         responseType: responseType,
