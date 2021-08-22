@@ -30,7 +30,7 @@ mixin RealtimeMixin {
     _closeConnection();
     _lastUrl = uri.toString();
     print('subscription: $_lastUrl');
-    _websok = await getWebSocketChannel(uri);
+    _websok = await getWebSocket(uri);
 
     try {
       _websok?.stream.listen((event) {

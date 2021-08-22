@@ -31,7 +31,7 @@ class RealtimeIO extends RealtimeBase with RealtimeMixin {
     final _websok = IOWebSocketChannel((client as ClientIO).selfSigned
         ? await _connectForSelfSignedCert(uri, headers)
         : await WebSocket.connect(uri.toString(), headers: headers));
-    return _websok!;
+    return _websok;
   }
 
   /// Subscribe

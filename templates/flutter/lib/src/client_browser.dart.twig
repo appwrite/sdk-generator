@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:html' as html;
 import 'package:http/http.dart' as http;
 import 'package:http/browser_client.dart';
@@ -84,13 +83,9 @@ class ClientBrowser extends ClientBase with ClientMixin {
   }
 
   Future init() async {
-    // if web set withCredentials true to make cookies work
     if (html.window.localStorage.keys.contains('x-fallback-cookies')) {
-      addHeader(
-          'x-fallback-cookies',
-          html.window.localStorage.entries
-              .firstWhere((i) => i.key == 'cookieFallback')
-              .value);
+      addHeader('x-fallback-cookies',
+          html.window.localStorage['cookieFallback'] ?? '');
     }
     _httpClient.withCredentials = true;
   }
@@ -131,7 +126,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
         print(
             'Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
         addHeader('X-Fallback-Cookies', cookieFallback);
-        html.window.localStorage.addAll({'cookieFallback': cookieFallback});
+        html.window.localStorage['cookieFallback'] = cookieFallback;
       }
       return this.prepareResponse(res, responseType: responseType);
     } catch (e) {
