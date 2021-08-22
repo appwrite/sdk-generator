@@ -136,7 +136,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
       return this.prepareResponse(res, responseType: responseType);
     } catch (e) {
       if (e is {{spec.title | caseUcfirst}}Exception) {
-        throw e;
+        rethrow;
       }
       throw {{spec.title | caseUcfirst}}Exception(e.toString());
     }

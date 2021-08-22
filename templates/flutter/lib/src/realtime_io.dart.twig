@@ -14,11 +14,10 @@ import 'client_io.dart';
 RealtimeBase createRealtime(Client client) => RealtimeIO(client);
 
 class RealtimeIO extends RealtimeBase with RealtimeMixin {
-  IOWebSocketChannel? _websok;
 
   RealtimeIO(Client client) {
     this.client = client;
-    this.getWebSocketChannel = _getWebSocket;
+    this.getWebSocket = _getWebSocket;
   }
 
   Future<WebSocketChannel> _getWebSocket(Uri uri) async {
@@ -29,7 +28,7 @@ class RealtimeIO extends RealtimeBase with RealtimeMixin {
     final cookies = await (client as ClientIO).cookieJar.loadForRequest(uri);
     headers = {HttpHeaders.cookieHeader: CookieManager.getCookies(cookies)};
 
-    _websok = IOWebSocketChannel((client as ClientIO).selfSigned
+    final _websok = IOWebSocketChannel((client as ClientIO).selfSigned
         ? await _connectForSelfSignedCert(uri, headers)
         : await WebSocket.connect(uri.toString(), headers: headers));
     return _websok!;
@@ -53,7 +52,7 @@ class RealtimeIO extends RealtimeBase with RealtimeMixin {
       var client = HttpClient(context: SecurityContext());
       client.badCertificateCallback =
           (X509Certificate cert, String host, int port) {
-        print('{{spec.title | caseUcfirst}}Realtime: Allow self-signed certificate => $host:$port. ');
+        print('{{spec.title | caseUcfirst}}Realtime: Allow self-signed certificate');
         return true;
       };
 

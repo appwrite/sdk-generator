@@ -6,15 +6,14 @@ import 'exception.dart';
 import 'realtime_subscription.dart';
 import 'client.dart';
 
-typedef Future<WebSocketChannel> WebSocketChannelFactory(Uri uri);
+typedef Future<WebSocketChannel> WebSocketFactory(Uri uri);
 
 mixin RealtimeMixin {
   late Client client;
   Map<String, List<StreamController>> _channels = {};
   WebSocketChannel? _websok;
   String? _lastUrl;
-  late WebSocketChannelFactory getWebSocketChannel;
-  Map<String, dynamic>? _lastMessage;
+  late WebSocketFactory getWebSocket;
 
   _closeConnection() {
     _websok?.sink.close(normalClosure);
@@ -23,7 +22,7 @@ mixin RealtimeMixin {
   _createSocket() async {
     final uri = _prepareUri();
     if (_websok == null) {
-      await getWebSocketChannel(uri);
+      await getWebSocket(uri);
     }
     if (_lastUrl == uri.toString() && _websok?.closeCode == null) {
       return;
@@ -36,7 +35,6 @@ mixin RealtimeMixin {
     try {
       _websok?.stream.listen((event) {
         final data = jsonDecode(event);
-        _lastMessage = data;
         handleError(data);
         if (data['channels'] != null) {
           List<String> received = List<String>.from(data['channels']);

@@ -14,7 +14,7 @@ class RealtimeBrowser extends RealtimeBase with RealtimeMixin {
 
   RealtimeBrowser(Client client) {
     this.client = client;
-    this.getWebSocketChannel = _getWebSocket;
+    this.getWebSocket = _getWebSocket;
   }
 
   Future<WebSocketChannel> _getWebSocket(Uri uri) async {
