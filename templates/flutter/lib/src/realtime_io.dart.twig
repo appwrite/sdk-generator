@@ -53,7 +53,7 @@ class RealtimeIO extends RealtimeBase with RealtimeMixin {
       var client = HttpClient(context: SecurityContext());
       client.badCertificateCallback =
           (X509Certificate cert, String host, int port) {
-        print('BaseWebSocket: Allow self-signed certificate => $host:$port. ');
+        print('{{spec.title | caseUcfirst}}Realtime: Allow self-signed certificate => $host:$port. ');
         return true;
       };
 
@@ -84,7 +84,6 @@ class RealtimeIO extends RealtimeBase with RealtimeMixin {
       var socket = await response.detachSocket();
       var webSocket = WebSocket.fromUpgradedSocket(
         socket,
-        protocol: 'signaling',
         serverSide: false,
       );
       return webSocket;
