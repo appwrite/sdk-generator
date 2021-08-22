@@ -1,0 +1,5 @@
+library {{ language.params.packageName }}.models;
+
+{% for definition in spec.definitions %}
+part '{{definition.name | caseSnake}}.dart';
+{% endfor %}

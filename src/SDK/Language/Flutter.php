@@ -194,9 +194,21 @@ class Flutter extends Dart {
 				'minify'        => false,
 			],
             [
+				'scope'         => 'default',
+				'destination'   => '/lib/src/models/models.dart',
+				'template'      => 'flutter/lib/src/models/models.dart.twig',
+				'minify'        => false,
+			],
+            [
                 'scope'         => 'service',
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
                 'template'      => 'flutter/lib/services/service.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/lib/src/models/{{definition.name | caseSnake }}.dart',
+                'template'      => '/flutter/lib/src/models/model.dart.twig',
                 'minify'        => false,
             ],
             [
