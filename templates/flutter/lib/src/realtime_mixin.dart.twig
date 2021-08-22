@@ -97,7 +97,11 @@ mixin RealtimeMixin {
               this._channels.remove(channel);
             }
           });
-          Future.delayed(Duration.zero, () => _createSocket());
+          if(this._channels.isNotEmpty) {
+            Future.delayed(Duration.zero, () => _createSocket());
+          } else {
+            _closeConnection();
+          }
         });
     return subscription;
   }
