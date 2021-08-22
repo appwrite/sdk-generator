@@ -43,7 +43,7 @@ mixin RealtimeMixin {
           received.forEach((channel) {
             if (this._channels[channel] != null) {
               this._channels[channel]!.forEach((stream) {
-                stream.sink.add(event);
+                stream.sink.add(data);
               });
             }
           });

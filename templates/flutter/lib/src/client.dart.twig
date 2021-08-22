@@ -23,6 +23,8 @@ abstract class Client {
 
   Client setEndpoint(String endPoint);
 
+  Client setEndPointRealtime(String endPoint);
+
 {% for header in spec.global.headers %}
 {% if header.description %}
     /// {{header.description}}
