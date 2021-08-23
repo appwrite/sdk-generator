@@ -1,10 +1,9 @@
 package {{ sdk.namespace | caseDot }}.services
 
-import com.google.gson.Gson
-import com.google.gson.JsonParseException
-import com.google.gson.JsonSyntaxException
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.extensions.forEachAsync
+import {{ sdk.namespace | caseDot }}.extensions.fromJson
+import {{ sdk.namespace | caseDot }}.extensions.jsonCast
 import {{ sdk.namespace | caseDot }}.models.RealtimeCodes
 import {{ sdk.namespace | caseDot }}.models.RealtimeError
 import {{ sdk.namespace | caseDot }}.models.RealtimeMessage
@@ -28,7 +27,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private const val DEBOUNCE_MILLIS = 1L
 
         private var socket: RealWebSocket? = null
-        private var channelCallbacks = mutableMapOf<String, MutableCollection<(Any) -> Unit>>()
+        private var channelCallbacks = mutableMapOf<String, MutableCollection<(Map<*, *>) -> Unit>>()
         private var errorCallbacks = mutableSetOf<(RealtimeError) -> Unit>()
 
         private var subCallDepth = 0
@@ -61,7 +60,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             minimumDeflateSize = client.http.minWebSocketMessageToCompress
         )
 
-        socket?.connect(client.http)
+        socket!!.connect(client.http)
     }
 
     private fun closeSocket() {
@@ -70,7 +69,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
     fun subscribe(
         vararg channels: String,
-        callback: (Any) -> Unit
+        callback: (Map<*, *>) -> Unit
     ) : RealtimeSubscription {
         channels.forEach {
             if (!channelCallbacks.containsKey(it)) {
@@ -104,14 +103,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
     private inner class {{ spec.title | caseUcfirst }}WebSocketListener : WebSocketListener() {
 
-        override fun onOpen(webSocket: WebSocket, response: Response) {
-            super.onOpen(webSocket, response)
-            print("WebSocket connected.")
-        }
-
         override fun onMessage(webSocket: WebSocket, text: String) {
             super.onMessage(webSocket, text)
-            print("WebSocket message received: $text")
 
             launch(IO) {
                 val message = parse<RealtimeMessage>(text)
@@ -125,7 +118,9 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
                 message.channels.forEachAsync { channel ->
                     channelCallbacks[channel]?.forEachAsync { callback ->
-                        callback.invoke(message.payload)
+                        callback.invoke(
+                            message.payload.jsonCast(Map::class.java)
+                        )
                     }
                 }
             }
@@ -133,11 +128,9 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
             super.onClosing(webSocket, code, reason)
-            print("WebSocket closing with code $code because: $reason.")
             if (code == RealtimeCodes.POLICY_VIOLATION.value) {
                 return
             }
-            print("Reconnecting in 1 second.")
             launch {
                 delay(1000)
                 createSocket()
@@ -146,20 +139,14 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             super.onFailure(webSocket, t, response)
-            print("WebSocket failure.")
             t.printStackTrace()
         }
 
-        private inline fun <reified T> parse(text: String): T? {
-            return try {
-                Gson().fromJson(text, T::class.java)
-            } catch (ex: JsonSyntaxException) {
-                ex.printStackTrace()
-                null
-            } catch (ex: JsonParseException) {
-                ex.printStackTrace()
-                null
-            }
+        private inline fun <reified T> parse(text: String): T? = try {
+            text.fromJson(T::class.java)
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            null
         }
     }
 }

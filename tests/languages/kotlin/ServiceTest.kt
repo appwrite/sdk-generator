@@ -53,9 +53,7 @@ class ServiceTest {
         var realtimeResponse = "Realtime failed!"
 
         realtime.subscribe("tests") {
-            realtimeResponse = it
-                .toJson()
-                .fromJson(Map::class.java)["response"]!! as String
+            realtimeResponse = it["response"]!! as String
         }
 
         runBlocking {
