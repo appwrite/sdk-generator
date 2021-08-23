@@ -81,10 +81,7 @@ class RealtimeIO extends RealtimeBase with RealtimeMixin {
 
       // ignore: close_sinks
       var socket = await response.detachSocket();
-      var webSocket = WebSocket.fromUpgradedSocket(
-        socket,
-        serverSide: false,
-      );
+      var webSocket = WebSocket.fromUpgradedSocket(socket, serverSide: false);
       return webSocket;
     } catch (e) {
       rethrow;

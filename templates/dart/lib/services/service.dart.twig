@@ -1,5 +1,4 @@
 part of {{ language.params.packageName }};
-
 {% macro parameter(parameter) %}
 {% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{% endmacro %}
 {% macro method_parameters(parameters) %}
