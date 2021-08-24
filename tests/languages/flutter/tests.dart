@@ -86,7 +86,7 @@ void main() async {
   }
 
   rtsub.stream.listen((message) {
-    print(message["payload"]["response"]);
+    print(message.payload["response"]);
     rtsub.close();
   });
 

@@ -1,14 +1,13 @@
 import 'dart:convert';
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 
 class RealtimeMessage {
-  final int code;
   final String event;
-  final Map<String, dynamic>? payload;
+  final Map<String, dynamic> payload;
   final List<String> channels;
   final DateTime timestamp;
   RealtimeMessage({
-    required this.code,
     required this.event,
     required this.payload,
     required this.channels,
@@ -16,14 +15,12 @@ class RealtimeMessage {
   });
 
   RealtimeMessage copyWith({
-    int? code,
     String? event,
     Map<String, dynamic>? payload,
     List<String>? channels,
     DateTime? timestamp,
   }) {
     return RealtimeMessage(
-      code: code ?? this.code,
       event: event ?? this.event,
       payload: payload ?? this.payload,
       channels: channels ?? this.channels,
@@ -33,7 +30,6 @@ class RealtimeMessage {
 
   Map<String, dynamic> toMap() {
     return {
-      'code': code,
       'event': event,
       'payload': payload,
       'channels': channels,
@@ -43,9 +39,8 @@ class RealtimeMessage {
 
   factory RealtimeMessage.fromMap(Map<String, dynamic> map) {
     return RealtimeMessage(
-      code: map['code'],
       event: map['event'],
-      payload: map['payload'],
+      payload: Map<String, dynamic>.from(map['payload'] ?? <String, dynamic>{}),
       channels: List<String>.from(map['channels'] ?? []),
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
     );
@@ -58,25 +53,24 @@ class RealtimeMessage {
 
   @override
   String toString() {
-    return 'RealtimeMessage(code: $code, event: $event, payload: $payload, channels: $channels, timestamp: $timestamp)';
+    return 'RealtimeMessage(event: $event, payload: $payload, channels: $channels, timestamp: $timestamp)';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-
+    final collectionEquals = const DeepCollectionEquality().equals;
+  
     return other is RealtimeMessage &&
-        other.code == code &&
-        other.event == event &&
-        other.payload == payload &&
-        listEquals(other.channels, channels) &&
-        other.timestamp == timestamp;
+      other.event == event &&
+      collectionEquals(other.payload, payload) &&
+      collectionEquals(other.channels, channels) &&
+      other.timestamp == timestamp;
   }
 
   @override
   int get hashCode {
-    return code.hashCode ^
-        event.hashCode ^
+    return event.hashCode ^
         payload.hashCode ^
         channels.hashCode ^
         timestamp.hashCode;

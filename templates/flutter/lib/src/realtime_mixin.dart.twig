@@ -37,14 +37,16 @@ mixin RealtimeMixin {
       _websok?.stream.listen((event) {
         final data = jsonDecode(event);
         handleError(data);
-        final message = RealtimeMessage.fromMap(data);
-        message.channels.forEach((channel) {
-          if (this._channels[channel] != null) {
-            this._channels[channel]!.forEach((stream) {
-              stream.sink.add(message);
-            });
-          }
-        });
+        if(data.containsKey('event')) {
+          final message = RealtimeMessage.fromMap(data);
+          message.channels.forEach((channel) {
+            if (this._channels[channel] != null) {
+              this._channels[channel]!.forEach((stream) {
+                stream.sink.add(message);
+              });
+            }
+          });
+        }
       });
     } catch (e) {
       if (e is {{spec.title | caseUcfirst}}Exception) {
