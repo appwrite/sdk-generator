@@ -135,6 +135,12 @@ class Flutter extends Dart {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/src/realtime_message.dart',
+                'template'      => 'flutter/lib/src/realtime_message.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/src/cookie_manager.dart',
                 'template'      => 'flutter/lib/src/cookie_manager.dart.twig',
                 'minify'        => false,

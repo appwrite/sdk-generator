@@ -5,12 +5,13 @@ import 'package:web_socket_channel/status.dart';
 import 'exception.dart';
 import 'realtime_subscription.dart';
 import 'client.dart';
+import 'realtime_message.dart';
 
 typedef Future<WebSocketChannel> WebSocketFactory(Uri uri);
 
 mixin RealtimeMixin {
   late Client client;
-  Map<String, List<StreamController>> _channels = {};
+  Map<String, List<StreamController<RealtimeMessage>>> _channels = {};
   WebSocketChannel? _websok;
   String? _lastUrl;
   late WebSocketFactory getWebSocket;
@@ -36,16 +37,14 @@ mixin RealtimeMixin {
       _websok?.stream.listen((event) {
         final data = jsonDecode(event);
         handleError(data);
-        if (data['channels'] != null) {
-          List<String> received = List<String>.from(data['channels']);
-          received.forEach((channel) {
-            if (this._channels[channel] != null) {
-              this._channels[channel]!.forEach((stream) {
-                stream.sink.add(data);
-              });
-            }
-          });
-        }
+        final message = RealtimeMessage.fromMap(data);
+        message.channels.forEach((channel) {
+          if (this._channels[channel] != null) {
+            this._channels[channel]!.forEach((stream) {
+              stream.sink.add(message);
+            });
+          }
+        });
       });
     } catch (e) {
       if (e is {{spec.title | caseUcfirst}}Exception) {
@@ -77,7 +76,7 @@ mixin RealtimeMixin {
   }
 
   RealtimeSubscription subscribeTo(List<String> channels) {
-    StreamController controller = StreamController.broadcast();
+    StreamController<RealtimeMessage> controller = StreamController.broadcast();
     channels.forEach((channel) {
       if (!this._channels.containsKey(channel)) {
         this._channels[channel] = [];
