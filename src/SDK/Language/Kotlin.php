@@ -367,12 +367,6 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/RealtimeError.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/RealtimeError.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/RealtimeCodes.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/RealtimeCodes.kt.twig',
                 'minify'        => false,

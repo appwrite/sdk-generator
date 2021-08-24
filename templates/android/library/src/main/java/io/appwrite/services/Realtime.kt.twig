@@ -1,11 +1,12 @@
 package {{ sdk.namespace | caseDot }}.services
 
 import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.forEachAsync
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
 import {{ sdk.namespace | caseDot }}.extensions.jsonCast
 import {{ sdk.namespace | caseDot }}.models.RealtimeCodes
-import {{ sdk.namespace | caseDot }}.models.RealtimeError
+
 import {{ sdk.namespace | caseDot }}.models.RealtimeMessage
 import {{ sdk.namespace | caseDot }}.models.RealtimeSubscription
 import kotlinx.coroutines.*
@@ -28,7 +29,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         private var socket: RealWebSocket? = null
         private var channelCallbacks = mutableMapOf<String, MutableCollection<(Map<*, *>) -> Unit>>()
-        private var errorCallbacks = mutableSetOf<(RealtimeError) -> Unit>()
+        private var errorCallbacks = mutableSetOf<({{ spec.title | caseUcfirst }}Exception) -> Unit>()
 
         private var subCallDepth = 0
     }
@@ -97,7 +98,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         closeSocket()
     }
 
-    fun doOnError(callback: (RealtimeError) -> Unit) {
+    fun doOnError(callback: ({{ spec.title | caseUcfirst }}Exception) -> Unit) {
         errorCallbacks.add(callback)
     }
 
@@ -109,7 +110,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             launch(IO) {
                 val message = parse<RealtimeMessage>(text)
                 if (message?.channels == null) {
-                    val error = parse<RealtimeError>(text) ?: return@launch
+                    val error = parse<{{ spec.title | caseUcfirst }}Exception>(text) ?: return@launch
                     errorCallbacks.forEach {
                         it.invoke(error)
                     }

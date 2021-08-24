@@ -148,12 +148,6 @@ class Android extends Kotlin {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/RealtimeError.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/models/RealtimeError.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/RealtimeCodes.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/models/RealtimeCodes.kt.twig',
                 'minify'        => false,
