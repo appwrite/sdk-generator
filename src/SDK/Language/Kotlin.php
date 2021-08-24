@@ -361,7 +361,7 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/Service.kt',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/BaseService.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/Service.kt.twig',
                 'minify'        => false,
             ],
