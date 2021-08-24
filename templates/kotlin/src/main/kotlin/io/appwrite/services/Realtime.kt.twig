@@ -88,13 +88,17 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             subCallDepth--
         }
 
-        return RealtimeSubscription { unsubscribe() }
+        return RealtimeSubscription { unsubscribe(*channels) }
     }
 
-    fun unsubscribe() {
-        channelCallbacks = mutableMapOf()
-        errorCallbacks = mutableSetOf()
-        closeSocket()
+    fun unsubscribe(vararg channels: String) {
+        channels.forEach {
+            channelCallbacks[it] = mutableListOf()
+        }
+        if (channelCallbacks.all { it.value.isEmpty() }) {
+            errorCallbacks = mutableSetOf()
+            closeSocket()
+        }
     }
 
     fun doOnError(callback: ({{ spec.title | caseUcfirst }}Exception) -> Unit) {
