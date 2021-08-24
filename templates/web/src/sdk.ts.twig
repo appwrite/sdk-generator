@@ -31,7 +31,7 @@ type RealtimeObject = {
         [key: string]: ((event: unknown) => void)[]
     },
     createSocket: () => void;
-    onMessage: (channel: string, callback: (payload: unknown) => void) => (event: unknown) => void;
+    onMessage: (channel: string, callback: (response: RealtimeMessage) => void) => (event: unknown) => void;
 }
 
 class {{spec.title | caseUcfirst}}Exception extends Error {
@@ -175,10 +175,17 @@ class {{ spec.title | caseUcfirst }} {
      * - documents.[ID]
      * - files
      * - files.[ID]
-     * @param {(payload: unknown) => void} callback Is called on every realtime update.
+     * - executions
+     * - executions.[ID]
+     * - functions.[ID]
+     * - teams
+     * - teams.[ID]
+     * - memberships
+     * - memberships.[ID]
+     * @param {(payload: RealtimeMessage) => void} callback Is called on every realtime update.
      * @returns {() => void} Unsubscribes from events.
      */
-    subscribe(channels: string | string[], callback: (payload: unknown) => void): () => void {
+    subscribe(channels: string | string[], callback: (payload: RealtimeMessage) => void): () => void {
         let channelArray = typeof channels === 'string' ? [channels] : channels;
         let savedChannels: {
             name: string;
