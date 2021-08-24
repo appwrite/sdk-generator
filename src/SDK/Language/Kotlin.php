@@ -349,12 +349,6 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/CollectionExtensions.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/extensions/CollectionExtensions.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/JsonExtensions.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/extensions/JsonExtensions.kt.twig',
                 'minify'        => false,
@@ -367,38 +361,8 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/RealtimeCodes.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/RealtimeCodes.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/RealtimeEvent.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/RealtimeEvent.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/RealtimeMessage.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/RealtimeMessage.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/RealtimeSubscription.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/RealtimeSubscription.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/Service.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/Service.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/Realtime.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/Realtime.kt.twig',
                 'minify'        => false,
             ],
             [
