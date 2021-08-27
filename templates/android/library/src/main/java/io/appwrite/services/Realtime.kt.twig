@@ -6,8 +6,6 @@ import {{ sdk.namespace | caseDot }}.extensions.forEachAsync
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
 import {{ sdk.namespace | caseDot }}.extensions.jsonCast
 import {{ sdk.namespace | caseDot }}.models.RealtimeCodes
-
-import {{ sdk.namespace | caseDot }}.models.RealtimeMessage
 import {{ sdk.namespace | caseDot }}.models.RealtimeSubscription
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
@@ -112,8 +110,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             super.onMessage(webSocket, text)
 
             launch(IO) {
-                val message = parse<RealtimeMessage>(text)
-                if (message?.channels == null) {
+                val message = parse<Map<*, *>>(text)
+                if (message == null) {
                     val error = parse<{{ spec.title | caseUcfirst }}Exception>(text) ?: return@launch
                     errorCallbacks.forEach {
                         it.invoke(error)
@@ -121,11 +119,9 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                     return@launch
                 }
 
-                message.channels.forEachAsync { channel ->
+                (message["channels"] as? Collection<*>)?.forEachAsync { channel ->
                     channelCallbacks[channel]?.forEachAsync { callback ->
-                        callback.invoke(
-                            message.payload.jsonCast(Map::class.java)
-                        )
+                        callback.invoke(message)
                     }
                 }
             }
