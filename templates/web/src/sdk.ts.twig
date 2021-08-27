@@ -9,29 +9,53 @@ type Headers = {
     [key: string]: string;
 }
 
-type RealtimeEvent = {
-    project: string;
-    permissions: string[];
-    data: string;
+type RealtimeResponse = {
+    type: "error"|"event"|"connected"|"response";
+    data: RealtimeResponseAuthenticated|RealtimeResponseConnected|RealtimeResponseError|RealtimeResponseEvent;
 }
 
-type RealtimeMessage = {
-    code?: number;
+type RealtimeRequest = {
+    type: "authentication";
+    data: RealtimeRequestAuthenticate;
+}
+
+type RealtimeResponseEvent = {
     event: string;
     channels: string[];
     timestamp: number;
     payload: unknown;
 }
 
+type RealtimeResponseError = {
+    code: number;
+    message: string;
+}
+
+type RealtimeResponseConnected = {
+    channels: string[];
+    user?: object;
+}
+
+type RealtimeResponseAuthenticated = {
+    to: string;
+    success: boolean;
+    user: object;
+}
+
+type RealtimeRequestAuthenticate = {
+    session: string;
+}
+
 type RealtimeObject = {
     socket?: WebSocket;
     timeout?: number;
-    lastMessage?: RealtimeMessage;
+    lastMessage?: RealtimeResponse;
     channels: {
-        [key: string]: ((event: unknown) => void)[]
+        [key: string]: ((event: MessageEvent) => void)[]
     },
     createSocket: () => void;
-    onMessage: (channel: string, callback: (response: RealtimeMessage) => void) => (event: unknown) => void;
+    authenticate: (event: MessageEvent) => void;
+    onMessage: (channel: string, callback: (response: RealtimeResponseEvent) => void) => (event: MessageEvent) => void;
 }
 
 class {{spec.title | caseUcfirst}}Exception extends Error {
@@ -126,6 +150,7 @@ class {{ spec.title | caseUcfirst }} {
             }
 
             this.realtime.socket = new WebSocket(this.config.endpointRealtime + '/realtime?' + channels.toString());
+            this.realtime.socket?.addEventListener('message', this.realtime.authenticate);
 
             for (const channel in this.realtime.channels) {
                 this.realtime.channels[channel].forEach(callback => {
@@ -134,7 +159,7 @@ class {{ spec.title | caseUcfirst }} {
             }
 
             this.realtime.socket.addEventListener('close', event => {
-                if (this.realtime?.lastMessage?.code === 1008) {
+                if (this.realtime?.lastMessage?.type === 'error' && (<RealtimeResponseError>this.realtime?.lastMessage.data).code === 1008) {
                     return;
                 }
                 console.error('Realtime got disconnected. Reconnect will be attempted in 1 second.', event.reason);
@@ -143,16 +168,35 @@ class {{ spec.title | caseUcfirst }} {
                 }, 1000);
             })
         },
+        authenticate: (event) => {
+            const message: RealtimeResponse = JSON.parse(event.data);
+            if (message.type === 'connected') {
+                const cookie = JSON.parse(window.localStorage.getItem('cookieFallback') ?? "{}");
+                const session = cookie?.[`a_session_${this.config.project}`];
+                const data = <RealtimeResponseConnected>message.data;
+
+                if (session && !data.user) {
+                    this.realtime.socket?.send(JSON.stringify(<RealtimeRequest>{
+                        type: "authentication",
+                        data: {
+                            session
+                        }
+                    }));
+                }
+            }
+        },
         onMessage: (channel, callback) =>
             (event) => {
                 try {
-                    const data = JSON.parse((<RealtimeEvent>event).data);
-                    this.realtime.lastMessage = data;
-
-                    if (data.channels && data.channels.includes(channel)) {
-                        callback(data);
-                    } else if (data.code) {
-                        throw data;
+                    const message: RealtimeResponse = JSON.parse(event.data);
+                    this.realtime.lastMessage = message;
+                    if (message.type === 'event') {
+                        let data = <RealtimeResponseEvent>message.data;
+                        if (data.channels && data.channels.includes(channel)) {
+                            callback(data);
+                        }
+                    } else if (message.type === 'error') {
+                        throw message.data;
                     }
                 } catch (e) {
                     console.error(e);
@@ -185,7 +229,7 @@ class {{ spec.title | caseUcfirst }} {
      * @param {(payload: RealtimeMessage) => void} callback Is called on every realtime update.
      * @returns {() => void} Unsubscribes from events.
      */
-    subscribe(channels: string | string[], callback: (payload: RealtimeMessage) => void): () => void {
+    subscribe(channels: string | string[], callback: (payload: RealtimeResponseEvent) => void): () => void {
         let channelArray = typeof channels === 'string' ? [channels] : channels;
         let savedChannels: {
             name: string;
@@ -196,7 +240,7 @@ class {{ spec.title | caseUcfirst }} {
                 this.realtime.channels[channel] = [];
             }
             savedChannels[index] = {
-                name: channel, 
+                name: channel,
                 index: (this.realtime.channels[channel].push(this.realtime.onMessage(channel, callback)) - 1)
             };
             clearTimeout(this.realtime.timeout);
