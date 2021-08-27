@@ -325,7 +325,7 @@ class {{ spec.title | caseUcfirst }} {
 
             return data;
         } catch (e) {
-            throw new {{spec.title | caseUcfirst}}Exception(e.message);
+            throw new {{spec.title | caseUcfirst}}Exception((<Error>e).message);
         }
     }
 
