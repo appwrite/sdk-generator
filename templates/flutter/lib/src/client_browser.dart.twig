@@ -83,7 +83,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
   }
 
   Future init() async {
-    if (html.window.localStorage.keys.contains('x-fallback-cookies')) {
+    if (html.window.localStorage.keys.contains('cookieFallback')) {
       addHeader('x-fallback-cookies',
           html.window.localStorage['cookieFallback'] ?? '');
     }

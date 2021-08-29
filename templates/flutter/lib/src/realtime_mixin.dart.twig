@@ -6,8 +6,11 @@ import 'exception.dart';
 import 'realtime_subscription.dart';
 import 'client.dart';
 import 'realtime_message.dart';
+import 'realtime_response.dart';
+import 'realtime_response_connected.dart';
 
 typedef Future<WebSocketChannel> WebSocketFactory(Uri uri);
+typedef String? GetFallbackCookie();
 
 mixin RealtimeMixin {
   late Client client;
@@ -15,6 +18,7 @@ mixin RealtimeMixin {
   WebSocketChannel? _websok;
   String? _lastUrl;
   late WebSocketFactory getWebSocket;
+  GetFallbackCookie? getFallbackCookie;
 
   _closeConnection() {
     _websok?.sink.close(normalClosure);
@@ -34,18 +38,38 @@ mixin RealtimeMixin {
     _websok = await getWebSocket(uri);
 
     try {
-      _websok?.stream.listen((event) {
-        final data = jsonDecode(event);
-        handleError(data);
-        if(data.containsKey('event')) {
-          final message = RealtimeMessage.fromMap(data);
-          message.channels.forEach((channel) {
-            if (this._channels[channel] != null) {
-              this._channels[channel]!.forEach((stream) {
-                stream.sink.add(message);
-              });
+      _websok?.stream.listen((response) {
+        final data = RealtimeResponse.fromJson(response);
+        switch (data.type) {
+          case 'error':
+            handleError(data);
+            break;
+          case 'connected':
+            // channels, user?
+            final message = RealtimeResponseConnected.fromMap(data.data);
+            if (message.user.isEmpty) {
+              // send fallback cookie if exists
+              final cookie = getFallbackCookie?.call();
+              if (cookie != null) {
+                _websok?.sink.add(jsonEncode({
+                  "type": "authentication",
+                  "data": {
+                    "session": cookie,
+                  },
+                }));
+              }
             }
-          });
+            break;
+          case 'event':
+            final message = RealtimeMessage.fromMap(data.data);
+            message.channels.forEach((channel) {
+              if (this._channels[channel] != null) {
+                this._channels[channel]!.forEach((stream) {
+                  stream.sink.add(message);
+                });
+              }
+            });
+            break;
         }
       });
     } catch (e) {
@@ -105,16 +129,14 @@ mixin RealtimeMixin {
     return subscription;
   }
 
-  void handleError(Map<String, dynamic> data) {
-    if (data.containsKey('code')) {
-      if (data['code'] == 1008) {
-        throw {{spec.title | caseUcfirst}}Exception(data["message"], data["code"]);
-      } else {
-        print("Reconnecting in one second.");
-        Future.delayed(Duration(seconds: 1), () {
-          _createSocket();
-        });
-      }
+  void handleError(RealtimeResponse response) {
+    if (response.data['code'] == 1008) {
+      throw {{spec.title | caseUcfirst}}Exception(response.data["message"], response.data["code"]);
+    } else {
+      print("Reconnecting in one second.");
+      Future.delayed(Duration(seconds: 1), () {
+        _createSocket();
+      });
     }
   }
 }
