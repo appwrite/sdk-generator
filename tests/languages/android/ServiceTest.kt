@@ -27,6 +27,8 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
 
+data class TestPayload(val response: String)
+
 @Config(manifest=Config.NONE)
 @RunWith(AndroidJUnit4::class)
 class ServiceTest {
@@ -61,8 +63,8 @@ class ServiceTest {
         val realtime = Realtime(client)
         var realtimeResponse = "Realtime failed!"
 
-        realtime.subscribe("tests") {
-            realtimeResponse = it["response"]!! as String
+        realtime.subscribe("tests", payloadType = TestPayload::class.java) {
+            realtimeResponse = it.payload.response
         }
 
         runBlocking {
