@@ -53,8 +53,8 @@ android {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:${KotlinCompilerVersion.VERSION}")
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.3")
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.3")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.0")
 
     api(platform("com.squareup.okhttp3:okhttp-bom:4.9.0"))
     api("com.squareup.okhttp3:okhttp")
@@ -65,14 +65,14 @@ dependencies {
     implementation("net.gotev:cookie-store:1.3.5")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.3.1")
     implementation("androidx.lifecycle:lifecycle-common-java8:2.3.1")
-    implementation("androidx.appcompat:appcompat:1.2.0")
-    implementation("androidx.fragment:fragment-ktx:1.3.2")
-    implementation("androidx.activity:activity-ktx:1.2.2")
+    implementation("androidx.appcompat:appcompat:1.3.1")
+    implementation("androidx.fragment:fragment-ktx:1.3.6")
+    implementation("androidx.activity:activity-ktx:1.3.1")
     implementation("androidx.browser:browser:1.3.0")
 
     testImplementation 'junit:junit:4.+'
-    testImplementation "androidx.test.ext:junit-ktx:1.1.2"
-    testImplementation "androidx.test:core-ktx:1.3.0"
+    testImplementation "androidx.test.ext:junit-ktx:1.1.3"
+    testImplementation "androidx.test:core-ktx:1.4.0"
     testImplementation "org.robolectric:robolectric:4.5.1"
     testApi("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.5.1")
 }
