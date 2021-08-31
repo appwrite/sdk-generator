@@ -11,7 +11,7 @@ type Headers = {
 
 type RealtimeResponse = {
     type: "error"|"event"|"connected"|"response";
-    data: RealtimeResponseAuthenticated|RealtimeResponseConnected|RealtimeResponseError|RealtimeResponseEvent;
+    data: RealtimeResponseAuthenticated|RealtimeResponseConnected|RealtimeResponseError|RealtimeResponseEvent<unknown>;
 }
 
 type RealtimeRequest = {
@@ -19,11 +19,11 @@ type RealtimeRequest = {
     data: RealtimeRequestAuthenticate;
 }
 
-type RealtimeResponseEvent = {
+type RealtimeResponseEvent<T extends unknown> = {
     event: string;
     channels: string[];
     timestamp: number;
-    payload: unknown;
+    payload: T;
 }
 
 type RealtimeResponseError = {
@@ -55,7 +55,7 @@ type Realtime = {
     },
     createSocket: () => void;
     authenticate: (event: MessageEvent) => void;
-    onMessage: (channel: string, callback: (response: RealtimeResponseEvent) => void) => (event: MessageEvent) => void;
+    onMessage: <T extends unknown>(channel: string, callback: (response: RealtimeResponseEvent<T>) => void) => (event: MessageEvent) => void;
 }
 
 class {{spec.title | caseUcfirst}}Exception extends Error {
@@ -185,13 +185,13 @@ class {{ spec.title | caseUcfirst }} {
                 }
             }
         },
-        onMessage: (channel, callback) =>
+        onMessage: <T extends unknown>(channel: string, callback: (response: RealtimeResponseEvent<T>) => void) =>
             (event) => {
                 try {
                     const message: RealtimeResponse = JSON.parse(event.data);
                     this.realtime.lastMessage = message;
                     if (message.type === 'event') {
-                        let data = <RealtimeResponseEvent>message.data;
+                        let data = <RealtimeResponseEvent<T>>message.data;
                         if (data.channels && data.channels.includes(channel)) {
                             callback(data);
                         }
@@ -229,7 +229,7 @@ class {{ spec.title | caseUcfirst }} {
      * @param {(payload: RealtimeMessage) => void} callback Is called on every realtime update.
      * @returns {() => void} Unsubscribes from events.
      */
-    subscribe(channels: string | string[], callback: (payload: RealtimeResponseEvent) => void): () => void {
+    subscribe<T extends unknown>(channels: string | string[], callback: (payload: RealtimeResponseEvent<T>) => void): () => void {
         let channelArray = typeof channels === 'string' ? [channels] : channels;
         let savedChannels: {
             name: string;
@@ -241,7 +241,7 @@ class {{ spec.title | caseUcfirst }} {
             }
             savedChannels[index] = {
                 name: channel,
-                index: (this.realtime.channels[channel].push(this.realtime.onMessage(channel, callback)) - 1)
+                index: (this.realtime.channels[channel].push(this.realtime.onMessage<T>(channel, callback)) - 1)
             };
             clearTimeout(this.realtime.timeout);
             this.realtime.timeout = window?.setTimeout(() => {
