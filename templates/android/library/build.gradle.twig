@@ -7,7 +7,7 @@ plugins {
 ext {
     PUBLISH_GROUP_ID = '{{ sdk.namespace | caseDot }}'
     PUBLISH_ARTIFACT_ID = '{{ sdk.gitRepoName | caseDash }}'
-    PUBLISH_VERSION = '{{ sdk.version }}'
+    PUBLISH_VERSION = System.getenv('SDK_VERSION')
     POM_URL = 'https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}'
     POM_SCM_URL = 'https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}'
     POM_ISSUE_URL = 'https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}/issues'
