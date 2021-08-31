@@ -7,5 +7,40 @@ import 'client.dart';
 
 abstract class Realtime extends Service {
   factory Realtime(Client client) => createRealtime(client);
+
+  /// Channels to subscribe - pass a list of channels to subscribe
+  /// 
+  /// Possible channels are:
+  /// - account
+  /// - collections
+  /// - collections.[ID]
+  /// - collections.[ID].documents
+  /// - documents
+  /// - documents.[ID]
+  /// - files
+  /// - files.[ID]
+  /// - executions
+  /// - executions.[ID]
+  /// - functions.[ID]
+  /// - teams
+  /// - teams.[ID]
+  /// - memberships
+  /// - memberships.[ID]
+  /// 
+  /// Returns a `RealtimeSubscription` object, which can be used to listen to events on the channels
+  /// and to close the subscription to stop listening.
+  ///
+  /// The sample shows how you could use realtime to listen to changes in a collections.
+  ///
+  /// ```dart
+  /// final realtime = Realtime(client);
+  /// final subscription = realtime.subscribe(['collections']);
+  /// subscription.stream.listen((event) {
+  ///   print(event);
+  /// });
+  ///
+  /// subscription.close();
+  /// ```
+  /// 
   RealtimeSubscription subscribe(List<String> channels);
 }
