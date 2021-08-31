@@ -46,7 +46,7 @@ type RealtimeRequestAuthenticate = {
     session: string;
 }
 
-type RealtimeObject = {
+type Realtime = {
     socket?: WebSocket;
     timeout?: number;
     lastMessage?: RealtimeResponse;
@@ -134,7 +134,7 @@ class {{ spec.title | caseUcfirst }} {
 
 {% endfor %}
 
-    private realtime: RealtimeObject = {
+    private realtime: Realtime = {
         socket: undefined,
         timeout: undefined,
         channels: {},
