@@ -31,19 +31,19 @@ void main() async {
 
   // Bar Tests
 
-  response = await bar.get(x: 'string', y: 123, z: ['string in array']);
+  response = await bar.get(xrequired: 'string', xdefault: 123, z: ['string in array']);
   print(response.data['result']);
 
-  response = await bar.post(x: 'string', y: 123, z: ['string in array']);
+  response = await bar.post(xrequired: 'string', xdefault: 123, z: ['string in array']);
   print(response.data['result']);
 
-  response = await bar.put(x: 'string', y: 123, z: ['string in array']);
+  response = await bar.put(xrequired: 'string', xdefault: 123, z: ['string in array']);
   print(response.data['result']);
 
-  response = await bar.patch(x: 'string', y: 123, z: ['string in array']);
+  response = await bar.patch(xrequired: 'string', xdefault: 123, z: ['string in array']);
   print(response.data['result']);
 
-  response = await bar.delete(x: 'string', y: 123, z: ['string in array']);
+  response = await bar.delete(xrequired: 'string', xdefault: 123, z: ['string in array']);
   print(response.data['result']);
 
   // General Tests
