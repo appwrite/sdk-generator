@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import NIO
 import Appwrite
 
 class ViewController: UIViewController {
@@ -16,6 +17,8 @@ class ViewController: UIViewController {
     @IBOutlet weak var loginButton: UIButton!
     @IBOutlet weak var loginWithFacebook: UIButton!
     @IBOutlet weak var downloadButton: UIButton!
+    @IBOutlet weak var uploadButton: UIButton!
+    @IBOutlet weak var image: UIImageView!
     
     let client = Client()
         .setEndpoint("https://demo.appwrite.io/v1")
@@ -72,7 +75,37 @@ class ViewController: UIViewController {
         
     }
     
-    @IBAction func downloadClick(_ sender: Any) {
+    @IBAction func download(_ sender: Any) {
+        storage.getFile("60f7a0178c3e5", completion: { result in
+            switch result {
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    self.text.text = error.message
+                }
+            case .success(var response):
+                let data = response.body!.readData(length: response.body!.readableBytes)!
+                DispatchQueue.main.async {
+                    self.image.image = UIImage(data: data)
+                }
+            }
+        })
     }
     
+    @IBAction func upload(_ sender: Any) {
+        let url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
+        let buffer = ByteBuffer(data: url.dataRepresentation)
+        var output = ""
+        storage.createFile(buffer, ["*"], ["*"], completion: { result in
+            switch result {
+            case .failure(let error):
+                output = error.message
+            case .success(var response):
+                output = response.body!.readString(length: response.body!.readableBytes) ?? ""
+            }
+            
+            DispatchQueue.main.async {
+                self.text.text = output
+            }
+        })
+    }
 }

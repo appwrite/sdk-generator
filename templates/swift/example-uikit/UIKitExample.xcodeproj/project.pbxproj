@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1D40B4F726C26A4C00412625 /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 1D40B4F626C26A4C00412625 /* Appwrite */; };
+		1D53246826CA42DD00D5382C /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 1D53246726CA42DD00D5382C /* Appwrite */; };
 		4B1151B5D92BD55833AD2A54 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4B115E35390385E1BB5197A8 /* LaunchScreen.storyboard */; };
 		4B1152F1B5ED8D14FA2730FE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B115A2E92E19A32F4D71704 /* AppDelegate.swift */; };
 		4B115847F32FD75449111E64 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4B11553806456B6FA77CE45A /* Assets.xcassets */; };
@@ -36,7 +36,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		1D40B4F426C25DF400412625 /* swift-client */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "swift-client"; path = "../../sdk-generator/examples/swift-client"; sourceTree = "<group>"; };
+		1D53246626CA414A00D5382C /* swift-client */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "swift-client"; path = "../../../examples/swift-client"; sourceTree = "<group>"; };
 		4B1151B0FC3E5D1AD1405D6D /* UIKitExampleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UIKitExampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B115317377938CDB4FF518B /* UIKitExampleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIKitExampleTests.swift; sourceTree = "<group>"; };
 		4B1154366EE3D6AD624FC76C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.info; path = Info.plist; sourceTree = "<group>"; };
@@ -72,7 +72,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1D40B4F726C26A4C00412625 /* Appwrite in Frameworks */,
+				1D53246826CA42DD00D5382C /* Appwrite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -89,7 +89,7 @@
 		4B11584FFD11E0EC8AE1D05E = {
 			isa = PBXGroup;
 			children = (
-				1D40B4F426C25DF400412625 /* swift-client */,
+				1D53246626CA414A00D5382C /* swift-client */,
 				4B115EA639EF1F575013EFA6 /* Products */,
 				4B115E17FC70E956925F85AF /* UIKitExample */,
 				4B115A1762CECE9495C57394 /* UIKitExampleTests */,
@@ -175,7 +175,7 @@
 			);
 			name = UIKitExample;
 			packageProductDependencies = (
-				1D40B4F626C26A4C00412625 /* Appwrite */,
+				1D53246726CA42DD00D5382C /* Appwrite */,
 			);
 			productName = UIKitExample;
 			productReference = 4B115F7604FCAA687C1B01F4 /* UIKitExample.app */;
@@ -578,7 +578,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		1D40B4F626C26A4C00412625 /* Appwrite */ = {
+		1D53246726CA42DD00D5382C /* Appwrite */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Appwrite;
 		};

@@ -24,6 +24,12 @@ struct ContentView: View {
     @ObservedObject var keyboard: Keyboard = .init()
 
     var body: some View {
+        let client = Client()
+            .setEndpoint(host)
+            .setProject(projectId)
+        let account = Account(client: client)
+        let storage = Storage(client: client)
+        
         VStack(spacing: 8) {
 
             image?
@@ -58,13 +64,6 @@ struct ContentView: View {
 
             HStack(spacing: 8) {
 
-                let client = Client()
-                    .setEndpoint(host)
-                    .setProject(projectId)
-
-                let account = Account(client: client)
-                let storage = Storage(client: client)
-
                 Button("Login") {
                     account.createSession(username, password) { result in
                         switch result {
@@ -95,7 +94,6 @@ struct ContentView: View {
                         }
                     }
                 }
-
 
                 Button("Download image") {
                     storage.getFileDownload(fileId) { result in

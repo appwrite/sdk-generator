@@ -20,7 +20,7 @@
                                 <rect key="frame" x="54" y="88" width="307" height="379"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="379" id="z8p-OO-Rsc"/>
+                                    <constraint firstAttribute="height" constant="379" id="jUj-g4-8wW"/>
                                 </constraints>
                                 <string key="text">Lorem ipsum dolor sit er elit lamet, consectetaur cillium adipisicing pecu, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Nam liber te conscient to factor tum poen legum odioque civiuda.</string>
                                 <color key="textColor" systemColor="labelColor"/>
@@ -52,34 +52,53 @@
                                 <rect key="frame" x="173" y="763" width="69" height="30"/>
                                 <state key="normal" title="Download"/>
                                 <connections>
-                                    <action selector="downloadClick:" destination="BYZ-38-t0r" eventType="touchUpInside" id="8h1-EB-bQG"/>
+                                    <action selector="download:" destination="BYZ-38-t0r" eventType="touchUpInside" id="EhY-G7-CoK"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Srt-AK-Etb">
+                                <rect key="frame" x="183" y="801" width="49" height="30"/>
+                                <state key="normal" title="Upload"/>
+                                <connections>
+                                    <action selector="upload:" destination="BYZ-38-t0r" eventType="touchUpInside" id="dnB-AX-zGW"/>
+                                </connections>
+                            </button>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="BZm-qv-ycZ">
+                                <rect key="frame" x="87" y="384" width="240" height="128"/>
+                            </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
-                            <constraint firstItem="hm9-Uc-U8r" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="44" id="C4T-OI-uI6"/>
-                            <constraint firstItem="hm9-Uc-U8r" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="54" id="CVr-tw-fA5"/>
-                            <constraint firstItem="1xM-Ze-Rjx" firstAttribute="centerX" secondItem="oio-rD-Rub" secondAttribute="centerX" id="DCC-Mm-au9"/>
-                            <constraint firstItem="hm9-Uc-U8r" firstAttribute="centerX" secondItem="1xM-Ze-Rjx" secondAttribute="centerX" id="Dbe-rK-sZA"/>
-                            <constraint firstItem="XgR-LV-oGp" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="173" id="MYx-WH-vdK"/>
-                            <constraint firstItem="hm9-Uc-U8r" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="PRF-cy-rDT"/>
-                            <constraint firstItem="oio-rD-Rub" firstAttribute="centerX" secondItem="BSb-VC-reA" secondAttribute="centerX" id="RcN-84-AJ9"/>
-                            <constraint firstItem="BSb-VC-reA" firstAttribute="centerX" secondItem="XgR-LV-oGp" secondAttribute="centerX" id="Tkv-tB-EZq"/>
-                            <constraint firstItem="BSb-VC-reA" firstAttribute="top" secondItem="oio-rD-Rub" secondAttribute="bottom" constant="5" id="hSD-FM-pUb"/>
-                            <constraint firstItem="oio-rD-Rub" firstAttribute="top" secondItem="1xM-Ze-Rjx" secondAttribute="bottom" constant="8" id="pD1-YO-r5b"/>
-                            <constraint firstItem="1xM-Ze-Rjx" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="179" id="pTw-XO-axy"/>
-                            <constraint firstItem="XgR-LV-oGp" firstAttribute="top" secondItem="BSb-VC-reA" secondAttribute="bottom" constant="8" id="psj-r2-jVD"/>
-                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="XgR-LV-oGp" secondAttribute="bottom" constant="69" id="vt9-Ia-pZj"/>
+                            <constraint firstItem="Srt-AK-Etb" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="183" id="0DI-46-aWV"/>
+                            <constraint firstItem="1xM-Ze-Rjx" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="179" id="1zZ-g1-p9Q"/>
+                            <constraint firstItem="XgR-LV-oGp" firstAttribute="top" secondItem="BSb-VC-reA" secondAttribute="bottom" constant="8" id="4Fu-R0-cyJ"/>
+                            <constraint firstItem="XgR-LV-oGp" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="173" id="4r9-oc-Rdi"/>
+                            <constraint firstItem="hm9-Uc-U8r" firstAttribute="centerX" secondItem="BZm-qv-ycZ" secondAttribute="centerX" id="7uv-db-T2x"/>
+                            <constraint firstItem="hm9-Uc-U8r" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="54" id="Ao9-9M-kkK"/>
+                            <constraint firstItem="BZm-qv-ycZ" firstAttribute="centerX" secondItem="1xM-Ze-Rjx" secondAttribute="centerX" id="BSO-QT-wqG"/>
+                            <constraint firstItem="Srt-AK-Etb" firstAttribute="top" secondItem="XgR-LV-oGp" secondAttribute="bottom" constant="8" id="CBu-xC-jVL"/>
+                            <constraint firstItem="BZm-qv-ycZ" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="340" id="Cja-eP-FMc"/>
+                            <constraint firstItem="oio-rD-Rub" firstAttribute="centerX" secondItem="BSb-VC-reA" secondAttribute="centerX" id="DYD-1k-aVT"/>
+                            <constraint firstItem="XgR-LV-oGp" firstAttribute="centerX" secondItem="Srt-AK-Etb" secondAttribute="centerX" id="Dkt-z9-rnj"/>
+                            <constraint firstItem="hm9-Uc-U8r" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="G8n-ra-vfs"/>
+                            <constraint firstItem="BSb-VC-reA" firstAttribute="top" secondItem="oio-rD-Rub" secondAttribute="bottom" constant="5" id="ROp-b1-KTl"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="Srt-AK-Etb" secondAttribute="bottom" constant="31" id="dRy-l4-wvC"/>
+                            <constraint firstItem="oio-rD-Rub" firstAttribute="top" secondItem="1xM-Ze-Rjx" secondAttribute="bottom" constant="8" id="fxQ-e2-7rN"/>
+                            <constraint firstItem="BSb-VC-reA" firstAttribute="centerX" secondItem="XgR-LV-oGp" secondAttribute="centerX" id="jFy-5c-pm9"/>
+                            <constraint firstItem="hm9-Uc-U8r" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="44" id="mlD-Je-Wvf"/>
+                            <constraint firstItem="BZm-qv-ycZ" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="87" id="pSG-uG-VjD"/>
+                            <constraint firstItem="1xM-Ze-Rjx" firstAttribute="centerX" secondItem="oio-rD-Rub" secondAttribute="centerX" id="pie-c1-Phx"/>
+                            <constraint firstItem="BZm-qv-ycZ" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="yYa-ec-Kbm"/>
                         </constraints>
                     </view>
                     <connections>
                         <outlet property="downloadButton" destination="XgR-LV-oGp" id="nDf-XP-DWA"/>
+                        <outlet property="image" destination="BZm-qv-ycZ" id="zq5-6p-93M"/>
                         <outlet property="loginButton" destination="oio-rD-Rub" id="orw-AP-4T8"/>
                         <outlet property="loginWithFacebook" destination="BSb-VC-reA" id="jgO-6M-OAK"/>
                         <outlet property="register" destination="1xM-Ze-Rjx" id="ztX-ML-VDt"/>
                         <outlet property="text" destination="hm9-Uc-U8r" id="OVV-VO-yGB"/>
+                        <outlet property="uploadButton" destination="Srt-AK-Etb" id="aFM-uw-CYw"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>

@@ -4,23 +4,37 @@ import SwiftUI
 extension View {
     public func registerOAuthHandler() -> some View {
         onOpenURL { url in
-            let components = URLComponents(string: url.absoluteString)!
-
-            let cookieParts = [String: String](uniqueKeysWithValues: components.queryItems!.map {
-                ($0.name, $0.value!)
-            })
-
-            UserDefaults.standard.set(cookieParts["key"], forKey: "cookie-name-\(components.host!)")
-            UserDefaults.standard.set(cookieParts["secret"], forKey: "cookie-value-\(components.host!)")
-
-            WebAuthComponent.onCallback(
-                scheme: components.scheme!,
-                url: components.url!
-            )
+            handleIncomingCookie(from: url)
         }.onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             WebAuthComponent.onCallback()
         }
     }
+}
+
+extension AppDelegate {
+    public func application(
+        _ application: UIApplication,
+        open url: URL,
+        options: [UIApplicationOpenURLOptionsKey : Any] = [:]
+    ) -> Bool {
+        handleIncomingCookie(from: url)
+    }
+}
+
+private func handleIncomingCookie(from url: URL) {
+    let components = URLComponents(string: url.absoluteString)!
+
+    let cookieParts = [String: String](uniqueKeysWithValues: components.queryItems!.map {
+        ($0.name, $0.value!)
+    })
+
+    UserDefaults.standard.set(cookieParts["key"], forKey: "cookie-name-\(components.host!)")
+    UserDefaults.standard.set(cookieParts["secret"], forKey: "cookie-value-\(components.host!)")
+
+    WebAuthComponent.onCallback(
+        scheme: components.scheme!,
+        url: components.url!
+    )
 }
 
 #if canImport(UIKit)
@@ -30,6 +44,7 @@ extension UIViewController {
         self.addChild(UIHostingController(rootView: EmptyView().registerOAuthHandler()))
     }
 }
+
 #endif
 #if canImport(AppKit)
 @available(macOS 11.0, *)

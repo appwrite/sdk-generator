@@ -19,10 +19,6 @@ let package = Package(
             name: "{{spec.title | caseUcfirst}}",
             dependencies: [.product(name: "AsyncHTTPClient", package: "async-http-client")]
         ),
-        .testTarget(
-            name: "{{spec.title | caseUcfirst}}Tests",
-            dependencies: ["{{spec.title | caseUcfirst}}"]
-        ),
     ],
     swiftLanguageVersions: [.v5]
 )
