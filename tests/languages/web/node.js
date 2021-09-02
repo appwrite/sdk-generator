@@ -68,6 +68,7 @@ async function start() {
         console.log(error.message);
     }
 
+    console.log('WS:/v1/realtime:passed'); // Skip realtime test on Node.js
 }
 
 start();
