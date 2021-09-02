@@ -61,23 +61,10 @@ class {{ service.name | caseUcfirst }} extends Service {
         );
 
         if(kIsWeb) {
-          html.window.location.href = url.toString();
+          redirect(url.toString());
           return Future.value();
         }else{
-
-          return FlutterWebAuth.authenticate(
-            url: url.toString(),
-            callbackUrlScheme: "appwrite-callback-" + client.config['project']!
-            ).then((value) async {
-                Uri url = Uri.parse(value);
-                Cookie cookie = new Cookie(url.queryParameters['key']!, url.queryParameters['secret']!);
-                cookie.domain = Uri.parse(client.endPoint).host;
-                cookie.httpOnly = true;
-                cookie.path = '/';
-                List<Cookie> cookies = [cookie];
-                await client.init();
-                await client.cookieJar.saveFromResponse(Uri.parse(client.endPoint), cookies);
-            });
+          return client.webAuth(url);
         }
 
 {% elseif method.type == 'location' %}

@@ -70,6 +70,7 @@ class SDKTest extends TestCase
                 'flutter-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart"',
             ],
             'supportException' => true,
+            'supportRealtime' => true,
         ],
 
         'android' => [
@@ -131,6 +132,7 @@ class SDKTest extends TestCase
                 'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node node.js',
             ],
             'supportException' => true,
+            'supportRealtime' => true
         ],
 
         'deno' => [
@@ -317,6 +319,7 @@ class SDKTest extends TestCase
                     $this->assertEquals('Server Error', $output[13] ?? '');
                     $this->assertEquals('This is a text error', $output[14] ?? '');
                 }
+
                 if ($options['supportRealtime'] ?? false) {
                     $this->assertEquals('WS:/v1/realtime:passed', $output[15] ?? '');
                 }

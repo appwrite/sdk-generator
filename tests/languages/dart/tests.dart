@@ -50,7 +50,7 @@ void main() async {
   response = await general.redirect();
   print(response.data['result']);
 
-  final file = await MultipartFile.fromFile('../../resources/file.png',
+  final file = await MultipartFile.fromPath('file', '../../resources/file.png',
       filename: 'file.png');
   response = await general.upload(
       x: 'string', y: 123, z: ['string in array'], file: file);
