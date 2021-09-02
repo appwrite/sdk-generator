@@ -130,6 +130,7 @@ class SDKTest extends TestCase
                 'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node node.js',
             ],
             'supportException' => true,
+            'supportRealtime' => true
         ],
 
         'deno' => [
@@ -315,6 +316,9 @@ class SDKTest extends TestCase
                     $this->assertEquals('Mock 400 error',$output[12] ?? '');
                     $this->assertEquals('Server Error', $output[13] ?? '');
                     $this->assertEquals('This is a text error', $output[14] ?? '');
+                }
+                if ($options['supportRealtime'] ?? false) {
+                    $this->assertEquals('WS:/v1/realtime:passed', $output[15] ?? '');
                 }
             }
         }

@@ -15,9 +15,16 @@
     <script type="module">
         document.getElementById("start").addEventListener("click", async () => {
             let response;
-
+            let responseRealtime = 'Realtime failed!';
             // Init SDK
             let sdk = new Appwrite();
+
+            sdk.setProject('console');
+            sdk.setEndpointRealtime('wss://realtime.appwrite.org/v1');
+
+            sdk.subscribe('tests', event => {
+                responseRealtime = event.payload.response;
+            });
 
             // Foo
             response = await sdk.foo.get("string", 123, ["string in array"]);
@@ -86,6 +93,8 @@
             } catch (error) {
                 console.log(error.message);
             }
+
+            setTimeout(() => console.log(responseRealtime), 5000);
         });
     </script>
 </body>
