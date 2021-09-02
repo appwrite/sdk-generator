@@ -70,6 +70,7 @@ class SDKTest extends TestCase
                 'flutter-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart"',
             ],
             'supportException' => true,
+            'supportRealtime' => true,
         ],
 
         'android' => [
@@ -82,7 +83,7 @@ class SDKTest extends TestCase
             'envs' => [
                 'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:latest-jdk8 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
             ],
-            'supportException' => false,
+            'supportException' => true,
         ],
 
         'kotlin' => [
@@ -317,6 +318,7 @@ class SDKTest extends TestCase
                     $this->assertEquals('Server Error', $output[13] ?? '');
                     $this->assertEquals('This is a text error', $output[14] ?? '');
                 }
+
                 if ($options['supportRealtime'] ?? false) {
                     $this->assertEquals('WS:/v1/realtime:passed', $output[15] ?? '');
                 }
