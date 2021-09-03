@@ -40,6 +40,28 @@ public class WebAuthComponent {
     }
 
     ///
+    /// Handle an incoming cooke from a URL, saving it to use for future requests.
+    ///
+    /// - Parameters:
+    ///   - url: The URL containing the cookie
+    ///
+    public static func handleIncomingCookie(from url: URL) {
+        let components = URLComponents(string: url.absoluteString)!
+
+        let cookieParts = [String: String](uniqueKeysWithValues: components.queryItems!.map {
+            ($0.name, $0.value!)
+        })
+
+        UserDefaults.standard.set(cookieParts["key"], forKey: "cookie-name-\(components.host!)")
+        UserDefaults.standard.set(cookieParts["secret"], forKey: "cookie-value-\(components.host!)")
+
+        WebAuthComponent.onCallback(
+            scheme: components.scheme!,
+            url: components.url!
+        )
+    }
+
+    ///
     /// Trigger a web auth callback
     ///
     /// Attempts to find a callback for the given [scheme] and if found, invokes it, passing the

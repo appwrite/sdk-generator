@@ -30,11 +30,6 @@ class ViewController: UIViewController {
     required init?(coder: NSCoder) {
         super.init(coder: coder)
     }
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        registerOAuthHandler()
-    }
 
     @IBAction func registerClick(_ sender: Any) {
         let disptch = DispatchGroup()
@@ -52,6 +47,18 @@ class ViewController: UIViewController {
     }
     
     @IBAction func loginClick(_ sender: Any) {
+        account.createAnonymousSession { result in
+            var string: String = ""
+            
+            switch result {
+            case .failure(let error): string = error.message
+            case .success(var response): string = response.body!.readString(length: response.body!.readableBytes) ?? ""
+            }
+
+            DispatchQueue.main.async {
+                self.text.text = string
+            }
+        }
     }
     
     @IBAction func loginWithFacebook(_ sender: UIButton) {
@@ -76,7 +83,7 @@ class ViewController: UIViewController {
     }
     
     @IBAction func download(_ sender: Any) {
-        storage.getFile("60f7a0178c3e5", completion: { result in
+        storage.getFileDownload("60f7a0178c3e5", completion: { result in
             switch result {
             case .failure(let error):
                 DispatchQueue.main.async {
