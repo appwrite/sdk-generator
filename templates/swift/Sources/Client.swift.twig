@@ -202,22 +202,31 @@ open class Client {
             request.headers.add(name: "Set-Cookie", value: "\(name!)=\(value!)")
         }
 
-        if "GET" != method {
-            var json: Data
-            do {
-                json = try JSONSerialization.data(
-                    withJSONObject: params,
-                    options: []
-                )
-            } catch {
-                completion?(Result.failure({{ spec.title | caseUcfirst }}Error(message: error.localizedDescription)))
-                return
-            }
-
-            request.body = .data(json)
+        if "GET" == method {
+            execute(request, completion: completion)
+            return
         }
 
-        if sink == nil {
+        if self.headers["content-type"] == "multipart/form-data" {
+            request = buildMultipart(&request, with: params)
+        } else {
+            do {
+                request = try buildJSON(&request, with: params)
+            } catch {
+                completion?(Result.failure(AppwriteError(message: error.localizedDescription)))
+                return
+            }
+        }
+
+        execute(request, completion: completion)
+    }
+
+    fileprivate func execute(
+        _ request: HTTPClient.Request,
+        withSink bufferSink: ((ByteBuffer) -> Void)? = nil,
+        completion: ((Result<HTTPClient.Response, AppwriteError>) -> Void)? = nil
+    ) {
+        if bufferSink == nil {
             http.execute(
                 request: request,
                 delegate: ResponseAccumulator(request: request)
@@ -226,16 +235,76 @@ open class Client {
                     completion(result.mapError { AppwriteError(message: $0.localizedDescription) })
                 }
             }
-        } else {
-            http.execute(
-                request: request,
-                delegate: StreamingDelegate(request: request, sink: sink)
-            ).futureResult.whenComplete { result in
-                if let completion = completion {
-                    completion(result.mapError { AppwriteError(message: $0.localizedDescription) })
-                }
+            return
+        }
+
+        http.execute(
+            request: request,
+            delegate: StreamingDelegate(request: request, sink: bufferSink)
+        ).futureResult.whenComplete { result in
+            if let completion = completion {
+                completion(result.mapError { AppwriteError(message: $0.localizedDescription) })
             }
         }
+    }
+
+    fileprivate func randomBoundary() -> String {
+        var string = ""
+        for _ in 0..<16 {
+            string.append(boundaryChars.randomElement()!)
+        }
+        return string
+    }
+
+    fileprivate func buildJSON(
+        _ request: inout HTTPClient.Request,
+        with params: [String: Any?] = [:]
+    ) throws -> HTTPClient.Request {
+        let json = try JSONSerialization.data(withJSONObject: params, options: [])
+
+        request.body = .data(json)
+
+        return request
+    }
+
+    fileprivate func buildMultipart(
+        _ request: inout HTTPClient.Request,
+        with params: [String: Any?] = [:]
+    ) -> HTTPClient.Request {
+        let boundary = randomBoundary()
+
+        var body = ""
+        for (key, value) in params {
+            body.append(boundary)
+
+            switch key {
+            case "file":
+                guard let value = value as? String else  { break }
+
+                body.append("content-disposition: form-data; name=\(key); filename=\(boundary)\n\n")
+                body.append(value)
+            default:
+                guard let value = value as? String else  {
+                    if let list = value as? [Any] {
+                        for val in list {
+                            body.append(boundary)
+                            body.append("content-disposition: form-data; name=\(key)[]\n\n")
+                            body.append(val as? String ?? "")
+                        }
+                    }
+                    break
+                }
+                body.append("content-disposition: form-data; name=\(key)\n\n")
+                body.append(value as String)
+            }
+
+            body.append(boundary)
+            body.append("--")
+        }
+        request.headers.add(name: "content-length", value: body.utf8.count.description)
+        request.body = .data(body.data(using: .utf8)!)
+
+        return request
     }
 }
 
