@@ -213,8 +213,8 @@ class Flutter extends Dart {
 			],
             [
 				'scope'         => 'default',
-				'destination'   => '/lib/src/models/models.dart',
-				'template'      => 'flutter/lib/src/models/models.dart.twig',
+				'destination'   => '/lib/models.dart',
+				'template'      => 'flutter/lib/models.dart.twig',
 				'minify'        => false,
 			],
             [
