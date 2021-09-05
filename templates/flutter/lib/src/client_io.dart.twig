@@ -190,6 +190,7 @@ class ClientIO extends ClientBase with ClientMixin {
             url: url.toString(),
             callbackUrlScheme: "appwrite-callback-" + config['project']!)
         .then((value) async {
+      Uri url = Uri.parse(value);
       Cookie cookie = new Cookie(
           url.queryParameters['key']!, url.queryParameters['secret']!);
       cookie.domain = Uri.parse(_endPoint).host;
