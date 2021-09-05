@@ -83,7 +83,8 @@ class SDKTest extends TestCase
             'envs' => [
                 'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:latest-jdk8 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
             ],
-            'supportException' => true,
+            'supportException' => false,
+            'supportRealtime' => true,
         ],
 
         'kotlin' => [
@@ -131,6 +132,7 @@ class SDKTest extends TestCase
                 'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node node.js',
             ],
             'supportException' => true,
+            'supportRealtime' => true
         ],
 
         'deno' => [
@@ -318,7 +320,7 @@ class SDKTest extends TestCase
                     $this->assertEquals('This is a text error', $output[14] ?? '');
                 }
 
-                if($options['supportRealtime'] ?? false) {
+                if ($options['supportRealtime'] ?? false) {
                     $this->assertEquals('WS:/v1/realtime:passed', $output[15] ?? '');
                 }
             }

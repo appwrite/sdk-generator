@@ -1,4 +1,3 @@
-import 'dart:html' as html;
 import 'package:http/http.dart' as http;
 import 'package:http/browser_client.dart';
 import 'client_mixin.dart';
@@ -80,27 +79,9 @@ class ClientBrowser extends ClientBase with ClientMixin {
       params: params,
     );
     try {
-      final streamedResponse = await httpClient.send(request);
-      if(streamedResponse.statusCode == 204) {
-        res = new http.Response('',
-          streamedResponse.statusCode,
-          headers: streamedResponse.headers.map((k,v) => k.toLowerCase()=='content-type' ? MapEntry(k, 'text/plain') : MapEntry(k,v)),
-          request: streamedResponse.request,
-          isRedirect: streamedResponse.isRedirect,
-          persistentConnection: streamedResponse.persistentConnection,
-          reasonPhrase: streamedResponse.reasonPhrase,
-        );
-      } else {
-        res = await http.Response.fromStream(streamedResponse);
-      }
+      final streamedResponse = await _httpClient.send(request);
+      res = await toResponse(streamedResponse);
 
-      final cookieFallback = res.headers['x-fallback-cookies'];
-      if (cookieFallback != null) {
-        print(
-            'Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
-        addHeader('X-Fallback-Cookies', cookieFallback);
-        html.window.localStorage.addAll({'cookieFallback': cookieFallback});
-      }
       return this.prepareResponse(res, responseType: responseType);
     } catch (e) {
       if (e is {{spec.title | caseUcfirst}}Exception) {

@@ -223,18 +223,7 @@ class ClientIO extends ClientBase with ClientMixin {
     try {
       request = await _interceptRequest(request);
       final streamedResponse = await _httpClient.send(request);
-      if(streamedResponse.statusCode == 204) {
-        res = new http.Response('',
-          streamedResponse.statusCode,
-          headers: streamedResponse.headers.map((k,v) => k.toLowerCase()=='content-type' ? MapEntry(k, 'text/plain') : MapEntry(k,v)),
-          request: streamedResponse.request,
-          isRedirect: streamedResponse.isRedirect,
-          persistentConnection: streamedResponse.persistentConnection,
-          reasonPhrase: streamedResponse.reasonPhrase,
-        );
-      } else {
-        res = await http.Response.fromStream(streamedResponse);
-      }
+      res = await toResponse(streamedResponse);
       res = await _interceptResponse(res);
 
       return this.prepareResponse(
@@ -243,7 +232,7 @@ class ClientIO extends ClientBase with ClientMixin {
       );
     } catch (e) {
       if (e is {{spec.title | caseUcfirst}}Exception) {
-        throw e;
+        rethrow;
       }
       throw {{spec.title | caseUcfirst}}Exception(e.toString());
     }
