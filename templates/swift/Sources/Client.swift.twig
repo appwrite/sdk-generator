@@ -6,14 +6,13 @@
 //
 
 import NIO
+import NIOSSL
 import Foundation
 import AsyncHTTPClient
 
 open class Client {
 
     // MARK: Properties
-
-    open var selfSigned = false
 
     open var endpoint = "{{spec.endpoint}}"
 
@@ -31,25 +30,50 @@ open class Client {
 
     open var http: HTTPClient
 
+    private static let boundaryChars =
+        "abcdefghijklmnopqrstuvwxyz1234567890"
+
+    private static var eventLoopGroupProvider =
+        HTTPClient.EventLoopGroupProvider.createNew
+
     // MARK: Methods
 
-    // Default constructor
     public init() {
+        http = Client.createHTTP()
+    }
+
+    private static func createHTTP(
+        selfSigned: Bool = false,
+        maxRedirects: Int = 5,
+        alloweRedirectCycles: Bool = false,
+        connectTimeout: TimeAmount = .seconds(30),
+        readTimeout: TimeAmount = .seconds(30)
+    ) -> HTTPClient {
         let timeout = HTTPClient.Configuration.Timeout(
-            connect: .seconds(30),
-            read: .seconds(30))
+            connect: connectTimeout,
+            read: readTimeout
+        )
+        let redirect = HTTPClient.Configuration.RedirectConfiguration.follow(
+            max: 5,
+            allowCycles: false
+        )
+        var tls = TLSConfiguration
+            .makeClientConfiguration()
 
-        let redirects = HTTPClient.Configuration.RedirectConfiguration
-            .follow(max: 5, allowCycles: false)
+        if selfSigned {
+            tls.certificateVerification = .none
+        }
 
-        http = HTTPClient(
-            eventLoopGroupProvider: .createNew,
+        return HTTPClient(
+            eventLoopGroupProvider: eventLoopGroupProvider,
             configuration: HTTPClient.Configuration(
-                redirectConfiguration: redirects,
+                tlsConfiguration: tls,
+                redirectConfiguration: redirect,
                 timeout: timeout,
                 decompression: .enabled(limit: .none)
             )
         )
+
     }
 
     deinit {
@@ -87,8 +111,9 @@ open class Client {
     ///
     /// @return Client
     ///
-    open func setSelfSigned(_ status: Bool = true) -> Client {
-        self.selfSigned = status
+    open func setSelfSigned(_ status: Bool = false) -> Client {
+        try! http.syncShutdown()
+        http = Client.createHTTP(selfSigned: status)
         return self
     }
 
