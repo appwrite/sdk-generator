@@ -1,17 +1,17 @@
 library {{ language.params.packageName }};
 
-import 'dart:io';
-import 'dart:convert';
-import 'package:dio/dio.dart';
-import 'package:dio/adapter.dart';
+import 'dart:async';
+import 'package:http/http.dart' as http;
+import 'src/enums.dart';
+import 'src/client.dart';
+import 'src/response.dart';
+import 'src/service.dart';
 
+export 'src/response.dart';
+export 'src/client.dart';
+export 'src/exception.dart';
+export 'package:http/http.dart' show MultipartFile;
 
-export 'package:dio/dio.dart' show Response, MultipartFile;
-
-part 'client.dart';
-part 'enums.dart';
-part 'service.dart';
-part 'exception.dart';
 {% for service in spec.services %}
 part 'services/{{service.name | caseDash}}.dart';
 {% endfor %}
