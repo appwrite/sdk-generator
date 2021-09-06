@@ -208,7 +208,7 @@ class Dart extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'await MultipartFile.fromPath(\'<field-name>\', \'./path-to-files/image.jpg\', \'image.jpg\')';
+                    $output .= 'await MultipartFile.fromPath(\''.$param['name'].'\', \'./path-to-files/image.jpg\', \'image.jpg\')';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -337,6 +337,18 @@ class Dart extends Language {
                 'scope'         => 'default',
                 'destination'   => '/pubspec.yaml',
                 'template'      => 'dart/pubspec.yaml.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/client_io.dart',
+                'template'      => 'dart/lib/client_io.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/client_browser.dart',
+                'template'      => 'dart/lib/client_browser.dart.twig',
                 'minify'        => false,
             ],
             [

@@ -1,4 +1,4 @@
-let sdk = new {{ spec.title | caseUcfirst }}();
+const sdk = new {{ spec.title | caseUcfirst }}();
 
 {% if method.security|length > 0 %}
 sdk
