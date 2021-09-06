@@ -53,7 +53,7 @@ class ServiceTest {
     @Throws(IOException::class)
     fun test() {
         val client = Client(ApplicationProvider.getApplicationContext())
-            .setEndpointRealtime("wss://demo.appwrite.org/v1")
+            .setEndpointRealtime("wss://demo.appwrite.io/v1")
             .setProject("console")
             .addHeader("Origin", "http://localhost")
             .setSelfSigned(true)
