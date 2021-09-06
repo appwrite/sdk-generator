@@ -207,18 +207,18 @@ open class Client {
             return
         }
 
-        if self.headers["content-type"] == "multipart/form-data" {
-            request = buildMultipart(&request, with: params)
-        } else {
-            do {
-                request = try buildJSON(&request, with: params)
-            } catch {
-                completion?(Result.failure(AppwriteError(message: error.localizedDescription)))
-                return
+        do {
+            if self.headers["content-type"] == "multipart/form-data" {
+                buildMultipart(&request, with: params)
+            } else {
+                try buildJSON(&request, with: params)
             }
+        } catch {
+            completion?(Result.failure(AppwriteError(message: error.localizedDescription)))
+            return
         }
 
-        execute(request, completion: completion)
+        execute(request, withSink: sink, completion: completion)
     }
 
     fileprivate func execute(
@@ -251,7 +251,7 @@ open class Client {
     fileprivate func randomBoundary() -> String {
         var string = ""
         for _ in 0..<16 {
-            string.append(boundaryChars.randomElement()!)
+            string.append(Client.boundaryChars.randomElement()!)
         }
         return string
     }
@@ -259,52 +259,75 @@ open class Client {
     fileprivate func buildJSON(
         _ request: inout HTTPClient.Request,
         with params: [String: Any?] = [:]
-    ) throws -> HTTPClient.Request {
+    ) throws {
         let json = try JSONSerialization.data(withJSONObject: params, options: [])
 
         request.body = .data(json)
-
-        return request
     }
 
     fileprivate func buildMultipart(
         _ request: inout HTTPClient.Request,
         with params: [String: Any?] = [:]
-    ) -> HTTPClient.Request {
+    ) {
         let boundary = randomBoundary()
 
-        var body = ""
-        for (key, value) in params {
-            body.append(boundary)
+        var body = ByteBuffer()
 
+        func addPart(name: String, value: Any, filename: String? = nil) {
+            body.writeString(DASHDASH)
+            body.writeString(boundary)
+            body.writeString(CLRF)
+            body.writeString("content-disposition: form-data; name=\"\(name)\"")
+
+            if filename != nil {
+                var bodyBuffer = value as! ByteBuffer
+                body.writeString("; filename=\"\(filename!)\"")
+                body.writeString(CLRF)
+                body.writeBuffer(&bodyBuffer)
+            } else {
+                body.writeString(CLRF)
+                body.writeString(value as! String)
+            }
+
+            body.writeString(CLRF)
+        }
+
+        for (key, value) in params {
             switch key {
             case "file":
-                guard let value = value as? String else  { break }
-
-                body.append("content-disposition: form-data; name=\(key); filename=\(boundary)\n\n")
-                body.append(value)
+                addPart(name: key, value: value!, filename: boundary)
             default:
                 guard let value = value as? String else  {
                     if let list = value as? [Any] {
                         for val in list {
-                            body.append(boundary)
-                            body.append("content-disposition: form-data; name=\(key)[]\n\n")
-                            body.append(val as? String ?? "")
+                            addPart(name: "\(key)[]", value: val as! String)
                         }
                     }
                     break
                 }
-                body.append("content-disposition: form-data; name=\(key)\n\n")
-                body.append(value as String)
+                addPart(name: key, value: value as String)
             }
-
-            body.append(boundary)
-            body.append("--")
         }
-        request.headers.add(name: "content-length", value: body.utf8.count.description)
-        request.body = .data(body.data(using: .utf8)!)
+        body.writeString(DASHDASH)
+        body.writeString(boundary)
+        body.writeString(DASHDASH)
+        body.writeString(CLRF)
 
-        return request
+        let bufferSize = 1024
+        let size = body.readableBytes
+
+        request.headers.remove(name: "content-type")
+        request.headers.add(name: "content-type", value: "multipart/form-data;boundary=\(DASHDASH + boundary)")
+        request.headers.add(name: "content-length", value: size.description)
+        request.body = .byteBuffer(body)
+//        request.body = .stream(length: body.readableBytes) { stream in
+//
+//            let buffer = size > bufferSize ?
+//                body.readSlice(length: bufferSize)! :
+//                body
+//
+//            return stream.write(.byteBuffer(buffer))
+//        }
     }
 }
 

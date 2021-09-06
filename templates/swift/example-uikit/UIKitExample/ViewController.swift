@@ -21,14 +21,23 @@ class ViewController: UIViewController {
     @IBOutlet weak var image: UIImageView!
     
     let client = Client()
-        .setEndpoint("https://demo.appwrite.io/v1")
-        .setProject("60f6a0d6e2a52")
+        .setEndpoint("https://localhost/v1")
+        .setProject("61358cc470b16")
+        .setSelfSigned(true)
 
     lazy var account = Account(client: client)
     lazy var storage = Storage(client: client)
     
+    var picker: ImagePicker?
+    
     required init?(coder: NSCoder) {
         super.init(coder: coder)
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        picker = ImagePicker(presentationController: self, delegate: self)
     }
 
     @IBAction func registerClick(_ sender: Any) {
@@ -47,7 +56,7 @@ class ViewController: UIViewController {
     }
     
     @IBAction func loginClick(_ sender: Any) {
-        account.createAnonymousSession { result in
+        account.createSession("test@email.com", "password") { result in
             var string: String = ""
             
             switch result {
@@ -99,10 +108,17 @@ class ViewController: UIViewController {
     }
     
     @IBAction func upload(_ sender: Any) {
-        let url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
-        let buffer = ByteBuffer(data: url.dataRepresentation)
+        picker?.present()
+        
+    }
+
+}
+
+extension ViewController: ImagePickerDelegate {
+    func didSelect(image: UIImage?) {
         var output = ""
-        storage.createFile(buffer, ["*"], ["*"], completion: { result in
+        
+        storage.createFile(ByteBuffer(data: image!.pngData()!), ["*"], ["*"]) { result in
             switch result {
             case .failure(let error):
                 output = error.message
@@ -113,6 +129,6 @@ class ViewController: UIViewController {
             DispatchQueue.main.async {
                 self.text.text = output
             }
-        })
+        }
     }
 }
