@@ -41,7 +41,7 @@ class RealtimeMessage {
       event: map['event'],
       payload: Map<String, dynamic>.from(map['payload'] ?? <String, dynamic>{}),
       channels: List<String>.from(map['channels'] ?? []),
-      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
+      timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp'] * 1000),
     );
   }
 
