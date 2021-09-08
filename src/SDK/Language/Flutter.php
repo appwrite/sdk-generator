@@ -189,6 +189,30 @@ class Flutter extends Dart {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/client_io.dart',
+                'template'      => 'flutter/lib/client_io.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/client_browser.dart',
+                'template'      => 'flutter/lib/client_browser.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/realtime_io.dart',
+                'template'      => 'flutter/lib/realtime_io.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/realtime_browser.dart',
+                'template'      => 'flutter/lib/realtime_browser.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/pubspec.yaml',
                 'template'      => 'flutter/pubspec.yaml.twig',
                 'minify'        => false,

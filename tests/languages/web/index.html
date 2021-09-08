@@ -20,7 +20,7 @@
             let sdk = new Appwrite();
 
             sdk.setProject('console');
-            sdk.setEndpointRealtime('wss://realtime.appwrite.org/v1');
+            sdk.setEndpointRealtime('wss://demo.appwrite.io/v1');
 
             sdk.subscribe('tests', event => {
                 responseRealtime = event.payload.response;

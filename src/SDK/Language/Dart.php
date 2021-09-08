@@ -341,6 +341,18 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/client_io.dart',
+                'template'      => 'dart/lib/client_io.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/client_browser.dart',
+                'template'      => 'dart/lib/client_browser.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/src/service.dart',
                 'template'      => 'dart/lib/src/service.dart.twig',
                 'minify'        => false,
