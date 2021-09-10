@@ -152,7 +152,7 @@ class Swagger2 extends Spec {
                         if(isset($desc['schema']) && isset($desc['schema']['$ref'])) {
                             $responseModel = $desc['schema']['$ref'];
                             if(!empty($responseModel)) {
-                                $responseModel = substr($responseModel,14);
+                                $responseModel = str_replace('#/definitions/', '', $responseModel);
                             }
                         }
                     }
@@ -304,7 +304,7 @@ class Swagger2 extends Spec {
                     $sch['properties'][$name]['required'] =  in_array($name,$sch['required']);
                     if(isset($def['items']['$ref'])) {
                         //nested model
-                        $sch['properties'][$name]['sub_schema'] = substr($def['items']['$ref'],14);
+                        $sch['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['items']['$ref']);
                     }
             }
             }
