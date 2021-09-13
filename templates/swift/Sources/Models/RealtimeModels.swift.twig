@@ -1,0 +1,65 @@
+//
+//  Created by Jake Barnby on 13/09/21.
+//
+
+import Foundation
+
+public class RealtimeSubscription {
+    var close: () -> Void
+
+    init(close: @escaping () -> Void) {
+        self.close = close
+    }
+}
+
+public class RealtimeCallback<T : Codable> {
+    let payloadType: T.Type
+    let callback: (RealtimeResponseEvent<T>) -> Void
+
+    init(
+        with payloadType: T.Type,
+        and callback: @escaping (RealtimeResponseEvent<T>) -> Void
+    ) {
+        self.payloadType = payloadType
+        self.callback = callback
+    }
+}
+
+public class RealtimeResponse : Decodable {
+    let type: String
+    var data: Model
+
+    init(
+        of type: String,
+        with data: Model
+    ) {
+        self.type = type
+        self.data = data
+    }
+}
+
+public class RealtimeResponseEvent<T : Codable> : Codable {
+    let event: String
+    let channels: Array<String>
+    let timestamp: Int64
+    var payload: T
+
+    init(
+        event: String,
+        channels: Array<String>,
+        timestamp: Int64,
+        payload: T
+    ) {
+        self.event = event
+        self.channels = channels
+        self.timestamp = timestamp
+        self.payload = payload
+    }
+}
+
+enum RealtimeCode {
+    static let policyViolation = 1008
+    static let unknown = -1
+}
+
+public class Model : Codable {}
