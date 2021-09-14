@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1D53246826CA42DD00D5382C /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 1D53246726CA42DD00D5382C /* Appwrite */; };
 		1D8C054726E603A200646CFC /* ImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D8C054626E603A200646CFC /* ImagePicker.swift */; };
+		1DD303FA26EEE7BA00632FDA /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 1DD303F926EEE7BA00632FDA /* Appwrite */; };
 		4B1151B5D92BD55833AD2A54 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4B115E35390385E1BB5197A8 /* LaunchScreen.storyboard */; };
 		4B1152F1B5ED8D14FA2730FE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B115A2E92E19A32F4D71704 /* AppDelegate.swift */; };
 		4B115847F32FD75449111E64 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4B11553806456B6FA77CE45A /* Assets.xcassets */; };
@@ -39,6 +39,7 @@
 /* Begin PBXFileReference section */
 		1D53246626CA414A00D5382C /* swift-client */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "swift-client"; path = "../../../examples/swift-client"; sourceTree = "<group>"; };
 		1D8C054626E603A200646CFC /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
+		1DD303F626EED79A00632FDA /* swockets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = swockets; path = ../../../../swockets; sourceTree = "<group>"; };
 		4B1151B0FC3E5D1AD1405D6D /* UIKitExampleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UIKitExampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B115317377938CDB4FF518B /* UIKitExampleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIKitExampleTests.swift; sourceTree = "<group>"; };
 		4B1154366EE3D6AD624FC76C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.info; path = Info.plist; sourceTree = "<group>"; };
@@ -74,7 +75,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1D53246826CA42DD00D5382C /* Appwrite in Frameworks */,
+				1DD303FA26EEE7BA00632FDA /* Appwrite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -91,6 +92,7 @@
 		4B11584FFD11E0EC8AE1D05E = {
 			isa = PBXGroup;
 			children = (
+				1DD303F626EED79A00632FDA /* swockets */,
 				1D53246626CA414A00D5382C /* swift-client */,
 				4B115EA639EF1F575013EFA6 /* Products */,
 				4B115E17FC70E956925F85AF /* UIKitExample */,
@@ -178,7 +180,7 @@
 			);
 			name = UIKitExample;
 			packageProductDependencies = (
-				1D53246726CA42DD00D5382C /* Appwrite */,
+				1DD303F926EEE7BA00632FDA /* Appwrite */,
 			);
 			productName = UIKitExample;
 			productReference = 4B115F7604FCAA687C1B01F4 /* UIKitExample.app */;
@@ -582,7 +584,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		1D53246726CA42DD00D5382C /* Appwrite */ = {
+		1DD303F926EEE7BA00632FDA /* Appwrite */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Appwrite;
 		};

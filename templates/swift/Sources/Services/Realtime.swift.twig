@@ -15,17 +15,13 @@ open class Realtime : Service {
     private let DEBOUNCE_MILLIS = 1
 
     private var socketClient: SwocketClient? = nil
-    private var channelCallbacks = [String: Array<RealtimeCallback<Any>>]()
+    private var channelCallbacks = [String: NSMutableSet]()
     private var errorCallbacks = [(AppwriteError) -> Void]()
 
     let connectSync = DispatchQueue(label: "ConnectSync")
     let callbackSync = DispatchQueue(label: "CallbackSync")
 
     private var subCallDepth = 0
-
-
-    init() {
-    }
 
     private func createSocket() {
         var queryParams = "project=\(client.config["project"]!)"
@@ -34,7 +30,7 @@ open class Realtime : Service {
             queryParams += "&channels[]=\(channel)"
         }
 
-        let url = "\(client.endPointRealtime)/realtime?\(queryParams)"
+        let url = "\(client.endPointRealtime!)/realtime?\(queryParams)"
 
         if (socketClient != nil) {
             closeSocket()
@@ -61,27 +57,24 @@ open class Realtime : Service {
         )
     }
 
-    public func subscribe<T>(
+    public func subscribe<T : AnyObject>(
         channels: [String],
         payloadType: T.Type,
         callback: @escaping (RealtimeResponseEvent<T>) -> Void
     ) -> RealtimeSubscription {
         for channel in channels {
             if channelCallbacks[channel] != nil {
-                channelCallbacks[channel] = [
-                    RealtimeCallback(
-                        with: payloadType,
-                        and: callback as (RealtimeResponseEvent<T>) -> Void
-                    )
-                ]
-                continue
-            }
-            channelCallbacks[channel]?.append(
-                RealtimeCallback(
+                channelCallbacks[channel] = []
+                channelCallbacks[channel]?.add(RealtimeCallback(
                     with: payloadType,
                     and: callback as (RealtimeResponseEvent<T>) -> Void
-                )
-            )
+                ))
+                continue
+            }
+            channelCallbacks[channel]?.add(RealtimeCallback(
+                with: payloadType,
+                and: callback as (RealtimeResponseEvent<T>) -> Void
+            ))
         }
 
         connectSync.sync {
@@ -111,7 +104,7 @@ open class Realtime : Service {
         for channel in channels {
             channelCallbacks[channel] = []
         }
-        if (channelCallbacks.allSatisfy { $0.value.isEmpty() }) {
+        if (channelCallbacks.allSatisfy { $0.value.count != 0 }) {
             errorCallbacks = []
             closeSocket()
         }
@@ -152,7 +145,7 @@ extension Realtime: SwocketClientDelegate {
         let error = try! message.data
             .toJson()
             .fromJson(to: AppwriteError.self)
-
+        
         for callback in errorCallbacks {
             callback(error)
         }
@@ -164,14 +157,15 @@ extension Realtime: SwocketClientDelegate {
             .fromJson(to: RealtimeResponseEvent<Model>.self)
 
         for channel in event.channels {
-            for callback in channelCallbacks[channel] {
+            for callback in channelCallbacks[channel]! {
+                let typedCallback = (callback as! RealtimeCallback<Model>)
+
                 event.payload = try! event.payload
                     .toJson()
-                    .fromJson(to: callback.payloadType)
-                callback.callback(event)
+                    .fromJson(to: typedCallback.payloadType)
+
+                typedCallback.callback(event)
             }
         }
     }
 }
-
-

@@ -14,7 +14,9 @@ open class Client {
 
     // MARK: Properties
 
-    open var endpoint = "{{spec.endpoint}}"
+    open var endPoint = "{{spec.endpoint}}"
+
+    open var endPointRealtime: String? = nil
 
     open var headers: [String: String] = [
       "content-type": "",
@@ -120,12 +122,32 @@ open class Client {
     ///
     /// Set endpoint
     ///
-    /// @param String endpoint
+    /// @param String endPoint
     ///
     /// @return Client
     ///
-    open func setEndpoint(_ endpoint: String) -> Client {
-        self.endpoint = endpoint
+    open func setEndpoint(_ endPoint: String) -> Client {
+        self.endPoint = endPoint
+
+        if (self.endPointRealtime == nil && endPoint.starts(with: "http")) {
+            self.endPointRealtime = endPoint
+                .replacingOccurrences(of: "http://", with: "ws://")
+                .replacingOccurrences(of: "https://", with: "wss://")
+        }
+
+        return self
+    }
+
+    ///
+    /// Set realtime endpoint.
+    ///
+    /// @param String endPoint
+    ///
+    /// @return Client
+    ///
+    func setEndpointRealtime(endPoint: String) -> Client {
+        self.endPointRealtime = endPoint
+
         return self
     }
 
@@ -203,7 +225,7 @@ open class Client {
             ? "?" + parametersToQueryString(params: params)
             : ""
 
-        let targetURL = URL(string: endpoint + path + queryParameters)!
+        let targetURL = URL(string: endPoint + path + queryParameters)!
 
         var request: HTTPClient.Request
         do {

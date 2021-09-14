@@ -22,7 +22,7 @@ class ViewController: UIViewController {
     
     let client = Client()
         .setEndpoint("https://localhost/v1")
-        .setProject("61358cc470b16")
+        .setProject("613720f65c5fa")
         .setSelfSigned(true)
 
     lazy var account = Account(client: client)
@@ -44,7 +44,8 @@ class ViewController: UIViewController {
         let disptch = DispatchGroup()
         disptch.enter()
         var string: String = ""
-        account.create("test@email.com", "password") { result in
+        
+        account.create("jake@appwrite.io", "password") { result in
             switch result {
             case .failure(let error): string = error.message
             case .success(var response): string = response.body!.readString(length: response.body!.readableBytes) ?? ""
@@ -56,12 +57,13 @@ class ViewController: UIViewController {
     }
     
     @IBAction func loginClick(_ sender: Any) {
-        account.createSession("test@email.com", "password") { result in
+        account.createSession("jake@appwrite.io", "password") { result in
             var string: String = ""
             
             switch result {
             case .failure(let error): string = error.message
-            case .success(var response): string = response.body!.readString(length: response.body!.readableBytes) ?? ""
+            case .success(var response):
+                string = response.body!.readString(length: response.body!.readableBytes) ?? ""
             }
 
             DispatchQueue.main.async {
@@ -118,7 +120,7 @@ extension ViewController: ImagePickerDelegate {
     func didSelect(image: UIImage?) {
         var output = ""
         
-        storage.createFile(ByteBuffer(data: image!.pngData()!), ["*"], ["*"]) { result in
+        storage.createFile(ByteBuffer(data: image!.pngData()!), ["*"], ["61372ecd9a8f3"]) { result in
             switch result {
             case .failure(let error):
                 output = error.message
