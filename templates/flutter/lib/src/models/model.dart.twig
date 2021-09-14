@@ -39,12 +39,19 @@ class {{ definition.name | caseUcfirst }} {
 {% endif %}
         };
     }
-
 {% if definition.additionalProperties %}
+
     T convertTo<T>(T Function(Map) fromJson) => fromJson(data);
 {% endif %}
-{% if definition.name == 'documentList' %}
+{% for property in definition.properties %}
+{% if property.sub_schema %}
+{% for def in spec.definitions %}
+{% if def.name == property.sub_schema and def.additionalProperties and property.type == 'array' %}
+
     List<T> convertTo<T>(T Function(Map) fromJson) =>
-      documents.map((d) => d.convertTo<T>(fromJson)).toList();
+        {{property.name}}.map((d) => d.convertTo<T>(fromJson)).toList();
 {% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
 }
