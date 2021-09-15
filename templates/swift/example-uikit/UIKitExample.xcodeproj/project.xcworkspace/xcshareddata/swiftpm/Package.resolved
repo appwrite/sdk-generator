@@ -63,6 +63,15 @@
           "revision": "39587bceccda72780e2a8a8c5e857e42a9df2fa8",
           "version": "1.11.0"
         }
+      },
+      {
+        "package": "Swockets",
+        "repositoryURL": "https://github.com/abnegate/swockets.git",
+        "state": {
+          "branch": "develop",
+          "revision": "d04d00e98f07355ab7a377a3ab1c969b5ff335dc",
+          "version": null
+        }
       }
     ]
   },

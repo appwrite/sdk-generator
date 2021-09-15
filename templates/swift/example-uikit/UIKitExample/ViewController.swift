@@ -21,12 +21,15 @@ class ViewController: UIViewController {
     @IBOutlet weak var image: UIImageView!
     
     let client = Client()
-        .setEndpoint("https://localhost/v1")
+        .setEndpoint("http://localhost:80/v1")
         .setProject("613720f65c5fa")
         .setSelfSigned(true)
 
+    let COLLECTION_ID = ""
+    
     lazy var account = Account(client: client)
     lazy var storage = Storage(client: client)
+    lazy var realtime = Realtime(client: client)
     
     var picker: ImagePicker?
     
@@ -113,7 +116,13 @@ class ViewController: UIViewController {
         picker?.present()
         
     }
-
+    
+    @IBAction func subscribe(_ sender: Any) {
+        _ = realtime.subscribe(channels:["collections.\(COLLECTION_ID).documents"], payloadType: Room.self) { message in
+            print(message)
+        }
+    }
+    
 }
 
 extension ViewController: ImagePickerDelegate {
@@ -133,4 +142,8 @@ extension ViewController: ImagePickerDelegate {
             }
         }
     }
+}
+
+class Room : Model {
+    
 }

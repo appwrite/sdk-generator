@@ -1,5 +1,4 @@
-// swift-tools-version:5.2
-// The swift-tools-version declares the minimum version of Swift required to build this package.
+// swift-tools-version:5.1
 
 import PackageDescription
 
@@ -13,11 +12,15 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.0.0"),
+        .package(url: "https://github.com/abnegate/swockets.git", .branch("develop"))
     ],
     targets: [
         .target(
             name: "{{spec.title | caseUcfirst}}",
-            dependencies: [.product(name: "AsyncHTTPClient", package: "async-http-client")]
+            dependencies: [
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
+                "Swockets"
+            ]
         ),
     ],
     swiftLanguageVersions: [.v5]

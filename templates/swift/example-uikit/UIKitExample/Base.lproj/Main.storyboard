@@ -17,7 +17,7 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="BSb-VC-reA">
-                                <rect key="frame" x="142" y="560" width="144" height="30"/>
+                                <rect key="frame" x="142" y="360" width="144" height="30"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="30" id="dNB-lx-gqN"/>
                                 </constraints>
@@ -27,7 +27,7 @@
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="oio-rD-Rub">
-                                <rect key="frame" x="195" y="522" width="38" height="30"/>
+                                <rect key="frame" x="195" y="322" width="38" height="30"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="30" id="XDP-hc-qeY"/>
                                 </constraints>
@@ -37,7 +37,7 @@
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="XgR-LV-oGp">
-                                <rect key="frame" x="179.66666666666666" y="598" width="69" height="30"/>
+                                <rect key="frame" x="179.66666666666666" y="398" width="69" height="30"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="30" id="MLK-zS-yhM"/>
                                 </constraints>
@@ -47,14 +47,14 @@
                                 </connections>
                             </button>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="BZm-qv-ycZ">
-                                <rect key="frame" x="36.666666666666657" y="276" width="354.66666666666674" height="200"/>
+                                <rect key="frame" x="125.33333333333333" y="176" width="177.33333333333337" height="100"/>
                                 <constraints>
                                     <constraint firstAttribute="width" secondItem="BZm-qv-ycZ" secondAttribute="height" multiplier="241:136" id="PxE-Fc-ri3"/>
-                                    <constraint firstAttribute="height" constant="200" id="odA-Gf-GjK"/>
+                                    <constraint firstAttribute="height" constant="100" id="odA-Gf-GjK"/>
                                 </constraints>
                             </imageView>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="1xM-Ze-Rjx">
-                                <rect key="frame" x="185.66666666666666" y="484" width="57" height="30"/>
+                                <rect key="frame" x="185.66666666666666" y="284" width="57" height="30"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="30" id="lwk-0h-aAs"/>
                                 </constraints>
@@ -64,7 +64,7 @@
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Srt-AK-Etb">
-                                <rect key="frame" x="189.66666666666666" y="636" width="49" height="30"/>
+                                <rect key="frame" x="189.66666666666666" y="436" width="49" height="30"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="30" id="Qev-bS-Y6h"/>
                                 </constraints>
@@ -74,17 +74,27 @@
                                 </connections>
                             </button>
                             <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" textAlignment="natural" translatesAutoresizingMaskIntoConstraints="NO" id="hm9-Uc-U8r">
-                                <rect key="frame" x="80.666666666666686" y="56" width="267" height="200"/>
+                                <rect key="frame" x="80.666666666666686" y="56" width="267" height="100"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="267" id="B8b-nS-imu"/>
-                                    <constraint firstAttribute="height" constant="200" id="tWA-lk-mP9"/>
+                                    <constraint firstAttribute="height" constant="100" id="tWA-lk-mP9"/>
                                 </constraints>
                                 <string key="text">Lorem ipsum dolor sit er elit lamet, consectetaur cillium adipisicing pecu, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Nam liber te conscient to factor tum poen legum odioque civiuda.</string>
                                 <color key="textColor" systemColor="labelColor"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="14"/>
                                 <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
                             </textView>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="LcH-I3-vDi">
+                                <rect key="frame" x="179.66666666666666" y="474" width="69" height="30"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="30" id="vyY-iF-9Km"/>
+                                </constraints>
+                                <state key="normal" title="Subscribe"/>
+                                <connections>
+                                    <action selector="subscribe:" destination="BYZ-38-t0r" eventType="touchUpInside" id="gZQ-mS-l26"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
@@ -97,12 +107,14 @@
                             <constraint firstItem="1xM-Ze-Rjx" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="OQb-os-JXr"/>
                             <constraint firstItem="hm9-Uc-U8r" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="12" id="SO4-kE-PMr"/>
                             <constraint firstItem="oio-rD-Rub" firstAttribute="top" secondItem="1xM-Ze-Rjx" secondAttribute="bottom" constant="8" symbolic="YES" id="XPE-Qg-fm1"/>
+                            <constraint firstItem="LcH-I3-vDi" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="Y9m-dZ-kHB"/>
                             <constraint firstItem="BSb-VC-reA" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="ZnT-ey-NXQ"/>
                             <constraint firstItem="BZm-qv-ycZ" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="ctP-QY-e8x"/>
                             <constraint firstItem="BSb-VC-reA" firstAttribute="top" secondItem="oio-rD-Rub" secondAttribute="bottom" constant="8" symbolic="YES" id="cvs-Lq-Sl5"/>
                             <constraint firstItem="oio-rD-Rub" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="mH6-1O-dWx"/>
                             <constraint firstItem="Srt-AK-Etb" firstAttribute="top" secondItem="XgR-LV-oGp" secondAttribute="bottom" constant="8" symbolic="YES" id="qqe-zQ-eAa"/>
                             <constraint firstItem="1xM-Ze-Rjx" firstAttribute="top" secondItem="BZm-qv-ycZ" secondAttribute="bottom" constant="8" symbolic="YES" id="tQL-oF-EGR"/>
+                            <constraint firstItem="LcH-I3-vDi" firstAttribute="top" secondItem="Srt-AK-Etb" secondAttribute="bottom" constant="8" symbolic="YES" id="tXr-gp-GkB"/>
                         </constraints>
                     </view>
                     <connections>

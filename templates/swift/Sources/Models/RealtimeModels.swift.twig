@@ -12,7 +12,7 @@ public class RealtimeSubscription {
     }
 }
 
-public class RealtimeCallback<T : Codable> {
+public class RealtimeCallback<T : AnyObject & Decodable> {
     let payloadType: T.Type
     let callback: (RealtimeResponseEvent<T>) -> Void
 
@@ -38,7 +38,7 @@ public class RealtimeResponse : Decodable {
     }
 }
 
-public class RealtimeResponseEvent<T : Codable> : Codable {
+public class RealtimeResponseEvent<T : AnyObject & Decodable> : Decodable {
     let event: String
     let channels: Array<String>
     let timestamp: Int64
