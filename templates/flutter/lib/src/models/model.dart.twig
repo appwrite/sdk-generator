@@ -3,10 +3,10 @@ part of {{ language.params.packageName }}.models;
 
 class {{ definition.name | caseUcfirst }} {
 {% for property in definition.properties %}
-    late final {% if not property.required %}{{_self.sub_schema(property)}}? {{ property.name | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ property.name | escapeKeyword }}{% endif %};
+    final {% if not property.required %}{{_self.sub_schema(property)}}? {{ property.name | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ property.name | escapeKeyword }}{% endif %};
 {% endfor %}
 {% if definition.additionalProperties %}
-    late final Map<String, dynamic> data;
+    final Map<String, dynamic> data;
 {% endif %}
 
     {{ definition.name | caseUcfirst}}({
