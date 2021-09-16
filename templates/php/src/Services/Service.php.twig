@@ -71,19 +71,21 @@ class {{ service.name | caseUcfirst }} extends Service
 {% endfor %}
                 ], $params);
         } else {
+            $id = '';
             $handle = @fopen(${{ parameter.name | caseCamel }}, "rb");
             $mimeType = mime_content_type(${{ parameter.name | caseCamel }});
             $counter = 0;
             while (!feof($handle)) {
-                $params['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(@fread($handle, Client::CHUNK_SIZE)), $mimeType, pathinfo(${{ parameter.name | caseCamel }}, PATHINFO_FILENAME));
+                $params['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(@fread($handle, Client::CHUNK_SIZE)), $mimeType, basename(${{ parameter.name | caseCamel }}));
                 $contentRanges = 'bytes ' . ($counter * Client::CHUNK_SIZE) . '-' . min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size) . '/' . $size;
                 $response = $this->client->call(Client::METHOD_POST, $path, [
                     'content-type' => 'multipart/form-data',
                     'content-range' => $contentRanges,
-                    'x-appwrite-id' => ${{ method.parameters.all[0].name | caseCamel }},
+                    'x-appwrite-id' => $id,
                 ], $params);
                 $counter++;
-                ${{ method.parameters.all[0].name | caseCamel }} = $response['body']['$id']; {# Asuming that with custom ID support, the first parameter will always be the ID, however this breaks if the endpoint doesn't support custom id for example create Tag #}
+                $id = $response['$id'];
+                $params['{{ method.parameters.all[1].name }}'] = $id; {# Asuming that with custom ID support, second parameter (fileID and executionID both are second param), but we don't have custom ID for tags yet so will fail for createTag #}
             }
             @fclose($handle);
             return $response;
