@@ -5,22 +5,21 @@ import AsyncHTTPClient
 import Foundation
 import NIO
 
-open class {{ service.name | caseUcfirst }}: Service
-{
+open class {{ service.name | caseUcfirst }}: Service {
 {% for method in service.methods %}
-    /**
-     * {{ method.title }}
-     *
+    ///
+    /// {{ method.title }}
+    ///
 {% if method.description %}
-{{ method.description|comment1 }}
-     *
+{{ method.description | swiftComment }}
+    ///
 {% endif %}
 {% for parameter in method.parameters.all %}
-     * @param {{ parameter.type | typeName | raw}} {{ parameter.name | caseCamel }}
+    /// @param {{ parameter.type | typeName | raw}} {{ parameter.name | caseCamel }}
 {% endfor %}
-     * @throws Exception
-     * @return array
-     */
+    /// @throws Exception
+    /// @return array
+    ///
 {% if method.type == "webAuth" %}
     @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 {% endif %}

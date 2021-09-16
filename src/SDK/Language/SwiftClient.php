@@ -14,17 +14,29 @@ class SwiftClient extends Swift {
 
     public function getFiles()
     {
-        return array_merge(parent::getFiles(), [
+        return \array_merge(parent::getFiles(), [
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/WebAuthComponent.swift',
-                'template'      => '/swift/Sources/WebAuthComponent.swift.twig',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/OAuth/WebAuthComponent.swift',
+                'template'      => '/swift/Sources/OAuth/WebAuthComponent.swift.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/View+OAuth.swift',
-                'template'      => '/swift/Sources/View+OAuth.swift.twig',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/OAuth/View+OAuth.swift',
+                'template'      => '/swift/Sources/OAuth/View+OAuth.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/RealtimeModels.swift',
+                'template'      => '/swift/Sources/Models/RealtimeModels.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Services/Realtime.swift',
+                'template'      => '/swift/Sources/Services/Realtime.swift.twig',
                 'minify'        => false,
             ],
             // Config for project example-swiftui

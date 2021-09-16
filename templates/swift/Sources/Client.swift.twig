@@ -10,6 +10,9 @@ import NIOSSL
 import Foundation
 import AsyncHTTPClient
 
+let DASHDASH = "--"
+let CLRF = "\r\n"
+
 open class Client {
 
     // MARK: Properties
@@ -271,7 +274,7 @@ open class Client {
     fileprivate func execute(
         _ request: HTTPClient.Request,
         withSink bufferSink: ((ByteBuffer) -> Void)? = nil,
-        completion: ((Result<HTTPClient.Response, AppwriteError>) -> Void)? = nil
+        completion: ((Result<HTTPClient.Response, {{ spec.title | caseUcfirst}}Error>) -> Void)? = nil
     ) {
         if bufferSink == nil {
             http.execute(

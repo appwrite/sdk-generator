@@ -1,6 +1,6 @@
 import Foundation
 
-open class {{ spec.title | caseUcfirst}}Error : Swift.Error {
+open class {{ spec.title | caseUcfirst}}Error : Swift.Error, Decodable {
 
     public let message: String
 
