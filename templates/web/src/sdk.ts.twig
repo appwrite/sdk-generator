@@ -172,6 +172,7 @@ class {{ spec.title | caseUcfirst }} {
         },
         createSocket: () => {
             if (this.realtime.channels.size < 1) return;
+
             const channels = new URLSearchParams();
             channels.set('project', this.config.project);
             this.realtime.channels.forEach(channel => {
@@ -180,8 +181,15 @@ class {{ spec.title | caseUcfirst }} {
 
             const url = this.config.endpointRealtime + '/realtime?' + channels.toString();
 
-            if (url !== this.realtime.url || !this.realtime.socket || this.realtime.socket?.readyState > WebSocket.OPEN) {
-                if (this.realtime.socket && this.realtime.socket?.readyState < WebSocket.CLOSING) {
+            if (
+                url !== this.realtime.url || // Check if URL is present
+                !this.realtime.socket || // Check if WebSocket has not been created
+                this.realtime.socket?.readyState > WebSocket.OPEN // Check if WebSocket is CLOSING (3) or CLOSED (4)
+            ) {
+                if (
+                    this.realtime.socket &&
+                    this.realtime.socket?.readyState < WebSocket.CLOSING // Close WebSocket if it is CONNECTING (0) or OPEN (1)
+                ) {
                     this.realtime.reconnect = false;
                     this.realtime.socket.close();
                 }
@@ -189,11 +197,17 @@ class {{ spec.title | caseUcfirst }} {
                 this.realtime.url = url;
                 this.realtime.socket = new WebSocket(url);
                 this.realtime.socket.addEventListener('message', this.realtime.onMessage);
-                this.realtime.socket.addEventListener('open', event => {
+                this.realtime.socket.addEventListener('open', _event => {
                     this.realtime.reconnectAttempts = 0;
                 });
                 this.realtime.socket.addEventListener('close', event => {
-                    if (!this.realtime.reconnect || (this.realtime?.lastMessage?.type === 'error' && (<RealtimeResponseError>this.realtime?.lastMessage.data).code === 1008)) {
+                    if (
+                        !this.realtime.reconnect ||
+                        (
+                            this.realtime?.lastMessage?.type === 'error' && // Check if last message was of type error
+                            (<RealtimeResponseError>this.realtime?.lastMessage.data).code === 1008 // Check for policy violation 1008
+                        )
+                    ) {
                         this.realtime.reconnect = true;
                         return;
                     }
