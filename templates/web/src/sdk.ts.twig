@@ -173,7 +173,7 @@ class {{ spec.title | caseUcfirst }} {
 
                 this.realtime.url = url;
                 this.realtime.socket = new WebSocket(url);
-                this.realtime.socket?.addEventListener('message', this.realtime.onMessage);
+                this.realtime.socket.addEventListener('message', this.realtime.onMessage);
 
                 this.realtime.socket.addEventListener('close', event => {
                     if (!this.realtime.reconnect || (this.realtime?.lastMessage?.type === 'error' && (<RealtimeResponseError>this.realtime?.lastMessage.data).code === 1008)) {
