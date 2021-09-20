@@ -212,7 +212,7 @@ class {{ spec.title | caseUcfirst }} {
                             const isSubscribed = data.channels.some(channel => this.realtime.channels.has(channel));
                             if (!isSubscribed) return;
                             this.realtime.subscriptions.forEach(subscription => {
-                                if (data.channels.some(channel => v.channels.includes(channel))) {
+                                if (data.channels.some(channel => subscription.channels.includes(channel))) {
                                     setTimeout(() => subscription.callback(data));
                                 }
                             })
