@@ -58,6 +58,8 @@ type Realtime = {
     }>;
     subscriptionsCounter: number;
     reconnect: boolean;
+    reconnectAttempts: number;
+    getTimeout: () => number;
     connect: () => void;
     createSocket: () => void;
     cleanUp: (channels: string[]) => void;
@@ -148,12 +150,25 @@ class {{ spec.title | caseUcfirst }} {
         subscriptions: new Map(),
         subscriptionsCounter: 0,
         reconnect: true,
+        reconnectAttempts: 0,
         lastMessage: undefined,
         connect: () => {
             clearTimeout(this.realtime.timeout);
             this.realtime.timeout = window?.setTimeout(() => {
                 this.realtime.createSocket();
             }, 50);
+        },
+        getTimeout: () => {
+            switch (true) {
+                case this.realtime.reconnectAttempts < 5:
+                    return 1000;
+                case this.realtime.reconnectAttempts < 15:
+                    return 5000;
+                case this.realtime.reconnectAttempts < 100:
+                    return 10_000;
+                default:
+                    return 60_000;
+            }
         },
         createSocket: () => {
             if (this.realtime.channels.size < 1) return;
@@ -165,8 +180,8 @@ class {{ spec.title | caseUcfirst }} {
 
             const url = this.config.endpointRealtime + '/realtime?' + channels.toString();
 
-            if(url !== this.realtime.url || !this.realtime.socket || this.realtime.socket?.readyState > WebSocket.OPEN) {
-                if (this.realtime.socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(this.realtime.socket?.readyState)) {
+            if (url !== this.realtime.url || !this.realtime.socket || this.realtime.socket?.readyState > WebSocket.OPEN) {
+                if (this.realtime.socket && this.realtime.socket?.readyState < WebSocket.CLOSING) {
                     this.realtime.reconnect = false;
                     this.realtime.socket.close();
                 }
@@ -174,16 +189,22 @@ class {{ spec.title | caseUcfirst }} {
                 this.realtime.url = url;
                 this.realtime.socket = new WebSocket(url);
                 this.realtime.socket.addEventListener('message', this.realtime.onMessage);
-
+                this.realtime.socket.addEventListener('open', event => {
+                    this.realtime.reconnectAttempts = 0;
+                });
                 this.realtime.socket.addEventListener('close', event => {
                     if (!this.realtime.reconnect || (this.realtime?.lastMessage?.type === 'error' && (<RealtimeResponseError>this.realtime?.lastMessage.data).code === 1008)) {
                         this.realtime.reconnect = true;
                         return;
                     }
-                    console.error('Realtime got disconnected. Reconnect will be attempted in 1 second.', event.reason);
+
+                    const timeout = this.realtime.getTimeout();
+                    console.error(`Realtime got disconnected. Reconnect will be attempted in ${timeout / 1000} seconds.`, event.reason);
+
                     setTimeout(() => {
+                        this.realtime.reconnectAttempts++;
                         this.realtime.createSocket();
-                    }, 1000);
+                    }, timeout);
                 })
             }
         },
