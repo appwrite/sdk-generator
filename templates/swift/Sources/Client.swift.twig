@@ -351,18 +351,23 @@ open class Client {
             body.writeString(DASHDASH)
             body.writeString(boundary)
             body.writeString(CLRF)
-            body.writeString("content-disposition: form-data; name=\"\(name)\"")
+            body.writeString("Content-Disposition: form-data; name=\"\(name)\"")
 
             if filename != nil {
                 var bodyBuffer = value as! ByteBuffer
-                body.writeString("; filename=\"\(filename!)\"")
+                body.writeString("; filename=\"\(filename!).jpg\"")
+                body.writeString(CLRF)
+                body.writeString("Content-Length: \(bodyBuffer.readableBytes)")
                 body.writeString(CLRF)
                 body.writeBuffer(&bodyBuffer)
             } else {
                 body.writeString(CLRF)
-                body.writeString(value as! String)
-            }
+                let stringValue = value as! String
+                body.writeString("Content-Length: \(stringValue.count)")
+                body.writeString(CLRF)
 
+                body.writeString(stringValue)
+            }
             body.writeString(CLRF)
         }
 
@@ -391,8 +396,8 @@ open class Client {
         let size = body.readableBytes
 
         request.headers.remove(name: "content-type")
-        request.headers.add(name: "content-type", value: "multipart/form-data;boundary=\(DASHDASH + boundary)")
-        request.headers.add(name: "content-length", value: size.description)
+        request.headers.add(name: "Content-Type", value: "multipart/form-data")
+        request.headers.add(name: "Content-Length", value: size.description)
         request.body = .byteBuffer(body)
 //        request.body = .stream(length: body.readableBytes) { stream in
 //
