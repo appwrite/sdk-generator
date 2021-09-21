@@ -1,0 +1,41 @@
+import Foundation
+import AsyncHTTPClient
+
+extension HTTPClient.Cookie : Codable {
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case value
+        case path
+        case domain
+        case expires
+        case maxAge
+        case httpOnly
+        case secure
+    }
+
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        name = try values.decode(String.self, forKey: .name)
+        value = try values.decode(String.self, forKey: .value)
+        path = try values.decode(String.self, forKey: .path)
+        domain = try values.decode(String.self, forKey: .domain)
+        expires = try values.decode(Date.self, forKey: .expires)
+        value = try values.decode(String.self, forKey: .value)
+        maxAge = try values.decode(Int.self, forKey: .maxAge)
+        httpOnly = try values.decode(Bool.self, forKey: .httpOnly)
+        secure = try values.decode(Bool.self, forKey: .secure)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(value, forKey: .value)
+        try container.encode(path, forKey: .path)
+        try container.encode(domain, forKey: .domain)
+        try container.encode(expires, forKey: .expires)
+        try container.encode(maxAge, forKey: .maxAge)
+        try container.encode(httpOnly, forKey: .httpOnly)
+        try container.encode(secure, forKey: .secure)
+    }
+}

@@ -241,16 +241,9 @@ open class Client {
             return
         }
 
-        for (key, value) in self.headers {
-            request.headers.add(name: key, value: value)
-        }
+        addHeaders(to: &request)
+        addCookies(to: &request)
 
-        let name = UserDefaults.standard.string(forKey: "cookie-name-.\(targetURL.host ?? "")")
-        let value = UserDefaults.standard.string(forKey: "cookie-value-.\(targetURL.host ?? "")")
-
-        if  name != nil && value != nil {
-            request.headers.add(name: "Set-Cookie", value: "\(name!)=\(value!)")
-        }
 
         if "GET" == method {
             execute(request, completion: completion)
@@ -258,17 +251,41 @@ open class Client {
         }
 
         do {
-            if self.headers["content-type"] == "multipart/form-data" {
-                buildMultipart(&request, with: params)
-            } else {
-                try buildJSON(&request, with: params)
-            }
-        } catch {
-            completion?(Result.failure(AppwriteError(message: error.localizedDescription)))
+            try buildBody(for: &request, with: params)
+        } catch let error {
+            completion?(Result.failure({{ spec.title | caseUcfirst}}Error(message: error.localizedDescription)))
             return
         }
 
         execute(request, withSink: sink, completion: completion)
+    }
+
+    fileprivate func addHeaders(to request: inout HTTPClient.Request) {
+        for (key, value) in self.headers {
+            request.headers.add(name: key, value: value)
+        }
+    }
+
+    fileprivate func addCookies(to request: inout HTTPClient.Request) {
+        let cookieJson = UserDefaults.standard.string(forKey: "\(request.url.host ?? "")-cookies")
+        let cookies = try! cookieJson?.fromJson(to: [HTTPClient.Cookie].self)
+
+        if let authCookie = cookies?.first(where: { cookie in
+            cookie.name.starts(with: "a_session_") && !cookie.name.contains("legacy")
+        }) {
+            request.headers.add(name: "cookie", value: "\(authCookie.name)=\(authCookie.value)")
+        }
+    }
+
+    fileprivate func buildBody(
+        for request: inout HTTPClient.Request,
+        with params: [String: Any?]
+    ) throws {
+        if request.headers["content-type"][0] == "multipart/form-data" {
+            buildMultipart(&request, with: params)
+        } else {
+            try buildJSON(&request, with: params)
+        }
     }
 
     fileprivate func execute(
@@ -280,11 +297,9 @@ open class Client {
             http.execute(
                 request: request,
                 delegate: ResponseAccumulator(request: request)
-            ).futureResult.whenComplete { result in
-                if let completion = completion {
-                    completion(result.mapError { AppwriteError(message: $0.localizedDescription) })
-                }
-            }
+            ).futureResult.whenComplete( { result in
+                complete(with: result)
+            })
             return
         }
 
@@ -292,8 +307,17 @@ open class Client {
             request: request,
             delegate: StreamingDelegate(request: request, sink: bufferSink)
         ).futureResult.whenComplete { result in
+            complete(with: result)
+        }
+
+        func complete(with result: Result<HTTPClient.Response, Error>) {
             if let completion = completion {
-                completion(result.mapError { AppwriteError(message: $0.localizedDescription) })
+                switch result {
+                case .failure(let error): print(error)
+                case .success(let response):
+                    UserDefaults.standard.set(try! response.cookies.toJson(), forKey: "\(response.host)-cookies")
+                }
+                completion(result.mapError { {{ spec.title | caseUcfirst}}Error(message: $0.localizedDescription) })
             }
         }
     }

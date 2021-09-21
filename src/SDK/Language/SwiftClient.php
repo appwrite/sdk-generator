@@ -181,6 +181,12 @@ class SwiftClient extends Swift {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/example-uikit/UIKitExample/ImagePicker.swift',
+                'template'      => '/swift/example-uikit/UIKitExample/ImagePicker.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/example-uikit/UIKitExample/Info.plist',
                 'template'      => '/swift/example-uikit/UIKitExample/Info.plist',
                 'minify'        => false,

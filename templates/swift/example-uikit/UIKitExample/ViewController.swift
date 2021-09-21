@@ -22,14 +22,15 @@ class ViewController: UIViewController {
     
     let client = Client()
         .setEndpoint("http://localhost:80/v1")
-        .setProject("613720f65c5fa")
+        .setProject("613b18dabf74a")
         .setSelfSigned(true)
 
-    let COLLECTION_ID = ""
+    let COLLECTION_ID = "6149afd52ce3b"
     
     lazy var account = Account(client: client)
     lazy var storage = Storage(client: client)
     lazy var realtime = Realtime(client: client)
+    lazy var database = Database(client: client)
     
     var picker: ImagePicker?
     
@@ -79,8 +80,7 @@ class ViewController: UIViewController {
         account.createOAuth2Session(
             "facebook",
             "https://demo.appwrite.io/auth/oauth2/success",
-            "https://demo.appwrite.io/auth/oauth2/failure",
-            completion: { result in
+            "https://demo.appwrite.io/auth/oauth2/failure") { result in
                 var string: String = ""
                 
                 switch result {
@@ -92,12 +92,11 @@ class ViewController: UIViewController {
                     self.text.text = string
                 }
             }
-        )
         
     }
     
     @IBAction func download(_ sender: Any) {
-        storage.getFileDownload("60f7a0178c3e5", completion: { result in
+        storage.getFileDownload("6149ae1b0c6dd") { result in
             switch result {
             case .failure(let error):
                 DispatchQueue.main.async {
@@ -109,7 +108,7 @@ class ViewController: UIViewController {
                     self.image.image = UIImage(data: data)
                 }
             }
-        })
+        }
     }
     
     @IBAction func upload(_ sender: Any) {
@@ -123,13 +122,35 @@ class ViewController: UIViewController {
         }
     }
     
+    @IBAction func createDocument(_ sender: Any) {
+        database.createDocument(COLLECTION_ID, [
+            "name": "Name \(Int.random(in: 0...Int.max))",
+            "description": "Description \(Int.random(in: 0...Int.max))"
+        ], ["*"], ["*"]) { result in
+            var string: String = ""
+            
+            switch result {
+            case .failure(let error): string = error.message
+            case .success(var response):
+                string = response.body!.readString(length: response.body!.readableBytes) ?? ""
+            }
+
+            DispatchQueue.main.async {
+                self.text.text = string
+            }
+        }
+    }
+    
 }
 
 extension ViewController: ImagePickerDelegate {
     func didSelect(image: UIImage?) {
         var output = ""
         
-        storage.createFile(ByteBuffer(data: image!.pngData()!), ["*"], ["61372ecd9a8f3"]) { result in
+        let buffer = ByteBufferAllocator()
+            .buffer(data: image!.jpegData(compressionQuality: 1)!)
+        
+        storage.createFile(buffer, ["*"], ["*"]) { result in
             switch result {
             case .failure(let error):
                 output = error.message

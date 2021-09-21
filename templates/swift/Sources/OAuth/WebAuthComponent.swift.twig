@@ -52,8 +52,12 @@ public class WebAuthComponent {
             ($0.name, $0.value!)
         })
 
-        UserDefaults.standard.set(cookieParts["key"], forKey: "cookie-name-\(components.host!)")
-        UserDefaults.standard.set(cookieParts["secret"], forKey: "cookie-value-\(components.host!)")
+        var domain = cookieParts["domain"]!
+        domain.remove(at: domain.startIndex)
+
+        let cookie = HTTPClient.Cookie(name: cookieParts["key"]!, value: cookieParts["secret"]!)
+        let cookieJson = try! cookie.toJson()
+        UserDefaults.standard.set(cookieJson, forKey: "\(domain)-cookies")
 
         WebAuthComponent.onCallback(
             scheme: components.scheme!,

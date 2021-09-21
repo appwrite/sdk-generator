@@ -15,7 +15,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         guard let url = URLContexts.first?.url,
-              url.absoluteString.contains("appwrite-callback") else {
+            url.absoluteString.contains("appwrite-callback") else {
             return
         }
         WebAuthComponent.handleIncomingCookie(from: url)

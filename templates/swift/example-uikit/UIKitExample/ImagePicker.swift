@@ -1,7 +1,4 @@
 //
-//  ImagePicker.swift
-//  UIKitExample
-//
 //  Created by Jake Barnby on 6/09/21.
 //
 
