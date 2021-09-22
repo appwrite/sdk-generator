@@ -347,7 +347,7 @@ open class Client {
         _ request: inout HTTPClient.Request,
         with params: [String: Any?] = [:]
     ) {
-        func addPart(name: String, value: Any, filename: String? = nil) {
+        func addPart(name: String, value: Any) {
             bodyBuffer.writeString(DASHDASH)
             bodyBuffer.writeString(boundary)
             bodyBuffer.writeString(CRLF)
@@ -377,7 +377,7 @@ open class Client {
         for (key, value) in params {
             switch key {
             case "file":
-                addPart(name: key, value: value!, filename: "\(boundary).jpg")
+                addPart(name: key, value: value!)
             default:
                 guard let value = value as? String else {
                     if let list = value as? [Any] {
