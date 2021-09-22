@@ -99,10 +99,11 @@ class Tests: XCTestCase {
         }
         group.wait()
         group.enter()
-        // FIXME: "Operation failed"
+
         let url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
         let buffer = ByteBuffer(data: url.dataRepresentation)
-        general.upload("string", 123, ["string in array"], buffer) { result in
+        let file = File(name: "file.png", buffer: buffer)
+        general.upload("string", 123, ["string in array"], file) { result in
             self.printResult(result)
             group.leave()
         }
