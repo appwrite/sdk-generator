@@ -21,7 +21,7 @@ class ViewController: UIViewController {
     @IBOutlet weak var image: UIImageView!
     
     let client = Client()
-        .setEndpoint("http://localhost:80/v1")
+        .setEndpoint("http://192.168.20.6:80/v1")
         .setProject("613b18dabf74a")
         .setSelfSigned(true)
 
@@ -96,7 +96,7 @@ class ViewController: UIViewController {
     }
     
     @IBAction func download(_ sender: Any) {
-        storage.getFileDownload("6149ae1b0c6dd") { result in
+        storage.getFileDownload("614afaf579352") { result in
             switch result {
             case .failure(let error):
                 DispatchQueue.main.async {
@@ -150,7 +150,9 @@ extension ViewController: ImagePickerDelegate {
         let buffer = ByteBufferAllocator()
             .buffer(data: image!.jpegData(compressionQuality: 1)!)
         
-        storage.createFile(buffer, ["*"], ["*"]) { result in
+        let file = File(name: "my_image.jpg", buffer: buffer)
+        
+        storage.createFile(file, ["*"], ["*"]) { result in
             switch result {
             case .failure(let error):
                 output = error.message
@@ -166,5 +168,4 @@ extension ViewController: ImagePickerDelegate {
 }
 
 class Room : Model {
-    
 }

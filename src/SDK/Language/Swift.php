@@ -134,19 +134,31 @@ class Swift extends Language {
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/{{ spec.title | caseUcfirst}}Error.swift',
-                'template'      => '/swift/Sources/Error.swift.twig',
+                'template'      => '/swift/Sources/Models/Error.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/File.swift',
+                'template'      => 'swift/Sources/Models/File.swift.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/Query.swift',
-                'template'      => 'swift/Sources/Query.swift.twig',
+                'template'      => 'swift/Sources/Models/Query.swift.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Codable+JSON.swift',
                 'template'      => 'swift/Sources/Extensions/Codable+JSON.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Cookie+Codable.swift',
+                'template'      => 'swift/Sources/Extensions/Cookie+Codable.swift.twig',
                 'minify'        => false,
             ],
             [
@@ -184,7 +196,7 @@ class Swift extends Language {
             case self::TYPE_STRING:
                 return 'String';
             case self::TYPE_FILE:
-                return 'ByteBuffer';
+                return 'File';
             case self::TYPE_BOOLEAN:
                 return 'Bool';
             case self::TYPE_ARRAY:

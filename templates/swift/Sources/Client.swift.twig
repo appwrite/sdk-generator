@@ -11,7 +11,7 @@ import Foundation
 import AsyncHTTPClient
 
 let DASHDASH = "--"
-let CLRF = "\r\n"
+let CRLF = "\r\n"
 
 open class Client {
 
@@ -315,7 +315,11 @@ open class Client {
                 switch result {
                 case .failure(let error): print(error)
                 case .success(let response):
-                    UserDefaults.standard.set(try! response.cookies.toJson(), forKey: "\(response.host)-cookies")
+                    guard response.cookies.count > 0 else {
+                        break
+                    }
+                    let cookieJson = try! response.cookies.toJson()
+                    UserDefaults.standard.set(cookieJson, forKey: "\(response.host)-cookies")
                 }
                 completion(result.mapError { {{ spec.title | caseUcfirst}}Error(message: $0.localizedDescription) })
             }
@@ -343,43 +347,42 @@ open class Client {
         _ request: inout HTTPClient.Request,
         with params: [String: Any?] = [:]
     ) {
-        let boundary = randomBoundary()
-
-        var body = ByteBuffer()
-
         func addPart(name: String, value: Any, filename: String? = nil) {
-            body.writeString(DASHDASH)
-            body.writeString(boundary)
-            body.writeString(CLRF)
-            body.writeString("Content-Disposition: form-data; name=\"\(name)\"")
+            bodyBuffer.writeString(DASHDASH)
+            bodyBuffer.writeString(boundary)
+            bodyBuffer.writeString(CRLF)
+            bodyBuffer.writeString("Content-Disposition: form-data; name=\"\(name)\"")
 
-            if filename != nil {
-                var bodyBuffer = value as! ByteBuffer
-                body.writeString("; filename=\"\(filename!).jpg\"")
-                body.writeString(CLRF)
-                body.writeString("Content-Length: \(bodyBuffer.readableBytes)")
-                body.writeString(CLRF)
-                body.writeBuffer(&bodyBuffer)
-            } else {
-                body.writeString(CLRF)
-                let stringValue = value as! String
-                body.writeString("Content-Length: \(stringValue.count)")
-                body.writeString(CLRF)
-
-                body.writeString(stringValue)
+            if let file = value as? File {
+                bodyBuffer.writeString("; filename=\"\(file.name)\"")
+                bodyBuffer.writeString(CRLF)
+                bodyBuffer.writeString("Content-Length: \(bodyBuffer.readableBytes)")
+                bodyBuffer.writeString(CRLF+CRLF)
+                bodyBuffer.writeBuffer(&file.buffer)
+                bodyBuffer.writeString(CRLF)
+                return
             }
-            body.writeString(CLRF)
+
+            let stringValue = value as! String
+            bodyBuffer.writeString(CRLF)
+            bodyBuffer.writeString("Content-Length: \(stringValue.count)")
+            bodyBuffer.writeString(CRLF+CRLF)
+            bodyBuffer.writeString(stringValue)
+            bodyBuffer.writeString(CRLF)
         }
+
+        let boundary = randomBoundary()
+        var bodyBuffer = ByteBuffer()
 
         for (key, value) in params {
             switch key {
             case "file":
-                addPart(name: key, value: value!, filename: boundary)
+                addPart(name: key, value: value!, filename: "\(boundary).jpg")
             default:
-                guard let value = value as? String else  {
+                guard let value = value as? String else {
                     if let list = value as? [Any] {
-                        for val in list {
-                            addPart(name: "\(key)[]", value: val as! String)
+                        for listValue in list {
+                            addPart(name: "\(key)[]", value: listValue as! String)
                         }
                     }
                     break
@@ -387,26 +390,16 @@ open class Client {
                 addPart(name: key, value: value as String)
             }
         }
-        body.writeString(DASHDASH)
-        body.writeString(boundary)
-        body.writeString(DASHDASH)
-        body.writeString(CLRF)
 
-        let bufferSize = 1024
-        let size = body.readableBytes
+        bodyBuffer.writeString(DASHDASH)
+        bodyBuffer.writeString(boundary)
+        bodyBuffer.writeString(DASHDASH)
+        bodyBuffer.writeString(CRLF)
 
         request.headers.remove(name: "content-type")
-        request.headers.add(name: "Content-Type", value: "multipart/form-data")
-        request.headers.add(name: "Content-Length", value: size.description)
-        request.body = .byteBuffer(body)
-//        request.body = .stream(length: body.readableBytes) { stream in
-//
-//            let buffer = size > bufferSize ?
-//                body.readSlice(length: bufferSize)! :
-//                body
-//
-//            return stream.write(.byteBuffer(buffer))
-//        }
+        request.headers.add(name: "Content-Length", value: bodyBuffer.readableBytes.description)
+        request.headers.add(name: "Content-Type", value: "multipart/form-data;boundary=\"\(boundary)\"")
+        request.body = .byteBuffer(bodyBuffer)
     }
 }
 
