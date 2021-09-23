@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		1D0E30BC26B9430D002ECB40 /* ExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D0E30BB26B9430D002ECB40 /* ExampleApp.swift */; };
 		1D0E30BD26B9430D002ECB40 /* ExampleApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D0E30BB26B9430D002ECB40 /* ExampleApp.swift */; };
+		1D43900826FC8B2500C71E3E /* ImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D43900726FC8B2500C71E3E /* ImagePicker.swift */; };
 		1DC4093C26BA74470025A85C /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 1DC4093B26BA74470025A85C /* Appwrite */; };
 		1DC4093E26BA744D0025A85C /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 1DC4093D26BA744D0025A85C /* Appwrite */; };
 		4B11518505BC6CF6BEBD216B /* Tests_iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B11557E0F213BC84ED01382 /* Tests_iOS.swift */; };
@@ -39,6 +40,7 @@
 
 /* Begin PBXFileReference section */
 		1D0E30BB26B9430D002ECB40 /* ExampleApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ExampleApp.swift; sourceTree = "<group>"; };
+		1D43900726FC8B2500C71E3E /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
 		1DC4093A26BA73C50025A85C /* swift-client */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "swift-client"; path = "../../../examples/swift-client"; sourceTree = "<group>"; };
 		4B11505C9899942E695B59FF /* test.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = test.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B115338FA3067342367ADA9 /* Keyboard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Keyboard.swift; sourceTree = "<group>"; };
@@ -118,6 +120,7 @@
 				4B115883E8645C18835765B2 /* Assets.xcassets */,
 				4B115ABD18947485CC1B05F2 /* ContentView.swift */,
 				4B115338FA3067342367ADA9 /* Keyboard.swift */,
+				1D43900726FC8B2500C71E3E /* ImagePicker.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -347,6 +350,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1D0E30BC26B9430D002ECB40 /* ExampleApp.swift in Sources */,
+				1D43900826FC8B2500C71E3E /* ImagePicker.swift in Sources */,
 				4B11539FB91C8837DCF9E86C /* ContentView.swift in Sources */,
 				4B115FDF5335FA3B14FAA66B /* Keyboard.swift in Sources */,
 			);
