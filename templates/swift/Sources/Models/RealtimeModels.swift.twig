@@ -5,7 +5,7 @@
 import Foundation
 
 public class RealtimeSubscription {
-    var close: () -> Void
+    public var close: () -> Void
 
     init(close: @escaping () -> Void) {
         self.close = close
@@ -13,8 +13,8 @@ public class RealtimeSubscription {
 }
 
 public class RealtimeCallback<T : AnyObject & Decodable> {
-    let payloadType: T.Type
-    let callback: (RealtimeResponseEvent<T>) -> Void
+    public let payloadType: T.Type
+    public let callback: (RealtimeResponseEvent<T>) -> Void
 
     init(
         with payloadType: T.Type,
@@ -26,8 +26,8 @@ public class RealtimeCallback<T : AnyObject & Decodable> {
 }
 
 public class RealtimeResponse : Decodable {
-    let type: String
-    var data: Model
+    public let type: String
+    public var data: Model
 
     init(
         of type: String,
@@ -39,10 +39,10 @@ public class RealtimeResponse : Decodable {
 }
 
 public class RealtimeResponseEvent<T : AnyObject & Decodable> : Decodable {
-    let event: String
-    let channels: Array<String>
-    let timestamp: Int64
-    var payload: T
+    public let event: String
+    public let channels: Array<String>
+    public let timestamp: Int64
+    public var payload: T
 
     init(
         event: String,
