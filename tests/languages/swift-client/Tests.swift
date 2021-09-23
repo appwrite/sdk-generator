@@ -4,15 +4,23 @@ import Appwrite
 import AsyncHTTPClient
 import NIO
 
+
+struct TestPayload {
+    let response: String
+
+    init(_ response: String) {
+        self.response = response
+    }
+}
+
 class Tests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+        writeToFile(string: "Test Started")
     }
 
     override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
         super.tearDown()
     }
 
@@ -20,12 +28,20 @@ class Tests: XCTestCase {
         let group = DispatchGroup()
 
         let client = Client()
+            .setEndpointRealtime("wss://demo.appwrite.io/v1")
+            .setProject("console")
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
 
         let foo = Foo(client: client)
         let bar = Bar(client: client)
         let general = General(client: client)
+        let realtime = Realtime(client: client)
+        var realtimeResponse = "Realtime failed!"
+
+        realtime.subscribe(channels: ["tests"], payloadType: TestPayload.self) { message in
+            realtimeResponse = message.payload.response
+        }
 
         // Foo Tests
         group.enter()
@@ -101,13 +117,34 @@ class Tests: XCTestCase {
         group.enter()
 
         let url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
-        let buffer = ByteBuffer(data: url.dataRepresentation)
+        let buffer = ByteBuffer(data: try! Data(contentsOf: url))
         let file = File(name: "file.png", buffer: buffer)
         general.upload("string", 123, ["string in array"], file) { result in
             self.printResult(result)
             group.leave()
         }
         group.wait()
+
+        group.enter()
+        general.error400() { result in
+            self.printResult(result)
+            group.leave()
+        }
+        group.wait()
+        group.enter()
+        general.error500() { result in
+            self.printResult(result)
+            group.leave()
+        }
+        group.wait()
+        group.enter()
+        general.error502() { result in
+            self.printResult(result)
+            group.leave()
+        }
+        group.wait()
+
+        writeToFile(string: realtimeResponse)
     }
 
     private func printResult(_ result: Result<HTTPClient.Response, AppwriteError>) {
@@ -116,8 +153,13 @@ class Tests: XCTestCase {
         case .failure(let error): output = error.localizedDescription
         case .success(var response):
             let json = response.body!.readString(length: response.body!.readableBytes) ?? ""
-            let responseObj: Response = try! JSONDecoder().decode(Response.self, from: json.data(using: .utf8)!)
-            output = responseObj.result ?? responseObj.message ?? ""
+            do {
+                let responseObj: Response = try JSONDecoder().decode(Response.self, from: json.data(using: .utf8)!)
+                output = responseObj.result ?? responseObj.message ?? ""
+            } catch let error {
+                output = json
+            }
+
         }
         writeToFile(string: output)
     }

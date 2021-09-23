@@ -363,11 +363,11 @@ open class Client {
                 return
             }
 
-            let stringValue = value as! String
+            let string = String(describing: value)
             bodyBuffer.writeString(CRLF)
-            bodyBuffer.writeString("Content-Length: \(stringValue.count)")
+            bodyBuffer.writeString("Content-Length: \(string.count)")
             bodyBuffer.writeString(CRLF+CRLF)
-            bodyBuffer.writeString(stringValue)
+            bodyBuffer.writeString(string)
             bodyBuffer.writeString(CRLF)
         }
 
@@ -379,15 +379,13 @@ open class Client {
             case "file":
                 addPart(name: key, value: value!)
             default:
-                guard let value = value as? String else {
-                    if let list = value as? [Any] {
-                        for listValue in list {
-                            addPart(name: "\(key)[]", value: listValue as! String)
-                        }
+                if let list = value as? [Any] {
+                    for listValue in list {
+                        addPart(name: "\(key)[]", value: listValue)
                     }
-                    break
+                    continue
                 }
-                addPart(name: key, value: value as String)
+                addPart(name: key, value: value!)
             }
         }
 
