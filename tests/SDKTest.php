@@ -100,18 +100,30 @@ class SDKTest extends TestCase
             'supportException' => false,
         ],
 
-        'swift' => [
+        'swift-server' => [
             'class' => 'Appwrite\SDK\Language\Swift',
             'build' => [
-                'mkdir -p tests/sdks/swift/Tests/AppwriteTests',
-                'cp tests/languages/swift/Tests.swift tests/sdks/swift/Tests/AppwriteTests/Tests.swift',
+                'mkdir -p tests/sdks/swift-server/Tests/AppwriteTests',
+                'cp tests/languages/swift-server/Tests.swift tests/sdks/swift-server/Tests/AppwriteTests/Tests.swift',
             ],
             'envs' => [
-                'swift-5.4' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift swift:5.4 swift test && cat result.txt && rm result.txt',
+                'swift-5.4' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-server swift:5.4 swift test  && cat result.txt && rm result.txt',
             ],
-            'supportException' => false,
+            'supportException' => true,
         ],
 
+        'swift-client' => [
+            'class' => 'Appwrite\SDK\Language\SwiftClient',
+            'build' => [
+                'mkdir -p tests/sdks/swift-client/Tests/AppwriteTests',
+                'cp tests/languages/swift-client/Tests.swift tests/sdks/swift-client/Tests/AppwriteTests/Tests.swift',
+            ],
+            'envs' => [
+                'swift-5.4' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-client swift:5.4 swift test  && cat result.txt && rm result.txt',
+            ],
+            'supportException' => true,
+            'supportRealtime' => true,
+        ],
 
         'dotnet' => [
             'class' => 'Appwrite\SDK\Language\DotNet',

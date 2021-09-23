@@ -5,7 +5,7 @@ import AsyncHTTPClient
 import NIO
 
 
-struct TestPayload {
+class TestPayload : Decodable {
     let response: String
 
     init(_ response: String) {
@@ -156,7 +156,7 @@ class Tests: XCTestCase {
             do {
                 let responseObj: Response = try JSONDecoder().decode(Response.self, from: json.data(using: .utf8)!)
                 output = responseObj.result ?? responseObj.message ?? ""
-            } catch let error {
+            } catch {
                 output = json
             }
 

@@ -36,12 +36,6 @@ class Tests: XCTestCase {
         let foo = Foo(client: client)
         let bar = Bar(client: client)
         let general = General(client: client)
-        let realtime = Realtime(client: client)
-        var realtimeResponse = "Realtime failed!"
-
-        realtime.subscribe(channels: ["tests"], payloadType: TestPayload.self) { message in
-            realtimeResponse = message.payload.response
-        }
 
         // Foo Tests
         group.enter()
@@ -143,8 +137,6 @@ class Tests: XCTestCase {
             group.leave()
         }
         group.wait()
-
-        writeToFile(string: realtimeResponse)
     }
 
     private func printResult(_ result: Result<HTTPClient.Response, AppwriteError>) {
