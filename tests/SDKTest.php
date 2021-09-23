@@ -124,12 +124,11 @@ class SDKTest extends TestCase
                 'cp tests/languages/web/index.html tests/sdks/web/index.html',
                 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic npm install', //  npm list --depth 0 &&
                 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic npm run build',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic npx playwright install'
             ],
             'envs' => [
-                'chromium' => 'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node tests.js',
-                'firefox' => 'docker run --rm -v $(pwd):/app -e BROWSER=firefox -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node tests.js',
-                'webkit' => 'docker run --rm -v $(pwd):/app -e BROWSER=webkit -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node tests.js',
+                'chromium' => 'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic -c "npx playwright install && node tests.js"',
+                'firefox' => 'docker run --rm -v $(pwd):/app -e BROWSER=firefox -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic -c "npx playwright install && node tests.js"',
+                'webkit' => 'docker run --rm -v $(pwd):/app -e BROWSER=webkit -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic -c "npx playwright install && node tests.js"',
                 'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node node.js',
             ],
             'supportException' => true,
