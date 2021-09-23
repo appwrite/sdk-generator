@@ -40,21 +40,21 @@ $cli
     ->task('{{ method.name | caseCamel }}')
     ->label('description', "{{ method.description | replace({'"':'\''}) | raw }}\n\n")
 {% for parameter in method.parameters.all %}
-    ->param('{{ parameter.name }}', {{ parameter | paramDefault }} , new Wildcard() , '{{ parameter.description}}', {% if not parameter.required %} true{% else %} false{% endif %})
+    ->param('{{ parameter.name | escapeKeyword }}', {{ parameter | paramDefault }} , new Wildcard() , '{{ parameter.description}}', {% if not parameter.required %} true{% else %} false{% endif %})
 {% endfor %}
-    ->action(function ({% for parameter in method.parameters.all %} ${{ parameter.name}}{% if not loop.last %},{% endif %}{% endfor %} ) use ($parser) {
+    ->action(function ({% for parameter in method.parameters.all %} ${{ parameter.name | escapeKeyword }}{% if not loop.last %},{% endif %}{% endfor %} ) use ($parser) {
 {% for parameter in method.parameters.all %}
-        /** @var {{ parameter.type }} ${{ parameter.name }} */
+        /** @var {{ parameter.type }} ${{ parameter.name | escapeKeyword }} */
 {% endfor %}
 
         $client = new Client();
-        $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
+        $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
         $params = [];
 {% if method.parameters.query|length > 0 %}
         /** Query Params */
 {% endif %}
 {% for parameter in method.parameters.query %}
-        $params['{{ parameter.name }}'] = {% if parameter.type == 'array' %}!is_array(${{ parameter.name | caseCamel }}) ? array(${{ parameter.name | caseCamel }}) : ${{ parameter.name | caseCamel }};{% else %}${{ parameter.name | caseCamel }};{% endif %}
+        $params['{{ parameter.name }}'] = {% if parameter.type == 'array' %}!is_array(${{ parameter.name | caseCamel | escapeKeyword }}) ? array(${{ parameter.name | caseCamel | escapeKeyword }}) : ${{ parameter.name | caseCamel | escapeKeyword }};{% else %}${{ parameter.name | caseCamel | escapeKeyword }};{% endif %}
 
 {% endfor %}
 {% if method.parameters.body|length > 0 %}
@@ -62,27 +62,28 @@ $cli
 {% endif %}
 {% for parameter in method.parameters.body %}
 {% if parameter.type == 'file' and method.packaging %}
-        $cloudFunctionPath = realpath(__DIR__.'/../../../files/'.${{ parameter.name | caseCamel }});
-        $cloudFunctionParentDir = dirname($cloudFunctionPath, 1);
-        $cloudFunctionDirName = basename($cloudFunctionPath);
+        ${{ parameter.name | caseCamel | escapeKeyword }} = \urldecode(${{ parameter.name | caseCamel | escapeKeyword }});
+        $cloudFunctionPath = realpath(__DIR__.'/../files/'.${{ parameter.name | caseCamel | escapeKeyword }});
+        $cloudFunctionParentDir = escapeshellarg(dirname($cloudFunctionPath, 1));
+        $cloudFunctionDirName = escapeshellarg(basename($cloudFunctionPath));
         if (file_exists($cloudFunctionPath) === false ) {
             throw new Exception("Path doesn't exist. Please ensure that the path is within the current directory. "); 
         }
         $archiveName = 'code.tar.gz';
-        $volumeMountPoint = realpath(__DIR__.'/../../../files/');
+        $volumeMountPoint = realpath(__DIR__.'/../files/');
         exec("tar -zcvf $archiveName -C $cloudFunctionParentDir $cloudFunctionDirName && mv $archiveName $volumeMountPoint");
         $archivePath = realpath($volumeMountPoint."/$archiveName");
         $cFile = new \CURLFile($archivePath,  'application/x-gzip' , basename($archivePath));
-        $params['{{ parameter.name }}'] = $cFile;
+        $params['{{ parameter.name | escapeKeyword }}'] = $cFile;
 {% elseif parameter.type == 'file' %}
-        ${{ parameter.name | caseCamel }} = realpath(__DIR__.'/../../../files/'.${{ parameter.name | caseCamel }});
-        if (file_exists(${{ parameter.name | caseCamel }}) === false ) {
+        ${{ parameter.name | caseCamel | escapeKeyword }} = realpath(__DIR__.'/../files/'.\urldecode(${{ parameter.name | caseCamel | escapeKeyword }}));
+        if (file_exists(${{ parameter.name | caseCamel | escapeKeyword }}) === false ) {
             throw new Exception("Path doesn't exist. Please ensure that the path is within the current directory. "); 
         }
-        $cFile = new \CURLFile(${{ parameter.name | caseCamel }}, {% if method.packaging %} 'application/x-gzip' {% else %} 'image/png' {% endif %}, basename(${{ parameter.name | caseCamel }}));
+        $cFile = new \CURLFile(${{ parameter.name | caseCamel | escapeKeyword }}, {% if method.packaging %} 'application/x-gzip' {% else %} 'image/png' {% endif %}, basename(${{ parameter.name | caseCamel | escapeKeyword }}));
         $params['{{ parameter.name }}'] = $cFile;
 {% else %}
-        $params['{{ parameter.name }}'] = {% if parameter.type == 'array' %}!is_array(${{ parameter.name | caseCamel }}) ? array(${{ parameter.name | caseCamel }}) : ${{ parameter.name | caseCamel }};{% elseif parameter.type == 'integer' %}(int)${{ parameter.name | caseCamel }};{% else %}${{ parameter.name | caseCamel }};{% endif %}
+        $params['{{ parameter.name }}'] = {% if parameter.type == 'array' %}!is_array(${{ parameter.name | caseCamel | escapeKeyword }}) ? array(${{ parameter.name | caseCamel | escapeKeyword }}) : ${{ parameter.name | caseCamel | escapeKeyword }};{% elseif parameter.type == 'integer' %}(int)${{ parameter.name | caseCamel | escapeKeyword }};{% else %}${{ parameter.name | caseCamel | escapeKeyword }};{% endif %}
 
 {% endif %}
 {% endfor %}
@@ -90,7 +91,7 @@ $cli
         /** Form Data Params */
 {% endif %}
 {% for parameter in method.parameters.formData %}
-        $params['{{ parameter.name }}'] = {% if parameter.type == 'array' %}!is_array(${{ parameter.name | caseCamel }}) ? array(${{ parameter.name | caseCamel }}) : ${{ parameter.name | caseCamel }};{% elseif parameter.type == 'integer' %}(int)${{ parameter.name | caseCamel }};{% else %}${{ parameter.name | caseCamel }};{% endif %}
+        $params['{{ parameter.name }}'] = {% if parameter.type == 'array' %}!is_array(${{ parameter.name | caseCamel | escapeKeyword }}) ? array(${{ parameter.name | caseCamel | escapeKeyword }}) : ${{ parameter.name | caseCamel | escapeKeyword }};{% elseif parameter.type == 'integer' %}(int)${{ parameter.name | caseCamel | escapeKeyword }};{% else %}${{ parameter.name | caseCamel | escapeKeyword }};{% endif %}
 
 {% endfor %}
 {% if method.type == 'location' %}
@@ -101,7 +102,7 @@ $cli
 {% else %}
         $response =  $client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
 {% for parameter in method.parameters.header %}
-            '{{ parameter.name }}' => ${{ parameter.name | caseCamel }},
+            '{{ parameter.name }}' => ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
 {% for key, header in method.headers %}
             '{{ key }}' => '{{ header }}',

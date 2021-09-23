@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "version": "0.7.2",
+    "version": "0.9.3",
     "title": "Appwrite",
     "description": "Appwrite backend as a service cuts up to 70% of the time and costs required for building a modern application. We abstract and simplify common development tasks behind a REST APIs, to help you develop your app in a fast and secure way. For full API documentation and tutorials go to [https://appwrite.io/docs](https://appwrite.io/docs)",
     "termsOfService": "https://appwrite.io/policy/terms",
@@ -17,34 +17,30 @@
   },
   "host": "appwrite.io",
   "basePath": "/v1",
-  "schemes": [
-    "https"
-  ],
-  "consumes": [
-    "application/json",
-    "multipart/form-data"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "schemes": ["https"],
+  "consumes": ["application/json", "multipart/form-data"],
+  "produces": ["application/json"],
   "securityDefinitions": {
     "Project": {
       "type": "apiKey",
       "name": "X-Appwrite-Project",
       "description": "Your project ID",
       "in": "header",
-      "x-appwrite": {
-        "demo": "5df5acd0d48c2"
-      }
+      "x-appwrite": { "demo": "5df5acd0d48c2" }
+    },
+    "JWT": {
+      "type": "apiKey",
+      "name": "X-Appwrite-JWT",
+      "description": "Your secret JSON Web Token",
+      "in": "header",
+      "x-appwrite": { "demo": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ..." }
     },
     "Locale": {
       "type": "apiKey",
       "name": "X-Appwrite-Locale",
       "description": "",
       "in": "header",
-      "x-appwrite": {
-        "demo": "en"
-      }
+      "x-appwrite": { "demo": "en" }
     }
   },
   "paths": {
@@ -52,27 +48,19 @@
       "get": {
         "summary": "Get Bar",
         "operationId": "barGet",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "bar"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["bar"],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": {
-              "$ref": "#/definitions/mock"
-            }
+            "schema": { "$ref": "#/definitions/mock" }
           }
         },
         "x-appwrite": {
           "method": "get",
-          "weight": 175,
+          "weight": 181,
           "cookies": false,
           "type": "",
           "demo": "bar/get.md",
@@ -81,28 +69,22 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ],
+        "security": [{ "Project": [], "JWT": [] }],
         "parameters": [
           {
-            "name": "x",
+            "name": "required",
             "description": "Sample string param",
             "required": true,
             "type": "string",
-            "x-example": "[]",
+            "x-example": "[REQUIRED]",
             "in": "query"
           },
           {
-            "name": "y",
+            "name": "default",
             "description": "Sample numeric param",
             "required": true,
             "type": "integer",
@@ -115,9 +97,7 @@
             "required": true,
             "type": "array",
             "collectionFormat": "multi",
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "in": "query"
           }
         ]
@@ -125,27 +105,19 @@
       "post": {
         "summary": "Post Bar",
         "operationId": "barPost",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "bar"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["bar"],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": {
-              "$ref": "#/definitions/mock"
-            }
+            "schema": { "$ref": "#/definitions/mock" }
           }
         },
         "x-appwrite": {
           "method": "post",
-          "weight": 176,
+          "weight": 182,
           "cookies": false,
           "type": "",
           "demo": "bar/post.md",
@@ -154,17 +126,11 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ],
+        "security": [{ "Project": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -172,13 +138,13 @@
             "schema": {
               "type": "object",
               "properties": {
-                "x": {
+                "required": {
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
-                  "x-example": "[]"
+                  "x-example": "[REQUIRED]"
                 },
-                "y": {
+                "default": {
                   "type": "integer",
                   "description": "Sample numeric param",
                   "default": null,
@@ -189,16 +155,10 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": {
-                    "type": "string"
-                  }
+                  "items": { "type": "string" }
                 }
               },
-              "required": [
-                "x",
-                "y",
-                "z"
-              ]
+              "required": ["required", "default", "z"]
             }
           }
         ]
@@ -206,27 +166,19 @@
       "put": {
         "summary": "Put Bar",
         "operationId": "barPut",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "bar"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["bar"],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": {
-              "$ref": "#/definitions/mock"
-            }
+            "schema": { "$ref": "#/definitions/mock" }
           }
         },
         "x-appwrite": {
           "method": "put",
-          "weight": 178,
+          "weight": 184,
           "cookies": false,
           "type": "",
           "demo": "bar/put.md",
@@ -235,17 +187,11 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ],
+        "security": [{ "Project": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -253,13 +199,13 @@
             "schema": {
               "type": "object",
               "properties": {
-                "x": {
+                "required": {
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
-                  "x-example": "[]"
+                  "x-example": "[REQUIRED]"
                 },
-                "y": {
+                "default": {
                   "type": "integer",
                   "description": "Sample numeric param",
                   "default": null,
@@ -270,16 +216,10 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": {
-                    "type": "string"
-                  }
+                  "items": { "type": "string" }
                 }
               },
-              "required": [
-                "x",
-                "y",
-                "z"
-              ]
+              "required": ["required", "default", "z"]
             }
           }
         ]
@@ -287,27 +227,19 @@
       "patch": {
         "summary": "Patch Bar",
         "operationId": "barPatch",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "bar"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["bar"],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": {
-              "$ref": "#/definitions/mock"
-            }
+            "schema": { "$ref": "#/definitions/mock" }
           }
         },
         "x-appwrite": {
           "method": "patch",
-          "weight": 177,
+          "weight": 183,
           "cookies": false,
           "type": "",
           "demo": "bar/patch.md",
@@ -316,17 +248,11 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ],
+        "security": [{ "Project": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -334,13 +260,13 @@
             "schema": {
               "type": "object",
               "properties": {
-                "x": {
+                "required": {
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
-                  "x-example": "[]"
+                  "x-example": "[REQUIRED]"
                 },
-                "y": {
+                "default": {
                   "type": "integer",
                   "description": "Sample numeric param",
                   "default": null,
@@ -351,16 +277,10 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": {
-                    "type": "string"
-                  }
+                  "items": { "type": "string" }
                 }
               },
-              "required": [
-                "x",
-                "y",
-                "z"
-              ]
+              "required": ["required", "default", "z"]
             }
           }
         ]
@@ -368,27 +288,19 @@
       "delete": {
         "summary": "Delete Bar",
         "operationId": "barDelete",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "bar"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["bar"],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": {
-              "$ref": "#/definitions/mock"
-            }
+            "schema": { "$ref": "#/definitions/mock" }
           }
         },
         "x-appwrite": {
           "method": "delete",
-          "weight": 179,
+          "weight": 185,
           "cookies": false,
           "type": "",
           "demo": "bar/delete.md",
@@ -397,17 +309,11 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ],
+        "security": [{ "Project": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -415,13 +321,13 @@
             "schema": {
               "type": "object",
               "properties": {
-                "x": {
+                "required": {
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
-                  "x-example": "[]"
+                  "x-example": "[REQUIRED]"
                 },
-                "y": {
+                "default": {
                   "type": "integer",
                   "description": "Sample numeric param",
                   "default": null,
@@ -432,16 +338,10 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": {
-                    "type": "string"
-                  }
+                  "items": { "type": "string" }
                 }
               },
-              "required": [
-                "x",
-                "y",
-                "z"
-              ]
+              "required": ["required", "default", "z"]
             }
           }
         ]
@@ -451,27 +351,19 @@
       "get": {
         "summary": "Get Foo",
         "operationId": "fooGet",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "foo"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["foo"],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": {
-              "$ref": "#/definitions/mock"
-            }
+            "schema": { "$ref": "#/definitions/mock" }
           }
         },
         "x-appwrite": {
           "method": "get",
-          "weight": 170,
+          "weight": 176,
           "cookies": false,
           "type": "",
           "demo": "foo/get.md",
@@ -480,17 +372,11 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ],
+        "security": [{ "Project": [], "JWT": [] }],
         "parameters": [
           {
             "name": "x",
@@ -514,9 +400,7 @@
             "required": true,
             "type": "array",
             "collectionFormat": "multi",
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "in": "query"
           }
         ]
@@ -524,27 +408,19 @@
       "post": {
         "summary": "Post Foo",
         "operationId": "fooPost",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "foo"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["foo"],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": {
-              "$ref": "#/definitions/mock"
-            }
+            "schema": { "$ref": "#/definitions/mock" }
           }
         },
         "x-appwrite": {
           "method": "post",
-          "weight": 171,
+          "weight": 177,
           "cookies": false,
           "type": "",
           "demo": "foo/post.md",
@@ -553,17 +429,11 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ],
+        "security": [{ "Project": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -588,16 +458,10 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": {
-                    "type": "string"
-                  }
+                  "items": { "type": "string" }
                 }
               },
-              "required": [
-                "x",
-                "y",
-                "z"
-              ]
+              "required": ["x", "y", "z"]
             }
           }
         ]
@@ -605,27 +469,19 @@
       "put": {
         "summary": "Put Foo",
         "operationId": "fooPut",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "foo"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["foo"],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": {
-              "$ref": "#/definitions/mock"
-            }
+            "schema": { "$ref": "#/definitions/mock" }
           }
         },
         "x-appwrite": {
           "method": "put",
-          "weight": 173,
+          "weight": 179,
           "cookies": false,
           "type": "",
           "demo": "foo/put.md",
@@ -634,17 +490,11 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ],
+        "security": [{ "Project": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -669,16 +519,10 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": {
-                    "type": "string"
-                  }
+                  "items": { "type": "string" }
                 }
               },
-              "required": [
-                "x",
-                "y",
-                "z"
-              ]
+              "required": ["x", "y", "z"]
             }
           }
         ]
@@ -686,27 +530,19 @@
       "patch": {
         "summary": "Patch Foo",
         "operationId": "fooPatch",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "foo"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["foo"],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": {
-              "$ref": "#/definitions/mock"
-            }
+            "schema": { "$ref": "#/definitions/mock" }
           }
         },
         "x-appwrite": {
           "method": "patch",
-          "weight": 172,
+          "weight": 178,
           "cookies": false,
           "type": "",
           "demo": "foo/patch.md",
@@ -715,17 +551,11 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ],
+        "security": [{ "Project": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -750,16 +580,10 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": {
-                    "type": "string"
-                  }
+                  "items": { "type": "string" }
                 }
               },
-              "required": [
-                "x",
-                "y",
-                "z"
-              ]
+              "required": ["x", "y", "z"]
             }
           }
         ]
@@ -767,27 +591,19 @@
       "delete": {
         "summary": "Delete Foo",
         "operationId": "fooDelete",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "foo"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["foo"],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": {
-              "$ref": "#/definitions/mock"
-            }
+            "schema": { "$ref": "#/definitions/mock" }
           }
         },
         "x-appwrite": {
           "method": "delete",
-          "weight": 174,
+          "weight": 180,
           "cookies": false,
           "type": "",
           "demo": "foo/delete.md",
@@ -796,17 +612,11 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ],
+        "security": [{ "Project": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -831,16 +641,10 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": {
-                    "type": "string"
-                  }
+                  "items": { "type": "string" }
                 }
               },
-              "required": [
-                "x",
-                "y",
-                "z"
-              ]
+              "required": ["x", "y", "z"]
             }
           }
         ]
@@ -850,27 +654,19 @@
       "get": {
         "summary": "400 Error",
         "operationId": "generalError400",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "general"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["general"],
         "description": "",
         "responses": {
           "400": {
             "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
+            "schema": { "$ref": "#/definitions/error" }
           }
         },
         "x-appwrite": {
           "method": "error400",
-          "weight": 186,
+          "weight": 193,
           "cookies": false,
           "type": "",
           "demo": "general/error400.md",
@@ -879,44 +675,30 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ]
+        "security": [{ "Project": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/500-error": {
       "get": {
         "summary": "500 Error",
         "operationId": "generalError500",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "general"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["general"],
         "description": "",
         "responses": {
           "500": {
             "description": "Error",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
+            "schema": { "$ref": "#/definitions/error" }
           }
         },
         "x-appwrite": {
           "method": "error500",
-          "weight": 187,
+          "weight": 194,
           "cookies": false,
           "type": "",
           "demo": "general/error500.md",
@@ -925,44 +707,30 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ]
+        "security": [{ "Project": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/502-error": {
       "get": {
         "summary": "502 Error",
         "operationId": "generalError502",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "text/plain"
-        ],
-        "tags": [
-          "general"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["text/plain"],
+        "tags": ["general"],
         "description": "",
         "responses": {
           "502": {
-            "description": "File",
-            "schema": {
-              "type": "file"
-            }
+            "description": "Any",
+            "schema": { "$ref": "#/definitions/any" }
           }
         },
         "x-appwrite": {
           "method": "error502",
-          "weight": 188,
+          "weight": 195,
           "cookies": false,
           "type": "",
           "demo": "general/error502.md",
@@ -971,39 +739,54 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ]
+        "security": [{ "Project": [] }]
+      }
+    },
+    "/mock/tests/general/download": {
+      "get": {
+        "summary": "Download File",
+        "operationId": "generalDownload",
+        "consumes": ["application/json"],
+        "produces": ["*/*"],
+        "tags": ["general"],
+        "description": "",
+        "responses": {
+          "200": { "description": "File", "schema": { "type": "file" } }
+        },
+        "x-appwrite": {
+          "method": "download",
+          "weight": 186,
+          "cookies": false,
+          "type": "location",
+          "demo": "general/download.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a file download request.",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
+        },
+        "security": [{ "Project": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/empty": {
       "get": {
         "summary": "Empty Response",
         "operationId": "generalEmpty",
-        "consumes": [
-          "application/json"
-        ],
+        "consumes": ["application/json"],
         "produces": [],
-        "tags": [
-          "general"
-        ],
+        "tags": ["general"],
         "description": "",
-        "responses": {
-          "204": {
-            "description": "No content"
-          }
-        },
+        "responses": { "204": { "description": "No content" } },
         "x-appwrite": {
           "method": "empty",
-          "weight": 185,
+          "weight": 192,
           "cookies": false,
           "type": "",
           "demo": "general/empty.md",
@@ -1012,44 +795,30 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ]
+        "security": [{ "Project": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/get-cookie": {
       "get": {
         "summary": "Get Cookie",
         "operationId": "generalGetCookie",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "general"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["general"],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": {
-              "$ref": "#/definitions/mock"
-            }
+            "schema": { "$ref": "#/definitions/mock" }
           }
         },
         "x-appwrite": {
           "method": "getCookie",
-          "weight": 184,
+          "weight": 191,
           "cookies": false,
           "type": "",
           "demo": "general/get-cookie.md",
@@ -1058,44 +827,25 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ]
+        "security": [{ "Project": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/redirect": {
       "get": {
         "summary": "Redirect",
         "operationId": "generalRedirect",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "text/html"
-        ],
-        "tags": [
-          "general"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["text/html"],
+        "tags": ["general"],
         "description": "",
-        "responses": {
-          "301": {
-            "description": "File",
-            "schema": {
-              "type": "file"
-            }
-          }
-        },
+        "responses": { "301": { "description": "No content" } },
         "x-appwrite": {
           "method": "redirect",
-          "weight": 181,
+          "weight": 188,
           "cookies": false,
           "type": "",
           "demo": "general/redirect.md",
@@ -1104,44 +854,30 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ]
+        "security": [{ "Project": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/redirect/done": {
       "get": {
         "summary": "Redirected",
         "operationId": "generalRedirected",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "general"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["general"],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": {
-              "$ref": "#/definitions/mock"
-            }
+            "schema": { "$ref": "#/definitions/mock" }
           }
         },
         "x-appwrite": {
           "method": "redirected",
-          "weight": 182,
+          "weight": 189,
           "cookies": false,
           "type": "",
           "demo": "general/redirected.md",
@@ -1150,44 +886,30 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ]
+        "security": [{ "Project": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/set-cookie": {
       "get": {
         "summary": "Set Cookie",
         "operationId": "generalSetCookie",
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "general"
-        ],
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["general"],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": {
-              "$ref": "#/definitions/mock"
-            }
+            "schema": { "$ref": "#/definitions/mock" }
           }
         },
         "x-appwrite": {
           "method": "setCookie",
-          "weight": 183,
+          "weight": 190,
           "cookies": false,
           "type": "",
           "demo": "general/set-cookie.md",
@@ -1196,44 +918,30 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ]
+        "security": [{ "Project": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/upload": {
       "post": {
         "summary": "Upload File",
         "operationId": "generalUpload",
-        "consumes": [
-          "multipart/form-data"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "general"
-        ],
+        "consumes": ["multipart/form-data"],
+        "produces": ["application/json"],
+        "tags": ["general"],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": {
-              "$ref": "#/definitions/mock"
-            }
+            "schema": { "$ref": "#/definitions/mock" }
           }
         },
         "x-appwrite": {
           "method": "upload",
-          "weight": 180,
+          "weight": 187,
           "cookies": false,
           "type": "",
           "demo": "general/upload.md",
@@ -1242,17 +950,11 @@
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": [
-            "client",
-            "server"
-          ],
-          "packaging": false
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [] }
         },
-        "security": [
-          {
-            "Project": []
-          }
-        ],
+        "security": [{ "Project": [], "JWT": [] }],
         "parameters": [
           {
             "name": "x",
@@ -1276,9 +978,7 @@
             "required": true,
             "type": "array",
             "collectionFormat": "multi",
-            "items": {
-              "type": "string"
-            },
+            "items": { "type": "string" },
             "in": "formData"
           },
           {
@@ -1335,10 +1035,6 @@
     }
   ],
   "definitions": {
-    "none": {
-      "description": "None",
-      "type": "object"
-    },
     "any": {
       "description": "Any",
       "type": "object",
@@ -1364,1446 +1060,7 @@
           "x-example": "1.0"
         }
       },
-      "required": [
-        "message",
-        "code",
-        "version"
-      ]
-    },
-    "collectionList": {
-      "description": "Collections List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "collections": {
-          "type": "array",
-          "description": "List of collections.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/collection"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "collections"
-      ]
-    },
-    "documentList": {
-      "description": "Documents List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "documents": {
-          "type": "array",
-          "description": "List of documents.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/any"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "documents"
-      ]
-    },
-    "userList": {
-      "description": "Users List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "users": {
-          "type": "array",
-          "description": "List of users.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/user"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "users"
-      ]
-    },
-    "sessionList": {
-      "description": "Sessions List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "sessions": {
-          "type": "array",
-          "description": "List of sessions.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/session"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "sessions"
-      ]
-    },
-    "logList": {
-      "description": "Logs List",
-      "type": "object",
-      "properties": {
-        "logs": {
-          "type": "array",
-          "description": "List of logs.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/log"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "logs"
-      ]
-    },
-    "fileList": {
-      "description": "Files List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "files": {
-          "type": "array",
-          "description": "List of files.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/file"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "files"
-      ]
-    },
-    "teamList": {
-      "description": "Teams List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "teams": {
-          "type": "array",
-          "description": "List of teams.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/team"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "teams"
-      ]
-    },
-    "membershipList": {
-      "description": "Memberships List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "memberships": {
-          "type": "array",
-          "description": "List of memberships.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/membership"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "memberships"
-      ]
-    },
-    "functionList": {
-      "description": "Functions List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "functions": {
-          "type": "array",
-          "description": "List of functions.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/function"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "functions"
-      ]
-    },
-    "tagList": {
-      "description": "Tags List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "tags": {
-          "type": "array",
-          "description": "List of tags.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/tag"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "tags"
-      ]
-    },
-    "executionList": {
-      "description": "Executions List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "executions": {
-          "type": "array",
-          "description": "List of executions.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/execution"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "executions"
-      ]
-    },
-    "countryList": {
-      "description": "Countries List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "countries": {
-          "type": "array",
-          "description": "List of countries.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/country"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "countries"
-      ]
-    },
-    "continentList": {
-      "description": "Continents List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "continents": {
-          "type": "array",
-          "description": "List of continents.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/continent"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "continents"
-      ]
-    },
-    "languageList": {
-      "description": "Languages List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "languages": {
-          "type": "array",
-          "description": "List of languages.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/language"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "languages"
-      ]
-    },
-    "currencyList": {
-      "description": "Currencies List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "currencies": {
-          "type": "array",
-          "description": "List of currencies.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/currency"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "currencies"
-      ]
-    },
-    "phoneList": {
-      "description": "Phones List",
-      "type": "object",
-      "properties": {
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of items in the list.",
-          "x-example": 5,
-          "format": "int32"
-        },
-        "phones": {
-          "type": "array",
-          "description": "List of phones.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/phone"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "sum",
-        "phones"
-      ]
-    },
-    "permissions": {
-      "description": "Permissions",
-      "type": "object",
-      "properties": {
-        "read": {
-          "type": "array",
-          "description": "Read permissions.",
-          "items": {
-            "type": "string"
-          },
-          "x-example": "user:5e5ea5c16897e"
-        },
-        "write": {
-          "type": "array",
-          "description": "Write permissions.",
-          "items": {
-            "type": "string"
-          },
-          "x-example": "user:5e5ea5c16897e"
-        }
-      },
-      "required": [
-        "read",
-        "write"
-      ]
-    },
-    "collection": {
-      "description": "Collection",
-      "type": "object",
-      "properties": {
-        "$id": {
-          "type": "string",
-          "description": "Collection ID.",
-          "x-example": "5e5ea5c16897e"
-        },
-        "$permissions": {
-          "type": "object",
-          "description": "Collection permissions.",
-          "x-example": {},
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/permissions"
-          }
-        },
-        "name": {
-          "type": "string",
-          "description": "Collection name.",
-          "x-example": "Movies"
-        },
-        "dateCreated": {
-          "type": "integer",
-          "description": "Collection creation date in Unix timestamp.",
-          "x-example": 1592981250,
-          "format": "int32"
-        },
-        "dateUpdated": {
-          "type": "integer",
-          "description": "Collection creation date in Unix timestamp.",
-          "x-example": 1592981550,
-          "format": "int32"
-        },
-        "rules": {
-          "type": "array",
-          "description": "Collection rules.",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/rule"
-          },
-          "x-example": ""
-        }
-      },
-      "required": [
-        "$id",
-        "$permissions",
-        "name",
-        "dateCreated",
-        "dateUpdated",
-        "rules"
-      ]
-    },
-    "rule": {
-      "description": "Rule",
-      "type": "object",
-      "properties": {
-        "$id": {
-          "type": "string",
-          "description": "Rule ID.",
-          "x-example": "5e5ea5c16897e"
-        },
-        "$collection": {
-          "type": "string",
-          "description": "Rule Collection.",
-          "x-example": "5e5e66c16897e"
-        },
-        "type": {
-          "type": "string",
-          "description": "Rule type. Possible values: ",
-          "x-example": "title"
-        },
-        "key": {
-          "type": "string",
-          "description": "Rule key.",
-          "x-example": "title"
-        },
-        "label": {
-          "type": "string",
-          "description": "Rule label.",
-          "x-example": "Title"
-        },
-        "default": {
-          "type": "string",
-          "description": "Rule default value.",
-          "x-example": "Movie Name"
-        },
-        "array": {
-          "type": "boolean",
-          "description": "Is array?",
-          "x-example": false
-        },
-        "required": {
-          "type": "boolean",
-          "description": "Is required?",
-          "x-example": true
-        },
-        "list": {
-          "type": "array",
-          "description": "List of allowed values",
-          "items": {
-            "type": "string"
-          },
-          "x-example": "5e5ea5c168099"
-        }
-      },
-      "required": [
-        "$id",
-        "$collection",
-        "type",
-        "key",
-        "label",
-        "default",
-        "array",
-        "required",
-        "list"
-      ]
-    },
-    "log": {
-      "description": "Log",
-      "type": "object",
-      "properties": {
-        "event": {
-          "type": "string",
-          "description": "Event name.",
-          "x-example": "account.sessions.create"
-        },
-        "ip": {
-          "type": "string",
-          "description": "IP session in use when the session was created.",
-          "x-example": "127.0.0.1"
-        },
-        "time": {
-          "type": "integer",
-          "description": "Log creation time in Unix timestamp.",
-          "x-example": 1592981250,
-          "format": "int32"
-        },
-        "osCode": {
-          "type": "string",
-          "description": "Operating system code name. View list of [available options](https://github.com/appwrite/appwrite/blob/master/docs/lists/os.json).",
-          "x-example": "Mac"
-        },
-        "osName": {
-          "type": "string",
-          "description": "Operating system name.",
-          "x-example": "Mac"
-        },
-        "osVersion": {
-          "type": "string",
-          "description": "Operating system version.",
-          "x-example": "Mac"
-        },
-        "clientType": {
-          "type": "string",
-          "description": "Client type.",
-          "x-example": "browser"
-        },
-        "clientCode": {
-          "type": "string",
-          "description": "Client code name. View list of [available options](https://github.com/appwrite/appwrite/blob/master/docs/lists/clients.json).",
-          "x-example": "CM"
-        },
-        "clientName": {
-          "type": "string",
-          "description": "Client name.",
-          "x-example": "Chrome Mobile iOS"
-        },
-        "clientVersion": {
-          "type": "string",
-          "description": "Client version.",
-          "x-example": "84.0"
-        },
-        "clientEngine": {
-          "type": "string",
-          "description": "Client engine name.",
-          "x-example": "WebKit"
-        },
-        "clientEngineVersion": {
-          "type": "string",
-          "description": "Client engine name.",
-          "x-example": "605.1.15"
-        },
-        "deviceName": {
-          "type": "string",
-          "description": "Device name.",
-          "x-example": "smartphone"
-        },
-        "deviceBrand": {
-          "type": "string",
-          "description": "Device brand name.",
-          "x-example": "Google"
-        },
-        "deviceModel": {
-          "type": "string",
-          "description": "Device model name.",
-          "x-example": "Nexus 5"
-        },
-        "countryCode": {
-          "type": "string",
-          "description": "Country two-character ISO 3166-1 alpha code.",
-          "x-example": "US"
-        },
-        "countryName": {
-          "type": "string",
-          "description": "Country name.",
-          "x-example": "United States"
-        }
-      },
-      "required": [
-        "event",
-        "ip",
-        "time",
-        "osCode",
-        "osName",
-        "osVersion",
-        "clientType",
-        "clientCode",
-        "clientName",
-        "clientVersion",
-        "clientEngine",
-        "clientEngineVersion",
-        "deviceName",
-        "deviceBrand",
-        "deviceModel",
-        "countryCode",
-        "countryName"
-      ]
-    },
-    "user": {
-      "description": "User",
-      "type": "object",
-      "properties": {
-        "$id": {
-          "type": "string",
-          "description": "User ID.",
-          "x-example": "5e5ea5c16897e"
-        },
-        "name": {
-          "type": "string",
-          "description": "User name.",
-          "x-example": "John Doe"
-        },
-        "registration": {
-          "type": "integer",
-          "description": "User registration date in Unix timestamp.",
-          "x-example": 1592981250,
-          "format": "int32"
-        },
-        "status": {
-          "type": "integer",
-          "description": "User status. 0 for Unactivated, 1 for active and 2 is blocked.",
-          "x-example": 0,
-          "format": "int32"
-        },
-        "email": {
-          "type": "string",
-          "description": "User email address.",
-          "x-example": "john@appwrite.io"
-        },
-        "emailVerification": {
-          "type": "boolean",
-          "description": "Email verification status.",
-          "x-example": true
-        },
-        "prefs": {
-          "type": "string",
-          "description": "User preferences as a key-value object",
-          "x-example": {
-            "theme": "pink",
-            "timezone": "UTC"
-          }
-        }
-      },
-      "required": [
-        "$id",
-        "name",
-        "registration",
-        "status",
-        "email",
-        "emailVerification",
-        "prefs"
-      ]
-    },
-    "session": {
-      "description": "Session",
-      "type": "object",
-      "properties": {
-        "$id": {
-          "type": "string",
-          "description": "Session ID.",
-          "x-example": "5e5ea5c16897e"
-        },
-        "userId": {
-          "type": "string",
-          "description": "User ID.",
-          "x-example": "5e5bb8c16897e"
-        },
-        "expire": {
-          "type": "integer",
-          "description": "Session expiration date in Unix timestamp.",
-          "x-example": 1592981250,
-          "format": "int32"
-        },
-        "ip": {
-          "type": "string",
-          "description": "IP in use when the session was created.",
-          "x-example": "127.0.0.1"
-        },
-        "osCode": {
-          "type": "string",
-          "description": "Operating system code name. View list of [available options](https://github.com/appwrite/appwrite/blob/master/docs/lists/os.json).",
-          "x-example": "Mac"
-        },
-        "osName": {
-          "type": "string",
-          "description": "Operating system name.",
-          "x-example": "Mac"
-        },
-        "osVersion": {
-          "type": "string",
-          "description": "Operating system version.",
-          "x-example": "Mac"
-        },
-        "clientType": {
-          "type": "string",
-          "description": "Client type.",
-          "x-example": "browser"
-        },
-        "clientCode": {
-          "type": "string",
-          "description": "Client code name. View list of [available options](https://github.com/appwrite/appwrite/blob/master/docs/lists/clients.json).",
-          "x-example": "CM"
-        },
-        "clientName": {
-          "type": "string",
-          "description": "Client name.",
-          "x-example": "Chrome Mobile iOS"
-        },
-        "clientVersion": {
-          "type": "string",
-          "description": "Client version.",
-          "x-example": "84.0"
-        },
-        "clientEngine": {
-          "type": "string",
-          "description": "Client engine name.",
-          "x-example": "WebKit"
-        },
-        "clientEngineVersion": {
-          "type": "string",
-          "description": "Client engine name.",
-          "x-example": "605.1.15"
-        },
-        "deviceName": {
-          "type": "string",
-          "description": "Device name.",
-          "x-example": "smartphone"
-        },
-        "deviceBrand": {
-          "type": "string",
-          "description": "Device brand name.",
-          "x-example": "Google"
-        },
-        "deviceModel": {
-          "type": "string",
-          "description": "Device model name.",
-          "x-example": "Nexus 5"
-        },
-        "countryCode": {
-          "type": "string",
-          "description": "Country two-character ISO 3166-1 alpha code.",
-          "x-example": "US"
-        },
-        "countryName": {
-          "type": "string",
-          "description": "Country name.",
-          "x-example": "United States"
-        },
-        "current": {
-          "type": "boolean",
-          "description": "Returns true if this the current user session.",
-          "x-example": true
-        }
-      },
-      "required": [
-        "$id",
-        "userId",
-        "expire",
-        "ip",
-        "osCode",
-        "osName",
-        "osVersion",
-        "clientType",
-        "clientCode",
-        "clientName",
-        "clientVersion",
-        "clientEngine",
-        "clientEngineVersion",
-        "deviceName",
-        "deviceBrand",
-        "deviceModel",
-        "countryCode",
-        "countryName",
-        "current"
-      ]
-    },
-    "token": {
-      "description": "Token",
-      "type": "object",
-      "properties": {
-        "$id": {
-          "type": "string",
-          "description": "Token ID.",
-          "x-example": "bb8ea5c16897e"
-        },
-        "userId": {
-          "type": "string",
-          "description": "User ID.",
-          "x-example": "5e5ea5c168bb8"
-        },
-        "secret": {
-          "type": "string",
-          "description": "Token secret key. This will return an empty string unless the response is returned using an API key or as part of a webhook payload.",
-          "x-example": ""
-        },
-        "expire": {
-          "type": "integer",
-          "description": "Token expiration date in Unix timestamp.",
-          "x-example": 1592981250,
-          "format": "int32"
-        }
-      },
-      "required": [
-        "$id",
-        "userId",
-        "secret",
-        "expire"
-      ]
-    },
-    "jwt": {
-      "description": "JWT",
-      "type": "object",
-      "properties": {
-        "jwt": {
-          "type": "string",
-          "description": "JWT encoded string.",
-          "x-example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
-        }
-      },
-      "required": [
-        "jwt"
-      ]
-    },
-    "locale": {
-      "description": "Locale",
-      "type": "object",
-      "properties": {
-        "ip": {
-          "type": "string",
-          "description": "User IP address.",
-          "x-example": "127.0.0.1"
-        },
-        "countryCode": {
-          "type": "string",
-          "description": "Country code in [ISO 3166-1](http://en.wikipedia.org/wiki/ISO_3166-1) two-character format",
-          "x-example": "US"
-        },
-        "country": {
-          "type": "string",
-          "description": "Country name. This field support localization.",
-          "x-example": "United States"
-        },
-        "continentCode": {
-          "type": "string",
-          "description": "Continent code. A two character continent code \"AF\" for Africa, \"AN\" for Antarctica, \"AS\" for Asia, \"EU\" for Europe, \"NA\" for North America, \"OC\" for Oceania, and \"SA\" for South America.",
-          "x-example": "NA"
-        },
-        "continent": {
-          "type": "string",
-          "description": "Continent name. This field support localization.",
-          "x-example": "North America"
-        },
-        "eu": {
-          "type": "boolean",
-          "description": "True if country is part of the Europian Union.",
-          "x-example": false
-        },
-        "currency": {
-          "type": "string",
-          "description": "Currency code in [ISO 4217-1](http://en.wikipedia.org/wiki/ISO_4217) three-character format",
-          "x-example": "USD"
-        }
-      },
-      "required": [
-        "ip",
-        "countryCode",
-        "country",
-        "continentCode",
-        "continent",
-        "eu",
-        "currency"
-      ]
-    },
-    "file": {
-      "description": "File",
-      "type": "object",
-      "properties": {
-        "$id": {
-          "type": "string",
-          "description": "File ID.",
-          "x-example": "5e5ea5c16897e"
-        },
-        "$permissions": {
-          "type": "object",
-          "description": "File permissions.",
-          "x-example": {},
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/permissions"
-          }
-        },
-        "name": {
-          "type": "string",
-          "description": "File name.",
-          "x-example": "Pink.png"
-        },
-        "dateCreated": {
-          "type": "integer",
-          "description": "File creation date in Unix timestamp.",
-          "x-example": 1592981250,
-          "format": "int32"
-        },
-        "signature": {
-          "type": "string",
-          "description": "File MD5 signature.",
-          "x-example": "5d529fd02b544198ae075bd57c1762bb"
-        },
-        "mimeType": {
-          "type": "string",
-          "description": "File mime type.",
-          "x-example": "image/png"
-        },
-        "sizeOriginal": {
-          "type": "integer",
-          "description": "File original size in bytes.",
-          "x-example": 17890,
-          "format": "int32"
-        }
-      },
-      "required": [
-        "$id",
-        "$permissions",
-        "name",
-        "dateCreated",
-        "signature",
-        "mimeType",
-        "sizeOriginal"
-      ]
-    },
-    "team": {
-      "description": "Team",
-      "type": "object",
-      "properties": {
-        "$id": {
-          "type": "string",
-          "description": "Team ID.",
-          "x-example": "5e5ea5c16897e"
-        },
-        "name": {
-          "type": "string",
-          "description": "Team name.",
-          "x-example": "VIP"
-        },
-        "dateCreated": {
-          "type": "integer",
-          "description": "Team creation date in Unix timestamp.",
-          "x-example": 1592981250,
-          "format": "int32"
-        },
-        "sum": {
-          "type": "integer",
-          "description": "Total sum of team members.",
-          "x-example": 7,
-          "format": "int32"
-        }
-      },
-      "required": [
-        "$id",
-        "name",
-        "dateCreated",
-        "sum"
-      ]
-    },
-    "membership": {
-      "description": "Membership",
-      "type": "object",
-      "properties": {
-        "$id": {
-          "type": "string",
-          "description": "Membership ID.",
-          "x-example": "5e5ea5c16897e"
-        },
-        "userId": {
-          "type": "string",
-          "description": "User ID.",
-          "x-example": "5e5ea5c16897e"
-        },
-        "teamId": {
-          "type": "string",
-          "description": "Team ID.",
-          "x-example": "5e5ea5c16897e"
-        },
-        "name": {
-          "type": "string",
-          "description": "User name.",
-          "x-example": "VIP"
-        },
-        "email": {
-          "type": "string",
-          "description": "User email address.",
-          "x-example": "john@appwrite.io"
-        },
-        "invited": {
-          "type": "integer",
-          "description": "Date, the user has been invited to join the team in Unix timestamp.",
-          "x-example": 1592981250,
-          "format": "int32"
-        },
-        "joined": {
-          "type": "integer",
-          "description": "Date, the user has accepted the invitation to join the team in Unix timestamp.",
-          "x-example": 1592981250,
-          "format": "int32"
-        },
-        "confirm": {
-          "type": "boolean",
-          "description": "User confirmation status, true if the user has joined the team or false otherwise.",
-          "x-example": false
-        },
-        "roles": {
-          "type": "array",
-          "description": "User list of roles",
-          "items": {
-            "type": "string"
-          },
-          "x-example": "admin"
-        }
-      },
-      "required": [
-        "$id",
-        "userId",
-        "teamId",
-        "name",
-        "email",
-        "invited",
-        "joined",
-        "confirm",
-        "roles"
-      ]
-    },
-    "function": {
-      "description": "Function",
-      "type": "object",
-      "properties": {
-        "$id": {
-          "type": "string",
-          "description": "Function ID.",
-          "x-example": "5e5ea5c16897e"
-        },
-        "$permissions": {
-          "type": "object",
-          "description": "Function permissions.",
-          "x-example": {},
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/permissions"
-          }
-        },
-        "name": {
-          "type": "string",
-          "description": "Function name.",
-          "x-example": "My Function"
-        },
-        "dateCreated": {
-          "type": "integer",
-          "description": "Function creation date in Unix timestamp.",
-          "x-example": 1592981250,
-          "format": "int32"
-        },
-        "dateUpdated": {
-          "type": "integer",
-          "description": "Function update date in Unix timestamp.",
-          "x-example": 1592981257,
-          "format": "int32"
-        },
-        "status": {
-          "type": "string",
-          "description": "Function status. Possible values: disabled, enabled",
-          "x-example": "enabled"
-        },
-        "env": {
-          "type": "string",
-          "description": "Function execution environment.",
-          "x-example": "python-3.8"
-        },
-        "tag": {
-          "type": "string",
-          "description": "Function active tag ID.",
-          "x-example": "5e5ea5c16897e"
-        },
-        "vars": {
-          "type": "string",
-          "description": "Function environment variables.",
-          "x-example": {
-            "key": "value"
-          }
-        },
-        "events": {
-          "type": "array",
-          "description": "Function trigger events.",
-          "items": {
-            "type": "string"
-          },
-          "x-example": "account.create"
-        },
-        "schedule": {
-          "type": "string",
-          "description": "Function execution schedult in CRON format.",
-          "x-example": "5 4 * * *"
-        },
-        "scheduleNext": {
-          "type": "integer",
-          "description": "Function next scheduled execution date in Unix timestamp.",
-          "x-example": 1592981292,
-          "format": "int32"
-        },
-        "schedulePrevious": {
-          "type": "integer",
-          "description": "Function next scheduled execution date in Unix timestamp.",
-          "x-example": 1592981237,
-          "format": "int32"
-        },
-        "timeout": {
-          "type": "integer",
-          "description": "Function execution timeout in seconds.",
-          "x-example": 1592981237,
-          "format": "int32"
-        }
-      },
-      "required": [
-        "$id",
-        "$permissions",
-        "name",
-        "dateCreated",
-        "dateUpdated",
-        "status",
-        "env",
-        "tag",
-        "vars",
-        "events",
-        "schedule",
-        "scheduleNext",
-        "schedulePrevious",
-        "timeout"
-      ]
-    },
-    "tag": {
-      "description": "Tag",
-      "type": "object",
-      "properties": {
-        "$id": {
-          "type": "string",
-          "description": "Tag ID.",
-          "x-example": "5e5ea5c16897e"
-        },
-        "functionId": {
-          "type": "string",
-          "description": "Function ID.",
-          "x-example": "5e5ea6g16897e"
-        },
-        "dateCreated": {
-          "type": "integer",
-          "description": "The tag creation date in Unix timestamp.",
-          "x-example": 1592981250,
-          "format": "int32"
-        },
-        "command": {
-          "type": "string",
-          "description": "The entrypoint command in use to execute the tag code.",
-          "x-example": "enabled"
-        },
-        "size": {
-          "type": "string",
-          "description": "The code size in bytes.",
-          "x-example": "python-3.8"
-        }
-      },
-      "required": [
-        "$id",
-        "functionId",
-        "dateCreated",
-        "command",
-        "size"
-      ]
-    },
-    "execution": {
-      "description": "Execution",
-      "type": "object",
-      "properties": {
-        "$id": {
-          "type": "string",
-          "description": "Execution ID.",
-          "x-example": "5e5ea5c16897e"
-        },
-        "functionId": {
-          "type": "string",
-          "description": "Function ID.",
-          "x-example": "5e5ea6g16897e"
-        },
-        "dateCreated": {
-          "type": "integer",
-          "description": "The execution creation date in Unix timestamp.",
-          "x-example": 1592981250,
-          "format": "int32"
-        },
-        "trigger": {
-          "type": "string",
-          "description": "The trigger that caused the function to execute. Possible values can be: `http`, `schedule`, or `event`.",
-          "x-example": "http"
-        },
-        "status": {
-          "type": "string",
-          "description": "The status of the function execution. Possible values can be: `waiting`, `processing`, `completed`, or `failed`.",
-          "x-example": "processing"
-        },
-        "exitCode": {
-          "type": "integer",
-          "description": "The script exit code.",
-          "x-example": 0,
-          "format": "int32"
-        },
-        "stdout": {
-          "type": "string",
-          "description": "The script stdout output string.",
-          "x-example": ""
-        },
-        "stderr": {
-          "type": "string",
-          "description": "The script stderr output string.",
-          "x-example": ""
-        },
-        "time": {
-          "type": "number",
-          "description": "The script execution time in seconds.",
-          "x-example": 0.4,
-          "format": "float"
-        }
-      },
-      "required": [
-        "$id",
-        "functionId",
-        "dateCreated",
-        "trigger",
-        "status",
-        "exitCode",
-        "stdout",
-        "stderr",
-        "time"
-      ]
-    },
-    "country": {
-      "description": "Country",
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Country name.",
-          "x-example": "United States"
-        },
-        "code": {
-          "type": "string",
-          "description": "Country two-character ISO 3166-1 alpha code.",
-          "x-example": "US"
-        }
-      },
-      "required": [
-        "name",
-        "code"
-      ]
-    },
-    "continent": {
-      "description": "Continent",
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Continent name.",
-          "x-example": "Europe"
-        },
-        "code": {
-          "type": "string",
-          "description": "Continent two letter code.",
-          "x-example": "EU"
-        }
-      },
-      "required": [
-        "name",
-        "code"
-      ]
-    },
-    "language": {
-      "description": "Language",
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Language name.",
-          "x-example": "Italian"
-        },
-        "code": {
-          "type": "string",
-          "description": "Language two-character ISO 639-1 codes.",
-          "x-example": "it"
-        },
-        "nativeName": {
-          "type": "string",
-          "description": "Language native name.",
-          "x-example": "Italiano"
-        }
-      },
-      "required": [
-        "name",
-        "code",
-        "nativeName"
-      ]
-    },
-    "currency": {
-      "description": "Currency",
-      "type": "object",
-      "properties": {
-        "symbol": {
-          "type": "string",
-          "description": "Currency symbol.",
-          "x-example": "$"
-        },
-        "name": {
-          "type": "string",
-          "description": "Currency name.",
-          "x-example": "US dollar"
-        },
-        "symbolNative": {
-          "type": "string",
-          "description": "Currency native symbol.",
-          "x-example": "$"
-        },
-        "decimalDigits": {
-          "type": "integer",
-          "description": "Number of decimal digits.",
-          "x-example": 2,
-          "format": "int32"
-        },
-        "rounding": {
-          "type": "number",
-          "description": "Currency digit rounding.",
-          "x-example": 0,
-          "format": "float"
-        },
-        "code": {
-          "type": "string",
-          "description": "Currency code in [ISO 4217-1](http://en.wikipedia.org/wiki/ISO_4217) three-character format.",
-          "x-example": "USD"
-        },
-        "namePlural": {
-          "type": "string",
-          "description": "Currency plural name",
-          "x-example": "US dollars"
-        }
-      },
-      "required": [
-        "symbol",
-        "name",
-        "symbolNative",
-        "decimalDigits",
-        "rounding",
-        "code",
-        "namePlural"
-      ]
-    },
-    "phone": {
-      "description": "Phone",
-      "type": "object",
-      "properties": {
-        "code": {
-          "type": "string",
-          "description": "Phone code.",
-          "x-example": "+1"
-        },
-        "countryCode": {
-          "type": "string",
-          "description": "Country two-character ISO 3166-1 alpha code.",
-          "x-example": "US"
-        },
-        "countryName": {
-          "type": "string",
-          "description": "Country name.",
-          "x-example": "United States"
-        }
-      },
-      "required": [
-        "code",
-        "countryCode",
-        "countryName"
-      ]
+      "required": ["message", "code", "version"]
     },
     "mock": {
       "description": "Mock",
@@ -2815,9 +1072,7 @@
           "x-example": "Success"
         }
       },
-      "required": [
-        "result"
-      ]
+      "required": ["result"]
     }
   },
   "externalDocs": {

@@ -100,7 +100,8 @@ class Dart extends Language {
             "if",
             "set",
             "yield",
-            "required"
+            "required",
+            "default"
         ];
     }
 
@@ -118,7 +119,7 @@ class Dart extends Language {
                 return 'String';
             break;
             case self::TYPE_FILE:
-                return 'MultipartFile';
+                return 'http.MultipartFile';
             break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
@@ -207,7 +208,7 @@ class Dart extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'await MultipartFile.fromFile(\'./path-to-files/image.jpg\', \'image.jpg\')';
+                    $output .= 'await MultipartFile.fromPath(\''.$param['name'].'\', \'./path-to-files/image.jpg\', \'image.jpg\')';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -280,14 +281,50 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/client.dart',
-                'template'      => 'dart/lib/client.dart.twig',
+                'destination'   => '/lib/src/client.dart',
+                'template'      => 'dart/lib/src/client.dart.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/exception.dart',
-                'template'      => 'dart/lib/exception.dart.twig',
+                'destination'   => '/lib/src/client_base.dart',
+                'template'      => 'dart/lib/src/client_base.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/client_browser.dart',
+                'template'      => 'dart/lib/src/client_browser.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/client_io.dart',
+                'template'      => 'dart/lib/src/client_io.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/client_mixin.dart',
+                'template'      => 'dart/lib/src/client_mixin.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/client_stub.dart',
+                'template'      => 'dart/lib/src/client_stub.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/exception.dart',
+                'template'      => 'dart/lib/src/exception.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/response.dart',
+                'template'      => 'dart/lib/src/response.dart.twig',
                 'minify'        => false,
             ],
             [
@@ -304,14 +341,26 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/service.dart',
-                'template'      => 'dart/lib/service.dart.twig',
+                'destination'   => '/lib/client_io.dart',
+                'template'      => 'dart/lib/client_io.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/client_browser.dart',
+                'template'      => 'dart/lib/client_browser.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/service.dart',
+                'template'      => 'dart/lib/src/service.dart.twig',
                 'minify'        => false,
             ],
             [
 				'scope'         => 'default',
-				'destination'   => '/lib/enums.dart',
-				'template'      => 'dart/lib/enums.dart.twig',
+				'destination'   => '/lib/src/enums.dart',
+				'template'      => 'dart/lib/src/enums.dart.twig',
 				'minify'        => false,
 			],
             [

@@ -51,11 +51,11 @@ class SDKTest extends TestCase
             'build' => [
                 'mkdir -p tests/sdks/dart/tests',
                 'cp tests/languages/dart/tests.dart tests/sdks/dart/tests/tests.dart',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.12 pub get',
             ],
             'envs' => [
-                'dart-2.12' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.12 dart pub run tests/tests.dart',
-                'dart-2.13-dev' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart --env PUB_CACHE=vendor google/dart:2.13-dev dart pub run tests/tests.dart',
+                'dart-2.12' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart dart:2.12 sh -c "dart pub get && dart pub run tests/tests.dart"',
+                'dart-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart dart:stable sh -c "dart pub get && dart pub run tests/tests.dart"',
+                'dart-beta' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart dart:beta sh -c "dart pub get && dart pub run tests/tests.dart"',
             ],
             'supportException' => true,
         ],
@@ -70,6 +70,7 @@ class SDKTest extends TestCase
                 'flutter-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart"',
             ],
             'supportException' => true,
+            'supportRealtime' => true,
         ],
 
         'android' => [
@@ -83,6 +84,7 @@ class SDKTest extends TestCase
                 'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:latest-jdk8 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
             ],
             'supportException' => false,
+            'supportRealtime' => true,
         ],
 
         'kotlin' => [
@@ -130,6 +132,7 @@ class SDKTest extends TestCase
                 'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node node.js',
             ],
             'supportException' => true,
+            'supportRealtime' => true
         ],
 
         'deno' => [
@@ -325,6 +328,10 @@ class SDKTest extends TestCase
                     $this->assertEquals('Mock 400 error',$output[12] ?? '');
                     $this->assertEquals('Server Error', $output[13] ?? '');
                     $this->assertEquals('This is a text error', $output[14] ?? '');
+                }
+
+                if ($options['supportRealtime'] ?? false) {
+                    $this->assertEquals('WS:/v1/realtime:passed', $output[15] ?? '');
                 }
             }
         }

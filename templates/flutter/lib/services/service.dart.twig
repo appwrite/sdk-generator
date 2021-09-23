@@ -1,15 +1,11 @@
 part of {{ language.params.packageName }};
 
 {% macro parameter(parameter) %}
-{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel }}
-{% endmacro %}
+{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}
 {% endmacro %}
-{% macro map_parameter(parameter) %}
-{% if parameter.name == 'orderType' %}'{{ parameter.name }}': {{ parameter.name | caseCamel }}{% if parameter.required %}{% else %}?{% endif %}.name(),{% else %}
-'{{ parameter.name }}': {{ parameter.name | caseCamel }},{% endif %}
-{% endmacro %}
+{% macro map_parameter(parameter) %}'{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},{% endmacro %}
 
 class {{ service.name | caseUcfirst }} extends Service {
     {{ service.name | caseUcfirst }}(Client client): super(client);
@@ -22,7 +18,7 @@ class {{ service.name | caseUcfirst }} extends Service {
      ///
 {% endif %}
     {% if method.type == 'webAuth' %}Future{% else %}Future<Response>{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) {
-        final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
+        final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
 
         final Map<String, dynamic> params = {
 {% for parameter in method.parameters.query %}
@@ -51,8 +47,7 @@ class {{ service.name | caseUcfirst }} extends Service {
             for (var item in value) {
               query.add(Uri.encodeComponent(key + '[]') + '=' + Uri.encodeComponent(item));
             }
-          }
-          else {
+          } else if(value != null) {
               query.add(Uri.encodeComponent(key) + '=' + Uri.encodeComponent(value));
           }
         });
@@ -66,23 +61,10 @@ class {{ service.name | caseUcfirst }} extends Service {
         );
 
         if(kIsWeb) {
-          html.window.location.href = url.toString();
+          redirect(url.toString());
           return Future.value();
         }else{
-
-          return FlutterWebAuth.authenticate(
-            url: url.toString(),
-            callbackUrlScheme: "appwrite-callback-" + client.config['project']!
-            ).then((value) async {
-                Uri url = Uri.parse(value);
-                Cookie cookie = new Cookie(url.queryParameters['key']!, url.queryParameters['secret']!);
-                cookie.domain = Uri.parse(client.endPoint).host;
-                cookie.httpOnly = true;
-                cookie.path = '/';
-                List<Cookie> cookies = [cookie];
-                await client.init();
-                client.cookieJar.saveFromResponse(Uri.parse(client.endPoint), cookies);
-            });
+          return client.webAuth(url);
         }
 
 {% elseif method.type == 'location' %}

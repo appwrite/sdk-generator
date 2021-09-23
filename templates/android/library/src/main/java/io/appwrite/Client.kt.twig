@@ -3,9 +3,9 @@ package {{ sdk.namespace | caseDot }}
 import android.content.Context
 import android.content.pm.PackageManager
 import com.google.gson.Gson
+import io.appwrite.appwrite.BuildConfig
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
-import {{ sdk.namespace | caseDot }}.extensions.JsonExtensions.fromJson
-import {{ sdk.namespace | caseDot }}.models.Error
+import {{ sdk.namespace | caseDot }}.extensions.fromJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -35,6 +35,7 @@ import kotlin.coroutines.resume
 class Client @JvmOverloads constructor(
     context: Context,
     var endPoint: String = "https://appwrite.io/v1",
+    var endPointRealtime: String? = null,
     private var selfSigned: Boolean = false
 ) : CoroutineScope {
 
@@ -69,7 +70,7 @@ class Client @JvmOverloads constructor(
             "content-type" to "application/json",
             "origin" to "appwrite-android://${context.packageName}",
             "user-agent" to "${context.packageName}/${appVersion}, ${System.getProperty("http.agent")}",
-            "x-sdk-version" to "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+            "x-sdk-version" to "{{spec.title | caseDash}}:{{ language.name | caseLower }}:${BuildConfig.SDK_VERSION}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
             
 {% for key,header in spec.global.defaultHeaders %}
             "{{ key | caseLower }}" to "{{ header }}"{% if not loop.last %},{% endif %}
@@ -150,7 +151,7 @@ class Client @JvmOverloads constructor(
     }
 
     /**
-     * Set endpoint
+     * Set endpoint and realtime endpoint.
      * 
      * @param endpoint
      *
@@ -158,6 +159,23 @@ class Client @JvmOverloads constructor(
      */
     fun setEndpoint(endPoint: String): Client {
         this.endPoint = endPoint
+
+        if (this.endPointRealtime == null && endPoint.startsWith("http")) {
+            this.endPointRealtime = endPoint.replaceFirst("http", "ws")
+        }
+
+        return this
+    }
+
+    /**
+    * Set realtime endpoint
+    *
+    * @param endpoint
+    *
+    * @return this
+    */
+    fun setEndpointRealtime(endPoint: String): Client {
+        this.endPointRealtime = endPoint
         return this
     }
 
@@ -207,7 +225,13 @@ class Client @JvmOverloads constructor(
                         return@forEach
                     }
                     is List<*> -> {
-                        httpBuilder.addQueryParameter(it.key + "[]", it.value.toString())
+                        val list = it.value as List<*>
+                        for (index in list.indices) {
+                            httpBuilder.addQueryParameter(
+                                "${it.key}[]",
+                                list[index].toString()
+                            )
+                        }
                     }
                     else -> {
                         httpBuilder.addQueryParameter(it.key, it.value.toString())
@@ -290,9 +314,9 @@ class Client @JvmOverloads constructor(
 
                     val contentType: String = response.headers["content-type"] ?: ""
                     val error = if (contentType.contains("application/json", ignoreCase = true)) {
-                        bodyString.fromJson(Error::class.java)
+                        bodyString.fromJson<{{ spec.title | caseUcfirst }}Exception>()
                     } else {
-                        Error(bodyString, response.code)
+                        {{ spec.title | caseUcfirst }}Exception(bodyString, response.code)
                     }
 
                     it.cancel(AppwriteException(
