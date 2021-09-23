@@ -1,69 +1,82 @@
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}{{property.sub_schema | caseUcfirst}}[]{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% endmacro %}
 import 'isomorphic-form-data';
 import { fetch } from 'cross-fetch';
 
-type Payload = {
-    [key: string]: any;
+namespace Models {
+{% for definition in spec.definitions %}
+    export type {{ definition.name | caseUcfirst }} = {
+{% for property in definition.properties %}
+        {{ property.name | escapeKeyword }}{% if not property.required %}?{% endif %}: {{_self.sub_schema(property)}};
+{% endfor %}
+    }
+{% endfor %}
 }
 
-type Headers = {
-    [key: string]: string;
-}
+namespace Internals {
+    export type Payload = {
+        [key: string]: any;
+    }
 
-type RealtimeResponse = {
-    type: 'error'|'event'|'connected'|'response';
-    data: RealtimeResponseAuthenticated|RealtimeResponseConnected|RealtimeResponseError|RealtimeResponseEvent<unknown>;
-}
+    export type Headers = {
+        [key: string]: string;
+    }
 
-type RealtimeRequest = {
-    type: 'authentication';
-    data: RealtimeRequestAuthenticate;
-}
+    export type RealtimeResponse = {
+        type: 'error'|'event'|'connected'|'response';
+        data: RealtimeResponseAuthenticated|RealtimeResponseConnected|RealtimeResponseError|RealtimeResponseEvent<unknown>;
+    }
 
-type RealtimeResponseEvent<T extends unknown> = {
-    event: string;
-    channels: string[];
-    timestamp: number;
-    payload: T;
-}
+    export type RealtimeRequest = {
+        type: 'authentication';
+        data: RealtimeRequestAuthenticate;
+    }
 
-type RealtimeResponseError = {
-    code: number;
-    message: string;
-}
-
-type RealtimeResponseConnected = {
-    channels: string[];
-    user?: object;
-}
-
-type RealtimeResponseAuthenticated = {
-    to: string;
-    success: boolean;
-    user: object;
-}
-
-type RealtimeRequestAuthenticate = {
-    session: string;
-}
-
-type Realtime = {
-    socket?: WebSocket;
-    timeout?: number;
-    url?: string;
-    lastMessage?: RealtimeResponse;
-    channels: Set<string>;
-    subscriptions: Map<number, {
+    export type RealtimeResponseEvent<T extends unknown> = {
+        event: string;
         channels: string[];
-        callback: (payload: RealtimeResponseEvent<any>) => void
-    }>;
-    subscriptionsCounter: number;
-    reconnect: boolean;
-    reconnectAttempts: number;
-    getTimeout: () => number;
-    connect: () => void;
-    createSocket: () => void;
-    cleanUp: (channels: string[]) => void;
-    onMessage: (event: MessageEvent) => void;
+        timestamp: number;
+        payload: T;
+    }
+
+    export type RealtimeResponseError = {
+        code: number;
+        message: string;
+    }
+
+    export type RealtimeResponseConnected = {
+        channels: string[];
+        user?: Models.User;
+    }
+
+    export type RealtimeResponseAuthenticated = {
+        to: string;
+        success: boolean;
+        user: Models.User;
+    }
+
+    export type RealtimeRequestAuthenticate = {
+        session: string;
+    }
+
+    export type Realtime = {
+        socket?: WebSocket;
+        timeout?: number;
+        url?: string;
+        lastMessage?: RealtimeResponse;
+        channels: Set<string>;
+        subscriptions: Map<number, {
+            channels: string[];
+            callback: (payload: RealtimeResponseEvent<any>) => void
+        }>;
+        subscriptionsCounter: number;
+        reconnect: boolean;
+        reconnectAttempts: number;
+        getTimeout: () => number;
+        connect: () => void;
+        createSocket: () => void;
+        cleanUp: (channels: string[]) => void;
+        onMessage: (event: MessageEvent) => void;
+    }
 }
 
 class {{spec.title | caseUcfirst}}Exception extends Error {
@@ -86,7 +99,7 @@ class {{ spec.title | caseUcfirst }} {
         {{ header.key | caseLower }}: '',
 {% endfor %}
     };
-    headers: Headers = {
+    headers: Internals.Headers = {
         'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
 {% for key,header in spec.global.defaultHeaders %}
         '{{key}}': '{{header}}',
@@ -142,7 +155,7 @@ class {{ spec.title | caseUcfirst }} {
 
 {% endfor %}
 
-    private realtime: Realtime = {
+    private realtime: Internals.Realtime = {
         socket: undefined,
         timeout: undefined,
         url: '',
@@ -205,7 +218,7 @@ class {{ spec.title | caseUcfirst }} {
                         !this.realtime.reconnect ||
                         (
                             this.realtime?.lastMessage?.type === 'error' && // Check if last message was of type error
-                            (<RealtimeResponseError>this.realtime?.lastMessage.data).code === 1008 // Check for policy violation 1008
+                            (<Internals.RealtimeResponseError>this.realtime?.lastMessage.data).code === 1008 // Check for policy violation 1008
                         )
                     ) {
                         this.realtime.reconnect = true;
@@ -224,16 +237,16 @@ class {{ spec.title | caseUcfirst }} {
         },
         onMessage: (event) => {
             try {
-                const message: RealtimeResponse = JSON.parse(event.data);
+                const message: Internals.RealtimeResponse = JSON.parse(event.data);
                 this.realtime.lastMessage = message;
                 switch (message.type) {
                     case 'connected':
                         const cookie = JSON.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
                         const session = cookie?.[`a_session_${this.config.project}`];
-                        const messageData = <RealtimeResponseConnected>message.data;
+                        const messageData = <Internals.RealtimeResponseConnected>message.data;
 
                         if (session && !messageData.user) {
-                            this.realtime.socket?.send(JSON.stringify(<RealtimeRequest>{
+                            this.realtime.socket?.send(JSON.stringify(<Internals.RealtimeRequest>{
                                 type: 'authentication',
                                 data: {
                                     session
@@ -242,7 +255,7 @@ class {{ spec.title | caseUcfirst }} {
                         }
                         break;
                     case 'event':
-                        let data = <RealtimeResponseEvent<unknown>>message.data;
+                        let data = <Internals.RealtimeResponseEvent<unknown>>message.data;
                         if (data?.channels) {
                             const isSubscribed = data.channels.some(channel => this.realtime.channels.has(channel));
                             if (!isSubscribed) return;
@@ -299,10 +312,10 @@ class {{ spec.title | caseUcfirst }} {
      * - teams.[ID]
      * - memberships
      * - memberships.[ID]
-     * @param {(payload: RealtimeMessage) => void} callback Is called on every realtime update.
+     * @param {(payload: Internals.RealtimeMessage) => void} callback Is called on every realtime update.
      * @returns {() => void} Unsubscribes from events.
      */
-    subscribe<T extends unknown>(channels: string | string[], callback: (payload: RealtimeResponseEvent<T>) => void): () => void {
+    subscribe<T extends unknown>(channels: string | string[], callback: (payload: Internals.RealtimeResponseEvent<T>) => void): () => void {
         let channelArray = typeof channels === 'string' ? [channels] : channels;
         channelArray.forEach(channel => this.realtime.channels.add(channel));
 
@@ -321,7 +334,7 @@ class {{ spec.title | caseUcfirst }} {
         }
     }
 
-    private async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<any> {
+    private async call(method: string, url: URL, headers: Internals.Headers = {}, params: Internals.Payload = {}): Promise<any> {
         method = method.toUpperCase();
         headers = {
             ...headers,
@@ -396,8 +409,8 @@ class {{ spec.title | caseUcfirst }} {
         }
     }
 
-    private flatten(data: Payload, prefix = ''): Payload {
-        let output: Payload = {};
+    private flatten(data: Internals.Payload, prefix = ''): Internals.Payload {
+        let output: Internals.Payload = {};
 
         for (const key in data) {
             let value = data[key];
@@ -432,7 +445,7 @@ class {{ spec.title | caseUcfirst }} {
          * @returns {% if method.type == 'webAuth' %}{void|string}{% elseif method.type == 'location' %}{URL}{% else %}{Promise}{% endif %}
 
          */
-        {{ method.name | caseCamel }}: {% if method.type != 'location' and method.type != 'webAuth'%}async <T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void | URL{% elseif method.type == 'location' %}URL{% else %}Promise<T>{% endif %} => {
+        {{ method.name | caseCamel }}: {% if method.type != 'location' and method.type != 'webAuth'%}async {% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void | URL{% elseif method.type == 'location' %}URL{% else %}Promise<{% if method.responseModel and method.responseModel != 'any' %}Models.{{method.responseModel | caseUcfirst}}{% else %}{}{% endif %}>{% endif %} => {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
             if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
@@ -442,7 +455,7 @@ class {{ spec.title | caseUcfirst }} {
 {% endif %}
 {% endfor %}
             let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-            let payload: Payload = {};
+            let payload: Internals.Payload = {};
 
 {% for parameter in method.parameters.query %}
             if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
@@ -499,4 +512,4 @@ class {{ spec.title | caseUcfirst }} {
 };
 
 export { {{spec.title | caseUcfirst}} }
-export type { {{spec.title | caseUcfirst}}Exception }
+export type { {{spec.title | caseUcfirst}}Exception, Models }
