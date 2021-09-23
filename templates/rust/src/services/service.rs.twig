@@ -1,6 +1,7 @@
 use crate::client::{Client, ParamType};
 use std::collections::HashMap;
 use crate::services::{{spec.title | caseUcfirst}}Exception;
+use crate::models;
 
 #[derive(Clone)]
 pub struct {{ service.name | caseUcfirst }} {
@@ -18,9 +19,8 @@ impl {{ service.name | caseUcfirst }} {
 {% if method.description %}
 {{ method.description|dartComment }}
 {% endif %}
-    pub fn {{ method.name | caseSnake }}(&self{% if method.parameters.all|length >= 1 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword}}: {% if parameter.required != 1 %}Option<{% endif %}{{ parameter.type | typeName }}{% if parameter.required != 1%}>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) -> Result<reqwest::blocking::Response, {{spec.title | caseUcfirst}}Exception> {
+    pub fn {{ method.name | caseSnake }}(&self{% if method.parameters.all|length >= 1 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword}}: {% if parameter.required != 1 %}Option<{% endif %}{{ parameter.type | typeName }}{% if parameter.required != 1%}>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) -> Result<{% if method.type == 'location' %}Vec<u8>{% elseif method.responseModel and method.responseModel != 'any' %}models::{{method.responseModel | caseUcfirst}}{% else %}bool{% endif %}, {{spec.title | caseUcfirst}}Exception> {
         let path = "{{ method.path|replace({'{': '', '}': ""}) }}"{% for parameter in method.parameters.path %}.replace("{{ parameter.name | caseCamel }}", &{{ parameter.name | caseSnake }}){% endfor %};
-
 {% if method.headers %}
         let headers: HashMap<String, String> = [
 {% for parameter in method.parameters.header %}
@@ -59,7 +59,41 @@ impl {{ service.name | caseUcfirst }} {
 {% endfor %}
         ].iter().cloned().collect();
 
-        return self.client.clone().call("{{ method.method | caseUpper }}", &path, {% if method.headers %}Some(headers){% else %}None{% endif %}, Some(params) );
+        let response = self.client.clone().call("{{ method.method | caseUpper }}", &path, {% if method.headers %}Some(headers){% else %}None{% endif %}, Some(params) );
+
+{% if method.type == 'location' %}
+        let processedResponse:Vec<u8> = match response {
+            Ok(mut r) => {
+                let mut buf: Vec<u8> = vec![];
+                match r.copy_to(&mut buf) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        return Err({{spec.title | caseUcfirst}}Exception::new(format!("Error copying response to buffer: {}", e), 0, "".to_string()));
+                    }
+                };
+                buf
+            }
+            Err(e) => {
+                return Err(e);
+            }
+        };
+
+        Ok(processedResponse)
+{% elseif method.responseModel and method.responseModel != 'any' %}
+        let processedResponse:models::{{method.responseModel | caseUcfirst}} = match response {
+            Ok(r) => {
+                r.json().unwrap()
+            }
+            Err(e) => {
+                return Err(e);
+            }
+        };
+
+        Ok(processedResponse)
+{% else %}
+        Ok(response.unwrap().status().is_success())
+{% endif %}
+
     }
 {% endfor %}
 }

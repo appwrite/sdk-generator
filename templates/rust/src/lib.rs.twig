@@ -1,5 +1,5 @@
 /*!
-This SDK is compatible with Appwrite server version 0.7.0. For older versions, please check previous releases.
+This SDK is compatible with Appwrite server version 0.11.0. For older versions, please check previous releases.
 
 Appwrite is an open-source backend as a service server that abstract and simplify complex and repetitive development tasks behind a very simple to use REST API.
 Appwrite aims to help you develop your apps faster and in a more secure way. Use the Rust SDK to integrate your app with the Appwrite server to easily start 
@@ -24,3 +24,4 @@ extern crate serde_derive;
 
 pub mod client;
 pub mod services;
+pub mod models;

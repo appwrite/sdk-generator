@@ -1,0 +1,7 @@
+{% for definition in spec.definitions %}
+mod {{definition.name | caseSnake}};
+{% endfor %} 
+
+{% for definition in spec.definitions %}
+pub use self::{{definition.name | caseSnake}}::{{definition.name|caseUcfirst}};
+{% endfor %}

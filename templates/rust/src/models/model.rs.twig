@@ -1,0 +1,21 @@
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use serde_json::value::Value;
+use super::*;
+
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}Vec<{{property.sub_schema | caseUcfirst}}>{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% endmacro %}
+#[derive(Serialize, Deserialize)]
+pub struct {{ definition.name | caseUcfirst }} {
+{% for property in definition.properties %}
+    {{ property.name | escapeKeyword | removeDollarSign }}: {% if property.type == 'string' %}String{% elseif _self.sub_schema(property) == '&[&str]' %}Vec<String>{% else %}{{_self.sub_schema(property)}}{% endif %},
+{% endfor %}
+{% if definition.additionalProperties %}
+    data: HashMap<String, Value>,
+{% endif %}
+}
+
+impl {{ definition.name | caseUcfirst}} {
+    pub fn new({% for property in definition.properties %}{{ property.name | escapeKeyword | removeDollarSign }}: {% if property.type == 'string' %}String{% else %}{{_self.sub_schema(property)}}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if definition.additionalProperties %}{% if definition.properties | length > 0 %}, {% endif %}data: HashMap<String, Value>{% endif %}) -> Self {
+        {{ definition.name | caseUcfirst }} { {% for property in definition.properties %}{{ property.name | escapeKeyword | removeDollarSign }}{% if _self.sub_schema(property) == '&[&str]' %}: {{ property.name | escapeKeyword | removeDollarSign }}.iter().map(|&s| s.to_string()).collect(){% endif %} {% if not loop.last %}, {% endif %}{% endfor %}{% if definition.additionalProperties %}{% if definition.properties | length > 0 %}, {% endif %}data{% endif %} }
+    }
+}

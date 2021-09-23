@@ -4,12 +4,13 @@ namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
 
-class Rust extends Language {
+class Rust extends Language
+{
     /**
      * @var array
      */
     protected $params = [
-      'packageName' => 'packageName',
+        'packageName' => 'packageName',
     ];
 
     /**
@@ -39,58 +40,58 @@ class Rust extends Language {
     public function getKeywords()
     {
         return [
-          "type",
-          "as",
-          "break",
-          "const",
-          "continue",
-          "crate",
-          "else",
-          "enum",
-          "extern",
-          "false",
-          "fn",
-          "for",
-          "if",
-          "impl",
-          "in",
-          "let",
-          "loop",
-          "match",
-          "mod",
-          "move",
-          "mut",
-          "pub",
-          "ref",
-          "return",
-          "self",
-          "Self",
-          "static",
-          "struct",
-          "super",
-          "trait",
-          "true",
-          "type",
-          "unsafe",
-          "use",
-          "where",
-          "while",
-          "async",
-          "await",
-          "dyn",
-          "abstract",
-          "become",
-          "box",
-          "do",
-          "final",
-          "macro",
-          "override",
-          "priv",
-          "typeof",
-          "unsized",
-          "virtual",
-          "yield",
-          "try"
+            "type",
+            "as",
+            "break",
+            "const",
+            "continue",
+            "crate",
+            "else",
+            "enum",
+            "extern",
+            "false",
+            "fn",
+            "for",
+            "if",
+            "impl",
+            "in",
+            "let",
+            "loop",
+            "match",
+            "mod",
+            "move",
+            "mut",
+            "pub",
+            "ref",
+            "return",
+            "self",
+            "Self",
+            "static",
+            "struct",
+            "super",
+            "trait",
+            "true",
+            "type",
+            "unsafe",
+            "use",
+            "where",
+            "while",
+            "async",
+            "await",
+            "dyn",
+            "abstract",
+            "become",
+            "box",
+            "do",
+            "final",
+            "macro",
+            "override",
+            "priv",
+            "typeof",
+            "unsized",
+            "virtual",
+            "yield",
+            "try"
         ];
     }
 
@@ -103,24 +104,24 @@ class Rust extends Language {
         switch ($type) {
             case self::TYPE_OBJECT:
                 return 'Option<HashMap<String, crate::client::ParamType>>';
-            break;
+                break;
             case self::TYPE_INTEGER:
                 return 'i64';
-            break;
+                break;
             case self::TYPE_STRING:
                 return '&str';
-            break;
+                break;
             case self::TYPE_FILE:
                 return 'std::path::PathBuf';
-            break;
+                break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
-            break;
+                break;
             case self::TYPE_ARRAY:
-              return '&[&str]';
+                return '&[&str]';
             case self::TYPE_NUMBER:
                 return 'f64';
-            break;
+                break;
         }
 
         return $type;
@@ -146,7 +147,7 @@ class Rust extends Language {
 
         $output = '';
 
-        if(empty($example) && $example !== 0 && $example !== false) {
+        if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
                     $output .= 'std::path::PathBuf::from("./path-to-files/image.jpg")';
@@ -154,7 +155,7 @@ class Rust extends Language {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                     $output .= '0';
-                break;
+                    break;
                 case self::TYPE_BOOLEAN:
                     $output .= 'false';
                     break;
@@ -168,8 +169,7 @@ class Rust extends Language {
                     $output .= '&[]';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_OBJECT:
                 case self::TYPE_FILE:
@@ -220,49 +220,60 @@ class Rust extends Language {
                 'template'      => '/rust/LICENSE.twig',
                 'minify'        => false,
             ],
-	          [
+            [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => '/rust/docs/example.md.twig',
                 'minify'        => false,
             ],
             [
-              'scope'         => 'method',
-              'destination'   => 'src/lib.rs',
-              'template'      => '/rust/src/lib.rs.twig',
-              'minify'        => false,
+                'scope'         => 'method',
+                'destination'   => 'src/lib.rs',
+                'template'      => '/rust/src/lib.rs.twig',
+                'minify'        => false,
             ],
             [
-              'scope'         => 'method',
-              'destination'   => 'src/client.rs',
-              'template'      => '/rust/src/client.rs.twig',
-              'minify'        => false,
+                'scope'         => 'method',
+                'destination'   => 'src/client.rs',
+                'template'      => '/rust/src/client.rs.twig',
+                'minify'        => false,
             ],
             [
-              'scope'         => 'method',
-              'destination'   => 'src/services/mod.rs',
-              'template'      => '/rust/src/services/mod.rs.twig',
-              'minify'        => false,
+                'scope'         => 'method',
+                'destination'   => 'src/services/mod.rs',
+                'template'      => '/rust/src/services/mod.rs.twig',
+                'minify'        => false,
             ],
             [
-              'scope'         => 'method',
-              'destination'   => 'examples/foo_test.rs',
-              'template'      => '/rust/examples/foo_test.rs.twig',
-              'minify'        => false,
+                'scope'         => 'method',
+                'destination'   => 'examples/foo_test.rs',
+                'template'      => '/rust/examples/foo_test.rs.twig',
+                'minify'        => false,
             ],
             [
-              'scope'         => 'method',
-              'destination'   => 'src/services/exception.rs',
-              'template'      => '/rust/src/services/exception.rs.twig',
-              'minify'        => false,
+                'scope'         => 'method',
+                'destination'   => 'src/services/exception.rs',
+                'template'      => '/rust/src/services/exception.rs.twig',
+                'minify'        => false,
             ],
             [
-              'scope'         => 'service',
-              'destination'   => 'src/services/{{service.name | caseDash}}.rs',
-              'template'      => '/rust/src/services/service.rs.twig',
-              'minify'        => false,
-          ],
+                'scope'         => 'default',
+                'destination'   => 'src/models/mod.rs',
+                'template'      => '/rust/src/models/mod.rs.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => 'src/services/{{service.name | caseDash}}.rs',
+                'template'      => '/rust/src/services/service.rs.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/src/models/{{definition.name | caseSnake }}.rs',
+                'template'      => '/rust/src/models/model.rs.twig',
+                'minify'        => false,
+            ],
         ];
     }
 }
-
