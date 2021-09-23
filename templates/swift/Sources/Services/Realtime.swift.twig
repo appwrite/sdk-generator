@@ -64,7 +64,7 @@ open class Realtime : Service {
     ) -> RealtimeSubscription {
         for channel in channels {
             if channelCallbacks[channel] != nil {
-                channelCallbacks[channel] = []
+                channelCallbacks[channel] = NSMutableSet()
                 channelCallbacks[channel]?.add(RealtimeCallback(
                     with: payloadType,
                     and: callback as (RealtimeResponseEvent<T>) -> Void
@@ -102,7 +102,7 @@ open class Realtime : Service {
 
     func unsubscribe(channels: [String]) {
         for channel in channels {
-            channelCallbacks[channel] = []
+            channelCallbacks[channel] = NSMutableSet()
         }
         if (channelCallbacks.allSatisfy { $0.value.count != 0 }) {
             errorCallbacks = []

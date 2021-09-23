@@ -148,7 +148,7 @@ open class Client {
     ///
     /// @return Client
     ///
-    func setEndpointRealtime(endPoint: String) -> Client {
+    open func setEndpointRealtime(_ endPoint: String) -> Client {
         self.endPointRealtime = endPoint
 
         return self

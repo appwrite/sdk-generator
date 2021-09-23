@@ -1,8 +1,10 @@
 import AsyncHTTPClient
 import Foundation
 import NIO
+
+#if canImport(SwiftUI)
 import SwiftUI
-import {{ spec.title | caseUcfirst}}
+#endif
 
 ///
 /// Used to authenticate with external OAuth2 providers. Launches browser windows and handles
@@ -11,8 +13,10 @@ import {{ spec.title | caseUcfirst}}
 @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 public class WebAuthComponent {
 
+#if canImport(SwiftUI)
     @Environment(\.openURL)
     private static var openURL
+#endif
 
     private static var callbacks = [String: (Result<String, {{ spec.title | caseUcfirst}}Error>) -> Void]()
 
@@ -36,7 +40,10 @@ public class WebAuthComponent {
         onComplete: @escaping (Result<String, {{ spec.title | caseUcfirst}}Error>) -> Void
     ) {
         callbacks[callbackScheme] = onComplete
+
+    #if canImport(SwiftUI)
         openURL(url)
+    #endif
     }
 
     ///
