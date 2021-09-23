@@ -147,7 +147,7 @@ class ClientIO extends ClientBase with ClientMixin {
       device = '(Macintosh; ${macinfo.model})';
     }
     addHeader(
-        'user-agent', '${packageInfo.appName}/${packageInfo.version} $device');
+        'user-agent', '${packageInfo.packageName}/${packageInfo.version} $device');
 
     _initialized = true;
   }

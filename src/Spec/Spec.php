@@ -110,6 +110,11 @@ abstract class Spec extends ArrayObject {
     abstract public function getGlobalHeaders();
 
     /**
+     * @return array
+     */
+    abstract public function getDefinitions();
+
+    /**
      * Get Attribute
      *
      * Method for getting a specific fields attribute. If $name is not found $default value will be returned.
