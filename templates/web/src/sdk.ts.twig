@@ -6,6 +6,9 @@ namespace Models {
 {% for definition in spec.definitions %}
     export type {{ definition.name | caseUcfirst }} = {
 {% for property in definition.properties %}
+        /**
+         * {{ property.description }}
+         */
         {{ property.name | escapeKeyword }}{% if not property.required %}?{% endif %}: {{_self.sub_schema(property)}};
 {% endfor %}
     }
