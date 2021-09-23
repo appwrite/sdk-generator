@@ -124,6 +124,7 @@ class SDKTest extends TestCase
                 'cp tests/languages/web/index.html tests/sdks/web/index.html',
                 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic npm install', //  npm list --depth 0 &&
                 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic npm run build',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic npx playwright install'
             ],
             'envs' => [
                 'chromium' => 'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node tests.js',
