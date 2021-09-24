@@ -18,52 +18,52 @@ namespace Models {
 {% endfor %}
 }
 
-export type Payload = {
+type Payload = {
     [key: string]: any;
 }
 
-export type Headers = {
+type Headers = {
     [key: string]: string;
 }
 
-export type RealtimeResponse = {
+type RealtimeResponse = {
     type: 'error'|'event'|'connected'|'response';
     data: RealtimeResponseAuthenticated|RealtimeResponseConnected|RealtimeResponseError|RealtimeResponseEvent<unknown>;
 }
 
-export type RealtimeRequest = {
+type RealtimeRequest = {
     type: 'authentication';
     data: RealtimeRequestAuthenticate;
 }
 
-export type RealtimeResponseEvent<T extends unknown> = {
+type RealtimeResponseEvent<T extends unknown> = {
     event: string;
     channels: string[];
     timestamp: number;
     payload: T;
 }
 
-export type RealtimeResponseError = {
+type RealtimeResponseError = {
     code: number;
     message: string;
 }
 
-export type RealtimeResponseConnected = {
+type RealtimeResponseConnected = {
     channels: string[];
     user?: object;
 }
 
-export type RealtimeResponseAuthenticated = {
+type RealtimeResponseAuthenticated = {
     to: string;
     success: boolean;
     user: object;
 }
 
-export type RealtimeRequestAuthenticate = {
+type RealtimeRequestAuthenticate = {
     session: string;
 }
 
-export type Realtime = {
+type Realtime = {
     socket?: WebSocket;
     timeout?: number;
     url?: string;
