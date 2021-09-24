@@ -47,13 +47,13 @@ export type RealtimeResponseError = {
 
 export type RealtimeResponseConnected = {
     channels: string[];
-    user?: Models.User;
+    user?: object;
 }
 
 export type RealtimeResponseAuthenticated = {
     to: string;
     success: boolean;
-    user: Models.User;
+    user: object;
 }
 
 export type RealtimeRequestAuthenticate = {
