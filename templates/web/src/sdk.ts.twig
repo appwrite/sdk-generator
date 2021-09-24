@@ -4,6 +4,9 @@ import { fetch } from 'cross-fetch';
 
 namespace Models {
 {% for definition in spec.definitions %}
+    /**
+     * {{ definition.description }}
+     */
     export type {{ definition.name | caseUcfirst }} = {
 {% for property in definition.properties %}
         /**
