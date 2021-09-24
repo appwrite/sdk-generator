@@ -295,12 +295,14 @@ class Swagger2 extends Spec {
             $sch = [
                 "name" => $key,
                 "properties"=> $schema['properties'] ?? [],
+                "description"=> $schema['description'] ?? [],
                 "required" => $schema['required'] ?? [],
                 "additionalProperties" => $schema['additionalProperties'] ?? []
             ];
             if(isset($sch['properties'])) {
                 foreach($sch['properties'] as $name => $def) {
                     $sch['properties'][$name]['name'] = $name;
+                    $sch['properties'][$name]['description'] = $def['description'];
                     $sch['properties'][$name]['required'] =  in_array($name,$sch['required']);
                     if(isset($def['items']['$ref'])) {
                         //nested model
