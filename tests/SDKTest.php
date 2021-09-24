@@ -30,7 +30,24 @@ class SDKTest extends TestCase
             ],
             'supportException' => true,
         ],
-
+        'web' => [
+            'class' => 'Appwrite\SDK\Language\Web',
+            'build' => [
+                'cp tests/languages/web/tests.js tests/sdks/web/tests.js',
+                'cp tests/languages/web/node.js tests/sdks/web/node.js',
+                'cp tests/languages/web/index.html tests/sdks/web/index.html',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm install', //  npm list --depth 0 &&
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm run build',
+            ],
+            'envs' => [
+                'chromium' => 'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
+                'firefox' => 'docker run --rm -v $(pwd):/app -e BROWSER=firefox -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
+                'webkit' => 'docker run --rm -v $(pwd):/app -e BROWSER=webkit -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
+                'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node node.js',
+            ],
+            'supportException' => true,
+            'supportRealtime' => true
+        ],
         'cli' => [
             'class' => 'Appwrite\SDK\Language\CLI',
             'build' => [
@@ -114,25 +131,6 @@ class SDKTest extends TestCase
                 'dotnet-3.1' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:3.1-alpine pwsh tests.ps1',
             ],
             'supportException' => true,
-        ],
-
-        'web' => [
-            'class' => 'Appwrite\SDK\Language\Web',
-            'build' => [
-                'cp tests/languages/web/tests.js tests/sdks/web/tests.js',
-                'cp tests/languages/web/node.js tests/sdks/web/node.js',
-                'cp tests/languages/web/index.html tests/sdks/web/index.html',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm install', //  npm list --depth 0 &&
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm run build',
-            ],
-            'envs' => [
-                'chromium' => 'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
-                'firefox' => 'docker run --rm -v $(pwd):/app -e BROWSER=firefox -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
-                'webkit' => 'docker run --rm -v $(pwd):/app -e BROWSER=webkit -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
-                'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node node.js',
-            ],
-            'supportException' => true,
-            'supportRealtime' => true
         ],
 
         'deno' => [
