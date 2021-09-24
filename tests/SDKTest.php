@@ -26,24 +26,7 @@ class SDKTest extends TestCase
             ],
             'supportException' => true,
         ],
-        'web' => [
-            'class' => 'Appwrite\SDK\Language\Web',
-            'build' => [
-                'cp tests/languages/web/tests.js tests/sdks/web/tests.js',
-                'cp tests/languages/web/node.js tests/sdks/web/node.js',
-                'cp tests/languages/web/index.html tests/sdks/web/index.html',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm install', //  npm list --depth 0 &&
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm run build',
-            ],
-            'envs' => [
-                'chromium' => 'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
-                'firefox' => 'docker run --rm -v $(pwd):/app -e BROWSER=firefox -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
-                'webkit' => 'docker run --rm -v $(pwd):/app -e BROWSER=webkit -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
-                'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node node.js',
-            ],
-            'supportException' => true,
-            'supportRealtime' => true
-        ],
+
         'cli' => [
             'class' => 'Appwrite\SDK\Language\CLI',
             'build' => [
@@ -129,6 +112,24 @@ class SDKTest extends TestCase
             'supportException' => true,
         ],
 
+        'web' => [
+            'class' => 'Appwrite\SDK\Language\Web',
+            'build' => [
+                'cp tests/languages/web/tests.js tests/sdks/web/tests.js',
+                'cp tests/languages/web/node.js tests/sdks/web/node.js',
+                'cp tests/languages/web/index.html tests/sdks/web/index.html',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm install', //  npm list --depth 0 &&
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm run build',
+            ],
+            'envs' => [
+                'chromium' => 'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
+                'firefox' => 'docker run --rm -v $(pwd):/app -e BROWSER=firefox -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
+                'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node node.js',
+            ],
+            'supportException' => true,
+            'supportRealtime' => true
+        ],
+
         'deno' => [
             'class' => 'Appwrite\SDK\Language\Deno',
             'build' => [
@@ -145,8 +146,6 @@ class SDKTest extends TestCase
                 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:12.12-alpine npm install',
             ],
             'envs' => [
-                'nodejs-8' => 'docker run --rm -v $(pwd):/app -w /app node:8-alpine node tests/languages/node/test.js',
-                'nodejs-10' => 'docker run --rm -v $(pwd):/app -w /app node:10-alpine node tests/languages/node/test.js',
                 'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12-alpine node tests/languages/node/test.js',
                 'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14-alpine node tests/languages/node/test.js',
                 'nodejs-16' => 'docker run --rm -v $(pwd):/app -w /app node:14-alpine node tests/languages/node/test.js',
@@ -161,9 +160,6 @@ class SDKTest extends TestCase
             ],
             'envs' => [
                 'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.7-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.6-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.5-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.4-alpine ruby tests/languages/ruby/tests.rb',
             ],
             'supportException' => false,
         ],
@@ -176,14 +172,10 @@ class SDKTest extends TestCase
                 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor python:3.8 pip install -r tests/sdks/python/requirements.txt --upgrade',
             ],
             'envs' => [
-                'python-3.8' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.8-alpine python tests/sdks/python/test.py',
+                'python-3.9' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.8-alpine python tests/sdks/python/test.py',
+                'python-3.8' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.7-alpine python tests/sdks/python/test.py',
                 'python-3.7' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.7-alpine python tests/sdks/python/test.py',
-                'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.6-alpine python tests/sdks/python/test.py',
-                'python-3.5' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.5-alpine python tests/sdks/python/test.py',
-                // 'python-3.4' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.4-alpine python tests/sdks/python/test.py',
-                // 'python-3.3' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.3-alpine python tests/sdks/python/test.py',
-                // 'python-3.2' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.2 python tests/sdks/python/test.py',
-                // 'python-3.1' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.1 python tests/sdks/python/test.py',
+                'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.7-alpine python tests/sdks/python/test.py',
             ],
             'supportException' => true,
         ],

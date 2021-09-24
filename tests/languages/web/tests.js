@@ -2,6 +2,7 @@ const playwright = require('playwright');
 const handler = require('serve-handler');
 const http = require('http');
 const path = require('path');
+const { exit } = require('process');
 
 const server = http.createServer((request, response) => {
     return handler(request, response)
@@ -24,5 +25,6 @@ server.listen(3000, async () => {
     setTimeout(async () => {
         await browser.close();
         server.close();
+        exit(0);
     }, 10000);
 });
