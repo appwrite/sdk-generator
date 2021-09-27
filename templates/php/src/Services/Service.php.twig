@@ -85,7 +85,6 @@ class {{ service.name | caseUcfirst }} extends Service
                 ], $params);
                 $counter++;
                 $id = $response['$id'];
-                $params['{{ method.parameters.all[1].name }}'] = $id; {# Asuming that with custom ID support, second parameter (fileID and executionID both are second param), but we don't have custom ID for tags yet so will fail for createTag #}
             }
             @fclose($handle);
             return $response;
