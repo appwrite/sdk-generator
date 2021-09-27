@@ -75,14 +75,14 @@ class {{ service.name | caseUcfirst }} extends Service
             $handle = @fopen(${{ parameter.name | caseCamel }}, "rb");
             $mimeType = mime_content_type(${{ parameter.name | caseCamel }});
             $counter = 0;
+            $headers = ['content-type' => 'multipart/form-data'];
             while (!feof($handle)) {
                 $params['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(@fread($handle, Client::CHUNK_SIZE)), $mimeType, basename(${{ parameter.name | caseCamel }}));
-                $contentRanges = 'bytes ' . ($counter * Client::CHUNK_SIZE) . '-' . min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size) . '/' . $size;
-                $response = $this->client->call(Client::METHOD_POST, $path, [
-                    'content-type' => 'multipart/form-data',
-                    'content-range' => $contentRanges,
-                    'x-appwrite-id' => $id,
-                ], $params);
+                $headers['content-range'] = 'bytes ' . ($counter * Client::CHUNK_SIZE) . '-' . min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size) . '/' . $size;
+                if(!empty($id)) {
+                    $headers['x-appwrite-id'] = $id;
+                }
+                $response = $this->client->call(Client::METHOD_POST, $path, $headers, $params);
                 $counter++;
                 $id = $response['$id'];
             }
