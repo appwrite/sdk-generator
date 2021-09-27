@@ -26,12 +26,12 @@ func main() {
         switch result {
         case .failure(let error):
             print(error)
-        case .success(let response):
+        case .success(var response):
 {% if method.type == 'webAuth' %}
 {% elseif method.type == 'location' %}
             print(result) // Resource URL
 {% else %}
-            let json = response.body.string()
+            let json = response.body!.readString(length: response.body!.readableBytes)
 {% endif %}
         }
     }
