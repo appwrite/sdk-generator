@@ -127,6 +127,12 @@ class Swift extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Tests/{{ spec.title | caseUcfirst}}Tests/Tests.swift',
+                'template'      => 'swift/Tests/Tests.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Client.swift',
                 'template'      => 'swift/Sources/Client.swift.twig',
                 'minify'        => false,
