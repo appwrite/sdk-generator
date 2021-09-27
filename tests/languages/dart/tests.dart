@@ -30,19 +30,19 @@ void main() async {
 
   // Bar Tests
 
-  response = await bar.get(x: 'string', y: 123, z: ['string in array']);
+  response = await bar.get(xrequired: 'string', xdefault: 123, z: ['string in array']);
   print(response.data['result']);
 
-  response = await bar.post(x: 'string', y: 123, z: ['string in array']);
+  response = await bar.post(xrequired: 'string', xdefault: 123, z: ['string in array']);
   print(response.data['result']);
 
-  response = await bar.put(x: 'string', y: 123, z: ['string in array']);
+  response = await bar.put(xrequired: 'string', xdefault: 123, z: ['string in array']);
   print(response.data['result']);
 
-  response = await bar.patch(x: 'string', y: 123, z: ['string in array']);
+  response = await bar.patch(xrequired: 'string', xdefault: 123, z: ['string in array']);
   print(response.data['result']);
 
-  response = await bar.delete(x: 'string', y: 123, z: ['string in array']);
+  response = await bar.delete(xrequired: 'string', xdefault: 123, z: ['string in array']);
   print(response.data['result']);
 
   // General Tests
@@ -50,25 +50,27 @@ void main() async {
   response = await general.redirect();
   print(response.data['result']);
 
-  final file = await MultipartFile.fromFile('../../resources/file.png',filename: 'file.png');
-  response = await general.upload(x:'string',y: 123,z:['string in array'], file: file);
+  final file = await MultipartFile.fromPath('file', '../../resources/file.png',
+      filename: 'file.png');
+  response = await general.upload(
+      x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.data['result']);
 
   try {
     await general.error400();
-  } on AppwriteException catch(e) {
+  } on AppwriteException catch (e) {
     print(e.message);
   }
 
   try {
     await general.error500();
-  } on AppwriteException catch(e) {
+  } on AppwriteException catch (e) {
     print(e.message);
   }
 
   try {
     await general.error502();
-  } on AppwriteException catch(e) {
+  } on AppwriteException catch (e) {
     print(e.message);
   }
 

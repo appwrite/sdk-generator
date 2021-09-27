@@ -193,6 +193,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseHTML', function ($value) {
             return $value;
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('removeDollarSign', function ($value) {
+            return str_replace('$','',$value);
+        }));
     }
 
     /**
@@ -524,6 +527,7 @@ class SDK
                 'contactURL' => $this->spec->getContactURL(),
                 'contactEmail' => $this->spec->getContactEmail(),
                 'services' => $this->spec->getServices(),
+                'definitions' => $this->spec->getDefinitions(),
                 'global' => [
                     'headers' => $this->spec->getGlobalHeaders(),
                     'defaultHeaders' => $this->defaultHeaders,
@@ -566,6 +570,14 @@ class SDK
                             ],
                             'methods' => $methods,
                         ];
+
+                        $this->render($template, $destination, $block, $params, $minify);
+                    }
+                    break;
+                case 'definition':
+                    foreach ($this->spec->getDefinitions() as $key => $definition) {
+
+                        $params['definition'] = $definition;
 
                         $this->render($template, $destination, $block, $params, $minify);
                     }

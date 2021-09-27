@@ -39,7 +39,7 @@ if ( -not (`$allowList -contains `$args[0])) {
     exit 1
 }
 
-docker run -i --rm --volume {{ spec.title | lower }}-cli:/usr/local/code/app/.preferences/ --volume `$pwd``:/usr/local/code/files:rw  ${{ spec.title | upper }}_CLI_IMAGE_NAME`:${{ spec.title | upper }}_CLI_IMAGE_VERSION (`$args | % {[uri]::EscapeUriString(`$_)})
+docker run -i --rm --volume {{ spec.title | lower }}-cli:/usr/local/code/app/.preferences/ --volume `$pwd``:/usr/local/code/files:rw --network host ${{ spec.title | upper }}_CLI_IMAGE_NAME`:${{ spec.title | upper }}_CLI_IMAGE_VERSION (`$args | % {[uri]::EscapeUriString(`$_)})
 "@
 
 $USER_PATH_ENV_VAR = [Environment]::GetEnvironmentVariable("PATH", "User")

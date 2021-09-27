@@ -82,19 +82,19 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
 ## Supported Client / Platform SDKs
 
-| Language              | Supported Versions  |  Coding Standards      |  Package Manager   |   Maintainer   |
-|-----------------------|---------------------|------------------------|--------------------|----------------|
-| Web                   | ES5+                | [NPM Coding Style]     | NPM, Yarn,         | [@eldadfux]    |
-| Flutter               |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim] [@lohanidamodar]   |
-| Android (Kotlin)      |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
-| iOS (Swift)           |                     |                        | Swift Pkg Manager  | [@armino-dev] |
-| Unity (Csharp)        |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
+| Language               | Supported Versions  |  Coding Standards      |  Package Manager   |   Maintainer   |
+|------------------------|---------------------|------------------------|--------------------|----------------|
+| Web                    | ES5+                | [NPM Coding Style]     | NPM, Yarn,         | [@eldadfux]    |
+| Flutter                |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim] [@lohanidamodar]   |
+| Android (Kotlin, Java) | 5.0+                | [Android style guide]  | Gradle, Maven      | [@abnegate]    |
+| iOS (Swift)            |                     |                        | Swift Pkg Manager  | [@armino-dev]  |
+| Unity (Csharp)         |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 
 ## Supported Server SDKs
 
 | Language   | Supported Versions  |  Coding Standards      |  Package Manager   | Contributors   |
 |------------|---------------------|------------------------|--------------------|----------------|
-| TypeScript |                     | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]               |
+| TypeScript |                     | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
 | NodeJS     | 8, 10, 12           | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
 | PHP        | 7.0+                | [PHP FIG]              | Composer           | [@eldadfux]    |
 | Ruby       | 2.4+                | [Ruby Style Guide]     | GEM                | [@eldadfux]    |
@@ -103,7 +103,8 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | Go         |                     | [Effective Go]         | go get             | [@panz3r]      |
 | .NET       | .NET core 3.1       | [C# Coding Conventions]| NuGet              | [@komemi] [@TorstenDittmann]     |
 | D          |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
-| Kotlin     |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
+| Kotlin     | 1.4.31+             | [Kotlin style guide]   | Gradle, Maven      | [@abnegate]    |
+| Java       | 8+                  | [Google style guide]   | Gradle, Maven      | [@abnegate]    |
 | Swift      |                     |                        | Swift Pkg Manager  | [@armino-dev]  |
 | Docker CLI |                     |                        | Docker Hub         | [@christyjacob4]  |
 
@@ -116,6 +117,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 [@TorstenDittmann]:     https://github.com/TorstenDittmann
 [@lohanidamodar]:       https://github.com/lohanidamodar
 [@christyjacob4]:       https://github.com/christyjacob4
+[@abnegate]:            https://github.com/abnegate
 
 [PHP FIG]:              https://www.php-fig.org/
 [NPM Coding Style]:     https://docs.npmjs.com/misc/coding-style
@@ -126,6 +128,9 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 [Effective Go]:         https://golang.org/doc/effective_go.html
 [Swift Style Guide]:    https://google.github.io/swift/
 [C# Coding Conventions]:https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/inside-a-program/coding-conventions
+[Kotlin style guide]:   https://kotlinlang.org/docs/coding-conventions.html#apply-the-style-guide
+[Android style guide]:  https://developer.android.com/kotlin/style-guide
+[Google style guide]:   https://google.github.io/styleguide/javaguide.html
 
 ## Contributing
 

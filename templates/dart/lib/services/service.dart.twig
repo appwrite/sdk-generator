@@ -1,11 +1,10 @@
 part of {{ language.params.packageName }};
-
 {% macro parameter(parameter) %}
-{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel }}{% endmacro %}
+{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}
 {% endmacro %}
-{% macro map_parameter(parameter) %}'{{ parameter.name }}': {{ parameter.name | caseCamel }},{% endmacro %}
+{% macro map_parameter(parameter) %}'{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},{% endmacro %}
 
 class {{ service.name | caseUcfirst }} extends Service {
     {{ service.name | caseUcfirst }}(Client client): super(client);
@@ -17,8 +16,8 @@ class {{ service.name | caseUcfirst }} extends Service {
 {{ method.description|dartComment }}
      ///
 {% endif %}
-    {% if method.type == 'webAuth' %}Future{% else %}Future<Response>{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) {
-        final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel }}){% endfor %};
+    Future<Response> {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) {
+        final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
 
         final Map<String, dynamic> params = {
 {% for parameter in method.parameters.query %}
@@ -27,7 +26,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% for parameter in method.parameters.body %}
             {{ _self.map_parameter(parameter) }}
 {% endfor %}
-{% if method.type == 'webAuth' or method.type == 'location' %}
+{% if method.type == 'location' %}
 {% if method.security|length > 0 %}
 {% for node in method.security %}
 {% for key,header in node|keys %}

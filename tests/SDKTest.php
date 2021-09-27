@@ -22,10 +22,6 @@ class SDKTest extends TestCase
             ],
             'envs' => [
                 'php-7.0' => 'docker run --rm -v $(pwd):/app -w /app php:7.0-cli-alpine php tests/languages/php/test.php',
-                'php-7.1' => 'docker run --rm -v $(pwd):/app -w /app php:7.1-cli-alpine php tests/languages/php/test.php',
-                'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli-alpine php tests/languages/php/test.php',
-                'php-7.3' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli-alpine php tests/languages/php/test.php',
-                'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli-alpine php tests/languages/php/test.php',
                 'php-8.0' => 'docker run --rm -v $(pwd):/app -w /app php:8.0.0rc1-cli-alpine php tests/languages/php/test.php',
             ],
             'supportException' => true,
@@ -70,6 +66,7 @@ class SDKTest extends TestCase
                 'flutter-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart"',
             ],
             'supportException' => true,
+            'supportRealtime' => true,
         ],
 
         'android' => [
@@ -83,6 +80,7 @@ class SDKTest extends TestCase
                 'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:latest-jdk8 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
             ],
             'supportException' => false,
+            'supportRealtime' => true,
         ],
 
         'kotlin' => [
@@ -120,18 +118,17 @@ class SDKTest extends TestCase
                 'cp tests/languages/web/tests.js tests/sdks/web/tests.js',
                 'cp tests/languages/web/node.js tests/sdks/web/node.js',
                 'cp tests/languages/web/index.html tests/sdks/web/index.html',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic npm install', //  npm list --depth 0 &&
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic npm run build',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm install', //  npm list --depth 0 &&
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm run build',
             ],
             'envs' => [
-                'chromium' => 'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node tests.js',
-                'firefox' => 'docker run --rm -v $(pwd):/app -e BROWSER=firefox -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node tests.js',
-                'webkit' => 'docker run --rm -v $(pwd):/app -e BROWSER=webkit -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node tests.js',
-                'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:bionic node node.js',
+                'chromium' => 'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
+                'firefox' => 'docker run --rm -v $(pwd):/app -e BROWSER=firefox -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
+                'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node node.js',
             ],
             'supportException' => true,
+            'supportRealtime' => true
         ],
-
         'deno' => [
             'class' => 'Appwrite\SDK\Language\Deno',
             'build' => [
@@ -148,10 +145,9 @@ class SDKTest extends TestCase
                 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:12.12-alpine npm install',
             ],
             'envs' => [
-                'nodejs-8' => 'docker run --rm -v $(pwd):/app -w /app node:8.16-alpine node tests/languages/node/test.js',
-                'nodejs-10' => 'docker run --rm -v $(pwd):/app -w /app node:10.16-alpine node tests/languages/node/test.js',
-                'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12.12-alpine node tests/languages/node/test.js',
-                'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14.5-alpine node tests/languages/node/test.js',
+                'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12-alpine node tests/languages/node/test.js',
+                'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14-alpine node tests/languages/node/test.js',
+                'nodejs-16' => 'docker run --rm -v $(pwd):/app -w /app node:14-alpine node tests/languages/node/test.js',
             ],
             'supportException' => true,
         ],
@@ -163,9 +159,6 @@ class SDKTest extends TestCase
             ],
             'envs' => [
                 'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.7-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.6' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.6-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.5' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.5-alpine ruby tests/languages/ruby/tests.rb',
-                'ruby-2.4' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.4-alpine ruby tests/languages/ruby/tests.rb',
             ],
             'supportException' => false,
         ],
@@ -178,14 +171,10 @@ class SDKTest extends TestCase
                 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor python:3.8 pip install -r tests/sdks/python/requirements.txt --upgrade',
             ],
             'envs' => [
-                'python-3.8' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.8-alpine python tests/sdks/python/test.py',
+                'python-3.9' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.8-alpine python tests/sdks/python/test.py',
+                'python-3.8' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.7-alpine python tests/sdks/python/test.py',
                 'python-3.7' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.7-alpine python tests/sdks/python/test.py',
-                'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.6-alpine python tests/sdks/python/test.py',
-                'python-3.5' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.5-alpine python tests/sdks/python/test.py',
-                // 'python-3.4' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.4-alpine python tests/sdks/python/test.py',
-                // 'python-3.3' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.3-alpine python tests/sdks/python/test.py',
-                // 'python-3.2' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.2 python tests/sdks/python/test.py',
-                // 'python-3.1' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.1 python tests/sdks/python/test.py',
+                'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.7-alpine python tests/sdks/python/test.py',
             ],
             'supportException' => true,
         ],
@@ -315,6 +304,10 @@ class SDKTest extends TestCase
                     $this->assertEquals('Mock 400 error',$output[12] ?? '');
                     $this->assertEquals('Server Error', $output[13] ?? '');
                     $this->assertEquals('This is a text error', $output[14] ?? '');
+                }
+
+                if ($options['supportRealtime'] ?? false) {
+                    $this->assertEquals('WS:/v1/realtime:passed', $output[15] ?? '');
                 }
             }
         }
