@@ -90,6 +90,12 @@ class SwiftClient extends Swift {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/example-swiftui/Shared/ImagePicker.swift',
+                'template'      => '/swift/example-swiftui/Shared/ImagePicker.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/example-swiftui/Shared/Keyboard.swift',
                 'template'      => '/swift/example-swiftui/Shared/Keyboard.swift',
                 'minify'        => false,
