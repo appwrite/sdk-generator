@@ -63,7 +63,7 @@ open class Realtime : Service {
         callback: @escaping (RealtimeResponseEvent<T>) -> Void
     ) -> RealtimeSubscription {
         for channel in channels {
-            if channelCallbacks[channel] != nil {
+            if channelCallbacks[channel] == nil {
                 channelCallbacks[channel] = NSMutableSet()
                 channelCallbacks[channel]?.add(RealtimeCallback(
                     with: payloadType,
@@ -81,9 +81,6 @@ open class Realtime : Service {
             subCallDepth+=1
         }
 
-        let group = DispatchGroup()
-
-        group.enter()
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(DEBOUNCE_MILLIS)) {
             if (self.subCallDepth == 1) {
                 self.createSocket()
@@ -91,9 +88,7 @@ open class Realtime : Service {
             self.connectSync.sync {
                 self.subCallDepth-=1
             }
-            group.leave()
         }
-        group.wait()
 
         return RealtimeSubscription {
             self.unsubscribe(channels: channels)
