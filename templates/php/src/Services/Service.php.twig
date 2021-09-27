@@ -59,9 +59,11 @@ class {{ service.name | caseUcfirst }} extends Service
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
         $size = filesize(${{ parameter.name | caseCamel }});
+        $mimeType = mime_content_type(${{ parameter.name | caseCamel }});
+        $postedName = basename(${{ parameter.name | caseCamel }});
         //send single file if size is less than or equal to 5MB
         if ($size <= Client::CHUNK_SIZE) {
-            $params['{{ parameter.name }}'] = new \CURLFile(${{ parameter.name | caseCamel }});
+            $params['{{ parameter.name }}'] = new \CURLFile(${{ parameter.name | caseCamel }}, $mimeType, $postedName);
             return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
 {% for param in method.parameters.header %}
                 '{{ param.name }}' => ${{ param.name | caseCamel }},
@@ -73,11 +75,10 @@ class {{ service.name | caseUcfirst }} extends Service
         } else {
             $id = '';
             $handle = @fopen(${{ parameter.name | caseCamel }}, "rb");
-            $mimeType = mime_content_type(${{ parameter.name | caseCamel }});
             $counter = 0;
             $headers = ['content-type' => 'multipart/form-data'];
             while (!feof($handle)) {
-                $params['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(@fread($handle, Client::CHUNK_SIZE)), $mimeType, basename(${{ parameter.name | caseCamel }}));
+                $params['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(@fread($handle, Client::CHUNK_SIZE)), $mimeType, $postedName);
                 $headers['content-range'] = 'bytes ' . ($counter * Client::CHUNK_SIZE) . '-' . min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size) . '/' . $size;
                 if(!empty($id)) {
                     $headers['x-appwrite-id'] = $id;
