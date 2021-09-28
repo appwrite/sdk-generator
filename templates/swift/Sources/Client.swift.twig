@@ -101,7 +101,7 @@ open class Client {
     ///
     /// @return Client
     ///
-    open func set{{ header.key | caseUcfirst }}(_ value: String) -> Client {
+    open func set{{ header.key | caseUcfirst }}(value: String) -> Client {
         config["{{ header.key | caseLower }}"] = value
         _ = addHeader(key: "{{header.name}}", value: value)
         return self
@@ -116,7 +116,7 @@ open class Client {
     ///
     /// @return Client
     ///
-    open func setSelfSigned(_ status: Bool = false) -> Client {
+    open func setSelfSigned(status: Bool = false) -> Client {
         try! http.syncShutdown()
         http = Client.createHTTP(selfSigned: status)
         return self
@@ -129,7 +129,7 @@ open class Client {
     ///
     /// @return Client
     ///
-    open func setEndpoint(_ endPoint: String) -> Client {
+    open func setEndpoint(endPoint: String) -> Client {
         self.endPoint = endPoint
 
         if (self.endPointRealtime == nil && endPoint.starts(with: "http")) {
@@ -148,7 +148,7 @@ open class Client {
     ///
     /// @return Client
     ///
-    open func setEndpointRealtime(_ endPoint: String) -> Client {
+    open func setEndpointRealtime(endPoint: String) -> Client {
         self.endPointRealtime = endPoint
 
         return self
