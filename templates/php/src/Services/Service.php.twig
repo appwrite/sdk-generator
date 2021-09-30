@@ -85,7 +85,9 @@ class {{ service.name | caseUcfirst }} extends Service
                 }
                 $response = $this->client->call(Client::METHOD_POST, $path, $headers, $params);
                 $counter++;
-                $id = $response['$id'];
+                if(empty($id)) {
+                    $id = $response['$id'];
+                }
             }
             @fclose($handle);
             return $response;
