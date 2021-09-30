@@ -116,7 +116,7 @@ open class Client {
     ///
     /// @return Client
     ///
-    open func setSelfSigned(status: Bool = false) -> Client {
+    open func setSelfSigned(status: Bool = true) -> Client {
         try! http.syncShutdown()
         http = Client.createHTTP(selfSigned: status)
         return self

@@ -78,14 +78,20 @@ class SwiftClient extends Swift {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/example-swiftui/Shared/ContentView.swift',
-                'template'      => '/swift/example-swiftui/Shared/ContentView.swift',
+                'destination'   => '/example-swiftui/Shared/ExampleApp.swift',
+                'template'      => '/swift/example-swiftui/Shared/ExampleApp.swift',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/example-swiftui/Shared/ExampleApp.swift',
-                'template'      => '/swift/example-swiftui/Shared/ExampleApp.swift',
+                'destination'   => '/example-swiftui/Shared/ExampleView.swift',
+                'template'      => '/swift/example-swiftui/Shared/ExampleView.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-swiftui/Shared/ExampleViewModel.swift',
+                'template'      => '/swift/example-swiftui/Shared/ExampleViewModel.swift',
                 'minify'        => false,
             ],
             [

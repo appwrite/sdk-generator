@@ -115,7 +115,7 @@ extension Realtime: SwocketClientDelegate {
     public func onMessage(text: String) {
         let message = try! text.fromJson(to: RealtimeResponse.self)
         switch message.type {
-        case TYPE_ERROR: handleResponseError(from: message)
+        case TYPE_ERROR: try! handleResponseError(from: message)
         case TYPE_EVENT: handleResponseEvent(from: message)
         default: break
         }
@@ -137,14 +137,12 @@ extension Realtime: SwocketClientDelegate {
         print(error!)
     }
 
-    func handleResponseError(from message: RealtimeResponse) {
+    func handleResponseError(from message: RealtimeResponse) throws {
         let error = try! message.data
             .toJson()
             .fromJson(to: AppwriteError.self)
 
-        for callback in errorCallbacks {
-            callback(error)
-        }
+        throw error
     }
 
     func handleResponseEvent(from message: RealtimeResponse) {
