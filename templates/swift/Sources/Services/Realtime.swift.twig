@@ -14,7 +14,7 @@ open class Realtime : Service {
     private let TYPE_EVENT = "event"
     private let DEBOUNCE_MILLIS = 1
 
-    private var socketClient: SwocketClient? = nil
+    private var socketClient: WebSocketClient? = nil
     private var channelCallbacks = [String: NSMutableSet]()
     private var errorCallbacks = [(AppwriteError) -> Void]()
 
@@ -36,7 +36,7 @@ open class Realtime : Service {
             closeSocket()
         }
 
-        socketClient = SwocketClient(url, delegate: self)!
+        socketClient = WebSocketClient(url, delegate: self)!
 
         try! socketClient?.connect()
     }

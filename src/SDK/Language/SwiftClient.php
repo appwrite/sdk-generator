@@ -39,6 +39,36 @@ class SwiftClient extends Swift {
                 'template'      => '/swift/Sources/Services/Realtime.swift.twig',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/WebSockets/HTTPHandler.swift',
+                'template'      => '/swift/Sources/WebSockets/HTTPHandler.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/WebSockets/MessageHandler.swift',
+                'template'      => '/swift/Sources/WebSockets/MessageHandler.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/WebSockets/WebSocketClient.swift',
+                'template'      => '/swift/Sources/WebSockets/WebSocketClient.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/WebSockets/WebSocketClientDelegate.swift',
+                'template'      => '/swift/Sources/WebSockets/WebSocketClientDelegate.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/WebSockets/WebSocketClientError.swift',
+                'template'      => '/swift/Sources/WebSockets/WebSocketClientError.swift.twig',
+                'minify'        => false,
+            ],
             // Config for project example-swiftui
             [
                 'scope'         => 'default',
