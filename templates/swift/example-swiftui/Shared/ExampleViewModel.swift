@@ -11,14 +11,23 @@ import Appwrite
 import NIO
 
 extension ExampleView {
-    
-    class Test : Decodable {
-        public let name: String
-        public let description: String
+
+     class Test : Model {
         
-        public init(name: String, description: String) {
-            self.name = name
-            self.description = description
+        enum CodingKeys: String, CodingKey {
+            case name
+            case description
+        }
+        
+        public var name: String?
+        public var description: String?
+        
+        required init(from decoder: Decoder) throws {
+            let values = try decoder.container(keyedBy: CodingKeys.self)
+            name = try values.decode(String.self, forKey: .name)
+            description = try values.decode(String.self, forKey: .description)
+            
+            try! super.init(from: decoder)
         }
     }
     
@@ -27,17 +36,17 @@ extension ExampleView {
         let storage = Storage(client: client)
         let realtime = Realtime(client: client)
         
-        @State var downloadedImage: Image? = nil
+        @Published var downloadedImage: Image? = nil
         
-        @State var username: String = "test@test.test"
-        @State var password: String = "password"
-        @State var fileId: String = "614c1f5864841"
-        @State var collectionId: String = "6149afd52ce3b"
-        @State var isShowPhotoLibrary = false
-        @State var response: String = ""
+        @Published public var username: String = "test@test.test"
+        @Published public var password: String = "password"
+        @Published public var fileId: String = "614c1f5864841"
+        @Published public var collectionId: String = "6156aba4e2b84"
+        @Published public var isShowPhotoLibrary = false
+        @Published public var response: String = ""
         
         func register() {
-            account.create(username, password) { result in
+            account.create(email: username, password: password) { result in
                 switch result {
                 case .failure(let error): self.response = error.message
                 case .success(var response): self.response = response.body!.readString(length: response.body!.readableBytes) ?? ""
@@ -46,7 +55,7 @@ extension ExampleView {
         }
         
         func login() {
-            account.createSession(username, password) { result in
+            account.createSession(email: username, password: password) { result in
                 switch result {
                 case .failure(let error): self.response = error.message
                 case .success(var response): self.response = response.body!.readString(length: response.body!.readableBytes) ?? ""
@@ -56,9 +65,9 @@ extension ExampleView {
         
         func loginWithFacebook() {
             account.createOAuth2Session(
-                "facebook",
-                "\(host)/auth/oauth2/success",
-                "\(host)/auth/oauth2/failure"
+                provider: "facebook",
+                success: "\(host)/auth/oauth2/success",
+                failure: "\(host)/auth/oauth2/failure"
             ) { result in
                 switch result {
                 case .failure: self.response = "false"
@@ -68,7 +77,7 @@ extension ExampleView {
         }
         
         func download() {
-            storage.getFileDownload(fileId) { result in
+            storage.getFileDownload(fileId: fileId) { result in
                 switch result {
                 case .failure(let error):
                     print(error)
@@ -91,7 +100,7 @@ extension ExampleView {
                 buffer: imageBuffer
             )
             
-            storage.createFile(file) { result in
+            storage.createFile(file: file) { result in
                 switch result {
                 case .failure(let error):
                     print(error)

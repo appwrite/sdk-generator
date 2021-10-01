@@ -11,11 +11,11 @@ import Appwrite
 import NIO
 
 let host = "http://localhost:80/v1"
-let projectId = "613b18dabf74a"
+let projectId = "6156508b7d7e7"
 
 let client = Client()
-    .setEndpoint(host)
-    .setProject(projectId)
+    .setEndpoint(endPoint: host)
+    .setProject(value: projectId)
     .setSelfSigned()
 
 struct ExampleView: View {
@@ -35,7 +35,7 @@ struct ExampleView: View {
                 .aspectRatio(contentMode: .fit)
                 .frame(height: 200)
 
-            TextEditor(text: viewModel.$response)
+            TextEditor(text: $viewModel.response)
                 .padding()
                 .padding(.bottom, keyboard.height)
                 .edgesIgnoringSafeArea(keyboard.height > 0 ? .bottom : [])
@@ -64,7 +64,7 @@ struct ExampleView: View {
                 viewModel.subscribe()
             }
         }
-        .sheet(isPresented: viewModel.$isShowPhotoLibrary) {
+        .sheet(isPresented: $viewModel.isShowPhotoLibrary) {
             ImagePicker(sourceType: .photoLibrary, selectedImage: $imageToUpload)
         }
         .onChange(of: imageToUpload) { img in

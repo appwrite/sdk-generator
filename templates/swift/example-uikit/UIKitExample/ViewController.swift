@@ -21,9 +21,9 @@ class ViewController: UIViewController {
     @IBOutlet weak var image: UIImageView!
     
     let client = Client()
-        .setEndpoint("http://192.168.20.6:80/v1")
-        .setProject("613b18dabf74a")
-        .setSelfSigned(true)
+        .setEndpoint(endPoint: "http://192.168.20.6:80/v1")
+        .setProject(value: "613b18dabf74a")
+        .setSelfSigned()
 
     let COLLECTION_ID = "6149afd52ce3b"
     
@@ -49,7 +49,7 @@ class ViewController: UIViewController {
         disptch.enter()
         var string: String = ""
         
-        account.create("jake@appwrite.io", "password") { result in
+        account.create(email: "jake@appwrite.io", password: "password") { result in
             switch result {
             case .failure(let error): string = error.message
             case .success(var response): string = response.body!.readString(length: response.body!.readableBytes) ?? ""
@@ -61,7 +61,7 @@ class ViewController: UIViewController {
     }
     
     @IBAction func loginClick(_ sender: Any) {
-        account.createSession("jake@appwrite.io", "password") { result in
+        account.createSession(email: "jake@appwrite.io", password: "password") { result in
             var string: String = ""
             
             switch result {
@@ -78,9 +78,9 @@ class ViewController: UIViewController {
     
     @IBAction func loginWithFacebook(_ sender: UIButton) {
         account.createOAuth2Session(
-            "facebook",
-            "https://demo.appwrite.io/auth/oauth2/success",
-            "https://demo.appwrite.io/auth/oauth2/failure") { result in
+            provider: "facebook",
+            success: "https://demo.appwrite.io/auth/oauth2/success",
+            failure: "https://demo.appwrite.io/auth/oauth2/failure") { result in
                 var string: String = ""
                 
                 switch result {
@@ -96,7 +96,7 @@ class ViewController: UIViewController {
     }
     
     @IBAction func download(_ sender: Any) {
-        storage.getFileDownload("614afaf579352") { result in
+        storage.getFileDownload(fileId: "614afaf579352") { result in
             switch result {
             case .failure(let error):
                 DispatchQueue.main.async {
@@ -117,16 +117,22 @@ class ViewController: UIViewController {
     }
     
     @IBAction func subscribe(_ sender: Any) {
-        _ = realtime.subscribe(channels:["collections.\(COLLECTION_ID).documents"], payloadType: Room.self) { message in
+        _ = realtime.subscribe(
+            channels:["collections.\(COLLECTION_ID).documents"],
+            payloadType: Room.self
+        ) { message in
             print(message)
         }
     }
     
     @IBAction func createDocument(_ sender: Any) {
-        database.createDocument(COLLECTION_ID, [
-            "name": "Name \(Int.random(in: 0...Int.max))",
-            "description": "Description \(Int.random(in: 0...Int.max))"
-        ], ["*"], ["*"]) { result in
+        database.createDocument(
+            collectionId: COLLECTION_ID,
+            data: [
+                "name": "Name \(Int.random(in: 0...Int.max))",
+                "description": "Description \(Int.random(in: 0...Int.max))"
+            ]
+        ) { result in
             var string: String = ""
             
             switch result {
@@ -152,7 +158,7 @@ extension ViewController: ImagePickerDelegate {
         
         let file = File(name: "my_image.jpg", buffer: buffer)
         
-        storage.createFile(file, ["*"], ["*"]) { result in
+        storage.createFile(file: file) { result in
             switch result {
             case .failure(let error):
                 output = error.message
@@ -168,4 +174,7 @@ extension ViewController: ImagePickerDelegate {
 }
 
 class Room : Model {
+    let name: String
+    let text: String?
+    let description: String?
 }
