@@ -259,7 +259,7 @@ docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/d
 
 * **language** -- Information on the current language SDK
   * **name** -> Name of language
-  * **params** -> Custom langauge specific parameters
+  * **params** -> Custom language specific parameters
 
 * **sdk** -- Various Metadata used for packaging and categorising
   * **namespace** -> SDK Namespace
