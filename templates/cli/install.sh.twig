@@ -64,6 +64,11 @@ getSystemInfo() {
     if [ "$OS" == "linux" ] && [ "${{ spec.title | upper }}_INSTALL_DIR" == "/usr/local/bin" ]; then
         USE_SUDO="true"
     fi
+    
+    # Need root access if its Apple Silicon
+    if [ "$OS" == "darwin" ] && [[ "$(uname -a)" = *ARM64* ]]; then
+        USE_SUDO="true"
+    fi
 
     printf "${GREEN}\nOS : $OS \nARCH : $ARCH \nREQUIRES ROOT : $USE_SUDO\n\n${NC}"
 }
