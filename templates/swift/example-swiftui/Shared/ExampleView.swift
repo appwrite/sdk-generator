@@ -1,11 +1,3 @@
-//
-//  ExampleView.swift
-//  Shared
-//
-//  Created by Jake Barnby on 3/08/21.
-//
-//
-
 import SwiftUI
 import Appwrite
 import NIO

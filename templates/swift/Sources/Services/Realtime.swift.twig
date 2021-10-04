@@ -1,9 +1,4 @@
-//
-//  Created by Jake Barnby on 13/09/21.
-//
-
 import Foundation
-import Swockets
 import AsyncHTTPClient
 import NIO
 import NIOHTTP1
@@ -15,24 +10,32 @@ open class Realtime : Service {
     private let DEBOUNCE_MILLIS = 1
 
     private var socketClient: WebSocketClient? = nil
-    private var channelCallbacks = [String: NSMutableSet]()
-    private var errorCallbacks = [(AppwriteError) -> Void]()
+    private var activeChannels = Set<String>()
+    private var activeSubscriptions = [Int: RealtimeCallback]()
 
     let connectSync = DispatchQueue(label: "ConnectSync")
     let callbackSync = DispatchQueue(label: "CallbackSync")
 
     private var subCallDepth = 0
+    private var reconnectAttempts = 0
+    private var subscriptionsCounter = 0
+    private var reconnect = true
 
     private func createSocket() {
+        guard activeChannels.count > 0 else {
+            return
+        }
+
         var queryParams = "project=\(client.config["project"]!)"
 
-        for channel in channelCallbacks.keys {
+        for channel in activeChannels {
             queryParams += "&channels[]=\(channel)"
         }
 
         let url = "\(client.endPointRealtime!)/realtime?\(queryParams)"
 
         if (socketClient != nil) {
+            reconnect = false
             closeSocket()
         }
 
@@ -46,36 +49,65 @@ open class Realtime : Service {
         //socket?.close(RealtimeCode.POLICY_VIOLATION.value, null)
     }
 
+    private func getTimeout() -> Int {
+        switch reconnectAttempts {
+        case 0..<5: return 1000
+        case 5..<15: return 5000
+        case 15..<100: return 10000
+        default: return 60000
+        }
+    }
+
     public func subscribe(
-        channels: [String],
-        callback: @escaping (RealtimeResponseEvent<Model>) -> Void
+        channel: String,
+        callback: @escaping (RealtimeResponseEvent) -> Void
     ) -> RealtimeSubscription {
         return subscribe(
-            channels: channels,
-            payloadType: Model.self,
+            channels: [channel],
+            payloadType: JSONValue.self,
             callback: callback
         )
     }
 
-    public func subscribe<T : AnyObject>(
-        channels: [String],
-        payloadType: T.Type,
-        callback: @escaping (RealtimeResponseEvent<T>) -> Void
+    public func subscribe(
+        channels: Set<String>,
+        callback: @escaping (RealtimeResponseEvent) -> Void
     ) -> RealtimeSubscription {
-        for channel in channels {
-            if channelCallbacks[channel] == nil {
-                channelCallbacks[channel] = NSMutableSet()
-                channelCallbacks[channel]?.add(RealtimeCallback(
-                    with: payloadType,
-                    and: callback as (RealtimeResponseEvent<T>) -> Void
-                ))
-                continue
-            }
-            channelCallbacks[channel]?.add(RealtimeCallback(
-                with: payloadType,
-                and: callback as (RealtimeResponseEvent<T>) -> Void
-            ))
+        return subscribe(
+            channels: channels,
+            payloadType: JSONValue.self,
+            callback: callback
+        )
+    }
+
+    public func subscribe<T : Codable>(
+        channel: String,
+        payloadType: T.Type,
+        callback: @escaping (RealtimeResponseEvent) -> Void
+    ) -> RealtimeSubscription {
+        return subscribe(
+            channels: [channel],
+            payloadType: T.self,
+            callback: callback
+        )
+    }
+
+    public func subscribe<T : Codable>(
+        channels: Set<String>,
+        payloadType: T.Type,
+        callback: @escaping (RealtimeResponseEvent) -> Void
+    ) -> RealtimeSubscription {
+        subscriptionsCounter += 1
+        let counter = subscriptionsCounter
+
+        channels.forEach {
+            activeChannels.insert($0)
         }
+
+        activeSubscriptions[counter] = RealtimeCallback(
+            for: Set(channels),
+            and: callback
+        )
 
         connectSync.sync {
             subCallDepth+=1
@@ -91,74 +123,96 @@ open class Realtime : Service {
         }
 
         return RealtimeSubscription {
-            self.unsubscribe(channels: channels)
+            self.activeSubscriptions[counter] = nil
+            self.cleanUp(channels: channels)
+            self.createSocket()
         }
     }
 
-    func unsubscribe(channels: [String]) {
-        for channel in channels {
-            channelCallbacks[channel] = NSMutableSet()
+    func cleanUp(channels: Set<String>) {
+        activeChannels = activeChannels.filter { channel in
+            guard channels.contains(channel) else {
+                return true
+            }
+            let subsWithChannel = activeSubscriptions.filter { callback in
+                return (callback.value as! RealtimeCallback)
+                    .channels.contains(channel)
+            }
+            return subsWithChannel.isEmpty
         }
-        if (channelCallbacks.allSatisfy { $0.value.count != 0 }) {
-            errorCallbacks = []
-            closeSocket()
-        }
-    }
-
-    func doOnError(callback: @escaping (AppwriteError) -> Void) {
-        errorCallbacks.append(callback)
     }
 }
 
-extension Realtime: SwocketClientDelegate {
+extension Realtime: WebSocketClientDelegate {
+
+    public func onOpen(channel: Channel) {
+        self.reconnectAttempts = 0
+    }
 
     public func onMessage(text: String) {
-        let message = try! text.fromJson(to: RealtimeResponse.self)
-        switch message.type {
-        case TYPE_ERROR: try! handleResponseError(from: message)
-        case TYPE_EVENT: handleResponseEvent(from: message)
-        default: break
+        let data = Data(text.utf8)
+        if let json = try! JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+            if let type = json["type"] as? String {
+                switch type {
+                case TYPE_ERROR: try! handleResponseError(from: json)
+                case TYPE_EVENT: handleResponseEvent(from: json)
+                default: break
+                }
+            }
         }
     }
 
-    public func onMessage(data: Data) {
-    }
-
     public func onClose(channel: Channel, data: Data) {
-//        if (code == RealtimeCode.POLICY_VIOLATION.value) {
-//            return
-//        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(1000)) {
+        if (!reconnect) {
+            reconnect = true
+            return
+        }
+
+        let timeout = getTimeout()
+
+        print("Realtime disconnected. Re-connecting in \(timeout / 1000) seconds.")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(timeout)) {
+            self.reconnectAttempts += 1
             self.createSocket()
         }
     }
 
     public func onError(error: Error?, status: HTTPResponseStatus?) {
-        print(error!)
+        print(error?.localizedDescription ?? "Unknown error")
     }
 
-    func handleResponseError(from message: RealtimeResponse) throws {
-        let error = try! message.data
-            .toJson()
-            .fromJson(to: AppwriteError.self)
-
-        throw error
+    func handleResponseError(from json: [String: Any]) throws {
+//        throw try message.data
+//            .toJson()
+//            .fromJson(to: AppwriteError.self)
     }
 
-    func handleResponseEvent(from message: RealtimeResponse) {
-        let event = try! message.data
-            .toJson()
-            .fromJson(to: RealtimeResponseEvent<Model>.self)
+    func handleResponseEvent(from json: [String: Any]) {
+        guard let data = json["data"] as? [String: Any] else {
+            return
+        }
+        guard let channels = data["channels"] as? Array<String> else {
+            return
+        }
+        guard let payload = data["payload"] as? [String: Any] else {
+            return
+        }
+        guard channels.contains(where: { channel in
+            activeChannels.contains(channel)
+        }) else {
+            return
+        }
 
-        for channel in event.channels {
-            for callback in channelCallbacks[channel]! {
-                let typedCallback = (callback as! RealtimeCallback<Model>)
-
-                event.payload = try! event.payload
-                    .toJson()
-                    .fromJson(to: typedCallback.payloadType)
-
-                typedCallback.callback(event)
+        for subscription in activeSubscriptions {
+            if channels.contains(where: { subscription.value.channels.contains($0) }) {
+                let response = RealtimeResponseEvent(
+                    event: data["event"] as! String,
+                    channels: channels,
+                    timestamp: data["timestamp"] as! Int64,
+                    payload: payload
+                )
+                subscription.value.callback(response)
             }
         }
     }

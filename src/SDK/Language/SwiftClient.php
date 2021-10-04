@@ -78,6 +78,24 @@ class SwiftClient extends Swift {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/example-swiftui/iOS/ImagePicker+iOS.swift',
+                'template'      => '/swift/example-swiftui/iOS/ImagePicker+iOS.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-swiftui/iOS/Keyboard.swift',
+                'template'      => '/swift/example-swiftui/iOS/Keyboard.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-swiftui/macOS/ImagePicker+macOS.swift',
+                'template'      => '/swift/example-swiftui/macOS/ImagePicker+macOS.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/example-swiftui/macOS/Info.plist',
                 'template'      => '/swift/example-swiftui/macOS/Info.plist',
                 'minify'        => false,
@@ -128,12 +146,6 @@ class SwiftClient extends Swift {
                 'scope'         => 'default',
                 'destination'   => '/example-swiftui/Shared/ImagePicker.swift',
                 'template'      => '/swift/example-swiftui/Shared/ImagePicker.swift',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/example-swiftui/Shared/Keyboard.swift',
-                'template'      => '/swift/example-swiftui/Shared/Keyboard.swift',
                 'minify'        => false,
             ],
             [

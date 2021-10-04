@@ -1,7 +1,3 @@
-//
-//  Created by Jake Barnby on 6/09/21.
-//
-
 import UIKit
 
 public protocol ImagePickerDelegate: AnyObject {

@@ -1,10 +1,3 @@
-//
-//  SceneDelegate.swift
-//  UIKitExample
-//
-//  Created by Jake Barnby on 10/08/21.
-//
-//
 import Appwrite
 import UIKit
 

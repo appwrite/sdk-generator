@@ -4,12 +4,11 @@ import Foundation
 extension HTTPClient.Request {
     public mutating func addDomainCookies() {
         let cookieJson = UserDefaults.standard.string(forKey: "\(url.host!)-cookies")
-        let cookies = try! cookieJson?.fromJson(to: [HTTPClient.Cookie].self)
+        let cookies: [HTTPClient.Cookie?]? = try? cookieJson?.fromJson(to: [HTTPClient.Cookie].self)
+            ?? [(try? cookieJson?.fromJson(to: HTTPClient.Cookie.self))]
 
-        if let authCookie = cookies?.first(where: { cookie in
-            cookie.name.starts(with: "a_session_") && !cookie.name.contains("legacy")
-        }) {
-            headers.add(name: "cookie", value: "\(authCookie.name)=\(authCookie.value)")
+        if let authCookie = cookies?.first(where: { $0?.name.starts(with: "a_session_") == true } ) {
+            headers.add(name: "cookie", value: "\(authCookie!.name)=\(authCookie!.value)")
         }
     }
 }

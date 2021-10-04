@@ -21,7 +21,7 @@ open class Client {
 {% for key,header in spec.global.defaultHeaders %}
       "{{key}}": "{{header}}"{% if not loop.last %},{% endif %}
 {% endfor %}
-    
+
     ]
 
     open var config: [String: String] = [:]
@@ -292,17 +292,29 @@ open class Client {
         }
 
         func complete(with result: Result<HTTPClient.Response, Error>) {
-            if let completion = completion {
-                switch result {
-                case .failure(let error): print(error)
-                case .success(let response):
-                    guard response.cookies.count > 0 else {
-                        break
+            guard let completion = completion else {
+                return
+            }
+
+            switch result {
+            case .failure(let error): print(error)
+            case .success(let response):
+                switch response.status.code {
+                case 0..<400:
+                    if response.cookies.count > 0 {
+                        UserDefaults.standard.set(
+                            try! response.cookies.toJson(),
+                            forKey: "\(response.host)-cookies"
+                        )
                     }
-                    let cookieJson = try! response.cookies.toJson()
-                    UserDefaults.standard.set(cookieJson, forKey: "\(response.host)-cookies")
+                    completion(.success(response))
+                default:
+                    let error = AppwriteError(
+                        message: response.body?.getString(at: 0, length: response.body!.readableBytes) ?? response.status.reasonPhrase,
+                        code: Int(response.status.code)
+                    )
+                    completion(.failure(error))
                 }
-                completion(result.mapError { {{ spec.title | caseUcfirst}}Error(message: $0.localizedDescription) })
             }
         }
     }

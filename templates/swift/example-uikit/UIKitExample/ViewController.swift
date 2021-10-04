@@ -1,11 +1,3 @@
-//
-//  ViewController.swift
-//  UIKitExample
-//
-//  Created by Jake Barnby on 10/08/21.
-//
-//
-
 import UIKit
 import NIO
 import Appwrite

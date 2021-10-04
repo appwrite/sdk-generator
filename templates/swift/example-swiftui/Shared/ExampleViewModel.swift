@@ -1,16 +1,9 @@
-//
-//  ExampleViewModel.swift
-//  test (iOS)
-//
-//  Created by Jake Barnby on 28/09/21.
-//
-
 import Foundation
 import SwiftUI
 import Appwrite
 import NIO
 
-let host = "https://demo.appwrite.io/v1"
+let host = "https://localhost/v1"
 let projectId = "60f6a0d6e2a52"
 
 extension ExampleView {

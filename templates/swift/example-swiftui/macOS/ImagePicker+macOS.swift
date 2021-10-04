@@ -1,9 +1,3 @@
-//
-//  ImagePicker+macOS.swift
-//  test (macOS)
-//
-//  Created by Jake on 3/10/21.
-//
 import AppKit
 
 extension ImagePicker {
