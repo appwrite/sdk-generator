@@ -1,10 +1,3 @@
-//
-// Client.swift
-//
-// Created by Armino <devel@boioiong.com>
-// GitHub: https://github.com/armino-dev/sdk-generator
-//
-
 import NIO
 import NIOSSL
 import Foundation
@@ -242,8 +235,7 @@ open class Client {
         }
 
         addHeaders(to: &request)
-        addCookies(to: &request)
-
+        request.addDomainCookies()
 
         if "GET" == method {
             execute(request, completion: completion)
@@ -263,17 +255,6 @@ open class Client {
     fileprivate func addHeaders(to request: inout HTTPClient.Request) {
         for (key, value) in self.headers {
             request.headers.add(name: key, value: value)
-        }
-    }
-
-    fileprivate func addCookies(to request: inout HTTPClient.Request) {
-        let cookieJson = UserDefaults.standard.string(forKey: "\(request.url.host ?? "")-cookies")
-        let cookies = try! cookieJson?.fromJson(to: [HTTPClient.Cookie].self)
-
-        if let authCookie = cookies?.first(where: { cookie in
-            cookie.name.starts(with: "a_session_") && !cookie.name.contains("legacy")
-        }) {
-            request.headers.add(name: "cookie", value: "\(authCookie.name)=\(authCookie.value)")
         }
     }
 

@@ -1,9 +1,3 @@
-//
-//  File.swift
-//
-//  Created by Jake Barnby on 21/09/21.
-//
-
 import Foundation
 import NIO
 

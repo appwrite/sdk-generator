@@ -3,7 +3,7 @@ import NIO
 import NIOHTTP1
 
 /// Handles messages received by a connected WebSocket server.
-public protocol SwocketClientDelegate : AnyObject {
+public protocol WebSocketClientDelegate : AnyObject {
     func onOpen(channel: Channel)
     func onMessage(text: String) throws 
     func onMessage(data: Data) throws
@@ -12,7 +12,7 @@ public protocol SwocketClientDelegate : AnyObject {
 }
 
 // Add empty default implementations
-extension SwocketClientDelegate {
+extension WebSocketClientDelegate {
     public func onOpen(channel: Channel) {
     }
     public func onMessage(text: String) {

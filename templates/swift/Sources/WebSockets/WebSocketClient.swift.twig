@@ -31,7 +31,7 @@ public class WebSocketClient {
     let locker = DispatchQueue(label: WEBSOCKET_LOCKER_QUEUE)
     let threadGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 
-    weak var delegate: SwocketClientDelegate? = nil
+    weak var delegate: WebSocketClientDelegate? = nil
 
     /// Is this client currently connected to a WebSocket
     public var isConnected: Bool {
@@ -173,7 +173,7 @@ public class WebSocketClient {
         headers: HTTPHeaders = HTTPHeaders(),
         maxFrameSize: Int = 14,
         tlsEnabled: Bool = false,
-        delegate: SwocketClientDelegate? = nil
+        delegate: WebSocketClientDelegate? = nil
     ) {
         self.host = host
         self.port = port
@@ -194,7 +194,7 @@ public class WebSocketClient {
     public init?(
         _ url: String,
         headers: HTTPHeaders = HTTPHeaders(),
-        delegate: SwocketClientDelegate? = nil
+        delegate: WebSocketClientDelegate? = nil
     ) {
         let rawUrl = URL(string: url)
         self.frameKey = "tergregfgbsfdgfdsfgdbv=="

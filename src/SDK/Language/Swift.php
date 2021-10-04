@@ -139,6 +139,12 @@ class Swift extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/JSON/JSONValue.swift',
+                'template'      => '/swift/Sources/JSON/JSONValue.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/{{ spec.title | caseUcfirst}}Error.swift',
                 'template'      => '/swift/Sources/Models/Error.swift.twig',
                 'minify'        => false,
@@ -165,6 +171,18 @@ class Swift extends Language {
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Cookie+Codable.swift',
                 'template'      => 'swift/Sources/Extensions/Cookie+Codable.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/HTTPClientRequest+Cookies.swift',
+                'template'      => 'swift/Sources/Extensions/HTTPClientRequest+Cookies.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Optional.swift',
+                'template'      => 'swift/Sources/Extensions/Optional.swift.twig',
                 'minify'        => false,
             ],
             [

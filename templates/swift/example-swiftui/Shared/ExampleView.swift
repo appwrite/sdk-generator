@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  ExampleView.swift
 //  Shared
 //
 //  Created by Jake Barnby on 3/08/21.
@@ -10,21 +10,11 @@ import SwiftUI
 import Appwrite
 import NIO
 
-let host = "http://localhost:80/v1"
-let projectId = "6156508b7d7e7"
-
-let client = Client()
-    .setEndpoint(endPoint: host)
-    .setProject(value: projectId)
-    .setSelfSigned()
-
 struct ExampleView: View {
     
     @ObservedObject var viewModel: ViewModel
     
-    @State var imageToUpload = UIImage()
-    
-    @ObservedObject var keyboard: Keyboard = .init()
+    @State var imageToUpload = OSImage()
     
     var body: some View {
         
@@ -37,8 +27,6 @@ struct ExampleView: View {
 
             TextEditor(text: $viewModel.response)
                 .padding()
-                .padding(.bottom, keyboard.height)
-                .edgesIgnoringSafeArea(keyboard.height > 0 ? .bottom : [])
 
             Button("Login") {
                 viewModel.login()
@@ -64,15 +52,21 @@ struct ExampleView: View {
                 viewModel.subscribe()
             }
         }
+        .onChange(of: viewModel.isShowPhotoLibrary) { showing in
+            #if os(macOS)
+            ImagePicker.present()
+            #endif
+        }
         .sheet(isPresented: $viewModel.isShowPhotoLibrary) {
-            ImagePicker(sourceType: .photoLibrary, selectedImage: $imageToUpload)
+            #if !os(macOS)
+            ImagePicker(selectedImage: $imageToUpload)
+            #endif
         }
         .onChange(of: imageToUpload) { img in
             viewModel.upload(image: img)
         }
         .registerOAuthHandler()
     }
-
 }
 
 struct ExampleView_Previews: PreviewProvider {

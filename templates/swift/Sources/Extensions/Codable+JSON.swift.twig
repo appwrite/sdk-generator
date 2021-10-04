@@ -1,7 +1,3 @@
-//
-//  Created by Jake Barnby on 13/09/21.
-//
-
 import Foundation
 
 let jsonEncoder = JSONEncoder()

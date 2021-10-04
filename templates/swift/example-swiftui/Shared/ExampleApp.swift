@@ -7,6 +7,8 @@
 //
 
 import SwiftUI
+import Appwrite
+import NIO
 
 @main
 struct ExampleApp: App {

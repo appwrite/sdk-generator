@@ -10,55 +10,52 @@ import SwiftUI
 import Appwrite
 import NIO
 
-extension ExampleView {
+let host = "https://demo.appwrite.io/v1"
+let projectId = "60f6a0d6e2a52"
 
-     class Test : Model {
-        
-        enum CodingKeys: String, CodingKey {
-            case name
-            case description
-        }
-        
-        public var name: String?
-        public var description: String?
-        
-        required init(from decoder: Decoder) throws {
-            let values = try decoder.container(keyedBy: CodingKeys.self)
-            name = try values.decode(String.self, forKey: .name)
-            description = try values.decode(String.self, forKey: .description)
-            
-            try! super.init(from: decoder)
-        }
-    }
+extension ExampleView {
     
     class ViewModel : ObservableObject {
-        let account = Account(client: client)
-        let storage = Storage(client: client)
-        let realtime = Realtime(client: client)
+
+        let client = Client()
+            .setEndpoint(endPoint: host)
+            .setProject(value: projectId)
+        
+        lazy var account = Account(client: client)
+        lazy var storage = Storage(client: client)
+        lazy var realtime = Realtime(client: client)
         
         @Published var downloadedImage: Image? = nil
-        
+
         @Published public var username: String = "test@test.test"
         @Published public var password: String = "password"
-        @Published public var fileId: String = "614c1f5864841"
-        @Published public var collectionId: String = "6156aba4e2b84"
+        @Published public var fileId: String = "60f7a0178c3e5"
+        @Published public var collectionId: String = "6155742223662"
         @Published public var isShowPhotoLibrary = false
         @Published public var response: String = ""
         
         func register() {
             account.create(email: username, password: password) { result in
-                switch result {
-                case .failure(let error): self.response = error.message
-                case .success(var response): self.response = response.body!.readString(length: response.body!.readableBytes) ?? ""
+                DispatchQueue.main.async {
+                    switch result {
+                    case .failure(let error):
+                        self.response = error.message
+                    case .success(var response):
+                        self.response = response.body!.readString(length: response.body!.readableBytes) ?? ""
+                    }
                 }
             }
         }
         
         func login() {
             account.createSession(email: username, password: password) { result in
-                switch result {
-                case .failure(let error): self.response = error.message
-                case .success(var response): self.response = response.body!.readString(length: response.body!.readableBytes) ?? ""
+                DispatchQueue.main.async {
+                    switch result {
+                    case .failure(let error):
+                        self.response = error.message
+                    case .success(var response):
+                        self.response = response.body!.readString(length: response.body!.readableBytes) ?? ""
+                    }
                 }
             }
         }
@@ -78,41 +75,50 @@ extension ExampleView {
         
         func download() {
             storage.getFileDownload(fileId: fileId) { result in
-                switch result {
-                case .failure(let error):
-                    print(error)
-                case .success(var response):
-                    self.downloadedImage = Image(uiImage: UIImage(
-                        data: response.body!.readData(
-                            length: response.body!.readableBytes
-                        )!
-                    )!)
+                DispatchQueue.main.async {
+                    switch result {
+                    case .failure(let error): self.response = error.message
+                    case .success(var response):
+                        self.downloadedImage = Image(
+                            data: response.body!.readData(
+                                length: response.body!.readableBytes)!)
+                    }
                 }
             }
         }
         
-        func upload(image: UIImage) {
+        func upload(image: OSImage) {
             let imageBuffer = ByteBufferAllocator()
-                .buffer(data: image.jpegData(compressionQuality: 1)!)
+                .buffer(data: image.data)
                 
+            #if os(macOS)
+            let fileName = "file.tiff"
+            #else
+            let fileName = "file.png"
+            #endif
+            
             let file = File(
-                name: "file.png",
+                name: fileName,
                 buffer: imageBuffer
             )
             
             storage.createFile(file: file) { result in
-                switch result {
-                case .failure(let error):
-                    print(error)
-                case .success(var response):
-                    self.response = response.body!.readString(length: response.body!.readableBytes) ?? ""
+                DispatchQueue.main.async {
+                    switch result {
+                    case .failure(let error):
+                        self.response = error.message
+                    case .success(var response):
+                        self.response = response.body!.readString(length: response.body!.readableBytes) ?? ""
+                    }
                 }
             }
         }
         
         func subscribe() {
-            _ = realtime.subscribe(channels: ["collections.\(collectionId).documents"], payloadType: Test.self) { message in
-                print(String(describing: message))
+            _ = realtime.subscribe(channels: ["collections.\(collectionId).documents"]) { response in
+                DispatchQueue.main.async {
+                    self.response = String(describing: response.payload!)
+                }
             }
         }
     }

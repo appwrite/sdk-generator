@@ -20,18 +20,18 @@ class HTTPHandler {
         if let delegate = client.delegate {
             switch status {
             case .badRequest:
-                try! delegate.onError(error: SwocketClientError.badRequest, status: status)
+                try! delegate.onError(error: WebSocketClientError.badRequest, status: status)
             case .notFound:
-                try! delegate.onError(error: SwocketClientError.notFound, status: status)
+                try! delegate.onError(error: WebSocketClientError.notFound, status: status)
             default:
                 break
             }
         } else {
             switch status {
             case .badRequest:
-                client.onError(SwocketClientError.badRequest, status)
+                client.onError(WebSocketClientError.badRequest, status)
             case .notFound:
-                client.onError(SwocketClientError.notFound, status)
+                client.onError(WebSocketClientError.notFound, status)
             default:
                 break
             }
