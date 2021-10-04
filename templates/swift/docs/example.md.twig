@@ -25,9 +25,10 @@ func main() {
 {% endfor %}
         switch result {
         case .failure(let error):
-            print(error)
+            print(error.message)
         case .success(var response):
 {% if method.type == 'webAuth' %}
+            print(result)
 {% elseif method.type == 'location' %}
             print(result) // Resource URL
 {% else %}

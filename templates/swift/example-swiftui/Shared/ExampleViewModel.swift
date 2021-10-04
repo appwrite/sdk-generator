@@ -11,8 +11,8 @@ extension ExampleView {
     class ViewModel : ObservableObject {
 
         let client = Client()
-            .setEndpoint(endPoint: host)
-            .setProject(value: projectId)
+            .setEndpoint(host)
+            .setProject(projectId)
         
         lazy var account = Account(client: client)
         lazy var storage = Storage(client: client)

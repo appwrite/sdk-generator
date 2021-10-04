@@ -2,6 +2,8 @@ import UIKit
 import NIO
 import Appwrite
 
+let host = "https://demo.appwrite.io/v1"
+
 class ViewController: UIViewController {
 
     @IBOutlet weak var text: UITextView!
@@ -13,11 +15,10 @@ class ViewController: UIViewController {
     @IBOutlet weak var image: UIImageView!
     
     let client = Client()
-        .setEndpoint(endPoint: "http://192.168.20.6:80/v1")
-        .setProject(value: "613b18dabf74a")
-        .setSelfSigned()
+        .setEndpoint(host)
+        .setProject("60f6a0d6e2a52")
 
-    let COLLECTION_ID = "6149afd52ce3b"
+    let COLLECTION_ID = "6155742223662"
     
     lazy var account = Account(client: client)
     lazy var storage = Storage(client: client)
@@ -109,11 +110,10 @@ class ViewController: UIViewController {
     }
     
     @IBAction func subscribe(_ sender: Any) {
-        _ = realtime.subscribe(
-            channels:["collections.\(COLLECTION_ID).documents"],
-            payloadType: Room.self
-        ) { message in
-            print(message)
+        _ = realtime.subscribe(channel:"collections.\(COLLECTION_ID).documents") { message in
+            DispatchQueue.main.async {
+                self.text.text = String(describing: message)
+            }
         }
     }
     
@@ -163,10 +163,4 @@ extension ViewController: ImagePickerDelegate {
             }
         }
     }
-}
-
-class Room : Model {
-    let name: String
-    let text: String?
-    let description: String?
 }
