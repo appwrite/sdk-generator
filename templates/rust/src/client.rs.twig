@@ -25,7 +25,10 @@ pub enum ParamType {
     OptionalArray(Option<Vec<ParamType>>),
     OptionalFilePath(Option<PathBuf>),
     OptionalObject(Option<HashMap<String, ParamType>>),
-    OptionalFloat(Option<f64>)
+    OptionalFloat(Option<f64>),
+    {% for definition in spec.definitions %}
+{{definition.name | caseUcfirst}}(crate::models::{{definition.name|caseUcfirst}}),
+    {% endfor %}
 }
 
 // Converts optionals into normal ParamTypes

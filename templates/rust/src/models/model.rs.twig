@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use serde_json::value::Value;
 use super::*;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
 #[serde(untagged)]
 pub enum EmptyOption<T> {
@@ -44,14 +44,28 @@ impl<T> EmptyOption<T> {
 }
 
 {% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}Vec<{{property.sub_schema | caseUcfirst}}>{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% endmacro %}
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct {{ definition.name | caseUcfirst }} {
 {% for property in definition.properties %}
-    {% if '$' in property.name %}    #[serde(rename(serialize = "{{ property.name | escapeKeyword | removeDollarSign }}", deserialize = "{{ property.name | escapeKeyword }}"))]
+    {% if property.name | escapeKeyword | removeDollarSign != property.name %}
+    #[serde(rename(serialize = "{{ property.name | escapeKeyword | removeDollarSign }}", deserialize = "{{ property.name }}"))]
     {% endif %}
-    pub {{ property.name | escapeKeyword | removeDollarSign }}: {% if property.required %}EmptyOption<{% endif %}{% if property.type == 'string' %}String{% elseif _self.sub_schema(property) == '&[&str]' %}Vec<String>{% else %}{{_self.sub_schema(property)}}{% endif %}{% if property.required %}>{% endif %},
+    pub {{ property.name | escapeKeyword | removeDollarSign }}: {% if not property.required %}EmptyOption<{% endif %}{% if property.type == 'string' %}String{% elseif _self.sub_schema(property) == '&[&str]' %}Vec<String>{% else %}{{_self.sub_schema(property)}}{% endif %}{% if not property.required %}>{% endif %},
 {% endfor %}
 {% if definition.additionalProperties %}
     pub data: HashMap<String, Value>,
 {% endif %}
+}
+
+impl {{ definition.name | caseUcfirst }} {
+    pub fn new({% for property in definition.properties %}{{ property.name | escapeKeyword | removeDollarSign }}: {% if not property.required %}EmptyOption<{% endif %}{% if property.type == 'string' %}String{% elseif _self.sub_schema(property) == '&[&str]' %}Vec<String>{% else %}{{_self.sub_schema(property)}}{% endif %}{% if not property.required %}>{% endif %}, {%endfor%}) -> Self {
+        Self {
+            {% for property in definition.properties %}
+{{ property.name | escapeKeyword | removeDollarSign }}: {% if not property.required %}EmptyOption::from({{ property.name | escapeKeyword | removeDollarSign }}){% else %}{{ property.name | escapeKeyword | removeDollarSign }}{% endif %},
+            {% endfor %}
+{% if definition.additionalProperties %}
+data: HashMap::new(),
+{% endif %}
+}
+    }
 }
