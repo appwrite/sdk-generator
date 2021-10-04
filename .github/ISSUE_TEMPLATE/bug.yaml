@@ -34,14 +34,11 @@ body:
   - type: dropdown
     id: appwrite-version
     attributes:
-      label: "🎲 Appwrite version"
-      description: "What version of Appwrite are you running?"
+      label: "🎲 SDK Generator version"
+      description: "What version of SDK Generator are you using?"
       options:
-        - Version 0.10.x
-        - Version 0.9.x
-        - Version 0.8.x
-        - Version 0.7.x
-        - Version 0.6.x
+        - Version 0.15.x
+        - Version 0.14.x
         - Different version (specify in environment)
     validations:
       required: true
