@@ -203,6 +203,12 @@ class Swift extends Language {
                 'template'      => 'swift/Sources/Services/Service.swift.twig',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/{{ definition.name | caseUcfirst }}.swift',
+                'template'      => '/swift/Sources/Models/Model.swift.twig',
+                'minify'        => false,
+            ],
         ];
     }
 
