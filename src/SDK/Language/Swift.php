@@ -205,7 +205,7 @@ class Swift extends Language {
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/{{ definition.name | caseUcfirst }}.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ definition.name | caseUcfirst }}.swift',
                 'template'      => '/swift/Sources/Models/Model.swift.twig',
                 'minify'        => false,
             ],

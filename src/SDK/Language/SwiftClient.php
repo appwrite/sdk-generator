@@ -150,12 +150,6 @@ class SwiftClient extends Swift {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/example-swiftui/Example.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
-                'template'      => '/swift/example-swiftui/Example.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/example-swiftui/Example.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist',
                 'template'      => '/swift/example-swiftui/Example.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist',
                 'minify'        => false,

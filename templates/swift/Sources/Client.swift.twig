@@ -2,6 +2,7 @@ import NIO
 import NIOSSL
 import Foundation
 import AsyncHTTPClient
+@_exported import AppwriteModels
 
 let DASHDASH = "--"
 let CRLF = "\r\n"
@@ -212,7 +213,15 @@ open class Client {
     /// @return Response
     /// @throws Exception
     ///
-    func call(method: String, path: String = "", headers: [String: String] = [:], params: [String: Any?] = [:], sink: ((ByteBuffer) -> Void)? = nil,  completion: ({% if method.type == "webAuth" %}(Result<Bool, {{ spec.title | caseUcfirst }}Error>){% elseif method.type == 'location' %}(Result<String, {{ spec.title | caseUcfirst}}Error>){% else %}{% if method.responseModel and method.responseModel != 'any' %}(Result<{{method.responseModel | caseUcfirst}}, {{ spec.title | caseUcfirst}}Error>){% else %}(Result<Bool, {{ spec.title | caseUcfirst}}Error>){% endif %}{% endif%} -> Void)? = nil) {
+    func call<T>(
+        method: String,
+        path: String = "",
+        headers: [String: String] = [:],
+        params: [String: Any?] = [:],
+        sink: ((ByteBuffer) -> Void)? = nil,
+        convert: (([String: Any]) -> T)? = nil,
+        completion: ((Result<T, {{ spec.title | caseUcfirst }}Error>) -> Void)? = nil
+    ) {
         self.headers.merge(headers) { (_, new) in
             new
         }
@@ -269,10 +278,11 @@ open class Client {
         }
     }
 
-    fileprivate func execute(
+    fileprivate func execute<T>(
         _ request: HTTPClient.Request,
         withSink bufferSink: ((ByteBuffer) -> Void)? = nil,
-        completion: ((Result<HTTPClient.Response, {{ spec.title | caseUcfirst}}Error>) -> Void)? = nil
+        convert: (([String: Any]) -> T)? = nil,
+        completion: ((Result<T, {{ spec.title | caseUcfirst}}Error>) -> Void)? = nil
     ) {
         if bufferSink == nil {
             http.execute(
@@ -307,7 +317,9 @@ open class Client {
                             forKey: "\(response.host)-cookies"
                         )
                     }
-                    completion(.success(response))
+                    let json = response.body!.readString(length: response.body!.readableBytes)
+                    let dict = try! JSONSerialization.jsonObject(with: response.body!) as? [String: Any]
+                    completion(.success(convert!(dict)))
                 default:
                     let error = AppwriteError(
                         message: response.body?.getString(at: 0, length: response.body!.readableBytes) ?? response.status.reasonPhrase,

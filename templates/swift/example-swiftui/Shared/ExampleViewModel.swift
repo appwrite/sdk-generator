@@ -14,9 +14,9 @@ extension ExampleView {
             .setEndpoint(host)
             .setProject(projectId)
         
-        lazy var account = Account(client: client)
-        lazy var storage = Storage(client: client)
-        lazy var realtime = Realtime(client: client)
+        lazy var account = Account(client)
+        lazy var storage = Storage(client)
+        lazy var realtime = Realtime(client)
         
         @Published var downloadedImage: Image? = nil
 
@@ -33,11 +33,13 @@ extension ExampleView {
                     switch result {
                     case .failure(let error):
                         self.response = error.message
-                    case .success(var response):
-                        self.response = response.body!.readString(length: response.body!.readableBytes) ?? ""
+                    case .success(let response):
+                        self.response = response.email
                     }
                 }
             }
+            
+            
         }
         
         func login() {
@@ -46,8 +48,8 @@ extension ExampleView {
                     switch result {
                     case .failure(let error):
                         self.response = error.message
-                    case .success(var response):
-                        self.response = response.body!.readString(length: response.body!.readableBytes) ?? ""
+                    case .success(let response):
+                        self.response = response.userId
                     }
                 }
             }
@@ -72,9 +74,7 @@ extension ExampleView {
                     switch result {
                     case .failure(let error): self.response = error.message
                     case .success(var response):
-                        self.downloadedImage = Image(
-                            data: response.body!.readData(
-                                length: response.body!.readableBytes)!)
+                        self.downloadedImage = Image(data: response.utf8)
                     }
                 }
             }
@@ -101,7 +101,7 @@ extension ExampleView {
                     case .failure(let error):
                         self.response = error.message
                     case .success(var response):
-                        self.response = response.body!.readString(length: response.body!.readableBytes) ?? ""
+                        self.response = response.name
                     }
                 }
             }
