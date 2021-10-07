@@ -247,7 +247,7 @@ open class Client {
         request.addDomainCookies()
 
         if "GET" == method {
-            execute(request, completion: completion)
+            execute(request, convert: convert, completion: completion)
             return
         }
 
@@ -258,7 +258,7 @@ open class Client {
             return
         }
 
-        execute(request, withSink: sink, completion: completion)
+        execute(request, withSink: sink, convert: convert, completion: completion)
     }
 
     fileprivate func addHeaders(to request: inout HTTPClient.Request) {
@@ -317,9 +317,15 @@ open class Client {
                             forKey: "\(response.host)-cookies"
                         )
                     }
-                    let json = response.body!.readString(length: response.body!.readableBytes)
-                    let dict = try! JSONSerialization.jsonObject(with: response.body!) as? [String: Any]
-                    completion(.success(convert!(dict)))
+                    switch T.self {
+                    case is ByteBuffer.Type:
+                        completion(.success(response.body! as! T))
+                    default:
+                        let dict = try! JSONSerialization
+                            .jsonObject(with: response.body!) as? [String: Any]
+
+                        completion(.success(convert!(dict!)))
+                    }
                 default:
                     let error = AppwriteError(
                         message: response.body?.getString(at: 0, length: response.body!.readableBytes) ?? response.status.reasonPhrase,
