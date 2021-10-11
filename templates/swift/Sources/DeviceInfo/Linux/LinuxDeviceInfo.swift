@@ -90,6 +90,7 @@ class LinuxDeviceInfo : DeviceInfo {
         let url = URL(fileURLWithPath: path)
         let string = try! String(contentsOf: url, encoding: .utf8)
         let lines = string.components(separatedBy: .newlines)
+        
         var dict = [String: String]()
         for line in lines {
             let splits = line.split(separator: "=")
@@ -100,6 +101,7 @@ class LinuxDeviceInfo : DeviceInfo {
                 dict[key] = value
             }
         }
+        
         return dict
     }
 }

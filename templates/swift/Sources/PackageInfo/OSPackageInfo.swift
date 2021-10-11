@@ -6,25 +6,15 @@
 //
 import Foundation
 
-protocol PackageInfo
-
 class OSPackageInfo {
 
-    let appleInfo: ApplePackageInfo
-    let macOSInfo: MacOSPackageInfo
-    let linuxInfo: LinuxPackageInfo
-    let windowsInfo: WindowsPackageInfo
-
-    init() {
-        #if os(iOS) || os(watchOS) || os(tvOS)
-        self.agent = ApplePackageInfo.get()
-        #elseif os(macOS)
-        self.agent = MacOSPackageInfo.get()
+    public static func get() -> PackageInfo {
+        #if os(iOS) || os(watchOS) || os(tvOS) || os(macOS)
+        return PackageInfo.getApplePackage()
         #elseif os(Linux)
-        self.agent = LinuxDeviceInfo.get()
+        return PackageInfo.getLinuxPackage()
         #elseif os(Windows)
-        self.agent = LinuxDeviceInfo.get()
+        return PackageInfo.getWindowsPackage()
         #endif
     }
 }
-

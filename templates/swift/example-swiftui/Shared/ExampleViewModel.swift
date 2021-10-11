@@ -73,8 +73,8 @@ extension ExampleView {
                 DispatchQueue.main.async {
                     switch result {
                     case .failure(let error): self.response = error.message
-                    case .success(var response):
-                        self.downloadedImage = Image(data: response.utf8)
+                    case .success(let response):
+                        self.downloadedImage = Image(data: Data(buffer: response))
                     }
                 }
             }
@@ -100,7 +100,7 @@ extension ExampleView {
                     switch result {
                     case .failure(let error):
                         self.response = error.message
-                    case .success(var response):
+                    case .success(let response):
                         self.response = response.name
                     }
                 }

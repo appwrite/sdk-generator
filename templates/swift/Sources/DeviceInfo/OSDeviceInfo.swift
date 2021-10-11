@@ -6,22 +6,20 @@
 //
 import Foundation
 
-protocol DeviceInfo {
-    var string: String {get set}
-}
+protocol DeviceInfo {}
 
 class OSDeviceInfo {
 
-    let appleInfo: AppleDeviceInfo
-    let macOSInfo: AppleDeviceInfo
+    let iOSInfo: iOSDeviceInfo
+    let macOSInfo: MacOSDeviceInfo
     let linuxInfo: LinuxDeviceInfo
     let windowsInfo: WindowsDeviceInfo
 
     init() {
         #if os(iOS) || os(watchOS) || os(tvOS)
-        self.appleInfo = AppleDeviceInfo.get()
+        self.appleInfo = iOSDeviceInfo.get()
         #elseif os(macOS)
-        self.macOSInfo = AppleDeviceInfo.get()
+        self.macOSInfo = MacOSDeviceInfo.get()
         #elseif os(Linux)
         self.linuxInfo = LinuxDeviceInfo.get()
         #elseif os(Windows)

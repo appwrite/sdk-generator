@@ -7,7 +7,7 @@
 
 import Foundation
 
-class AppleDeviceInfo : DeviceInfo {
+class iOSDeviceInfo : DeviceInfo {
     
     var string: String
     
@@ -38,15 +38,20 @@ class AppleDeviceInfo : DeviceInfo {
     }
     
     public static func get() -> AppleDeviceInfo {
+        
+        #if os(iOS) || os(watchOS) || os(tvOS)
         let device = UIKit.UIDevice.current
+        #else
+        let device = AppKit.UIDevice.current
+        #endif
         
         return AppleDeviceInfo(
-            name: String,
-            systemName: <#T##String#>,
-            systemVersion: <#T##String#>,
-            model: <#T##String#>,
-            localizedModel: <#T##String#>,
-            identifierForVendor: <#T##String#>,
+            name: device.name,
+            systemName: device.systemName,
+            systemVersion: device.systemVersion,
+            model: device.model,
+            localizedModel: device.localizedModel,
+            identifierForVendor: device.identifierForVendor.uuidString,
             utsname: utsname
         )
     }
