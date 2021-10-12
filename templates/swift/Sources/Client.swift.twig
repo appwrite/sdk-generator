@@ -327,10 +327,23 @@ open class Client {
                         completion(.success(convert!(dict!)))
                     }
                 default:
+                    var message = ""
+
+                    do {
+                        let dict = try JSONSerialization
+                            .jsonObject(with: response.body!) as? [String: Any]
+
+                        message = dict?["response"] as? String
+                            ?? response.status.reasonPhrase
+                    } catch {
+                        message =  response.status.reasonPhrase
+                    }
+
                     let error = AppwriteError(
-                        message: response.body?.getString(at: 0, length: response.body!.readableBytes) ?? response.status.reasonPhrase,
+                        message: message,
                         code: Int(response.status.code)
                     )
+
                     completion(.failure(error))
                 }
             }
