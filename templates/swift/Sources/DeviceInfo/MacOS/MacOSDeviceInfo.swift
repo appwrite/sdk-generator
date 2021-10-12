@@ -14,10 +14,8 @@ class MacOSDeviceInfo : DeviceInfo {
     let kernelVersion = Sysctl.version
     let osRelease = Sysctl.osRelease
     let activeCPUs = Sysctl.activeCPUs
-    let memorySize = Sysctl.memSize
-    let cpuFrequency = Sysctl.cpuFreq
     
-    public static get() -> MacOSDeviceInfo {
+    public static func get() -> MacOSDeviceInfo {
         return MacOSDeviceInfo()
     }
 }

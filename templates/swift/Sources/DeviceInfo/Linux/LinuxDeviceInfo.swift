@@ -9,8 +9,6 @@ import Foundation
 
 class LinuxDeviceInfo : DeviceInfo {
 
-    var string: String
-    
     let name: String
     let version: String
     let id: String
