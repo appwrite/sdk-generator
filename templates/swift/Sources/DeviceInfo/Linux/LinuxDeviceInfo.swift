@@ -1,10 +1,3 @@
-//
-//  File.swift
-//  
-//
-//  Created by Jake Barnby on 7/10/21.
-//
-
 import Foundation
 
 class LinuxDeviceInfo : DeviceInfo {

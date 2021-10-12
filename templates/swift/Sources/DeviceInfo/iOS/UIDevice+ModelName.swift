@@ -1,10 +1,3 @@
-//
-//  File.swift
-//  
-//
-//  Created by Jake on 12/10/21.
-//
-
 #if os(iOS) || os(tvOS) || os(watchOS)
 import Foundation
 import UIKit
