@@ -318,6 +318,8 @@ open class Client {
                         )
                     }
                     switch T.self {
+                    case is Bool.Type:
+                        completion(.success(true as! T))
                     case is ByteBuffer.Type:
                         completion(.success(response.body! as! T))
                     default:
