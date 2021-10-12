@@ -19,6 +19,7 @@ class PackageInfo {
         appName: String,
         version: String,
         buildNumber: String,
+        packageName: String,
         buildSignature: String? = nil
     ) {
         self.appName = appName

@@ -25,8 +25,8 @@ extension PackageInfo {
         let exePath = URL(fileURLWithPath: "/proc/self/exe").resolvingSymlinksInPath()
         let appPath = exePath.deletingLastPathComponent()
         let resolved = appPath.appendingPathComponent("Package.resolved")
-        let contents = String(contentsOfFile: resolved.absoluteString)
-        let regex = 
+        let contents = try! String(contentsOfFile: resolved.absoluteString)
+        return ""
         // Package.resolved path?
 //        final appPath = path.dirname(exePath);
 //        final assetPath = path.join(appPath, 'data', 'flutter_assets');
