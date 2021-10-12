@@ -1,8 +1,6 @@
+#if os(iOS) || os(tvOS) || os(watchOS)
 import Foundation
-
-#if canImport(UIKit)
 import UIKit
-#endif
 
 class iOSDeviceInfo : DeviceInfo {
     
@@ -31,8 +29,7 @@ class iOSDeviceInfo : DeviceInfo {
         self.identifierForVendor = identifierForVendor
         self.modelIdentifier = modelIdentifier
     }
-    
-    #if os(iOS) || os(watchOS) || os(tvOS)
+
     public static func get() -> iOSDeviceInfo {
         let device = UIDevice.current
         
@@ -46,5 +43,5 @@ class iOSDeviceInfo : DeviceInfo {
             modelIdentifier: UIDevice.modelName
         )
     }
-    #endif
 }
+#endif

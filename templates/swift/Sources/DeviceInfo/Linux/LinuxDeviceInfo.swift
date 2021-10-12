@@ -1,3 +1,4 @@
+#if os(Linux)
 import Foundation
 
 class LinuxDeviceInfo : DeviceInfo {
@@ -96,3 +97,4 @@ class LinuxDeviceInfo : DeviceInfo {
         return dict
     }
 }
+#endif

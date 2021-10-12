@@ -38,7 +38,10 @@ open class Client {
 
     public init() {
         http = Client.createHTTP()
+
+        #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
         addUserAgent()
+        #endif
     }
 
     private static func createHTTP(
@@ -301,7 +304,7 @@ open class Client {
             complete(with: result)
         }
 
-        func complete(with result: Result<HTTPClient.Response, Error>) {
+        func complete(with result: Result<HTTPClient.Response, Swift.Error>) {
             guard let completion = completion else {
                 return
             }
@@ -324,7 +327,7 @@ open class Client {
                         completion(.success(response.body! as! T))
                     default:
                         let dict = try! JSONSerialization
-                            .jsonObject(with: response.body!) as? [String: Any]
+                            .jsonObject(with: Data(buffer: response.body!)) as? [String: Any]
 
                         completion(.success(convert!(dict!)))
                     }
@@ -333,7 +336,7 @@ open class Client {
 
                     do {
                         let dict = try JSONSerialization
-                            .jsonObject(with: response.body!) as? [String: Any]
+                            .jsonObject(with: Data(buffer: response.body!)) as? [String: Any]
 
                         message = dict?["response"] as? String
                             ?? response.status.reasonPhrase

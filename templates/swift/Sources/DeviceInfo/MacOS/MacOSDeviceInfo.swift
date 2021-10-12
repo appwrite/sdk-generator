@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 
 class MacOSDeviceInfo : DeviceInfo {
@@ -13,3 +14,4 @@ class MacOSDeviceInfo : DeviceInfo {
         return MacOSDeviceInfo()
     }
 }
+#endif

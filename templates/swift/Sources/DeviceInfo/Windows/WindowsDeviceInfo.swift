@@ -1,3 +1,4 @@
+#if os(Windows)
 import Foundation
 
 class WindowsDeviceInfo : DeviceInfo {
@@ -15,8 +16,7 @@ class WindowsDeviceInfo : DeviceInfo {
         self.computerName = computerName
         self.systemMemoryInMegabytes = systemMemoryInMegabytes
     }
-    
-    #if os(Windows)
+
     public static func get() -> WindowsDeviceInfo {
         let memory = ProcessInfo.processInfo.physicalMemory / 1000 / 1000 // Bytes to MB
         
@@ -26,6 +26,6 @@ class WindowsDeviceInfo : DeviceInfo {
             systemMemoryInMegabytes: memory
         )
     }
-    #endif
 }
+#endif
  

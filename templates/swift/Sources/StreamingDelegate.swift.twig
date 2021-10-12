@@ -11,7 +11,7 @@ class StreamingDelegate: HTTPClientResponseDelegate {
         case head(HTTPResponseHead)
         case body(HTTPResponseHead)
         case end
-        case error(Error)
+        case error(Swift.Error)
     }
 
     var state = State.idle
@@ -117,7 +117,7 @@ class StreamingDelegate: HTTPClientResponseDelegate {
         }
     }
 
-    func didReceiveError(task: HTTPClient.Task<Response>, _ error: Error) {
+    func didReceiveError(task: HTTPClient.Task<Response>, _ error: Swift.Error) {
         state = .error(error)
         reportError?(AppwriteError(message: error.localizedDescription))
     }
