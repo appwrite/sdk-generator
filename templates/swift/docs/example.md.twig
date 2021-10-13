@@ -25,14 +25,8 @@ func main() {
         switch result {
         case .failure(let error):
             print(error.message)
-        case .success(var response):
-{% if method.type == 'webAuth' %}
-            print(result)
-{% elseif method.type == 'location' %}
-            print(result) // Resource URL
-{% else %}
-            let json = response.body!.readString(length: response.body!.readableBytes)
-{% endif %}
+        case .success(let {% if method.type == 'webAuth' %}success{% elseif method.type == 'location' %}byteBuffer{% else %}{{ method.responseModel | caseCamel | escapeKeyword }}{% endif %}):
+            print(String(describing: {% if method.type == 'webAuth' %}success{% elseif method.type == 'location' %}byteBuffer{% else %}{{ method.responseModel | caseCamel | escapeKeyword }}{% endif %})
         }
     }
 }
