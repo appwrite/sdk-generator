@@ -137,12 +137,6 @@ class Swift extends Language {
                 'template'      => 'swift/Sources/Client.swift.twig',
                 'minify'        => false,
             ],
-//            [
-//                'scope'         => 'default',
-//                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/JSON/JSONValue.swift',
-//                'template'      => '/swift/Sources/JSON/JSONValue.swift.twig',
-//                'minify'        => false,
-//            ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/{{ spec.title | caseUcfirst}}Error.swift',
@@ -179,12 +173,6 @@ class Swift extends Language {
                 'template'      => 'swift/Sources/Extensions/HTTPClientRequest+Cookies.swift.twig',
                 'minify'        => false,
             ],
-//            [
-//                'scope'         => 'default',
-//                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Optional.swift',
-//                'template'      => 'swift/Sources/Extensions/Optional.swift.twig',
-//                'minify'        => false,
-//            ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/StreamingDelegate.swift',
@@ -387,7 +375,7 @@ class Swift extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= "nil";
+                    $output .= 'File(name: "image.jpg", buffer: yourByteBuffer)';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:

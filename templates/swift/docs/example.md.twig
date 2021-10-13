@@ -13,14 +13,13 @@ func main() {
 {% endif %}
 
     let {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client: client)
-    {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %}) { {% if method.type != "webAuth" %}result in{% endif %}{% endif %}
+    {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | filter((param) => param.required) | length == 0 %}) { result in{% endif %}
 
 {% for parameter in method.parameters.all | filter((param) => param.required) %}
         {{parameter.name}}: {{ parameter | paramExample | escapeKeyword }}{% if not loop.last %},{% endif %}
 
 {% if loop.last %}
-    ) { {% if method.type != "webAuth" %}result in{% endif %}
-
+    ) { result in
 {% endif %}
 {% endfor %}
         switch result {
