@@ -33,7 +33,7 @@ public class {{ definition.name | caseUcfirst }} {
     public static func from(map: [String: Any]) -> {{ definition.name | caseUcfirst }} {
         return {{ definition.name | caseUcfirst }}(
 {% for property in definition.properties %}
-            {{ property.name | escapeKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}(map["{{property.name }}"] as! [[String: Any]]).map { {{property.sub_schema | caseUcfirst}}.from(map: $0) }{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]){% endif %}{% else %}map["{{property.name }}"]{% endif %} as{% if property.required %}!{% else %}?{% endif %} {{ _self.sub_schema(property) }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            {{ property.name | escapeKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}(map["{{property.name }}"] as! [[String: Any]]).map { {{property.sub_schema | caseUcfirst}}.from(map: $0) }{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]){% endif %}{% else %}map["{{property.name }}"] as{% if property.required %}!{% else %}?{% endif %} {{ _self.sub_schema(property) }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}
