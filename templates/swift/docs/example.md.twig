@@ -1,4 +1,3 @@
-```swift
 import Appwrite
 
 func main() {
@@ -12,7 +11,7 @@ func main() {
 {% endfor %}
 {% endif %}
 
-    let {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client: client)
+    let {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client)
     {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | filter((param) => param.required) | length == 0 %}) { result in{% endif %}
 
 {% for parameter in method.parameters.all | filter((param) => param.required) %}
@@ -30,4 +29,3 @@ func main() {
         }
     }
 }
-```
