@@ -1,6 +1,9 @@
 {% macro methodNeedsSecurityParameters(method) %}
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
+{% macro resultType(spec, method) %}
+{% if method.type == "webAuth" %}Bool{% elseif method.type == "location" %}ByteBuffer{% elseif not method.responseModel or method.responseModel == 'any' %}Any{% else %}{{spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}{% endif %}
+{% endmacro %}
 import AsyncHTTPClient
 import Foundation
 import NIO
@@ -24,18 +27,22 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% if method.type == "webAuth" %}
     @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 {% endif %}
-    open func {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{{ parameter | paramDefault }}, {% endfor %}completion: ({% if method.type == "webAuth" %}(Result<Bool, {{ spec.title | caseUcfirst}}Error>){% elseif method.type == 'location' %}(Result<ByteBuffer, {{ spec.title | caseUcfirst}}Error>){% else %}{% if method.responseModel and method.responseModel != 'any' %}(Result<{{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}, {{ spec.title | caseUcfirst}}Error>){% else %}(Result<Bool, {{ spec.title | caseUcfirst}}Error>){% endif %}{% endif%} -> Void)? = nil) {
-        {% if method.parameters.path %}var{% else %}let{% endif %} path: String = "{{ method.path }}"
+    open func {{ method.name | caseCamel }}(
+{% for parameter in method.parameters.all %}
+        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{{ parameter | paramDefault }},
+{% endfor %}
+        completion: ((Result<{{ _self.resultType(spec, method) }}, {{ spec.title | caseUcfirst}}Error>) -> Void)? = nil
+    ) {
+{% if method.parameters.path %}        var{% else %}        let{% endif %} path: String = "{{ method.path }}"
 
 {% for parameter in method.parameters.path %}
         path = path.replacingOccurrences(
           of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}",
           with: {% if method.parameters.path %}{{ parameter.name | caseCamel | escapeKeyword }}{% else %}""{% endif %}
-
         )
 
 {% endfor %}
-{% if method.parameters.query or method.parameters.body or method.parameters.formData or  _self.methodNeedsSecurityParameters(method) %}
+{% if method.parameters.query or method.parameters.body or method.parameters.formData or _self.methodNeedsSecurityParameters(method) %}
         let params: [String: Any?] = [
 {% else %}
         let params: [String: Any?] = [:]
@@ -78,10 +85,16 @@ open class {{ service.name | caseUcfirst }}: Service {
         let headers: [String: String] = [
 {{ method.headers|map((header, key) => "            \"#{key}\": \"#{header}\"")|join(',\n')|raw }}
         ]
+
 {% if method.responseModel %}
-        let convert: ([String: Any]) -> {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}} = { dict in
+        let convert: ([String: Any]) -> {{ _self.resultType(spec, method) }} = { dict in
+{% if method.responseModel == 'any' %}
+            return dict
+{% else %}
             return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: dict)
+{% endif %}
         }
+
 {% endif %}
         client.call(
             method: "{{ method.method | caseUpper }}",

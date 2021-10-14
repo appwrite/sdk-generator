@@ -1,23 +1,16 @@
 import XCTest
+#if canImport(FoundationNetworking)
 import FoundationNetworking
+#endif
 import Appwrite
 import AsyncHTTPClient
 import NIO
-
-
-struct TestPayload {
-    let response: String
-
-    init(_ response: String) {
-        self.response = response
-    }
-}
 
 class Tests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        writeToFile(string: "Test Started")
+        self.writeToFile(string: "Test Started")
     }
 
     override func tearDown() {
@@ -33,70 +26,100 @@ class Tests: XCTestCase {
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
 
-        let foo = Foo(client: client)
-        let bar = Bar(client: client)
-        let general = General(client: client)
+        let foo = Foo(client)
+        let bar = Bar(client)
+        let general = General(client)
 
         // Foo Tests
         group.enter()
-        foo.get("string", 123, ["string in array"]) { result in
-            self.printResult(result)
+        foo.get(x: "string", y: 123, z: ["string in array"]) { result in
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let mock): self.writeToFile(string: mock.result)
+            }
             group.leave()
         }
         group.wait()
         group.enter()
-        foo.post("string", 123, ["string in array"]) { result in
-            self.printResult(result)
+        foo.post(x: "string", y: 123, z: ["string in array"]) { result in
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let mock): self.writeToFile(string: mock.result)
+            }
             group.leave()
         }
         group.wait()
         group.enter()
-        foo.put("string", 123, ["string in array"]) { result in
-            self.printResult(result)
+        foo.put(x: "string", y: 123, z: ["string in array"]) { result in
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let mock): self.writeToFile(string: mock.result)
+            }
             group.leave()
         }
         group.wait()
         group.enter()
-        foo.patch("string", 123, ["string in array"]) { result in
-            self.printResult(result)
+        foo.patch(x: "string", y: 123, z: ["string in array"]) { result in
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let mock): self.writeToFile(string: mock.result)
+            }
             group.leave()
         }
         group.wait()
         group.enter()
-        foo.delete("string", 123, ["string in array"]) { result in
-            self.printResult(result)
+        foo.delete(x: "string", y: 123, z: ["string in array"]) { result in
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let mock): self.writeToFile(string: mock.result)
+            }
             group.leave()
         }
         group.wait()
 
         // Bar Tests
         group.enter()
-        bar.get("string", 123, ["string in array"]) { result in
-            self.printResult(result)
+        bar.get(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let mock): self.writeToFile(string: mock.result)
+            }
             group.leave()
         }
         group.wait()
         group.enter()
-        bar.post("string", 123, ["string in array"]) { result in
-            self.printResult(result)
+        bar.post(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let mock): self.writeToFile(string: mock.result)
+            }
             group.leave()
         }
         group.wait()
         group.enter()
-        bar.put("string", 123, ["string in array"]) { result in
-            self.printResult(result)
+        bar.put(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let mock): self.writeToFile(string: mock.result)
+            }
             group.leave()
         }
         group.wait()
         group.enter()
-        bar.patch("string", 123, ["string in array"]) { result in
-            self.printResult(result)
+        bar.patch(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let mock): self.writeToFile(string: mock.result)
+            }
             group.leave()
         }
         group.wait()
         group.enter()
-        bar.delete("string", 123, ["string in array"]) { result in
-            self.printResult(result)
+        bar.delete(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let mock): self.writeToFile(string: mock.result)
+            }
             group.leave()
         }
         group.wait()
@@ -104,7 +127,10 @@ class Tests: XCTestCase {
         // General Tests
         group.enter()
         general.redirect() { result in
-            self.printResult(result)
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let mock): self.writeToFile(string: (mock as! [String: Any])["result"] as! String)
+            }
             group.leave()
         }
         group.wait()
@@ -113,47 +139,42 @@ class Tests: XCTestCase {
         let url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
         let buffer = ByteBuffer(data: try! Data(contentsOf: url))
         let file = File(name: "file.png", buffer: buffer)
-        general.upload("string", 123, ["string in array"], file) { result in
-            self.printResult(result)
+        general.upload(x: "string", y: 123, z: ["string in array"], file: file) { result in
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let mock): self.writeToFile(string: mock.result)
+            }
             group.leave()
         }
         group.wait()
 
         group.enter()
         general.error400() { result in
-            self.printResult(result)
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let error): self.writeToFile(string: error.message)
+            }
             group.leave()
         }
         group.wait()
         group.enter()
         general.error500() { result in
-            self.printResult(result)
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let error): self.writeToFile(string: error.message)
+            }
             group.leave()
         }
         group.wait()
         group.enter()
         general.error502() { result in
-            self.printResult(result)
+            switch result {
+            case .failure(let error): self.writeToFile(string: error.message)
+            case .success(let error): self.writeToFile(string: (error as! Error).message)
+            }
             group.leave()
         }
         group.wait()
-    }
-
-    private func printResult(_ result: Result<HTTPClient.Response, AppwriteError>) {
-        var output: String
-        switch result {
-        case .failure(let error): output = error.localizedDescription
-        case .success(var response):
-            let json = response.body!.readString(length: response.body!.readableBytes) ?? ""
-            do {
-                let responseObj: Response = try JSONDecoder().decode(Response.self, from: json.data(using: .utf8)!)
-                output = responseObj.result ?? responseObj.message ?? ""
-            } catch let error {
-                output = json
-            }
-
-        }
-        writeToFile(string: output)
     }
 
     private func writeToFile(string: String) {

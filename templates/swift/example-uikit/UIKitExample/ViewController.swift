@@ -20,10 +20,10 @@ class ViewController: UIViewController {
 
     let COLLECTION_ID = "6155742223662"
     
-    lazy var account = Account(client: client)
-    lazy var storage = Storage(client: client)
-    lazy var realtime = Realtime(client: client)
-    lazy var database = Database(client: client)
+    lazy var account = Account(client)
+    lazy var storage = Storage(client)
+    lazy var realtime = Realtime(client)
+    lazy var database = Database(client)
     
     var picker: ImagePicker?
     

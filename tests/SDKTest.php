@@ -103,7 +103,7 @@ class SDKTest extends TestCase
                 'cp tests/languages/swift-server/Tests.swift tests/sdks/swift-server/Tests/AppwriteTests/Tests.swift',
             ],
             'envs' => [
-                'swift-5.4' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-server swift:5.4 swift test  && cat result.txt && rm result.txt',
+                'swift-5.5' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-server swift:5.5 swift test && cat result.txt && rm result.txt',
             ],
             'supportException' => true,
         ],
@@ -115,7 +115,7 @@ class SDKTest extends TestCase
                 'cp tests/languages/swift-client/Tests.swift tests/sdks/swift-client/Tests/AppwriteTests/Tests.swift',
             ],
             'envs' => [
-                'swift-5.4' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-client swift:5.4 swift test  && cat result.txt && rm result.txt',
+                'swift-5.5' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-client swift:5.5 swift test && cat result.txt && rm result.txt',
             ],
             'supportException' => true,
             'supportRealtime' => true,
@@ -230,7 +230,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin', 'swift'];
+        $whitelist = ['swift-client'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
