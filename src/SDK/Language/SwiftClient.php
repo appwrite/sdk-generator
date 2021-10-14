@@ -126,6 +126,12 @@ class SwiftClient extends Swift {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/example-swiftui/Shared/Image/OSImage.swift',
+                'template'      => '/swift/example-swiftui/Shared/Image/OSImage.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/example-swiftui/Shared/ExampleApp.swift',
                 'template'      => '/swift/example-swiftui/Shared/ExampleApp.swift',
                 'minify'        => false,
