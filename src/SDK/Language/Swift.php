@@ -290,9 +290,9 @@ class Swift extends Language {
             case self::TYPE_BOOLEAN:
                 return 'Bool';
             case self::TYPE_ARRAY:
-                 return 'Array<Any>?';
+                 return '[Any]';
             case self::TYPE_OBJECT:
-                return 'Any?';
+                return 'Any';
         }
 
         return $type;
