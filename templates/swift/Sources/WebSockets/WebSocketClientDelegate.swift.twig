@@ -8,7 +8,7 @@ public protocol WebSocketClientDelegate : AnyObject {
     func onMessage(text: String) throws 
     func onMessage(data: Data) throws
     func onClose(channel: Channel, data: Data)
-    func onError(error: Error?, status: HTTPResponseStatus?) throws
+    func onError(error: Swift.Error?, status: HTTPResponseStatus?) throws
 }
 
 // Add empty default implementations
@@ -21,6 +21,6 @@ extension WebSocketClientDelegate {
     }
     public func onClose(channel: Channel, data: Data) {
     }
-    public func onError(error: Error?, status: HTTPResponseStatus?) throws {  
+    public func onError(error: Swift.Error?, status: HTTPResponseStatus?) throws {
     }
 }

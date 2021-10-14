@@ -79,7 +79,7 @@ extension HTTPHandler : ChannelInboundHandler, RemovableChannelHandler {
         }
     }
 
-    func errorCaught(context: ChannelHandlerContext, error: Error) {
+    func errorCaught(context: ChannelHandlerContext, error: Swift.Error) {
         if client.delegate != nil {
             try! client.delegate?.onError(error: error, status: nil)
         } else {

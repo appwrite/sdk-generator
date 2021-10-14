@@ -96,8 +96,8 @@ public class WebSocketClient {
         }
     }
     
-    private var _errorCallBack: (Error?, HTTPResponseStatus?) -> Void = { _,_ in }
-    var onError: (Error?, HTTPResponseStatus?) -> Void {
+    private var _errorCallBack: (Swift.Error?, HTTPResponseStatus?) -> Void = { _,_ in }
+    var onError: (Swift.Error?, HTTPResponseStatus?) -> Void {
         get {
             return locker.sync {
                 return _errorCallBack
@@ -148,7 +148,7 @@ public class WebSocketClient {
     ///
     /// - parameters:
     ///     - callback: Callback to fie when a WebSocket error occurs
-    public func onError(_ callback: @escaping (Error?, HTTPResponseStatus?) -> Void) {
+    public func onError(_ callback: @escaping (Swift.Error?, HTTPResponseStatus?) -> Void) {
         onError = callback
     }
     

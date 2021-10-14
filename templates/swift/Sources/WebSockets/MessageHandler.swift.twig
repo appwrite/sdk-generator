@@ -126,7 +126,7 @@ extension MessageHandler: ChannelInboundHandler, RemovableChannelHandler {
         }
     }
     
-    public func errorCaught(context: ChannelHandlerContext, error: Error) {
+    public func errorCaught(context: ChannelHandlerContext, error: Swift.Error) {
         if client.delegate != nil {
             try! client.delegate?.onError(error: error, status: nil)
         } else {

@@ -177,7 +177,7 @@ extension Realtime: WebSocketClientDelegate {
         }
     }
 
-    public func onError(error: Error?, status: HTTPResponseStatus?) {
+    public func onError(error: Swift.Error?, status: HTTPResponseStatus?) {
         print(error?.localizedDescription ?? "Unknown error")
     }
 

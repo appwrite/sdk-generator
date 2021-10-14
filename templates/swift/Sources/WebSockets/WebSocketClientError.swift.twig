@@ -1,5 +1,5 @@
 /// Error mapped HTTP codes
-enum WebSocketClientError: UInt, Error {
+enum WebSocketClientError: UInt, Swift.Error {
     case notFound = 404
     case badRequest = 400
 
