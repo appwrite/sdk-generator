@@ -328,6 +328,10 @@ open class Client {
                     case is ByteBuffer.Type:
                         completion(.success(response.body! as! T))
                     default:
+                        if response.body == nil {
+                            completion(.success(true as! T))
+                            return
+                        }
                         let dict = try! JSONSerialization
                             .jsonObject(with: response.body!) as? [String: Any]
 
