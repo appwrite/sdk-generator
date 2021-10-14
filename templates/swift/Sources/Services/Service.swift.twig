@@ -2,9 +2,9 @@
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
 import AsyncHTTPClient
-import AppwriteModels
 import Foundation
 import NIO
+import {{spec.title | caseUcfirst}}Models
 
 open class {{ service.name | caseUcfirst }}: Service {
 {% for method in service.methods %}
