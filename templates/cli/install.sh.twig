@@ -24,7 +24,7 @@
 {{ spec.title | upper }}_EXECUTABLE_FILEPATH="${{ spec.title | upper }}_INSTALL_DIR/${{ spec.title | upper }}_EXECUTABLE_NAME"
 
 # {{ spec.title | caseUcfirst }} CLI temp name 
-{{ spec.title | upper }}_TEMP_NAME=temp
+{{ spec.title | upper }}_TEMP_NAME=temp-$(date +%s)
 
 # {{ spec.title | caseUcfirst }} CLI image name
 {{ spec.title | upper }}_CLI_IMAGE_NAME={{ spec.title | lower }}/cli
