@@ -9,7 +9,7 @@ extension PackageInfo {
             ?? bundle.object(forInfoDictionaryKey: "CFBundleName") as? String
             ?? ""
         
-        let packageName = bundle.bundleIdentifier!
+        let packageName = bundle.bundleIdentifier ?? ""
         let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
         
