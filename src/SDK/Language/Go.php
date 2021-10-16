@@ -65,6 +65,12 @@ class Go extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'go.mod',
+                'template'      => 'go/go.mod.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'go/README.md.twig',
                 'minify'        => false,
@@ -83,13 +89,13 @@ class Go extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'client.go',
+                'destination'   => 'appwrite/client.go',
                 'template'      => 'go/client.go.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '{{service.name | caseDash}}.go',
+                'destination'   => 'appwrite/{{service.name | caseDash}}.go',
                 'template'      => 'go/services/service.go.twig',
                 'minify'        => false,
             ],

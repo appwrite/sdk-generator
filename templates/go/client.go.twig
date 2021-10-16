@@ -59,6 +59,11 @@ func (clt *Client) SetSelfSigned(status bool) {
 	clt.selfSigned = status
 }
 
+// Your API Key
+func (clt *Client) SetKey(value string) {
+	clt.AddHeader("X-Appwrite-Key", value)
+}
+
 // AddHeader add a new custom header that the Client should send on each request
 func (clt *Client) AddHeader(key string, value string) {
 	clt.headers[key] = value
@@ -103,7 +108,6 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		for key, val := range params {
 			frm.Add(key, toString(val))
 		}
-		reqBody = strings.NewReader(frm.Encode())
 	}
 
 	// Create and modify HTTP request before sending
