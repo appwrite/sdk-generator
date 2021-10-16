@@ -100,7 +100,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | Ruby       | 2.4+                | [Ruby Style Guide]     | GEM                | [@eldadfux]    |
 | Python     | 3.5+                | [PEP8]                 | PIP                | [@eldadfux]    |
 | Dart       | 2.7+                | [Effective Dart]       | pub                | [@lohanidamodar] |
-| Go         |                     | [Effective Go]         | go get             | [@panz3r]      |
+| Go         |                     | [Effective Go]         | go get             | [@panz3r] [@phaus]      |
 | .NET       | .NET core 3.1       | [C# Coding Conventions]| NuGet              | [@komemi] [@TorstenDittmann]     |
 | D          |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Kotlin     | 1.4.31+             | [Kotlin style guide]   | Gradle, Maven      | [@abnegate]    |
