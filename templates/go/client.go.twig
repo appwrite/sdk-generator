@@ -110,7 +110,6 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		for key, val := range params {
 			frm.Add(key, toString(val))
 		}
-		reqBody = strings.NewReader(frm.Encode())
 	}
 	file, err := os.Open(path)
 	if err != nil {
