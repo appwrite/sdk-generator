@@ -24,8 +24,8 @@
 
 To install using `go get`:
 
-```bash
-go get github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}
+```go
+go get github.com/appwrite/sdk-for-go
 ```
 
 ## Testing the SDK
@@ -36,51 +36,11 @@ go get github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}
 * Then inject these environment variables:
 
   ```bash
-  export YOUR_ENDPOINT=https://{{ sdk.gitUserName|url_encode }}.io/v1  
-  export YOUR_PROJECT_ID=6…8  
-  export YOUR_KEY="7055781…cd95"  
+  export APPWRITE_ENDPOINT=https://appwrite.io/v1  
+  export APPWRITE_PROJECT=6…8  
   export COLLECTION_ID=616a095b20180  
+  export APPWRITE_API_KEY="7055781…cd95"  
   ```
-
-Create `main.go` file with:
-
-```go
-package main
-
-import (
-	"log"
-	"os"
-	"time"
-
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/{{ sdk.gitRepoName|url_encode }}"
-)
-
-func main() {
-	client := {{ sdk.gitRepoName|url_encode }}.NewClient(10 * time.Second)
-	client.SetEndpoint(os.Getenv("YOUR_ENDPOINT"))
-	client.SetProject(os.Getenv("YOUR_PROJECT_ID"))
-	client.SetKey(os.Getenv("YOUR_KEY"))
-
-	db := {{ sdk.gitRepoName|url_encode }}.NewDatabase(client)
-	data := map[string]string{
-		"hello": "world",
-	}
-	var EmptyArray = []interface{}{}
-	doc, err := db.CreateDocument(
-		os.Getenv("COLLECTION_ID"),
-		data,
-		EmptyArray,
-		EmptyArray,
-		"",
-		"",
-		"",
-	)
-	if err != nil {
-		log.Printf("Error creating document: %v", err)
-	}
-	log.Printf("Created document: %v", doc)
-}
-```
 
 * After that, run the following
 

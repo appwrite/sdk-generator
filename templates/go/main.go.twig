@@ -5,41 +5,28 @@ import (
 	"os"
 	"time"
 
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/{{ sdk.gitUserName|url_encode }}"
-)
-
-const (
-	EmptyParentDocument     = ""
-	EmptyParentProperty     = ""
-	EmptyParentPropertyType = ""
-)
-
-const (
-	EmptyParentDocument     = ""
-	EmptyParentProperty     = ""
-	EmptyParentPropertyType = ""
+	"github.com/appwrite/sdk-for-go/appwrite"
 )
 
 func main() {
-	var EmptyArray = []interface{}{}
+	client := appwrite.NewClient(10 * time.Second)
+	client.SetEndpoint(os.Getenv("APPWRITE_ENDPOINT"))
+	client.SetProject(os.Getenv("APPWRITE_PROJECT"))
+	client.SetKey(os.Getenv("APPWRITE_API_KEY"))
 
-	client := {{ sdk.gitUserName|url_encode }}.NewClient(10 * time.Second)
-	client.SetEndpoint(os.Getenv("YOUR_ENDPOINT"))
-	client.SetProject(os.Getenv("YOUR_PROJECT_ID"))
-	client.SetKey(os.Getenv("YOUR_KEY"))
-
-	db := {{ sdk.gitUserName|url_encode }}.NewDatabase(client)
+	db := appwrite.NewDatabase(client)
 	data := map[string]string{
 		"hello": "world",
 	}
+	var EmptyArray = []interface{}{}
 	doc, err := db.CreateDocument(
 		os.Getenv("COLLECTION_ID"),
 		data,
 		EmptyArray,
 		EmptyArray,
-		EmptyParentDocument,
-		EmptyParentProperty,
-		EmptyParentPropertyType,
+		"",
+		"",
+		"",
 	)
 	if err != nil {
 		log.Printf("Error creating document: %v", err)

@@ -4,11 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
 	"io/ioutil"
-	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -20,80 +16,25 @@ import (
 	"time"
 )
 
-const (
-	fileNameKey = "file"
-)
-
-// {{ spec.title | caseUcfirst }}Error represents an error of a client request
-type {{ spec.title | caseUcfirst }}Error struct {
-	statusCode int
-	message    string
-}
-
-// ClientResponse - represents the client response
-type ClientResponse struct {
-	Status     string
-	StatusCode int
-	Header     http.Header
-	Result     string
-}
-
-func (ce *{{ spec.title | caseUcfirst }}Error) Error() string {
-	return ce.message
-}
-
-func (ce *{{ spec.title | caseUcfirst }}Error) GetMessage() string {
-	return ce.message
-}
-
-func (ce *{{ spec.title | caseUcfirst }}Error) GetStatusCode() int {
-	return ce.statusCode
-}
-
-// Client is the client struct to access {{ spec.title | caseUcfirst }}  services
+// Client is the client struct to access Appwrite services
 type Client struct {
 	client     *http.Client
 	headers    map[string]string
 	endpoint   string
-	timeout    time.Duration
 	selfSigned bool
 }
 
-// NewClient initializes a new {{ spec.title | caseUcfirst }} client with a given timeout
+// NewClient initializes a new Appwrite client with a given timeout
 func NewClient(timeout time.Duration) Client {
 	headers := map[string]string{
-{% for key,header in spec.global.defaultHeaders %}
-		"{{key}}" : "{{header}}",
-		"x-sdk-version": "{{ sdk.gitUserName|url_encode }}:go:{{sdk.version}}",
-{% endfor %}
+		"content-type": "application/json",
 	}
-	httpClient, err := getDefaultClient(timeout)
-	if err != nil { panic(err) }
-	return Client {
-		endpoint: "https://{{ sdk.gitUserName|url_encode }}.io/v1",
-		client: httpClient,
-		timeout: timeout,
 	return Client{
 		client: &http.Client{
 			Timeout: timeout,
 		},
 		headers: headers,
 	}
-}
-
-func (clt *Client) String() string {
-	return fmt.Sprintf("%s\n%s\n%v", clt.endpoint, clt.headers, clt.timeout)
-}
-
-func getDefaultClient(timeout time.Duration) (*http.Client, error) {
-	jar, err := cookiejar.New(nil)
-	if err != nil { 
-		return nil, err 
-	}
-	return &http.Client {
-		Jar: jar,
-		Timeout: timeout,
-	}, nil
 }
 
 // SetEndpoint sets the default endpoint to which the Client connects to
@@ -104,6 +45,11 @@ func (clt *Client) SetEndpoint(endpoint string) {
 // SetSelfSigned sets the condition that specify if the Client should allow connections to a server using a self-signed certificate
 func (clt *Client) SetSelfSigned(status bool) {
 	clt.selfSigned = status
+}
+
+// Your API Key
+func (clt *Client) SetKey(value string) {
+	clt.AddHeader("X-Appwrite-Key", value)
 }
 
 // AddHeader add a new custom header that the Client should send on each request
@@ -133,8 +79,25 @@ func (clt *Client) newfileUploadRequest(uri string, params map[string]interface{
 	if !ok {
 		return nil, os.ErrNotExist
 	}
-	if _, err := os.Stat(path); err != nil {
-		return nil, err
+
+	urlPath := clt.endpoint + path
+	isGet := strings.ToUpper(method) == "GET"
+	isJsonRequest := headers["content-type"] == "application/json"
+	var reqBody *strings.Reader
+	if !isGet {
+		if !isJsonRequest {
+			frm := url.Values{}
+			for key, val := range params {
+				frm.Add(key, ToString(val))
+			}
+			reqBody = strings.NewReader(frm.Encode())
+		} else {
+			json, err := json.Marshal(params)
+			if err != nil {
+				return nil, err
+			}
+			reqBody = strings.NewReader(string(json))
+		}
 	}
 	file, err := os.Open(path)
 	if err != nil {

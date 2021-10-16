@@ -77,60 +77,6 @@ class Go extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'appwrite/go.mod',
-                'template'      => 'go/appwrite/go.mod.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'go.mod',
-                'template'      => 'go/go.mod.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'appwrite/go.mod',
-                'template'      => 'go/appwrite/go.mod.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'go.mod',
-                'template'      => 'go/go.mod.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'appwrite/go.mod',
-                'template'      => 'go/appwrite/go.mod.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'go.mod',
-                'template'      => 'go/go.mod.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'appwrite/go.mod',
-                'template'      => 'go/appwrite/go.mod.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'go.mod',
-                'template'      => 'go/go.mod.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'appwrite/go.mod',
-                'template'      => 'go/appwrite/go.mod.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'go/README.md.twig',
                 'minify'        => false,
@@ -149,13 +95,19 @@ class Go extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseLower}}/client.go',
+                'destination'   => 'appwrite/client.go',
                 'template'      => 'go/client.go.twig',
                 'minify'        => false,
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'appwrite/utils.go',
+                'template'      => 'go/utils.go.twig',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'service',
-                'destination'   => '{{ spec.title | caseLower}}/{{service.name | caseDash}}.go',
+                'destination'   => 'appwrite/{{service.name | caseDash}}.go',
                 'template'      => 'go/services/service.go.twig',
                 'minify'        => false,
             ],
@@ -177,18 +129,25 @@ class Go extends Language {
         switch ($type) {
             case self::TYPE_INTEGER:
                 return 'int';
+                break;
             case self::TYPE_NUMBER:
                 return 'float64';
+                break;
             case self::TYPE_STRING:
                 return 'string';
+                break;
             case self::TYPE_FILE:
                 return 'string'; // '*os.File';
+                break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
+                break;
             case self::TYPE_OBJECT:
                 return 'interface{}';
+                break;
             case self::TYPE_ARRAY:
-                return '[]interface{}';
+                 return '[]interface{}';
+                break;
         }
 
         return $type;
