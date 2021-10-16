@@ -2,18 +2,32 @@ package {{ spec.title | caseLower }}
 
 import (
 	"encoding/json"
-  	"io/ioutil"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
-// Client is the client struct to access {{ spec.title }} services
+// Client is the client struct to access Appwrite services
 type Client struct {
 	client     *http.Client
-	endpoint   string
 	headers    map[string]string
+	endpoint   string
 	selfSigned bool
+}
+
+// NewClient initializes a new Appwrite client with a given timeout
+func NewClient(timeout time.Duration) Client {
+	headers := map[string]string{
+		"content-type": "application/json",
+	}
+	return Client{
+		client: &http.Client{
+			Timeout: timeout,
+		},
+		headers: headers,
+	}
 }
 
 // SetEndpoint sets the default endpoint to which the Client connects to
@@ -24,6 +38,11 @@ func (clt *Client) SetEndpoint(endpoint string) {
 // SetSelfSigned sets the condition that specify if the Client should allow connections to a server using a self-signed certificate
 func (clt *Client) SetSelfSigned(status bool) {
 	clt.selfSigned = status
+}
+
+// Your API Key
+func (clt *Client) SetKey(value string) {
+	clt.AddHeader("X-Appwrite-Key", value)
 }
 
 // AddHeader add a new custom header that the Client should send on each request
@@ -53,14 +72,22 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 
 	urlPath := clt.endpoint + path
 	isGet := strings.ToUpper(method) == "GET"
-
+	isJsonRequest := headers["content-type"] == "application/json"
 	var reqBody *strings.Reader
 	if !isGet {
-		frm := url.Values{}
-		for key, val := range params {
-			frm.Add(key, ToString(val))
+		if !isJsonRequest {
+			frm := url.Values{}
+			for key, val := range params {
+				frm.Add(key, ToString(val))
+			}
+			reqBody = strings.NewReader(frm.Encode())
+		} else {
+			json, err := json.Marshal(params)
+			if err != nil {
+				return nil, err
+			}
+			reqBody = strings.NewReader(string(json))
 		}
-		reqBody = strings.NewReader(frm.Encode())
 	}
 
 	// Create and modify HTTP request before sending

@@ -24,9 +24,28 @@
 
 To install using `go get`:
 
-```bash
-go get github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}
+```go
+go get github.com/appwrite/sdk-for-go
 ```
+
+## Testing the SDK
+
+* clone this repo.
+* create a project and within this project a collection.
+* configure the documents in the collection to have a _key_ = __hello__.
+* Then inject these environment variables:
+
+  ```bash
+  export APPWRITE_ENDPOINT=https://appwrite.io/v1  
+  export APPWRITE_PROJECT=6…8  
+  export COLLECTION_ID=616a095b20180  
+  export APPWRITE_API_KEY="7055781…cd95"  
+  ```
+
+* After that, run the following
+
+  > % go run main.go  
+  > 2021/10/16 03:41:17 Created document: map[$collection:616a095b20180 $id:616a2dbd4df16 $permissions:map[read:[] write:[]] hello:world]  
 
 {% if sdk.gettingStarted %}
 
