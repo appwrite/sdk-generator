@@ -265,7 +265,6 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 			rawQuery := q.Encode()
 			req.URL.RawQuery = rawQuery
 		}
-		reqBody = strings.NewReader(frm.Encode())
 	}
 
 	// Set Custom headers
