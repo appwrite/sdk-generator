@@ -18,11 +18,11 @@ type {{ service.name | caseUcfirst }} struct {
 }
 
 func New{{ service.name | caseUcfirst }}(clt Client) {{ service.name | caseUcfirst }} {  
-    service := {{ service.name | caseUcfirst }}{
+	service := {{ service.name | caseUcfirst }}{
 		client: clt,
 	}
 
-    return service
+	return service
 }
 {% for method in service.methods %}
 
@@ -45,6 +45,11 @@ func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({% 
 {% endfor %}
 	}
 
-	return srv.client.Call("{{ method.method | caseUpper }}", path, nil, params)
+	headers := map[string]interface{}{
+{% for key, header in method.headers %}
+		"{{ key }}": "{{ header }}",
+{% endfor %}
+	}
+	return srv.client.Call("{{ method.method | caseUpper }}", path, headers, params)
 }
 {% endfor %}
