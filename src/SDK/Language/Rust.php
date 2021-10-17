@@ -267,7 +267,6 @@ class Rust extends Language
                 'destination'   => 'src/services/{{service.name | caseDash}}.rs',
                 'template'      => '/rust/src/services/service.rs.twig',
                 'minify'        => false,
-            ],
             [
                 'scope'         => 'definition',
                 'destination'   => '/src/models/{{definition.name | caseSnake }}.rs',

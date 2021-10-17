@@ -174,9 +174,12 @@ class SDKTest extends TestCase
         ],
         'rust' => [
           'class' => 'Appwrite\SDK\Language\Rust',
-          'build' => [],
+          'build' => [
+            'mkdir -p tests/sdks/rust',
+            'cp -R tests/languages/rust/* tests/sdks/rust/tests',
+          ],
           'envs' => [
-              'rust-1.50' => 'docker run --rm -v "$(pwd):/app" -w /app/tests/sdks/rust rust:1.50 cargo run -q --example foo_test',
+              'rust-1.50' => 'docker run --rm -v "$(pwd):/app" -w /app/tests/sdks/rust/tests rust:1.50 cargo run',
           ],
           'supportRedirect' => true,
           'supportUpload' => true,
