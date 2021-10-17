@@ -175,7 +175,7 @@ class SDKTest extends TestCase
         'rust' => [
           'class' => 'Appwrite\SDK\Language\Rust',
           'build' => [
-            'mkdir -p tests/sdks/rust',
+            'mkdir -p tests/sdks/rust/tests',
             'cp -R tests/languages/rust/* tests/sdks/rust/tests',
           ],
           'envs' => [
