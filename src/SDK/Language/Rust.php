@@ -246,12 +246,6 @@ class Rust extends Language {
             ],
             [
               'scope'         => 'method',
-              'destination'   => 'examples/foo_test.rs',
-              'template'      => '/rust/examples/foo_test.rs.twig',
-              'minify'        => false,
-            ],
-            [
-              'scope'         => 'method',
               'destination'   => 'src/services/exception.rs',
               'template'      => '/rust/src/services/exception.rs.twig',
               'minify'        => false,
