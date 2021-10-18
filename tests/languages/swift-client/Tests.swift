@@ -11,7 +11,7 @@ class Tests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        self.writeToFile(string: "Test Started")
+        print( "Test Started")
     }
 
     override func tearDown() {
@@ -20,7 +20,6 @@ class Tests: XCTestCase {
 
     func test() throws {
         let group = DispatchGroup()
-
         let client = Client()
             .setEndpointRealtime("wss://demo.appwrite.io/v1")
             .setProject("console")
@@ -33,16 +32,19 @@ class Tests: XCTestCase {
         let realtime = Realtime(client)
         var realtimeResponse = "Realtime failed!"
 
+        let expectation = XCTestExpectation(description: "realtime server")    
         realtime.subscribe(channels: ["tests"]) { message in
             realtimeResponse = message.payload!["response"] as! String
+            expectation.fulfill()
         }
+        
 
         // Foo Tests
         group.enter()
         foo.get(x: "string", y: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let mock): self.writeToFile(string: mock.result)
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( mock.result)
             }
             group.leave()
         }
@@ -50,8 +52,8 @@ class Tests: XCTestCase {
         group.enter()
         foo.post(x: "string", y: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let mock): self.writeToFile(string: mock.result)
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( mock.result)
             }
             group.leave()
         }
@@ -59,8 +61,8 @@ class Tests: XCTestCase {
         group.enter()
         foo.put(x: "string", y: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let mock): self.writeToFile(string: mock.result)
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( mock.result)
             }
             group.leave()
         }
@@ -68,8 +70,8 @@ class Tests: XCTestCase {
         group.enter()
         foo.patch(x: "string", y: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let mock): self.writeToFile(string: mock.result)
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( mock.result)
             }
             group.leave()
         }
@@ -77,8 +79,8 @@ class Tests: XCTestCase {
         group.enter()
         foo.delete(x: "string", y: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let mock): self.writeToFile(string: mock.result)
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( mock.result)
             }
             group.leave()
         }
@@ -88,8 +90,8 @@ class Tests: XCTestCase {
         group.enter()
         bar.get(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let mock): self.writeToFile(string: mock.result)
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( mock.result)
             }
             group.leave()
         }
@@ -97,8 +99,8 @@ class Tests: XCTestCase {
         group.enter()
         bar.post(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let mock): self.writeToFile(string: mock.result)
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( mock.result)
             }
             group.leave()
         }
@@ -106,8 +108,8 @@ class Tests: XCTestCase {
         group.enter()
         bar.put(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let mock): self.writeToFile(string: mock.result)
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( mock.result)
             }
             group.leave()
         }
@@ -115,8 +117,8 @@ class Tests: XCTestCase {
         group.enter()
         bar.patch(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let mock): self.writeToFile(string: mock.result)
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( mock.result)
             }
             group.leave()
         }
@@ -124,8 +126,8 @@ class Tests: XCTestCase {
         group.enter()
         bar.delete(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let mock): self.writeToFile(string: mock.result)
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( mock.result)
             }
             group.leave()
         }
@@ -135,8 +137,8 @@ class Tests: XCTestCase {
         group.enter()
         general.redirect() { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let mock): self.writeToFile(string: (mock as! [String: Any])["result"] as! String)
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( (mock as! [String: Any])["result"] as! String)
             }
             group.leave()
         }
@@ -148,8 +150,8 @@ class Tests: XCTestCase {
         let file = File(name: "file.png", buffer: buffer)
         general.upload(x: "string", y: 123, z: ["string in array"], file: file) { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let mock): self.writeToFile(string: mock.result)
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( mock.result)
             }
             group.leave()
         }
@@ -158,8 +160,8 @@ class Tests: XCTestCase {
         group.enter()
         general.error400() { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let error): self.writeToFile(string: error.message)
+            case .failure(let error): print( error.message)
+            case .success(let error): print( error.message)
             }
             group.leave()
         }
@@ -167,8 +169,8 @@ class Tests: XCTestCase {
         group.enter()
         general.error500() { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let error): self.writeToFile(string: error.message)
+            case .failure(let error): print( error.message)
+            case .success(let error): print( error.message)
             }
             group.leave()
         }
@@ -176,48 +178,15 @@ class Tests: XCTestCase {
         group.enter()
         general.error502() { result in
             switch result {
-            case .failure(let error): self.writeToFile(string: error.message)
-            case .success(let error): self.writeToFile(string: (error as! Error).message)
+            case .failure(let error): print( error.message)
+            case .success(let error): print( (error as! Error).message)
             }
             group.leave()
         }
         group.wait()
 
-        self.writeToFile(string: realtimeResponse)
+        wait(for: [expectation], timeout: 10.0)
+        print( realtimeResponse)
     }
 
-    private func writeToFile(string: String) {
-        let url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../../result.txt")
-        try! string.appendLine(to: url)
-    }
-}
-
-struct Response: Decodable {
-    let result: String?
-    let message: String?
-}
-
-extension String {
-    func appendLine(to url: URL) throws {
-        try self.appending("\n").append(to: url)
-    }
-
-    func append(to url: URL) throws {
-        let data = self.data(using: .utf8)
-        try data?.append(to: url)
-    }
-}
-
-extension Data {
-    func append(to url: URL) throws {
-        if let fileHandle = try? FileHandle(forWritingTo: url) {
-            defer {
-                fileHandle.closeFile()
-            }
-            fileHandle.seekToEndOfFile()
-            fileHandle.write(self)
-        } else {
-            try write(to: url)
-        }
-    }
 }
