@@ -21,8 +21,8 @@ class SDKTest extends TestCase
             'build' => [
             ],
             'envs' => [
-                'php-7.0' => 'docker run --rm -v $(pwd):/app -w /app php:7.0-cli-alpine php tests/languages/php/test.php',
-                'php-8.0' => 'docker run --rm -v $(pwd):/app -w /app php:8.0.0rc1-cli-alpine php tests/languages/php/test.php',
+                'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli-alpine php tests/languages/php/test.php',
+                'php-8.0' => 'docker run --rm -v $(pwd):/app -w /app php:8.0-cli-alpine php tests/languages/php/test.php',
             ],
             'supportException' => true,
         ],
@@ -166,12 +166,12 @@ class SDKTest extends TestCase
         'node' => [
             'class' => 'Appwrite\SDK\Language\Node',
             'build' => [
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:12.12-alpine npm install',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:16-alpine npm install',
             ],
             'envs' => [
                 'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12-alpine node tests/languages/node/test.js',
                 'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14-alpine node tests/languages/node/test.js',
-                'nodejs-16' => 'docker run --rm -v $(pwd):/app -w /app node:14-alpine node tests/languages/node/test.js',
+                'nodejs-16' => 'docker run --rm -v $(pwd):/app -w /app node:16-alpine node tests/languages/node/test.js',
             ],
             'supportException' => true,
         ],
