@@ -83,7 +83,7 @@ $cli
         $cFile = new \CURLFile(${{ parameter.name | caseCamel | escapeKeyword }}, {% if method.packaging %} 'application/x-gzip' {% else %} 'image/png' {% endif %}, basename(${{ parameter.name | caseCamel | escapeKeyword }}));
         $params['{{ parameter.name }}'] = $cFile;
 {% else %}
-        $params['{{ parameter.name }}'] = {% if parameter.type == 'array' %}!is_array(${{ parameter.name | caseCamel | escapeKeyword }}) ? array(${{ parameter.name | caseCamel | escapeKeyword }}) : ${{ parameter.name | caseCamel | escapeKeyword }};{% elseif parameter.type == 'integer' %}(int)${{ parameter.name | caseCamel | escapeKeyword }};{% else %}${{ parameter.name | caseCamel | escapeKeyword }};{% endif %}
+        $params['{{ parameter.name }}'] = {% if parameter.type == 'array' %}!is_array(${{ parameter.name | caseCamel | escapeKeyword }}) ? array(${{ parameter.name | caseCamel | escapeKeyword }}) : ${{ parameter.name | caseCamel | escapeKeyword }};{% elseif parameter.type == 'integer' %}(int)${{ parameter.name | caseCamel | escapeKeyword }};{% elseif parameter.type == 'object' %}\json_decode(${{ parameter.name | caseCamel | escapeKeyword }});{% else %}${{ parameter.name | caseCamel | escapeKeyword }};{% endif %}
 
 {% endif %}
 {% endfor %}
