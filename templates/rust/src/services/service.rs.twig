@@ -2,6 +2,7 @@ use crate::client::{Client, ParamType};
 use std::collections::HashMap;
 use crate::services::{{spec.title | caseUcfirst}}Exception;
 use crate::models;
+use serde_json::json;
 
 #[derive(Clone)]
 pub struct {{ service.name | caseUcfirst }} {
@@ -19,7 +20,7 @@ impl {{ service.name | caseUcfirst }} {
 {% if method.description %}
 {{ method.description|dartComment }}
 {% endif %}
-    pub fn {{ method.name | caseSnake }}(&self{% if method.parameters.all|length >= 1 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword}}: {% if parameter.required != 1 %}Option<{% endif %}{{ parameter.type | typeName }}{% if parameter.required != 1%}>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) -> Result<{% if method.type == 'location' %}Vec<u8>{% elseif method.responseModel and method.responseModel != 'any' %}models::{{method.responseModel | caseUcfirst}}{% else %}bool{% endif %}, {{spec.title | caseUcfirst}}Exception> {
+    pub fn {{ method.name | caseSnake }}(&self{% if method.parameters.all|length >= 1 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword}}: {% if parameter.required != 1 %}Option<{% endif %}{{ parameter.type | typeName }}{% if parameter.required != 1%}>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) -> Result<{% if method.type == 'location' %}Vec<u8>{% elseif method.responseModel and method.responseModel != 'any' %}models::{{method.responseModel | caseUcfirst}}{% else %}serde_json::value::Value{% endif %}, {{spec.title | caseUcfirst}}Exception> {
         let path = "{{ method.path|replace({'{': '', '}': ""}) }}"{% for parameter in method.parameters.path %}.replace("{{ parameter.name | caseCamel }}", &{{ parameter.name | caseSnake }}){% endfor %};
 {% if method.headers %}
         let headers: HashMap<String, String> = [
@@ -91,7 +92,14 @@ impl {{ service.name | caseUcfirst }} {
 
         Ok(processedResponse)
 {% else %}
-        Ok(response.unwrap().status().is_success())
+        match response {
+            Ok(r) => {
+                Ok(serde_json::from_str(&r.text().unwrap()).unwrap())
+            }
+            Err(e) => {
+                Err(e)
+            }
+        }
 {% endif %}
 
     }

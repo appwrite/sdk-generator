@@ -2,6 +2,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use serde_json::value::Value;
+use std::fmt::Display;
 use super::*;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -55,6 +56,28 @@ pub struct {{ definition.name | caseUcfirst }} {
 {% if definition.additionalProperties %}
     pub data: HashMap<String, Value>,
 {% endif %}
+}
+
+impl Display for {{ definition.name | caseUcfirst }} {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut formatBuffer = String::new();
+{% for property in definition.properties %}
+{% if property.type != 'array' %}
+        formatBuffer.push_str(&format!("{}", self.{{ property.name | escapeKeyword | removeDollarSign }}));
+{% else %}
+        for item in &self.{{ property.name | escapeKeyword | removeDollarSign }} {
+            formatBuffer.push_str(&format!("{}", item));
+        }
+{% endif %}
+{% endfor %}
+{% if definition.additionalProperties %}
+        for (key, value) in &self.data {
+            formatBuffer.push_str(&format!("{}", value));
+        }
+{% endif %}
+
+        write!(f, "{}", formatBuffer)
+    }
 }
 
 impl {{ definition.name | caseUcfirst }} {
