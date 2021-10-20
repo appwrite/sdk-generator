@@ -1,13 +1,7 @@
-module github.com/appwrite/sdk-generator/tests/languages/go
+module github.com/appwrite/sdk-generator/tree/master/tests/go
 
 go 1.12
 
-replace github.com/appwrite/sdk-for-go/appwrite => ../../../tests/sdks/go/appwrite
+require github.com/appwrite/sdk-for-go v0.0.0
 
 replace github.com/appwrite/sdk-for-go => ../../../examples/go
-replace github.com/appwrite/sdk-generator/tests/languages/go/utils => ./utils
-
-require (
-	github.com/appwrite/sdk-for-go/appwrite v0.0.0-00010101000000-000000000000 // indirect
-	github.com/appwrite/sdk-generator/tests/languages/go/utils v0.0.0-00010101000000-000000000000 // indirect
-)

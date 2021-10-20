@@ -25,12 +25,25 @@ func NewClient(timeout time.Duration) Client {
 	headers := map[string]string{
 		"content-type": "application/json",
 	}
-	return Client{
-		client: &http.Client{
-			Timeout: timeout,
-		},
+	httpClient, err := getDefaultClient(timeout)
+	if err != nil { panic(err) }
+	return Client {
+		endpoint: "https://appwrite.io/v1",
+		client: httpClient,
+		timeout: timeout,
 		headers: headers,
 	}
+}
+
+func getDefaultClient(timeout time.Duration) (*http.Client, error) {
+	jar, err := cookiejar.New(nil)
+	if err != nil { 
+		return nil, err 
+	}
+	return &http.Client {
+		Jar: jar,
+		Timeout: timeout,
+	}, nil
 }
 
 // SetEndpoint sets the default endpoint to which the Client connects to
@@ -80,19 +93,19 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 	isJsonRequest := headers["content-type"] == "application/json"
 	var reqBody *strings.Reader
 	if !isGet {
-		if !isJsonRequest {
-			frm := url.Values{}
-			for key, val := range params {
-				frm.Add(key, ToString(val))
-			}
-			reqBody = strings.NewReader(frm.Encode())
-		} else {
+		if isJsonRequest {
 			json, err := json.Marshal(params)
 			if err != nil {
 				return nil, err
 			}
 			reqBody = strings.NewReader(string(json))
 		}
+	} else {
+		frm := url.Values{}
+		for key, val := range params {
+			frm.Add(key, ToString(val))
+		}
+		reqBody = strings.NewReader(frm.Encode())
 	}
 
 	// Create and modify HTTP request before sending

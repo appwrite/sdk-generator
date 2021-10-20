@@ -1,18 +1,17 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"time"
+
 	"github.com/appwrite/sdk-generator/tree/master/tests/go/utils"
-	"github.com/appwrite/sdk-generator/tests/languages/go/utils
+
 	"github.com/appwrite/sdk-for-go/appwrite"
 )
 
 func main() {
 
-	fmt.Printf("\nTest Started\n")
 	// endpoint := os.Getenv("APPWRITE_ENDPOINT")
 	// project := os.Getenv("APPWRITE_PROJECT")
 	// key := os.Getenv("APPWRITE_API_KEY")
