@@ -208,8 +208,8 @@ class SDKTest extends TestCase
             'build' => [
             ],
             'envs' => [
-                'go1.12' => 'docker run --rm -v $(pwd):/app -w /app golang:1.12 go run tests/languages/go/tests.go',
-                'go1.17' => 'docker run --rm -v $(pwd):/app -w /app golang:1.17 go run tests/languages/go/tests.go',
+                'go1.12' => 'docker run --rm -v $(pwd):/app -w /app golang:1.12 sh tests/languages/go/test.sh',
+                'go1.17' => 'docker run --rm -v $(pwd):/app -w /app golang:1.17 sh tests/languages/go/test.sh',
             ],
             'supportException' => false,
         ],
