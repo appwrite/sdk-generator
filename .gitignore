@@ -6,6 +6,9 @@
 .vs
 .env
 
+# exclude direnv settings
+.envrc
+
 # exclude everything
 examples/*
 
