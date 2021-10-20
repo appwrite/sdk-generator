@@ -20,6 +20,7 @@ tests/tmp
 # exception to the rule
 !examples/.gitkeep 
 
+**/.DS_Store
 templates/swift/example/.build
 templates/swift/example/Example.xcodeproj/project.xcworkspace/xcuserdata
 templates/swift/example/Example.xcodeproj/xcuserdata
