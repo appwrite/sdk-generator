@@ -9,6 +9,9 @@
 .envrc
 .hatch
 
+# exclude direnv settings
+.envrc
+
 # exclude everything
 examples/*
 tests/tmp

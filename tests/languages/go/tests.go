@@ -1,137 +1,124 @@
 package main
 
 import (
-	"fmt"
-	"path"
+	"log"
+	"os"
 	"time"
 
-	"github.com/repoowner/sdk-for-go/appwrite"
+	"github.com/appwrite/sdk-generator/tree/master/tests/go/utils"
+
+	"github.com/appwrite/sdk-for-go/appwrite"
 )
 
 func main() {
-	stringInArray := []interface{}{"string in array"}
+
+	// endpoint := os.Getenv("APPWRITE_ENDPOINT")
+	// project := os.Getenv("APPWRITE_PROJECT")
+	// key := os.Getenv("APPWRITE_API_KEY")
+	// client := appwrite.NewClient(10 * time.Second)
+	// client.SetEndpoint(endpoint)
+	// client.SetProject(project)
+	// client.SetKey(key)
 
 	client := appwrite.NewClient(10 * time.Second)
-	client.SetEndpoint("https://appwrite.io/v1")
-	client.AddHeader("Origin", "http://localhost")
-	fmt.Print("\n\nTest Started\n")
-	testFooService(client, stringInArray)
-	testBarService(client, stringInArray)
-	testGeneralService(client, stringInArray)
+	client.SetLocale("en-US")
+
+	publicClient := appwrite.NewClient(10 * time.Second)
+	publicClient.SetLocale("en-US")
+
+	testCreateDocument(client)
+	testAccount(publicClient)
 }
 
-func testFooService(client appwrite.Client, stringInArray []interface{}) {
-	foo := appwrite.NewFoo(client)
-	// Foo Service
-	response, err := foo.Get("string", 123, stringInArray)
-	if err != nil {
-		fmt.Printf("foo.Get => error %v", err)
-	}
-	fmt.Printf("%s\n", response.Result)
+var EmptyArray = []interface{}{}
+var EmptyString = ""
 
-	response, err = foo.Post("string", 123, stringInArray)
-	if err != nil {
-		fmt.Printf("foo.Post => error %v", err)
+func testCreateDocument(client appwrite.Client) {
+	db := appwrite.NewDatabase(client)
+	data := map[string]string{
+		"hello": "world",
 	}
-	fmt.Printf("%s\n", response.Result)
-
-	response, err = foo.Put("string", 123, stringInArray)
+	doc, err := db.CreateDocument(
+		os.Getenv("COLLECTION_ID"),
+		data,
+		EmptyArray,
+		EmptyArray,
+		EmptyString,
+		EmptyString,
+		EmptyString,
+	)
 	if err != nil {
-		fmt.Printf("foo.Put => error %v", err)
+		log.Printf("Error creating document: %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
-
-	response, err = foo.Patch("string", 123, stringInArray)
-	if err != nil {
-		fmt.Printf("foo.Patch => error %v", err)
-	}
-	fmt.Printf("%s\n", response.Result)
-
-	response, err = foo.Delete("string", 123, stringInArray)
-	if err != nil {
-		fmt.Printf("foo.Delete => error %v", err)
-	}
-	fmt.Printf("%s\n", response.Result)
+	log.Printf("Created document: %v", doc)
 }
 
-func testBarService(client appwrite.Client, stringInArray []interface{}) {
-	bar := appwrite.NewBar(client)
-	// Bar Service
-	response, err := bar.Get("string", 123, stringInArray)
-	if err != nil {
-		fmt.Printf("bar.Get => error %v", err)
-	}
-	fmt.Printf("%s\n", response.Result)
-
-	response, err = bar.Post("string", 123, stringInArray)
-	if err != nil {
-		fmt.Printf("bar.Post => error %v", err)
-	}
-	fmt.Printf("%s\n", response.Result)
-
-	response, err = bar.Put("string", 123, stringInArray)
-	if err != nil {
-		fmt.Printf("bar.Put => error %v", err)
-	}
-	fmt.Printf("%s\n", response.Result)
-
-	response, err = bar.Patch("string", 123, stringInArray)
-	if err != nil {
-		fmt.Printf("bar.Patch => error %v", err)
-	}
-	fmt.Printf("%s\n", response.Result)
-
-	response, err = bar.Delete("string", 123, stringInArray)
-	if err != nil {
-		fmt.Printf("bar.Delete => error %v", err)
-	}
-	fmt.Printf("%s\n", response.Result)
+func testAccount(client appwrite.Client) {
+	userId := utils.StringWithCharset(12)
+	username := "user" + userId
+	password := "pass" + userId
+	email := username + "@example.com"
+	testCreateAccount(client, email, password, username)
+	testAccountSession(client, email, password)
+	testAccountPrefs(client)
+	testDeleteAccount(client)
 }
 
-func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
-	general := appwrite.NewGeneral(client)
-	// General Service
-	response, err := general.Redirect()
+func testCreateAccount(client appwrite.Client, email, password, username string) {
+	account := appwrite.NewAccount(client)
+	result, err := account.Create(email, password, username)
 	if err != nil {
-		fmt.Printf("general.Redirect => error %v", err)
+		log.Printf("Error creating account: %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
-
-	testGeneralUpload(client, stringInArray)
-	testGeneralDownload(client)
-
-	response, err = general.Error400()
-	if err != nil {
-		fmt.Printf("%s\n", err.Error())
-	}
-
-	response, err = general.Error500()
-	if err != nil {
-		fmt.Printf("%s\n", err.Error())
-	}
-
-	response, err = general.Error502()
-	if err != nil {
-		fmt.Printf("%s\n", err.Error())
-	}
+	log.Printf("Created account: %v", result)
 }
 
-func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {
-	general := appwrite.NewGeneral(client)
-	uploadFile := path.Join("/app", "tests/resources/file.png")
-
-	response, err := general.Upload("string", 123, stringInArray, uploadFile)
+func testDeleteAccount(client appwrite.Client) {
+	account := appwrite.NewAccount(client)
+	result, err := account.Delete()
 	if err != nil {
-		fmt.Errorf("general.Upload => error %v", err)
+		log.Printf("Error deleting account: %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
+	log.Printf("Deleting account: %v", result)
+}
+func testAccountSession(client appwrite.Client, email string, password string) {
+	var result map[string]interface{}
+	var err error
+	account := appwrite.NewAccount(client)
+	result, err = account.CreateSession(email, password)
+	if err != nil {
+		log.Printf("Error creating account session: %v", err)
+	}
+	log.Printf("Created account session: %v", result)
+	result, err = account.GetSessions()
+	if err != nil {
+		log.Printf("Error getting account sessions: %v", err)
+	}
+	log.Printf("Getting account sessions: %v", result)
 }
 
-func testGeneralDownload(client appwrite.Client) {
-	general := appwrite.NewGeneral(client)
-	response, err := general.Download()
-	if err != nil {
-		fmt.Errorf("general.Download => error %v", err)
+func testAccountPrefs(client appwrite.Client) {
+	var result map[string]interface{}
+	var err error
+	newPrefs := map[string]string{
+		"foo": "bar",
 	}
-	fmt.Printf("%s\n", response.Result)
+	account := appwrite.NewAccount(client)
+	result, err = account.GetPrefs()
+	if err != nil {
+		log.Printf("Error getting account prefs: %v", err)
+	}
+	log.Printf("Getting account prefs: %v", result)
+
+	result, err = account.UpdatePrefs(newPrefs)
+	if err != nil {
+		log.Printf("Error updating account prefs: %v", err)
+	}
+	log.Printf("Updating account prefs: %v", result)
+
+	result, err = account.GetPrefs()
+	if err != nil {
+		log.Printf("Error getting account prefs: %v", err)
+	}
+	log.Printf("Getting account prefs: %v", result)
 }

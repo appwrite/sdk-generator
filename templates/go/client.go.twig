@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
+	"crypto/tls"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -21,6 +22,7 @@ type Client struct {
 	client     *http.Client
 	headers    map[string]string
 	endpoint   string
+	timeout    time.Duration
 	selfSigned bool
 }
 
@@ -29,12 +31,25 @@ func NewClient(timeout time.Duration) Client {
 	headers := map[string]string{
 		"content-type": "application/json",
 	}
-	return Client{
-		client: &http.Client{
-			Timeout: timeout,
-		},
+	httpClient, err := getDefaultClient(timeout)
+	if err != nil { panic(err) }
+	return Client {
+		endpoint: "https://appwrite.io/v1",
+		client: httpClient,
+		timeout: timeout,
 		headers: headers,
 	}
+}
+
+func getDefaultClient(timeout time.Duration) (*http.Client, error) {
+	jar, err := cookiejar.New(nil)
+	if err != nil { 
+		return nil, err 
+	}
+	return &http.Client {
+		Jar: jar,
+		Timeout: timeout,
+	}, nil
 }
 
 // SetEndpoint sets the default endpoint to which the Client connects to
@@ -66,18 +81,19 @@ func (clt *Client) Set{{header.key | caseUcfirst}}(value string) {
 }
 {% endfor %}
 
-func isFileUpload(headers map[string]interface{}) bool {
-	contentType, ok := headers["content-type"].(string)
-	if ok {
-		return strings.Contains(strings.ToLower(contentType), "multipart/form-data")
+// Call an API using Client
+func (clt *Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (map[string]interface{}, error) {
+	if clt.client == nil {
+		// Create HTTP client
+		httpClient, err := getDefaultClient(clt.timeout)
+		if err != nil { panic(err) }
+		clt.client = httpClient
 	}
 	return false
 }
 
-func (clt *Client) newfileUploadRequest(uri string, params map[string]interface{}, paramName string) (*http.Request, error) {
-	path, ok := params[paramName].(string)
-	if !ok {
-		return nil, os.ErrNotExist
+	if clt.selfSigned {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
 	urlPath := clt.endpoint + path
@@ -85,19 +101,19 @@ func (clt *Client) newfileUploadRequest(uri string, params map[string]interface{
 	isJsonRequest := headers["content-type"] == "application/json"
 	var reqBody *strings.Reader
 	if !isGet {
-		if !isJsonRequest {
-			frm := url.Values{}
-			for key, val := range params {
-				frm.Add(key, ToString(val))
-			}
-			reqBody = strings.NewReader(frm.Encode())
-		} else {
+		if isJsonRequest {
 			json, err := json.Marshal(params)
 			if err != nil {
 				return nil, err
 			}
 			reqBody = strings.NewReader(string(json))
 		}
+	} else {
+		frm := url.Values{}
+		for key, val := range params {
+			frm.Add(key, ToString(val))
+		}
+		reqBody = strings.NewReader(frm.Encode())
 	}
 	file, err := os.Open(path)
 	if err != nil {
@@ -248,47 +264,9 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		return nil, err
 	}
 
-	var isJson = strings.HasPrefix(resp.Header.Get("content-type"), "application/json")
-	if isJson {
-		var jsonResponse map[string]interface{}
-		json.Unmarshal(responseData, &jsonResponse)
-		if resp.StatusCode < 200 || resp.StatusCode > 399 {
-			message, ok := jsonResponse["message"].(string)
-			if !ok {
-				message = "N/A"
-			}
-			return nil, &{{ spec.title | caseUcfirst }}Error{
-				statusCode: resp.StatusCode,
-				message:    message,
-			}
-		}
-		output,  ok := jsonResponse["result"].(string)
-		if !ok {
-			return nil, fmt.Errorf("invalid response type %v", jsonResponse)
-		}
-		return &ClientResponse{
-			Status:     resp.Status,
-			StatusCode: resp.StatusCode,
-			Header:     resp.Header,
-			Result:     string(output),
-		}, nil
-	}
-	output, err := getOutput(params, fileNameKey, responseData, resp.Header.Get("content-type"))
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode > 399 {
-		return nil, &{{ spec.title | caseUcfirst }}Error{
-			statusCode: resp.StatusCode,
-			message:    output,
-		}
-	}
-	return &ClientResponse{
-		Status:     resp.Status,
-		StatusCode: resp.StatusCode,
-		Header:     resp.Header,
-		Result:     output,
-	}, nil
+	var jsonResponse map[string]interface{}
+	json.Unmarshal(responseData, &jsonResponse)
+	return jsonResponse, nil
 }
 
 func getOutput(params map[string]interface{}, paramName string, responseData []byte, contentType string) (string, error) {
