@@ -5,12 +5,9 @@ import (
 	"time"
 )
 
-<<<<<<< HEAD
-=======
 // CtxKey - a context Key
 type CtxKey int
 
->>>>>>> e4c5048c (Adding Test and bug fixes in Client Template)
 const (
 	charset = "abcdefghijklmnopqrstuvwxyz" +
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
