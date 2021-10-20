@@ -5,9 +5,6 @@ import (
 	"time"
 )
 
-// CtxKey - a context Key
-type CtxKey int
-
 const (
 	charset = "abcdefghijklmnopqrstuvwxyz" +
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
