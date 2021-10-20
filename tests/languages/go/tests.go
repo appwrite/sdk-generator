@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"path"
 	"time"
 
@@ -9,7 +10,8 @@ import (
 )
 
 func main() {
-	stringInArray := []interface{}{"string in array"}
+
+	fmt.Printf("\nTest Started\n")
 
 	client := appwrite.NewClient(10 * time.Second)
 	client.SetEndpoint("https://appwrite.io/v1")
