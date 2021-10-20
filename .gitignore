@@ -14,6 +14,7 @@ examples/*
 
 # exception to the rule
 !examples/.gitkeep 
+<<<<<<< HEAD
 **/.DS_Store
 templates/swift/example/.build
 templates/swift/example/Example.xcodeproj/project.xcworkspace/xcuserdata
@@ -21,3 +22,10 @@ templates/swift/example/Example.xcodeproj/xcuserdata
 **/xcuserdata
 # exclude go checksum files
 go.sum
+=======
+.DS_Store
+
+
+# exclude go checksum files
+tests/languages/go/go.sum
+>>>>>>> b50a092e (fixing test cases)
