@@ -16,7 +16,8 @@
 examples/*
 
 # exception to the rule
-!examples/.gitkeep
+!examples/.gitkeep 
+
 **/.DS_Store
 templates/swift/example/.build
 templates/swift/example/Example.xcodeproj/project.xcworkspace/xcuserdata
