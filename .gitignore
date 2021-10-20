@@ -15,3 +15,7 @@ examples/*
 # exception to the rule
 !examples/.gitkeep 
 .DS_Store
+
+
+# exclude go checksum files
+tests/languages/go/go.sum
