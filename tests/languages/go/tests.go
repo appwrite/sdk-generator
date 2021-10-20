@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/appwrite/sdk-generator/tree/master/tests/go/utils"
+	"github.com/appwrite/sdk-generator/tests/languages/go/utils"
 
 	"github.com/appwrite/sdk-for-go/appwrite"
 )
