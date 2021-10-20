@@ -1,19 +1,36 @@
 package main
 
 import (
+<<<<<<< HEAD
 	"fmt"
+=======
+>>>>>>> e4c5048c (Adding Test and bug fixes in Client Template)
 	"log"
 	"os"
 	"time"
 
+<<<<<<< HEAD
 	"github.com/appwrite/sdk-generator/tests/languages/go/utils"
+=======
+	"github.com/appwrite/sdk-generator/tree/master/tests/go/utils"
+>>>>>>> e4c5048c (Adding Test and bug fixes in Client Template)
 
 	"github.com/appwrite/sdk-for-go/appwrite"
 )
 
 func main() {
 
+<<<<<<< HEAD
 	fmt.Printf("\nTest Started\n")
+=======
+	// endpoint := os.Getenv("APPWRITE_ENDPOINT")
+	// project := os.Getenv("APPWRITE_PROJECT")
+	// key := os.Getenv("APPWRITE_API_KEY")
+	// client := appwrite.NewClient(10 * time.Second)
+	// client.SetEndpoint(endpoint)
+	// client.SetProject(project)
+	// client.SetKey(key)
+>>>>>>> e4c5048c (Adding Test and bug fixes in Client Template)
 
 	client := appwrite.NewClient(10 * time.Second)
 	client.SetLocale("en-US")

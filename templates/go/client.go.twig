@@ -29,9 +29,6 @@ func NewClient(timeout time.Duration) Client {
 	if err != nil { panic(err) }
 	return Client {
 		endpoint: "https://appwrite.io/v1",
-		client: httpClient,
-		timeout: timeout,
-	return Client{
 		client: &http.Client{
 			Timeout: timeout,
 		},
@@ -97,13 +94,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 	isJsonRequest := headers["content-type"] == "application/json"
 	var reqBody *strings.Reader
 	if !isGet {
-		if !isJsonRequest {
-			frm := url.Values{}
-			for key, val := range params {
-				frm.Add(key, ToString(val))
-			}
-			reqBody = strings.NewReader(frm.Encode())
-		} else {
+		if isJsonRequest {
 			json, err := json.Marshal(params)
 			if err != nil {
 				return nil, err
@@ -115,6 +106,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		for key, val := range params {
 			frm.Add(key, ToString(val))
 		}
+		reqBody = strings.NewReader(frm.Encode())
 	}
 
 	// Create and modify HTTP request before sending

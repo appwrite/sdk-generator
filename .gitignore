@@ -12,6 +12,9 @@
 # exclude direnv settings
 .envrc
 
+# exclude direnv settings
+.envrc
+
 # exclude everything
 examples/*
 
