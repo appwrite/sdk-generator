@@ -51,6 +51,7 @@ extension HTTPHandler : ChannelInboundHandler, RemovableChannelHandler {
         headers.add(name: "Content-Type", value: "text/plain")
         headers.add(name: "Content-Length", value: "\(1)")
         headers.add(contentsOf: self.headers)
+        headers.addDomainCookies(for: client.host)
         let requestHead = HTTPRequestHead(
             version: .http1_1,
             method: .GET,

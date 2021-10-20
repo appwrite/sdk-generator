@@ -1,14 +1,22 @@
 import AsyncHTTPClient
 import Foundation
+import NIO
+import NIOHTTP1
 
 extension HTTPClient.Request {
     public mutating func addDomainCookies() {
-        let cookieJson = UserDefaults.standard.string(forKey: "\(url.host!)-cookies")
+        headers.addDomainCookies(for: url.host!)
+    }
+}
+
+extension HTTPHeaders {
+    public mutating func addDomainCookies(for domain: String) {
+        let cookieJson = UserDefaults.standard.string(forKey: "\(domain)-cookies")
         let cookies: [HTTPClient.Cookie?]? = try? cookieJson?.fromJson(to: [HTTPClient.Cookie].self)
             ?? [(try? cookieJson?.fromJson(to: HTTPClient.Cookie.self))]
 
         if let authCookie = cookies?.first(where: { $0?.name.starts(with: "a_session_") == true } ) {
-            headers.add(name: "cookie", value: "\(authCookie!.name)=\(authCookie!.value)")
+            add(name: "cookie", value: "\(authCookie!.name)=\(authCookie!.value)")
         }
     }
 }
