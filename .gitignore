@@ -8,6 +8,10 @@
 .env
 .envrc
 .hatch
+
+# exclude direnv settings
+.envrc
+
 # exclude everything
 examples/*
 
