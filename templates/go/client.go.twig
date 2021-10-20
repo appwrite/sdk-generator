@@ -105,6 +105,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		for key, val := range params {
 			frm.Add(key, ToString(val))
 		}
+		reqBody = strings.NewReader(frm.Encode())
 	}
 
 	// Create and modify HTTP request before sending
