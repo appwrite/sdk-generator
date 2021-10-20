@@ -2,7 +2,7 @@ module github.com/appwrite/sdk-generator/tests/languages/go
 
 go 1.12
 
-replace github.com/appwrite/sdk-for-go/appwrite => ../../../examples/go/appwrite
+replace github.com/appwrite/sdk-for-go/appwrite => ../../../tests/sdks/go/appwrite
 
 replace github.com/appwrite/sdk-for-go => ../../../examples/go
 replace github.com/appwrite/sdk-generator/tests/languages/go/utils => ./utils
