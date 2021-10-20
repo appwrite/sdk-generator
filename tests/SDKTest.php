@@ -202,6 +202,17 @@ class SDKTest extends TestCase
             ],
             'supportException' => true,
         ],
+
+        'go' => [
+            'class' => 'Appwrite\SDK\Language\Go',
+            'build' => [
+            ],
+            'envs' => [
+                'go1.12' => 'docker run --rm -v $(pwd):/app -w /app golang:1.12 go run tests/languages/go/tests.go',
+                'go1.17' => 'docker run --rm -v $(pwd):/app -w /app golang:1.17 go run tests/languages/go/tests.go',
+            ],
+            'supportException' => false,
+        ],
     ];
 
     public function setUp()
