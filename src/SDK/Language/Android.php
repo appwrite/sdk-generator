@@ -359,6 +359,12 @@ class Android extends Kotlin {
                 'template'      => '/android/example-java/.gitignore',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'definition',
+                'destination'   => 'library/src/main/java/io/appwrite/models/{{ definition.name | caseUcfirst }}.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/Model.kt.twig',
+                'minify'        => false,
+            ],
         ];
     }
 }
