@@ -1,5 +1,3 @@
-package {{ sdk.namespace | caseDot }}.services
-
 {% macro parameter(parameter) %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{% if not parameter.required %}? = null{% endif %}{% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% endif %}
@@ -7,8 +5,14 @@ package {{ sdk.namespace | caseDot }}.services
 {% macro methodNeedsSecurityParameters(method) %}
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
+{% macro resultType(namespace, method) %}
+{% if method.type == "webAuth" %}Bool{% elseif method.type == "location" %}ByteArray{% elseif not method.responseModel or method.responseModel == 'any' %}Any{% else %}{{ namespace | caseDot}}.models.{{method.responseModel | caseUcfirst}}{% endif %}
+{% endmacro %}
+package {{ sdk.namespace | caseDot }}.services
+
 import android.net.Uri
 import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.models.*
 {% if service.features.webAuth %}
 import {{ sdk.namespace | caseDot }}.WebAuthComponent
 import androidx.activity.ComponentActivity
@@ -40,7 +44,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
      */
     @JvmOverloads
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ _self.method_parameters(method.parameters) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: Response{% endif %} {
+    suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ _self.method_parameters(method.parameters) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: {{ _self.resultType(sdk.namespace, method) }}{% endif %} {
         val path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %}
 
         val params = mapOf<String, Any?>(
@@ -55,7 +59,6 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 
 {% endfor %}{% endfor %}{% endif %}
         )
-
 {% if method.type == 'webAuth' %}
         val query = mutableListOf<String>()
         params.forEach {
@@ -99,15 +102,36 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
                 listOf(cookie)
             )
         }
-
 {% elseif method.type == 'location' %}
-        return client.call("{{ method.method | caseUpper }}", path, params = params)
+        return client.call(
+            "{{ method.method | caseUpper }}",
+            path,
+            params = params,
+            responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java
+        )
 {% else %}
         val headers = mapOf(
 {{ method.headers|map((header, key) => "            \"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
         )
-
-        return client.call("{{ method.method | caseUpper }}", path, headers, params)
+{% if method.responseModel %}
+        val convert: (Map<String, Any>) -> {{ _self.resultType(sdk.namespace, method) }} = {
+{% if method.responseModel == 'any' %}
+            it
+{% else %}
+            {{ _self.resultType(sdk.namespace, method) }}.from(map = it)
+{% endif %}
+        }
+{% endif %}
+        return client.call(
+            "{{ method.method | caseUpper }}",
+            path,
+            headers,
+            params,
+            responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java,
+{% if method.responseModel %}
+            convert = convert
+{% endif %}
+        )
 {% endif %}
     }
     

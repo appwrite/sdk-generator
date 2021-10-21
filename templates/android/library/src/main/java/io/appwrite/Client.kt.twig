@@ -17,6 +17,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.BufferedInputStream
 import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
@@ -43,6 +44,8 @@ class Client @JvmOverloads constructor(
         get() = Dispatchers.Main + job
 
     private val job = Job()
+
+    private val gson = Gson()
 
     lateinit var http: OkHttpClient
 
@@ -203,13 +206,14 @@ class Client @JvmOverloads constructor(
      * @return [Response]    
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    suspend fun call(
+    suspend fun <T> call(
         method: String, 
         path: String, 
         headers:  Map<String, String> = mapOf(), 
-        params: Map<String, Any?> = mapOf()
-    ): Response {
-
+        params: Map<String, Any?> = mapOf(),
+        responseType: Class<T>,
+        convert: ((Map<String, Any,>) -> T)? = null
+    ): T {
         val filteredParams = params.filterValues { it != null }
 
         val requestHeaders = this.headers.toHeaders().newBuilder()
@@ -244,7 +248,7 @@ class Client @JvmOverloads constructor(
                 .get()
                 .build()
 
-            return awaitResponse(request)
+            return awaitResponse(request, responseType, convert)
         }
 
         val body = if (MultipartBody.FORM.toString() == headers["content-type"]) {
@@ -272,7 +276,7 @@ class Client @JvmOverloads constructor(
             }
             builder.build()
         } else {
-            Gson().toJson(filteredParams)
+            gson.toJson(filteredParams)
                 .toRequestBody("application/json".toMediaType())
         }
 
@@ -282,21 +286,25 @@ class Client @JvmOverloads constructor(
             .method(method, body)
             .build()
 
-        return awaitResponse(request)
+        return awaitResponse(request, responseType, convert)
     }
 
     /**
      * Await Response
-     * 
+     *
      * @param method
      * @param path
      * @param headers
      * @param params
      *
-     * @return [Response]    
+     * @return [T]
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    private suspend fun awaitResponse(request: Request) = suspendCancellableCoroutine<Response> {
+    private suspend fun <T> awaitResponse(
+        request: Request,
+        responseType: Class<T>,
+        convert: ((Map<String, Any,>) -> T)? = null
+    ) = suspendCancellableCoroutine<T> {
         http.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 if (it.isCancelled) {
@@ -306,26 +314,52 @@ class Client @JvmOverloads constructor(
             }
 
             override fun onResponse(call: Call, response: Response) {
-                if (response.code >= 400) {
-                    val bodyString = response.body
-                        ?.charStream()
-                        ?.buffered()
-                        ?.use(BufferedReader::readText) ?: ""
-
-                    val contentType: String = response.headers["content-type"] ?: ""
-                    val error = if (contentType.contains("application/json", ignoreCase = true)) {
-                        bodyString.fromJson<{{ spec.title | caseUcfirst }}Exception>()
+                if (!response.isSuccessful) {
+                    val body = response.body!!
+                        .charStream()
+                        .buffered()
+                        .use(BufferedReader::readText)
+                    val error = if (response.headers["content-type"]?.contains("application/json") == true) {
+                        body.fromJson()
                     } else {
-                        {{ spec.title | caseUcfirst }}Exception(bodyString, response.code)
+                        {{ spec.title | caseUcfirst }}Exception(body, response.code)
                     }
-
-                    it.cancel(AppwriteException(
-                        error.message,
-                        error.code,
-                        bodyString
-                    ))
+                    it.cancel(error)
+                    return
                 }
-                it.resume(response)
+                when {
+                    responseType == Boolean::class.java -> {
+                        it.resume(true as T)
+                        return
+                    }
+                    responseType == ByteArray::class.java -> {
+                        it.resume(response.body!!
+                            .byteStream()
+                            .buffered()
+                            .use(BufferedInputStream::readBytes) as T
+                        )
+                        return
+                    }
+                    response.body == null -> {
+                        it.resume(true as T)
+                        return
+                    }
+                }
+                val body = response.body!!
+                    .charStream()
+                    .buffered()
+                    .use(BufferedReader::readText)
+                if (body.isEmpty()) {
+                    it.resume(true as T)
+                    return
+                }
+                val map = gson.fromJson<Map<String, Any>>(
+                    body,
+                    HashMap::class.java
+                )
+                it.resume(
+                    convert?.invoke(map) ?: map as T
+                )
             }
         })
     }
