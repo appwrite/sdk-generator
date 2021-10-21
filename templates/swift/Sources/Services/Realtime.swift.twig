@@ -37,9 +37,9 @@ open class Realtime : Service {
         if (socketClient != nil) {
             reconnect = false
             closeSocket()
+        } else {
+            socketClient = WebSocketClient(url, delegate: self)!
         }
-
-        socketClient = WebSocketClient(url, delegate: self)!
 
         try! socketClient?.connect()
     }
