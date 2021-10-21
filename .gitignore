@@ -19,3 +19,4 @@ templates/swift/example/.build
 templates/swift/example/Example.xcodeproj/project.xcworkspace/xcuserdata
 templates/swift/example/Example.xcodeproj/xcuserdata
 **/xcuserdata
+go.sum
