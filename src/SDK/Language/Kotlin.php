@@ -36,7 +36,6 @@ class Kotlin extends Language {
             "constructor",
             "continue",
             "crossinline",
-            "data",
             "delegate",
             "do",
             "dynamic",

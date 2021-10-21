@@ -74,7 +74,7 @@ class Client:
                 json=json,
                 files=files,
                 headers=headers,
-                verify=self._self_signed,
+                verify=(not self._self_signed),
             )
 
             response.raise_for_status()

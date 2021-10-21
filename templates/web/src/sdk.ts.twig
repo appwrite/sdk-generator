@@ -369,7 +369,9 @@ class {{ spec.title | caseUcfirst }} {
 
                     for (const key in params) {
                         if (Array.isArray(params[key])) {
-                            formData.append(key + '[]', params[key].join(','));
+                            params[key].forEach((value: any) => {
+                                formData.append(key + '[]', value);
+                            })
                         } else {
                             formData.append(key, params[key]);
                         }

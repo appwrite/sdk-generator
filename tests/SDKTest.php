@@ -21,8 +21,8 @@ class SDKTest extends TestCase
             'build' => [
             ],
             'envs' => [
-                'php-7.0' => 'docker run --rm -v $(pwd):/app -w /app php:7.0-cli-alpine php tests/languages/php/test.php',
-                'php-8.0' => 'docker run --rm -v $(pwd):/app -w /app php:8.0.0rc1-cli-alpine php tests/languages/php/test.php',
+                'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli-alpine php tests/languages/php/test.php',
+                'php-8.0' => 'docker run --rm -v $(pwd):/app -w /app php:8.0-cli-alpine php tests/languages/php/test.php',
             ],
             'supportException' => true,
         ],
@@ -96,6 +96,30 @@ class SDKTest extends TestCase
             'supportException' => false,
         ],
 
+        'swift-server' => [
+            'class' => 'Appwrite\SDK\Language\Swift',
+            'build' => [
+                'mkdir -p tests/sdks/swift-server/Tests/AppwriteTests',
+                'cp tests/languages/swift-server/Tests.swift tests/sdks/swift-server/Tests/AppwriteTests/Tests.swift',
+            ],
+            'envs' => [
+                'swift-5.5' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-server swift:5.5 swift test',
+            ],
+            'supportException' => true,
+        ],
+
+        'swift-client' => [
+            'class' => 'Appwrite\SDK\Language\SwiftClient',
+            'build' => [
+                'mkdir -p tests/sdks/swift-client/Tests/AppwriteTests',
+                'cp tests/languages/swift-client/Tests.swift tests/sdks/swift-client/Tests/AppwriteTests/Tests.swift',
+            ],
+            'envs' => [
+                'swift-5.5' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-client swift:5.5 swift test',
+            ],
+            'supportException' => true,
+            'supportRealtime' => true,
+        ],
 
         'dotnet' => [
             'class' => 'Appwrite\SDK\Language\DotNet',
@@ -143,12 +167,12 @@ class SDKTest extends TestCase
         'node' => [
             'class' => 'Appwrite\SDK\Language\Node',
             'build' => [
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:12.12-alpine npm install',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:16-alpine npm install',
             ],
             'envs' => [
                 'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app node:12-alpine node tests/languages/node/test.js',
                 'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14-alpine node tests/languages/node/test.js',
-                'nodejs-16' => 'docker run --rm -v $(pwd):/app -w /app node:14-alpine node tests/languages/node/test.js',
+                'nodejs-16' => 'docker run --rm -v $(pwd):/app -w /app node:16-alpine node tests/languages/node/test.js',
             ],
             'supportException' => true,
         ],
@@ -207,7 +231,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['web', 'php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'android', 'kotlin'];
+        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin', 'swift-server', 'swift-client'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
