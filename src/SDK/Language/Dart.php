@@ -366,7 +366,7 @@ class Dart extends Language {
             [
 				'scope'         => 'default',
 				'destination'   => '/lib/models.dart',
-				'template'      => 'flutter/lib/models.dart.twig',
+				'template'      => 'dart/lib/models.dart.twig',
 				'minify'        => false,
 			],
             [
@@ -378,7 +378,7 @@ class Dart extends Language {
             [
                 'scope'         => 'definition',
                 'destination'   => '/lib/src/models/{{definition.name | caseSnake }}.dart',
-                'template'      => '/flutter/lib/src/models/model.dart.twig',
+                'template'      => 'dart/lib/src/models/model.dart.twig',
                 'minify'        => false,
             ],
             [
