@@ -1,9 +1,6 @@
 module Appwrite
     class Exception < StandardError
-        @code = 0;
-        @response = nil;
-
-        def initialize(message, code, response)
+        def initialize(message, code = 0, response = nil)
             super(message)
             @code = code
             @response = response
