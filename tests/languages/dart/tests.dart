@@ -48,8 +48,8 @@ void main() async {
 
   // General Tests
 
-  response = await general.redirect();
-  print(response['result']);
+  final res = await general.redirect();
+  print(res['result']);
 
   final file = await MultipartFile.fromPath('file', '../../resources/file.png',
       filename: 'file.png');
