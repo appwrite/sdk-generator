@@ -167,6 +167,13 @@ class SDK
             }
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('rubyComment', function ($value) {
+            $value = explode("\n", $value);
+            foreach ($value as $key => $line) {
+                $value[$key] = "        # " . wordwrap($line, 75, "\n        # ");
+            }
+            return implode("\n", $value);
+        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value) {
             return str_replace('$', '\$', $value);
         }, ['is_safe'=>['html']]));
