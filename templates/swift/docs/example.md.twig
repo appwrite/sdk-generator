@@ -1,18 +1,31 @@
-/// Swift {{spec.title | caseUcfirst}} SDK
-/// Produced by {{spec.title | caseUcfirst}} SDK Generator
-///
+import Appwrite
 
-
-var client: Client = Client()
-
-client
-    .setEndpoint(endpoint: "https://[HOSTNAME_OR_IP]/v1") // Your API Endpoint
+func main() {
+    let client = Client()
+{% if method.security|length > 0 %}
+      .setEndpoint("https://[HOSTNAME_OR_IP]/v1") // Your API Endpoint
 {% for node in method.security %}
 {% for key,header in node|keys %}
-    .set{{header}}(value: "{{node[header]['x-appwrite']['demo']}}") // {{node[header].description}}
+      .set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo']}}") // {{node[header].description}}
 {% endfor %}
 {% endfor %}
+{% endif %}
 
-var {{ service.name | caseCamel }}: {{ service.name | caseUcfirst }} =  {{ service.name | caseUcfirst }}(client: client);
+    let {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client)
+    {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | filter((param) => param.required) | length == 0 %}) { result in{% endif %}
 
-var result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}_{{ parameter.name | caseCamel }}: {{ parameter | paramExample }}{% endif %}{% endfor %});
+{% for parameter in method.parameters.all | filter((param) => param.required) %}
+        {{parameter.name}}: {{ parameter | paramExample | escapeKeyword }}{% if not loop.last %},{% endif %}
+
+{% if loop.last %}
+    ) { result in
+{% endif %}
+{% endfor %}
+        switch result {
+        case .failure(let error):
+            print(error.message)
+        case .success(let {% if method.type == 'webAuth' %}success{% elseif method.type == 'location' %}byteBuffer{% else %}{{ method.responseModel | caseCamel | escapeKeyword }}{% endif %}):
+            print(String(describing: {% if method.type == 'webAuth' %}success{% elseif method.type == 'location' %}byteBuffer{% else %}{{ method.responseModel | caseCamel | escapeKeyword }}{% endif %})
+        }
+    }
+}
