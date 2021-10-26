@@ -37,9 +37,9 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
      *
 {% endif %}
 {% for parameter in method.parameters.all %}
-     * @param {{ parameter.name | caseCamel }}
+     * @param {{ parameter.name | caseCamel }} {{ parameter.description }}
 {% endfor %}
-     * {% if method.type != "webAuth" %}@return [Response]{% endif %}
+     * {% if method.type != "webAuth" %}@return [{{ _self.resultType(sdk.namespace, method) }}]{% endif %}
      
      */
     @JvmOverloads

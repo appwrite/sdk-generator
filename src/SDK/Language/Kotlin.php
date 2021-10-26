@@ -97,7 +97,6 @@ class Kotlin extends Language {
     {
         switch ($type) {
             case self::TYPE_INTEGER:
-                return 'Int';
             case self::TYPE_NUMBER:
                 return 'Double';
             case self::TYPE_STRING:
