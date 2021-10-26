@@ -18,6 +18,7 @@ data class {{ definition.name | caseUcfirst }}(
 {% endif %}
 ) {
     companion object {
+        @Suppress("UNCHECKED_CAST")
         fun from(map: Map<String, Any>) = {{ definition.name | caseUcfirst }}(
 {% for property in definition.properties %}
             {{ property.name | escapeKeyword | removeDollarSign }} = {% if property.sub_schema %}{% if property.type == 'array' %}(map["{{ property.name | escapeDollarSign }}"] as List<Map<String, Any>>).map { {{property.sub_schema | caseUcfirst}}.from(map = it) }{% else %}{{property.sub_schema | caseUcfirst}}.from(map = map["{{property.name | escapeDollarSign }}"] as Map<String, Any>){% endif %}{% else %}map["{{ property.name | escapeDollarSign }}"] as{% if not property.required %}?{% endif %} {{ _self.sub_schema(property) }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}

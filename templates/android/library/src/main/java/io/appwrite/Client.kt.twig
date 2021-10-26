@@ -126,9 +126,12 @@ class Client @JvmOverloads constructor(
         try {
             // Create a trust manager that does not validate certificate chains
             val trustAllCerts = arrayOf<TrustManager>(
+                @Suppress("CustomX509TrustManager")
                 object : X509TrustManager {
+                    @Suppress("TrustAllX509TrustManager")
                     override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {
                     }
+                    @Suppress("TrustAllX509TrustManager")
                     override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {
                     }
                     override fun getAcceptedIssuers(): Array<X509Certificate> {
@@ -312,6 +315,7 @@ class Client @JvmOverloads constructor(
                 it.cancel(e)
             }
 
+            @Suppress("UNCHECKED_CAST")
             override fun onResponse(call: Call, response: Response) {
                 if (!response.isSuccessful) {
                     val body = response.body!!
