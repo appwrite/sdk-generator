@@ -1,9 +1,10 @@
 package {{ sdk.namespace | caseDot }}
 
-import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
-import {{ sdk.namespace | caseDot }}.extensions.JsonExtensions.fromJson
-import {{ sdk.namespace | caseDot }}.models.Error
+import {{ sdk.namespace | caseDot }}.extensions.fromJson
+import {{ sdk.namespace | caseDot }}.json.PreciseNumberAdapter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -15,6 +16,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
+import java.io.BufferedInputStream
 import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
@@ -38,11 +40,17 @@ class Client @JvmOverloads constructor(
 
     private val job = Job()
 
-    private lateinit var http: OkHttpClient
+    private val gson = GsonBuilder().registerTypeAdapter(
+        object : TypeToken<Map<String, Any>>(){}.type,
+        PreciseNumberAdapter()
+    ).create()
+
+    lateinit var http: OkHttpClient
 
     private val headers: MutableMap<String, String>
-    
+
     val config: MutableMap<String, String>
+
 
     init {
         headers = mutableMapOf(
@@ -55,7 +63,7 @@ class Client @JvmOverloads constructor(
 
         )
         config = mutableMapOf()
-        
+
         setSelfSigned(selfSigned)
     }
 
@@ -80,10 +88,10 @@ class Client @JvmOverloads constructor(
 {% endfor %}
     /**
      * Set self Signed
-     * 
+     *
      * @param status
      *
-     * @return this     
+     * @return this
      */
     fun setSelfSigned(status: Boolean): Client {
         selfSigned = status
@@ -99,9 +107,12 @@ class Client @JvmOverloads constructor(
         try {
             // Create a trust manager that does not validate certificate chains
             val trustAllCerts = arrayOf<TrustManager>(
+                @Suppress("CustomX509TrustManager")
                 object : X509TrustManager {
+                    @Suppress("TrustAllX509TrustManager")
                     override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {
                     }
+                    @Suppress("TrustAllX509TrustManager")
                     override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {
                     }
                     override fun getAcceptedIssuers(): Array<X509Certificate> {
@@ -140,11 +151,11 @@ class Client @JvmOverloads constructor(
 
     /**
      * Add Header
-     * 
+     *
      * @param key
      * @param value
      *
-     * @return this     
+     * @return this
      */
     fun addHeader(key: String, value: String): Client {
         headers[key] = value
@@ -153,22 +164,23 @@ class Client @JvmOverloads constructor(
 
     /**
      * Send the HTTP request
-     * 
+     *
      * @param method
      * @param path
      * @param headers
      * @param params
      *
-     * @return [Response]    
+     * @return [Response]
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    suspend fun call(
-        method: String, 
-        path: String, 
-        headers:  Map<String, String> = mapOf(), 
-        params: Map<String, Any?> = mapOf()
-    ): Response {
-
+    suspend fun <T> call(
+        method: String,
+        path: String,
+        headers:  Map<String, String> = mapOf(),
+        params: Map<String, Any?> = mapOf(),
+        responseType: Class<T>,
+        convert: ((Map<String, Any,>) -> T)? = null
+    ): T {
         val filteredParams = params.filterValues { it != null }
 
         val requestHeaders = this.headers.toHeaders().newBuilder()
@@ -203,7 +215,7 @@ class Client @JvmOverloads constructor(
                 .get()
                 .build()
 
-            return awaitResponse(request)
+            return awaitResponse(request, responseType, convert)
         }
 
         val body = if (MultipartBody.FORM.toString() == headers["content-type"]) {
@@ -231,7 +243,7 @@ class Client @JvmOverloads constructor(
             }
             builder.build()
         } else {
-            Gson().toJson(filteredParams)
+            gson.toJson(filteredParams)
                 .toRequestBody("application/json".toMediaType())
         }
 
@@ -241,21 +253,24 @@ class Client @JvmOverloads constructor(
             .method(method, body)
             .build()
 
-        return awaitResponse(request)
+        return awaitResponse(request, responseType, convert)
     }
 
     /**
      * Await Response
-     * 
-     * @param method
-     * @param path
-     * @param headers
-     * @param params
      *
-     * @return [Response]    
+     * @param request
+     * @param responseType
+     * @param convert
+     *
+     * @return [T]
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    private suspend fun awaitResponse(request: Request) = suspendCancellableCoroutine<Response> {
+    private suspend fun <T> awaitResponse(
+        request: Request,
+        responseType: Class<T>,
+        convert: ((Map<String, Any,>) -> T)? = null
+    ) = suspendCancellableCoroutine<T> {
         http.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 if (it.isCancelled) {
@@ -264,27 +279,54 @@ class Client @JvmOverloads constructor(
                 it.cancel(e)
             }
 
+            @Suppress("UNCHECKED_CAST")
             override fun onResponse(call: Call, response: Response) {
-                if (response.code >= 400) {
-                    val bodyString = response.body
-                        ?.charStream()
-                        ?.buffered()
-                        ?.use(BufferedReader::readText) ?: ""
-
-                    val contentType: String = response.headers["content-type"] ?: ""
-                    val error = if (contentType.contains("application/json", ignoreCase = true)) {
-                        bodyString.fromJson(Error::class.java)
+                if (!response.isSuccessful) {
+                    val body = response.body!!
+                        .charStream()
+                        .buffered()
+                        .use(BufferedReader::readText)
+                    val error = if (response.headers["content-type"]?.contains("application/json") == true) {
+                        body.fromJson()
                     } else {
-                        Error(bodyString, response.code)
+                        {{ spec.title | caseUcfirst }}Exception(body, response.code)
                     }
-
-                    it.cancel(AppwriteException(
-                        error.message,
-                        error.code,
-                        bodyString
-                    ))
+                    it.cancel(error)
+                    return
                 }
-                it.resume(response)
+                when {
+                    responseType == Boolean::class.java -> {
+                        it.resume(true as T)
+                        return
+                    }
+                    responseType == ByteArray::class.java -> {
+                        it.resume(response.body!!
+                            .byteStream()
+                            .buffered()
+                            .use(BufferedInputStream::readBytes) as T
+                        )
+                        return
+                    }
+                    response.body == null -> {
+                        it.resume(true as T)
+                        return
+                    }
+                }
+                val body = response.body!!
+                    .charStream()
+                    .buffered()
+                    .use(BufferedReader::readText)
+                if (body.isEmpty()) {
+                    it.resume(true as T)
+                    return
+                }
+                val map = gson.fromJson<Map<String, Any>>(
+                    body,
+                    object : TypeToken<Map<String, Any>>(){}.type
+                )
+                it.resume(
+                    convert?.invoke(map) ?: map as T
+                )
             }
         })
     }
