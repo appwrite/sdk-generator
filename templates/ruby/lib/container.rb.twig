@@ -3,6 +3,15 @@ require 'uri'
 require 'json'
 require 'mime/types'
 
-Dir['{{ spec.title | caseDash}}/**/*.rb'].each do |file|
-    require_relative file
-end
+require_relative '{{ spec.title | caseSnake }}/client'
+require_relative '{{ spec.title | caseSnake }}/service'
+require_relative '{{ spec.title | caseSnake }}/exception'
+require_relative '{{ spec.title | caseSnake }}/file'
+
+{% for defintion in spec.definitions %}
+require_relative '{{ spec.title | caseSnake }}/models/{{ defintion.name | caseSnake }}'
+{% endfor %}
+
+{% for service in spec.services %}
+require_relative '{{ spec.title | caseSnake }}/services/{{ service.name | caseSnake }}'
+{% endfor %}

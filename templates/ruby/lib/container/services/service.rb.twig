@@ -3,6 +3,7 @@
 module {{spec.title | caseUcfirst}}
     class {{ service.name | caseUcfirst }} < Service
 
+        include Models
 {% for method in service.methods %}
 {{ method.description | rubyComment }}
         #

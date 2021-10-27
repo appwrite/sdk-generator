@@ -10,7 +10,7 @@ module {{ spec.title | caseUcfirst }}
 
         def initialize
             @headers = {
-                'content-type' => '',
+                'content-type' => 'application/json',
                 'user-agent' => RUBY_PLATFORM + ':{{ language.name | caseLower }}-' + RUBY_VERSION,
                 'x-sdk-version' => '{{ spec.title | caseDash }}:{{ language.name | caseLower }}:{{ sdk.version }}'{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
                 
@@ -136,7 +136,11 @@ module {{ spec.title | caseUcfirst }}
                 location = response['location']
                 uri = URI.parse(uri.scheme + "://" + uri.host + "" + location)
                 
-                return fetch(method, uri, headers, {}, limit - 1)
+                return fetch(method, uri, headers, {}, response_type, limit - 1)
+            end
+
+            if response.body.nil? || response.body.empty?
+                return true
             end
 
             begin
@@ -146,7 +150,11 @@ module {{ spec.title | caseUcfirst }}
             end
 
             if response.code.to_i >= 400
-                raise {{spec.title | caseUcfirst}}::Exception.new(res['message'], res['status'], res)
+                raise Appwrite::Exception.new(result['message'], result['status'], result)
+            end
+
+            unless response_type.respond_to?("from")
+                return result
             end
 
             response_type.from(map: result)
