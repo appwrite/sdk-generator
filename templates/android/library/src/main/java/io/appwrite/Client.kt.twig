@@ -2,10 +2,12 @@ package {{ sdk.namespace | caseDot }}
 
 import android.content.Context
 import android.content.pm.PackageManager
-import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import io.appwrite.appwrite.BuildConfig
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
+import {{ sdk.namespace | caseDot }}.json.PreciseNumberAdapter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -45,7 +47,10 @@ class Client @JvmOverloads constructor(
 
     private val job = Job()
 
-    private val gson = Gson()
+    private val gson = GsonBuilder().registerTypeAdapter(
+        object : TypeToken<Map<String, Any>>(){}.type,
+        PreciseNumberAdapter()
+    ).create()
 
     lateinit var http: OkHttpClient
 
@@ -358,7 +363,7 @@ class Client @JvmOverloads constructor(
                 }
                 val map = gson.fromJson<Map<String, Any>>(
                     body,
-                    HashMap::class.java
+                    object : TypeToken<Map<String, Any>>(){}.type
                 )
                 it.resume(
                     convert?.invoke(map) ?: map as T

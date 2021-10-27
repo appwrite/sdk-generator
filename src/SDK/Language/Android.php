@@ -142,6 +142,12 @@ class Android extends Kotlin {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/json/PreciseNumberAdapter.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/json/PreciseNumberAdapter.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/RealtimeModels.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/models/RealtimeModels.kt.twig',
                 'minify'        => false,
