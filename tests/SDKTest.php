@@ -184,7 +184,7 @@ class SDKTest extends TestCase
             'envs' => [
                 'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.7-alpine ruby tests/languages/ruby/tests.rb',
             ],
-            'supportException' => false,
+            'supportException' => true,
         ],
 
         'python' => [
