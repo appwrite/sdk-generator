@@ -34,10 +34,10 @@ module {{spec.title | caseUcfirst}}
 
             headers = {
 {% for parameter in method.parameters.header %}
-                '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+                "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
 {% for key, header in method.headers %}
-                '{{ key }}': '{{ header }}',
+                "{{ key }}": '{{ header }}',
 {% endfor %}
             }
 
@@ -46,7 +46,7 @@ module {{spec.title | caseUcfirst}}
                 path: path,
                 params: params,
                 headers: headers,
-{% if method.responseModel %}
+{% if method.responseModel and method.responseModel != 'any' %}
                 response_type: {{method.responseModel | caseUcfirst}}
 {% endif %}
             )

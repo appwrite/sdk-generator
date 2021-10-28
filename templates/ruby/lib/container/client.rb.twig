@@ -10,7 +10,6 @@ module {{ spec.title | caseUcfirst }}
 
         def initialize
             @headers = {
-                'content-type' => 'application/json',
                 'user-agent' => RUBY_PLATFORM + ':{{ language.name | caseLower }}-' + RUBY_VERSION,
                 'x-sdk-version' => '{{ spec.title | caseDash }}:{{ language.name | caseLower }}:{{ sdk.version }}'{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
                 
@@ -112,14 +111,15 @@ module {{ spec.title | caseUcfirst }}
             payload = ''
             
             headers = @headers.merge(headers)
+
             @boundary = "----A30#3ad1"
             if method != "GET"
-                case headers['content-type'][0, headers['content-type'].index(';') || headers['content-type'].length]
+                case headers[:'content-type']
                     when 'application/json'
                         payload = params.to_json
                     when 'multipart/form-data'
                         payload = "--#{@boundary}\r\n" + encode_form_data(params)
-                        headers['content-type'] = "multipart/form-data; boundary=#{@boundary}"
+                        headers[:'content-type'] = "multipart/form-data; boundary=#{@boundary}"
                     else
                         payload = encode(params)
                 end
@@ -139,25 +139,29 @@ module {{ spec.title | caseUcfirst }}
                 return fetch(method, uri, headers, {}, response_type, limit - 1)
             end
 
-            if response.body.nil? || response.body.empty?
-                return true
-            end
+            if response.content_type == 'application/json'
+                begin
+                    result = JSON.parse(response.body)
+                rescue JSON::ParserError => e
+                    raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, response)
+                end
 
-            begin
-                result = JSON.parse(response.body)
-            rescue JSON::ParserError => e
-                raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, nil)
+                if response.code.to_i >= 400
+                    raise Appwrite::Exception.new(result['message'], result['status'], result)
+                end
+
+                unless response_type.respond_to?("from")
+                    return result
+                end
+
+                return response_type.from(map: result)
             end
 
             if response.code.to_i >= 400
-                raise Appwrite::Exception.new(result['message'], result['status'], result)
+                raise Appwrite::Exception.new(response.body, response.code, response)
             end
 
-            unless response_type.respond_to?("from")
-                return result
-            end
-
-            response_type.from(map: result)
+            return response.body if response.body_permitted?
         end
         
         def encode_form_data(value, key=nil)
@@ -172,7 +176,7 @@ module {{ spec.title | caseUcfirst }}
                 post_body = []
                 if value.instance_of? File
                     post_body << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{value.name}\"\r\n"
-                    post_body << "Content-Type: #{value.mimeType}\r\n\r\n"
+                    post_body << "Content-Type: #{value.mime_type}\r\n\r\n"
                     post_body << value.content
                     post_body << "\r\n--#{@boundary}--\r\n"
                 else          
