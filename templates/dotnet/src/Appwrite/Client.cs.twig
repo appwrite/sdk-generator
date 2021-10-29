@@ -1,4 +1,4 @@
-using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -80,7 +80,13 @@ namespace {{ spec.title | caseUcfirst }}
             return this;
         }
 
-        public async Task<HttpResponseMessage> Call(string method, string path, Dictionary<string, string> headers, Dictionary<string, object> parameters)
+        public async Task<T> Call<T>(
+            string method,
+            string path,
+            Dictionary<string, string> headers,
+            Dictionary<string, object> parameters,
+            Func<Dictionary<string, object>, T>? convert = null,
+            Type? responseType = null)
         {
             if (selfSigned)
             {
@@ -176,7 +182,14 @@ namespace {{ spec.title | caseUcfirst }}
                     throw new {{spec.title | caseUcfirst}}Exception(message, code, response.ToString());
                 }
 
-                return httpResponseMessage;
+                var dict = JsonConvert.DeserializeObject<Dictionary<string, object>>(response.ToString());
+
+                if (convert != null)
+                {
+                    return convert(dict);
+                }
+
+                return default;
             }
             catch (System.Exception e)
             {
