@@ -141,22 +141,18 @@ class DotNet extends Language {
         switch ($type) {
             case self::TYPE_INTEGER:
                 return 'int';
-                break;
+            case self::TYPE_NUMBER:
+                return 'double';
             case self::TYPE_STRING:
                 return 'string';
-                break;
             case self::TYPE_FILE:
                 return 'FileInfo';
-                break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
-                break;
             case self::TYPE_ARRAY:
                 return 'List<object>';
-                break;
             case self::TYPE_OBJECT:
                 return 'object';
-                break;
         }
 
         return $type;
