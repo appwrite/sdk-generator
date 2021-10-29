@@ -12,7 +12,11 @@
 {% macro methodNeedsSecurityParameters(method) %}
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
+{% macro resultType(namespace, method) %}
+{% if method.type == "webAuth" %}void{% elseif method.type == "location" %}byte[]{% elseif not method.responseModel or method.responseModel == 'any' %}object{% else %}{{ namespace }}.Models.{{method.responseModel | caseUcfirst}}{% endif %}
+{% endmacro %}
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
@@ -31,15 +35,18 @@ namespace {{ spec.title | caseUcfirst }}
 {% endif %}
 {% if method.description %}
         /// <para>
-{{method.description|dotnetComment}}
+{{ method.description | dotnetComment }}
         /// </para>
 {% endif %}
         /// </summary>
-        public {% if method.type == "location" %}string{% else %}async Task<HttpResponseMessage>{% endif %} {{ method.name | caseUcfirst }}({{ _self.method_parameters(method.parameters) }}) 
+        public async Task{% if method.type != "webAuth" %}<{{ _self.resultType(spec.title, method) }}>{% endif %} {{ method.name | caseUcfirst }}({{ _self.method_parameters(method.parameters) }})
         {
-            string path = "{{ method.path }}"{% for parameter in method.parameters.path %}.Replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+            var path = "{{ method.path }}"
+{% for parameter in method.parameters.path %}
+                .Replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }})
+{% endfor -%};
 
-            Dictionary<string, object> parameters = new Dictionary<string, object>()
+            var parameters = new Dictionary<string, object>()
             {
 {% for parameter in method.parameters.query | merge(method.parameters.body) %}
                 { "{{ parameter.name }}", {{ _self.map_parameter(parameter) }} }{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
@@ -53,16 +60,37 @@ namespace {{ spec.title | caseUcfirst }}
 {% endfor %}
 {% endfor %}
 {% endif %}
-{% if method.type == 'location' %}            
-            return _client.GetEndPoint() + path + "?" + parameters.ToQueryString();
+{% if method.type == 'location' %}
+            return await _client.Call(
+                method: "{{ method.method | caseUpper }}",
+                path: path,
+                headers: headers,
+                parameters: parameters,
+                responseType: typeof({{ _self.resultType(spec.title, method) }}));
 {% else %}
 
-            Dictionary<string, string> headers = new Dictionary<string, string>()
+            var headers = new Dictionary<string, string>()
             {
 {{ method.headers|map((header, key) => "                { \"#{key}\", \"#{header}\" }")|join(',\n')|raw }}
             };
 
-            return await _client.Call("{{ method.method | caseUpper }}", path, headers, parameters);
+{% if method.responseModel %}
+            Func<Dictionary<string, object>, {{ _self.resultType(spec.title, method) }}> convert = (Dictionary<string, object> it) => {
+{% if method.responseModel == 'any' %}
+                return it;
+{% else %}
+                return {{ _self.resultType(spec.title, method) }}.From(map: it);
+{% endif %}
+            }
+{% endif %}
+
+            return await _client.Call(
+                method: "{{ method.method | caseUpper }}",
+                path: path,
+                headers: headers,
+                parameters: parameters,
+                convert: convert,
+                responseType: typeof({{ _self.resultType(spec.title, method) }}));
 {% endif %}
         }
 {% if not loop.last %}
