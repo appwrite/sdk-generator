@@ -359,6 +359,12 @@ class DotNet extends Language {
                 'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Services/{{service.name | caseUcfirst}}.cs',
                 'template'      => 'dotnet/src/Appwrite/Services/ServiceTemplate.cs.twig',
                 'minify'        => false,
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Models/{{definition.name | caseUcfirst}}.cs',
+                'template'      => 'dotnet/src/Appwrite/Models/Model.cs.twig',
+                'minify'        => false,
             ]
         ];
     }

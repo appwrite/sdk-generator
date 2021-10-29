@@ -1,0 +1,72 @@
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}>{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% endmacro %}
+
+using System.Collections.Generic;
+using System.Linq;
+
+namespace {{ spec.title | caseUcfirst }}.Models
+{
+    public class {{ definition.name | caseUcfirst }}
+    {
+{% for property in definition.properties %}
+        public {{ _self.sub_schema(property) }} {{ property.name | caseUcfirst | escapeKeyword }} { get; set; }
+{% endfor %}
+{% if definition.additionalProperties %}
+        public Dictionary<string, object> Data { get; set; }
+{% endif %}
+
+        public {{ definition.name | caseUcfirst }}(
+{% for property in definition.properties %}
+            {{ _self.sub_schema(property) }} {{ property.name | caseCamel | escapeKeyword }}{% if not property.required %} = {{ property.default }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+
+{% endfor %}
+{% if definition.additionalProperties %}
+            Dictionary<string, object> data
+{% endif %}
+        ) {
+{% for property in definition.properties %}
+            {{ property.name | caseUcfirst | escapeKeyword }} = {{ property.name | caseCamel | escapeKeyword }};
+{% endfor %}
+{% if definition.additionalProperties %}
+            Data = data
+{% endif %}
+        }
+
+        public static {{ definition.name | caseUcfirst }} From(Dictionary<string, object> map) => new(
+{% for property in definition.properties %}
+            {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}map["{{ property.name }}"].Select(it => {{ property.sub_schema | caseUcfirst }}.From(map: it)){% else %}{{property.sub_schema | caseUcfirst}}.From(map: map["{{property.name }}"]){% endif %}{% else %}map["{{ property.name }}"] as {{ property.type | typeName }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+
+{% endfor %}
+{% if definition.additionalProperties %}
+            data: map["data"]
+{% endif %}
+        );
+
+        public Dictionary<string, object> ToMap() => new()
+        {
+{% for property in definition.properties %}
+            { "{{ property.name }}", {% if property.sub_schema %}{% if property.type == 'array' %}{{ property.name | caseUcfirst | escapeKeyword | removeDollarSign }}.Select(it => it.ToMap()){% else %}{{property.name | caseUcfirst | escapeKeyword | removeDollarSign }}.ToMap(){% endif %}{% else %}{{property.name | caseUcfirst | escapeKeyword }}{% endif %}{{ ' }' }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+
+{% endfor %}
+{% if definition.additionalProperties %}
+            { "data": Data }
+{% endif %}
+        };
+{% if definition.additionalProperties %}
+
+        public T ConvertTo<T>(Func<Dictionary<string, object>, T> fromJson) =>
+            fromJson.Invoke(Data);
+{% endif %}
+{% for property in definition.properties %}
+{% if property.sub_schema %}
+{% for def in spec.definitions %}
+{% if def.name == property.sub_schema and def.additionalProperties and property.type == 'array' %}
+
+        public T ConvertTo<T>(Func<Dictionary<string, object>, T> fromJson) =>
+            {{ property.name | caseUcfirst | escapeKeyword }}.Select(it => it.ConvertTo<T>(fromJson));
+
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+    }
+}
