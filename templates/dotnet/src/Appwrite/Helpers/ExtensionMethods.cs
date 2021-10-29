@@ -21,22 +21,22 @@ namespace {{ spec.title | caseUcfirst }}
 
         public static string ToQueryString(this Dictionary<string, object> parameters)
         {
-            List<string> query = new List<string>();
+            var query = new List<string>();
 
-            foreach (KeyValuePair<string, object> parameter in parameters)
+            foreach (var (key, value) in parameters)
             {
-                if (parameter.Value != null)
+                if (value != null)
                 {
-                    if (parameter.Value is List<object>)
+                    if (value is List<object>)
                     {
-                        foreach(object entry in (dynamic) parameter.Value) 
+                        foreach(object entry in (dynamic) value)
                         {
-                            query.Add(parameter.Key + "[]=" + Uri.EscapeUriString(entry.ToString()));
+                            query.Add(key + "[]=" + Uri.EscapeUriString(entry.ToString()));
                         }
                     } 
                     else 
                     {
-                        query.Add(parameter.Key + "=" + Uri.EscapeUriString(parameter.Value.ToString()));
+                        query.Add(key + "=" + Uri.EscapeUriString(value.ToString()));
                     }
                 }
             }
