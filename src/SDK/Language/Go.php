@@ -59,12 +59,6 @@ class Go extends Language {
         return [
             [
                 'scope'         => 'default',
-                'destination'   => 'main.go',
-                'template'      => 'go/main.go.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'go.mod',
                 'template'      => 'go/go.mod.twig',
                 'minify'        => false,

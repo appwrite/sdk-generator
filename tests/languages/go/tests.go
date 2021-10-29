@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -12,13 +13,7 @@ import (
 
 func main() {
 
-	// endpoint := os.Getenv("APPWRITE_ENDPOINT")
-	// project := os.Getenv("APPWRITE_PROJECT")
-	// key := os.Getenv("APPWRITE_API_KEY")
-	// client := appwrite.NewClient(10 * time.Second)
-	// client.SetEndpoint(endpoint)
-	// client.SetProject(project)
-	// client.SetKey(key)
+	fmt.Printf("\nTest Started\n")
 
 	client := appwrite.NewClient(10 * time.Second)
 	client.SetLocale("en-US")
