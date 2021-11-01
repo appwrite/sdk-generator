@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -80,6 +81,15 @@ namespace {{ spec.title | caseUcfirst }}
             return this;
         }
 
+        public Task Call(
+            string method,
+            string path,
+            Dictionary<string, string> headers,
+            Dictionary<string, object> parameters)
+        {
+            return Call<object>(method, path, headers, parameters);
+        }
+
         public async Task<T> Call<T>(
             string method,
             string path,
@@ -93,29 +103,28 @@ namespace {{ spec.title | caseUcfirst }}
                 ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
             }
 
-            bool methodGet = "GET".Equals(method, StringComparison.InvariantCultureIgnoreCase);
+            var methodGet = "GET".Equals(method, StringComparison.InvariantCultureIgnoreCase);
 
-            string queryString = methodGet ? "?" + parameters.ToQueryString() : string.Empty;
+            var queryString = methodGet ? "?" + parameters.ToQueryString() : string.Empty;
 
-            HttpRequestMessage request = new HttpRequestMessage(new HttpMethod(method), endPoint + path + queryString);
+            var request = new HttpRequestMessage(new HttpMethod(method), endPoint + path + queryString);
 
             if ("multipart/form-data".Equals(headers["content-type"], StringComparison.InvariantCultureIgnoreCase))
             {
-                MultipartFormDataContent form = new MultipartFormDataContent();
+                var form = new MultipartFormDataContent();
 
                 foreach (var parameter in parameters)
                 {
                     if (parameter.Key == "file")
                     {
-                        FileInfo fi = parameters["file"] as FileInfo;
-
+                        var fi = (FileInfo)parameters["file"];
                         var file = File.ReadAllBytes(fi.FullName);
 
                         form.Add(new ByteArrayContent(file, 0, file.Length), "file", fi.Name);
                     }
-                    else if (parameter.Value is IEnumerable<object>)
+                    else if (parameter.Value is IEnumerable<object> enumerable)
                     {
-                        List<object> list = new List<object>((IEnumerable<object>) parameter.Value);
+                        var list = new List<object>(enumerable);
                         for (int index = 0; index < list.Count; index++)
                         {
                             form.Add(new StringContent(list[index].ToString()), $"{parameter.Key}[{index}]");

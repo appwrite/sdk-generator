@@ -1,6 +1,6 @@
 {% macro parameter(parameter) %}
 {% if parameter.name == 'orderType' %}{{ 'OrderType orderType = OrderType.ASC' }}{% else %}
-{{ parameter.type | typeName }}{% if not parameter.required and (parameter.type == 'boolean' or parameter.type == 'integer') %}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{{ parameter | paramDefault }}{% endif %}
+{{ parameter.type | typeName }}{% if not parameter.required and (parameter.type == 'boolean' or parameter.type == 'integer' or parameter.type == 'number') %}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{{ parameter | paramDefault }}{% endif %}
 {% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ', ' }}{% endif %}{% endfor %}{% endif %}
@@ -13,7 +13,7 @@
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
 {% macro resultType(namespace, method) %}
-{% if method.type == "webAuth" %}void{% elseif method.type == "location" %}byte[]{% elseif not method.responseModel or method.responseModel == 'any' %}object{% else %}{{ namespace }}.Models.{{method.responseModel | caseUcfirst}}{% endif %}
+{% if method.type == "webAuth" %}bool{% elseif method.type == "location" %}byte[]{% elseif not method.responseModel or method.responseModel == 'any' %}object{% else %}Models.{{method.responseModel | caseUcfirst}}{% endif %}
 {% endmacro %}
 
 using System;
@@ -39,12 +39,14 @@ namespace {{ spec.title | caseUcfirst }}
         /// </para>
 {% endif %}
         /// </summary>
-        public async Task{% if method.type != "webAuth" %}<{{ _self.resultType(spec.title, method) }}>{% endif %} {{ method.name | caseUcfirst }}({{ _self.method_parameters(method.parameters) }})
+        public Task{% if method.type != "webAuth" %}<{{ _self.resultType(spec.title, method) }}>{% endif %} {{ method.name | caseUcfirst }}({{ _self.method_parameters(method.parameters) }})
         {
-            var path = "{{ method.path }}"
+            var path = "{{ method.path }}"{% if method.parameters.path | length == 0 %};{% endif %}
+
 {% for parameter in method.parameters.path %}
-                .Replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }})
-{% endfor -%};
+                .Replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }}){% if loop.last %};{% endif %}
+
+{% endfor %}
 
             var parameters = new Dictionary<string, object>()
             {
@@ -52,16 +54,23 @@ namespace {{ spec.title | caseUcfirst }}
                 { "{{ parameter.name }}", {{ _self.map_parameter(parameter) }} }{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
 
 {% endfor %}
-            };
-{% if _self.methodNeedsSecurityParameters(method) %}{% for node in method.security %}
+{% if _self.methodNeedsSecurityParameters(method) %}
+{% for node in method.security %}
 {% for key,header in node|keys %}
-            // { "{{header|caseLower}}", _client.GetConfig().get("{{header|caseLower}}") }{% if not loop.last %},{% endif %}
+                { "{{header|caseLower}}", _client.GetConfig()["{{header|caseLower}}"] }{% if not loop.last or (loop.last and method.headers | length > 0) %},{% endif %}
 
 {% endfor %}
 {% endfor %}
 {% endif %}
+            };
+
+            var headers = new Dictionary<string, string>()
+            {
+{{ method.headers|map((header, key) => "                { \"#{key}\", \"#{header}\" }")|join(',\n')|raw }}
+            };
+
 {% if method.type == 'location' %}
-            return await _client.Call(
+            return _client.Call<byte[]>(
                 method: "{{ method.method | caseUpper }}",
                 path: path,
                 headers: headers,
@@ -69,13 +78,9 @@ namespace {{ spec.title | caseUcfirst }}
                 responseType: typeof({{ _self.resultType(spec.title, method) }}));
 {% else %}
 
-            var headers = new Dictionary<string, string>()
-            {
-{{ method.headers|map((header, key) => "                { \"#{key}\", \"#{header}\" }")|join(',\n')|raw }}
-            };
-
 {% if method.responseModel %}
-            Func<Dictionary<string, object>, {{ _self.resultType(spec.title, method) }}> convert = (Dictionary<string, object> it) => {
+            static {{ _self.resultType(spec.title, method) }} convert(Dictionary<string, object> it)
+            {
 {% if method.responseModel == 'any' %}
                 return it;
 {% else %}
@@ -84,13 +89,17 @@ namespace {{ spec.title | caseUcfirst }}
             }
 {% endif %}
 
-            return await _client.Call(
+            return _client.Call{% if method.type != 'webAuth' %}<{{ _self.resultType(spec.title, method) }}>{% endif %}(
                 method: "{{ method.method | caseUpper }}",
                 path: path,
                 headers: headers,
+{% if not method.responseModel %}
+                parameters: parameters);
+{% else %}
                 parameters: parameters,
                 convert: convert,
                 responseType: typeof({{ _self.resultType(spec.title, method) }}));
+{% endif %}
 {% endif %}
         }
 {% if not loop.last %}
