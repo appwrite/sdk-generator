@@ -38,7 +38,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
 
 {% endfor %}
 {% if definition.additionalProperties %}
-            data: map["data"]
+            data: map["data"] as Dictionary<string, object>
 {% endif %}
         );
 
@@ -63,7 +63,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
 {% if def.name == property.sub_schema and def.additionalProperties and property.type == 'array' %}
 
         public T ConvertTo<T>(Func<Dictionary<string, object>, T> fromJson) =>
-            {{ property.name | caseUcfirst | escapeKeyword }}.Select(it => it.ConvertTo<T>(fromJson));
+            (T){{ property.name | caseUcfirst | escapeKeyword }}.Select(it => it.ConvertTo(fromJson));
 
 {% endif %}
 {% endfor %}
