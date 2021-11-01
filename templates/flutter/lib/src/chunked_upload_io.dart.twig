@@ -1,8 +1,8 @@
-import 'models/client.dart';
+import 'client.dart';
 import 'dart:io' as io;
-import 'models/enums.dart';
+import 'enums.dart';
 import 'package:http/http.dart' as http;
-import 'models/response.dart';
+import 'response.dart';
 import 'dart:math';
 
 Future<Response> chunkedUpload({
@@ -13,13 +13,15 @@ Future<Response> chunkedUpload({
   required Map<String, String> headers,
 }) async {
   String file = params[paramName];
-  
-  io.File iofile = io.File(file);
+  if (file.path == null) {
+    throw AppwriteException("File path must be provided for dart:io");
+  }
+  io.File iofile = io.File(file.path!);
   final size = await iofile.length();
 
   late Response res;
   if (size <= Client.CHUNK_SIZE) {
-    params['file'] = http.MultipartFile.fromPath('file', file);
+    params['file'] = await http.MultipartFile.fromPath(paramName, file.path!);
     res = await client.call(HttpMethod.post,
         path: path, params: params, headers: headers);
   } else {
