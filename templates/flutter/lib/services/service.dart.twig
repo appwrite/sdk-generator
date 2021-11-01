@@ -80,7 +80,32 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
         };
 
+{% if 'multipart/form-data' in method.consumes %}
+        dynamic res;
+        if(kIsWeb) {
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+          params['{{ parameter.name }}'] = {{ parameter.name }}.file;
+{% endif %}
+{% endfor %}
+          res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers, responseType: ResponseType.bytes);
+        } else {
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+          final paramName = '{{ parameter.name }}';
+{% endif %}
+{% endfor %}
+          res = await chunkedUpload(
+            client: client,
+            path: path,
+            params: params,
+            paramName: paramName,
+            headers: headers,
+          );
+        }
+{% else %}
         final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
+{% endif %}
         return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst}}.fromMap(res.data){% else %} res.data{% endif %};
 {% endif %}
     }

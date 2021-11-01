@@ -1,0 +1,43 @@
+import 'models/client.dart';
+import 'dart:io' as io;
+import 'models/enums.dart';
+import 'package:http/http.dart' as http;
+import 'models/response.dart';
+import 'dart:math';
+
+Future<Response> chunkedUpload({
+  required Client client,
+  required String path,
+  required Map<String, dynamic> params,
+  required String paramName,
+  required Map<String, String> headers,
+}) async {
+  String file = params[paramName];
+  
+  io.File iofile = io.File(file);
+  final size = await iofile.length();
+
+  late Response res;
+  if (size <= Client.CHUNK_SIZE) {
+    params['file'] = http.MultipartFile.fromPath('file', file);
+    res = await client.call(HttpMethod.post,
+        path: path, params: params, headers: headers);
+  } else {
+    // read chunk and upload each chunk
+    var offset = 0;
+    final raf = iofile.openSync(mode: io.FileMode.read);
+
+    while (offset < size) {
+      final chunk = raf.readSync(Client.CHUNK_SIZE);
+      params[paramName] =
+          http.MultipartFile.fromBytes(paramName, chunk, filename: iofile.path);
+      headers['content-range'] =
+          'bytes $offset-${min<int>(((offset + Client.CHUNK_SIZE) - 1), size)}/$size';
+      res = await client.call(HttpMethod.post,
+          path: path, headers: headers, params: params);
+      params['fileId'] = res.data['fileId'];
+      offset += Client.CHUNK_SIZE;
+    }
+  }
+  return res;
+}
