@@ -93,7 +93,7 @@ class SDKTest extends TestCase
             'envs' => [
                 'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:8-jdk-alpine sh -c "./gradlew :test -q && cat result.txt"',
             ],
-            'supportException' => false,
+            'supportException' => true,
         ],
 
         'swift-server' => [
