@@ -1,6 +1,7 @@
 import { Service } from '../service.ts';
 import { Payload } from '../client.ts';
 import { AppwriteException } from '../exception.ts';
+import type { Models } from '../models.d.ts'
 
 export class {{ service.name | caseUcfirst }} extends Service {
 {% for method in service.methods %}
@@ -18,7 +19,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
      * @throws {AppwriteException}
      * @returns {Promise}
      */
-    async {{ method.name | caseCamel }}{% if method.type != "location" %}<T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required%}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Response{% else %}T{% endif %}> {
+    async {{ method.name | caseCamel }}{% if spec.definitions[method.responseModel].additionalProperties %}<{{method.responseModel | caseUcfirst}} extends Models.{{method.responseModel | caseUcfirst}}>{% endif %}{% for property in spec.definitions[method.responseModel].properties %}{% if spec.definitions[property.sub_schema].additionalProperties %}<{{property.sub_schema | caseUcfirst}} extends Models.{{property.sub_schema | caseUcfirst}}>{% endif %}{% endfor %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'webAuth' %}Response{% elseif method.type == 'location' %}Response{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% for property in spec.definitions[method.responseModel].properties %}{% if spec.definitions[property.sub_schema].additionalProperties %}<{{property.sub_schema | caseUcfirst}}>{% endif %}{% endfor %}{% else %}{}{% endif %}{% endif %}> {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {

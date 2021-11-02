@@ -1,0 +1,17 @@
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}{{property.sub_schema | caseUcfirst}}[]{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% endmacro %}
+
+export namespace Models {
+{% for definition in spec.definitions %}
+    /**
+     * {{ definition.description }}
+     */
+    export type {{ definition.name | caseUcfirst }}<{% for property in definition.properties %}{% if spec.definitions[property.sub_schema].additionalProperties %}{{property.sub_schema | caseUcfirst}} extends Models.{{property.sub_schema | caseUcfirst}}{% endif %}{% endfor %}> = {
+{% for property in definition.properties %}
+        /**
+         * {{ property.description }}
+         */
+        {{ property.name | escapeKeyword }}{% if not property.required %}?{% endif %}: {{_self.sub_schema(property)}};
+{% endfor %}
+    }
+{% endfor %}
+}
