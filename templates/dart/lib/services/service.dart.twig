@@ -16,7 +16,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {{ method.description|dartComment }}
      ///
 {% endif %}
-    Future<Response> {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) {
+    {% if method.type == 'webAuth' %}Future{% elseif method.type == 'location' %} Future<Uint8List> {% else %} {% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | ucFirstAndEscape}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) async {
         final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
 
         final Map<String, dynamic> params = {
@@ -42,7 +42,8 @@ class {{ service.name | caseUcfirst }} extends Service {
           params[key] = params[key].toString();
         }});
         
-        return client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, responseType: ResponseType.bytes);
+        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, responseType: ResponseType.bytes);
+        return res.data;
 {% else %}
         final Map<String, String> headers = {
 {% for key, header in method.headers %}
@@ -50,7 +51,8 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
         };
 
-        return client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
+        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
+        return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | ucFirstAndEscape}}.fromMap(res.data){% else %} res.data{% endif %};
 {% endif %}
     }
 {% endfor %}

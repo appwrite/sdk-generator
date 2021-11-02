@@ -364,9 +364,21 @@ class Dart extends Language {
 				'minify'        => false,
 			],
             [
+				'scope'         => 'default',
+				'destination'   => '/lib/models.dart',
+				'template'      => 'dart/lib/models.dart.twig',
+				'minify'        => false,
+			],
+            [
                 'scope'         => 'service',
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
                 'template'      => 'dart/lib/services/service.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/lib/src/models/{{definition.name | caseSnake }}.dart',
+                'template'      => 'dart/lib/src/models/model.dart.twig',
                 'minify'        => false,
             ],
             [
