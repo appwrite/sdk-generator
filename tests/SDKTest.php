@@ -411,7 +411,7 @@ class SDKTest extends TestCase
                     $removed = array_shift($output);
                 } while ($removed != 'Test Started' && sizeof($output) != 0);
 
-                $this->assertEquals(count($options['expectedOutput']), count($output));
+                $this->assertGreaterThanOrEqual(count($options['expectedOutput']), count($output));
 
                 foreach ($output as $i => $row) {
                     $this->assertEquals($options['expectedOutput'][$i], $row);
