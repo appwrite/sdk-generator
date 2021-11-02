@@ -413,8 +413,8 @@ class SDKTest extends TestCase
 
                 $this->assertGreaterThanOrEqual(count($options['expectedOutput']), count($output));
 
-                foreach ($output as $i => $row) {
-                    $this->assertEquals($options['expectedOutput'][$i], $row);
+                foreach ($options['expectedOutput'] as $i => $row) {
+                    $this->assertEquals($output[$i], $row);
                 }
             }
         }
