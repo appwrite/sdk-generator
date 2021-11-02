@@ -10,6 +10,37 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+const FOO_RESPONSES = [
+    'GET:/v1/mock/tests/foo:passed',
+    'POST:/v1/mock/tests/foo:passed',
+    'PUT:/v1/mock/tests/foo:passed',
+    'PATCH:/v1/mock/tests/foo:passed',
+    'DELETE:/v1/mock/tests/foo:passed',
+];
+
+const BAR_RESPONSES = [
+    'GET:/v1/mock/tests/bar:passed',
+    'POST:/v1/mock/tests/bar:passed',
+    'PUT:/v1/mock/tests/bar:passed',
+    'PATCH:/v1/mock/tests/bar:passed',
+    'DELETE:/v1/mock/tests/bar:passed',
+];
+
+const GENERAL_RESPONSES = [
+    'GET:/v1/mock/tests/general/redirect/done:passed',
+    'POST:/v1/mock/tests/general/upload:passed',
+];
+
+const EXCEPTION_RESPONSES = [
+    'Mock 400 error',
+    'Server Error',
+    'This is a text error',
+];
+
+const REALTIME_RESPONSES = [
+    'WS:/v1/realtime:passed',
+];
+
 class SDKTest extends TestCase
 {
     /**
@@ -25,6 +56,12 @@ class SDKTest extends TestCase
                 'php-8.0' => 'docker run --rm -v $(pwd):/app -w /app php:8.0-cli-alpine php tests/languages/php/test.php',
             ],
             'supportException' => true,
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
+            ],
         ],
 
         'cli' => [
@@ -39,7 +76,11 @@ class SDKTest extends TestCase
             'envs' => [
                 'default' => 'php tests/languages/cli/test.php',
             ],
-            'supportException' => false,
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+            ],
         ],
 
         'dart' => [
@@ -53,7 +94,12 @@ class SDKTest extends TestCase
                 'dart-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart dart:stable sh -c "dart pub get && dart pub run tests/tests.dart"',
                 'dart-beta' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart dart:beta sh -c "dart pub get && dart pub run tests/tests.dart"',
             ],
-            'supportException' => true,
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
+            ],
         ],
 
         'flutter' => [
@@ -65,8 +111,13 @@ class SDKTest extends TestCase
             'envs' => [
                 'flutter-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart"',
             ],
-            'supportException' => true,
-            'supportRealtime' => true,
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
+                ...REALTIME_RESPONSES,
+            ],
         ],
 
         'android' => [
@@ -79,8 +130,13 @@ class SDKTest extends TestCase
             'envs' => [
                 'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:latest-jdk8 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
             ],
-            'supportException' => false,
-            'supportRealtime' => true,
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
+                ...REALTIME_RESPONSES,
+            ],
         ],
 
         'kotlin' => [
@@ -93,7 +149,12 @@ class SDKTest extends TestCase
             'envs' => [
                 'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:8-jdk-alpine sh -c "./gradlew :test -q && cat result.txt"',
             ],
-            'supportException' => false,
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
+            ],
         ],
 
         'swift-server' => [
@@ -105,7 +166,12 @@ class SDKTest extends TestCase
             'envs' => [
                 'swift-5.5' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-server swift:5.5 swift test',
             ],
-            'supportException' => true,
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
+            ],
         ],
 
         'swift-client' => [
@@ -117,8 +183,13 @@ class SDKTest extends TestCase
             'envs' => [
                 'swift-5.5' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-client swift:5.5 swift test',
             ],
-            'supportException' => true,
-            'supportRealtime' => true,
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
+                ...REALTIME_RESPONSES,
+            ],
         ],
 
         'dotnet' => [
@@ -133,7 +204,12 @@ class SDKTest extends TestCase
                 'dotnet-5.0' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:5.0-alpine pwsh tests.ps1',
                 'dotnet-3.1' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:3.1-alpine pwsh tests.ps1',
             ],
-            'supportException' => true,
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
+            ],
         ],
 
         'web' => [
@@ -150,8 +226,13 @@ class SDKTest extends TestCase
                 'firefox' => 'docker run --rm -v $(pwd):/app -e BROWSER=firefox -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
                 'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node node.js',
             ],
-            'supportException' => true,
-            'supportRealtime' => true
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
+                ...REALTIME_RESPONSES,
+            ],
         ],
         'deno' => [
             'class' => 'Appwrite\SDK\Language\Deno',
@@ -160,7 +241,12 @@ class SDKTest extends TestCase
             'envs' => [
                 'deno-1.1.3' => 'docker run --rm -v $(pwd):/app -w /app hayd/alpine-deno:1.1.3 run --allow-net --allow-read tests/languages/deno/tests.ts', // TODO: use official image when its out
             ],
-            'supportException' => true,
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
+            ],
         ],
 
         'node' => [
@@ -173,7 +259,12 @@ class SDKTest extends TestCase
                 'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app node:14-alpine node tests/languages/node/test.js',
                 'nodejs-16' => 'docker run --rm -v $(pwd):/app -w /app node:16-alpine node tests/languages/node/test.js',
             ],
-            'supportException' => true,
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
+            ],
         ],
 
         'ruby' => [
@@ -184,7 +275,12 @@ class SDKTest extends TestCase
             'envs' => [
                 'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.7-alpine ruby tests/languages/ruby/tests.rb',
             ],
-            'supportException' => false,
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
+            ],
         ],
 
         'python' => [
@@ -200,7 +296,12 @@ class SDKTest extends TestCase
                 'python-3.7' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.7-alpine python tests/sdks/python/test.py',
                 'python-3.6' => 'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.7-alpine python tests/sdks/python/test.py',
             ],
-            'supportException' => true,
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
+            ],
         ],
     ];
 
@@ -231,6 +332,7 @@ class SDKTest extends TestCase
         }
 
         $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin', 'swift-server', 'swift-client'];
+        $whitelist = ['flutter'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
@@ -309,29 +411,10 @@ class SDKTest extends TestCase
                     $removed = array_shift($output);
                 } while ($removed != 'Test Started' && sizeof($output) != 0);
 
-                $this->assertGreaterThan(10, count($output));
+                $this->assertGreaterThanOrEqual(count($options['expectedOutput']), count($output));
 
-                $this->assertEquals('GET:/v1/mock/tests/foo:passed', $output[0] ?? '');
-                $this->assertEquals('POST:/v1/mock/tests/foo:passed', $output[1] ?? '');
-                $this->assertEquals('PUT:/v1/mock/tests/foo:passed', $output[2] ?? '');
-                $this->assertEquals('PATCH:/v1/mock/tests/foo:passed', $output[3] ?? '');
-                $this->assertEquals('DELETE:/v1/mock/tests/foo:passed', $output[4] ?? '');
-                $this->assertEquals('GET:/v1/mock/tests/bar:passed', $output[5] ?? '');
-                $this->assertEquals('POST:/v1/mock/tests/bar:passed', $output[6] ?? '');
-                $this->assertEquals('PUT:/v1/mock/tests/bar:passed', $output[7] ?? '');
-                $this->assertEquals('PATCH:/v1/mock/tests/bar:passed', $output[8] ?? '');
-                $this->assertEquals('DELETE:/v1/mock/tests/bar:passed', $output[9] ?? '');
-                $this->assertEquals('GET:/v1/mock/tests/general/redirect/done:passed', $output[10] ?? '');
-                $this->assertEquals('POST:/v1/mock/tests/general/upload:passed', $output[11] ?? '');
-
-                if ($options['supportException']) {
-                    $this->assertEquals('Mock 400 error',$output[12] ?? '');
-                    $this->assertEquals('Server Error', $output[13] ?? '');
-                    $this->assertEquals('This is a text error', $output[14] ?? '');
-                }
-
-                if ($options['supportRealtime'] ?? false) {
-                    $this->assertEquals('WS:/v1/realtime:passed', $output[15] ?? '');
+                foreach ($output as $i => $row) {
+                    $this->assertEquals($options['expectedOutput'][$i], $row);
                 }
             }
         }
