@@ -4,6 +4,8 @@ import 'enums.dart';
 import 'package:http/http.dart' as http;
 import 'response.dart';
 import 'dart:math';
+import 'input_file.dart';
+import 'exception.dart';
 
 Future<Response> chunkedUpload({
   required Client client,
@@ -12,7 +14,7 @@ Future<Response> chunkedUpload({
   required String paramName,
   required Map<String, String> headers,
 }) async {
-  String file = params[paramName];
+  InputFile file = params[paramName];
   if (file.path == null) {
     throw AppwriteException("File path must be provided for dart:io");
   }
@@ -37,8 +39,10 @@ Future<Response> chunkedUpload({
           'bytes $offset-${min<int>(((offset + Client.CHUNK_SIZE) - 1), size)}/$size';
       res = await client.call(HttpMethod.post,
           path: path, headers: headers, params: params);
-      params['fileId'] = res.data['fileId'];
       offset += Client.CHUNK_SIZE;
+      if(offset < size) {
+        headers['x-appwrite-id'] = res.data['\$id'];
+      }
     }
   }
   return res;
