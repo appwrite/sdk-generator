@@ -34,11 +34,11 @@ namespace {{ spec.title | caseUcfirst }}.Models
 
         public static {{ definition.name | caseUcfirst }} From(Dictionary<string, object> map) => new(
 {% for property in definition.properties %}
-            {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}(map["{{ property.name }}"] as IEnumerable<Dictionary<string, object>>).Select(it => {{ property.sub_schema | caseUcfirst }}.From(map: it)).ToList(){% else %}{{property.sub_schema | caseUcfirst}}.From(map: map["{{property.name }}"] as Dictionary<string, object>){% endif %}{% else %}{% if property.type == 'integer' or property.type == 'number' or property.type == 'boolean' %}({{ property.type | typeName }})map["{{ property.name }}"]{% else %}map["{{ property.name }}"] as {{ property.type | typeName }}{% endif %}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}((IEnumerable<Dictionary<string, object>>)map["{{ property.name }}"]).Select(it => {{ property.sub_schema | caseUcfirst }}.From(map: it)).ToList(){% else %}{{property.sub_schema | caseUcfirst}}.From(map: (Dictionary<string, object>)map["{{property.name }}"]){% endif %}{% else %}({{ property.type | typeName }})map["{{ property.name }}"]{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}
-            data: map["data"] as Dictionary<string, object>
+            data: (Dictionary<string, object>)map["data"]
 {% endif %}
         );
 
