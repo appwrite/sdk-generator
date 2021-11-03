@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 
 using Appwrite;
+using Appwrite.Models;
 using NUnit.Framework;
 
 namespace AppwriteTests
@@ -12,82 +14,82 @@ namespace AppwriteTests
         [SetUp]
         public void Setup()
         {
-            Console.WriteLine("Test Started");
+            TestContext.WriteLine("Test Started");
         }
 
         [Test]
-        public void Test1()
+        public async Task Test1()
         {
             var client = new Client();
-            var foo = new Foo();
-            var bar = new Bar();
-            var general = new General();
+            var foo = new Foo(client);
+            var bar = new Bar(client);
+            var general = new General(client);
 
             Mock mock;
             // Foo Tests
             mock = await foo.Get("string", 123, new() { "string in array" });
-            Console.WriteLine(mock.result);
+            TestContext.WriteLine(mock.Result);
 
             mock = await foo.Post("string", 123, new() { "string in array" });
-            Console.WriteLine(mock.result);
+            TestContext.WriteLine(mock.Result);
 
             mock = await foo.Put("string", 123, new() { "string in array" });
-            Console.WriteLine(mock.result);
+            TestContext.WriteLine(mock.Result);
 
             mock = await foo.Patch("string", 123, new() { "string in array" });
-            Console.WriteLine(mock.result);
+            TestContext.WriteLine(mock.Result);
 
             mock = await foo.Delete("string", 123, new() { "string in array" });
-            Console.WriteLine(mock.result);
+            TestContext.WriteLine(mock.Result);
 
             // Bar Tests
             mock = await bar.Get("string", 123, new() { "string in array" });
-            Console.WriteLine(mock.result);
+            TestContext.WriteLine(mock.Result);
 
             mock = await bar.Post("string", 123, new() { "string in array" });
-            Console.WriteLine(mock.result);
+            TestContext.WriteLine(mock.Result);
 
             mock = await bar.Put("string", 123, new() { "string in array" });
-            Console.WriteLine(mock.result);
+            TestContext.WriteLine(mock.Result);
 
             mock = await bar.Patch("string", 123, new() { "string in array" });
-            Console.WriteLine(mock.result);
+            TestContext.WriteLine(mock.Result);
 
             mock = await bar.Delete("string", 123, new() { "string in array" });
-            Console.WriteLine(mock.result);
+            TestContext.WriteLine(mock.Result);
 
             // General Tests
-            var result = general.redirect()
-            Console.WriteLine((result as Dictionary<string, object>)["result"]);
+            var result = await general.Redirect();
+            TestContext.WriteLine((result as Dictionary<string, object>)["result"]);
 
-            mock = general.upload("string", 123, new() { "string in array" }, new FileInfo("../../../resources/file.png"));
-            Console.WriteLine(mock.result);
-
-            try
-            {
-                general.Error400();
-            }
-            catch (AppwriteException e)
-            {
-                Console.WriteLine(e.Message);
-            }
+            mock = await general.Upload("string", 123, new() { "string in array" }, new FileInfo("../../../../../../../resources/file.png"));
+            TestContext.WriteLine(mock.Result);
 
             try
             {
-                general.Error500();
+                await general.Error400();
             }
             catch (AppwriteException e)
             {
-                Console.WriteLine(e.Message);
+                TestContext.WriteLine(e.Message);
             }
 
             try
             {
-                general.Error502();
+                await general.Error500();
             }
             catch (AppwriteException e)
             {
-                Console.WriteLine(e.Message);
+                TestContext.WriteLine(e.Message);
+            }
+
+            try
+            {
+                await general.Error502();
+            }
+            catch (AppwriteException e)
+            {
+                TestContext.WriteLine(e.Message);
             }
         }
     }
