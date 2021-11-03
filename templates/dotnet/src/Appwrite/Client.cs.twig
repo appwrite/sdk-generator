@@ -96,7 +96,7 @@ namespace {{ spec.title | caseUcfirst }}
             Dictionary<string, string> headers,
             Dictionary<string, object> parameters,
             Func<Dictionary<string, object>, T>? convert = null,
-            Type? responseType = null)
+            Type? responseType = null) where T : class
         {
             if (selfSigned)
             {
@@ -127,12 +127,12 @@ namespace {{ spec.title | caseUcfirst }}
                         var list = new List<object>(enumerable);
                         for (int index = 0; index < list.Count; index++)
                         {
-                            form.Add(new StringContent(list[index].ToString()), $"{parameter.Key}[{index}]");
+                            form.Add(new StringContent(list[index].ToString()!), $"{parameter.Key}[{index}]");
                         }
                     }
                     else
                     {
-                        form.Add(new StringContent(parameter.Value.ToString()), parameter.Key);
+                        form.Add(new StringContent(parameter.Value.ToString()!), parameter.Key);
                     }
                 }
                 request.Content = form;
@@ -178,27 +178,43 @@ namespace {{ spec.title | caseUcfirst }}
             {
                 var httpResponseMessage = await http.SendAsync(request);
                 var code = (int) httpResponseMessage.StatusCode;
-                var response = await httpResponseMessage.Content.ReadAsStringAsync();
+                var contentType = httpResponseMessage.Content.Headers
+                    .GetValues("Content-Type")
+                    .FirstOrDefault() ?? string.Empty;
+
+                var isJson = contentType.Contains("application/json");
+                var isBytes = contentType.Contains("application/octet-stream");
 
                 if (code >= 400) {
-                    var message = response.ToString();
-                    var isJson = httpResponseMessage.Content.Headers.GetValues("Content-Type").FirstOrDefault().Contains("application/json");
+                    var message = await httpResponseMessage.Content.ReadAsStringAsync();
 
                     if (isJson) {
-                        message = (JObject.Parse(message))["message"].ToString();
+                        message = JObject.Parse(message)["message"]!.ToString();
                     }
 
-                    throw new {{spec.title | caseUcfirst}}Exception(message, code, response.ToString());
+                    throw new {{spec.title | caseUcfirst}}Exception(message, code);
                 }
 
-                var dict = JsonConvert.DeserializeObject<Dictionary<string, object>>(response.ToString());
-
-                if (convert != null)
+                if (isJson)
                 {
-                    return convert(dict);
-                }
+                    var responseString = await httpResponseMessage.Content.ReadAsStringAsync();
+                    var dict = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseString);
 
-                return default;
+                    if (convert != null)
+                    {
+                        return convert(dict!);
+                    }
+
+                    return (dict as T)!;
+                }
+                else if (isBytes)
+                {
+                    return ((await httpResponseMessage.Content.ReadAsByteArrayAsync()) as T)!;
+                }
+                else
+                {
+                    return default!;
+                }
             }
             catch (System.Exception e)
             {

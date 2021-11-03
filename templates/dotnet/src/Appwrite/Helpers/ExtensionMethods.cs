@@ -31,12 +31,12 @@ namespace {{ spec.title | caseUcfirst }}
                     {
                         foreach(object entry in (dynamic) value)
                         {
-                            query.Add(key + "[]=" + Uri.EscapeUriString(entry.ToString()));
+                            query.Add($"{key}[]={Uri.EscapeUriString(entry.ToString()!)}");
                         }
-                    } 
-                    else 
+                    }
+                    else
                     {
-                        query.Add(key + "=" + Uri.EscapeUriString(value.ToString()));
+                        query.Add($"{key}={Uri.EscapeUriString(value.ToString()!)}");
                     }
                 }
             }

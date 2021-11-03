@@ -8,9 +8,9 @@ namespace Appwrite
         public string? Response { get; set; } = null;
 
         public {{spec.title | caseUcfirst}}Exception(
-            string message = null,
+            string? message = null,
             int? code = null,
-            string response = null) : base(message)
+            string? response = null) : base(message)
         {
             this.Code = code;
             this.Response = response;
