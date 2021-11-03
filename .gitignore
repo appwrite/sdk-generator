@@ -10,7 +10,6 @@
 examples/*
 
 # exception to the rule
-!*/flutter
 !examples/.gitkeep
 .DS_Store
 **/.DS_Store
