@@ -23,7 +23,7 @@ Future<Response> chunkedUpload({
 
   late Response res;
   if (size <= Client.CHUNK_SIZE) {
-    params['file'] = await http.MultipartFile.fromPath(paramName, file.path!);
+    params['file'] = await http.MultipartFile.fromPath(paramName, file.path!, filename: file.fileName);
     res = await client.call(HttpMethod.post,
         path: path, params: params, headers: headers);
   } else {
