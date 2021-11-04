@@ -79,7 +79,7 @@ class SDKTest extends TestCase
             'envs' => [
                 'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:latest-jdk8 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
             ],
-            'supportException' => false,
+            'supportException' => true,
             'supportRealtime' => true,
         ],
 
