@@ -130,13 +130,8 @@ class SDKTest extends TestCase
             'envs' => [
                 'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:latest-jdk8 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
             ],
-            'expectedOutput' => [
-                ...FOO_RESPONSES,
-                ...BAR_RESPONSES,
-                ...GENERAL_RESPONSES,
-                ...EXCEPTION_RESPONSES,
-                ...REALTIME_RESPONSES,
-            ],
+            'supportException' => true,
+            'supportRealtime' => true,
         ],
 
         'kotlin' => [
@@ -149,12 +144,7 @@ class SDKTest extends TestCase
             'envs' => [
                 'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:8-jdk-alpine sh -c "./gradlew :test -q && cat result.txt"',
             ],
-            'expectedOutput' => [
-                ...FOO_RESPONSES,
-                ...BAR_RESPONSES,
-                ...GENERAL_RESPONSES,
-                ...EXCEPTION_RESPONSES,
-            ],
+            'supportException' => true,
         ],
 
         'swift-server' => [
