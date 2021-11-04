@@ -127,8 +127,6 @@ class SDKTest extends TestCase
                 'mkdir -p tests/sdks/dotnet/src/test',
                 'cp tests/languages/dotnet/Tests.cs tests/sdks/dotnet/src/test/Tests.cs',
                 'cp tests/languages/dotnet/Tests.csproj tests/sdks/dotnet/src/test/Tests.csproj',
-                'cp -R tests/sdks/dotnet/io/appwrite/src/* tests/sdks/dotnet/src',
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src mcr.microsoft.com/dotnet/sdk:5.0-alpine dotnet publish -c Release -o test -f netstandard2.0',
             ],
             'envs' => [
                 'dotnet-5.0' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:5.0-alpine dotnet test -v n',
