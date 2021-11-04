@@ -36,7 +36,6 @@ class Kotlin extends Language {
             "constructor",
             "continue",
             "crossinline",
-            "data",
             "delegate",
             "do",
             "dynamic",
@@ -351,12 +350,6 @@ class Kotlin extends Language {
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/JsonExtensions.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/extensions/JsonExtensions.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/Error.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Error.kt.twig',
                 'minify'        => false,
             ],
             [
