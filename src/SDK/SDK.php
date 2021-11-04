@@ -204,6 +204,14 @@ class SDK
 
             return $value;
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('ucFirstAndEscape', function ($value) use ($language) {
+            $value = ucfirst((string)$this->helperCamelCase($value));
+            if(in_array($value, $language->getKeywords())) {
+                $value = 'x' . $value;
+            }
+
+            return ucfirst((string)$this->helperCamelCase($value));
+        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('caseHTML', function ($value) {
             return $value;
         }, ['is_safe' => ['html']]));

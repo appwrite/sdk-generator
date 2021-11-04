@@ -314,16 +314,11 @@ class Client @JvmOverloads constructor(
 
                     val contentType: String = response.headers["content-type"] ?: ""
                     val error = if (contentType.contains("application/json", ignoreCase = true)) {
-                        bodyString.fromJson<{{ spec.title | caseUcfirst }}Exception>()
+                        bodyString.fromJson()
                     } else {
                         {{ spec.title | caseUcfirst }}Exception(bodyString, response.code)
                     }
-
-                    it.cancel(AppwriteException(
-                        error.message,
-                        error.code,
-                        bodyString
-                    ))
+                    it.cancel(error)
                 }
                 it.resume(response)
             }
