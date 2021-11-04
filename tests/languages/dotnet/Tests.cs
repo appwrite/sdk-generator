@@ -27,42 +27,42 @@ namespace AppwriteTests
 
             Mock mock;
             // Foo Tests
-            mock = await foo.Get("string", 123, new() { "string in array" });
+            mock = await foo.Get("string", 123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await foo.Post("string", 123, new() { "string in array" });
+            mock = await foo.Post("string", 123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await foo.Put("string", 123, new() { "string in array" });
+            mock = await foo.Put("string", 123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await foo.Patch("string", 123, new() { "string in array" });
+            mock = await foo.Patch("string", 123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await foo.Delete("string", 123, new() { "string in array" });
+            mock = await foo.Delete("string", 123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
             // Bar Tests
-            mock = await bar.Get("string", 123, new() { "string in array" });
+            mock = await bar.Get("string", 123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await bar.Post("string", 123, new() { "string in array" });
+            mock = await bar.Post("string", 123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await bar.Put("string", 123, new() { "string in array" });
+            mock = await bar.Put("string", 123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await bar.Patch("string", 123, new() { "string in array" });
+            mock = await bar.Patch("string", 123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await bar.Delete("string", 123, new() { "string in array" });
+            mock = await bar.Delete("string", 123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
             // General Tests
             var result = await general.Redirect();
             TestContext.WriteLine((result as Dictionary<string, object>)["result"]);
 
-            mock = await general.Upload("string", 123, new() { "string in array" }, new FileInfo("../../../../../../../resources/file.png"));
+            mock = await general.Upload("string", 123, new List<object>() { "string in array" }, new FileInfo("../../../../../../../resources/file.png"));
             TestContext.WriteLine(mock.Result);
 
             try

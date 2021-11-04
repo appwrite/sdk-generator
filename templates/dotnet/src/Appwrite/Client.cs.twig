@@ -14,20 +14,20 @@ namespace {{ spec.title | caseUcfirst }}
 {
     public class Client
     {
-        private readonly HttpClient http;
+        private HttpClient http;
         private readonly Dictionary<string, string> headers;
         private readonly Dictionary<string, string> config;
         private string endPoint;
         private bool selfSigned;
-        
-        public Client() : this("https://appwrite.io/v1", false, new HttpClient())
-        {
-        }
 
-        public Client(string endPoint, bool selfSigned, HttpClient http)
+        public Client(
+            string endPoint = "https://appwrite.io/v1",
+            bool selfSigned = false,
+            HttpClient? http = null)
         {
             this.endPoint = endPoint;
             this.selfSigned = selfSigned;
+            this.http = http ?? new HttpClient();
             this.headers = new Dictionary<string, string>()
             {
                 { "content-type", "application/json" },
@@ -39,12 +39,21 @@ namespace {{ spec.title | caseUcfirst }}
 
             };
             this.config = new Dictionary<string, string>();
-            this.http = http;                 
         }
 
         public Client SetSelfSigned(bool selfSigned)
         {
             this.selfSigned = selfSigned;
+
+            var handler = new HttpClientHandler()
+            {
+                ServerCertificateCustomValidationCallback = (request, cert, chain, errors) => true
+            };
+
+            http = selfSigned
+                ? new HttpClient(handler)
+                : new HttpClient();
+
             return this;
         }
 
@@ -98,18 +107,13 @@ namespace {{ spec.title | caseUcfirst }}
             Func<Dictionary<string, object>, T>? convert = null,
             Type? responseType = null) where T : class
         {
-            if (selfSigned)
-            {
-                ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
-            }
-
-            var methodGet = "GET".Equals(method, StringComparison.InvariantCultureIgnoreCase);
+            var methodGet = "GET".Equals(method, StringComparison.OrdinalIgnoreCase);
 
             var queryString = methodGet ? "?" + parameters.ToQueryString() : string.Empty;
 
             var request = new HttpRequestMessage(new HttpMethod(method), endPoint + path + queryString);
 
-            if ("multipart/form-data".Equals(headers["content-type"], StringComparison.InvariantCultureIgnoreCase))
+            if ("multipart/form-data".Equals(headers["content-type"], StringComparison.OrdinalIgnoreCase))
             {
                 var form = new MultipartFormDataContent();
 
@@ -147,7 +151,7 @@ namespace {{ spec.title | caseUcfirst }}
 
             foreach (var header in this.headers)
             {
-                if (header.Key.Equals("content-type", StringComparison.InvariantCultureIgnoreCase))
+                if (header.Key.Equals("content-type", StringComparison.OrdinalIgnoreCase))
                 {
                     http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(header.Value));
                 }
@@ -162,7 +166,7 @@ namespace {{ spec.title | caseUcfirst }}
 
             foreach (var header in headers)
             {
-                if (header.Key.Equals("content-type", StringComparison.InvariantCultureIgnoreCase))
+                if (header.Key.Equals("content-type", StringComparison.OrdinalIgnoreCase))
                 {
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(header.Value));
                 }

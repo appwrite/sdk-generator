@@ -23,20 +23,20 @@ namespace {{ spec.title | caseUcfirst }}
         {
             var query = new List<string>();
 
-            foreach (var (key, value) in parameters)
+            foreach (var kvp in parameters)
             {
-                if (value != null)
+                if (kvp.Value != null)
                 {
-                    if (value is List<object>)
+                    if (kvp.Value is List<object> list)
                     {
-                        foreach(object entry in (dynamic) value)
+                        foreach(object entry in list)
                         {
-                            query.Add($"{key}[]={Uri.EscapeUriString(entry.ToString()!)}");
+                            query.Add($"{kvp.Key}[]={Uri.EscapeUriString(entry.ToString()!)}");
                         }
                     }
                     else
                     {
-                        query.Add($"{key}={Uri.EscapeUriString(value.ToString()!)}");
+                        query.Add($"{kvp.Key}={Uri.EscapeUriString(kvp.Value.ToString()!)}");
                     }
                 }
             }
