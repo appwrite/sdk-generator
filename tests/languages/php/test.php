@@ -62,6 +62,9 @@ echo "{$response['result']}\n";
 $response = $general->upload('string', 123, ['string in array'], __DIR__ . '/../../resources/file.png');
 echo "{$response['result']}\n";
 
+$response = $general->upload('string', 123, ['string in array'], __DIR__ . '/../../resources/large_file.mp4');
+echo "{$response['result']}\n";
+
 try {
     $response = $general->error400();
 } catch (AppwriteException $e) {
