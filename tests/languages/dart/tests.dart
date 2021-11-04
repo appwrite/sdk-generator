@@ -53,7 +53,7 @@ void main() async {
   print(res['result']);
 
   var file = InputFile(path: '../../resources/file.png',
-      filename: 'file.png');
+      fileName: 'file.png');
   response = await general.upload(
       x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
