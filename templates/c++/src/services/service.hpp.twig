@@ -1,0 +1,21 @@
+#ifndef APPWRITE_{{ service.name | caseUpper }}_H
+#define APPWRITE_{{ service.name | caseUpper }}_H
+
+#include <cstring>
+#include <map>
+#include "../temp_libs/json.hpp"
+#include "../client.hpp"
+#include "../service.hpp"
+using namespace std;
+using json = nlohmann::json;
+
+namespace {{ spec.title | caseUcfirst }} {
+
+class {{ service.name | caseUcfirst }} : public Service {
+public:
+{% for method in service.methods %}
+    {% if method.type == 'location' %}string{% else %}json{% endif %} {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.type | typeName }} {{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}{{ parameter | paramDefault }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %});
+{% endfor %}
+};
+}
+#endif

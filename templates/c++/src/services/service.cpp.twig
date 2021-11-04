@@ -1,0 +1,85 @@
+#include <string>
+#include <map>
+#include "../temp_libs/json.hpp"
+#include "../client.hpp"
+#include "../exception.hpp"
+#include "../service.hpp"
+#include "users.hpp"
+
+using string = std::string;
+using json = nlohmann::json;
+
+namespace {{ spec.title | caseUcfirst }} {
+
+class {{ service.name | caseUcfirst }} : public Service {
+ public:
+{% for method in service.methods %}
+    /**
+     * {{ method.title }}
+     *
+{% if method.description %}
+{{ method.description|comment1 }}
+     *
+{% endif %}
+{% for parameter in method.parameters.all %}
+     * @param {{ parameter.type | typeName }} {{ parameter.name | caseCamel | escapeKeyword }}
+{% endfor %}
+     * @throws {{spec.title | caseUcfirst}}Exception
+     * @return {% if method.type == "location" %}string{% else %}array{% endif %}
+
+     */
+    {% if method.type == "location" %}string{% else %}json{% endif %} {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.type | typeName }}* {{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = NULL{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) {
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+        if (!isset({{ parameter.name | caseCamel | escapeKeyword }})) {
+            throw new {{spec.title | caseUcfirst}}Exception("Missing required parameter: '{{ parameter.name | caseCamel | escapeKeyword }}'");
+        }
+
+{% endif %}
+{% endfor %}
+        map<string, string> params;
+        string path = "{{ method.path }}";
+        size_t pos;
+        string searchString;
+{% for parameter in method.parameters.path %}
+        searchString = "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}";
+        pos = path.find(searchString);
+        if (pos != std::string::npos)
+            path = path.replace(pos, searchString.length(), "{{ parameter.name | caseCamel | escapeKeyword }}");
+{% endfor %}
+
+{% for parameter in method.parameters.query %}
+        if ({{ parameter.name | caseCamel | escapeKeyword }} != NULL) {
+            params["{{ parameter.name }}"] = *{{ parameter.name | caseCamel | escapeKeyword }};
+        }
+
+{% endfor %}
+{% for parameter in method.parameters.body %}
+        if ({{ parameter.name | caseCamel | escapeKeyword }} != NULL) {
+            params["{{ parameter.name }}"] = *{{ parameter.name | caseCamel | escapeKeyword }};
+        }
+
+{% endfor %}
+{% for parameter in method.parameters.formData %}
+        if ({{ parameter.name | caseCamel | escapeKeyword }} != NULL) {
+            params["{{ parameter.name }}"] = *{{ parameter.name | caseCamel | escapeKeyword }};
+        }
+
+{% endfor %}
+        map<string, string> headers = {
+{% for parameter in method.parameters.header %}
+            {{ '{' }}"{{ parameter.name }}", {{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }},
+{% endfor %}
+{% for key, header in method.headers %}
+            {{ '{' }}"{{ key }}", "{{ header }}"{{ '}' }},
+{% endfor %}
+        };
+
+        return this->client->call(Client::METHOD_{{ method.method | caseUpper }}, path, headers, params);
+    }
+{% if not loop.last %}
+
+{% endif %}
+{% endfor %}
+};
+}

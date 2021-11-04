@@ -1,0 +1,21 @@
+#pragma once
+
+#include <stdexcept>
+#include <string>
+
+using string = std::string;
+
+namespace {{ spec.title | caseUcfirst }} {
+
+class {{spec.title | caseUcfirst}}Exception : public std::runtime_error {
+ protected:
+    string message;
+    int code;
+    string response;
+
+ public:
+    explicit {{spec.title | caseUcfirst}}Exception(string message, int code = 0, string response = "");
+    const char* what() const throw();
+    string getResponse();
+};
+} // namespace {{ spec.title | caseUcfirst }}
