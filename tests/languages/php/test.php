@@ -19,7 +19,7 @@ $bar = new Bar($client);
 $general = new General($client);
 
 $client->addHeader('Origin', 'http://localhost');
-$client->setEndpoint("http://chunked.appwrite.org/v1") //TODO remember to remove this
+$client->setEndpoint("http://chunked.appwrite.org/v1"); //TODO remember to remove this
 
 echo "\nTest Started\n";
 
