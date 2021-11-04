@@ -1,0 +1,24 @@
+{
+    "name": "appwrite/appwrite",
+    "description": "Repo short description goes here",
+    "type": "library",
+    "license": "BSD-3-Clause",
+    "support": {
+        "url": "https://appwrite.io/support",
+        "email": "team@appwrite.io"
+    },
+    "autoload": {
+        "psr-4": {
+            "Appwrite\\": "src/Appwrite"
+        }
+    },
+    "require": {
+        "php": ">=7.1.0",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "3.7.35"
+    },
+    "minimum-stability": "dev"
+}

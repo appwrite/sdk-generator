@@ -1,0 +1,53 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.4.32'
+    id 'java-library'
+}
+
+
+ext {
+    PUBLISH_GROUP_ID = 'io.appwrite'
+    PUBLISH_ARTIFACT_ID = 'sdk-for-kotlin'
+    PUBLISH_VERSION = '0.0.0-SNAPSHOT'
+    POM_URL = 'https://github.com/appwrite/sdk-for-kotlin'
+    POM_SCM_URL = 'https://github.com/appwrite/sdk-for-kotlin'
+    POM_ISSUE_URL = 'https://github.com/appwrite/sdk-for-kotlin/issues'
+    POM_DESCRIPTION = 'Appwrite is an open-source backend as a service server that abstract and simplify complex and repetitive development tasks behind a very simple to use REST API. Appwrite aims to help you develop your apps faster and in a more secure way. Use the Flutter SDK to integrate your app with the Appwrite server to easily start interacting with all of Appwrite backend APIs and tools. For full API documentation and tutorials go to https://appwrite.io/docs'
+    POM_LICENSE_URL = 'https://opensource.org/licenses/GPL-3.0'
+    POM_LICENSE_NAME = "GPL-3.0"
+    POM_DEVELOPER_ID = 'appwrite'
+    POM_DEVELOPER_NAME = 'Appwrite Team'
+    POM_DEVELOPER_EMAIL = 'team@appwrite.io'
+    GITHUB_SCM_CONNECTION = 'scm:git:git://github.com/appwrite/sdk-for-kotlin.git'
+}
+
+version PUBLISH_VERSION
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.3")
+    api(platform("com.squareup.okhttp3:okhttp-bom:4.9.0"))
+    api("com.squareup.okhttp3:okhttp")
+    implementation("com.squareup.okhttp3:okhttp-urlconnection")
+    implementation("com.squareup.okhttp3:logging-interceptor")
+    implementation("com.google.code.gson:gson:2.8.5")
+
+    testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
+}
+
+test {
+    useJUnit()
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = '1.8'
+}
+
+compileTestKotlin {
+    kotlinOptions.jvmTarget = '1.8'
+}
+
+apply from: "${rootDir}/scripts/setup.gradle"
+apply from: "${rootDir}/scripts/publish.gradle"

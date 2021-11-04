@@ -1,0 +1,18 @@
+{
+  "name": "package-name",
+  "homepage": "https://appwrite.io/support",
+  "description": "Repo short description goes here",
+  "version": "",
+  "license": "",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "devDependencies": {},
+  "dependencies": {
+    "axios": "^0.21.1",
+    "form-data": "^4.0.0"
+  }
+}

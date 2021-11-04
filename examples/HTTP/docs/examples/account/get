@@ -1,0 +1,7 @@
+GET /v1/account HTTP/1.1
+Host: appwrite.io
+content-type: application/json
+X-Appwrite-Project: 5df5acd0d48c2
+X-Appwrite-Key: 
+X-Appwrite-JWT: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ...
+

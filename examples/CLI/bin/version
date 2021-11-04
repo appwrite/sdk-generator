@@ -1,0 +1,3 @@
+#!/bin/sh
+
+php /usr/local/code/app/client.php version
