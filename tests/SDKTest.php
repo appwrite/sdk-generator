@@ -278,7 +278,6 @@ class SDKTest extends TestCase
                 ...FOO_RESPONSES,
                 ...BAR_RESPONSES,
                 ...GENERAL_RESPONSES,
-                ...EXCEPTION_RESPONSES,
             ],
         ],
 
