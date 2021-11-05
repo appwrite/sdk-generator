@@ -6,7 +6,9 @@ namespace Appwrite {
 /**
  * @param Client client
  */
-explicit Service::Service(Client client) {
+Service::Service(Client client) {
     this->client = &client;
 }
+
+Service::~Service() {}
 } // namespace Appwrite

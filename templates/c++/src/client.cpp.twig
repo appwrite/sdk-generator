@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <map>
 #include <string>
 #include "client.hpp"
 #include "temp_libs/json.hpp"
@@ -65,7 +64,7 @@ Client& Client::setEndpoint(string endpoint) {
 Client& Client::addHeader(string key, string value) {
     string keyLower = key;
     std::transform(keyLower.begin(), keyLower.end(), keyLower.begin(), ::tolower);
-    this->headers.insert(std::pair<string, string>(keyLower, value));
+    this->headers[keyLower] = value;
     return *this;
 }
 
@@ -81,17 +80,18 @@ Client& Client::addHeader(string key, string value) {
  * @return array|string  // TODO: Returning JSON (instead of array), but not string.
  * @throws {{spec.title | caseUcfirst}}Exception
  */
-json Client::call(string method, string path, std::map<string, string> headers, std::map<string, string> params) {
+json Client::call(string method, string path, json headers, json params) {
+    return json({{ "{{" }}"fake response", "will fix soon (TM)" {{ "}}" }});
 /*
     ch = curl_init(this->endpoint + path + ((method == self::METHOD_GET && !empty(params)) ? "?" . http_build_query(params) : ""));
-    std::map<string, string> responseHeaders;
+    json responseHeaders;
     int responseStatus = -1;
     string responseType;
     string responseBody;
 
     // Merge header parameters into Client's existing headers, overwriting any collisions
-    std::map<string, string> call_headers(this->headers);
-    call_headers.insert(headers.begin(), headers.end());
+    json call_headers(this->headers);
+    call_headers.merge_patch(headers);
 
     switch (headers["content-type"]) {
         case "application/json":

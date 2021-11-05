@@ -4,9 +4,9 @@
 
 #include "client.hpp"
 #include "exception.hpp"
+#include "services/users.hpp"
 
 using string = std::string;
-// #include "services/users.hpp"
 
 int main() {
     std::cout << "Hello World!" << std::endl;
@@ -37,13 +37,14 @@ int main() {
         std::cout << "Something broke: " << exc.what() << std::endl;
     }
 
+    // Basic service test: List users
+    std::cout << "Instantiating Users." << std::endl;
+    Appwrite::Users users(client);
+    std::cout << "User list:" << std::endl;
+    std::cout << users.list() << std::endl;
+
+    // See what happens when we don't catch the exception
     throw Appwrite::AppwriteException("I'm not feeling so good.");
 
-    // Once Service classes are working, we can try the following:
-/*
-    Appwrite::Users users(client);
-    std::cout << "User list:";
-    std::cout << users.list();
-*/
     return 0;
 }
