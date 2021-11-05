@@ -360,12 +360,6 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/Error.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Error.kt.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/Service.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/Service.kt.twig',
                 'minify'        => false,
