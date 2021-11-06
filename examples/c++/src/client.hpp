@@ -1,6 +1,5 @@
 #pragma once
 
-#include <map>
 #include <string>
 #include "temp_libs/json.hpp"
 
@@ -11,6 +10,15 @@ namespace Appwrite {
 
 class Client {
  protected:
+    bool selfSigned = false;
+    string endpoint = "https://appwrite.io/v1";
+    json headers = {
+        { "content-type", "" },
+        { "x-sdk-version", "appwrite:c++:0.0.0-SNAPSHOT" },
+        { "x-appwrite-response-format", "0.11.0"},
+    };
+
+ public:
     inline static const string METHOD_GET;
     inline static const string METHOD_POST;
     inline static const string METHOD_PUT;
@@ -21,15 +29,6 @@ class Client {
     inline static const string METHOD_CONNECT;
     inline static const string METHOD_TRACE;
 
-    bool selfSigned = false;
-    string endpoint = "https://appwrite.io/v1";
-    std::map<string, string> headers = {
-        { "content-type", "" },
-        { "x-sdk-version", "appwrite:c++:0.0.0-SNAPSHOT" },
-        { "x-appwrite-response-format", "0.11.0"},
-    };
-
- public:
     Client();
     ~Client();
     Client& setProject(string value);
@@ -39,6 +38,6 @@ class Client {
     Client& setSelfSigned(bool status = true);
     Client& setEndpoint(string endpoint);
     Client& addHeader(string key, string value);
-    json call(string method, string path = "", std::map<string, string> headers = std::map<string, string>(), std::map<string, string> params = std::map<string, string>());
+    json call(string method, string path = "", json headers = json(), json params = json());
 };
 } // namespace Appwrite

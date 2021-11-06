@@ -1,18 +1,19 @@
-#ifndef APPWRITE_ACCOUNT_H
-#define APPWRITE_ACCOUNT_H
+#pragma once
 
-#include <cstring>
+#include <string>
 #include <map>
 #include "../temp_libs/json.hpp"
 #include "../client.hpp"
 #include "../service.hpp"
-using namespace std;
+
 using json = nlohmann::json;
+using string = std::string;
 
 namespace Appwrite {
 
 class Account : public Service {
-public:
+ public:
+    using Service::Service;
     json get();
     json delete();
     json updateEmail(string email, string password);
@@ -30,5 +31,4 @@ public:
     json createVerification(string url);
     json updateVerification(string userId, string secret);
 };
-}
-#endif
+} // namespace Appwrite

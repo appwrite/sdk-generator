@@ -1,22 +1,23 @@
-#ifndef APPWRITE_USERS_H
-#define APPWRITE_USERS_H
+#pragma once
 
-#include <cstring>
+#include <string>
 #include <map>
 #include "../temp_libs/json.hpp"
 #include "../client.hpp"
 #include "../service.hpp"
-using namespace std;
+
 using json = nlohmann::json;
+using string = std::string;
 
 namespace Appwrite {
 
 class Users : public Service {
-public:
+ public:
+    using Service::Service;
     json list(string search = "", int limit = 25, int offset = 0, string orderType = "ASC");
     json create(string email, string password, string name = "");
     json get(string userId);
-    json delete(string userId);
+    json fake_delete(string userId);
     json updateEmail(string userId, string email);
     json getLogs(string userId);
     json updateName(string userId, string name);
@@ -29,5 +30,4 @@ public:
     json updateStatus(string userId, int status);
     json updateVerification(string userId, bool emailVerification);
 };
-}
-#endif
+} // namespace Appwrite

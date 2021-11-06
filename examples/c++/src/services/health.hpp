@@ -1,18 +1,19 @@
-#ifndef APPWRITE_HEALTH_H
-#define APPWRITE_HEALTH_H
+#pragma once
 
-#include <cstring>
+#include <string>
 #include <map>
 #include "../temp_libs/json.hpp"
 #include "../client.hpp"
 #include "../service.hpp"
-using namespace std;
+
 using json = nlohmann::json;
+using string = std::string;
 
 namespace Appwrite {
 
 class Health : public Service {
-public:
+ public:
+    using Service::Service;
     json get();
     json getAntiVirus();
     json getCache();
@@ -26,5 +27,4 @@ public:
     json getStorageLocal();
     json getTime();
 };
-}
-#endif
+} // namespace Appwrite

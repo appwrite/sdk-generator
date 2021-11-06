@@ -1,18 +1,19 @@
-#ifndef APPWRITE_FUNCTIONS_H
-#define APPWRITE_FUNCTIONS_H
+#pragma once
 
-#include <cstring>
+#include <string>
 #include <map>
 #include "../temp_libs/json.hpp"
 #include "../client.hpp"
 #include "../service.hpp"
-using namespace std;
+
 using json = nlohmann::json;
+using string = std::string;
 
 namespace Appwrite {
 
 class Functions : public Service {
-public:
+ public:
+    using Service::Service;
     json list(string search = "", int limit = 25, int offset = 0, string orderType = "ASC");
     json create(string name, array execute, string runtime, json vars = , array events = , string schedule = "", int timeout = 15);
     json get(string functionId);
@@ -27,5 +28,4 @@ public:
     json getTag(string functionId, string tagId);
     json deleteTag(string functionId, string tagId);
 };
-}
-#endif
+} // namespace Appwrite

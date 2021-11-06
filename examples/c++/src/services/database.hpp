@@ -1,18 +1,19 @@
-#ifndef APPWRITE_DATABASE_H
-#define APPWRITE_DATABASE_H
+#pragma once
 
-#include <cstring>
+#include <string>
 #include <map>
 #include "../temp_libs/json.hpp"
 #include "../client.hpp"
 #include "../service.hpp"
-using namespace std;
+
 using json = nlohmann::json;
+using string = std::string;
 
 namespace Appwrite {
 
 class Database : public Service {
-public:
+ public:
+    using Service::Service;
     json listCollections(string search = "", int limit = 25, int offset = 0, string orderType = "ASC");
     json createCollection(string name, array read, array write, array rules);
     json getCollection(string collectionId);
@@ -24,5 +25,4 @@ public:
     json updateDocument(string collectionId, string documentId, json data, array read = , array write = );
     json deleteDocument(string collectionId, string documentId);
 };
-}
-#endif
+} // namespace Appwrite
