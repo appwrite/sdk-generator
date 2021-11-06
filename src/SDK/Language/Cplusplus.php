@@ -22,8 +22,8 @@ class Cplusplus extends Language {
     public function getKeywords()
     {
         // TODO: Evaluate this list.
-        // Currently using https://en.cppreference.com/w/cpp/keyword as a source,
-        // how much coverage we want/need
+        // Referred to https://en.cppreference.com/w/cpp/keyword as a source,
+        // This should cover all the keywords since C++98
                return [
             'and',
             'and_eq',
