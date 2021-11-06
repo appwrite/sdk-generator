@@ -1,18 +1,19 @@
-#ifndef APPWRITE_LOCALE_H
-#define APPWRITE_LOCALE_H
+#pragma once
 
-#include <cstring>
+#include <string>
 #include <map>
 #include "../temp_libs/json.hpp"
 #include "../client.hpp"
 #include "../service.hpp"
-using namespace std;
+
 using json = nlohmann::json;
+using string = std::string;
 
 namespace Appwrite {
 
 class Locale : public Service {
-public:
+ public:
+    using Service::Service;
     json get();
     json getContinents();
     json getCountries();
@@ -21,5 +22,4 @@ public:
     json getCurrencies();
     json getLanguages();
 };
-}
-#endif
+} // namespace Appwrite
