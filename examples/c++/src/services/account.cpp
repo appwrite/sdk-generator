@@ -41,7 +41,7 @@ json Account::get() {
  * @throws AppwriteException
  * @return array
  */
-json Account::delete() {
+json Account::xdelete() {
     json params = {
     };
     json headers = {

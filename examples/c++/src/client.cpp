@@ -2,25 +2,29 @@
 #include <string>
 #include "client.hpp"
 #include "temp_libs/json.hpp"
+#include <cpr/cpr.h>
+#include <exception.hpp>
 
 using json = nlohmann::json;
 using string = std::string;
 
-namespace Appwrite {
+namespace Appwrite
+{
 
-/**
+    /**
  * SDK constructor.
  */
-Client::Client() { }
+    Client::Client() {}
 
-/**
+    /**
  * SDK destructor
  */
-Client::~Client() {
-    // TODO?
-}
+    Client::~Client()
+    {
+        // TODO?
+    }
 
-/**
+    /**
  * Set Project
  *
  * Your project ID
@@ -29,12 +33,13 @@ Client::~Client() {
  *
  * @return Client
  */
-Client& Client::setProject(string value) {
-    this->addHeader("X-Appwrite-Project", value);
-    return *this;
-}
+    Client &Client::setProject(string value)
+    {
+        this->addHeader("X-Appwrite-Project", value);
+        return *this;
+    }
 
-/**
+    /**
  * Set Key
  *
  * Your secret API key
@@ -43,12 +48,13 @@ Client& Client::setProject(string value) {
  *
  * @return Client
  */
-Client& Client::setKey(string value) {
-    this->addHeader("X-Appwrite-Key", value);
-    return *this;
-}
+    Client &Client::setKey(string value)
+    {
+        this->addHeader("X-Appwrite-Key", value);
+        return *this;
+    }
 
-/**
+    /**
  * Set JWT
  *
  * Your secret JSON Web Token
@@ -57,54 +63,59 @@ Client& Client::setKey(string value) {
  *
  * @return Client
  */
-Client& Client::setJWT(string value) {
-    this->addHeader("X-Appwrite-JWT", value);
-    return *this;
-}
+    Client &Client::setJWT(string value)
+    {
+        this->addHeader("X-Appwrite-JWT", value);
+        return *this;
+    }
 
-/**
+    /**
  * Set Locale
  *
  * @param string value
  *
  * @return Client
  */
-Client& Client::setLocale(string value) {
-    this->addHeader("X-Appwrite-Locale", value);
-    return *this;
-}
+    Client &Client::setLocale(string value)
+    {
+        this->addHeader("X-Appwrite-Locale", value);
+        return *this;
+    }
 
-/***
+    /***
  * @param bool status
  * @return *this
  */
-Client& Client::setSelfSigned(bool status) {
-    this->selfSigned = status;
-    return *this;
-}
+    Client &Client::setSelfSigned(bool status)
+    {
+        this->selfSigned = status;
+        return *this;
+    }
 
-/***
+    /***
  * @param endpoint
  * @return *this
  */
-Client& Client::setEndpoint(string endpoint) {
-    this->endpoint = endpoint;
-    return *this;
-}
+    Client &Client::setEndpoint(string endpoint)
+    {
+        this->endpoint = endpoint;
+        return *this;
+    }
 
-/**
+    /**
  * @param key
  * @param value
  * @return *this
  */
-Client& Client::addHeader(string key, string value) {
-    string keyLower = key;
-    std::transform(keyLower.begin(), keyLower.end(), keyLower.begin(), ::tolower);
-    this->headers[keyLower] = value;
-    return *this;
-}
+    Client &Client::addHeader(string key, string value)
+    {
+        string keyLower = key;
+        std::transform(keyLower.begin(), keyLower.end(), keyLower.begin(), ::tolower);
+        this->headers[keyLower] = value;
+        return *this;
+    }
 
-/**
+    /**
  * Call
  *
  * Make an API call
@@ -116,9 +127,53 @@ Client& Client::addHeader(string key, string value) {
  * @return array|string  // TODO: Returning JSON (instead of array), but not string.
  * @throws AppwriteException
  */
-json Client::call(string method, string path, json headers, json params) {
-    return json({{"fake response", "will fix soon (TM)" }});
-/*
+    json Client::call(string method, string path, json headers, json params)
+    {
+
+        cpr::Url url = cpr::Url{this->endpoint + path};
+
+        json call_headers(this->headers);
+        call_headers.merge_patch(headers);
+        cpr::Response responseHeaders;
+        int responseStatus = -1;
+        string responseType;
+        string responseBody;
+        if (method == "METHOD_GET")
+        {
+            responseHeaders = cpr::Get(url,
+                                       params,
+                                       cpr::Header{call_headers},
+                                       cpr::VerifySsl{!this->selfSigned});
+        }
+        else if (method == "METHOD_POST")
+        {
+            responseHeaders = cpr::Post(url,
+                                        cpr::Body{params.dump()},
+                                        cpr::Header{call_headers},
+                                        cpr::VerifySsl{!this->selfSigned});
+        }
+        else if (method == "METHOD_PUT")
+        {
+            responseHeaders = cpr::Put(url,
+                                       cpr::Body{params.dump()},
+                                       cpr::Header{call_headers},
+                                       cpr::VerifySsl{!this->selfSigned});
+        }
+        else if (method == "METHOD_DELETE")
+        {
+            responseHeaders = cpr::Delete(url,
+                                          params,
+                                          cpr::Header{call_headers},
+                                          cpr::VerifySsl{!this->selfSigned});
+        }
+        else
+        {
+            throw AppwriteException("Invalid method");
+        }
+        return json::parse(responseHeaders.text);
+
+        // return json({{"fake response", "will fix soon (TM)"}});
+        /*
     ch = curl_init(this->endpoint + path + ((method == self::METHOD_GET && !empty(params)) ? "?" . http_build_query(params) : ""));
     json responseHeaders;
     int responseStatus = -1;
@@ -202,6 +257,6 @@ json Client::call(string method, string path, json headers, json params) {
 
 
     return responseBody;
-*/
-}
+ */
+    }
 } // namespace Appwrite

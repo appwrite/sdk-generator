@@ -445,7 +445,7 @@ try {
     ;
     $sdk->generate(__DIR__ . '/examples/kotlin');
 
-    // C
+    // C++
     $sdk = new SDK(new Cplusplus(), new Swagger2($spec));
     
     $sdk

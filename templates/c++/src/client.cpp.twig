@@ -1,7 +1,8 @@
 #include <algorithm>
 #include <string>
 #include "client.hpp"
-#include "include/json.hpp"
+#include "temp_libs/json.hpp"
+#include <cpr/cpr.h>
 
 using json = nlohmann::json;
 using string = std::string;
@@ -81,7 +82,51 @@ Client& Client::addHeader(string key, string value) {
  * @throws {{spec.title | caseUcfirst}}Exception
  */
 json Client::call(string method, string path, json headers, json params) {
-    return json({{ "{{" }}"fake response", "will fix soon (TM)" {{ "}}" }});
+  //  return json({{ "{{" }}"fake response", "will fix soon (TM)" {{ "}}" }});
+
+  
+        cpr::Url url = cpr::Url{this->endpoint + path};
+
+        json call_headers(this->headers);
+        call_headers.merge_patch(headers);
+        cpr::Response responseHeaders;
+        int responseStatus = -1;
+        string responseType;
+        string responseBody;
+        if (method == "METHOD_GET")
+        {
+            responseHeaders = cpr::Get(url,
+                                       params,
+                                       cpr::Header{call_headers},
+                                       cpr::VerifySsl{!this->selfSigned});
+        }
+        else if (method == "METHOD_POST")
+        {
+            responseHeaders = cpr::Post(url,
+                                        cpr::Body{params.dump()},
+                                        cpr::Header{call_headers},
+                                        cpr::VerifySsl{!this->selfSigned});
+        }
+        else if (method == "METHOD_PUT")
+        {
+            responseHeaders = cpr::Put(url,
+                                       cpr::Body{params.dump()},
+                                       cpr::Header{call_headers},
+                                       cpr::VerifySsl{!this->selfSigned});
+        }
+        else if (method == "METHOD_DELETE")
+        {
+            responseHeaders = cpr::Delete(url,
+                                          params,
+                                          cpr::Header{call_headers},
+                                          cpr::VerifySsl{!this->selfSigned});
+        }
+        else
+        {
+            throw AppwriteException("Invalid method");
+        }
+        return json::parse(responseHeaders.text);
+    
 /*
     ch = curl_init(this->endpoint + path + ((method == self::METHOD_GET && !empty(params)) ? "?" . http_build_query(params) : ""));
     json responseHeaders;

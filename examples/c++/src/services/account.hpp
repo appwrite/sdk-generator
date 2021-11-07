@@ -15,7 +15,7 @@ class Account : public Service {
  public:
     using Service::Service;
     json get();
-    json delete();
+    json xdelete();
     json updateEmail(string email, string password);
     json getLogs();
     json updateName(string name);
