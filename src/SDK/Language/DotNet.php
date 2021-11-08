@@ -332,6 +332,12 @@ class DotNet extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/Appwrite/Helpers/Int32JsonConverter.cs',
+                'template'      => 'dotnet/src/Appwrite/Helpers/Int32JsonConverter.cs',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/Appwrite/Models/OrderType.cs',
                 'template'      => 'dotnet/src/Appwrite/Models/OrderType.cs.twig',
                 'minify'        => false,

@@ -24,6 +24,9 @@ namespace {{ spec.title | caseUcfirst }}
 
         private JsonSerializerSettings _serializerSettings = new JsonSerializerSettings {
             MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+            Converters = new List<JsonConverter> {
+                new Int32JsonConverter()
+            }
         };
 
         public Client(
