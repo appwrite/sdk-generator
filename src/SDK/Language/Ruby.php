@@ -160,6 +160,12 @@ class Ruby extends Language {
                 'template'      => 'ruby/.travis.yml.twig',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/lib/{{ spec.title | caseDash }}/models/{{ definition.name | caseSnake }}.rb',
+                'template'      => 'ruby/lib/container/models/model.rb.twig',
+                'minify'        => false,
+            ],
         ];
     }
 
