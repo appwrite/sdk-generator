@@ -58,7 +58,7 @@ namespace {{ spec.title | caseUcfirst }}
 {% if _self.methodNeedsSecurityParameters(method) %}
 {% for node in method.security %}
 {% for key,header in node|keys %}
-                { "{{header|caseLower}}", _client.GetConfig()["{{header|caseLower}}"] }{% if not loop.last or (loop.last and method.headers | length > 0) %},{% endif %}
+                { "{{header|caseLower}}", _client.Config["{{header|caseLower}}"] }{% if not loop.last or (loop.last and method.headers | length > 0) %},{% endif %}
 
 {% endfor %}
 {% endfor %}
