@@ -14,21 +14,26 @@ namespace {{ spec.title | caseUcfirst }}
 {
     public class Client
     {
-        private HttpClient http;
-        private readonly Dictionary<string, string> headers;
-        private readonly Dictionary<string, string> config;
-        private string endPoint;
-        private bool selfSigned;
+        public string EndPoint => _endPoint;
+        public Dictionary<string, string> Config => _config;
+
+        private HttpClient _http;
+        private readonly Dictionary<string, string> _headers;
+        private readonly Dictionary<string, string> _config;
+        private string _endPoint;
+
+        private JsonSerializerSettings _serializerSettings = new JsonSerializerSettings {
+            MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+        };
 
         public Client(
             string endPoint = "https://appwrite.io/v1",
             bool selfSigned = false,
             HttpClient? http = null)
         {
-            this.endPoint = endPoint;
-            this.selfSigned = selfSigned;
-            this.http = http ?? new HttpClient();
-            this.headers = new Dictionary<string, string>()
+            _endPoint = endPoint;
+            _http = http ?? new HttpClient();
+            _headers = new Dictionary<string, string>()
             {
                 { "content-type", "application/json" },
                 { "x-sdk-version", "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{sdk.version}}" }{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
@@ -38,19 +43,19 @@ namespace {{ spec.title | caseUcfirst }}
 {% endfor %}
 
             };
-            this.config = new Dictionary<string, string>();
+            _config = new Dictionary<string, string>();
+
+
         }
 
         public Client SetSelfSigned(bool selfSigned)
         {
-            this.selfSigned = selfSigned;
-
             var handler = new HttpClientHandler()
             {
                 ServerCertificateCustomValidationCallback = (request, cert, chain, errors) => true
             };
 
-            http = selfSigned
+            _http = selfSigned
                 ? new HttpClient(handler)
                 : new HttpClient();
 
@@ -59,18 +64,9 @@ namespace {{ spec.title | caseUcfirst }}
 
         public Client SetEndPoint(string endPoint)
         {
-            this.endPoint = endPoint;
+            _endPoint = endPoint;
+
             return this;
-        }
-
-        public string GetEndPoint()
-        {
-            return endPoint;
-        }
-
-        public Dictionary<string, string> GetConfig()
-        {
-            return config;
         }
 
 {% for header in spec.global.headers %}
@@ -78,15 +74,17 @@ namespace {{ spec.title | caseUcfirst }}
         /// <summary>{{header.description}}</summary>
 {% endif %}
         public Client Set{{header.key | caseUcfirst}}(string value) {
-            config.Add("{{ header.key | caseCamel }}", value);
+            _config.Add("{{ header.key | caseCamel }}", value);
             AddHeader("{{header.name}}", value);
+
             return this;
         }
 
 {% endfor %}
         public Client AddHeader(String key, String value)
         {
-            headers.Add(key, value);
+            _headers.Add(key, value);
+
             return this;
         }
 
@@ -111,7 +109,7 @@ namespace {{ spec.title | caseUcfirst }}
 
             var queryString = methodGet ? "?" + parameters.ToQueryString() : string.Empty;
 
-            var request = new HttpRequestMessage(new HttpMethod(method), endPoint + path + queryString);
+            var request = new HttpRequestMessage(new HttpMethod(method), _endPoint + path + queryString);
 
             if ("multipart/form-data".Equals(headers["content-type"], StringComparison.OrdinalIgnoreCase))
             {
@@ -149,18 +147,18 @@ namespace {{ spec.title | caseUcfirst }}
                 request.Content = new StringContent(body, Encoding.UTF8, "application/json");
             }
 
-            foreach (var header in this.headers)
+            foreach (var header in _headers)
             {
                 if (header.Key.Equals("content-type", StringComparison.OrdinalIgnoreCase))
                 {
-                    http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(header.Value));
+                    _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(header.Value));
                 }
                 else
                 {
-                    if (http.DefaultRequestHeaders.Contains(header.Key)) {
-                        http.DefaultRequestHeaders.Remove(header.Key);
+                    if (_http.DefaultRequestHeaders.Contains(header.Key)) {
+                        _http.DefaultRequestHeaders.Remove(header.Key);
                     }
-                    http.DefaultRequestHeaders.Add(header.Key, header.Value);
+                    _http.DefaultRequestHeaders.Add(header.Key, header.Value);
                 }
             }
 
@@ -180,9 +178,9 @@ namespace {{ spec.title | caseUcfirst }}
             }
             try
             {
-                var httpResponseMessage = await http.SendAsync(request);
-                var code = (int) httpResponseMessage.StatusCode;
-                var contentType = httpResponseMessage.Content.Headers
+                var response = await _http.SendAsync(request);
+                var code = (int)response.StatusCode;
+                var contentType = response.Content.Headers
                     .GetValues("Content-Type")
                     .FirstOrDefault() ?? string.Empty;
 
@@ -190,7 +188,7 @@ namespace {{ spec.title | caseUcfirst }}
                 var isBytes = contentType.Contains("application/octet-stream");
 
                 if (code >= 400) {
-                    var message = await httpResponseMessage.Content.ReadAsStringAsync();
+                    var message = await response.Content.ReadAsStringAsync();
 
                     if (isJson) {
                         message = JObject.Parse(message)["message"]!.ToString();
@@ -201,8 +199,11 @@ namespace {{ spec.title | caseUcfirst }}
 
                 if (isJson)
                 {
-                    var responseString = await httpResponseMessage.Content.ReadAsStringAsync();
-                    var dict = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseString);
+                    var responseString = await response.Content.ReadAsStringAsync();
+
+                    var dict = JsonConvert.DeserializeObject<Dictionary<string, object>>(
+                        responseString,
+                        _serializerSettings);
 
                     if (convert != null)
                     {
@@ -213,7 +214,7 @@ namespace {{ spec.title | caseUcfirst }}
                 }
                 else if (isBytes)
                 {
-                    return ((await httpResponseMessage.Content.ReadAsByteArrayAsync()) as T)!;
+                    return ((await response.Content.ReadAsByteArrayAsync()) as T)!;
                 }
                 else
                 {
@@ -224,7 +225,6 @@ namespace {{ spec.title | caseUcfirst }}
             {
                 throw new {{spec.title | caseUcfirst}}Exception(e.Message, e);
             }
-
         }
     }
 }

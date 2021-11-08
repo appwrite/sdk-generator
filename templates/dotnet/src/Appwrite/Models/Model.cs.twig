@@ -4,12 +4,16 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 
+using Newtonsoft.Json;
+
 namespace {{ spec.title | caseUcfirst }}.Models
 {
     public class {{ definition.name | caseUcfirst }}
     {
 {% for property in definition.properties %}
+        [JsonProperty("{{ property.name }}")]
         public {{ _self.sub_schema(property) }} {{ property.name | caseUcfirst | escapeKeyword }} { get; set; }
+
 {% endfor %}
 {% if definition.additionalProperties %}
         public Dictionary<string, object> Data { get; set; }
