@@ -233,6 +233,7 @@ class SDKTest extends TestCase
                 ...REALTIME_RESPONSES,
             ],
         ],
+
         'deno' => [
             'class' => 'Appwrite\SDK\Language\Deno',
             'build' => [
