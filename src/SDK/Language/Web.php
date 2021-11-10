@@ -87,7 +87,7 @@ class Web extends JS {
         ];
     }
 
-    public function getTypeName($type, $model = "")
+    public function getTypeName($type, $method = [])
     {
         switch ($type) {
             case self::TYPE_INTEGER:
@@ -99,17 +99,21 @@ class Web extends JS {
             case self::TYPE_FILE:
                 return 'File';
             case self::TYPE_OBJECT:
-                if (empty($model)) {
+                if (empty($method)) {
                     return $type;
                 }
 
-                switch ($model) {
-                    case 'User':
+                switch ($method['responseModel']) {
+                    case 'user':
                         return "Partial<Preferences>";
                         break;
-
-                    default:
-                        return "Omit<{$model}, keyof Models.{$model}>";
+                    case 'document':
+                        if($method['method'] === 'post') {
+                            return "Omit<Document, keyof Models.Document>";
+                        }
+                        if($method['method'] === 'patch') {
+                            return "Partial<Omit<Document, keyof Models.Document>>";
+                        }
                 }
             break;
         }

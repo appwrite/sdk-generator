@@ -270,7 +270,7 @@ class Swift extends Language {
      * @param $type
      * @return string
      */
-    public function getTypeName($type, $model = "")
+    public function getTypeName($type, $method = [])
     {
         switch ($type) {
             case self::TYPE_INTEGER:
