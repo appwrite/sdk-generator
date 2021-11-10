@@ -36,7 +36,7 @@ abstract class Language {
      * @param $type
      * @return string
      */
-    abstract public function getTypeName($type);
+    abstract public function getTypeName($type, $model = "");
 
     /**
      * @param array $param

@@ -87,6 +87,36 @@ class Web extends JS {
         ];
     }
 
+    public function getTypeName($type, $model = "")
+    {
+        switch ($type) {
+            case self::TYPE_INTEGER:
+            case self::TYPE_NUMBER:
+                return 'number';
+            break;
+            case self::TYPE_ARRAY:
+                return 'string[]';
+            case self::TYPE_FILE:
+                return 'File';
+            case self::TYPE_OBJECT:
+                if (empty($model)) {
+                    return $type;
+                }
+
+                switch ($model) {
+                    case 'User':
+                        return "Partial<Preferences>";
+                        break;
+
+                    default:
+                        return "Omit<{$model}, keyof Models.{$model}>";
+                }
+            break;
+        }
+
+        return $type;
+    }
+
     /**
      * @param array $param
      * @return string

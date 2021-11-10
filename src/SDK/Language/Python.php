@@ -189,7 +189,7 @@ class Python extends Language {
      * @param $type
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName($type, $model = "")
     {
         throw new Exception('Method not supported for Python SDKs');
     }

@@ -116,8 +116,8 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseArray', function ($value) {
             return (is_array($value)) ? json_encode($value) : '[]';
         }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('typeName', function ($value) {
-            return $this->language->getTypeName($value);
+        $this->twig->addFilter(new TwigFilter('typeName', function ($value, $model = "") {
+            return $this->language->getTypeName($value, $model);
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('paramDefault', function ($value) {
             return $this->language->getParamDefault($value);
@@ -226,7 +226,7 @@ class SDK
      */
     public function setDefaultHeaders($headers) {
         $this->defaultHeaders = $headers;
-        
+
         return $this;
     }
 

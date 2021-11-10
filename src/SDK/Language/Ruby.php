@@ -173,7 +173,7 @@ class Ruby extends Language {
      * @param $type
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName($type, $model = "")
     {
         switch ($type) {
             case self::TYPE_INTEGER:
