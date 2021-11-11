@@ -64,21 +64,21 @@
 {% endmacro %}
 declare module "{{ language.params.npmPackage|caseDash }}" {
   export namespace Models {
-  {% for definition in spec.definitions %}
-  {% set generics = _self.get_generics(definition, spec) %}
+{% for definition in spec.definitions %}
+{% set generics = _self.get_generics(definition, spec) %}
       /**
       * {{ definition.description }}
       */
       export type {{ definition.name | caseUcfirst }}{% if generics %}<{{generics}}>{% endif %} = {
-  {% for property in definition.properties %}
-  {% set sub_schema = _self.sub_schema(property, definition, spec)%}
+{% for property in definition.properties %}
+{% set sub_schema = _self.sub_schema(property, definition, spec)%}
           /**
           * {{ property.description }}
           */
           {{ property.name | escapeKeyword }}{% if not property.required %}?{% endif %}: {{sub_schema}};
-  {% endfor %}
+{% endfor %}
       }
-  {% endfor %}
+{% endfor %}
   }
   export class Client {
     /**
