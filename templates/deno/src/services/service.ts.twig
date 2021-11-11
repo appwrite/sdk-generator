@@ -1,3 +1,30 @@
+{% macro get_generics(definition, spec, output = false, first = false) %}
+{% spaceless %}
+    {% if first and definition.additionalProperties %}
+        {{definition.name | caseUcfirst}} extends Models.{{definition.name | caseUcfirst}}
+    {% endif %}
+    {% for property in definition.properties %}
+        {% if spec.definitions[property.sub_schema].additionalProperties and output %}
+            {{property.sub_schema | caseUcfirst}} extends Models.{{property.sub_schema | caseUcfirst}}
+        {% endif %}
+        {% if spec.definitions[property.sub_schema] %}
+            {{_self.get_generics(spec.definitions[property.sub_schema], spec, true)}}
+        {% endif %}
+    {% endfor %}
+{% endspaceless %}
+{% endmacro %}
+{% macro get_generics_return(definition, spec) %}
+{% spaceless %}
+    {% for property in definition.properties %}
+        {% if spec.definitions[property.sub_schema].additionalProperties %}
+            {{property.sub_schema | caseUcfirst}}
+        {% endif %}
+        {% if spec.definitions[property.sub_schema] %}
+            {{_self.get_generics_return(spec.definitions[property.sub_schema], spec)}}
+        {% endif %}
+    {% endfor %}
+{% endspaceless %}
+{% endmacro %}
 import { Service } from '../service.ts';
 import { Payload } from '../client.ts';
 import { AppwriteException } from '../exception.ts';
@@ -5,7 +32,8 @@ import type { Models } from '../models.d.ts'
 
 export class {{ service.name | caseUcfirst }} extends Service {
 {% for method in service.methods %}
-
+{% set generics = _self.get_generics(spec.definitions[method.responseModel], spec, true, true) %}
+{% set generics_return = _self.get_generics_return(spec.definitions[method.responseModel], spec) %}
     /**
      * {{ method.title }}
      *
@@ -19,7 +47,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
      * @throws {AppwriteException}
      * @returns {Promise}
      */
-    async {{ method.name | caseCamel }}{% if spec.definitions[method.responseModel].additionalProperties %}<{{method.responseModel | caseUcfirst}} extends Models.{{method.responseModel | caseUcfirst}}>{% endif %}{% for property in spec.definitions[method.responseModel].properties %}{% if spec.definitions[property.sub_schema].additionalProperties %}<{{property.sub_schema | caseUcfirst}} extends Models.{{property.sub_schema | caseUcfirst}}>{% endif %}{% endfor %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'webAuth' %}Response{% elseif method.type == 'location' %}Response{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% for property in spec.definitions[method.responseModel].properties %}{% if spec.definitions[property.sub_schema].additionalProperties %}<{{property.sub_schema | caseUcfirst}}>{% endif %}{% endfor %}{% else %}{}{% endif %}{% endif %}> {
+    async {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'webAuth' %}Response{% elseif method.type == 'location' %}Response{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}> {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
@@ -45,12 +73,12 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
         return await this.client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
-                    '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+            '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
 {% for key, header in method.headers %}
-                    '{{ key }}': '{{ header }}',
+            '{{ key }}': '{{ header }}',
 {% endfor %}
-               }, payload);
+        }, payload);
     }
 {% endfor %}
 }
