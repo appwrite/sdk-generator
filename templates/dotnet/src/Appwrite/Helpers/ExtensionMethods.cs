@@ -25,19 +25,20 @@ namespace {{ spec.title | caseUcfirst }}
 
             foreach (var kvp in parameters)
             {
-                if (kvp.Value != null)
+                if (kvp.Value == null)
                 {
-                    if (kvp.Value is List<object> list)
+                    continue;
+                }
+                if (kvp.Value is List<object> list)
+                {
+                    foreach(object entry in list)
                     {
-                        foreach(object entry in list)
-                        {
-                            query.Add($"{kvp.Key}[]={Uri.EscapeUriString(entry.ToString()!)}");
-                        }
+                        query.Add($"{kvp.Key}[]={Uri.EscapeUriString(entry.ToString()!)}");
                     }
-                    else
-                    {
-                        query.Add($"{kvp.Key}={Uri.EscapeUriString(kvp.Value.ToString()!)}");
-                    }
+                }
+                else
+                {
+                    query.Add($"{kvp.Key}={Uri.EscapeUriString(kvp.Value.ToString()!)}");
                 }
             }
             return string.Join("&", query);
