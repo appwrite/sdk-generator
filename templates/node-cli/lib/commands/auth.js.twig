@@ -1,0 +1,37 @@
+const { Command } = require("commander");
+const inquirer = require("inquirer");
+const { globalConfig } = require("../config");
+const { questionsLogin } = require("../questions");
+const { sdkForConsole } = require("../sdks");
+
+const login = new Command("login")
+    .description("Login to your {{ spec.title }} account")
+    .action(async () => {
+        let payload = {}
+        let path = "/account/sessions";
+
+        const answers = await inquirer.prompt(questionsLogin)
+        payload['email'] = answers.email;
+        payload['password'] = answers.password;
+
+        let client = await sdkForConsole(false);
+        await client.call("post", path, {
+            "content-type": "application/json",
+        }, payload);
+    });
+
+const logout = new Command("logout")
+    .description("Logout from your Appwrite account")
+    .action(async () => {
+        let path = '/account/sessions/current';
+        let client = await sdkForConsole();
+        await client.call("delete", path, {
+            "content-type": "application/json",
+        }, {});
+        globalConfig.setCookie("");
+    });
+
+module.exports = {
+    login,
+    logout,
+};

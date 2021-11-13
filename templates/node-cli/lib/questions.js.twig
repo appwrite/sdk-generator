@@ -1,0 +1,183 @@
+const { localConfig, globalConfig } = require('./config');
+const { sdkForConsole } = require('./sdks');
+
+const questionsInitProject = [
+  {
+    type: "confirm",
+    name: "override",
+    message:
+      `An Appwrite project ( ${localConfig.getProject()['projectName']} ) is already associated with the current directory. Would you like to override`,
+    when() {
+      return Object.keys(localConfig.getProject()).length !== 0;
+    }
+  },
+  {
+    type: "list",
+    name: "start",
+    when(answers) {
+      return answers.override;
+    },
+    message: "How would you like to start?",
+    choices: [
+      {
+        name: "Create a new Appwrite project",
+        value: "new",
+      },
+      {
+        name: "Link this directory to an existing Appwrite project",
+        value: "existing",
+      },
+    ],
+  },
+  {
+    type: "input",
+    name: "project",
+    message: "What would you like to name your project?",
+    default: "My Awesome Project",
+    when(answers) {
+      return answers.start == "new";
+    },
+  },
+  {
+    type: "list",
+    name: "project",
+    message: "Choose your Appwrite project.",
+    when(answers) {
+      return answers.start == "existing";
+    },
+    choices: async () => {
+      let path = "/projects"
+      let client = await sdkForConsole();
+      let response = await client.call("get", path, {
+        "content-type": "application/json",
+      }, {});
+      let projects = response["projects"]
+      let choices = projects.map((project, idx) => {
+        return {
+          name: `${project.name} (${project['$id']})`,
+          value: {
+            name: project.name,
+            id: project['$id']
+          }
+        }
+      })
+      return choices;
+    }
+  }
+];
+
+const questionsInitFunction = [
+  {
+    type: "input",
+    name: "name",
+    message: "What would you like to name your function?",
+    default: "My Awesome Function"
+  },
+  {
+    type: "list",
+    name: "runtime",
+    message: "What runtime would you like to use?",
+    choices: [
+      {
+        name: "Dart (2.10)",
+        value: "dart-2.10"
+      },
+      {
+        name: "Dart (2.12)",
+        value: "dart-2.12"
+      },
+      {
+        name: "Dart (2.14)",
+        value: "dart-2.14"
+      },
+      {
+        name: "Deno (1.8)",
+        value: "deno-1.8"
+      },
+      {
+        name: ".NET (3.1)",
+        value: "dotnet-3.1"
+      },
+      {
+        name: ".NET (5.0)",
+        value: "dotnet-5.0"
+      },
+      {
+        name: "Java (11.0)",
+        value: "java-11.0"
+      },
+      {
+        name: "Java (16.0)",
+        value: "java-16.0"
+      },
+      {
+        name: "Node.js (14.5)",
+        value: "node-14.5"
+      },
+      {
+        name: "Node.js (15.5)",
+        value: "node-15.5"
+      },
+      {
+        name: "Node.js (16.0)",
+        value: "node-16.0"
+      },
+      {
+        name: "PHP (7.4)",
+        value: "php-7.4"
+      },
+      {
+        name: "PHP (8.0)",
+        value: "php-8.0"
+      },
+      {
+        name: "Python (3.8)",
+        value: "python-3.8"
+      },
+      {
+        name: "Python (3.9)",
+        value: "python-3.9"
+      },
+      {
+        name: "Ruby (2.7)",
+        value: "ruby-2.7"
+      },
+      {
+        name: "Ruby (3.0)",
+        value: "ruby-3.0"
+      }
+    ]
+  }
+];
+
+const questionsLogin = [
+  {
+    type: "input",
+    name: "email",
+    message: "Enter your email",
+    validate(value) {
+      if (!value) {
+        return "Please enter your email";
+      }
+      return true;
+    },
+  },
+  {
+    type: "password",
+    name: "password",
+    message: "Enter your password",
+    mask: "*",
+    validate(value) {
+      if (!value) {
+        return "Please enter your password";
+      }
+      return true;
+    }
+  },
+];
+
+module.exports = {
+  questionsInitProject,
+  questionsLogin,
+  questionsInitFunction
+};

@@ -1,0 +1,91 @@
+const fs = require('fs');
+const _path = require('path');
+const childProcess = require('child_process');
+const { Command } = require('commander');
+const { sdkForProject } = require('../sdks')
+
+
+const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description("{{ service.description }}")
+
+{% for method in service.methods %}
+{{service.name | caseLower }}
+    .command("{{ method.name | caseCamel }}")
+{% autoescape false %}
+    .description("{{ method.description | replace({'"':'\''}) | replace({'\n':' '})}}")
+{% for parameter in method.parameters.all %}
+    .{% if parameter.required %}requiredOption{% else %}option{% endif %}("--{{ parameter.name | escapeKeyword }} <{{ parameter.name | escapeKeyword }}{% if parameter.array.type|length > 0 %}...{% endif %}>", "{{ parameter.description }}")
+{% endfor %}
+{% endautoescape %}
+    .action(async ({% if method.parameters.all|length > 0 %}{ {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}{% if method.parameters.all|length > 0 %} }{% endif %}) => {
+{% for parameter in method.parameters.all %}
+        /* @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} */
+{% endfor %}
+
+        let client = await sdkForProject();
+        let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+        let payload = {};
+{% if method.parameters.query|length > 0 %}
+
+        /** Query Params */
+{% endif %}
+{% for parameter in method.parameters.query %}
+        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+        }
+{% endfor %}
+{% if method.parameters.body|length > 0 %}
+        
+        /** Body Params */
+{% endif %}
+{% for parameter in method.parameters.body %}
+{% if parameter.type == 'file' and method.packaging %}
+        let folderPath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
+        if (!fs.lstatSync(folderPath).isDirectory())
+            throw new Error('The path is not a directory.');
+        let folderName = _path.basename(folderPath);
+        childProcess.execSync(`tar --cd ${_path.dirname(folderPath)} -zcvf code.tar.gz ${folderName}`, { stdio: 'inherit' });
+        let archivePath = fs.realpathSync('code.tar.gz')
+        if (typeof archivePath !== 'undefined') {
+            payload['{{ parameter.name }}'] = fs.createReadStream(archivePath);
+        }
+
+{% elseif parameter.type == 'file' %}
+        let filePath = await fsPromises.realpath({{ parameter.name | caseCamel | escapeKeyword }});
+        if (typeof filePath !== 'undefined') {
+            payload['{{ parameter.name }}'] = fs.createReadStream(filePath);
+        }
+
+{% else %}
+        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword}};
+        }
+
+{% endif %}
+{% endfor %}
+{% if method.type == 'location' %}
+        $params['project'] = $client->getPreference('X-Appwrite-Project');
+        $params['key'] = $client->getPreference('X-Appwrite-Key');
+        $path = $client->getPreference(Client::PREFERENCE_ENDPOINT).$path . "?" . http_build_query($params);
+        Console::success($path);
+{% else %}
+        const response = await client.call('{{ method.method | caseLower }}', path, {
+{% for parameter in method.parameters.header %}
+            '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+            '{{ key }}': '{{ header }}',
+{% endfor %}
+        }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+        console.log(response)
+{% endif %}
+{% if method.packaging %}
+
+        fs.unlinkSync(archivePath);
+{% endif %}
+    })
+
+{% endfor %}
+
+module.exports = {
+    {{ service.name | caseLower }}
+};

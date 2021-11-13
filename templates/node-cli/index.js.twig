@@ -1,0 +1,25 @@
+const program = require("commander");
+const { description, version } = require("./package.json");
+const { login, logout } = require("./lib/commands/auth");
+const { init } = require("./lib/commands/init");
+{% for service in spec.services %}
+const { {{ service.name | caseLower }} } = require("./lib/commands/{{ service.name }}");
+{% endfor %}
+
+// program.configureOutput({
+//   // Visibly override write routines as example!
+//   writeOut: (str) => process.stdout.write(`[HELLOOO] ${str}`),
+//   writeErr: (str) => process.stdout.write(`[ERR]}`),
+//   // Output errors in red.
+//   outputError: (str, write) => write(errorColor(str)),
+// });
+
+program
+  .description(description)
+{% for service in spec.services %}
+  .addCommand({{ service.name | caseLower }})
+{% endfor %}
+  .addCommand(login)
+  .addCommand(logout)
+  .addCommand(init)
+  .parse(process.argv);

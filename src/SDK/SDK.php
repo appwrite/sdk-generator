@@ -218,6 +218,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('removeDollarSign', function ($value) {
             return str_replace('$','',$value);
         }));
+        $this->twig->addFilter(new TwigFilter('unescape', function ($value) {
+            return html_entity_decode($value);
+        }));
     }
 
     /**

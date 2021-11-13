@@ -1,0 +1,68 @@
+const { Command } = require("commander");
+const { questionsInitProject, questionsInitFunction } = require("../questions");
+const inquirer = require("inquirer");
+const { sdkForConsole, sdkForProject } = require("../sdks");
+const { localConfig } = require("../config");
+
+const init = new Command("init").description(
+  "Initialise different parts of your Appwrite setup "
+);
+
+init
+  .command("project")
+  .description("Initialise your Appwrite project")
+  .action(async () => {
+    const client = await sdkForConsole();
+    let payload = {}
+    let response = {}
+
+    let answers = await inquirer.prompt(questionsInitProject)
+    if (!answers.override) process.exit(1)
+
+    let path = "/teams";
+    if (answers.start == "new") {
+      payload["name"] = answers.project
+      response = await client.call("post", path, {
+        "content-type": "application/json",
+      }, payload);
+
+      let teamId = response['$id'];
+      path = "/projects"
+      payload["teamId"] = teamId
+
+      response = await client.call("post", path, {
+        "content-type": "application/json",
+      }, payload);
+
+      localConfig.setProject(response['$id'], response.name);
+    } else {
+      localConfig.setProject(answers.project.id, answers.project.name);
+    }
+  });
+
+
+init
+  .command("function")
+  .description("Initialise your Appwrite cloud function")
+  .action(async () => {
+    console.log("Creating function")
+    let answers = await inquirer.prompt(questionsInitFunction)
+    console.log(answers)
+
+    let path = "/functions"
+    let payload = {}
+
+    payload["name"] = answers.name
+    payload["runtime"] = answers.runtime
+
+    let client = await sdkForProject();
+    let response = await client.call("post", path, {
+      "content-type": "application/json",
+    }, payload);
+
+    console.log(response)
+  })
+
+module.exports = {
+  init,
+};

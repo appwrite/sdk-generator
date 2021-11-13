@@ -1,0 +1,209 @@
+const fs = require("fs");
+
+class Config {
+    constructor(path) {
+        this.path = path;
+        this.read();
+    }
+
+    read() {
+        try {
+            this.data = require(this.path);
+        } catch (e) {
+            // console.log(`${this.path} not found. Empty data`);
+            this.data = {};
+        }
+    }
+
+    write() {
+        fs.writeFileSync(this.path, JSON.stringify(this.data, null, 4));
+    }
+
+    get(key) {
+        return this.data[key];
+    }
+
+    set(key, value) {
+        this.data[key] = value;
+        this.write();
+    }
+
+    delete(key) {
+        delete this.data[key];
+        this.write();
+    }
+
+    clear() {
+        this.data = {};
+        this.write();
+    }
+
+    has(key) {
+        return this.data.hasOwnProperty(key);
+    }
+
+    keys() {
+        return Object.keys(this.data);
+    }
+
+    values() {
+        return Object.values(this.data);
+    }
+
+    toString() {
+        return JSON.stringify(this.data, null, 4);
+    }
+}
+
+class Local extends Config {
+    static CONFIG_FILE_PATH = "appwrite.json";
+
+    constructor(path = Local.CONFIG_FILE_PATH) {
+        super(fs.realpathSync(path));
+    }
+
+    getFunctions() {
+        if (!this.has("functions")) {
+            return [];
+        }
+        return this.get("functions");
+    }
+
+    getFunction($id) {
+        if (!this.has("functions")) {
+            return {};
+        }
+
+        let functions = this.get("functions");
+        for (let i = 0; i < functions.length; i++) {
+            if (functions[i].id == $id) {
+                return functions[i];
+            }
+        }
+
+        return {};
+    }
+
+    addFunction(props) {
+        if (!this.has("functions")) {
+            this.set("functions", []);
+        }
+
+        let functions = this.get("functions");
+        for (let i = 0; i < functions.length; i++) {
+            if (functions[i].id == props.id) {
+                return;
+            }
+        }
+        functions.push(props);
+        this.set("functions", functions);
+    }
+
+    updateFunction(id, props) {
+        if (!this.has("functions")) {
+            return;
+        }
+
+        let functions = this.get("functions");
+        for (let i = 0; i < functions.length; i++) {
+            if (functions[i].id == id) {
+                functions[i] = props;
+                this.set("functions", functions);
+                return;
+            }
+        }
+    }
+
+    getProject() {
+        if (!this.has("projectId") || !this.has("projectName")) {
+            return {};
+        }
+
+        return {
+            projectId: this.get("projectId"),
+            projectName: this.get("projectName"),
+        };
+    }
+
+    setProject(projectId, projectName) {
+        this.set("projectId", projectId);
+        this.set("projectName", projectName);
+    }
+}
+
+class Global extends Config {
+    static CONFIG_FILE_PATH = ".prefs.json";
+
+    static PREFERENCE_ENDPOINT = "endpoint";
+    static PREFERENCE_SELF_SIGNED = "selfSigned";
+    static PREFERENCE_COOKIE = "cookie";
+    static PREFERENCE_PROJECT = "project";
+    static PREFERENCE_KEY = "key";
+    static PREFERENCE_LOCALE = "locale";
+    static PREFERENCE_MODE = "mode";
+
+    static MODE_ADMIN = "admin";
+    static MODE_DEFAULT = "default";
+
+    static PROJECT_CONSOLE = "console";
+
+    constructor(path) {
+        super(`${__dirname}/${Global.CONFIG_FILE_PATH}`);
+    }
+
+    getEndpoint() {
+        if (!this.has(Global.PREFERENCE_ENDPOINT)) {
+            return "";
+        }
+        return this.get(Global.PREFERENCE_ENDPOINT);
+    }
+
+    setEndpoint(endpoint) {
+        this.set(Global.PREFERENCE_ENDPOINT, endpoint);
+    }
+
+    getSelfSigned() {
+        if (!this.has(Global.PREFERENCE_SELF_SIGNED)) {
+            return false;
+        }
+        return this.get(Global.PREFERENCE_SELF_SIGNED);
+    }
+
+    setSelfSigned(selfSigned) {
+        this.set(Global.PREFERENCE_SELF_SIGNED, selfSigned);
+    }
+
+    getCookie() {
+        if (!this.has(Global.PREFERENCE_COOKIE)) {
+            return "";
+        }
+        return this.get(Global.PREFERENCE_COOKIE);
+    }
+
+    setCookie(cookie) {
+        this.set(Global.PREFERENCE_COOKIE, cookie);
+    }
+
+    getProject() {
+        if (!this.has(Global.PREFERENCE_PROJECT)) {
+            return "";
+        }
+        return this.get(Global.PREFERENCE_PROJECT);
+    }
+
+    setProject(project) {
+        this.set(Global.PREFERENCE_PROJECT, project);
+    }
+
+    getKey() {
+        if (!this.has(Global.PREFERENCE_KEY)) {
+            return "";
+        }
+        return this.get(Global.PREFERENCE_KEY);
+    }
+}
+
+module.exports = {
+    localConfig : new Local(),
+    globalConfig : new Global(),
+};
