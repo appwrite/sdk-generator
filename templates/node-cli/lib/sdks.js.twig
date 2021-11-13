@@ -53,19 +53,25 @@ const sdkForProject = async () => {
     throw new Error("Project is not set. Please run `appwrite init project` to initialize the current directory with an Appwrite project.");
   }
 
-  if (!key && !cookie) {
-    throw new Error("Session not found. Please run `appwrite login` to create a session.");
-  }
-
   client
     .setEndpoint(endpoint)
     .setProject(project)
-    .setCookie(cookie)
-    .setMode("admin")
     .setSelfSigned(true)
     .setLocale("en-US");
 
-  return client;
+  if (key) {
+    return client
+      .setKey(key)
+      .setMode("default");
+  }
+
+  if (cookie) {
+    return client
+      .setCookie(cookie)
+      .setMode("admin");
+  }
+
+  throw new Error("Session not found. Please run `appwrite login` to create a session.");
 };
 
 module.exports = {

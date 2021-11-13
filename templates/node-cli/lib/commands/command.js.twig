@@ -52,7 +52,7 @@ const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower 
         }
 
 {% elseif parameter.type == 'file' %}
-        let filePath = await fsPromises.realpath({{ parameter.name | caseCamel | escapeKeyword }});
+        let filePath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
         if (typeof filePath !== 'undefined') {
             payload['{{ parameter.name }}'] = fs.createReadStream(filePath);
         }
@@ -67,7 +67,8 @@ const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower 
 {% if method.type == 'location' %}
         payload['project'] = localConfig.getProject().projectId
         payload['key'] = globalConfig.getKey();
-        path = `${globalConfig.getEndpoint()}${path}?${http_build_query($params)}`;
+        const queryParams = new URLSearchParams(payload);
+        path = `${globalConfig.getEndpoint()}${path}?${queryParams.toString()}`;
         parse(path)
 {% else %}
         const response = await client.call('{{ method.method | caseLower }}', path, {
