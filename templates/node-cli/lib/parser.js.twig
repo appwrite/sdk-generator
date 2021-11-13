@@ -1,0 +1,55 @@
+var Table = require('cli-table');
+
+const parse = (data) => {
+    if (data.hasOwnProperty('sum')) {
+        for (let key in data) {
+            if (Array.isArray(data[key])) {
+                drawTable(data[key]);
+            } else if (typeof data[key] === 'object') {
+                parse(data[key]);
+            } else {
+                console.log(key + ': ' + data[key]);
+            }
+        }
+    } else {
+        drawJSON(data);
+    }
+}
+
+const drawTable = (data) => {
+    let columns = Object.keys(data[0]);
+    let table = new Table({
+        head: columns,
+        chars: {
+            'top': '═', 'top-mid': '╤', 'top-left': '╔', 'top-right': '╗'
+            , 'bottom': '═', 'bottom-mid': '╧', 'bottom-left': '╚', 'bottom-right': '╝'
+            , 'left': '║', 'left-mid': '╟', 'mid': '─', 'mid-mid': '┼'
+            , 'right': '║', 'right-mid': '╢', 'middle': '│'
+        }
+    });
+
+    data.forEach(row => {
+        let rowValues = [];
+        for (let key in row) {
+            if (Array.isArray(row[key])) {
+                rowValues.push(`array(${row[key].length})`);
+            } else if (typeof row[key] === 'object') {
+                rowValues.push("object");
+            } else if (!row[key]) {
+                rowValues.push("---");
+            } else {
+                rowValues.push(row[key]);
+            }
+        }
+        table.push(rowValues);
+    });
+    console.log(table.toString());
+}
+
+const drawJSON = (data) => {
+    console.log(JSON.stringify(data, null, 2));
+}
+
+module.exports = {
+    parse
+}

@@ -3,6 +3,8 @@ const _path = require('path');
 const childProcess = require('child_process');
 const { Command } = require('commander');
 const { sdkForProject } = require('../sdks')
+const { parse } = require('../parser')
+const { localConfig, globalConfig } = require("../config");
 
 
 const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description("{{ service.description }}")
@@ -63,10 +65,10 @@ const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower 
 {% endif %}
 {% endfor %}
 {% if method.type == 'location' %}
-        $params['project'] = $client->getPreference('X-Appwrite-Project');
-        $params['key'] = $client->getPreference('X-Appwrite-Key');
-        $path = $client->getPreference(Client::PREFERENCE_ENDPOINT).$path . "?" . http_build_query($params);
-        Console::success($path);
+        payload['project'] = localConfig.getProject().projectId
+        payload['key'] = globalConfig.getKey();
+        path = `${globalConfig.getEndpoint()}${path}?${http_build_query($params)}`;
+        parse(path)
 {% else %}
         const response = await client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
@@ -76,7 +78,7 @@ const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower 
             '{{ key }}': '{{ header }}',
 {% endfor %}
         }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
-        console.log(response)
+        parse(response)
 {% endif %}
 {% if method.packaging %}
 
