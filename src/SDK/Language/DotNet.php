@@ -133,6 +133,16 @@ class DotNet extends Language {
     }
 
     /**
+     * @return array
+     */
+    public function getIdentifierOverrides()
+    {
+        return [
+            'Jwt' => 'JWT'
+        ];
+    }
+
+    /**
      * @param $type
      * @return string
      */
