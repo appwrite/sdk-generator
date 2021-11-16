@@ -218,6 +218,13 @@ class SDK
         $this->twig->addFilter(new TwigFilter('removeDollarSign', function ($value) {
             return str_replace('$','',$value);
         }));
+        $this->twig->addFilter(new TwigFilter('overrideIdentifier', function ($value) use ($language) {
+            if(in_array($value, $language->getIdentifierOverrides())) {
+                return $language->getIdentifierOverrides()[$value];
+            }
+
+            return $value;
+        }));
     }
 
     /**
