@@ -219,7 +219,7 @@ class SDK
             return str_replace('$','',$value);
         }));
         $this->twig->addFilter(new TwigFilter('overrideIdentifier', function ($value) use ($language) {
-            if(in_array($value, $language->getIdentifierOverrides())) {
+            if(isset($language->getIdentifierOverrides()[$value])) {
                 return $language->getIdentifierOverrides()[$value];
             }
 
