@@ -97,7 +97,7 @@ class Kotlin extends Language {
     {
         switch ($type) {
             case self::TYPE_INTEGER:
-                return 'Int';
+                return 'Long';
             case self::TYPE_NUMBER:
                 return 'Double';
             case self::TYPE_STRING:
@@ -354,7 +354,13 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/BaseService.kt',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/json/PreciseNumberAdapter.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/json/PreciseNumberAdapter.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/Service.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/Service.kt.twig',
                 'minify'        => false,
             ],
@@ -363,7 +369,13 @@ class Kotlin extends Language {
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/ServiceTemplate.kt.twig',
                 'minify'        => false,
-            ]
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ definition.name | caseUcfirst }}.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Model.kt.twig',
+                'minify'        => false,
+            ],
         ];
     }
 }

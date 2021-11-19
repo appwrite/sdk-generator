@@ -5,11 +5,10 @@ import androidx.activity.ComponentActivity
 import androidx.lifecycle.*
 import {{ sdk.namespace | caseDot }}.android.utils.Client.client
 import {{ sdk.namespace | caseDot }}.android.utils.Event
-import {{ sdk.namespace | caseDot }}.exceptions.AppwriteException
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
+import {{ sdk.namespace | caseDot }}.extensions.toJson
 import {{ sdk.namespace | caseDot }}.services.Account
 import kotlinx.coroutines.launch
-import org.json.JSONObject
-
 
 class AccountsViewModel : ViewModel() {
 
@@ -27,28 +26,25 @@ class AccountsViewModel : ViewModel() {
         Account(client)
     }
 
-    fun onLogin(email: Editable , password : Editable) {
+    fun onLogin(email: Editable, password: Editable) {
         viewModelScope.launch {
             try {
-                var response = accountService.createSession(email.toString(), password.toString())
-                var json = response.body?.string() ?: ""
-                json = JSONObject(json).toString(8)
-                _response.postValue(Event(json))
-            } catch (e: AppwriteException) {
+                val session = accountService.createSession(email.toString(), password.toString())
+                _response.postValue(Event(session.toJson()))
+            } catch (e: {{ spec.title | caseUcfirst }}Exception) {
                 _error.postValue(Event(e))
             }
         }
 
     }
 
-    fun onSignup(email: Editable , password : Editable, name: Editable) {
+    fun onSignup(email: Editable, password: Editable, name: Editable) {
         viewModelScope.launch {
             try {
-                var response = accountService.create(email.toString(), password.toString(), name.toString())
-                var json = response.body?.string() ?: ""
-                json = JSONObject(json).toString(2)
-                _response.postValue(Event(json))
-            } catch (e: AppwriteException) {
+                val user =
+                    accountService.create(email.toString(), password.toString(), name.toString())
+                _response.postValue(Event(user.toJson()))
+            } catch (e: {{ spec.title | caseUcfirst }}Exception) {
                 _error.postValue(Event(e))
             }
         }
@@ -58,10 +54,15 @@ class AccountsViewModel : ViewModel() {
     fun oAuthLogin(activity: ComponentActivity) {
         viewModelScope.launch {
             try {
-                accountService.createOAuth2Session(activity, "facebook", "appwrite-callback-6070749e6acd4://demo.appwrite.io/auth/oauth2/success", "appwrite-callback-6070749e6acd4://demo.appwrite.io/auth/oauth2/failure")
+                accountService.createOAuth2Session(
+                    activity,
+                    "facebook",
+                    "appwrite-callback-6070749e6acd4://demo.appwrite.io/auth/oauth2/success",
+                    "appwrite-callback-6070749e6acd4://demo.appwrite.io/auth/oauth2/failure"
+                )
             } catch (e: Exception) {
                 _error.postValue(Event(e))
-            } catch (e: AppwriteException) {
+            } catch (e: {{ spec.title | caseUcfirst }}Exception) {
                 _error.postValue(Event(e))
             }
         }
@@ -70,11 +71,9 @@ class AccountsViewModel : ViewModel() {
     fun getUser() {
         viewModelScope.launch {
             try {
-                var response = accountService.get()
-                var json = response.body?.string() ?: ""
-                json = JSONObject(json).toString(2)
-                _response.postValue(Event(json))
-            } catch (e: AppwriteException) {
+                val account = accountService.get()
+                _response.postValue(Event(account.toJson()))
+            } catch (e: {{ spec.title | caseUcfirst }}Exception) {
                 _error.postValue(Event(e))
             }
         }
@@ -83,14 +82,11 @@ class AccountsViewModel : ViewModel() {
     fun logout() {
         viewModelScope.launch {
             try {
-                var response = accountService.deleteSession("current")
-                var json = response.body?.string()?.ifEmpty { "{}" }
-                json = JSONObject(json).toString(4)
-                _response.postValue(Event(json))
-            } catch (e: AppwriteException) {
+                val result = accountService.deleteSession("current")
+                _response.postValue(Event(result.toJson()))
+            } catch (e: {{ spec.title | caseUcfirst }}Exception) {
                 _error.postValue(Event(e))
             }
         }
     }
-
 }
