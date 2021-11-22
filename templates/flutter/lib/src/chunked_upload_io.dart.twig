@@ -23,26 +23,29 @@ Future<Response> chunkedUpload({
 
   late Response res;
   if (size <= Client.CHUNK_SIZE) {
-    params['file'] = await http.MultipartFile.fromPath(paramName, file.path!, filename: file.fileName);
-    res = await client.call(HttpMethod.post,
-        path: path, params: params, headers: headers);
-  } else {
-    // read chunk and upload each chunk
-    var offset = 0;
-    final raf = iofile.openSync(mode: io.FileMode.read);
+    params[paramName] = await http.MultipartFile.fromPath(paramName, file.path!, filename: file.fileName);
+    return client.call(
+      HttpMethod.post,
+      path: path,
+      params: params,
+      headers: headers,
+    );
+  }
+  // read chunk and upload each chunk
+  var offset = 0;
+  final raf = iofile.openSync(mode: io.FileMode.read);
 
-    while (offset < size) {
-      final chunk = raf.readSync(Client.CHUNK_SIZE);
-      params[paramName] =
-          http.MultipartFile.fromBytes(paramName, chunk, filename: iofile.path);
-      headers['content-range'] =
-          'bytes $offset-${min<int>(((offset + Client.CHUNK_SIZE) - 1), size)}/$size';
-      res = await client.call(HttpMethod.post,
-          path: path, headers: headers, params: params);
-      offset += Client.CHUNK_SIZE;
-      if(offset < size) {
-        headers['x-appwrite-id'] = res.data['\$id'];
-      }
+  while (offset < size) {
+    final chunk = raf.readSync(Client.CHUNK_SIZE);
+    params[paramName] =
+        http.MultipartFile.fromBytes(paramName, chunk, filename: iofile.path);
+    headers['content-range'] =
+        'bytes $offset-${min<int>(((offset + Client.CHUNK_SIZE) - 1), size)}/$size';
+    res = await client.call(HttpMethod.post,
+        path: path, headers: headers, params: params);
+    offset += Client.CHUNK_SIZE;
+    if(offset < size) {
+      headers['x-appwrite-id'] = res.data['\$id'];
     }
   }
   return res;
