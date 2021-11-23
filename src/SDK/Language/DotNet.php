@@ -372,7 +372,7 @@ class DotNet extends Language {
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => '/src/Appwrite/Models/{{definition.name | caseUcfirst}}.cs',
+                'destination'   => '/src/Appwrite/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/src/Appwrite/Models/Model.cs.twig',
                 'minify'        => false,
             ]

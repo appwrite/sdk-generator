@@ -1,5 +1,5 @@
 {% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}>{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% if not property.required %}?{% endif %}{% endmacro %}
-{% macro property_name(definition, property) %}{% if (definition.name | caseUcfirst) == (property.name | caseUcfirst) %}X{% endif %}{{ property.name | caseUcfirst | removeDollarSign | escapeKeyword}}{% endmacro %}
+{% macro property_name(definition, property) %}{{ property.name | caseUcfirst | removeDollarSign | escapeKeyword}}{% endmacro %}
 
 using System;
 using System.Linq;
@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace {{ spec.title | caseUcfirst }}.Models
 {
-    public class {{ definition.name | caseUcfirst }}
+    public class {{ definition.name | caseUcfirst | overrideIdentifier }}
     {
 {% for property in definition.properties %}
         [JsonProperty("{{ property.name }}")]
