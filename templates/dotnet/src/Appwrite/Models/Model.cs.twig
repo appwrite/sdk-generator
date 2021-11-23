@@ -43,7 +43,9 @@ namespace {{ spec.title | caseUcfirst }}.Models
 
 {% endfor %}
 {% if definition.additionalProperties %}
-            data: ((JObject)map["data"]).ToObject<Dictionary<string, object>>()
+            data: map.ContainsKey("data")
+                ? ((JObject)map["data"]).ToObject<Dictionary<string, object>>()!
+                : new Dictionary<string, object>()
 {% endif %}
         );
 
