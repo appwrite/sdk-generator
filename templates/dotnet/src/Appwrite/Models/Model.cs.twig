@@ -1,4 +1,4 @@
-{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}>{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% if not property.required %}?{% endif %}{% endmacro %}
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>{% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% if not property.required %}?{% endif %}{% endmacro %}
 {% macro property_name(definition, property) %}{{ property.name | caseUcfirst | removeDollarSign | escapeKeyword}}{% endmacro %}
 
 using System;
@@ -6,6 +6,7 @@ using System.Linq;
 using System.Collections.Generic;
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace {{ spec.title | caseUcfirst }}.Models
 {
