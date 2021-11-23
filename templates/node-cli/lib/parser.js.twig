@@ -3,7 +3,7 @@ var Table = require('cli-table');
 const parse = (data) => {
     if (data.hasOwnProperty('sum')) {
         for (let key in data) {
-            if (Array.isArray(data[key])) {
+            if (Array.isArray(data[key]) && typeof data[key] === 'object') {
                 drawTable(data[key]);
             } else if (typeof data[key] === 'object') {
                 parse(data[key]);
@@ -17,6 +17,10 @@ const parse = (data) => {
 }
 
 const drawTable = (data) => {
+    if (data.length == 0) {
+        return;
+    }
+
     let columns = Object.keys(data[0]);
     let table = new Table({
         head: columns,
