@@ -13,7 +13,7 @@
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
 {% macro resultType(namespace, method) %}
-{% if method.type == "webAuth" %}bool{% elseif method.type == "location" %}byte[]{% elseif not method.responseModel or method.responseModel == 'any' %}object{% else %}Models.{{method.responseModel | caseUcfirst}}{% endif %}
+{% if method.type == "webAuth" %}bool{% elseif method.type == "location" %}byte[]{% elseif not method.responseModel or method.responseModel == 'any' %}object{% else %}Models.{{method.responseModel | caseUcfirst | overrideIdentifier }}{% endif %}
 {% endmacro %}
 
 using System;
