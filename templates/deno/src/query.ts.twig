@@ -1,7 +1,8 @@
-type QueryTypes = string | string[] | number | number[] | boolean | boolean[];
-type QueryTypesList = string[] | number[] | boolean[];
+type QueryTypesSingle = string | number | boolean;
+export type QueryTypesList = string[] | number[] | boolean[];
+export type QueryTypes = QueryTypesSingle | QueryTypesList;
 
-class Query {
+export class Query {
   static equal = (attribute: string, value: QueryTypes): string =>
     Query.addQuery(attribute, "equal", value);
 
@@ -23,14 +24,14 @@ class Query {
   static contains = (attribute: string, value: QueryTypesList): string =>
     Query.addQuery(attribute, "contains", value);
 
-  private static addQuery = (attribute: string, oper: string, value: unknown): string =>
+  private static addQuery = (attribute: string, oper: string, value: QueryTypes): string =>
     value instanceof Array
       ? `${attribute}.${oper}(${value
-          .map((v) => Query.parseValues(v))
+          .map((v: QueryTypesSingle) => Query.parseValues(v))
           .join(",")})`
       : `${attribute}.${oper}(${Query.parseValues(value)})`;
 
-  private static parseValues = (value: unknown): string =>
+  private static parseValues = (value: QueryTypes): string =>
     typeof value === "string" || value instanceof String
       ? `"${value}"`
       : `${value}`;
