@@ -75,19 +75,16 @@ namespace {{ spec.title | caseUcfirst }}
                 method: "{{ method.method | caseUpper }}",
                 path: path,
                 headers: headers,
-                parameters: parameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!,
-                responseType: typeof({{ _self.resultType(spec.title, method) }}));
+                parameters: parameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!);
 {% else %}
 
 {% if method.responseModel %}
-            static {{ _self.resultType(spec.title, method) }} convert(Dictionary<string, object> it)
-            {
+            static {{ _self.resultType(spec.title, method) }} Convert(Dictionary<string, object> it) =>
 {% if method.responseModel == 'any' %}
-                return it;
+                it;
 {% else %}
-                return {{ _self.resultType(spec.title, method) }}.From(map: it);
+                {{ _self.resultType(spec.title, method) }}.From(map: it);
 {% endif %}
-            }
 {% endif %}
 
             return _client.Call{% if method.type != 'webAuth' %}<{{ _self.resultType(spec.title, method) }}>{% endif %}(
@@ -98,8 +95,7 @@ namespace {{ spec.title | caseUcfirst }}
                 parameters: parameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!);
 {% else %}
                 parameters: parameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!,
-                convert: convert,
-                responseType: typeof({{ _self.resultType(spec.title, method) }}));
+                convert: Convert);
 {% endif %}
 {% endif %}
         }

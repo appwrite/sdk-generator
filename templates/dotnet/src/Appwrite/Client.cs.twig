@@ -1,5 +1,7 @@
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,10 +24,23 @@ namespace {{ spec.title | caseUcfirst }}
         private readonly Dictionary<string, string> _config;
         private string _endPoint;
 
-        private JsonSerializerSettings _serializerSettings = new JsonSerializerSettings {
+        public static JsonSerializerSettings DeserializerSettings { get; set; } = new JsonSerializerSettings {
             MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+            NullValueHandling = NullValueHandling.Ignore,
+            ContractResolver = new CamelCasePropertyNamesContractResolver(),
             Converters = new List<JsonConverter> {
-                new Int32JsonConverter()
+                new Int32JsonConverter(),
+                new StringEnumConverter()
+            }
+        };
+
+        public static JsonSerializerSettings SerializerSettings { get; set; } = new JsonSerializerSettings
+        {
+            NullValueHandling = NullValueHandling.Ignore,
+            ContractResolver = new CamelCasePropertyNamesContractResolver(),
+            Converters = new List<JsonConverter> {
+                new Int32JsonConverter(),
+                new StringEnumConverter()
             }
         };
 
@@ -48,7 +63,12 @@ namespace {{ spec.title | caseUcfirst }}
             };
             _config = new Dictionary<string, string>();
 
+            if (selfSigned)
+            {
+                SetSelfSigned(true);
+            }
 
+            JsonConvert.DefaultSettings = () => DeserializerSettings;
         }
 
         public Client SetSelfSigned(bool selfSigned)
@@ -105,8 +125,7 @@ namespace {{ spec.title | caseUcfirst }}
             string path,
             Dictionary<string, string> headers,
             Dictionary<string, object> parameters,
-            Func<Dictionary<string, object>, T>? convert = null,
-            Type? responseType = null) where T : class
+            Func<Dictionary<string, object>, T>? convert = null) where T : class
         {
             var methodGet = "GET".Equals(method, StringComparison.OrdinalIgnoreCase);
 
@@ -206,7 +225,7 @@ namespace {{ spec.title | caseUcfirst }}
 
                     var dict = JsonConvert.DeserializeObject<Dictionary<string, object>>(
                         responseString,
-                        _serializerSettings);
+                        DeserializerSettings);
 
                     if (convert != null)
                     {

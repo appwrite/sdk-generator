@@ -10,13 +10,7 @@ namespace {{ spec.title | caseUcfirst }}
     {
         public static string ToJson(this Dictionary<string, object> dict)
         {
-            var settings = new JsonSerializerSettings
-            {
-                ContractResolver = new CamelCasePropertyNamesContractResolver(),
-                Converters = new List<JsonConverter> { new StringEnumConverter() }
-            };
-
-            return JsonConvert.SerializeObject(dict, settings);
+            return JsonConvert.SerializeObject(dict, Client.SerializerSettings);
         }
 
         public static string ToQueryString(this Dictionary<string, object> parameters)
