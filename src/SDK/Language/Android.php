@@ -142,8 +142,20 @@ class Android extends Kotlin {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/Error.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/models/Error.kt.twig',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/CollectionExtensions.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/extensions/CollectionExtensions.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/json/PreciseNumberAdapter.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/json/PreciseNumberAdapter.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/RealtimeModels.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/RealtimeModels.kt.twig',
                 'minify'        => false,
             ],
             [
@@ -166,8 +178,14 @@ class Android extends Kotlin {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/BaseService.kt',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/Service.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/services/Service.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/Realtime.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/services/Realtime.kt.twig',
                 'minify'        => false,
             ],
             [
@@ -351,6 +369,12 @@ class Android extends Kotlin {
                 'scope'         => 'copy',
                 'destination'   => '/example-java/.gitignore',
                 'template'      => '/android/example-java/.gitignore',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => 'library/src/main/java/io/appwrite/models/{{ definition.name | caseUcfirst }}.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/Model.kt.twig',
                 'minify'        => false,
             ],
         ];

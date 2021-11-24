@@ -5,7 +5,6 @@ part of {{ language.params.packageName }};
 {% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}
 {% endmacro %}
 {% macro map_parameter(parameter) %}'{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},{% endmacro %}
-
 class {{ service.name | caseUcfirst }} extends Service {
     {{ service.name | caseUcfirst }}(Client client): super(client);
 {% for method in service.methods %}
@@ -16,7 +15,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {{ method.description|dartComment }}
      ///
 {% endif %}
-    {% if method.type == 'webAuth' %}Future{% else %}Future<Response>{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) {
+    {% if method.type == 'webAuth' %}Future{% elseif method.type == 'location' %} Future<Uint8List> {% else %} {% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) async {
         final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
 
         final Map<String, dynamic> params = {
@@ -60,23 +59,10 @@ class {{ service.name | caseUcfirst }} extends Service {
         );
 
         if(kIsWeb) {
-          html.window.location.href = url.toString();
+          redirect(url.toString());
           return Future.value();
         }else{
-
-          return FlutterWebAuth.authenticate(
-            url: url.toString(),
-            callbackUrlScheme: "appwrite-callback-" + client.config['project']!
-            ).then((value) async {
-                Uri url = Uri.parse(value);
-                Cookie cookie = new Cookie(url.queryParameters['key']!, url.queryParameters['secret']!);
-                cookie.domain = Uri.parse(client.endPoint).host;
-                cookie.httpOnly = true;
-                cookie.path = '/';
-                List<Cookie> cookies = [cookie];
-                await client.init();
-                await client.cookieJar.saveFromResponse(Uri.parse(client.endPoint), cookies);
-            });
+          return client.webAuth(url);
         }
 
 {% elseif method.type == 'location' %}
@@ -84,7 +70,8 @@ class {{ service.name | caseUcfirst }} extends Service {
           params[key] = params[key].toString();
         }});
 
-        return client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, responseType: ResponseType.bytes);
+        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, responseType: ResponseType.bytes);
+        return res.data;
 {% else %}
         final Map<String, String> headers = {
 {% for key, header in method.headers %}
@@ -92,7 +79,8 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
         };
 
-        return client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
+        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
+        return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst}}.fromMap(res.data){% else %} res.data{% endif %};
 {% endif %}
     }
 {% endfor %}

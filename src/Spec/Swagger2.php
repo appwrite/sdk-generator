@@ -147,6 +147,17 @@ class Swagger2 extends Spec
                         }
                     }
 
+                    $responses = $method['responses'];
+                    $responseModel = '';
+                    foreach($responses as $code => $desc) {
+                        if(isset($desc['schema']) && isset($desc['schema']['$ref'])) {
+                            $responseModel = $desc['schema']['$ref'];
+                            if(!empty($responseModel)) {
+                                $responseModel = str_replace('#/definitions/', '', $responseModel);
+                            }
+                        }
+                    }
+
                     $output = [
                         'method' => $methodName,
                         'path' => $pathName,
@@ -167,6 +178,7 @@ class Swagger2 extends Spec
                             'query' => [],
                             'body' => [],
                         ],
+                        'responseModel' => $responseModel,
                     ];
 
                     if (isset($method['consumes']) && is_array($method['consumes'])) {
@@ -274,6 +286,34 @@ class Swagger2 extends Spec
             }
         }
 
+        return $list;
+    }
+
+    public function getDefinitions() {
+        $list = [];
+        $definition = $this->getAttribute('definitions',[]);
+        foreach ($definition as $key => $schema) {
+            if($key == 'any') continue;
+            $sch = [
+                "name" => $key,
+                "properties"=> $schema['properties'] ?? [],
+                "description"=> $schema['description'] ?? [],
+                "required" => $schema['required'] ?? [],
+                "additionalProperties" => $schema['additionalProperties'] ?? []
+            ];
+            if(isset($sch['properties'])) {
+                foreach($sch['properties'] as $name => $def) {
+                    $sch['properties'][$name]['name'] = $name;
+                    $sch['properties'][$name]['description'] = $def['description'];
+                    $sch['properties'][$name]['required'] =  in_array($name,$sch['required']);
+                    if(isset($def['items']['$ref'])) {
+                        //nested model
+                        $sch['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['items']['$ref']);
+                    }
+            }
+            }
+            $list[$key] = $sch;
+        }
         return $list;
     }
 }

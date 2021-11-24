@@ -1,7 +1,6 @@
 import { Client } from "./client.ts";
 
 export abstract class Service {
-    
     client: Client;
 
     /**
