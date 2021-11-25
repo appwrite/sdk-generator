@@ -23,7 +23,7 @@ class {{ definition.name | ucFirstAndEscape }} {
     factory {{ definition.name | ucFirstAndEscape}}.fromMap(Map<String, dynamic> map) {
         return {{ definition.name | ucFirstAndEscape }}(
 {% for property in definition.properties %}
-            {{ property.name | escapeKeyword }}: {% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | ucFirstAndEscape}}>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | ucFirstAndEscape}}.fromMap(p))){% else %}{{property.sub_schema | ucFirstAndEscape}}.fromMap(map['{{property.name | escapeDollarSign }}']){% endif %}{% else %}map['{{property.name | escapeDollarSign }}']{% if property.type == "number" %}.toDouble(){% endif %}{% if property.type == "string" %}.toString(){% endif %}{% endif %},
+            {{ property.name | escapeKeyword }}: {% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | ucFirstAndEscape}}>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | ucFirstAndEscape}}.fromMap(p))){% else %}{{property.sub_schema | ucFirstAndEscape}}.fromMap(map['{{property.name | escapeDollarSign }}']){% endif %}{% else %}map['{{property.name | escapeDollarSign }}']{% if property.type == "number" %}?.toDouble(){% endif %}{% if property.type == "string" %}?.toString(){% endif %}{% endif %},
 {% endfor %}
 {% if definition.additionalProperties %}
             data: map,
