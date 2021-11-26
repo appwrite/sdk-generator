@@ -151,6 +151,12 @@ class Swift extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/Query.swift',
+                'template'      => 'swift/Sources/Models/Query.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Codable+JSON.swift',
                 'template'      => 'swift/Sources/Extensions/Codable+JSON.swift.twig',
                 'minify'        => false,
