@@ -16,6 +16,8 @@ class Query {
 
     fun contains(attribute: String, value: List<Any>) = Query.addQuery(attribute, "contains", value)
 
+    fun search(attribute: String, value: String) = Query.addQuery(attribute, "search", value)
+
     private fun addQuery(attribute: String, oper: String, value: Any): String {
       return when (value) {
         is List<*> -> "${attribute}.${oper}(${value.map{it -> parseValues(it!!)}.joinToString(",")})"

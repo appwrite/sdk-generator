@@ -29,6 +29,10 @@ class Query:
         return Query.addQuery(attribute, "contains", value)
 
     @staticmethod
+    def search(attribute, value):
+        return Query.addQuery(attribute, "search", value)
+
+    @staticmethod
     def addQuery(attribute, oper, value):
         if type(value) == list:
             return '{}.{}({})'.format(attribute,oper, ','.join(map(Query.parseValues, value)))

@@ -18,7 +18,10 @@ class Query {
     Query.addQuery(attribute, "greaterEqual", value);
 
   static contains = (attribute, valueList) =>
-    Query.addQuery(attribute, "contains", value);
+    Query.addQuery(attribute, "contains", valueList);
+
+  static search = (attribute, value) =>
+    Query.addQuery(attribute, "search", value);
 
   static addQuery = (attribute, oper, value) =>
     value instanceof Array
