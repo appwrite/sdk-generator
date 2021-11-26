@@ -89,6 +89,18 @@ class Query
     }
 
     /**
+     * Search
+     *
+     * @param string $attribute
+     * @param string $value
+     * @return string
+     */
+    public static function contains(string $attribute, string $value): string
+    {
+        return self::addQuery($attribute, 'search', $value);
+    }
+
+    /**
      * Add Query
      *
      * @param string $attribute
