@@ -67,6 +67,12 @@ class NodeCLI extends JS
                 'minify'        => false,
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'lib/commands/deploy.js',
+                'template'      => 'node-cli/lib/commands/deploy.js.twig',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '/lib/commands/{{service.name | caseDash}}.js',
                 'template'      => 'node-cli/lib/commands/command.js.twig',
@@ -77,7 +83,7 @@ class NodeCLI extends JS
                 'destination'   => 'lib/commands/auth.js',
                 'template'      => 'node-cli/lib/commands/auth.js.twig',
                 'minify'        => false,
-            ],
+            ]
         ];
     }
 

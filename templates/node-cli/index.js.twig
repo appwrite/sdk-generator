@@ -2,6 +2,7 @@ const program = require("commander");
 const { description, version } = require("./package.json");
 const { login, logout } = require("./lib/commands/auth");
 const { init } = require("./lib/commands/init");
+const { deploy } = require("./lib/commands/deploy");
 {% for service in spec.services %}
 const { {{ service.name | caseLower }} } = require("./lib/commands/{{ service.name }}");
 {% endfor %}
@@ -22,4 +23,5 @@ program
   .addCommand(login)
   .addCommand(logout)
   .addCommand(init)
+  .addCommand(deploy)
   .parse(process.argv);

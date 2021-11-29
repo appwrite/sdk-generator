@@ -4,6 +4,7 @@ const inquirer = require("inquirer");
 const { sdkForConsole, sdkForProject } = require("../sdks");
 const { localConfig } = require("../config");
 const childProcess = require('child_process');
+const { parse, actionRunner } = require("../parser");
 
 const init = new Command("init").description(
   "Initialise different parts of your Appwrite setup "
@@ -12,7 +13,7 @@ const init = new Command("init").description(
 init
   .command("project")
   .description("Initialise your Appwrite project")
-  .action(async () => {
+  .action(actionRunner (async () => {
     const client = await sdkForConsole();
     let payload = {}
     let response = {}
@@ -39,13 +40,13 @@ init
     } else {
       localConfig.setProject(answers.project.id, answers.project.name);
     }
-  });
+  }));
 
 
 init
   .command("function")
   .description("Initialise your Appwrite cloud function")
-  .action(async () => {
+  .action(actionRunner (async () => {
     console.log("Creating function")
     let answers = await inquirer.prompt(questionsInitFunction)
 
@@ -79,12 +80,14 @@ init
       $id: response['$id'],
       name: response['name'],
       runtime: response['runtime'],
-      path: "$name",
+      path: answers.name,
       command: '',
       vars: []
     };
     localConfig.addFunction(data);
-  })
+
+    parse(response)
+  }))
 
 module.exports = {
   init,

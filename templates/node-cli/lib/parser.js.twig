@@ -54,6 +54,16 @@ const drawJSON = (data) => {
     console.log(JSON.stringify(data, null, 2));
 }
 
+const parseError = (error) => {
+    // console.error(error.code);
+    console.error(error);
+}
+
+const actionRunner= (fn) => {
+    return (...args) => fn(...args).catch(parseError);
+}
+
 module.exports = {
-    parse
+    parse,
+    actionRunner
 }

@@ -176,8 +176,47 @@ const questionsLogin = [
   },
 ];
 
+const questionsDeployFunctions = [
+  {
+    type: "checkbox",
+    name: "functions",
+    message: "Which functions would you like to deploy?",
+    choices: () => {
+      let functions = localConfig.getFunctions();
+      if (functions.length === 0) {
+        throw new Error("No functions found in the current directory. Run `appwrite init function` to initialise a new function");
+      }
+      let choices = functions.map((func, idx) => {
+        return {
+          name: `${func.name} (${func['$id']})`,
+          value: func
+        }
+      })
+      return choices;
+    }
+  }
+  
+]
+
+const questionsGetCommand = [
+  {
+    type: "input",
+    name: "command",
+    message: "Enter the entrypoint command",
+    default: null,
+    validate(value) {
+      if (!value) {
+        return "Please enter your enrtypoint command";
+      }
+      return true;
+    }
+  },
+]
+
 module.exports = {
   questionsInitProject,
   questionsLogin,
-  questionsInitFunction
+  questionsInitFunction,
+  questionsDeployFunctions,
+  questionsGetCommand
 };

@@ -3,7 +3,7 @@ const _path = require('path');
 const childProcess = require('child_process');
 const { Command } = require('commander');
 const { sdkForProject } = require('../sdks')
-const { parse } = require('../parser')
+const { parse, actionRunner } = require('../parser')
 const { localConfig, globalConfig } = require("../config");
 
 
@@ -18,7 +18,7 @@ const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower 
     .{% if parameter.required %}requiredOption{% else %}option{% endif %}("--{{ parameter.name | escapeKeyword }} <{{ parameter.name | escapeKeyword }}{% if parameter.array.type|length > 0 %}...{% endif %}>", "{{ parameter.description }}")
 {% endfor %}
 {% endautoescape %}
-    .action(async ({% if method.parameters.all|length > 0 %}{ {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}{% if method.parameters.all|length > 0 %} }{% endif %}) => {
+    .action(actionRunner (async ({% if method.parameters.all|length > 0 %}{ {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}{% if method.parameters.all|length > 0 %} }{% endif %}) => {
 {% for parameter in method.parameters.all %}
         /* @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} */
 {% endfor %}
@@ -85,7 +85,7 @@ const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower 
 
         fs.unlinkSync(archivePath);
 {% endif %}
-    })
+    }))
 
 {% endfor %}
 

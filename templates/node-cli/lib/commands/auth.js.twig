@@ -1,12 +1,13 @@
 const { Command } = require("commander");
 const inquirer = require("inquirer");
 const { globalConfig } = require("../config");
+const { actionRunner } = require("../parser");
 const { questionsLogin } = require("../questions");
 const { sdkForConsole } = require("../sdks");
 
 const login = new Command("login")
-    .description("Login to your {{ spec.title }} account")
-    .action(async () => {
+    .description("Login to your account")
+    .action(actionRunner (async () => {
         let payload = {}
         let path = "/account/sessions";
 
@@ -18,18 +19,18 @@ const login = new Command("login")
         await client.call("post", path, {
             "content-type": "application/json",
         }, payload);
-    });
+    }));
 
 const logout = new Command("logout")
     .description("Logout from your Appwrite account")
-    .action(async () => {
+    .action(actionRunner (async () => {
         let path = '/account/sessions/current';
         let client = await sdkForConsole();
         await client.call("delete", path, {
             "content-type": "application/json",
         }, {});
         globalConfig.setCookie("");
-    });
+    }));
 
 module.exports = {
     login,
