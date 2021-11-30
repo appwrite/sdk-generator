@@ -55,8 +55,8 @@ const drawJSON = (data) => {
     console.log(JSON.stringify(data, null, 2));
 }
 
-const parseError = (error) => {
-    error(error.message)
+const parseError = (err) => {
+    error(err.message)
 }
 
 const actionRunner= (fn) => {

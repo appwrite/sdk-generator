@@ -1,7 +1,7 @@
 const { Command } = require("commander");
 const inquirer = require("inquirer");
 const { globalConfig } = require("../config");
-const { actionRunner } = require("../parser");
+const { actionRunner, success } = require("../parser");
 const { questionsLogin } = require("../questions");
 const { sdkForConsole } = require("../sdks");
 
@@ -19,6 +19,7 @@ const login = new Command("login")
         await client.call("post", path, {
             "content-type": "application/json",
         }, payload);
+        success()
     }));
 
 const logout = new Command("logout")
@@ -30,6 +31,7 @@ const logout = new Command("logout")
             "content-type": "application/json",
         }, {});
         globalConfig.setCookie("");
+        success()
     }));
 
 module.exports = {
