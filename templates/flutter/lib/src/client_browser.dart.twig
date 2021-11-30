@@ -17,10 +17,12 @@ ClientBase createClient({
 class ClientBrowser extends ClientBase with ClientMixin {
   String _endPoint;
   Map<String, String>? _headers;
+  @override
   late Map<String, String> config;
   late BrowserClient _httpClient;
   String? _endPointRealtime;
 
+  @override
   String? get endPointRealtime => _endPointRealtime;
 
   ClientBrowser({
@@ -46,12 +48,14 @@ class ClientBrowser extends ClientBase with ClientMixin {
     init();
   }
 
+  @override
   String get endPoint => _endPoint;
 
 {% for header in spec.global.headers %}
 {% if header.description %}
      /// {{header.description}}
 {% endif %}
+    @override
     ClientBrowser set{{header.key | caseUcfirst}}(value) {
         config['{{ header.key | caseCamel }}'] = value;
         addHeader('{{header.name}}', value);
@@ -59,10 +63,12 @@ class ClientBrowser extends ClientBase with ClientMixin {
     }
 {% endfor %}
 
+  @override
   ClientBrowser setSelfSigned({bool status = true}) {
     return this;
   }
 
+  @override
   ClientBrowser setEndpoint(String endPoint) {
     this._endPoint = endPoint;
     _endPointRealtime = endPoint
@@ -71,17 +77,20 @@ class ClientBrowser extends ClientBase with ClientMixin {
     return this;
   }
 
+  @override
   ClientBrowser setEndPointRealtime(String endPoint) {
     _endPointRealtime = endPoint;
     return this;
   }
 
+  @override
   ClientBrowser addHeader(String key, String value) {
     _headers![key] = value;
 
     return this;
   }
 
+  @override
   Future init() async {
     if (html.window.localStorage.keys.contains('cookieFallback')) {
       addHeader('x-fallback-cookies',

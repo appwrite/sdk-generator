@@ -9,12 +9,12 @@ import 'realtime_message.dart';
 import 'realtime_response.dart';
 import 'realtime_response_connected.dart';
 
-typedef Future<WebSocketChannel> WebSocketFactory(Uri uri);
-typedef String? GetFallbackCookie();
+typedef WebSocketFactory = Future<WebSocketChannel> Function(Uri uri);
+typedef GetFallbackCookie = String? Function();
 
 mixin RealtimeMixin {
   late Client client;
-  Map<String, List<StreamController<RealtimeMessage>>> _channels = {};
+  final Map<String, List<StreamController<RealtimeMessage>>> _channels = {};
   WebSocketChannel? _websok;
   String? _lastUrl;
   late WebSocketFactory getWebSocket;
@@ -117,7 +117,7 @@ mixin RealtimeMixin {
           controller.close();
           channels.forEach((channel) {
             this._channels[channel]!.remove(controller);
-            if (this._channels[channel]!.length < 1) {
+            if (this._channels[channel]!.isEmpty) {
               this._channels.remove(channel);
             }
           });
@@ -135,7 +135,7 @@ mixin RealtimeMixin {
       throw {{spec.title | caseUcfirst}}Exception(response.data["message"], response.data["code"]);
     } else {
       print("Reconnecting in one second.");
-      Future.delayed(Duration(seconds: 1), () {
+      Future.delayed(const Duration(seconds: 1), () {
         _createSocket();
       });
     }
