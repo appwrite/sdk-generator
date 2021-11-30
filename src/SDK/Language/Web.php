@@ -26,12 +26,6 @@ class Web extends JS {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/query.ts',
-                'template'      => '/web/src/query.ts.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'web/README.md.twig',
                 'minify'        => false,
