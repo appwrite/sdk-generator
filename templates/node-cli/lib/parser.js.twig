@@ -1,3 +1,4 @@
+const chalk = require('chalk');
 var Table = require('cli-table');
 
 const parse = (data) => {
@@ -55,15 +56,29 @@ const drawJSON = (data) => {
 }
 
 const parseError = (error) => {
-    // console.error(error.code);
-    console.error(error);
+    error(error.message)
 }
 
 const actionRunner= (fn) => {
     return (...args) => fn(...args).catch(parseError);
 }
 
+const log = (message) => {
+    console.log(`${chalk.cyan.bold("[ ℹ ] INFO")}     ${chalk.cyan(message ?? "")}`);
+}
+
+const success = (message) => {
+    console.log(`${chalk.green.bold("[ ✔ ] SUCCESS")}  ${chalk.green(message ?? "")}`);   
+}
+
+const error = (message) => {
+    console.log(`${chalk.red.bold("[ ✘ ] ERROR")}    ${chalk.red(message ?? "")}`);
+}
+
 module.exports = {
     parse,
-    actionRunner
+    actionRunner,
+    log,
+    success,
+    error
 }
