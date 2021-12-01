@@ -106,6 +106,14 @@ class Dart extends Language {
     }
 
     /**
+     * @return array
+     */
+    public function getIdentifierOverrides()
+    {
+        return [];
+    }
+
+    /**
      * @param $type
      * @return string
      */
