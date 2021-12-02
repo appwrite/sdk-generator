@@ -31,6 +31,11 @@ const GENERAL_RESPONSES = [
     'POST:/v1/mock/tests/general/upload:passed',
 ];
 
+const COOKIE_RESPONSES = [
+    'GET:/v1/mock/tests/general/set-cookie:passed',
+    'GET:/v1/mock/tests/general/get-cookie:passed',
+];
+
 const EXCEPTION_RESPONSES = [
     'Mock 400 error',
     'Server Error',
@@ -115,6 +120,7 @@ class SDKTest extends TestCase
                 ...GENERAL_RESPONSES,
                 ...EXCEPTION_RESPONSES,
                 ...REALTIME_RESPONSES,
+                ...COOKIE_RESPONSES,
             ],
         ],
 
@@ -134,6 +140,7 @@ class SDKTest extends TestCase
                 ...GENERAL_RESPONSES,
                 ...EXCEPTION_RESPONSES,
                 ...REALTIME_RESPONSES,
+                ...COOKIE_RESPONSES,
             ],
         ],
 
@@ -188,6 +195,7 @@ class SDKTest extends TestCase
                 ...GENERAL_RESPONSES,
                 ...EXCEPTION_RESPONSES,
                 ...REALTIME_RESPONSES,
+                ...COOKIE_RESPONSES,
             ],
         ],
 
@@ -231,6 +239,7 @@ class SDKTest extends TestCase
                 ...GENERAL_RESPONSES,
                 ...EXCEPTION_RESPONSES,
                 ...REALTIME_RESPONSES,
+                ...COOKIE_RESPONSES,
             ],
         ],
 
