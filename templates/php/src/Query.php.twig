@@ -95,7 +95,7 @@ class Query
      * @param string $value
      * @return string
      */
-    public static function contains(string $attribute, string $value): string
+    public static function search(string $attribute, string $value): string
     {
         return self::addQuery($attribute, 'search', $value);
     }
