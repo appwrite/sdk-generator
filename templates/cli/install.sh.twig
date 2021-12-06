@@ -24,7 +24,7 @@
 {{ spec.title | upper }}_EXECUTABLE_FILEPATH="${{ spec.title | upper }}_INSTALL_DIR/${{ spec.title | upper }}_EXECUTABLE_NAME"
 
 # {{ spec.title | caseUcfirst }} CLI temp name 
-{{ spec.title | upper }}_TEMP_NAME=temp
+{{ spec.title | upper }}_TEMP_NAME=temp-$(date +%s)
 
 # {{ spec.title | caseUcfirst }} CLI image name
 {{ spec.title | upper }}_CLI_IMAGE_NAME={{ spec.title | lower }}/cli
@@ -62,6 +62,11 @@ getSystemInfo() {
 
     # Need root access if its a linux system
     if [ "$OS" == "linux" ] && [ "${{ spec.title | upper }}_INSTALL_DIR" == "/usr/local/bin" ]; then
+        USE_SUDO="true"
+    fi
+    
+    # Need root access if its Apple Silicon
+    if [ "$OS" == "darwin" ] && [[ "$(uname -a)" = *ARM64* ]]; then
         USE_SUDO="true"
     fi
 

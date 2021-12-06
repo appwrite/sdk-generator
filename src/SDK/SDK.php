@@ -160,6 +160,20 @@ class SDK
             }
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('swiftComment', function ($value) {
+            $value = explode("\n", $value);
+            foreach ($value as $key => $line) {
+                $value[$key] = "    /// " . wordwrap($value[$key], 75, "\n    /// ");
+            }
+            return implode("\n", $value);
+        }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('rubyComment', function ($value) {
+            $value = explode("\n", $value);
+            foreach ($value as $key => $line) {
+                $value[$key] = "        # " . wordwrap($line, 75, "\n        # ");
+            }
+            return implode("\n", $value);
+        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value) {
             return str_replace('$', '\$', $value);
         }, ['is_safe'=>['html']]));
@@ -190,11 +204,26 @@ class SDK
 
             return $value;
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('ucFirstAndEscape', function ($value) use ($language) {
+            $value = ucfirst((string)$this->helperCamelCase($value));
+            if(in_array($value, $language->getKeywords())) {
+                $value = 'x' . $value;
+            }
+
+            return ucfirst((string)$this->helperCamelCase($value));
+        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('caseHTML', function ($value) {
             return $value;
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('removeDollarSign', function ($value) {
             return str_replace('$','',$value);
+        }));
+        $this->twig->addFilter(new TwigFilter('overrideIdentifier', function ($value) use ($language) {
+            if(isset($language->getIdentifierOverrides()[$value])) {
+                return $language->getIdentifierOverrides()[$value];
+            }
+
+            return $value;
         }));
     }
 

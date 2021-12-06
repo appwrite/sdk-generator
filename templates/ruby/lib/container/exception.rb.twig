@@ -1,14 +1,12 @@
 module Appwrite
     class Exception < StandardError
-        @code = 0;
-        @response = nil;
-
-        def initialize(message, code, response)
+        attr_reader :code
+        attr_reader :response
+        
+        def initialize(message, code = 0, response = nil)
             super(message)
             @code = code
             @response = response
         end
-        attr_reader :code
-        attr_reader :response
     end
 end

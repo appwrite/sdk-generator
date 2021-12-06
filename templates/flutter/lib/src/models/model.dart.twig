@@ -1,8 +1,10 @@
 {% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}>{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% endmacro %}
 part of {{ language.params.packageName }}.models;
 
-class {{ definition.name | caseUcfirst }} {
+/// {{ definition.description }}
+class {{ definition.name | caseUcfirst }} implements Model {
 {% for property in definition.properties %}
+    /// {{ property.description }}
     final {% if not property.required %}{{_self.sub_schema(property)}}? {{ property.name | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ property.name | escapeKeyword }}{% endif %};
 {% endfor %}
 {% if definition.additionalProperties %}
@@ -29,6 +31,7 @@ class {{ definition.name | caseUcfirst }} {
         );
     }
 
+    @override
     Map<String, dynamic> toMap() {
         return {
 {% for property in definition.properties %}

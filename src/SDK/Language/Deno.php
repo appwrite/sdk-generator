@@ -38,6 +38,12 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/models.d.ts',
+                'template'      => 'deno/src/models.d.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/exception.ts',
                 'template'      => 'deno/src/exception.ts.twig',
                 'minify'        => false,
