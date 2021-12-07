@@ -124,27 +124,32 @@ class ClientIO extends ClientBase with ClientMixin {
     //creating custom user agent
     DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
     var device = '';
-    if (Platform.isAndroid) {
-      final andinfo = await deviceInfoPlugin.androidInfo;
-      device =
-          '(Linux; U; Android ${andinfo.version.release}; ${andinfo.brand} ${andinfo.model})';
-    }
-    if (Platform.isIOS) {
-      final iosinfo = await deviceInfoPlugin.iosInfo;
-      device = '${iosinfo.utsname.machine} iOS/${iosinfo.systemVersion}';
-    }
-    if (Platform.isLinux) {
-      final lininfo = await deviceInfoPlugin.linuxInfo;
-      device = '(Linux; U; ${lininfo.id} ${lininfo.version})';
-    }
-    if (Platform.isWindows) {
-      final wininfo = await deviceInfoPlugin.windowsInfo;
-      device =
-          '(Windows NT; ${wininfo.computerName})'; //can't seem to get much info here
-    }
-    if (Platform.isMacOS) {
-      final macinfo = await deviceInfoPlugin.macOsInfo;
-      device = '(Macintosh; ${macinfo.model})';
+    try {
+      if (Platform.isAndroid) {
+        final andinfo = await deviceInfoPlugin.androidInfo;
+        device =
+            '(Linux; U; Android ${andinfo.version.release}; ${andinfo.brand} ${andinfo.model})';
+      }
+      if (Platform.isIOS) {
+        final iosinfo = await deviceInfoPlugin.iosInfo;
+        device = '${iosinfo.utsname.machine} iOS/${iosinfo.systemVersion}';
+      }
+      if (Platform.isLinux) {
+        final lininfo = await deviceInfoPlugin.linuxInfo;
+        device = '(Linux; U; ${lininfo.id} ${lininfo.version})';
+      }
+      if (Platform.isWindows) {
+        final wininfo = await deviceInfoPlugin.windowsInfo;
+        device =
+            '(Windows NT; ${wininfo.computerName})'; //can't seem to get much info here
+      }
+      if (Platform.isMacOS) {
+        final macinfo = await deviceInfoPlugin.macOsInfo;
+        device = '(Macintosh; ${macinfo.model})';
+      }
+    } catch (e) {
+      debugPrint('Error getting device info: $e');
+      device = Platform.operatingSystem;
     }
     addHeader(
         'user-agent', '${packageInfo.packageName}/${packageInfo.version} $device');
