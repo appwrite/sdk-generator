@@ -44,6 +44,12 @@ class NodeCLI extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/parser.js',
+                'template'      => 'node-cli/lib/parser.js.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/exception.js',
                 'template'      => 'node-cli/lib/exception.js.twig',
                 'minify'        => false,
