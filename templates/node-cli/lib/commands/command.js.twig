@@ -6,8 +6,80 @@ const { sdkForProject } = require('../sdks')
 const { parse, actionRunner } = require('../parser')
 const { localConfig, globalConfig } = require("../config");
 
-
 const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description("{{ service.description }}")
+
+{% for method in service.methods %}
+const {{ service.name | caseLower }}_{{ method.name | caseCamel }} = async ({% if method.parameters.all|length > 0 %}{ {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}{% if method.parameters.all|length > 0 %} }{% endif %}) => {
+{% for parameter in method.parameters.all %}
+    /* @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} */
+{% endfor %}
+
+    let client = await sdkForProject();
+    let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+    let payload = {};
+{% if method.parameters.query|length > 0 %}
+
+    /** Query Params */
+{% endif %}
+{% for parameter in method.parameters.query %}
+    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+    }
+{% endfor %}
+{% if method.parameters.body|length > 0 %}
+    
+    /** Body Params */
+{% endif %}
+{% for parameter in method.parameters.body %}
+{% if parameter.type == 'file' and method.packaging %}
+    let folderPath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
+    if (!fs.lstatSync(folderPath).isDirectory())
+        throw new Error('The path is not a directory.');
+    let folderName = _path.basename(folderPath);
+    childProcess.execSync(`tar --cd '${_path.dirname(folderPath)}' -zcvf code.tar.gz '${folderName}'`, { stdio: 'inherit' });
+    let archivePath = fs.realpathSync('code.tar.gz')
+    if (typeof archivePath !== 'undefined') {
+        payload['{{ parameter.name }}'] = fs.createReadStream(archivePath);
+    }
+
+{% elseif parameter.type == 'file' %}
+    let filePath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
+    if (typeof filePath !== 'undefined') {
+        payload['{{ parameter.name }}'] = fs.createReadStream(filePath);
+    }
+
+{% else %}
+    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword}};
+    }
+
+{% endif %}
+{% endfor %}
+{% if method.type == 'location' %}
+    payload['project'] = localConfig.getProject().projectId
+    payload['key'] = globalConfig.getKey();
+    const queryParams = new URLSearchParams(payload);
+    path = `${globalConfig.getEndpoint()}${path}?${queryParams.toString()}`;
+    parse(path)
+{% else %}
+    const response = await client.call('{{ method.method | caseLower }}', path, {
+{% for parameter in method.parameters.header %}
+        '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+        '{{ key }}': '{{ header }}',
+{% endfor %}
+    }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+    parse(response)
+    return response;
+{% endif %}
+{% if method.packaging %}
+
+fs.unlinkSync(archivePath);
+{% endif %}
+}
+
+{% endfor %}
 
 {% for method in service.methods %}
 {{service.name | caseLower }}
@@ -18,77 +90,14 @@ const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower 
     .{% if parameter.required %}requiredOption{% else %}option{% endif %}("--{{ parameter.name | escapeKeyword }} <{{ parameter.name | escapeKeyword }}{% if parameter.array.type|length > 0 %}...{% endif %}>", "{{ parameter.description }}")
 {% endfor %}
 {% endautoescape %}
-    .action(actionRunner (async ({% if method.parameters.all|length > 0 %}{ {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}{% if method.parameters.all|length > 0 %} }{% endif %}) => {
-{% for parameter in method.parameters.all %}
-        /* @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} */
-{% endfor %}
-
-        let client = await sdkForProject();
-        let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-        let payload = {};
-{% if method.parameters.query|length > 0 %}
-
-        /** Query Params */
-{% endif %}
-{% for parameter in method.parameters.query %}
-        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
-        }
-{% endfor %}
-{% if method.parameters.body|length > 0 %}
-        
-        /** Body Params */
-{% endif %}
-{% for parameter in method.parameters.body %}
-{% if parameter.type == 'file' and method.packaging %}
-        let folderPath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
-        if (!fs.lstatSync(folderPath).isDirectory())
-            throw new Error('The path is not a directory.');
-        let folderName = _path.basename(folderPath);
-        childProcess.execSync(`tar --cd '${_path.dirname(folderPath)}' -zcvf code.tar.gz '${folderName}'`, { stdio: 'inherit' });
-        let archivePath = fs.realpathSync('code.tar.gz')
-        if (typeof archivePath !== 'undefined') {
-            payload['{{ parameter.name }}'] = fs.createReadStream(archivePath);
-        }
-
-{% elseif parameter.type == 'file' %}
-        let filePath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
-        if (typeof filePath !== 'undefined') {
-            payload['{{ parameter.name }}'] = fs.createReadStream(filePath);
-        }
-
-{% else %}
-        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword}};
-        }
-
-{% endif %}
-{% endfor %}
-{% if method.type == 'location' %}
-        payload['project'] = localConfig.getProject().projectId
-        payload['key'] = globalConfig.getKey();
-        const queryParams = new URLSearchParams(payload);
-        path = `${globalConfig.getEndpoint()}${path}?${queryParams.toString()}`;
-        parse(path)
-{% else %}
-        const response = await client.call('{{ method.method | caseLower }}', path, {
-{% for parameter in method.parameters.header %}
-            '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
-            '{{ key }}': '{{ header }}',
-{% endfor %}
-        }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
-        parse(response)
-{% endif %}
-{% if method.packaging %}
-
-        fs.unlinkSync(archivePath);
-{% endif %}
-    }))
+    .action(actionRunner({{ service.name | caseLower }}_{{ method.name | caseCamel }}))
 
 {% endfor %}
 
 module.exports = {
-    {{ service.name | caseLower }}
+    {{ service.name | caseLower }},
+{% for method in service.methods %}
+    {{ service.name | caseLower }}_{{ method.name | caseCamel }}{% if not loop.last %},{% endif %}
+
+{% endfor %}
 };
