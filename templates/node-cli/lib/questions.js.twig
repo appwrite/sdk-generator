@@ -15,6 +15,9 @@ const questionsInitProject = [
     type: "list",
     name: "start",
     when(answers) {
+      if (answers.override == undefined) {
+        return true 
+      }
       return answers.override;
     },
     message: "How would you like to start?",

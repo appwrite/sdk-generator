@@ -1,4 +1,5 @@
 const fs = require("fs");
+const process = require("process");
 
 class Config {
     constructor(path) {
@@ -59,7 +60,8 @@ class Local extends Config {
     static CONFIG_FILE_PATH = "appwrite.json";
 
     constructor(path = Local.CONFIG_FILE_PATH) {
-        super(fs.realpathSync(path));
+        let absolutePath = `${process.cwd()}/${path}`;
+        super(absolutePath);
     }
 
     getFunctions() {

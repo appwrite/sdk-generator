@@ -19,7 +19,7 @@ init
     let response = {}
 
     let answers = await inquirer.prompt(questionsInitProject)
-    if (!answers.override) process.exit(1)
+    if (!answers.project) process.exit(1)
 
     let path = "/teams";
     if (answers.start == "new") {
