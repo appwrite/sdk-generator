@@ -1,9 +1,10 @@
+const fs = require("fs");
+const childProcess = require('child_process');
 const { Command } = require("commander");
-const { questionsInitProject, questionsInitFunction } = require("../questions");
 const inquirer = require("inquirer");
+const { questionsInitProject, questionsInitFunction } = require("../questions");
 const { sdkForConsole, sdkForProject } = require("../sdks");
 const { localConfig } = require("../config");
-const childProcess = require('child_process');
 const { success, actionRunner } = require("../parser");
 const { teamsCreate } = require("./teams");
 const { projectsCreate } = require("./projects");
@@ -51,6 +52,10 @@ init
   .description("Initialise your Appwrite cloud function")
   .action(actionRunner (async () => {
     let answers = await inquirer.prompt(questionsInitFunction)
+
+    if (fs.existsSync(answers.name)) {
+      throw new Error(`( ${answers.name} ) already exists in the current directory. Please choose another name.`);
+    }
 
     let response = await functionsCreate({
       functionId: 'unique()',
