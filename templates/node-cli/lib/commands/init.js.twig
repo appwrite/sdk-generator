@@ -4,10 +4,10 @@ const inquirer = require("inquirer");
 const { sdkForConsole, sdkForProject } = require("../sdks");
 const { localConfig } = require("../config");
 const childProcess = require('child_process');
-const { parse, success, actionRunner } = require("../parser");
+const { success, actionRunner } = require("../parser");
 const { teamsCreate } = require("./teams");
 const { projectsCreate } = require("./projects");
-const { functionsCreate, functionsListRuntimes } = require("./functions");
+const { functionsCreate } = require("./functions");
 const { databaseListCollections } = require("./database");
 
 const init = new Command("init").description(
