@@ -7,7 +7,7 @@ const childProcess = require('child_process');
 const { parse, success, actionRunner } = require("../parser");
 const { teamsCreate } = require("./teams");
 const { projectsCreate } = require("./projects");
-const { functionsCreate } = require("./functions");
+const { functionsCreate, functionsListRuntimes } = require("./functions");
 const { databaseListCollections } = require("./database");
 
 const init = new Command("init").description(
@@ -56,6 +56,7 @@ init
       functionId: 'unique()',
       name: answers.name,
       runtime: answers.runtime,
+      parseOutput: false
     })
 
     let command = `
@@ -83,8 +84,7 @@ init
     };
 
     localConfig.addFunction(data);
-
-    parse(response)
+    success();
   }))
 
 init
