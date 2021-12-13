@@ -4,10 +4,11 @@ const inquirer = require("inquirer");
 const { sdkForConsole, sdkForProject } = require("../sdks");
 const { localConfig } = require("../config");
 const childProcess = require('child_process');
-const { parse, actionRunner } = require("../parser");
+const { parse, success, actionRunner } = require("../parser");
 const { teamsCreate } = require("./teams");
 const { projectsCreate } = require("./projects");
 const { functionsCreate } = require("./functions");
+const { databaseListCollections } = require("./database");
 
 const init = new Command("init").description(
   "Initialise different parts of your Appwrite setup "
@@ -25,6 +26,8 @@ init
       response = await teamsCreate({
         teamId: 'unique()',
         name: answers.project,
+        sdk: sdkForConsole,
+        parseOutput: false
       })
 
       let teamId = response['$id'];
@@ -32,9 +35,11 @@ init
         projectId: 'unique()',
         name: answers.project,
         teamId,
+        parseOutput: false
       })
 
       localConfig.setProject(response['$id'], response.name);
+      success();
     } else {
       localConfig.setProject(answers.project.id, answers.project.name);
     }
@@ -78,8 +83,18 @@ init
     };
 
     localConfig.addFunction(data);
-    
+
     parse(response)
+  }))
+
+init
+  .command("collection")
+  .description("Initialise your Appwrite collections")
+  .action(actionRunner (async () => {
+    let response = await databaseListCollections({})
+
+    console.log(`Found ${response.length} collections`);
+    // parse(response)
   }))
 
 module.exports = {
