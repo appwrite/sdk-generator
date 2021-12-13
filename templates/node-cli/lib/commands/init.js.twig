@@ -5,6 +5,8 @@ const { sdkForConsole, sdkForProject } = require("../sdks");
 const { localConfig } = require("../config");
 const childProcess = require('child_process');
 const { parse, actionRunner } = require("../parser");
+const { teamsCreate } = require("./teams");
+const { projectsCreate } = require("./projects");
 
 const init = new Command("init").description(
   "Initialise different parts of your Appwrite setup "
@@ -14,27 +16,22 @@ init
   .command("project")
   .description("Initialise your Appwrite project")
   .action(actionRunner (async () => {
-    const client = await sdkForConsole();
-    let payload = {}
     let response = {}
-
     let answers = await inquirer.prompt(questionsInitProject)
     if (!answers.project) process.exit(1)
 
-    let path = "/teams";
     if (answers.start == "new") {
-      payload["name"] = answers.project
-      response = await client.call("post", path, {
-        "content-type": "application/json",
-      }, payload);
+      response = await teamsCreate({
+        teamId: 'unique()',
+        name: answers.project,
+      })
 
       let teamId = response['$id'];
-      path = "/projects"
-      payload["teamId"] = teamId
-
-      response = await client.call("post", path, {
-        "content-type": "application/json",
-      }, payload);
+      response = await projectsCreate({
+        projectId: 'unique()',
+        name: answers.project,
+        teamId,
+      })
 
       localConfig.setProject(response['$id'], response.name);
     } else {

@@ -9,7 +9,7 @@ const { localConfig, globalConfig } = require("../config");
 const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description("{{ service.description }}")
 
 {% for method in service.methods %}
-const {{ service.name | caseLower }}_{{ method.name | caseCamel }} = async ({% if method.parameters.all|length > 0 %}{ {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}{% if method.parameters.all|length > 0 %} }{% endif %}) => {
+const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({% if method.parameters.all|length > 0 %}{ {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}{% if method.parameters.all|length > 0 %} }{% endif %}) => {
 {% for parameter in method.parameters.all %}
     /* @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} */
 {% endfor %}
@@ -90,14 +90,14 @@ fs.unlinkSync(archivePath);
     .{% if parameter.required %}requiredOption{% else %}option{% endif %}("--{{ parameter.name | escapeKeyword }} <{{ parameter.name | escapeKeyword }}{% if parameter.array.type|length > 0 %}...{% endif %}>", "{{ parameter.description }}")
 {% endfor %}
 {% endautoescape %}
-    .action(actionRunner({{ service.name | caseLower }}_{{ method.name | caseCamel }}))
+    .action(actionRunner({{ service.name | caseLower }}{{ method.name | caseUcfirst }}))
 
 {% endfor %}
 
 module.exports = {
     {{ service.name | caseLower }},
 {% for method in service.methods %}
-    {{ service.name | caseLower }}_{{ method.name | caseCamel }}{% if not loop.last %},{% endif %}
+    {{ service.name | caseLower }}{{ method.name | caseUcfirst }}{% if not loop.last %},{% endif %}
 
 {% endfor %}
 };
