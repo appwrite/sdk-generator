@@ -7,6 +7,7 @@ const childProcess = require('child_process');
 const { parse, actionRunner } = require("../parser");
 const { teamsCreate } = require("./teams");
 const { projectsCreate } = require("./projects");
+const { functionsCreate } = require("./functions");
 
 const init = new Command("init").description(
   "Initialise different parts of your Appwrite setup "
@@ -44,19 +45,13 @@ init
   .command("function")
   .description("Initialise your Appwrite cloud function")
   .action(actionRunner (async () => {
-    console.log("Creating function")
     let answers = await inquirer.prompt(questionsInitFunction)
 
-    let path = "/functions"
-    let payload = {}
-
-    payload["name"] = answers.name
-    payload["runtime"] = answers.runtime
-
-    let client = await sdkForProject();
-    let response = await client.call("post", path, {
-      "content-type": "application/json",
-    }, payload);
+    let response = await functionsCreate({
+      functionId: 'unique()',
+      name: answers.name,
+      runtime: answers.runtime,
+    })
 
     let command = `
       mkdir -m 777 -p '${answers.name}' && \
@@ -81,8 +76,9 @@ init
       command: '',
       vars: []
     };
-    localConfig.addFunction(data);
 
+    localConfig.addFunction(data);
+    
     parse(response)
   }))
 
