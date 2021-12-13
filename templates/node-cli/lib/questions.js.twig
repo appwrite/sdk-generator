@@ -1,5 +1,6 @@
 const { localConfig, globalConfig } = require('./config');
 const { sdkForConsole } = require('./sdks');
+const { projectsList } = require('./commands/projects');
 
 const questionsInitProject = [
   {
@@ -49,11 +50,9 @@ const questionsInitProject = [
       return answers.start == "existing";
     },
     choices: async () => {
-      let path = "/projects"
-      let client = await sdkForConsole();
-      let response = await client.call("get", path, {
-        "content-type": "application/json",
-      }, {});
+      let response = await projectsList({
+        parseOutput: false
+      })
       let projects = response["projects"]
       let choices = projects.map((project, idx) => {
         return {

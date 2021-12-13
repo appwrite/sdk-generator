@@ -39,10 +39,10 @@ init
       })
 
       localConfig.setProject(response['$id'], response.name);
-      success();
     } else {
       localConfig.setProject(answers.project.id, answers.project.name);
     }
+    success();
   }));
 
 
