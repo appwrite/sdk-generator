@@ -74,6 +74,14 @@ class SDK
         $this->twig = new Environment(new FilesystemLoader(__DIR__ . '/../../templates'), [
             'debug' => true
         ] );
+
+        /**
+         * Add language specific filters
+         */
+        foreach ($this->language->getFilters() as $filter) {
+            $this->twig->addFilter($filter);
+        }
+
         $this->twig->addExtension(new \Twig\Extension\DebugExtension());
 
         $this->twig->addFilter(new TwigFilter('caseLower', function ($value) {
