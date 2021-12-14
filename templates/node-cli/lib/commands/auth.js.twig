@@ -4,21 +4,21 @@ const { globalConfig } = require("../config");
 const { actionRunner, success } = require("../parser");
 const { questionsLogin } = require("../questions");
 const { sdkForConsole } = require("../sdks");
+const { accountCreateSession } = require("./account");
 
 const login = new Command("login")
     .description("Login to your account")
     .action(actionRunner (async () => {
-        let payload = {}
-        let path = "/account/sessions";
-
         const answers = await inquirer.prompt(questionsLogin)
-        payload['email'] = answers.email;
-        payload['password'] = answers.password;
-
+        
         let client = await sdkForConsole(false);
-        await client.call("post", path, {
-            "content-type": "application/json",
-        }, payload);
+        await accountCreateSession({
+            email: answers.email,
+            password: answers.password,
+            parseOutput: false,
+            sdk: client
+        })
+        
         success()
     }));
 

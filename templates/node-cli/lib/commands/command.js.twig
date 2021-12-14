@@ -9,12 +9,12 @@ const { localConfig, globalConfig } = require("../config");
 const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description("{{ service.description }}")
 
 {% for method in service.methods %}
-const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}, {% endfor %}sdk = {% if service.name == "projects" %}sdkForConsole{% else %}sdkForProject{% endif %}, parseOutput = true }) => {
+const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}, {% endfor %}parseOutput = true, sdk = undefined}) => {
 {% for parameter in method.parameters.all %}
     /* @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} */
 {% endfor %}
 
-    let client = await sdk();
+    let client = !sdk ? await {% if service.name == "projects" %}sdkForConsole(){% else %}sdkForProject(){% endif %} : sdk;
     let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
     let payload = {};
 {% if method.parameters.query|length > 0 %}
