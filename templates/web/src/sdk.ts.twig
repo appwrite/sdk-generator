@@ -1,5 +1,22 @@
-import "isomorphic-form-data";
-import { fetch } from "cross-fetch";
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}{{property.sub_schema | caseUcfirst}}[]{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% endmacro %}
+import 'isomorphic-form-data';
+import { fetch } from 'cross-fetch';
+
+namespace Models {
+{% for definition in spec.definitions %}
+    /**
+     * {{ definition.description }}
+     */
+    export type {{ definition.name | caseUcfirst }}<{% for property in definition.properties %}{% if spec.definitions[property.sub_schema].additionalProperties %}{{property.sub_schema | caseUcfirst}} extends Models.{{property.sub_schema | caseUcfirst}}{% endif %}{% endfor %}> = {
+{% for property in definition.properties %}
+        /**
+         * {{ property.description }}
+         */
+        {{ property.name | escapeKeyword }}{% if not property.required %}?{% endif %}: {{_self.sub_schema(property)}};
+{% endfor %}
+    }
+{% endfor %}
+}
 
 type Payload = {
     [key: string]: any;
@@ -10,16 +27,16 @@ type Headers = {
 }
 
 type RealtimeResponse = {
-    type: "error"|"event"|"connected"|"response";
+    type: 'error'|'event'|'connected'|'response';
     data: RealtimeResponseAuthenticated|RealtimeResponseConnected|RealtimeResponseError|RealtimeResponseEvent<unknown>;
 }
 
 type RealtimeRequest = {
-    type: "authentication";
+    type: 'authentication';
     data: RealtimeRequestAuthenticate;
 }
 
-type RealtimeResponseEvent<T extends unknown> = {
+export type RealtimeResponseEvent<T extends unknown> = {
     event: string;
     channels: string[];
     timestamp: number;
@@ -49,13 +66,21 @@ type RealtimeRequestAuthenticate = {
 type Realtime = {
     socket?: WebSocket;
     timeout?: number;
+    url?: string;
     lastMessage?: RealtimeResponse;
-    channels: {
-        [key: string]: ((event: MessageEvent) => void)[]
-    },
+    channels: Set<string>;
+    subscriptions: Map<number, {
+        channels: string[];
+        callback: (payload: RealtimeResponseEvent<any>) => void
+    }>;
+    subscriptionsCounter: number;
+    reconnect: boolean;
+    reconnectAttempts: number;
+    getTimeout: () => number;
+    connect: () => void;
     createSocket: () => void;
-    authenticate: (event: MessageEvent) => void;
-    onMessage: <T extends unknown>(channel: string, callback: (response: RealtimeResponseEvent<T>) => void) => (event: MessageEvent) => void;
+    cleanUp: (channels: string[]) => void;
+    onMessage: (event: MessageEvent) => void;
 }
 
 class {{spec.title | caseUcfirst}}Exception extends Error {
@@ -96,7 +121,7 @@ class {{ spec.title | caseUcfirst }} {
      */
     setEndpoint(endpoint: string): this {
         this.config.endpoint = endpoint;
-        this.config.endpointRealtime = this.config.endpointRealtime || this.config.endpoint.replace("https://", "wss://").replace("http://", "ws://");
+        this.config.endpointRealtime = this.config.endpointRealtime || this.config.endpoint.replace('https://', 'wss://').replace('http://', 'ws://');
 
         return this;
     }
@@ -137,75 +162,140 @@ class {{ spec.title | caseUcfirst }} {
     private realtime: Realtime = {
         socket: undefined,
         timeout: undefined,
-        channels: {},
+        url: '',
+        channels: new Set(),
+        subscriptions: new Map(),
+        subscriptionsCounter: 0,
+        reconnect: true,
+        reconnectAttempts: 0,
         lastMessage: undefined,
+        connect: () => {
+            clearTimeout(this.realtime.timeout);
+            this.realtime.timeout = window?.setTimeout(() => {
+                this.realtime.createSocket();
+            }, 50);
+        },
+        getTimeout: () => {
+            switch (true) {
+                case this.realtime.reconnectAttempts < 5:
+                    return 1000;
+                case this.realtime.reconnectAttempts < 15:
+                    return 5000;
+                case this.realtime.reconnectAttempts < 100:
+                    return 10_000;
+                default:
+                    return 60_000;
+            }
+        },
         createSocket: () => {
+            if (this.realtime.channels.size < 1) return;
+
             const channels = new URLSearchParams();
             channels.set('project', this.config.project);
-            for (const property in this.realtime.channels) {
-                channels.append('channels[]', property);
-            }
-            if (this.realtime.socket?.readyState === WebSocket.OPEN) {
-                this.realtime.socket.close();
-            }
+            this.realtime.channels.forEach(channel => {
+                channels.append('channels[]', channel);
+            });
 
-            this.realtime.socket = new WebSocket(this.config.endpointRealtime + '/realtime?' + channels.toString());
-            this.realtime.socket?.addEventListener('message', this.realtime.authenticate);
+            const url = this.config.endpointRealtime + '/realtime?' + channels.toString();
 
-            for (const channel in this.realtime.channels) {
-                this.realtime.channels[channel].forEach(callback => {
-                    this.realtime.socket?.addEventListener('message', callback);
+            if (
+                url !== this.realtime.url || // Check if URL is present
+                !this.realtime.socket || // Check if WebSocket has not been created
+                this.realtime.socket?.readyState > WebSocket.OPEN // Check if WebSocket is CLOSING (3) or CLOSED (4)
+            ) {
+                if (
+                    this.realtime.socket &&
+                    this.realtime.socket?.readyState < WebSocket.CLOSING // Close WebSocket if it is CONNECTING (0) or OPEN (1)
+                ) {
+                    this.realtime.reconnect = false;
+                    this.realtime.socket.close();
+                }
+
+                this.realtime.url = url;
+                this.realtime.socket = new WebSocket(url);
+                this.realtime.socket.addEventListener('message', this.realtime.onMessage);
+                this.realtime.socket.addEventListener('open', _event => {
+                    this.realtime.reconnectAttempts = 0;
                 });
-            }
-
-            this.realtime.socket.addEventListener('close', event => {
-                if (this.realtime?.lastMessage?.type === 'error' && (<RealtimeResponseError>this.realtime?.lastMessage.data).code === 1008) {
-                    return;
-                }
-                console.error('Realtime got disconnected. Reconnect will be attempted in 1 second.', event.reason);
-                setTimeout(() => {
-                    this.realtime.createSocket();
-                }, 1000);
-            })
-        },
-        authenticate: (event) => {
-            const message: RealtimeResponse = JSON.parse(event.data);
-            if (message.type === 'connected') {
-                const cookie = JSON.parse(window.localStorage.getItem('cookieFallback') ?? "{}");
-                const session = cookie?.[`a_session_${this.config.project}`];
-                const data = <RealtimeResponseConnected>message.data;
-
-                if (session && !data.user) {
-                    this.realtime.socket?.send(JSON.stringify(<RealtimeRequest>{
-                        type: "authentication",
-                        data: {
-                            session
-                        }
-                    }));
-                }
-            }
-        },
-        onMessage: <T extends unknown>(channel: string, callback: (response: RealtimeResponseEvent<T>) => void) =>
-            (event) => {
-                try {
-                    const message: RealtimeResponse = JSON.parse(event.data);
-                    this.realtime.lastMessage = message;
-                    if (message.type === 'event') {
-                        let data = <RealtimeResponseEvent<T>>message.data;
-                        if (data.channels && data.channels.includes(channel)) {
-                            callback(data);
-                        }
-                    } else if (message.type === 'error') {
-                        throw message.data;
+                this.realtime.socket.addEventListener('close', event => {
+                    if (
+                        !this.realtime.reconnect ||
+                        (
+                            this.realtime?.lastMessage?.type === 'error' && // Check if last message was of type error
+                            (<RealtimeResponseError>this.realtime?.lastMessage.data).code === 1008 // Check for policy violation 1008
+                        )
+                    ) {
+                        this.realtime.reconnect = true;
+                        return;
                     }
-                } catch (e) {
-                    console.error(e);
-                }
+
+                    const timeout = this.realtime.getTimeout();
+                    console.error(`Realtime got disconnected. Reconnect will be attempted in ${timeout / 1000} seconds.`, event.reason);
+
+                    setTimeout(() => {
+                        this.realtime.reconnectAttempts++;
+                        this.realtime.createSocket();
+                    }, timeout);
+                })
             }
+        },
+        onMessage: (event) => {
+            try {
+                const message: RealtimeResponse = JSON.parse(event.data);
+                this.realtime.lastMessage = message;
+                switch (message.type) {
+                    case 'connected':
+                        const cookie = JSON.parse(window.localStorage.getItem('cookieFallback') ?? '{}');
+                        const session = cookie?.[`a_session_${this.config.project}`];
+                        const messageData = <RealtimeResponseConnected>message.data;
+
+                        if (session && !messageData.user) {
+                            this.realtime.socket?.send(JSON.stringify(<RealtimeRequest>{
+                                type: 'authentication',
+                                data: {
+                                    session
+                                }
+                            }));
+                        }
+                        break;
+                    case 'event':
+                        let data = <RealtimeResponseEvent<unknown>>message.data;
+                        if (data?.channels) {
+                            const isSubscribed = data.channels.some(channel => this.realtime.channels.has(channel));
+                            if (!isSubscribed) return;
+                            this.realtime.subscriptions.forEach(subscription => {
+                                if (data.channels.some(channel => subscription.channels.includes(channel))) {
+                                    setTimeout(() => subscription.callback(data));
+                                }
+                            })
+                        }
+                        break;
+                    case 'error':
+                        throw message.data;
+                    default:
+                        break;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        cleanUp: channels => {
+            this.realtime.channels.forEach(channel => {
+                if (channels.includes(channel)) {
+                    let found = Array.from(this.realtime.subscriptions).some(([_key, subscription] )=> {
+                        return subscription.channels.includes(channel);
+                    })
+
+                    if (!found) {
+                        this.realtime.channels.delete(channel);
+                    }
+                }
+            })
+        }
     }
 
     /**
-     * Subscribes to Appwrite events and passes you the payload in realtime.
+     * Subscribes to {{spec.title | caseUcfirst}} events and passes you the payload in realtime.
      * 
      * @param {string|string[]} channels 
      * Channel to subscribe - pass a single channel as a string or multiple with an array of strings.
@@ -231,29 +321,20 @@ class {{ spec.title | caseUcfirst }} {
      */
     subscribe<T extends unknown>(channels: string | string[], callback: (payload: RealtimeResponseEvent<T>) => void): () => void {
         let channelArray = typeof channels === 'string' ? [channels] : channels;
-        let savedChannels: {
-            name: string;
-            index: number;
-        }[] = [];
-        channelArray.forEach((channel, index) => {
-            if (!(channel in this.realtime.channels)) {
-                this.realtime.channels[channel] = [];
-            }
-            savedChannels[index] = {
-                name: channel,
-                index: (this.realtime.channels[channel].push(this.realtime.onMessage<T>(channel, callback)) - 1)
-            };
-            clearTimeout(this.realtime.timeout);
-            this.realtime.timeout = window?.setTimeout(() => {
-                this.realtime.createSocket();
-            }, 1);
+        channelArray.forEach(channel => this.realtime.channels.add(channel));
+
+        const counter = this.realtime.subscriptionsCounter++;
+        this.realtime.subscriptions.set(counter, {
+            channels: channelArray,
+            callback
         });
 
+        this.realtime.connect();
+
         return () => {
-            savedChannels.forEach(channel => {
-                this.realtime.socket?.removeEventListener('message', this.realtime.channels[channel.name][channel.index]);
-                this.realtime.channels[channel.name].splice(channel.index, 1);
-            })
+            this.realtime.subscriptions.delete(counter);
+            this.realtime.cleanUp(channelArray);
+            this.realtime.connect();
         }
     }
 
@@ -270,7 +351,7 @@ class {{ spec.title | caseUcfirst }} {
         };
 
         if (typeof window !== 'undefined' && window.localStorage) {
-            headers['X-Fallback-Cookies'] = window.localStorage.getItem('cookieFallback') ?? "";
+            headers['X-Fallback-Cookies'] = window.localStorage.getItem('cookieFallback') ?? '';
         }
 
         if (method === 'GET') {
@@ -288,7 +369,9 @@ class {{ spec.title | caseUcfirst }} {
 
                     for (const key in params) {
                         if (Array.isArray(params[key])) {
-                            formData.append(key + '[]', params[key].join(','));
+                            params[key].forEach((value: any) => {
+                                formData.append(key + '[]', value);
+                            })
                         } else {
                             formData.append(key, params[key]);
                         }
@@ -304,14 +387,14 @@ class {{ spec.title | caseUcfirst }} {
             let data = null;
             const response = await fetch(url.toString(), options);
 
-            if (response.headers.get("content-type")?.includes("application/json")) {
+            if (response.headers.get('content-type')?.includes('application/json')) {
                 data = await response.json();
             } else {
                 data = {
                     message: await response.text()
                 };
             }
-            
+
             if (400 <= response.status) {
                 throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data);
             }
@@ -319,12 +402,15 @@ class {{ spec.title | caseUcfirst }} {
             const cookieFallback = response.headers.get('X-Fallback-Cookies');
 
             if (typeof window !== 'undefined' && window.localStorage && cookieFallback) {
-                window.console.warn('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
+                window.console.warn('{{spec.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
                 window.localStorage.setItem('cookieFallback', cookieFallback);
             }
 
             return data;
         } catch (e) {
+            if (e instanceof {{spec.title | caseUcfirst}}Exception) {
+                throw e;
+            }
             throw new {{spec.title | caseUcfirst}}Exception((<Error>e).message);
         }
     }
@@ -365,7 +451,7 @@ class {{ spec.title | caseUcfirst }} {
          * @returns {% if method.type == 'webAuth' %}{void|string}{% elseif method.type == 'location' %}{URL}{% else %}{Promise}{% endif %}
 
          */
-        {{ method.name | caseCamel }}: {% if method.type != "location" and method.type != 'webAuth'%}async <T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void | URL{% elseif method.type == 'location' %}URL{% else %}Promise<T>{% endif %} => {
+        {{ method.name | caseCamel }}: {% if method.type != 'location' and method.type != 'webAuth'%}async {% if spec.definitions[method.responseModel].additionalProperties %}<{{method.responseModel | caseUcfirst}} extends Models.{{method.responseModel | caseUcfirst}}>{% endif %}{% for property in spec.definitions[method.responseModel].properties %}{% if spec.definitions[property.sub_schema].additionalProperties %}<{{property.sub_schema | caseUcfirst}} extends Models.{{property.sub_schema | caseUcfirst}}>{% endif %}{% endfor %}{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'webAuth' %}void | URL{% elseif method.type == 'location' %}URL{% else %}Promise<{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% for property in spec.definitions[method.responseModel].properties %}{% if spec.definitions[property.sub_schema].additionalProperties %}<{{property.sub_schema | caseUcfirst}}>{% endif %}{% endfor %}{% else %}{}{% endif %}>{% endif %} => {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
             if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
@@ -432,4 +518,4 @@ class {{ spec.title | caseUcfirst }} {
 };
 
 export { {{spec.title | caseUcfirst}} }
-export type { {{spec.title | caseUcfirst}}Exception }
+export type { {{spec.title | caseUcfirst}}Exception, Models }

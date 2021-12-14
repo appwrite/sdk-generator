@@ -13,6 +13,7 @@ import 'enums.dart';
 import 'exception.dart';
 import 'interceptor.dart';
 import 'response.dart';
+import 'package:flutter/foundation.dart';
 
 ClientBase createClient({
   required String endPoint,
@@ -124,30 +125,35 @@ class ClientIO extends ClientBase with ClientMixin {
     //creating custom user agent
     DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
     var device = '';
-    if (Platform.isAndroid) {
-      final andinfo = await deviceInfoPlugin.androidInfo;
-      device =
-          '(Linux; U; Android ${andinfo.version.release}; ${andinfo.brand} ${andinfo.model})';
-    }
-    if (Platform.isIOS) {
-      final iosinfo = await deviceInfoPlugin.iosInfo;
-      device = '${iosinfo.utsname.machine} iOS/${iosinfo.systemVersion}';
-    }
-    if (Platform.isLinux) {
-      final lininfo = await deviceInfoPlugin.linuxInfo;
-      device = '(Linux; U; ${lininfo.id} ${lininfo.version})';
-    }
-    if (Platform.isWindows) {
-      final wininfo = await deviceInfoPlugin.windowsInfo;
-      device =
-          '(Windows NT; ${wininfo.computerName})'; //can't seem to get much info here
-    }
-    if (Platform.isMacOS) {
-      final macinfo = await deviceInfoPlugin.macOsInfo;
-      device = '(Macintosh; ${macinfo.model})';
+    try {
+      if (Platform.isAndroid) {
+        final andinfo = await deviceInfoPlugin.androidInfo;
+        device =
+            '(Linux; U; Android ${andinfo.version.release}; ${andinfo.brand} ${andinfo.model})';
+      }
+      if (Platform.isIOS) {
+        final iosinfo = await deviceInfoPlugin.iosInfo;
+        device = '${iosinfo.utsname.machine} iOS/${iosinfo.systemVersion}';
+      }
+      if (Platform.isLinux) {
+        final lininfo = await deviceInfoPlugin.linuxInfo;
+        device = '(Linux; U; ${lininfo.id} ${lininfo.version})';
+      }
+      if (Platform.isWindows) {
+        final wininfo = await deviceInfoPlugin.windowsInfo;
+        device =
+            '(Windows NT; ${wininfo.computerName})'; //can't seem to get much info here
+      }
+      if (Platform.isMacOS) {
+        final macinfo = await deviceInfoPlugin.macOsInfo;
+        device = '(Macintosh; ${macinfo.model})';
+      }
+    } catch (e) {
+      debugPrint('Error getting device info: $e');
+      device = Platform.operatingSystem;
     }
     addHeader(
-        'user-agent', '${packageInfo.appName}/${packageInfo.version} $device');
+        'user-agent', '${packageInfo.packageName}/${packageInfo.version} $device');
 
     _initialized = true;
   }
@@ -187,11 +193,17 @@ class ClientIO extends ClientBase with ClientMixin {
 
   Future webAuth(Uri url) {
     return FlutterWebAuth.authenticate(
-            url: url.toString(),
-            callbackUrlScheme: "appwrite-callback-" + config['project']!)
-        .then((value) async {
-      Cookie cookie = new Cookie(
-          url.queryParameters['key']!, url.queryParameters['secret']!);
+      url: url.toString(),
+      callbackUrlScheme: "appwrite-callback-" + config['project']!,
+    ).then((value) async {
+      Uri url = Uri.parse(value);
+      final key = url.queryParameters['key'];
+      final secret = url.queryParameters['secret'];
+      if (key == null || secret == null) {
+        throw {{spec.title | caseUcfirst}}Exception(
+            "Invalid OAuth2 Response. Key and Secret not available.", 500);
+      }
+      Cookie cookie = new Cookie(key, secret);
       cookie.domain = Uri.parse(_endPoint).host;
       cookie.httpOnly = true;
       cookie.path = '/';

@@ -106,6 +106,14 @@ class Dart extends Language {
     }
 
     /**
+     * @return array
+     */
+    public function getIdentifierOverrides()
+    {
+        return [];
+    }
+
+    /**
      * @param $type
      * @return string
      */
@@ -341,6 +349,18 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/client_io.dart',
+                'template'      => 'dart/lib/client_io.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/client_browser.dart',
+                'template'      => 'dart/lib/client_browser.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/src/service.dart',
                 'template'      => 'dart/lib/src/service.dart.twig',
                 'minify'        => false,
@@ -352,9 +372,21 @@ class Dart extends Language {
 				'minify'        => false,
 			],
             [
+				'scope'         => 'default',
+				'destination'   => '/lib/models.dart',
+				'template'      => 'dart/lib/models.dart.twig',
+				'minify'        => false,
+			],
+            [
                 'scope'         => 'service',
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
                 'template'      => 'dart/lib/services/service.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/lib/src/models/{{definition.name | caseSnake }}.dart',
+                'template'      => 'dart/lib/src/models/model.dart.twig',
                 'minify'        => false,
             ],
             [
