@@ -65,15 +65,15 @@ const actionRunner= (fn) => {
 }
 
 const log = (message) => {
-    console.log(`${chalk.cyan.bold("[ ℹ ] INFO")}     ${chalk.cyan(message ?? "")}`);
+    console.log(`${chalk.cyan.bold("[ INFO ]")} ${chalk.cyan(message ?? "")}`);
 }
 
 const success = (message) => {
-    console.log(`${chalk.green.bold("[ ✔ ] SUCCESS")}  ${chalk.green(message ?? "")}`);   
+    console.log(`${chalk.green.bold("[ SUCCESS ]")} ${chalk.green(message ?? "")}`);   
 }
 
 const error = (message) => {
-    console.log(`${chalk.red.bold("[ ✘ ] ERROR")}    ${chalk.red(message ?? "")}`);
+    console.log(`${chalk.red.bold("[ ERROR ]")} ${chalk.red(message ?? "")}`);
 }
 
 module.exports = {

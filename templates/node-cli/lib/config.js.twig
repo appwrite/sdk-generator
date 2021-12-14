@@ -78,7 +78,7 @@ class Local extends Config {
 
         let functions = this.get("functions");
         for (let i = 0; i < functions.length; i++) {
-            if (functions[i].id == $id) {
+            if (functions[i]['$id'] == $id) {
                 return functions[i];
             }
         }
@@ -117,6 +117,43 @@ class Local extends Config {
                 return;
             }
         }
+    }
+
+    getCollections() {
+        if (!this.has("collections")) {
+            return [];
+        }
+        return this.get("collections");
+    }
+
+    getCollection($id) {
+        if (!this.has("collection")) {
+            return {};
+        }
+
+        let collections = this.get("collections");
+        for (let i = 0; i < collections.length; i++) {
+            if (collections[i]['$id'] == $id) {
+                return collections[i];
+            }
+        }
+
+        return {};
+    }
+
+    addCollection(props) {
+        if (!this.has("collections")) {
+            this.set("collections", []);
+        }
+
+        let collections = this.get("collections");
+        for (let i = 0; i < collections.length; i++) {
+            if (collections[i]['$id'] == props['$id']) {
+                return;
+            }
+        }
+        collections.push(props);
+        this.set("collections", collections);
     }
 
     getProject() {

@@ -5,11 +5,11 @@ const inquirer = require("inquirer");
 const { questionsInitProject, questionsInitFunction } = require("../questions");
 const { sdkForConsole, sdkForProject } = require("../sdks");
 const { localConfig } = require("../config");
-const { success, actionRunner } = require("../parser");
+const { success, log, actionRunner } = require("../parser");
 const { teamsCreate } = require("./teams");
 const { projectsCreate } = require("./projects");
 const { functionsCreate } = require("./functions");
-const { databaseListCollections } = require("./database");
+const { databaseListCollections, databaseListAttributes, databaseListIndexes } = require("./database");
 
 const init = new Command("init").description(
   "Initialise different parts of your Appwrite setup "
@@ -18,7 +18,7 @@ const init = new Command("init").description(
 init
   .command("project")
   .description("Initialise your Appwrite project")
-  .action(actionRunner (async () => {
+  .action(actionRunner(async () => {
     let response = {}
     let answers = await inquirer.prompt(questionsInitProject)
     if (!answers.project) process.exit(1)
@@ -50,7 +50,7 @@ init
 init
   .command("function")
   .description("Initialise your Appwrite cloud function")
-  .action(actionRunner (async () => {
+  .action(actionRunner(async () => {
     let answers = await inquirer.prompt(questionsInitFunction)
 
     if (fs.existsSync(answers.name)) {
@@ -77,7 +77,7 @@ init
       rm -rf ${answers.runtime}`;
 
     // Execute the child process but do not print any std output
-    childProcess.execSync(command, { stdio: null});
+    childProcess.execSync(command, { stdio: null });
 
     let data = {
       $id: response['$id'],
@@ -95,11 +95,22 @@ init
 init
   .command("collection")
   .description("Initialise your Appwrite collections")
-  .action(actionRunner (async () => {
-    let response = await databaseListCollections({})
+  .action(actionRunner(async () => {
 
-    console.log(`Found ${response.length} collections`);
-    // parse(response)
+    let response = await databaseListCollections({
+      parseOutput: false
+    })
+
+    let collections = response.collections;
+    log(`Found ${collections.length} collections`);
+
+    collections.forEach(async collection => {
+      log(`Fetching ${collection.name} ...`);
+      localConfig.addCollection(collection);
+    });
+
+    success();
+
   }))
 
 module.exports = {
