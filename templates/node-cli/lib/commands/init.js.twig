@@ -11,9 +11,12 @@ const { projectsCreate } = require("./projects");
 const { functionsCreate } = require("./functions");
 const { databaseListCollections, databaseListAttributes, databaseListIndexes } = require("./database");
 
-const init = new Command("init").description(
-  "Initialise different parts of your Appwrite setup "
-);
+const init = new Command("init")
+  .description("Initialise different parts of your Appwrite setup ")
+  .action(actionRunner(async () => {
+    await initProject();
+    await initCollection()
+  }));
 
 const initProject = async () => {
   let response = {}
@@ -86,7 +89,6 @@ const initFunction = async () => {
 }
 
 const initCollection = async () => {
-
   let response = await databaseListCollections({
     parseOutput: false
   })
