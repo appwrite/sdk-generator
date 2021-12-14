@@ -1,94 +1,90 @@
-const fs = require('fs');
-const _path = require('path');
-const childProcess = require('child_process');
 const { Command } = require("commander");
-const { questionsInitProject, questionsInitFunction, questionsDeployFunctions, questionsGetCommand } = require("../questions");
+const { questionsDeployFunctions, questionsGetCommand } = require("../questions");
 const inquirer = require("inquirer");
-const { sdkForConsole, sdkForProject } = require("../sdks");
 const { localConfig } = require("../config");
-const { parse, actionRunner } = require("../parser");
+const { actionRunner, success, log, error } = require("../parser");
+const { functionsGet, functionsCreate, functionsCreateTag, functionsUpdateTag } = require('./functions');
 
 const deploy = new Command("deploy").description(
     "Deploy functions, collections and sites. "
 );
 
+const deployFunctions = async () => {
+    let response = {};
+
+    let answers = await inquirer.prompt(questionsDeployFunctions)
+    let functions = answers.functions
+
+    for (let func of functions) {
+        log(`Deploying function ${func.name} ( ${func['$id']} )`)
+
+        try {
+            await functionsGet({
+                functionId: func['$id'],
+                parseOutput: false,
+            })
+        } catch (e) {
+            if (e.code == 404) {
+                log(`Function ${func.name} does not exist in the project. Creating ... `);
+                response = await functionsCreate({
+                    functionId: 'unique()',
+                    name: func.name,
+                    runtime: func.runtime,
+                    parseOutput: false
+                })
+
+                localConfig.updateFunction(func['$id'], {
+                    "$id": response['$id'],
+                });
+
+                func["$id"] = response['$id'];
+                log(`Function ${func.name} created.`);
+            } else {
+                throw e;
+            }
+        }
+
+        // Create tag
+        if (!func.command) {
+            answers = await inquirer.prompt(questionsGetCommand)
+            func.command = answers.command;
+            localConfig.updateFunction(func['$id'], func);
+        }
+
+        try {
+            response = await functionsCreateTag({
+                functionId: func['$id'],
+                command: func.command,
+                code: func.path,
+                parseOutput: false
+            })
+
+            let tag = response['$id'];
+
+            await functionsUpdateTag({
+                functionId: func['$id'],
+                tag,
+                parseOutput: false
+            })
+
+            success(`Deployed ${func.name} ( ${func['$id']} )`);
+
+        } catch (e) {
+            switch (e.code) {
+                case 'ENOENT': 
+                    error(`Function ${func.name} ( ${func['$id']} ) not found in the current directory. Skipping ...`);
+                    break;
+                default:
+                    throw e;
+            }
+        }
+    }
+}
+
 deploy
     .command("functions")
     .description("Deploy functions in the current directory")
-    .action(actionRunner(async () => {
-        let response = {};
-        let payload = {};
-        let path = "";
-
-        let answers = await inquirer.prompt(questionsDeployFunctions)
-        let client = await sdkForProject();
-        let functions = answers.functions
-
-        for (let func of functions) {
-            try {
-                path = '/functions/{functionId}'.replace('{functionId}', func['$id']);
-                await client.call('get', path, {
-                    'content-type': 'application/json',
-                }, payload);
-            } catch (e) {
-                if (e.code == 404) {
-                    console.log(`Function ${func.name} does not exist in the project. Creating ... `);
-                    path = '/functions';
-                    payload = {
-                        name: func.name,
-                        runtime: func.runtime
-                    };
-                    response = await client.call('post', path, {
-                        'content-type': 'application/json',
-                    }, payload);
-
-                    localConfig.updateFunction(func['$id'], {
-                        "$id": response['$id'],
-                    });
-                    func["$id"] = response['$id'];
-
-                    console.log(`Function ${func.name} created.`);
-                } else {
-                    throw e;
-                }
-            }
-
-            // Create tag
-            if (!func.command) {
-                answers = await inquirer.prompt(questionsGetCommand)
-                func.command = answers.command;
-                localConfig.updateFunction(func['$id'], func);
-            }
-            path = '/functions/{functionId}/tags'.replace('{functionId}', func['$id']);
-            payload = {
-                command: func.command,
-            };
-            let folderPath = fs.realpathSync(func.path);
-            if (!fs.lstatSync(folderPath).isDirectory())
-                throw new Error('The path is not a directory.');
-            let folderName = _path.basename(folderPath);
-            childProcess.execSync(`tar --cd '${_path.dirname(folderPath)}' -zcvf code.tar.gz '${folderName}'`, { stdio: 'inherit' });
-            let archivePath = fs.realpathSync('code.tar.gz')
-            if (typeof archivePath !== 'undefined') {
-                payload['code'] = fs.createReadStream(archivePath);
-            }
-            response = await client.call('post', path, {
-                'content-type': 'multipart/form-data',
-            }, payload);
-            let tag = response['$id'];
-            fs.unlinkSync(archivePath);
-
-            // Activate tag
-            path = '/functions/{functionId}/tag'.replace('{functionId}', func['$id']);
-            payload = {
-                tag
-            }
-            response = await client.call('patch', path, {
-                'content-type': 'application/json',
-            }, payload);
-            parse(response)
-        }
-    }));
+    .action(actionRunner(deployFunctions));
 
 module.exports = {
     deploy
