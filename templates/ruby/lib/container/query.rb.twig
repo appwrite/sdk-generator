@@ -1,0 +1,45 @@
+module {{spec.title | caseUcfirst}}
+    class Query
+        class << Query
+            def equal(attribute, value)
+                return addQuery(attribute, "equal", value)
+            end
+
+            def notEqual(attribute, value)
+                return Query.addQuery(attribute, "notEqual", value)
+            end
+            def lesser(attribute, value)
+                return Query.addQuery(attribute, "lesser", value)
+            end
+            def lesserEqual(attribute, value)
+                return Query.addQuery(attribute, "lesserEqual", value)
+            end
+            def greater(attribute, value)
+                return Query.addQuery(attribute, "greater", value)
+            end
+            def greaterEqual(attribute, value)
+                return Query.addQuery(attribute, "equal", value)
+            end
+            def contains(attribute, value)
+                return Query.addQuery(attribute, "contains", value)
+            end
+            def search(attribute, value)
+                return Query.addQuery(attribute, "search", value)
+            end
+
+            private
+
+            def addQuery(attribute, oper, value)
+                if value.is_a?(Array)
+                    "#{attribute}.#{oper}.(#{value.map {|item| parseValues(item)}.join(',')})"
+                else
+                   return "#{attribute}.#{oper}.(#{parseValues(value)})"
+				end
+            end
+
+            def parseValues(value)
+                return value.is_a?(String) ? "\"#{value}\"" : value
+            end
+        end
+    end
+end

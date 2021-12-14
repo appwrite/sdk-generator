@@ -1,7 +1,6 @@
 part of {{ language.params.packageName }};
 
-{% macro parameter(parameter) %}
-{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{% endmacro %}
+{% macro parameter(parameter) %}{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}
 {% endmacro %}
