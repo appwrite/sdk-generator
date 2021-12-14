@@ -15,103 +15,107 @@ const init = new Command("init").description(
   "Initialise different parts of your Appwrite setup "
 );
 
+const initProject = async () => {
+  let response = {}
+  let answers = await inquirer.prompt(questionsInitProject)
+  if (!answers.project) process.exit(1)
+
+  if (answers.start == "new") {
+    response = await teamsCreate({
+      teamId: 'unique()',
+      name: answers.project,
+      sdk: sdkForConsole,
+      parseOutput: false
+    })
+
+    let teamId = response['$id'];
+    response = await projectsCreate({
+      projectId: 'unique()',
+      name: answers.project,
+      teamId,
+      parseOutput: false
+    })
+
+    localConfig.setProject(response['$id'], response.name);
+  } else {
+    localConfig.setProject(answers.project.id, answers.project.name);
+  }
+  success();
+}
+
+const initFunction = async () => {
+  let answers = await inquirer.prompt(questionsInitFunction)
+
+  if (fs.existsSync(answers.name)) {
+    throw new Error(`( ${answers.name} ) already exists in the current directory. Please choose another name.`);
+  }
+
+  let response = await functionsCreate({
+    functionId: 'unique()',
+    name: answers.name,
+    runtime: answers.runtime,
+    parseOutput: false
+  })
+
+  let command = `
+    mkdir -m 777 -p '${answers.name}' && \
+    cd '${answers.name}' && \
+    git init && \
+    git remote add -f origin https://github.com/christyjacob4/appwrite-function-starter && \
+    git config core.sparseCheckout true && \
+    echo '${answers.runtime}' >> .git/info/sparse-checkout && \ 
+    git pull origin main && \
+    rm -rf .git && \
+    mv ${answers.runtime}/* . && \
+    rm -rf ${answers.runtime}`;
+
+  // Execute the child process but do not print any std output
+  childProcess.execSync(command, { stdio: null });
+
+  let data = {
+    $id: response['$id'],
+    name: response['name'],
+    runtime: response['runtime'],
+    path: answers.name,
+    command: '',
+    vars: []
+  };
+
+  localConfig.addFunction(data);
+  success();
+}
+
+const initCollection = async () => {
+
+  let response = await databaseListCollections({
+    parseOutput: false
+  })
+
+  let collections = response.collections;
+  log(`Found ${collections.length} collections`);
+
+  collections.forEach(async collection => {
+    log(`Fetching ${collection.name} ...`);
+    localConfig.addCollection(collection);
+  });
+
+  success();
+}
+
 init
   .command("project")
   .description("Initialise your Appwrite project")
-  .action(actionRunner(async () => {
-    let response = {}
-    let answers = await inquirer.prompt(questionsInitProject)
-    if (!answers.project) process.exit(1)
-
-    if (answers.start == "new") {
-      response = await teamsCreate({
-        teamId: 'unique()',
-        name: answers.project,
-        sdk: sdkForConsole,
-        parseOutput: false
-      })
-
-      let teamId = response['$id'];
-      response = await projectsCreate({
-        projectId: 'unique()',
-        name: answers.project,
-        teamId,
-        parseOutput: false
-      })
-
-      localConfig.setProject(response['$id'], response.name);
-    } else {
-      localConfig.setProject(answers.project.id, answers.project.name);
-    }
-    success();
-  }));
-
+  .action(actionRunner(initProject));
 
 init
   .command("function")
   .description("Initialise your Appwrite cloud function")
-  .action(actionRunner(async () => {
-    let answers = await inquirer.prompt(questionsInitFunction)
-
-    if (fs.existsSync(answers.name)) {
-      throw new Error(`( ${answers.name} ) already exists in the current directory. Please choose another name.`);
-    }
-
-    let response = await functionsCreate({
-      functionId: 'unique()',
-      name: answers.name,
-      runtime: answers.runtime,
-      parseOutput: false
-    })
-
-    let command = `
-      mkdir -m 777 -p '${answers.name}' && \
-      cd '${answers.name}' && \
-      git init && \
-      git remote add -f origin https://github.com/christyjacob4/appwrite-function-starter && \
-      git config core.sparseCheckout true && \
-      echo '${answers.runtime}' >> .git/info/sparse-checkout && \ 
-      git pull origin main && \
-      rm -rf .git && \
-      mv ${answers.runtime}/* . && \
-      rm -rf ${answers.runtime}`;
-
-    // Execute the child process but do not print any std output
-    childProcess.execSync(command, { stdio: null });
-
-    let data = {
-      $id: response['$id'],
-      name: response['name'],
-      runtime: response['runtime'],
-      path: answers.name,
-      command: '',
-      vars: []
-    };
-
-    localConfig.addFunction(data);
-    success();
-  }))
+  .action(actionRunner(initFunction))
 
 init
   .command("collection")
   .description("Initialise your Appwrite collections")
-  .action(actionRunner(async () => {
-
-    let response = await databaseListCollections({
-      parseOutput: false
-    })
-
-    let collections = response.collections;
-    log(`Found ${collections.length} collections`);
-
-    collections.forEach(async collection => {
-      log(`Fetching ${collection.name} ...`);
-      localConfig.addCollection(collection);
-    });
-
-    success();
-
-  }))
+  .action(actionRunner(initCollection))
 
 module.exports = {
   init,
