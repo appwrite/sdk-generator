@@ -4,14 +4,15 @@ const { globalConfig } = require("../config");
 const { actionRunner, success } = require("../parser");
 const { questionsLogin } = require("../questions");
 const { sdkForConsole } = require("../sdks");
-const { accountCreateSession } = require("./account");
+const { accountCreateSession, accountDeleteSession } = require("./account");
 
 const login = new Command("login")
     .description("Login to your account")
     .action(actionRunner (async () => {
         const answers = await inquirer.prompt(questionsLogin)
-        
+
         let client = await sdkForConsole(false);
+        
         await accountCreateSession({
             email: answers.email,
             password: answers.password,
@@ -25,11 +26,14 @@ const login = new Command("login")
 const logout = new Command("logout")
     .description("Logout from your Appwrite account")
     .action(actionRunner (async () => {
-        let path = '/account/sessions/current';
         let client = await sdkForConsole();
-        await client.call("delete", path, {
-            "content-type": "application/json",
-        }, {});
+
+        await accountDeleteSession({
+            sessionId: 'current',
+            parseOutput: false,
+            sdk: client
+        })
+
         globalConfig.setCookie("");
         success()
     }));
