@@ -141,7 +141,27 @@ const questionsDeployFunctions = [
       return choices;
     }
   }
-  
+]
+
+const questionsDeployCollections = [
+  {
+    type: "checkbox",
+    name: "collections",
+    message: "Which collections would you like to deploy?",
+    choices: () => {
+      let collections = localConfig.getCollections();
+      if (collections.length === 0) {
+        throw new Error("No collections found in the current directory. Run `appwrite init collection` to fetch all your collections.");
+      }
+      let choices = collections.map((collection, idx) => {
+        return {
+          name: `${collection.name} (${collection['$id']})`,
+          value: collection
+        }
+      })
+      return choices;
+    }
+  }
 ]
 
 const questionsGetCommand = [
@@ -164,5 +184,6 @@ module.exports = {
   questionsLogin,
   questionsInitFunction,
   questionsDeployFunctions,
+  questionsDeployCollections,
   questionsGetCommand
 };

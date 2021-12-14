@@ -9,7 +9,7 @@ const { success, log, actionRunner } = require("../parser");
 const { teamsCreate } = require("./teams");
 const { projectsCreate } = require("./projects");
 const { functionsCreate } = require("./functions");
-const { databaseListCollections, databaseListAttributes, databaseListIndexes } = require("./database");
+const { databaseListCollections } = require("./database");
 
 const init = new Command("init")
   .description("Initialise different parts of your Appwrite setup ")
