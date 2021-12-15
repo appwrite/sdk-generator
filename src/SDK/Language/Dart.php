@@ -110,7 +110,7 @@ class Dart extends Language {
      */
     public function getIdentifierOverrides()
     {
-        return [];
+        return ['Function' => 'Func'];
     }
 
     /**
