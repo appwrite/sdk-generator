@@ -6,9 +6,12 @@ const { actionRunner, success, log, error } = require("../parser");
 const { functionsGet, functionsCreate, functionsCreateTag, functionsUpdateTag } = require('./functions');
 const { databaseCreateBooleanAttribute, databaseGetCollection, databaseCreateCollection, databaseCreateStringAttribute, databaseCreateIntegerAttribute, databaseCreateFloatAttribute, databaseCreateEmailAttribute, databaseCreateIndex, databaseCreateUrlAttribute, databaseCreateIpAttribute, databaseCreateEnumAttribute } = require("./database");
 
-const deploy = new Command("deploy").description(
-    "Deploy functions, collections and sites. "
-);
+const deploy = new Command("deploy")
+    .description("Deploy your appwrite functions and collections")
+    .action(actionRunner(async () => {
+        await deployFunctions();
+        await deployCollections()
+    }));
 
 const deployFunctions = async () => {
     let response = {};
