@@ -1,25 +1,42 @@
 const program = require("commander");
+const chalk = require("chalk");
 const { description, version } = require("./package.json");
 const { login, logout } = require("./lib/commands/auth");
 const { init } = require("./lib/commands/init");
 const { deploy } = require("./lib/commands/deploy");
-{% for service in spec.services %}
-const { {{ service.name | caseLower }} } = require("./lib/commands/{{ service.name }}");
-{% endfor %}
+const { account } = require("./lib/commands/account");
+const { avatars } = require("./lib/commands/avatars");
+const { database } = require("./lib/commands/database");
+const { functions } = require("./lib/commands/functions");
+const { health } = require("./lib/commands/health");
+const { locale } = require("./lib/commands/locale");
+const { projects } = require("./lib/commands/projects");
+const { storage } = require("./lib/commands/storage");
+const { teams } = require("./lib/commands/teams");
+const { users } = require("./lib/commands/users");
 
-// program.configureOutput({
-//   // Visibly override write routines as example!
-//   writeOut: (str) => process.stdout.write(`[HELLOOO] ${str}`),
-//   writeErr: (str) => process.stdout.write(`[ERR]}`),
-//   // Output errors in red.
-//   outputError: (str, write) => write(errorColor(str)),
-// });
+var logo = "\n" +
+	"    _                            _ _           ___   __   _____ \n" +
+	"   /_\\  _ __  _ ____      ___ __(_) |_ ___    / __\\ / /   \\_   \\\n" +
+	"  //_\\\\| '_ \\| '_ \\ \\ /\\ / / '__| | __/ _ \\  / /   / /     / /\\/\n" +
+	" /  _  \\ |_) | |_) \\ V  V /| |  | | ||  __/ / /___/ /___/\\/ /_  \n" +
+	" \\_/ \\_/ .__/| .__/ \\_/\\_/ |_|  |_|\\__\\___| \\____/\\____/\\____/  \n" +
+	"       |_|   |_|                                                  \n" +
+	"\n" +
+	`${description}`;
 
 program
-  .description(description)
-{% for service in spec.services %}
-  .addCommand({{ service.name | caseLower }})
-{% endfor %}
+  .description(chalk.redBright(logo))
+  .addCommand(account)
+  .addCommand(avatars)
+  .addCommand(database)
+  .addCommand(functions)
+  .addCommand(health)
+  .addCommand(locale)
+  .addCommand(projects)
+  .addCommand(storage)
+  .addCommand(teams)
+  .addCommand(users)
   .addCommand(login)
   .addCommand(logout)
   .addCommand(init)
