@@ -4,7 +4,20 @@ const inquirer = require("inquirer");
 const { localConfig } = require("../config");
 const { actionRunner, success, log, error } = require("../parser");
 const { functionsGet, functionsCreate, functionsCreateTag, functionsUpdateTag } = require('./functions');
-const { databaseCreateBooleanAttribute, databaseGetCollection, databaseCreateCollection, databaseCreateStringAttribute, databaseCreateIntegerAttribute, databaseCreateFloatAttribute, databaseCreateEmailAttribute, databaseCreateIndex, databaseCreateUrlAttribute, databaseCreateIpAttribute, databaseCreateEnumAttribute, databaseDeleteAttribute } = require("./database");
+const { 
+    databaseCreateBooleanAttribute, 
+    databaseGetCollection, 
+    databaseCreateCollection, 
+    databaseCreateStringAttribute, 
+    databaseCreateIntegerAttribute, 
+    databaseCreateFloatAttribute, 
+    databaseCreateEmailAttribute, 
+    databaseCreateIndex, 
+    databaseCreateUrlAttribute, 
+    databaseCreateIpAttribute, 
+    databaseCreateEnumAttribute, 
+    databaseDeleteAttribute 
+} = require("./database");
 
 const deploy = new Command("deploy")
     .description("Deploy your appwrite functions and collections")
@@ -195,7 +208,7 @@ const deployCollections = async () => {
                 log(`Received "${answers.override}". Skipping ${collection.name} ( ${collection['$id']} )`);
                 continue;
             }
-            
+
             log(`Updating attributes ... `);
             collection.attributes.forEach(async attribute => {
                 await databaseDeleteAttribute({
@@ -206,13 +219,13 @@ const deployCollections = async () => {
             });
 
             await new Promise(resolve => setTimeout(resolve, 3000));
-            
+
             collection.attributes.forEach(async attribute => {
                 await createAttribute(collection['$id'], attribute);
             });
 
             await new Promise(resolve => setTimeout(resolve, 3000));
-            
+
             log(`Creating indexes ...`)
             collection.indexes.forEach(async index => {
                 await databaseCreateIndex({
