@@ -9,7 +9,11 @@ const { databaseCreateBooleanAttribute, databaseGetCollection, databaseCreateCol
 const deploy = new Command("deploy")
     .description("Deploy your appwrite functions and collections")
     .action(actionRunner(async () => {
-        await deployFunctions();
+        try {
+            await deployFunctions();
+        } catch (e) {
+            error(e.message);
+        }
         await deployCollections()
     }));
 
