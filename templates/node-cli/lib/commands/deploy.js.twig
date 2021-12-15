@@ -2,7 +2,7 @@ const { Command } = require("commander");
 const { questionsDeployFunctions, questionsGetCommand, questionsDeployCollections } = require("../questions");
 const inquirer = require("inquirer");
 const { localConfig } = require("../config");
-const { actionRunner, success, log, error } = require("../parser");
+const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsCreateTag, functionsUpdateTag } = require('./functions');
 const { 
     databaseCreateBooleanAttribute, 
@@ -20,7 +20,7 @@ const {
 } = require("./database");
 
 const deploy = new Command("deploy")
-    .description("Deploy your appwrite functions and collections")
+    .description(commandDescriptions['deploy'])
     .action(actionRunner(async () => {
         try {
             await deployFunctions();

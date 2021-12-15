@@ -1,13 +1,13 @@
 const { Command } = require("commander");
 const inquirer = require("inquirer");
 const { globalConfig } = require("../config");
-const { actionRunner, success } = require("../parser");
+const { actionRunner, success, commandDescriptions } = require("../parser");
 const { questionsLogin } = require("../questions");
 const { sdkForConsole } = require("../sdks");
 const { accountCreateSession, accountDeleteSession } = require("./account");
 
 const login = new Command("login")
-    .description("Login to your account")
+    .description(commandDescriptions['login'])
     .action(actionRunner (async () => {
         const answers = await inquirer.prompt(questionsLogin)
 
@@ -24,7 +24,7 @@ const login = new Command("login")
     }));
 
 const logout = new Command("logout")
-    .description("Logout from your Appwrite account")
+    .description(commandDescriptions['logout'])
     .action(actionRunner (async () => {
         let client = await sdkForConsole();
 

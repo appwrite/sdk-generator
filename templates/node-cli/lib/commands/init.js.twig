@@ -5,14 +5,14 @@ const inquirer = require("inquirer");
 const { questionsInitProject, questionsInitFunction } = require("../questions");
 const { sdkForConsole } = require("../sdks");
 const { localConfig } = require("../config");
-const { success, log, actionRunner } = require("../parser");
+const { success, log, actionRunner, commandDescriptions } = require("../parser");
 const { teamsCreate } = require("./teams");
 const { projectsCreate } = require("./projects");
 const { functionsCreate } = require("./functions");
 const { databaseListCollections } = require("./database");
 
 const init = new Command("init")
-  .description("Initialise different parts of your Appwrite setup ")
+  .description(commandDescriptions['init'])
   .action(actionRunner(async () => {
     await initProject();
     await initCollection()

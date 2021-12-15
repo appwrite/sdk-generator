@@ -77,10 +77,28 @@ const error = (message) => {
     console.error(`${chalk.red.bold("[ ERROR ]")} ${chalk.red(message ?? "")}`);
 }
 
+const commandDescriptions = {
+    "account" : "The account command allows you to authenticate and manage a user account.",
+    "avatars" : "The avatars command aims to help you complete everyday tasks related to your app image, icons, and avatars.",
+    "database" : "The database command allows you to create structured collections of documents, query and filter lists of documents.",
+    "deploy" : "The deploy command provides a convenient wrapper for deploying your functions and collections.",
+    "functions" : "The functions command allows you view, create and manage your Cloud Functions.",
+    "health" : "The health command allows you to both validate and monitor your Appwrite server's health.",
+    "init": "The init command helps you initialize your Appwrite project, functions and collections",
+    "locale" : "The locale command allows you to customize your app based on your users' location.",
+    "projects" : "The projects command allows you to view, create and manage your Appwrite projects.",
+    "storage" : "The storage command allows you to manage your project files.",
+    "teams" : "The teams command allows you to group users of your project and to enable them to share read and write access to your project resources",
+    "users" : "The users command allows you to manage your project users.",
+    "login" : "The login command allows you to authenticate and manage a user account.",
+    "logout": "The logout command allows you to logout of your Appwrite account.",
+}
+
 module.exports = {
     parse,
     actionRunner,
     log,
     success,
-    error
+    error,
+    commandDescriptions
 }
