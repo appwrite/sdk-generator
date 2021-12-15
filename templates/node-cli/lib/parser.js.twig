@@ -58,6 +58,7 @@ const drawJSON = (data) => {
 
 const parseError = (err) => {
     error(err.message)
+    process.exit(1)
 }
 
 const actionRunner= (fn) => {
@@ -73,7 +74,7 @@ const success = (message) => {
 }
 
 const error = (message) => {
-    console.log(`${chalk.red.bold("[ ERROR ]")} ${chalk.red(message ?? "")}`);
+    console.error(`${chalk.red.bold("[ ERROR ]")} ${chalk.red(message ?? "")}`);
 }
 
 module.exports = {
