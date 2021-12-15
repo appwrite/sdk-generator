@@ -59,7 +59,6 @@ class {{ service.name | caseUcfirst }} extends Service {
           query: query.join('&')
         );
 
-
       return client.webAuth(url);
 
 {% elseif method.type == 'location' %}
