@@ -1,4 +1,6 @@
+const os = require('os');
 const fs = require("fs");
+const _path = require("path");
 const process = require("process");
 
 class Config {
@@ -17,6 +19,10 @@ class Config {
     }
 
     write() {
+        let dir = _path.dirname(this.path)
+        if (!fs.existsSync(dir)){
+            fs.mkdirSync(dir, { recursive: true });
+        }
         fs.writeFileSync(this.path, JSON.stringify(this.data, null, 4));
     }
 
@@ -176,7 +182,7 @@ class Local extends Config {
 }
 
 class Global extends Config {
-    static CONFIG_FILE_PATH = ".prefs.json";
+    static CONFIG_FILE_PATH = ".appwrite/prefs.json";
 
     static PREFERENCE_ENDPOINT = "endpoint";
     static PREFERENCE_SELF_SIGNED = "selfSigned";
@@ -191,8 +197,9 @@ class Global extends Config {
 
     static PROJECT_CONSOLE = "console";
 
-    constructor(path) {
-        super(`${__dirname}/${Global.CONFIG_FILE_PATH}`);
+    constructor(path = Global.CONFIG_FILE_PATH) {
+        const homeDir = os.homedir();
+        super(`${homeDir}/${path}`);
     }
 
     getEndpoint() {

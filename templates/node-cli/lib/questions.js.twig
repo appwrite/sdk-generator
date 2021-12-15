@@ -1,5 +1,4 @@
-const { localConfig, globalConfig } = require('./config');
-const { sdkForConsole } = require('./sdks');
+const { localConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { functionsListRuntimes } = require('./commands/functions');
 
@@ -161,7 +160,12 @@ const questionsDeployCollections = [
       })
       return choices;
     }
-  }
+  },
+  {
+    type: "input",
+    name: "override",
+    message: 'Are you sure you want to override this collection? This can lead to deletion of all your documents! Type "YES" to confirm.'
+  },
 ]
 
 const questionsGetCommand = [

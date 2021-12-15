@@ -4,7 +4,7 @@ const inquirer = require("inquirer");
 const { localConfig } = require("../config");
 const { actionRunner, success, log, error } = require("../parser");
 const { functionsGet, functionsCreate, functionsCreateTag, functionsUpdateTag } = require('./functions');
-const { databaseCreateBooleanAttribute, databaseGetCollection, databaseCreateCollection, databaseCreateStringAttribute, databaseCreateIntegerAttribute, databaseCreateFloatAttribute, databaseCreateEmailAttribute, databaseCreateIndex, databaseCreateUrlAttribute, databaseCreateIpAttribute, databaseCreateEnumAttribute } = require("./database");
+const { databaseCreateBooleanAttribute, databaseGetCollection, databaseCreateCollection, databaseCreateStringAttribute, databaseCreateIntegerAttribute, databaseCreateFloatAttribute, databaseCreateEmailAttribute, databaseCreateIndex, databaseCreateUrlAttribute, databaseCreateIpAttribute, databaseCreateEnumAttribute, databaseDeleteAttribute } = require("./database");
 
 const deploy = new Command("deploy")
     .description("Deploy your appwrite functions and collections")
@@ -174,7 +174,7 @@ const createAttribute = async (collectionId, attribute) => {
 
 const deployCollections = async () => {
     let response = {};
-    let answers = await inquirer.prompt(questionsDeployCollections)
+    let answers = await inquirer.prompt(questionsDeployCollections[0])
     let collections = answers.collections
 
     for (let collection of collections) {
@@ -186,7 +186,40 @@ const deployCollections = async () => {
             })
             log(`Collection ${collection.name} ( ${collection['$id']} ) already exists.`);
 
-            // Prompt and ask for override ?
+            answers = await inquirer.prompt(questionsDeployCollections[1])
+            if (answers.override !== "YES") {
+                log(`Received "${answers.override}". Skipping ${collection.name} ( ${collection['$id']} )`);
+                continue;
+            }
+            
+            log(`Updating attributes ... `);
+            collection.attributes.forEach(async attribute => {
+                await databaseDeleteAttribute({
+                    collectionId: collection['$id'],
+                    attributeId: attribute.key,
+                    parseOutput: false
+                })
+            });
+
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            collection.attributes.forEach(async attribute => {
+                await createAttribute(collection['$id'], attribute);
+            });
+
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            log(`Creating indexes ...`)
+            collection.indexes.forEach(async index => {
+                await databaseCreateIndex({
+                    collectionId: collection['$id'],
+                    indexId: index.key,
+                    type: index.type,
+                    attributes: index.attributes,
+                    orders: index.orders,
+                    parseOutput: false
+                })
+            })
 
         } catch (e) {
             if (e.code == 404) {
@@ -218,6 +251,8 @@ const deployCollections = async () => {
                         parseOutput: false
                     })
                 })
+
+                await new Promise(resolve => setTimeout(resolve, 3000));
 
                 success(`Deployed ${collection.name} ( ${collection['$id']} )`);
             } else {
