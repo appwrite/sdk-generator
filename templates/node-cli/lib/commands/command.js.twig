@@ -70,12 +70,13 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
         '{{ key }}': '{{ header }}',
 {% endfor %}
     }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
-    if (parseOutput) parse(response)
-    return response;
-{% endif %}
 {% if method.packaging %}
 
-fs.unlinkSync(archivePath);
+    fs.unlinkSync(archivePath);
+{% endif %}
+    
+    if (parseOutput) parse(response)
+    return response;
 {% endif %}
 }
 
