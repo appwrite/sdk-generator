@@ -59,12 +59,7 @@ class {{ service.name | caseUcfirst }} extends Service {
           query: query.join('&')
         );
 
-        if(kIsWeb) {
-          redirect(url.toString());
-          return Future.value();
-        }else{
-          return client.webAuth(url);
-        }
+      return client.webAuth(url);
 
 {% elseif method.type == 'location' %}
         params.keys.forEach((key) {if (params[key] is int || params[key] is double) {
