@@ -31,6 +31,12 @@ class NodeCLI extends JS
                 'minify'        => false,
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => '.github/workflows/npm-publish.yml',
+                'template'      => 'node-cli/.github/workflows/npm-publish.yml',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'lib/sdks.js',
                 'template'      => 'node-cli/lib/sdks.js.twig',
