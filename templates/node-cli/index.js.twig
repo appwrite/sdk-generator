@@ -28,6 +28,10 @@ var logo = "\n" +
 
 program
   .description(chalk.redBright(logo))
+  .addCommand(login)
+  .addCommand(logout)
+  .addCommand(init)
+  .addCommand(deploy)
   .addCommand(account)
   .addCommand(avatars)
   .addCommand(database)
@@ -38,8 +42,4 @@ program
   .addCommand(storage)
   .addCommand(teams)
   .addCommand(users)
-  .addCommand(login)
-  .addCommand(logout)
-  .addCommand(init)
-  .addCommand(deploy)
   .parse(process.argv);

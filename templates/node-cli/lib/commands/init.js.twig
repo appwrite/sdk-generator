@@ -23,11 +23,12 @@ const initProject = async () => {
   let answers = await inquirer.prompt(questionsInitProject)
   if (!answers.project) process.exit(1)
 
+  let sdk = await sdkForConsole();
   if (answers.start == "new") {
     response = await teamsCreate({
       teamId: 'unique()',
       name: answers.project,
-      sdk: sdkForConsole,
+      sdk,
       parseOutput: false
     })
 
