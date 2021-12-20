@@ -16,8 +16,8 @@ class {{ service.name | caseUcfirst }} extends Service {
 {{ method.description|dartComment }}
      ///
 {% endif %}
-    {% if method.type == 'webAuth' %}Future{% elseif method.type == 'location' %} Future<Uint8List> {% else %} {% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) async {
-        final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll(RegExp('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'), {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+    {% if method.type == 'webAuth' %}Future{% elseif method.type == 'location' %} Future<Uint8List> {% else %} {% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | ucFirstAndEscape}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) async {
+        final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
 
         final Map<String, dynamic> params = {
 {% for parameter in method.parameters.query %}
