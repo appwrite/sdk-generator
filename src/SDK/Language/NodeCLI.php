@@ -20,8 +20,20 @@ class NodeCLI extends JS
         return [
             [
                 'scope'         => 'default',
+                'destination'   => 'README.md',
+                'template'      => 'node-cli/README.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'package.json',
                 'template'      => 'node-cli/package.json.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'LICENSE.md',
+                'template'      => 'node-cli/LICENSE.md.twig',
                 'minify'        => false,
             ],
             [
