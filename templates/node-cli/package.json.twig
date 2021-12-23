@@ -1,6 +1,6 @@
 {
-  "name": "appwrite-cli-test",
-  "version": "0.0.1",
+  "name": "appwrite-cli",
+  "version": "0.0.9",
   "description": "Welcome to the Appwrite CLI",
   "main": "index.js",
   "bin": { 
@@ -8,7 +8,12 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "pkg package.json"
+    "linux-x64": "pkg -t node16-linux-x64 -o build/appwrite-cli-linux-x64 package.json",
+    "linux-arm64": "pkg -t node16-linux-arm64 -o build/appwrite-cli-linux-arm64 package.json",
+    "mac-x64": "pkg -t node16-macos-x64 -o build/appwrite-cli-darwin-x64 package.json",
+    "mac-arm64": "pkg -t node16-macos-arm64 -o build/appwrite-cli-darwin-arm64 package.json",
+    "windows-x64": "pkg -t node16-win-x64 -o build/appwrite-cli-win-x64.exe package.json",
+    "windows-arm64": "pkg -t node16-win-arm64 -o build/appwrite-cli-win-arm64.exe package.json"
   },
   "author": "",
   "license": "ISC",
@@ -24,7 +29,6 @@
     "pkg": "5.5.1"
   },
   "pkg": {
-    "scripts": ["index.js", "lib/**/*.js"],
-    "outputPath": "build"
+    "scripts": ["index.js", "lib/**/*.js"]
   }
 }

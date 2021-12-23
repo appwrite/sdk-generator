@@ -25,6 +25,12 @@ class NodeCLI extends JS
                 'minify'        => false,
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'install.sh',
+                'template'      => 'node-cli/install.sh',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'index.js',
                 'template'      => 'node-cli/index.js.twig',

@@ -28,6 +28,7 @@ var logo = "\n" +
 
 program
   .description(chalk.redBright(logo))
+  .version(version, "-v, --version")
   .addCommand(login)
   .addCommand(logout)
   .addCommand(init)
