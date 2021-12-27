@@ -37,7 +37,7 @@ public class Query {
         case let value as Array<Any>:
             return "\(attribute).\(oper)(\(value.map { parseValues($0) }.joined(separator: ",") ))"
         default:
-            return "\(attribute).\(oper)(\(parseValues(value))"
+            return "\(attribute).\(oper)(\(parseValues(value)))"
         }
     }
 
