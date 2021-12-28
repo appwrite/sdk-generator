@@ -252,6 +252,10 @@ class Global extends Config {
         }
         return this.get(Global.PREFERENCE_KEY);
     }
+
+    setKey(key) {
+        this.set(Global.PREFERENCE_KEY, key);
+    }
 }
 
 module.exports = {

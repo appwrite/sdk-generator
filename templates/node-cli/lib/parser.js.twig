@@ -1,4 +1,5 @@
 const chalk = require('chalk');
+const { description } = require('../package.json')
 var Table = require('cli-table');
 
 const parse = (data) => {
@@ -61,7 +62,7 @@ const parseError = (err) => {
     process.exit(1)
 }
 
-const actionRunner= (fn) => {
+const actionRunner = (fn) => {
     return (...args) => fn(...args).catch(parseError);
 }
 
@@ -70,28 +71,39 @@ const log = (message) => {
 }
 
 const success = (message) => {
-    console.log(`${chalk.green.bold("[ SUCCESS ]")} ${chalk.green(message ?? "")}`);   
+    console.log(`${chalk.green.bold("[ SUCCESS ]")} ${chalk.green(message ?? "")}`);
 }
 
 const error = (message) => {
     console.error(`${chalk.red.bold("[ ERROR ]")} ${chalk.red(message ?? "")}`);
 }
 
+const logo = "\n" +
+    "    _                            _ _           ___   __   _____ \n" +
+    "   /_\\  _ __  _ ____      ___ __(_) |_ ___    / __\\ / /   \\_   \\\n" +
+    "  //_\\\\| '_ \\| '_ \\ \\ /\\ / / '__| | __/ _ \\  / /   / /     / /\\/\n" +
+    " /  _  \\ |_) | |_) \\ V  V /| |  | | ||  __/ / /___/ /___/\\/ /_  \n" +
+    " \\_/ \\_/ .__/| .__/ \\_/\\_/ |_|  |_|\\__\\___| \\____/\\____/\\____/  \n" +
+    "       |_|   |_|                                                  \n" +
+    "\n";
+
 const commandDescriptions = {
-    "account" : "The account command allows you to authenticate and manage a user account.",
-    "avatars" : "The avatars command aims to help you complete everyday tasks related to your app image, icons, and avatars.",
-    "database" : "The database command allows you to create structured collections of documents, query and filter lists of documents.",
-    "deploy" : "The deploy command provides a convenient wrapper for deploying your functions and collections.",
-    "functions" : "The functions command allows you view, create and manage your Cloud Functions.",
-    "health" : "The health command allows you to both validate and monitor your Appwrite server's health.",
-    "init": "The init command helps you initialize your Appwrite project, functions and collections",
-    "locale" : "The locale command allows you to customize your app based on your users' location.",
-    "projects" : "The projects command allows you to view, create and manage your Appwrite projects.",
-    "storage" : "The storage command allows you to manage your project files.",
-    "teams" : "The teams command allows you to group users of your project and to enable them to share read and write access to your project resources",
-    "users" : "The users command allows you to manage your project users.",
-    "login" : "The login command allows you to authenticate and manage a user account.",
-    "logout": "The logout command allows you to logout of your Appwrite account.",
+    "account": `The account command allows you to authenticate and manage a user account.`,
+    "avatars": `The avatars command aims to help you complete everyday tasks related to your app image, icons, and avatars.`,
+    "database": `The database command allows you to create structured collections of documents, query and filter lists of documents.`,
+    "deploy": `The deploy command provides a convenient wrapper for deploying your functions and collections.`,
+    "functions": `The functions command allows you view, create and manage your Cloud Functions.`,
+    "health": `The health command allows you to both validate and monitor your Appwrite server's health.`,
+    "init": `The init command helps you initialize your Appwrite project, functions and collections`,
+    "locale": `The locale command allows you to customize your app based on your users' location.`,
+    "projects": `The projects command allows you to view, create and manage your Appwrite projects.`,
+    "storage": `The storage command allows you to manage your project files.`,
+    "teams": `The teams command allows you to group users of your project and to enable them to share read and write access to your project resources`,
+    "users": `The users command allows you to manage your project users.`,
+    "client": `The client command allows you to configure your CLI`,
+    "login": `The login command allows you to authenticate and manage a user account.`,
+    "logout": `The logout command allows you to logout of your Appwrite account.`,
+    "main": chalk.redBright(`${logo}${description}`),
 }
 
 module.exports = {

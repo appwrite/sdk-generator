@@ -1,8 +1,9 @@
 #! /usr/bin/env node
 const program = require("commander");
 const chalk = require("chalk");
-const { description, version } = require("./package.json");
-const { login, logout } = require("./lib/commands/auth");
+const { version } = require("./package.json");
+const { commandDescriptions } = require("./lib/parser");
+const { client, login, logout } = require("./lib/commands/general");
 const { init } = require("./lib/commands/init");
 const { deploy } = require("./lib/commands/deploy");
 const { account } = require("./lib/commands/account");
@@ -16,21 +17,13 @@ const { storage } = require("./lib/commands/storage");
 const { teams } = require("./lib/commands/teams");
 const { users } = require("./lib/commands/users");
 
-var logo = "\n" +
-	"    _                            _ _           ___   __   _____ \n" +
-	"   /_\\  _ __  _ ____      ___ __(_) |_ ___    / __\\ / /   \\_   \\\n" +
-	"  //_\\\\| '_ \\| '_ \\ \\ /\\ / / '__| | __/ _ \\  / /   / /     / /\\/\n" +
-	" /  _  \\ |_) | |_) \\ V  V /| |  | | ||  __/ / /___/ /___/\\/ /_  \n" +
-	" \\_/ \\_/ .__/| .__/ \\_/\\_/ |_|  |_|\\__\\___| \\____/\\____/\\____/  \n" +
-	"       |_|   |_|                                                  \n" +
-	"\n" +
-	`${description}`;
-
 program
-  .description(chalk.redBright(logo))
+  .description(commandDescriptions['main'])
   .version(version, "-v, --version")
+  .showSuggestionAfterError()
   .addCommand(login)
   .addCommand(logout)
+  .addCommand(client)
   .addCommand(init)
   .addCommand(deploy)
   .addCommand(account)

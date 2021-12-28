@@ -110,8 +110,8 @@ class NodeCLI extends JS
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/commands/auth.js',
-                'template'      => 'node-cli/lib/commands/auth.js.twig',
+                'destination'   => 'lib/commands/general.js',
+                'template'      => 'node-cli/lib/commands/general.js.twig',
                 'minify'        => false,
             ]
         ];

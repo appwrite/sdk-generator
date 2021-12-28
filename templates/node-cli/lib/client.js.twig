@@ -12,7 +12,7 @@ class Client {
       "X-Appwrite-Response-Format": "0.11.0",
       "User-Agent" : "Terminal/2.5.1 (MacOS 12.0.1; arm64)"
     };
-    this.selfSigned = false;
+    this.selfSigned = globalConfig.getSelfSigned;
   }
 
   /**
