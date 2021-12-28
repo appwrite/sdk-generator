@@ -1,7 +1,7 @@
 const { Command } = require("commander");
 const inquirer = require("inquirer");
-const { globalConfig } = require("../config");
-const { actionRunner, success, commandDescriptions } = require("../parser");
+const { globalConfig, localConfig } = require("../config");
+const { actionRunner, success, commandDescriptions, log } = require("../parser");
 const { questionsLogin } = require("../questions");
 const { sdkForConsole } = require("../sdks");
 const { accountCreateSession, accountDeleteSession } = require("./account");
@@ -43,9 +43,18 @@ const client = new Command("client")
     .option("--selfSigned <value>", "Configure the CLI to use a self-signed certificate ( true or false )")
     .option("--endpoint <endpoint>", "Set your Apwrite server endpoint")
     .option("--key <key>", "Set your Apwrite server's API key")
-    .action(actionRunner(async ({ selfSigned, endpoint, key }, command) => {
-        if (!selfSigned && !endpoint && !key) {
+    .option("--debug", "Print CLI debug information")
+    .action(actionRunner(async ({ selfSigned, endpoint, key, debug }, command) => {
+        if (selfSigned == undefined && endpoint == undefined && key == undefined && debug == undefined) {
             command.help()
+        }
+
+        if (debug) {
+            log(`Endpoint : ${globalConfig.getEndpoint()}`)
+            log(`API KEY : ${globalConfig.getKey()}`)
+            log(`Cookie : ${globalConfig.getCookie()}`)
+            log(`Self Signed : ${globalConfig.getSelfSigned()}`)
+            log(`Project : ${localConfig.getProject().toString()}`)
         }
 
         if (endpoint) {
@@ -61,7 +70,7 @@ const client = new Command("client")
             }
         }
 
-        if (key) globalConfig.setKey(key);
+        globalConfig.setKey(key)
 
         if (selfSigned) {
             if (selfSigned === "true" || selfSigned === "false") {

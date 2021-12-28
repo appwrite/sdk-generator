@@ -22,9 +22,9 @@
 
 ## Installation
 
-The Appwrite CLI is a Node based command line tool designed to help you interact with the Appwrite API. The CLI is distrubuted both as an npm package as well as a pre built binary for specific operating systems and architectures.
+The Appwrite CLI is a Node based command line tool to help you interact with the Appwrite API. The CLI is distrubuted both as an [`npm package`](https://www.npmjs.com/package/appwrite-cli) as well as [pre built binaries](https://github.com/christyjacob4/appwrite-node-cli/releases/latest) for specific operating systems and architectures.
 
-### Using NPM
+### Install using NPM
 ---
 
 If you have `npm` installed, it's as easy as running
@@ -37,13 +37,13 @@ Once the installation is complete, you can verify the install using
 
 ```sh
 $ appwrite -v
-0.0.9
+0.0.11
 ```
 
-### Using the install script
+### Install prebuilt binaries
 ---
 
-If you do not have npm installed, you can always install the prebult binaries for your architecture and OS.
+If you do not have `npm` installed, you can always install the prebult binaries for your architecture and OS using our convenient installation scripts.
 
 ### Linux / MacOS 
 ```bash
@@ -58,52 +58,93 @@ $ iwr -useb https://appwrite.io/cli/install.ps1 | iex
 Once the installation completes, you can verify your install using
 ```
 $ appwrite -v
-0.0.9
+0.0.11
 ```
 
-## Initialisation 
+## Getting Started 
 
-The CLI needs to be initialised before you can use it with your Appwrite project. This can be done using 
+Before you can use the CLI, you need to login to your Appwrite account. 
+
+```sh
+$ appwrite login
+
+? Enter your email test@test.com
+? Enter your password ********
+[ SUCCESS ] 
+```
+This will also prompt you to enter your appwrite endpoint ( default: http://localhost/v1 ) 
+
+The CLI needs to be initialised before you can use it with your Appwrite project. You can do this with the `appwrite init project` command. 
 
 ```sh
 $ appwrite init project
 ```
 
-The following prompt will guide you through the setup process.
+The following prompt will guide you through the setup process. The `init` command also creates an `appwrite.json` file representing your Appwrite project.
 
-### 1. Pass in the project settings along with ` init`
+The `appwrite.json` file does a lot of things. 
+* Provides context to the CLI
+* Keeps track of all your cloud functions
+* Keeps track of all your project's collections
+* Helps you deploy your Appwrite project to production and more..
 
-```sh
-$  init --endpoint="YOUR ENDPOINT" --project="YOUR PROJECT ID" --key="YOUR API KEY" --locale="YOUR LOCALE"
+### Creating and deploying cloud functions
+
+The CLI makes it extremely easy to create and deploy Appwrite's cloud functions. Initialise your function using
+```
+$ appwrite init function
+? What would you like to name your function? My Awesome Function
+? What runtime would you like to use? Node.js (node-15.5)
 ```
 
-If any of the required values are missing, a prompt will show up, asking for those missing values.
+This will create a new function `My Awesome Function` in your current Appwrite project and also create a template for you to get started.
 
-### 2. Using the prompt
+```sh
+$ tree My\ Awesome\ Function 
 
-Invoking ` init` without any params triggers an interactive prompt where you can manually enter the details. These values are saved locally so that you dont have to re-enter them everytime. 
+My Awesome Function
+├── README.md
+├── index.js
+├── package-lock.json
+└── package.json
+
+0 directories, 4 files
+```
+
+You can now deploy this function using 
+
+```sh
+$ appwrite deploy 
+
+? Which functions would you like to deploy? My Awesome Function (61cb8d882eaaeaf3cab9)
+[ INFO ] Deploying function My Awesome Function ( 61cb8d882eaaeaf3cab9 )
+? Enter the entrypoint command node index.js
+[ SUCCESS ] Deployed My Awesome Function ( 61cb8d882eaaeaf3cab9 )
+```
+
+Your function is now ready to execute on your Appwrite server!
 
 ### Note
 By default, requests to domains with self signed SSL certificates (or no certificates) are disabled. If you trust the domain, you can bypass the certificate validation by using
 ```sh
-$  client setSelfSigned --value=true 
+$ appwrite client --selfSigned true
 ```
 
 ## Usage 
 
 The Appwrite CLI follows the following general syntax.
 ```sh
-$  [SERVICE] [COMMAND] --[OPTIONS]
+$ appwrite [COMMAND] --[OPTIONS]
 ```
 
 A few sample commands to get you started 
 
 ```sh
-$  users create --email="hello@appwrite.io" --password="very_strong_password"
-$  users list 
+$ appwrite users create --userId "unique()" --email hello@appwrite.io --password very_strong_password
+$ appwrite users list 
 ```
 
-To create a Document you can use the following command 
+To create a document you can use the following command 
 ```sh
 $  database createDocument --collectionId="YOUR COLLECTION ID" --data='A VALID JSON STRING' --read=role:member --read="*" --write=role:guest
 ```
@@ -115,13 +156,13 @@ $  database createDocument --collectionId="YOUR COLLECTION ID" --data='A VALID J
 
 To get information about the different services available, you can use 
 ```sh
-$  help
+$ appwrite help
 ```
 
 To get information about a particular service and the commands available in a service you can use 
 ```sh
-$  users help
-$  accounts help
+$ appwrite users help
+$ appwrite accounts help
 ```
 
 To get information about a particular command and the parameters it accepts, you can use
@@ -131,57 +172,6 @@ $  users list --help
 $  account get --help 
 ```
 
-## Contribution
-
-This library is auto-generated by Appwrite custom [SDK Generator](https://github.com/appwrite/sdk-generator). To learn more about how you can help us improve this SDK, please check the [contribution guide](https://github.com/appwrite/sdk-generator/blob/master/CONTRIBUTING.md) before sending a pull-request.
-
-To build and test the CLI for development, follow these steps 
-
-1. Clone the SDK Generator
-```sh
-$ git clone https://github.com/appwrite/sdk-generator
-```
-
-2. Ensure that docker is running locally and then run 
-```sh 
-$ cd sdk-generator
-
-# Install the composer dependencies
-$ docker run --rm --interactive --tty --volume "$(pwd)":/app composer install --ignore-platform-reqs --optimize-autoloader --no-plugins --no-scripts --prefer-dist
-
-# Generate the SDKs
-$ docker run --rm -v $(pwd):/app -w /app php:7.4-cli php example.php
-```
-
-3. Head over to the generated SDK and build the CLI docker image 
-```sh
-$ cd examples/CLI
-$ docker build -t appwrite/cli .
-```
-
-4. Install the CLI
-
-MacOS and Linux
-
-Open `install.sh` and change [this line](https://github.com/appwrite/sdk-for-cli/blob/master/install.sh#L33) to `APPWRITE_CLI_IMAGE_VERSION=latest` and 
-comment [these lines](https://github.com/appwrite/sdk-for-cli/blob/master/install.sh#L119-L123). 
-
-You can now install the CLI using 
-```sh
-$ chmod +x install.sh
-$ ./install.sh
-```
-
-Windows
-
-Open `install.ps1` and change [this line](https://github.com/appwrite/sdk-for-cli/blob/master/install.ps1#L28) to `APPWRITE_CLI_IMAGE_VERSION=latest` and 
-comment [these lines](https://github.com/appwrite/sdk-for-cli/blob/master/install.ps1#L85-L89)
-
-You can now install the CLI using 
-```sh
-$ ./install.ps1
-```
-
 ## License
 
-Please see the [{{spec.licenseName}} license]({{spec.licenseURL}}) file for more information.
+Please see the [BSD-3-Clause license](https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE) file for more information.
