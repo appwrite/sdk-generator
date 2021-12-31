@@ -24,10 +24,6 @@ public class Query {
         buildQueryWhere(attribute, is: "greaterEqual", to: value)
     }
 
-    public static func contains(_ attribute: String, value: Array<Any>) -> String {
-        buildQueryWhere(attribute, is: "contains", to: value)
-    }
-
     public static func search(_ attribute: String, value: String) -> String {
         buildQueryWhere(attribute, is: "search", to: value)
     }

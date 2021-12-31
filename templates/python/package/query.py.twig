@@ -24,11 +24,6 @@ class Query:
         return Query.addQuery(attribute, "greaterEqual", value)
 
     @staticmethod
-    def contains(attribute, value):
-        assert isinstance(value, list)
-        return Query.addQuery(attribute, "contains", value)
-
-    @staticmethod
     def search(attribute, value):
         return Query.addQuery(attribute, "search", value)
 
