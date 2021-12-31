@@ -101,7 +101,8 @@ class Dart extends Language {
             "set",
             "yield",
             "required",
-            "default"
+            "extension",
+            "late"
         ];
     }
 
@@ -110,7 +111,7 @@ class Dart extends Language {
      */
     public function getIdentifierOverrides()
     {
-        return [];
+        return ['Function' => 'Func'];
     }
 
     /**
