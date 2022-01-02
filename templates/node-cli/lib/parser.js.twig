@@ -16,7 +16,6 @@ const parse = (data) => {
     } else {
         drawJSON(data);
     }
-    success()
 }
 
 const drawTable = (data) => {
@@ -67,15 +66,15 @@ const actionRunner = (fn) => {
 }
 
 const log = (message) => {
-    console.log(`${chalk.cyan.bold("[ INFO ]")} ${chalk.cyan(message ?? "")}`);
+    console.log(`${chalk.cyan.bold("ℹ Info")} ${chalk.cyan(message ?? "")}`);
 }
 
 const success = (message) => {
-    console.log(`${chalk.green.bold("[ SUCCESS ]")} ${chalk.green(message ?? "")}`);
+    console.log(`${chalk.green.bold("✓ Success")} ${chalk.green(message ?? "")}`);
 }
 
 const error = (message) => {
-    console.error(`${chalk.red.bold("[ ERROR ]")} ${chalk.red(message ?? "")}`);
+    console.error(`${chalk.red.bold("✗ Error")} ${chalk.red(message ?? "")}`);
 }
 
 const logo = "\n" +

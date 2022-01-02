@@ -74,7 +74,7 @@ const initFunction = async () => {
     rm -rf ${answers.runtime}`;
 
   // Execute the child process but do not print any std output
-  childProcess.execSync(command, { stdio: null });
+  childProcess.execSync(command, { stdio: 'pipe' });
 
   let data = {
     $id: response['$id'],

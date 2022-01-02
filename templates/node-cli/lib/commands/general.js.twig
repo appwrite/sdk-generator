@@ -1,7 +1,7 @@
 const { Command } = require("commander");
 const inquirer = require("inquirer");
 const { globalConfig, localConfig } = require("../config");
-const { actionRunner, success, commandDescriptions, log } = require("../parser");
+const { actionRunner, success, commandDescriptions, log, parse } = require("../parser");
 const { questionsLogin } = require("../questions");
 const { sdkForConsole } = require("../sdks");
 const { accountCreateSession, accountDeleteSession } = require("./account");
@@ -50,11 +50,14 @@ const client = new Command("client")
         }
 
         if (debug) {
-            log(`Endpoint : ${globalConfig.getEndpoint()}`)
-            log(`API KEY : ${globalConfig.getKey()}`)
-            log(`Cookie : ${globalConfig.getCookie()}`)
-            log(`Self Signed : ${globalConfig.getSelfSigned()}`)
-            log(`Project : ${localConfig.getProject().toString()}`)
+            let config = {
+                endpoint: globalConfig.getEndpoint(),
+                key: globalConfig.getKey(),
+                cookie: globalConfig.getCookie(),
+                selfSigned: globalConfig.getSelfSigned(),
+                project: localConfig.getProject()
+            }
+            parse(config)
         }
 
         if (endpoint) {
