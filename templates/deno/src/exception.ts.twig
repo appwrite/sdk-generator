@@ -9,4 +9,7 @@ export class {{ spec.title | caseUcfirst}}Exception {
         this.response = response;
     }
 
+    public toString(): String {
+        return `${this.message} - ${this.code} - ${this.response}`;
+    }
 }
