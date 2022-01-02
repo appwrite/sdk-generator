@@ -13,7 +13,12 @@ const { databaseListCollections } = require("./database");
 
 const init = new Command("init")
   .description(commandDescriptions['init'])
-  .action(actionRunner(async () => {
+  .option("--all", "Flag to initialize projects and collection")
+  .action(actionRunner(async ({ all }, command) => {
+    if (all == undefined) {
+      command.help()
+    }
+
     await initProject();
     await initCollection()
   }));

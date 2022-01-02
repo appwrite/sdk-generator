@@ -4,24 +4,29 @@ const inquirer = require("inquirer");
 const { localConfig } = require("../config");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsCreateTag, functionsUpdateTag } = require('./functions');
-const { 
-    databaseCreateBooleanAttribute, 
-    databaseGetCollection, 
-    databaseCreateCollection, 
-    databaseCreateStringAttribute, 
-    databaseCreateIntegerAttribute, 
-    databaseCreateFloatAttribute, 
-    databaseCreateEmailAttribute, 
-    databaseCreateIndex, 
-    databaseCreateUrlAttribute, 
-    databaseCreateIpAttribute, 
-    databaseCreateEnumAttribute, 
-    databaseDeleteAttribute 
+const {
+    databaseCreateBooleanAttribute,
+    databaseGetCollection,
+    databaseCreateCollection,
+    databaseCreateStringAttribute,
+    databaseCreateIntegerAttribute,
+    databaseCreateFloatAttribute,
+    databaseCreateEmailAttribute,
+    databaseCreateIndex,
+    databaseCreateUrlAttribute,
+    databaseCreateIpAttribute,
+    databaseCreateEnumAttribute,
+    databaseDeleteAttribute
 } = require("./database");
 
 const deploy = new Command("deploy")
     .description(commandDescriptions['deploy'])
-    .action(actionRunner(async () => {
+    .option("--all", "Flag to deploy collections and functions")
+    .action(actionRunner(async ({ all }, command) => {
+        if (all == undefined) {
+            command.help()
+        }
+
         try {
             await deployFunctions();
         } catch (e) {
