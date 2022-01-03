@@ -10,6 +10,6 @@ export class {{ spec.title | caseUcfirst}}Exception {
     }
 
     public toString(): String {
-        return `${this.message} - ${this.code} - ${this.response}`;
+        return `${this.message} - ${this.code} - ${JSON.stringify(this.response)}`;
     }
 }
