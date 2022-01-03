@@ -20,9 +20,6 @@ module {{spec.title | caseUcfirst}}
             def greaterEqual(attribute, value)
                 return Query.addQuery(attribute, "equal", value)
             end
-            def contains(attribute, value)
-                return Query.addQuery(attribute, "contains", value)
-            end
             def search(attribute, value)
                 return Query.addQuery(attribute, "search", value)
             end

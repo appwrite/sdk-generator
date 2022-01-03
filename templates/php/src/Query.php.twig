@@ -77,18 +77,6 @@ class Query
     }
 
     /**
-     * Contains
-     *
-     * @param string $attribute
-     * @param mixed $value
-     * @return string
-     */
-    public static function contains(string $attribute, array $value): string
-    {
-        return self::addQuery($attribute, 'contains', $value);
-    }
-
-    /**
      * Search
      *
      * @param string $attribute

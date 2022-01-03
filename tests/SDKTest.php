@@ -239,7 +239,7 @@ class SDKTest extends TestCase
             'build' => [
             ],
             'envs' => [
-                'deno-1.16.4' => 'docker run --rm -v $(pwd):/app -w /app denoland/deno:alpine-1.16.4 run --allow-net --allow-read tests/languages/deno/tests.ts',
+                'deno-1.17.1' => 'docker run --rm -v $(pwd):/app -w /app denoland/deno:alpine-1.17.1 run --allow-net --allow-read tests/languages/deno/tests.ts',
             ],
             'expectedOutput' => [
                 ...FOO_RESPONSES,

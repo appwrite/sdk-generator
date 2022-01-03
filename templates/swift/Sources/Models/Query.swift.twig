@@ -24,10 +24,6 @@ public class Query {
         buildQueryWhere(attribute, is: "greaterEqual", to: value)
     }
 
-    public static func contains(_ attribute: String, value: Array<Any>) -> String {
-        buildQueryWhere(attribute, is: "contains", to: value)
-    }
-
     public static func search(_ attribute: String, value: String) -> String {
         buildQueryWhere(attribute, is: "search", to: value)
     }
@@ -37,7 +33,7 @@ public class Query {
         case let value as Array<Any>:
             return "\(attribute).\(oper)(\(value.map { parseValues($0) }.joined(separator: ",") ))"
         default:
-            return "\(attribute).\(oper)(\(parseValues(value))"
+            return "\(attribute).\(oper)(\(parseValues(value)))"
         }
     }
 
