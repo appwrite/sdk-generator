@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "version": "0.9.3",
+    "version": "0.12.0",
     "title": "Appwrite",
     "description": "Appwrite backend as a service cuts up to 70% of the time and costs required for building a modern application. We abstract and simplify common development tasks behind a REST APIs, to help you develop your app in a fast and secure way. For full API documentation and tutorials go to [https://appwrite.io/docs](https://appwrite.io/docs)",
     "termsOfService": "https://appwrite.io/policy/terms",
@@ -15,7 +15,7 @@
       "url": "https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE"
     }
   },
-  "host": "appwrite.io",
+  "host": "HOSTNAME",
   "basePath": "/v1",
   "schemes": ["https"],
   "consumes": ["application/json", "multipart/form-data"],
@@ -27,6 +27,13 @@
       "description": "Your project ID",
       "in": "header",
       "x-appwrite": { "demo": "5df5acd0d48c2" }
+    },
+    "Key": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Key",
+      "description": "Your secret API key",
+      "in": "header",
+      "x-appwrite": { "demo": "919c2d18fb5d4...a2ae413da83346ad2" }
     },
     "JWT": {
       "type": "apiKey",
@@ -41,6 +48,13 @@
       "description": "",
       "in": "header",
       "x-appwrite": { "demo": "en" }
+    },
+    "Mode": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Mode",
+      "description": "",
+      "in": "header",
+      "x-appwrite": { "demo": "" }
     }
   },
   "paths": {
@@ -60,7 +74,7 @@
         },
         "x-appwrite": {
           "method": "get",
-          "weight": 181,
+          "weight": 205,
           "cookies": false,
           "type": "",
           "demo": "bar/get.md",
@@ -73,7 +87,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "required",
@@ -117,7 +131,7 @@
         },
         "x-appwrite": {
           "method": "post",
-          "weight": 182,
+          "weight": 206,
           "cookies": false,
           "type": "",
           "demo": "bar/post.md",
@@ -130,7 +144,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -178,7 +192,7 @@
         },
         "x-appwrite": {
           "method": "put",
-          "weight": 184,
+          "weight": 208,
           "cookies": false,
           "type": "",
           "demo": "bar/put.md",
@@ -191,7 +205,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -239,7 +253,7 @@
         },
         "x-appwrite": {
           "method": "patch",
-          "weight": 183,
+          "weight": 207,
           "cookies": false,
           "type": "",
           "demo": "bar/patch.md",
@@ -252,7 +266,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -300,7 +314,7 @@
         },
         "x-appwrite": {
           "method": "delete",
-          "weight": 185,
+          "weight": 209,
           "cookies": false,
           "type": "",
           "demo": "bar/delete.md",
@@ -313,7 +327,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -363,7 +377,7 @@
         },
         "x-appwrite": {
           "method": "get",
-          "weight": 176,
+          "weight": 200,
           "cookies": false,
           "type": "",
           "demo": "foo/get.md",
@@ -376,7 +390,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "x",
@@ -420,7 +434,7 @@
         },
         "x-appwrite": {
           "method": "post",
-          "weight": 177,
+          "weight": 201,
           "cookies": false,
           "type": "",
           "demo": "foo/post.md",
@@ -433,7 +447,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -481,7 +495,7 @@
         },
         "x-appwrite": {
           "method": "put",
-          "weight": 179,
+          "weight": 203,
           "cookies": false,
           "type": "",
           "demo": "foo/put.md",
@@ -494,7 +508,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -542,7 +556,7 @@
         },
         "x-appwrite": {
           "method": "patch",
-          "weight": 178,
+          "weight": 202,
           "cookies": false,
           "type": "",
           "demo": "foo/patch.md",
@@ -555,7 +569,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -603,7 +617,7 @@
         },
         "x-appwrite": {
           "method": "delete",
-          "weight": 180,
+          "weight": 204,
           "cookies": false,
           "type": "",
           "demo": "foo/delete.md",
@@ -616,7 +630,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -666,7 +680,7 @@
         },
         "x-appwrite": {
           "method": "error400",
-          "weight": 193,
+          "weight": 217,
           "cookies": false,
           "type": "",
           "demo": "general/error400.md",
@@ -679,7 +693,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/500-error": {
@@ -698,7 +712,7 @@
         },
         "x-appwrite": {
           "method": "error500",
-          "weight": 194,
+          "weight": 218,
           "cookies": false,
           "type": "",
           "demo": "general/error500.md",
@@ -711,7 +725,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/502-error": {
@@ -730,7 +744,7 @@
         },
         "x-appwrite": {
           "method": "error502",
-          "weight": 195,
+          "weight": 219,
           "cookies": false,
           "type": "",
           "demo": "general/error502.md",
@@ -759,7 +773,7 @@
         },
         "x-appwrite": {
           "method": "download",
-          "weight": 186,
+          "weight": 210,
           "cookies": false,
           "type": "location",
           "demo": "general/download.md",
@@ -772,7 +786,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/empty": {
@@ -786,7 +800,7 @@
         "responses": { "204": { "description": "No content" } },
         "x-appwrite": {
           "method": "empty",
-          "weight": 192,
+          "weight": 216,
           "cookies": false,
           "type": "",
           "demo": "general/empty.md",
@@ -799,7 +813,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/get-cookie": {
@@ -818,7 +832,7 @@
         },
         "x-appwrite": {
           "method": "getCookie",
-          "weight": 191,
+          "weight": 215,
           "cookies": false,
           "type": "",
           "demo": "general/get-cookie.md",
@@ -831,7 +845,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/redirect": {
@@ -845,7 +859,7 @@
         "responses": { "301": { "description": "No content" } },
         "x-appwrite": {
           "method": "redirect",
-          "weight": 188,
+          "weight": 212,
           "cookies": false,
           "type": "",
           "demo": "general/redirect.md",
@@ -858,7 +872,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/redirect/done": {
@@ -877,7 +891,7 @@
         },
         "x-appwrite": {
           "method": "redirected",
-          "weight": 189,
+          "weight": 213,
           "cookies": false,
           "type": "",
           "demo": "general/redirected.md",
@@ -890,7 +904,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/set-cookie": {
@@ -909,7 +923,7 @@
         },
         "x-appwrite": {
           "method": "setCookie",
-          "weight": 190,
+          "weight": 214,
           "cookies": false,
           "type": "",
           "demo": "general/set-cookie.md",
@@ -922,7 +936,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/upload": {
@@ -941,7 +955,7 @@
         },
         "x-appwrite": {
           "method": "upload",
-          "weight": 187,
+          "weight": 211,
           "cookies": false,
           "type": "",
           "demo": "general/upload.md",
@@ -954,7 +968,7 @@
           "packaging": false,
           "auth": { "Project": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "x",
