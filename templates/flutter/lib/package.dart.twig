@@ -18,8 +18,8 @@ export 'src/realtime.dart';
 export 'src/realtime_subscription.dart';
 export 'src/realtime_message.dart';
 export 'package:http/http.dart' show MultipartFile;
+export 'query.dart';
 
-part 'query.dart';
 {% for service in spec.services %}
 part 'services/{{service.name | caseDash}}.dart';
 {% endfor %}
