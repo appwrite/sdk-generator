@@ -13,6 +13,7 @@ export 'src/client.dart';
 export 'src/exception.dart';
 export 'package:http/http.dart' show MultipartFile;
 
+part 'query.dart';
 {% for service in spec.services %}
 part 'services/{{service.name | caseDash}}.dart';
 {% endfor %}
