@@ -292,6 +292,12 @@ class SDKTest extends TestCase
           'envs' => [
               'rust-1.50' => 'docker run --rm -v "$(pwd):/app" -w /app/tests/sdks/rust/tests rust:1.50 cargo run',
           ],
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
+            ],
           'supportRedirect' => true,
           'supportUpload' => true,
           'supportException' => true
