@@ -15,6 +15,7 @@ import okhttp3.WebSocketListener
 import okhttp3.internal.concurrent.TaskRunner
 import okhttp3.internal.ws.RealWebSocket
 import java.util.*
+import android.util.Log
 import kotlin.coroutines.CoroutineContext
 
 class Realtime(client: Client) : Service(client), CoroutineScope {
@@ -31,17 +32,24 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private const val DEBOUNCE_MILLIS = 1L
 
         private var socket: RealWebSocket? = null
-        private var channelCallbacks = mutableMapOf<String, MutableCollection<RealtimeCallback>>()
-        private var errorCallbacks = mutableSetOf<({{ spec.title | caseUcfirst }}Exception) -> Unit>()
+        private var activeChannels = mutableSetOf<String>()
+        private var activeSubscriptions = mutableMapOf<Int, RealtimeCallback>()
 
         private var subCallDepth = 0
+        private var reconnectAttempts = 0
+        private var subscriptionsCounter = 0
+        private var reconnect = true
     }
 
     private fun createSocket() {
+        if (activeChannels.isEmpty()) {
+            return
+        }
+
         val queryParamBuilder = StringBuilder()
             .append("project=${client.config["project"]}")
 
-        channelCallbacks.keys.forEach {
+        activeChannels.forEach {
             queryParamBuilder
                 .append("&channels[]=$it")
         }
@@ -51,6 +59,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             .build()
 
         if (socket != null) {
+            reconnect = false
             closeSocket()
         }
 
@@ -71,6 +80,13 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         socket?.close(RealtimeCode.POLICY_VIOLATION.value, null)
     }
 
+    private fun getTimeout() = when {
+        reconnectAttempts < 5 -> 1000L
+        reconnectAttempts < 15 -> 5000L
+        reconnectAttempts < 100 -> 10000L
+        else -> 60000L
+    }
+
     fun subscribe(
         vararg channels: String,
         callback: (RealtimeResponseEvent<Any>) -> Unit,
@@ -85,20 +101,14 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         payloadType: Class<T>,
         callback: (RealtimeResponseEvent<T>) -> Unit,
     ): RealtimeSubscription {
-        channels.forEach {
-            if (!channelCallbacks.containsKey(it)) {
-                channelCallbacks[it] = mutableListOf(
-                    RealtimeCallback(
-                        payloadType,
-                        callback as (RealtimeResponseEvent<*>) -> Unit
-                    )
-                )
-                return@forEach
-            }
-            channelCallbacks[it]?.add(
-                RealtimeCallback(payloadType, callback as (RealtimeResponseEvent<*>) -> Unit)
-            )
-        }
+        val counter = subscriptionsCounter++
+
+        activeChannels.addAll(channels)
+        activeSubscriptions[counter] = RealtimeCallback(
+            channels.toList(),
+            payloadType,
+            callback as (RealtimeResponseEvent<*>) -> Unit
+        )
 
         launch {
             subCallDepth++
@@ -109,24 +119,30 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             subCallDepth--
         }
 
-        return RealtimeSubscription { unsubscribe(*channels) }
-    }
-
-    fun unsubscribe(vararg channels: String) {
-        channels.forEach {
-            channelCallbacks[it] = mutableListOf()
-        }
-        if (channelCallbacks.all { it.value.isEmpty() }) {
-            errorCallbacks = mutableSetOf()
-            closeSocket()
+        return RealtimeSubscription {
+            activeSubscriptions.remove(counter)
+            cleanUp(*channels)
+            createSocket()
         }
     }
 
-    fun doOnError(callback: ({{ spec.title | caseUcfirst }}Exception) -> Unit) {
-        errorCallbacks.add(callback)
+    private fun cleanUp(vararg channels: String) {
+        activeChannels.removeAll { channel ->
+            if (!channels.contains(channel)) {
+                return@removeAll false
+            }
+            activeSubscriptions.values.none { callback ->
+                callback.channels.contains(channel)
+            }
+        }
     }
 
     private inner class {{ spec.title | caseUcfirst }}WebSocketListener : WebSocketListener() {
+
+        override fun onOpen(webSocket: WebSocket, response: Response) {
+            super.onOpen(webSocket, response)
+            reconnectAttempts = 0
+        }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
             super.onMessage(webSocket, text)
@@ -141,27 +157,43 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         private fun handleResponseError(message: RealtimeResponse) {
-            val error = message.data.jsonCast<{{ spec.title | caseUcfirst }}Exception>()
-            errorCallbacks.forEach { it.invoke(error) }
+            throw message.data.jsonCast<{{ spec.title | caseUcfirst }}Exception>()
         }
 
         private suspend fun handleResponseEvent(message: RealtimeResponse) {
             val event = message.data.jsonCast<RealtimeResponseEvent<Any>>()
-            event.channels.forEachAsync { channel ->
-                channelCallbacks[channel]?.forEachAsync { callbackWrapper ->
-                    event.payload = event.payload.jsonCast(callbackWrapper.payloadClass)
-                    callbackWrapper.callback.invoke(event)
+            if (event.channels.isEmpty()) {
+                return
+            }
+            if (!event.channels.any { activeChannels.contains(it) }) {
+                return
+            }
+            activeSubscriptions.values.forEachAsync { subscription ->
+                if (event.channels.any { subscription.channels.contains(it) }) {
+                    event.payload = event.payload.jsonCast(subscription.payloadClass)
+                    subscription.callback(event)
                 }
             }
         }
 
         override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
             super.onClosing(webSocket, code, reason)
-            if (code == RealtimeCode.POLICY_VIOLATION.value) {
+            if (!reconnect || code == RealtimeCode.POLICY_VIOLATION.value) {
+                reconnect = true
                 return
             }
+
+            val timeout = getTimeout()
+
+            Log.e(
+                this@Realtime::class.java.name,
+                "Realtime disconnected. Re-connecting in ${timeout / 1000} seconds.",
+                {{ spec.title | caseUcfirst }}Exception(reason, code)
+            )
+
             launch {
-                delay(1000)
+                delay(timeout)
+                reconnectAttempts++
                 createSocket()
             }
         }

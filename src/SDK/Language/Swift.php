@@ -92,6 +92,14 @@ class Swift extends Language {
     /**
      * @return array
      */
+    public function getIdentifierOverrides()
+    {
+        return [];
+    }
+
+    /**
+     * @return array
+     */
     public function getFiles()
     {
         return [
@@ -120,15 +128,15 @@ class Swift extends Language {
                 'minify'        => false,
             ],
             [
-                'scope'         => 'service',
-                'destination'   => 'docs/{{service.name | caseLower}}.md',
-                'template'      => 'swift/docs/service.md.twig',
-                'minify'        => false,
-            ],
-            [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'swift/docs/example.md.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Tests/{{ spec.title | caseUcfirst}}Tests/Tests.swift',
+                'template'      => 'swift/Tests/Tests.swift.twig',
                 'minify'        => false,
             ],
             [
@@ -139,14 +147,134 @@ class Swift extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Service.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/{{ spec.title | caseUcfirst}}Error.swift',
+                'template'      => '/swift/Sources/Models/Error.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/File.swift',
+                'template'      => 'swift/Sources/Models/File.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/Query.swift',
+                'template'      => 'swift/Sources/Models/Query.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Codable+JSON.swift',
+                'template'      => 'swift/Sources/Extensions/Codable+JSON.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Cookie+Codable.swift',
+                'template'      => 'swift/Sources/Extensions/Cookie+Codable.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/HTTPClientRequest+Cookies.swift',
+                'template'      => 'swift/Sources/Extensions/HTTPClientRequest+Cookies.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/StreamingDelegate.swift',
+                'template'      => 'swift/Sources/StreamingDelegate.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Services/Service.swift',
                 'template'      => 'swift/Sources/Service.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/iOS/iOSDeviceInfo.swift',
+                'template'      => 'swift/Sources/DeviceInfo/iOS/iOSDeviceInfo.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/iOS/UIDevice+ModelName.swift',
+                'template'      => 'swift/Sources/DeviceInfo/iOS/UIDevice+ModelName.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/Linux/LinuxDeviceInfo.swift',
+                'template'      => 'swift/Sources/DeviceInfo/Linux/LinuxDeviceInfo.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/MacOS/MacOSDeviceInfo.swift',
+                'template'      => 'swift/Sources/DeviceInfo/MacOS/MacOSDeviceInfo.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/MacOS/CwlSysCtl.swift',
+                'template'      => 'swift/Sources/DeviceInfo/MacOS/CwlSysCtl.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/Windows/WindowsDeviceInfo.swift',
+                'template'      => 'swift/Sources/DeviceInfo/Windows/WindowsDeviceInfo.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/OSDeviceInfo.swift',
+                'template'      => 'swift/Sources/DeviceInfo/OSDeviceInfo.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/Apple/PackageInfo+Apple.swift',
+                'template'      => 'swift/Sources/PackageInfo/Apple/PackageInfo+Apple.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/Linux/PackageInfo+Linux.swift',
+                'template'      => 'swift/Sources/PackageInfo/Linux/PackageInfo+Linux.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/Windows/PackageInfo+Windows.swift',
+                'template'      => 'swift/Sources/PackageInfo/Windows/PackageInfo+Windows.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/OSPackageInfo.swift',
+                'template'      => 'swift/Sources/PackageInfo/OSPackageInfo.swift',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/PackageInfo.swift',
+                'template'      => 'swift/Sources/PackageInfo/PackageInfo.swift',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'service',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.swift',
                 'template'      => 'swift/Sources/Services/Service.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ definition.name | caseUcfirst }}.swift',
+                'template'      => '/swift/Sources/Models/Model.swift.twig',
                 'minify'        => false,
             ],
         ];
@@ -161,19 +289,18 @@ class Swift extends Language {
         switch ($type) {
             case self::TYPE_INTEGER:
                 return 'Int';
-            break;
+            case self::TYPE_NUMBER:
+                return 'Double';
             case self::TYPE_STRING:
                 return 'String';
-            break;
             case self::TYPE_FILE:
-                return 'Array<Any>';
-            break;
+                return 'File';
             case self::TYPE_BOOLEAN:
                 return 'Bool';
-            break;
             case self::TYPE_ARRAY:
-                 return "Array<Any>";
-            break;
+                 return '[Any]';
+            case self::TYPE_OBJECT:
+                return 'Any';
         }
 
         return $type;
@@ -197,12 +324,12 @@ class Swift extends Language {
 
         if(empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
-                case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
+                case self::TYPE_NUMBER:
                     $output = "0";
                     break;
                 case self::TYPE_STRING:
-                    $output .= "\"\"";
+                    $output .= '""';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= 'false';
@@ -210,22 +337,30 @@ class Swift extends Language {
                 case self::TYPE_ARRAY:
                     $output .= '[]';
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= 'nil';
+                    break;
+                default:
+                    echo $type;
             }
         }
         else {
             switch ($type) {
-                case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                     $output .= $default;
                     break;
-                case self::TYPE_ARRAY:
-                    $output .= $default;
+                case self::TYPE_NUMBER:
+                    $output .= sprintf("%.1f",$default);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
                     $output .= "\"{$default}\"";
+                    break;
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
+                    $output .= 'nil';
                     break;
             }
         }
@@ -248,7 +383,7 @@ class Swift extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= "nil";
+                    $output .= 'File(name: "image.jpg", buffer: yourByteBuffer)';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:

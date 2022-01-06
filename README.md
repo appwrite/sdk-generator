@@ -2,7 +2,7 @@
 
 [![Discord](https://img.shields.io/discord/564160730845151244?label=discord&style=flat-square)](https://appwrite.io/discord)
 [![Build Status](https://img.shields.io/travis/com/appwrite/sdk-generator?style=flat-square)](https://travis-ci.com/appwrite/sdk-generator)
-[![Twitter Account](https://img.shields.io/twitter/follow/appwrite_io?color=00acee&label=twitter&style=flat-square)](https://twitter.com/appwrite_io)
+[![Twitter Account](https://img.shields.io/twitter/follow/appwrite?color=00acee&label=twitter&style=flat-square)](https://twitter.com/appwrite)
 [![Follow Appwrite on StackShare](https://img.shields.io/badge/follow%20on-stackshare-blue?style=flat-square)](https://stackshare.io/appwrite)
 [![appwrite.io](https://img.shields.io/badge/appwrite-.io-f02e65?style=flat-square)](https://appwrite.io)
 
@@ -10,9 +10,9 @@
 
 [Appwrite](https://appwrite.io) SDK generator is a PHP library for auto generating SDK libraries for multiple languages and platforms.
 
-The SDK Generator uses a predefined language settings as [Twig templates](https://twig.symfony.com/) to generate codebases based on different API specs.
+The SDK Generator uses predefined language settings as [Twig templates](https://twig.symfony.com/) to generate codebases based on different API specs.
 
-Currently the only spec supported is Swagger 2.0, but we intend to add support for more specification in the near future. This generator is still lacking support for any definition/models specs.
+Currently, the only spec supported is Swagger 2.0, but we intend to add support for more specification in the near future. This generator is still lacking support for any definition/models specs.
 
 ## Getting Started
 

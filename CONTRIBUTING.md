@@ -48,6 +48,9 @@ SDK Language name (JS, PHP…)
 **getKeywords**
 An array with language keywords to avoid using as param or function names, template engine will solve conflicts
 
+**getIdentifierOverrides**
+Returns an associative array that can be used to override keywords with pre-defined word using `overrideIdentifier` filter.
+
 **getFiles**
 An array with a list of language template files in [twig format](https://twig.symfony.com/). 
 Each file scope determines what template parameters will be available.
@@ -229,7 +232,7 @@ docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/d
        * **path** -> Path to API without a basePath
        * **fullPath** -> Path to API with basePath
        * **name** -> Name of API Method
-       * **packaging** -> A flag to indicate if the files at a path need to be packaged as a tarfile  
+       * **packaging** -> A flag to indicate if the files at a path need to be packaged as a tar file  
        * **title** -> Title of API Method
        * **description** -> Description of API Method
        * **security** -> Array of security methods for this API Call. Primarily used for code examples.
@@ -259,7 +262,7 @@ docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/d
 
 * **language** -- Information on the current language SDK
   * **name** -> Name of language
-  * **params** -> Custom langauge specific parameters
+  * **params** -> Custom language specific parameters
 
 * **sdk** -- Various Metadata used for packaging and categorising
   * **namespace** -> SDK Namespace
@@ -283,7 +286,7 @@ docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/d
   * **gettingStarted** -> Raw Markdown for Getting Started
   * **readme** -> Stores the raw markdown used to generate the readme.md file. [here](https://github.com/appwrite/sdk-for-flutter/blob/master/README.md)
   * **changelog** -> Stores the raw markdown used to generate the changelog.md file. [here](https://github.com/appwrite/sdk-for-flutter/blob/master/CHANGELOG.md)
-  * **examples** -> Stores the raw markdown used to generate examples for your SDK. A example can be found [here](https://github.com/appwrite/sdk-for-flutter/tree/master/example)
+  * **examples** -> Stores the raw markdown used to generate examples for your SDK. An example can be found [here](https://github.com/appwrite/sdk-for-flutter/tree/master/example)
   * **twitterHandle** -> Twitter handle of creator
   * **discordChannel** -> Discord Channel ID for SDK
   * **discordUrl** -> Discord Server Invite for SDK

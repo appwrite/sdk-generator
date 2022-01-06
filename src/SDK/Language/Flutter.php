@@ -224,6 +224,12 @@ class Flutter extends Dart {
                 'minify'        => false,
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/models/model.dart',
+                'template'      => 'flutter/lib/src/models/model_base.dart.twig',
+                'minify'        => false,
+            ],
+            [
 				'scope'         => 'default',
 				'destination'   => '/lib/src/enums.dart',
 				'template'      => 'flutter/lib/src/enums.dart.twig',
@@ -239,6 +245,12 @@ class Flutter extends Dart {
 				'scope'         => 'default',
 				'destination'   => '/lib/models.dart',
 				'template'      => 'flutter/lib/models.dart.twig',
+				'minify'        => false,
+			],
+            [
+				'scope'         => 'default',
+				'destination'   => '/lib/query.dart',
+				'template'      => 'flutter/lib/query.dart.twig',
 				'minify'        => false,
 			],
             [
