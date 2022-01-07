@@ -4,7 +4,7 @@ package {{ sdk.namespace | caseDot }}.models
 /// {{ definition.description }}
 data class {{ definition.name | caseUcfirst }}(
 {% for property in definition.properties %}
-    {% if property.required %}val{% else%}var{% endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{_self.sub_schema(property)}}{% if not property.required %}? = {{ property.default }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+    {% if property.required %}val{% else%}var{% endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{_self.sub_schema(property)}}{% if not property.required %}?{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}
