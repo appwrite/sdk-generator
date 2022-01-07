@@ -32,3 +32,5 @@ class Query {
       ? `"${value}"`
       : `${value}`;
 }
+
+module.exports = Query;
