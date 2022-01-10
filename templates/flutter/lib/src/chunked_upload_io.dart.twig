@@ -13,6 +13,7 @@ Future<Response> chunkedUpload({
   required Map<String, dynamic> params,
   required String paramName,
   required Map<String, String> headers,
+  Function(double)? onProgress,
 }) async {
   InputFile file = params[paramName];
   if (file.path == null) {
@@ -47,6 +48,7 @@ Future<Response> chunkedUpload({
     if(offset < size) {
       headers['x-appwrite-id'] = res.data['\$id'];
     }
+    onProgress?.call(size/offset * 100);
   }
   return res;
 }

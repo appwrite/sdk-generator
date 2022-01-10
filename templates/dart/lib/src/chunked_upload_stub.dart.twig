@@ -7,5 +7,6 @@ Future<Response> chunkedUpload({
   required Map<String, dynamic> params,
   required String paramName,
   required Map<String, String> headers,
+  Function(double)? onProgress
 }) =>
     throw UnsupportedError('Cannot redirect to url without dart:html');
