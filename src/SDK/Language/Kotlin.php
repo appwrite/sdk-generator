@@ -90,6 +90,14 @@ class Kotlin extends Language {
     }
 
     /**
+     * @return array
+     */
+    public function getIdentifierOverrides()
+    {
+        return [];
+    }
+
+    /**
      * @param $type
      * @return string
      */
@@ -338,6 +346,12 @@ class Kotlin extends Language {
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Client.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/Client.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Query.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Query.kt.twig',
                 'minify'        => false,
             ],
             [

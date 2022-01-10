@@ -77,6 +77,14 @@ class Python extends Language {
     /**
      * @return array
      */
+    public function getIdentifierOverrides()
+    {
+        return [];
+    }
+
+    /**
+     * @return array
+     */
     public function getFiles()
     {
         return [
@@ -144,6 +152,12 @@ class Python extends Language {
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/client.py',
                 'template'      => 'python/package/client.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/query.py',
+                'template'      => 'python/package/query.py.twig',
                 'minify'        => false,
             ],
             [

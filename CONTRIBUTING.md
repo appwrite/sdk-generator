@@ -48,6 +48,9 @@ SDK Language name (JS, PHP…)
 **getKeywords**
 An array with language keywords to avoid using as param or function names, template engine will solve conflicts
 
+**getIdentifierOverrides**
+Returns an associative array that can be used to override keywords with pre-defined word using `overrideIdentifier` filter.
+
 **getFiles**
 An array with a list of language template files in [twig format](https://twig.symfony.com/). 
 Each file scope determines what template parameters will be available.
