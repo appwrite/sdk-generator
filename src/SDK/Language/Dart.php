@@ -101,7 +101,8 @@ class Dart extends Language {
             "set",
             "yield",
             "required",
-            "default"
+            "extension",
+            "late"
         ];
     }
 
@@ -110,7 +111,7 @@ class Dart extends Language {
      */
     public function getIdentifierOverrides()
     {
-        return [];
+        return ['Function' => 'Func'];
     }
 
     /**
@@ -333,6 +334,12 @@ class Dart extends Language {
                 'scope'         => 'default',
                 'destination'   => '/lib/src/response.dart',
                 'template'      => 'dart/lib/src/response.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/query.dart',
+                'template'      => 'dart/lib/query.dart.twig',
                 'minify'        => false,
             ],
             [

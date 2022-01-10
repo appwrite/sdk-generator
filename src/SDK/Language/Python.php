@@ -156,6 +156,12 @@ class Python extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/query.py',
+                'template'      => 'python/package/query.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/exception.py',
                 'template'      => 'python/package/exception.py.twig',
                 'minify'        => false,
