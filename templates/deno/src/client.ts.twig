@@ -13,7 +13,7 @@ export class Client {
         '{{key}}':'{{header}}',
 {% endfor %}
     };
-    
+
 {% for header in spec.global.headers %}
     /**
      * Set {{header.key | caseUcfirst}}
@@ -50,7 +50,7 @@ export class Client {
      */
     addHeader(key: string, value: string): this {
         this.headers[key.toLowerCase()] = value;
-        
+
         return this;
     }
 
@@ -81,7 +81,7 @@ export class Client {
         } else {
             body = JSON.stringify(params);
         }
-        
+
         const options = {
             method: method.toUpperCase(),
             headers: headers,

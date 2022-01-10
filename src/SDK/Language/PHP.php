@@ -123,6 +123,14 @@ class PHP extends Language {
     /**
      * @return array
      */
+    public function getIdentifierOverrides()
+    {
+        return [];
+    }
+
+    /**
+     * @return array
+     */
     public function getFiles()
     {
         return [
@@ -167,6 +175,12 @@ class PHP extends Language {
                 'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/Client.php',
                 'template'      => 'php/src/Client.php.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Query.php',
+                'template'      => 'php/src/Query.php.twig',
                 'minify'        => false,
             ],
             [

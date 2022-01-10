@@ -90,7 +90,6 @@ class SDKTest extends TestCase
                 'cp tests/languages/dart/tests.dart tests/sdks/dart/tests/tests.dart',
             ],
             'envs' => [
-                'dart-2.12' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart dart:2.12 sh -c "dart pub get && dart pub run tests/tests.dart"',
                 'dart-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart dart:stable sh -c "dart pub get && dart pub run tests/tests.dart"',
                 'dart-beta' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart dart:beta sh -c "dart pub get && dart pub run tests/tests.dart"',
             ],
@@ -128,7 +127,7 @@ class SDKTest extends TestCase
                 'chmod +x tests/sdks/android/gradlew',
             ],
             'envs' => [
-                'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:latest-jdk8 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
+                'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:latest-jdk11 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
             ],
             'expectedOutput' => [
                 ...FOO_RESPONSES,
@@ -148,6 +147,7 @@ class SDKTest extends TestCase
             ],
             'envs' => [
                 'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:8-jdk-alpine sh -c "./gradlew :test -q && cat result.txt"',
+                'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/kotlin adoptopenjdk/openjdk11:alpine sh -c "./gradlew :test -q && cat result.txt"',
             ],
             'expectedOutput' => [
                 ...FOO_RESPONSES,
@@ -223,7 +223,7 @@ class SDKTest extends TestCase
             ],
             'envs' => [
                 'chromium' => 'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
-                'firefox' => 'docker run --rm -v $(pwd):/app -e BROWSER=firefox -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
+                // 'firefox' => 'docker run --rm -v $(pwd):/app -e BROWSER=firefox -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
                 'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node node.js',
             ],
             'expectedOutput' => [
@@ -234,12 +234,13 @@ class SDKTest extends TestCase
                 ...REALTIME_RESPONSES,
             ],
         ],
+
         'deno' => [
             'class' => 'Appwrite\SDK\Language\Deno',
             'build' => [
             ],
             'envs' => [
-                'deno-1.1.3' => 'docker run --rm -v $(pwd):/app -w /app hayd/alpine-deno:1.1.3 run --allow-net --allow-read tests/languages/deno/tests.ts', // TODO: use official image when its out
+                'deno-1.17.1' => 'docker run --rm -v $(pwd):/app -w /app denoland/deno:alpine-1.17.1 run --allow-net --allow-read tests/languages/deno/tests.ts', // TODO: use official image when its out
             ],
             'expectedOutput' => [
                 ...FOO_RESPONSES,
@@ -274,11 +275,13 @@ class SDKTest extends TestCase
             ],
             'envs' => [
                 'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.7-alpine ruby tests/languages/ruby/tests.rb',
+                'ruby-3.0' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:3.0-alpine ruby tests/languages/ruby/tests.rb',
             ],
             'expectedOutput' => [
                 ...FOO_RESPONSES,
                 ...BAR_RESPONSES,
                 ...GENERAL_RESPONSES,
+                ...EXCEPTION_RESPONSES,
             ],
         ],
 

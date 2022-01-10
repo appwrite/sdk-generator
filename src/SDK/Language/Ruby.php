@@ -79,6 +79,14 @@ class Ruby extends Language {
     /**
      * @return array
      */
+    public function getIdentifierOverrides()
+    {
+        return [];
+    }
+
+    /**
+     * @return array
+     */
     public function getFiles()
     {
         return [
@@ -126,6 +134,12 @@ class Ruby extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/query.rb',
+                'template'      => 'ruby/lib/container/query.rb.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}/service.rb',
                 'template'      => 'ruby/lib/container/service.rb.twig',
                 'minify'        => false,
@@ -158,6 +172,12 @@ class Ruby extends Language {
                 'scope'         => 'default',
                 'destination'   => '.travis.yml',
                 'template'      => 'ruby/.travis.yml.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/lib/{{ spec.title | caseDash }}/models/{{ definition.name | caseSnake }}.rb',
+                'template'      => 'ruby/lib/container/models/model.rb.twig',
                 'minify'        => false,
             ],
         ];
