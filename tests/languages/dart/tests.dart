@@ -9,7 +9,6 @@ void main() async {
 
   client.addHeader('Origin', 'http://localhost');
   client.setSelfSigned();
-  client.setEndpoint('https://chunked.appwrite.org/v1');
 
   print('\nTest Started');
   

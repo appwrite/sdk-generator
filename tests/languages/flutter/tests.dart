@@ -8,8 +8,6 @@ void main() async {
   General general = General(client);
 
   client.setSelfSigned();
-  client.setProject('console');
-  client.setEndpoint('https://chunked.appwrite.org/v1');
   client.setEndPointRealtime(
       "wss://demo.appwrite.io/v1"); // change this later to appwrite.io
 
