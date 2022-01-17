@@ -114,6 +114,11 @@ const commandDescriptions = {
     "login": `The login command allows you to authenticate and manage a user account.`,
     "logout": `The logout command allows you to logout of your Appwrite account.`,
     "main": chalk.redBright(`${logo}${description}`),
+{% if sdk.isTest == "true" %}
+{% for service in spec.services %}
+    "{{ service.name | caseLower }}": `The {{ service.name }} command allows you to manage your {{ service.name }} service.`,
+{% endfor %}
+{% endif %}
 }
 
 module.exports = {

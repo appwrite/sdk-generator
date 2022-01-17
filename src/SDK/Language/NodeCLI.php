@@ -116,8 +116,8 @@ class NodeCLI extends JS
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/commands/general.js',
-                'template'      => 'node-cli/lib/commands/general.js.twig',
+                'destination'   => 'lib/commands/generic.js',
+                'template'      => 'node-cli/lib/commands/generic.js.twig',
                 'minify'        => false,
             ]
         ];

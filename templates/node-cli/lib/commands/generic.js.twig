@@ -2,8 +2,9 @@ const { Command } = require("commander");
 const inquirer = require("inquirer");
 const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, commandDescriptions, log, parse } = require("../parser");
-const { questionsLogin } = require("../questions");
 const { sdkForConsole } = require("../sdks");
+{% if sdk.isTest != "true" %}
+const { questionsLogin } = require("../questions");
 const { accountCreateSession, accountDeleteSession } = require("./account");
 
 const login = new Command("login")
@@ -37,6 +38,7 @@ const logout = new Command("logout")
         globalConfig.setCookie("");
         success()
     }));
+{% endif %}
 
 const client = new Command("client")
     .description(commandDescriptions['client'])
@@ -87,7 +89,9 @@ const client = new Command("client")
 
 
 module.exports = {
+{% if sdk.isTest != "true" %}
     login,
     logout,
+{% endif %}
     client
 };

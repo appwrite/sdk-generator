@@ -58,6 +58,7 @@ class SDK
         'readme' => '',
         'changelog' => '',
         'examples' => '',
+        'isTest' => 'false'
     ];
 
     /**
@@ -501,6 +502,17 @@ class SDK
     public function setTwitter(string $handle)
     {
         $this->setParam('twitterHandle', $handle);
+
+        return $this;
+    }
+
+    /**
+     * @param string $test
+     * @return $this
+     */
+    public function setIsTest(string $isTest)
+    {
+        $this->setParam('isTest', $isTest);
 
         return $this;
     }
