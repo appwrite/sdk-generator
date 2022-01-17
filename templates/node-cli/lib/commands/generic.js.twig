@@ -44,10 +44,11 @@ const client = new Command("client")
     .description(commandDescriptions['client'])
     .option("--selfSigned <value>", "Configure the CLI to use a self-signed certificate ( true or false )")
     .option("--endpoint <endpoint>", "Set your Apwrite server endpoint")
+    .option("--projectId <projectId>", "Set your Apwrite project ID")
     .option("--key <key>", "Set your Apwrite server's API key")
     .option("--debug", "Print CLI debug information")
-    .action(actionRunner(async ({ selfSigned, endpoint, key, debug }, command) => {
-        if (selfSigned == undefined && endpoint == undefined && key == undefined && debug == undefined) {
+    .action(actionRunner(async ({ selfSigned, endpoint, projectId, key, debug }, command) => {
+        if (selfSigned == undefined && endpoint == undefined && projectId == undefined && key == undefined && debug == undefined) {
             command.help()
         }
 
@@ -76,6 +77,10 @@ const client = new Command("client")
         }
 
         globalConfig.setKey(key)
+
+        if (projectId) {
+            localConfig.setProject(projectId, '');
+        }
 
         if (selfSigned) {
             if (selfSigned === "true" || selfSigned === "false") {

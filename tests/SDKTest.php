@@ -281,8 +281,7 @@ class SDKTest extends TestCase
             'expectedOutput' => [
                 ...FOO_RESPONSES,
                 ...BAR_RESPONSES,
-                ...GENERAL_RESPONSES,
-                ...EXCEPTION_RESPONSES,
+                ...GENERAL_RESPONSES
             ],
         ],
 
@@ -351,8 +350,7 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        // $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin', 'swift-server', 'swift-client'];
-        $whitelist = ['node-cli'];
+        $whitelist = ['php', 'cli', 'node', 'node-cli', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin', 'swift-server', 'swift-client'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
@@ -395,17 +393,14 @@ class SDKTest extends TestCase
 
                     $output = [];
 
-                    // ob_end_clean();
-                    var_dump('Build Executing: ' . $command);
-                    // ob_start();
+                    ob_end_clean();
+                    ob_start();
 
                     exec($command, $output);
 
-                    var_dump($output);
-
-                    // foreach ($output as $i => $row) {
-                    //     echo "{$i}. {$row}\n";
-                    // }
+                    foreach ($output as $i => $row) {
+                        echo "{$i}. {$row}\n";
+                    }
                 }
             }
 
@@ -417,30 +412,28 @@ class SDKTest extends TestCase
 
                 $output = [];
 
-                // ob_end_clean();
+                ob_end_clean();
                 var_dump('Env Executing: ' . $command);
-                // ob_start();
+                ob_start();
 
                 exec($command, $output);
 
-                var_dump($output);
+                foreach ($output as $i => $row) {
+                    echo "{$row}\n";
+                }
 
-                // foreach ($output as $i => $row) {
-                //     echo "{$row}\n";
-                // }
-
-                // $this->assertIsArray($output);
+                $this->assertIsArray($output);
  
-                // $removed = '';
-                // do {
-                //     $removed = array_shift($output);
-                // } while ($removed != 'Test Started' && sizeof($output) != 0);
+                $removed = '';
+                do {
+                    $removed = array_shift($output);
+                } while ($removed != 'Test Started' && sizeof($output) != 0);
 
-                // $this->assertGreaterThanOrEqual(count($options['expectedOutput']), count($output));
+                $this->assertGreaterThanOrEqual(count($options['expectedOutput']), count($output));
 
-                // foreach ($options['expectedOutput'] as $i => $row) {
-                //     $this->assertEquals($output[$i], $row);
-                // }
+                foreach ($options['expectedOutput'] as $i => $row) {
+                    $this->assertEquals($output[$i], $row);
+                }
             }
         }
 
