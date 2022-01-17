@@ -25,7 +25,7 @@ const drawTable = (data) => {
 
     let columns = Object.keys(data[0]);
     let table = new Table({
-        head: columns.map(c => chalk.red.italic.bold(c)),
+        head: columns.map(c => chalk.cyan.italic.bold(c)),
         chars: {
             'top': ' ',
             'top-mid': ' ',
