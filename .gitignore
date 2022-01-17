@@ -5,7 +5,8 @@
 /.vscode
 .vs
 .env
-
+.envrc
+.hatch
 # exclude everything
 examples/*
 

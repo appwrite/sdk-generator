@@ -221,6 +221,12 @@ class SDK
         $this->twig->addFilter(new TwigFilter('unescape', function ($value) {
             return html_entity_decode($value);
         }));
+        $this->twig->addFilter(new TwigFilter('overrideIdentifier', function ($value) use ($language) {
+            if(isset($language->getIdentifierOverrides()[$value])) {
+                return $language->getIdentifierOverrides()[$value];
+            }
+            return $value;
+        }));
     }
 
     /**

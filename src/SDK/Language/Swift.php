@@ -92,6 +92,14 @@ class Swift extends Language {
     /**
      * @return array
      */
+    public function getIdentifierOverrides()
+    {
+        return [];
+    }
+
+    /**
+     * @return array
+     */
     public function getFiles()
     {
         return [
@@ -147,6 +155,12 @@ class Swift extends Language {
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/File.swift',
                 'template'      => 'swift/Sources/Models/File.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/Query.swift',
+                'template'      => 'swift/Sources/Models/Query.swift.twig',
                 'minify'        => false,
             ],
             [

@@ -10,7 +10,7 @@ data class {{ definition.name | caseUcfirst }}(
      * {{ property.description }}
      *
      */
-    {% if property.required %}val{% else%}var{% endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{_self.sub_schema(property)}}{% if not property.required %}? = {{ property.default }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{{ "\n" }}{% endif %}
+    {% if property.required %}val{% else%}var{% endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{_self.sub_schema(property)}}{% if not property.required %}?{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{{ "\n" }}{% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}
