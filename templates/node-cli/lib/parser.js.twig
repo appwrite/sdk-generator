@@ -1,6 +1,6 @@
 const chalk = require('chalk');
 const { description } = require('../package.json')
-var Table = require('cli-table');
+var Table = require('cli-table3');
 
 const parse = (data) => {
     if (data.hasOwnProperty('sum')) {
@@ -25,12 +25,23 @@ const drawTable = (data) => {
 
     let columns = Object.keys(data[0]);
     let table = new Table({
-        head: columns,
+        head: columns.map(c => chalk.red.italic.bold(c)),
         chars: {
-            'top': '═', 'top-mid': '╤', 'top-left': '╔', 'top-right': '╗'
-            , 'bottom': '═', 'bottom-mid': '╧', 'bottom-left': '╚', 'bottom-right': '╝'
-            , 'left': '║', 'left-mid': '╟', 'mid': '─', 'mid-mid': '┼'
-            , 'right': '║', 'right-mid': '╢', 'middle': '│'
+            'top': ' ',
+            'top-mid': ' ',
+            'top-left': ' ',
+            'top-right': ' ',
+            'bottom': ' ',
+            'bottom-mid': ' ',
+            'bottom-left': ' ',
+            'bottom-right': ' ',
+            'left': ' ',
+            'left-mid': ' ',
+            'mid': chalk.cyan('─'),
+            'mid-mid': chalk.cyan('┼'),
+            'right': ' ',
+            'right-mid': ' ',
+            'middle': chalk.cyan('│')
         }
     });
 
