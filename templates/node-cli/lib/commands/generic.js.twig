@@ -47,8 +47,9 @@ const client = new Command("client")
     .option("--projectId <projectId>", "Set your Apwrite project ID")
     .option("--key <key>", "Set your Apwrite server's API key")
     .option("--debug", "Print CLI debug information")
-    .action(actionRunner(async ({ selfSigned, endpoint, projectId, key, debug }, command) => {
-        if (selfSigned == undefined && endpoint == undefined && projectId == undefined && key == undefined && debug == undefined) {
+    .option("--reset", "Reset the CLI configuration")
+    .action(actionRunner(async ({ selfSigned, endpoint, projectId, key, debug, reset }, command) => {
+        if (selfSigned == undefined && endpoint == undefined && projectId == undefined && key == undefined && debug == undefined && reset == undefined) {
             command.help()
         }
 
@@ -89,6 +90,15 @@ const client = new Command("client")
                 throw new Error("Self signed must be true or false");
             }
         }
+
+        if (reset) {
+            globalConfig.setEndpoint("");
+            globalConfig.setKey("");
+            globalConfig.setCookie("");
+            globalConfig.setSelfSigned("");
+            localConfig.setProject("", "");
+        }
+
         success()
     }));
 
