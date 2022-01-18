@@ -6,7 +6,7 @@ const questionGetEndpoint = [
   {
     type: "input",
     name: "endpoint",
-    message: "Enter the endpoint of your Appwrite server",
+    message: "Enter the endpoint of your {{ spec.title|caseUcfirst }} server",
     default: "http://localhost/v1"
   }
 ]
@@ -23,7 +23,7 @@ const sdkForConsole = async (requiresAuth = true) => {
   }
 
   if (requiresAuth && cookie === "") {
-    throw new Error("Session not found. Please run `appwrite login` to create a session");
+    throw new Error("Session not found. Please run `{{ language.params.executableName }} login` to create a session");
   }
 
   client
@@ -50,7 +50,7 @@ const sdkForProject = async () => {
   }
 
   if (!project) {
-    throw new Error("Project is not set. Please run `appwrite init project` to initialize the current directory with an Appwrite project.");
+    throw new Error("Project is not set. Please run `{{ language.params.executableName }} init project` to initialize the current directory with an {{ spec.title|caseUcfirst }} project.");
   }
 
   client
@@ -71,7 +71,7 @@ const sdkForProject = async () => {
       .setMode("admin");
   }
 
-  throw new Error("Session not found. Please run `appwrite login` to create a session.");
+  throw new Error("Session not found. Please run `{{ language.params.executableName }} login` to create a session.");
 };
 
 module.exports = {
