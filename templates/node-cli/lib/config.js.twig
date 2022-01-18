@@ -63,7 +63,7 @@ class Config {
 }
 
 class Local extends Config {
-    static CONFIG_FILE_PATH = "appwrite.json";
+    static CONFIG_FILE_PATH = "{{ spec.title|caseLower }}.json";
 
     constructor(path = Local.CONFIG_FILE_PATH) {
         let absolutePath = `${process.cwd()}/${path}`;
@@ -182,7 +182,7 @@ class Local extends Config {
 }
 
 class Global extends Config {
-    static CONFIG_FILE_PATH = ".appwrite/prefs.json";
+    static CONFIG_FILE_PATH = ".{{ spec.title|caseLower }}/prefs.json";
 
     static PREFERENCE_ENDPOINT = "endpoint";
     static PREFERENCE_SELF_SIGNED = "selfSigned";
