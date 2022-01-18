@@ -3,7 +3,7 @@ const _path = require('path');
 const childProcess = require('child_process');
 const { Command } = require('commander');
 const { sdkForProject, sdkForConsole } = require('../sdks')
-const { parse, actionRunner, commandDescriptions, success } = require('../parser')
+const { parse, actionRunner, parseInteger, parseBool, commandDescriptions, success } = require('../parser')
 const { localConfig, globalConfig } = require("../config");
 
 const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description(commandDescriptions['{{ service.name | caseLower }}'])
@@ -94,7 +94,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 {% autoescape false %}
     .description(`{{ method.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`)
 {% for parameter in method.parameters.all %}
-    .{% if parameter.required %}requiredOption{% else %}option{% endif %}("--{{ parameter.name | escapeKeyword }} <{{ parameter.name | escapeKeyword }}{% if parameter.array.type|length > 0 %}...{% endif %}>", "{{ parameter.description }}")
+    .{% if parameter.required %}requiredOption{% else %}option{% endif %}("--{{ parameter.name | escapeKeyword }} <{{ parameter.name | escapeKeyword }}{% if parameter.array.type|length > 0 %}...{% endif %}>", "{{ parameter.description }}"{% if parameter.type|typeName == 'boolean' %}, parseBool{% elseif parameter.type|typeName == 'number' %}, parseInteger{% endif %})
 {% endfor %}
     .option('--json', 'Output in JSON format')
 {% endautoescape %}

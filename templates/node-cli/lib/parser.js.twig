@@ -1,6 +1,7 @@
 const chalk = require('chalk');
+const commander = require('commander');
+const Table = require('cli-table3');
 const { description } = require('../package.json')
-var Table = require('cli-table3');
 
 const parse = (data, json = false) => {
     if (json) {
@@ -108,6 +109,20 @@ const actionRunner = (fn) => {
     return (...args) => fn(...args).catch(parseError);
 }
 
+const parseInteger = (value) => {
+    const parsedValue = parseInt(value, 10);
+    if (isNaN(parsedValue)) {
+        throw new commander.InvalidArgumentError('Not a number.');
+    }
+    return parsedValue;
+}
+
+const parseBool = (value) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    throw new commander.InvalidArgumentError('Not a boolean.');
+}
+
 const log = (message) => {
     console.log(`${chalk.cyan.bold("ℹ Info")} ${chalk.cyan(message ?? "")}`);
 }
@@ -156,6 +171,8 @@ const commandDescriptions = {
 module.exports = {
     parse,
     actionRunner,
+    parseInteger,
+    parseBool,
     log,
     success,
     error,
