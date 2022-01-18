@@ -1,4 +1,4 @@
-class AppwriteException extends Error {
+class {{ spec.title| caseUcfirst }}Exception extends Error {
   constructor(message, code, response) {
     super(message);
     this.code = code;
@@ -6,4 +6,4 @@ class AppwriteException extends Error {
   }
 }
 
-module.exports = AppwriteException;
+module.exports = {{ spec.title| caseUcfirst }}Exception;
