@@ -12,7 +12,7 @@ const parse = (data) => {
                 drawJSON(data[key]);
             }
         } else if (typeof data[key] === 'object') {
-            console.log(`${chalk.yellow.bold.underline(key)} :`)
+            console.log(`${chalk.yellow.bold.underline(key)}`)
             parse(data[key]);
         } else {
             console.log(`${chalk.yellow.bold(key)} : ${data[key]}`);
