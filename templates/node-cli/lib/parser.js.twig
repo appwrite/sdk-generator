@@ -2,7 +2,12 @@ const chalk = require('chalk');
 const { description } = require('../package.json')
 var Table = require('cli-table3');
 
-const parse = (data) => {
+const parse = (data, json = false) => {
+    if (json) {
+        drawJSON(data);
+        return;
+    }
+
     for (let key in data) {
         if (Array.isArray(data[key])) {
             console.log(`${chalk.yellow.bold.underline(key)}`);

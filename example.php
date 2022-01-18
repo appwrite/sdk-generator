@@ -162,7 +162,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '0.12.0',
         ])
     ;
 
