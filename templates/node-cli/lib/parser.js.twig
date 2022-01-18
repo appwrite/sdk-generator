@@ -3,27 +3,43 @@ const { description } = require('../package.json')
 var Table = require('cli-table3');
 
 const parse = (data) => {
-    if (data.hasOwnProperty('sum')) {
-        for (let key in data) {
-            if (Array.isArray(data[key]) && typeof data[key] === 'object') {
+    for (let key in data) {
+        if (Array.isArray(data[key])) {
+            console.log(`${chalk.yellow.bold.underline(key)}`);
+            if (typeof data[key][0] === 'object') {
                 drawTable(data[key]);
-            } else if (typeof data[key] === 'object') {
-                parse(data[key]);
             } else {
-                console.log(key + ': ' + data[key]);
+                drawJSON(data[key]);
             }
+        } else if (typeof data[key] === 'object') {
+            console.log(`${chalk.yellow.bold.underline(key)} :`)
+            parse(data[key]);
+        } else {
+            console.log(`${chalk.yellow.bold(key)} : ${data[key]}`);
         }
-    } else {
-        drawJSON(data);
     }
 }
 
 const drawTable = (data) => {
     if (data.length == 0) {
+        console.log("[]")
         return;
     }
 
+    // Create an object with all the keys in it
+    let obj = data.reduce((res, item) => ({ ...res, ...item }));
+    // Get those keys as an array
+    let keys = Object.keys(obj);
+    // Create an object with all keys set to the default value ''
+    let def = keys.reduce((result, key) => {
+        result[key] = '-'
+        return result;
+    }, {});
+    // Use object destrucuring to replace all default values with the ones we have
+    data = data.map((item) => ({ ...def, ...item }));
+
     let columns = Object.keys(data[0]);
+
     let table = new Table({
         head: columns.map(c => chalk.cyan.italic.bold(c)),
         chars: {
@@ -48,12 +64,22 @@ const drawTable = (data) => {
     data.forEach(row => {
         let rowValues = [];
         for (let key in row) {
-            if (Array.isArray(row[key])) {
-                rowValues.push(`array(${row[key].length})`);
+           if (row[key] === null) {
+                rowValues.push("-");
+            } else if (Array.isArray(row[key])) {
+                switch (row[key].length) {
+                    case 0:
+                        rowValues.push(`array(${row[key].length})`);
+                        break;
+                    case 1:
+                        rowValues.push(row[key][0]);
+                        break;
+                    default:
+                        rowValues.push(`array(${row[key].length})`);
+                        break;
+                }
             } else if (typeof row[key] === 'object') {
                 rowValues.push("object");
-            } else if (!row[key]) {
-                rowValues.push("---");
             } else {
                 rowValues.push(row[key]);
             }

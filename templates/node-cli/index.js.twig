@@ -17,14 +17,14 @@ program
   .description(commandDescriptions['main'])
   .version(version, "-v, --version")
   .showSuggestionAfterError()
-  .addCommand(client)
 {% if sdk.isTest != "true" %}
   .addCommand(login)
-  .addCommand(logout)
   .addCommand(init)
   .addCommand(deploy)
+  .addCommand(logout)
 {% endif %}
 {% for service in spec.services %}
   .addCommand({{ service.name | caseLower }})
 {% endfor %}
+  .addCommand(client)
   .parse(process.argv);
