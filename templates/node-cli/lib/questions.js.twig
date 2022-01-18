@@ -7,7 +7,7 @@ const questionsInitProject = [
     type: "confirm",
     name: "override",
     message:
-      `An Appwrite project ( ${localConfig.getProject()['projectName']} ) is already associated with the current directory. Would you like to override`,
+      `An {{ spec.title|caseUcfirst }} project ( ${localConfig.getProject()['projectName']} ) is already associated with the current directory. Would you like to override`,
     when() {
       return Object.keys(localConfig.getProject()).length !== 0;
     }
@@ -24,11 +24,11 @@ const questionsInitProject = [
     message: "How would you like to start?",
     choices: [
       {
-        name: "Create a new Appwrite project",
+        name: "Create a new {{ spec.title|caseUcfirst }} project",
         value: "new",
       },
       {
-        name: "Link this directory to an existing Appwrite project",
+        name: "Link this directory to an existing {{ spec.title|caseUcfirst }} project",
         value: "existing",
       },
     ],
@@ -45,7 +45,7 @@ const questionsInitProject = [
   {
     type: "list",
     name: "project",
-    message: "Choose your Appwrite project.",
+    message: "Choose your {{ spec.title|caseUcfirst }} project.",
     when(answers) {
       return answers.start == "existing";
     },
@@ -150,7 +150,7 @@ const questionsDeployCollections = [
     choices: () => {
       let collections = localConfig.getCollections();
       if (collections.length === 0) {
-        throw new Error("No collections found in the current directory. Run `appwrite init collection` to fetch all your collections.");
+        throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
       }
       let choices = collections.map((collection, idx) => {
         return {
