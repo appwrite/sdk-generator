@@ -64,15 +64,16 @@ const drawTable = (data) => {
     data.forEach(row => {
         let rowValues = [];
         for (let key in row) {
-           if (row[key] === null) {
+            if (row[key] === null) {
                 rowValues.push("-");
             } else if (Array.isArray(row[key])) {
                 switch (row[key].length) {
-                    case 0:
-                        rowValues.push(`array(${row[key].length})`);
-                        break;
                     case 1:
-                        rowValues.push(row[key][0]);
+                        if (typeof row[key][0] === 'object') {
+                            rowValues.push(`array(${row[key].length})`);
+                        } else {
+                            rowValues.push(row[key][0]);
+                        }
                         break;
                     default:
                         rowValues.push(`array(${row[key].length})`);
