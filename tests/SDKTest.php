@@ -274,9 +274,8 @@ class SDKTest extends TestCase
                 'cp tests/languages/node-cli/test.js tests/sdks/node-cli/test.js'
             ],
             'envs' => [
-                // 'nodejs-12' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node-cli node:12-alpine node test.js',
                 'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node-cli node:14-alpine node test.js',
-                // 'nodejs-16' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node-cli node:16-alpine node test.js',
+                'nodejs-16' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node-cli node:16-alpine node test.js',
             ],
             'expectedOutput' => [
                 ...FOO_RESPONSES,
@@ -350,7 +349,8 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'cli', 'node', 'node-cli', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin', 'swift-server', 'swift-client'];
+        // $whitelist = ['php', 'cli', 'node', 'node-cli', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin', 'swift-server', 'swift-client'];
+        $whitelist = ['node-cli'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
