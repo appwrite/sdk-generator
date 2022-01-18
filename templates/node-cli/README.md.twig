@@ -202,6 +202,21 @@ $ appwrite users list --help
 $ appwrite account get --help 
 ```
 
+At any point, you can view or reset the CLI configuration using the `client` service.
+
+```
+$ appwrite client --debug
+// This will display your endpoint, projectID, API key and so on.
+$ appwrite client --reset
+```
+
+## CI mode
+
+The Appwrite CLI can also work in a CI environment. The initialisation of the CLI works a bit differently in CI. In CI, you set your `endpoint`, `projectId` and `API Key` using 
+
+```sh
+appwrite client --endpoint http://localhost/v1 --projectId <PROJECT_ID> --key <API KEY>
+```
 ## License
 
 Please see the [BSD-3-Clause license](https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE) file for more information.
