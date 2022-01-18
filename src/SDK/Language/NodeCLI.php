@@ -4,6 +4,27 @@ namespace Appwrite\SDK\Language;
 
 class NodeCLI extends JS
 {
+
+    /**
+     * @var array
+     */
+    protected $params = [
+        'npmPackage' => 'packageName',
+        'bowerPackage' => 'packageName',
+        'executableName' => 'executable',
+    ];
+
+    /**
+     * @param string $name
+     * @return $this
+     */
+    public function setExecutableName($name)
+    {
+        $this->setParam('executableName', $name);
+
+        return $this;
+    }
+
     /**
      * @return string
      */

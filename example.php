@@ -146,10 +146,14 @@ try {
     // $sdk->generate(__DIR__ . '/examples/node');
 
     // Node CLI
-    $sdk  = new SDK(new NodeCLI(), new Swagger2($spec));
+    $language  = new NodeCLI();
+    $language->setNPMPackage('appwrite-cli');
+    $language->setExecutableName('appwrite');
+    $sdk  = new SDK($language, new Swagger2($spec));
 
     $sdk
         ->setName('NAME')
+        ->setVersion('0.0.12')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
