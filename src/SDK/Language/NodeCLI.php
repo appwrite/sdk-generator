@@ -70,12 +70,6 @@ class NodeCLI extends JS
                 'minify'        => false,
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'CONTRIBUTING.md',
-                'template'      => 'node-cli/CONTRIBUTING.md.twig',
-                'minify'        => false,
-            ],
-            [
                 'scope'         => 'copy',
                 'destination'   => '.github/workflows/npm-publish.yml',
                 'template'      => 'node-cli/.github/workflows/npm-publish.yml',

@@ -162,7 +162,7 @@ try {
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('appwrite')
-        ->setGitRepoName('node-cli')
+        ->setGitRepoName('sdk-for-node-cli')
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([

@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?style=flat-square)
 ![Version](https://img.shields.io/badge/api%20version-{{ spec.version|url_encode }}-blue.svg?style=flat-square)
-[![Build Status](https://img.shields.io/travis/com/appwrite/sdk-generator?style=flat-square)](https://travis-ci.com/appwrite/sdk-generator)
+[![Build Status](https://img.shields.io/travis/com/{{ sdk.gitUserName|url_encode }}/sdk-generator?style=flat-square)](https://travis-ci.com/{{ sdk.gitUserName|url_encode }}/sdk-generator)
 {% if sdk.twitterHandle %}
 [![Twitter Account](https://img.shields.io/twitter/follow/{{ sdk.twitterHandle }}?color=00acee&label=twitter&style=flat-square)](https://twitter.com/{{ sdk.twitterHandle }})
 {% endif %}
@@ -22,7 +22,7 @@
 
 ## Installation
 
-The {{ spec.title }} CLI is a Node based command line tool to help you interact with the {{ spec.title }} API. The CLI is distributed both as an [`npm package`](https://www.npmjs.com/package/appwrite-cli) as well as [pre built binaries](https://github.com/christyjacob4/appwrite-node-cli/releases/latest) for specific operating systems and architectures.
+The {{ spec.title }} CLI is a Node based command line tool to help you interact with the {{ spec.title }} API. The CLI is distributed both as an [`npm package`](https://www.npmjs.com/package/{{ spec.title|caseLower }}-cli) as well as [pre built binaries](https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/releases/latest) for specific operating systems and architectures.
 
 ### Install using NPM
 ---
