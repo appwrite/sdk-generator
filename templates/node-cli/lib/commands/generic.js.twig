@@ -1,8 +1,8 @@
-const { Command } = require("commander");
 const inquirer = require("inquirer");
+const { Command } = require("commander");
+const { sdkForConsole } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, log, parse } = require("../parser");
-const { sdkForConsole } = require("../sdks");
 {% if sdk.isTest != "true" %}
 const { questionsLogin } = require("../questions");
 const { accountCreateSession, accountDeleteSession } = require("./account");
