@@ -2,14 +2,14 @@ const fs = require("fs");
 const childProcess = require('child_process');
 const { Command } = require("commander");
 const inquirer = require("inquirer");
-const { questionsInitProject, questionsInitFunction } = require("../questions");
-const { sdkForConsole } = require("../sdks");
-const { localConfig } = require("../config");
-const { success, log, actionRunner, commandDescriptions } = require("../parser");
 const { teamsCreate } = require("./teams");
 const { projectsCreate } = require("./projects");
 const { functionsCreate } = require("./functions");
 const { databaseListCollections } = require("./database");
+const { sdkForConsole } = require("../sdks");
+const { localConfig } = require("../config");
+const { questionsInitProject, questionsInitFunction } = require("../questions");
+const { success, log, actionRunner, commandDescriptions } = require("../parser");
 
 const init = new Command("init")
   .description(commandDescriptions['init'])
@@ -112,17 +112,17 @@ const initCollection = async () => {
 
 init
   .command("project")
-  .description("Initialise your Appwrite project")
+  .description("Initialise your {{ spec.title|caseUcfirst }} project")
   .action(actionRunner(initProject));
 
 init
   .command("function")
-  .description("Initialise your Appwrite cloud function")
+  .description("Initialise your {{ spec.title|caseUcfirst }} cloud function")
   .action(actionRunner(initFunction))
 
 init
   .command("collection")
-  .description("Initialise your Appwrite collections")
+  .description("Initialise your {{ spec.title|caseUcfirst }} collections")
   .action(actionRunner(initCollection))
 
 module.exports = {
