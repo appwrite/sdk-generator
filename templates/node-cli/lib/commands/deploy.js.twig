@@ -1,7 +1,7 @@
-const { Command } = require("commander");
-const { questionsDeployFunctions, questionsGetCommand, questionsDeployCollections } = require("../questions");
 const inquirer = require("inquirer");
+const { Command } = require("commander");
 const { localConfig } = require("../config");
+const { questionsDeployFunctions, questionsGetCommand, questionsDeployCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsCreateTag, functionsUpdateTag } = require('./functions');
 const {
