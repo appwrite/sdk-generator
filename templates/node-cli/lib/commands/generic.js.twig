@@ -1,7 +1,7 @@
 const { Command } = require("commander");
 const inquirer = require("inquirer");
 const { globalConfig, localConfig } = require("../config");
-const { actionRunner, success, commandDescriptions, log, parse } = require("../parser");
+const { actionRunner, success, parseBool, commandDescriptions, log, parse } = require("../parser");
 const { sdkForConsole } = require("../sdks");
 {% if sdk.isTest != "true" %}
 const { questionsLogin } = require("../questions");
@@ -42,7 +42,7 @@ const logout = new Command("logout")
 
 const client = new Command("client")
     .description(commandDescriptions['client'])
-    .option("--selfSigned <value>", "Configure the CLI to use a self-signed certificate ( true or false )")
+    .option("--selfSigned <value>", "Configure the CLI to use a self-signed certificate ( true or false )", parseBool)
     .option("--endpoint <endpoint>", "Set your Apwrite server endpoint")
     .option("--projectId <projectId>", "Set your Apwrite project ID")
     .option("--key <key>", "Set your Apwrite server's API key")
@@ -85,12 +85,8 @@ const client = new Command("client")
             localConfig.setProject(projectId, '');
         }
 
-        if (selfSigned) {
-            if (selfSigned === "true" || selfSigned === "false") {
-                globalConfig.setSelfSigned(selfSigned);
-            } else {
-                throw new Error("Self signed must be true or false");
-            }
+        if (selfSigned == true || selfSigned == false) {
+            globalConfig.setSelfSigned(selfSigned);
         }
 
         if (reset) {

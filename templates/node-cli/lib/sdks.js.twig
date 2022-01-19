@@ -15,6 +15,7 @@ const sdkForConsole = async (requiresAuth = true) => {
   let client = new Client();
   let endpoint = globalConfig.getEndpoint();
   let cookie = globalConfig.getCookie()
+  let selfSigned = globalConfig.getSelfSigned()
 
   if (!endpoint) {
     const answers = await inquirer.prompt(questionGetEndpoint)
@@ -30,7 +31,7 @@ const sdkForConsole = async (requiresAuth = true) => {
     .setEndpoint(endpoint)
     .setCookie(cookie)
     .setProject("console")
-    .setSelfSigned(true)
+    .setSelfSigned(selfSigned)
     .setLocale("en-US");
 
   return client;
@@ -42,6 +43,7 @@ const sdkForProject = async () => {
   let project = localConfig.getProject().projectId ? localConfig.getProject().projectId : globalConfig.getProject();
   let key = globalConfig.getKey();
   let cookie = globalConfig.getCookie()
+  let selfSigned = globalConfig.getSelfSigned()
 
   if (!endpoint) {
     const answers = await inquirer.prompt(questionGetEndpoint)
@@ -56,7 +58,7 @@ const sdkForProject = async () => {
   client
     .setEndpoint(endpoint)
     .setProject(project)
-    .setSelfSigned(true)
+    .setSelfSigned(selfSigned)
     .setLocale("en-US");
 
   if (key) {
