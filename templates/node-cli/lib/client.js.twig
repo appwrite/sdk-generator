@@ -6,7 +6,7 @@ const { globalConfig } = require("./config.js");
 
 class Client {
   constructor() {
-    this.endpoint = "https://appwrite.io/v1";
+    this.endpoint = '{{spec.endpoint}}';
     this.headers = {
       'content-type': '',
       'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
