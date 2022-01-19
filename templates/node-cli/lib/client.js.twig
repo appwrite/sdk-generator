@@ -1,3 +1,4 @@
+const os = require('os');
 const axios = require("axios");
 const FormData = require("form-data");
 const AppwriteException = require("./exception.js");
@@ -7,10 +8,12 @@ class Client {
   constructor() {
     this.endpoint = "https://appwrite.io/v1";
     this.headers = {
-      "content-type": "",
-      "x-sdk-version": "appwrite:cli:2.5.1",
-      "X-Appwrite-Response-Format": "0.11.0",
-      "User-Agent" : "Terminal/2.5.1 (MacOS 12.0.1; arm64)"
+      'content-type': '',
+      'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
+      'User-Agent' : `AppwriteCLI/{{ sdk.version }} (${os.type()} ${os.version()}; ${os.arch()})`,
+{% for key,header in spec.global.defaultHeaders %}
+      '{{key}}' : '{{header}}',
+{% endfor %}
     };
     this.selfSigned = globalConfig.getSelfSigned;
   }

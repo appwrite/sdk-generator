@@ -30,7 +30,7 @@ class NodeCLI extends JS
      */
     public function getName()
     {
-        return 'NodeCLI';
+        return 'node-cli';
     }
 
     /**
