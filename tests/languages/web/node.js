@@ -44,7 +44,6 @@ async function start() {
     response = await sdk.general.redirect();
     console.log(response.result);
 
-    // TODO: Mark breaking change in PR. We switch from readStream input to string
     response = await sdk.general.upload('string', 123, ['string in array'], __dirname + '/../../resources/file.png');
     console.log(response.result);
 
