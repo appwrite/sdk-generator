@@ -15,6 +15,12 @@ jobs:
         run: | 
           sudo apt install qemu binfmt-support qemu-user-static
           update-binfmts --display
+      - name: Setup ldid
+        run: |
+          git clone https://github.com/tpoechtrager/ldid
+          cd ./ldid
+          sudo make
+          sudo make install
       - name: Install dependenices and build for Linux and Windows
         run: | 
           npm install
@@ -24,7 +30,8 @@ jobs:
           npm run windows-arm64
           npm run mac-x64
           npm run mac-arm64
-          npm publish
+      - name: Publish NPM library
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - uses: fnkr/github-action-ghr@v1
@@ -32,24 +39,3 @@ jobs:
           GHR_PATH: build/
           GHR_REPLACE: false
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-
-#  TODO : Build and sign for macOS ( arm64 ) 
-  # build-for-macos:
-  #   runs-on: macos-11
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-node@v2
-  #       with:
-  #         node-version: '16.x'
-  #         registry-url: 'https://registry.npmjs.org'
-  #     - name: Install dependenices and build for MacOS
-  #       run: | 
-  #         npm install
-          
-  #       env:
-  #         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-  #     - uses: fnkr/github-action-ghr@v1
-  #       env:
-  #         GHR_PATH: build/
-  #         GHR_REPLACE: false
-  #         GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
