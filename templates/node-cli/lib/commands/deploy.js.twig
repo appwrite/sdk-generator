@@ -1,7 +1,7 @@
 const inquirer = require("inquirer");
 const { Command } = require("commander");
 const { localConfig } = require("../config");
-const { questionsDeployFunctions, questionsGetCommand, questionsDeployCollections } = require("../questions");
+const { questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsCreateTag, functionsUpdateTag } = require('./functions');
 const {
@@ -71,17 +71,18 @@ const deployFunction = async () => {
         }
 
         // Create tag
-        if (!func.command) {
-            answers = await inquirer.prompt(questionsGetCommand)
-            func.command = answers.command;
+        if (!func.entrypoint) {
+            answers = await inquirer.prompt(questionsGetEntrypoint)
+            func.entrypoint = answers.entrypoint;
             localConfig.updateFunction(func['$id'], func);
         }
 
         try {
             response = await functionsCreateTag({
                 functionId: func['$id'],
-                command: func.command,
+                entrypoint: func.entrypoint,
                 code: func.path,
+                automaticDeploy: true,
                 parseOutput: false
             })
 

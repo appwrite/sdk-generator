@@ -63,6 +63,11 @@ const questionsInitProject = [
           }
         }
       })
+
+      if (choices.length == 0) {
+        throw new Error("No projects found. Please create a new project.")
+      }
+
       return choices;
     }
   }
@@ -168,15 +173,15 @@ const questionsDeployCollections = [
   },
 ]
 
-const questionsGetCommand = [
+const questionsGetEntrypoint = [
   {
     type: "input",
-    name: "command",
-    message: "Enter the entrypoint command",
+    name: "entrypoint",
+    message: "Enter the entrypoint",
     default: null,
     validate(value) {
       if (!value) {
-        return "Please enter your enrtypoint command";
+        return "Please enter your enrtypoint";
       }
       return true;
     }
@@ -189,5 +194,5 @@ module.exports = {
   questionsInitFunction,
   questionsDeployFunctions,
   questionsDeployCollections,
-  questionsGetCommand
+  questionsGetEntrypoint
 };

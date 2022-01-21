@@ -70,7 +70,7 @@ const initFunction = async () => {
     mkdir -m 777 -p '${answers.name}' && \
     cd '${answers.name}' && \
     git init && \
-    git remote add -f origin https://github.com/christyjacob4/appwrite-function-starter && \
+    git remote add -f origin https://github.com/{{ sdk.gitUserName }}/functions-starter && \
     git config core.sparseCheckout true && \
     echo '${answers.runtime}' >> .git/info/sparse-checkout && \ 
     git pull origin main && \
@@ -86,8 +86,7 @@ const initFunction = async () => {
     name: response['name'],
     runtime: response['runtime'],
     path: answers.name,
-    command: '',
-    vars: []
+    command: ''
   };
 
   localConfig.addFunction(data);

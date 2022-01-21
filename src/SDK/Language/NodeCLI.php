@@ -70,6 +70,12 @@ class NodeCLI extends JS
                 'minify'        => false,
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '.gitignore',
+                'template'      => 'node-cli/.gitignore',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'copy',
                 'destination'   => '.github/workflows/npm-publish.yml',
                 'template'      => 'node-cli/.github/workflows/npm-publish.yml',
