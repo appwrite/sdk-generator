@@ -28,14 +28,14 @@ const deploy = new Command("deploy")
         }
 
         try {
-            await deployFunctions();
+            await deployFunction();
         } catch (e) {
             error(e.message);
         }
-        await deployCollections()
+        await deployCollection()
     }));
 
-const deployFunctions = async () => {
+const deployFunction = async () => {
     let response = {};
 
     let answers = await inquirer.prompt(questionsDeployFunctions)
@@ -114,7 +114,7 @@ const createAttribute = async (collectionId, attribute) => {
                 case 'email':
                     return await databaseCreateEmailAttribute({
                         collectionId,
-                        attributeId: attribute.key,
+                        key: attribute.key,
                         required: attribute.required,
                         xdefault: attribute.default,
                         array: attribute.array,
@@ -123,7 +123,7 @@ const createAttribute = async (collectionId, attribute) => {
                 case 'url':
                     return await databaseCreateUrlAttribute({
                         collectionId,
-                        attributeId: attribute.key,
+                        key: attribute.key,
                         required: attribute.required,
                         xdefault: attribute.default,
                         array: attribute.array,
@@ -132,7 +132,7 @@ const createAttribute = async (collectionId, attribute) => {
                 case 'ip':
                     return await databaseCreateIpAttribute({
                         collectionId,
-                        attributeId: attribute.key,
+                        key: attribute.key,
                         required: attribute.required,
                         xdefault: attribute.default,
                         array: attribute.array,
@@ -141,7 +141,7 @@ const createAttribute = async (collectionId, attribute) => {
                 case 'enum':
                     return await databaseCreateEnumAttribute({
                         collectionId,
-                        attributeId: attribute.key,
+                        key: attribute.key,
                         elements: attribute.elements,
                         required: attribute.required,
                         xdefault: attribute.default,
@@ -151,7 +151,7 @@ const createAttribute = async (collectionId, attribute) => {
                 default:
                     return await databaseCreateStringAttribute({
                         collectionId,
-                        attributeId: attribute.key,
+                        key: attribute.key,
                         size: attribute.size,
                         required: attribute.required,
                         xdefault: attribute.default,
@@ -163,7 +163,7 @@ const createAttribute = async (collectionId, attribute) => {
         case 'integer':
             return await databaseCreateIntegerAttribute({
                 collectionId,
-                attributeId: attribute.key,
+                key: attribute.key,
                 required: attribute.required,
                 min: attribute.min,
                 max: attribute.max,
@@ -174,7 +174,7 @@ const createAttribute = async (collectionId, attribute) => {
         case 'double':
             return databaseCreateFloatAttribute({
                 collectionId,
-                attributeId: attribute.key,
+                key: attribute.key,
                 required: attribute.required,
                 min: attribute.min,
                 max: attribute.max,
@@ -185,7 +185,7 @@ const createAttribute = async (collectionId, attribute) => {
         case 'boolean':
             return databaseCreateBooleanAttribute({
                 collectionId,
-                attributeId: attribute.key,
+                key: attribute.key,
                 required: attribute.required,
                 xdefault: attribute.default,
                 array: attribute.array,
@@ -194,7 +194,7 @@ const createAttribute = async (collectionId, attribute) => {
     }
 }
 
-const deployCollections = async () => {
+const deployCollection = async () => {
     let response = {};
     let answers = await inquirer.prompt(questionsDeployCollections[0])
     let collections = answers.collections
@@ -218,7 +218,7 @@ const deployCollections = async () => {
             collection.attributes.forEach(async attribute => {
                 await databaseDeleteAttribute({
                     collectionId: collection['$id'],
-                    attributeId: attribute.key,
+                    key: attribute.key,
                     parseOutput: false
                 })
             });
@@ -285,14 +285,14 @@ const deployCollections = async () => {
 }
 
 deploy
-    .command("functions")
+    .command("function")
     .description("Deploy functions in the current directory.")
-    .action(actionRunner(deployFunctions));
+    .action(actionRunner(deployFunction));
 
 deploy
-    .command("collections")
+    .command("collection")
     .description("Deploy collections in the current project.")
-    .action(actionRunner(deployCollections));
+    .action(actionRunner(deployCollection));
 
 module.exports = {
     deploy

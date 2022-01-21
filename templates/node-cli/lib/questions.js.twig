@@ -164,7 +164,7 @@ const questionsDeployCollections = [
   {
     type: "input",
     name: "override",
-    message: 'Are you sure you want to override this collection? This can lead to deletion of all your documents! Type "YES" to confirm.'
+    message: 'Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.'
   },
 ]
 
