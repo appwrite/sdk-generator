@@ -86,14 +86,6 @@ const deployFunction = async () => {
                 parseOutput: false
             })
 
-            let tag = response['$id'];
-
-            await functionsUpdateTag({
-                functionId: func['$id'],
-                tag,
-                parseOutput: false
-            })
-
             success(`Deployed ${func.name} ( ${func['$id']} )`);
 
         } catch (e) {
