@@ -47,10 +47,10 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% if 'multipart/form-data' in method.consumes %}
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
-        const { size: size } = await promisify(fs.stat)(file);
+        const { size: size } = await promisify(fs.stat)({{ parameter.name | caseCamel | escapeKeyword }});
 
         if(size <= client.CHUNK_SIZE) {
-                payload['file'] = fs.createReadStream(file);
+                payload['{{ parameter.name }}'] = fs.createReadStream({{ parameter.name | caseCamel | escapeKeyword }});
                 
                 return await this.client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
@@ -83,11 +83,11 @@ class {{ service.name | caseUcfirst }} extends Service {
                                 headers['x-appwrite-id'] = id;
                         }
 
-                        const stream = fs.createReadStream(file, {
+                        const stream = fs.createReadStream({{ parameter.name | caseCamel | escapeKeyword }}, {
                                 start,
                                 end
                         });
-                        payload['file'] = stream;
+                        payload['{{ parameter.name }}'] = stream;
 
                         response = await this.client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
