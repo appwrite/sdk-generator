@@ -44,10 +44,7 @@ async function start() {
     response = await sdk.general.redirect();
     console.log(response.result);
 
-    response = await sdk.general.upload('string', 123, ['string in array'], __dirname + '/../../resources/file.png');
-    console.log(response.result);
-
-    response = await sdk.general.upload('string', 123, ['string in array'], __dirname + '/../../resources/large_file.mp4');
+    response = await sdk.general.upload('string', 123, ['string in array'], fs.createReadStream(__dirname + '/../../resources/file.png'));
     console.log(response.result);
 
     try {
