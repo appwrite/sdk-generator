@@ -537,7 +537,7 @@ class {{ spec.title | caseUcfirst }} {
                         headers['x-appwrite-id'] = id;
                     }
 
-                    const stream = {{ parameter.name | caseCamel | escapeKeyword }}.slice(start, end);
+                    const stream = {{ parameter.name | caseCamel | escapeKeyword }}.slice(start, end + 1);
                     payload['{{ parameter.name }}'] = new File([stream], {{ parameter.name | caseCamel | escapeKeyword }}.name);
 
                     response = await this.call('{{ method.method | caseLower }}', uri, headers, payload);
