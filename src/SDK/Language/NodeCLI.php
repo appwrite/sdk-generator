@@ -70,6 +70,12 @@ class NodeCLI extends JS
                 'minify'        => false,
             ],
             [
+                'scope'         => 'method',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template'      => 'node-cli/docs/example.md.twig',
+                'minify'        => false,
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => '.gitignore',
                 'template'      => 'node-cli/.gitignore',
@@ -166,32 +172,42 @@ class NodeCLI extends JS
                     $output .= "''";
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= '[]';
+                    $output .= 'one two three';
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= '{}';
+                    $output .= '\'{ "key": "value" }\'';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "fs.createReadStream(__dirname + '/file.png')";
+                    $output .= "'path/to/file.png'";
                     break;
             }
         }
         else {
             switch ($type) {
+                case self::TYPE_ARRAY:
+                    if(strpos($example, '[') !== false && strpos($example, ']') !== false) {
+                        $trimmed = substr($example, 1, -1);
+                        $split = explode(',', $trimmed);
+                        $output .= implode(' ', $split);
+                    } else {
+                        $output .= $example;
+                    }
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= '\'{ "key": "value" }\'';
+                    break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
                     $output .= $example;
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "'{$example}'";
+                    $output .= "{$example}";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "fs.createReadStream(__dirname + '/file.png')";
+                    $output .= "'path/to/file.png'";
                     break;
             }
         }
