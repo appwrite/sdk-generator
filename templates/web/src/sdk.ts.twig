@@ -523,7 +523,7 @@ class {{ spec.title | caseUcfirst }} {
                 for (let counter = 0; counter < totalCounters; counter++) {
                     const start = (counter * {{ spec.title | caseUcfirst }}.CHUNK_SIZE);
                     const end = Math.min((((counter * {{ spec.title | caseUcfirst }}.CHUNK_SIZE) + {{ spec.title | caseUcfirst }}.CHUNK_SIZE) - 1), size);
-                    const headers: { [header: string]: any } = {
+                    const headers: { [header: string]: string } = {
 {% for parameter in method.parameters.header %}
                         '{{ parameter.name | caseCamel | escapeKeyword }}': this.${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
