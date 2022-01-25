@@ -5,6 +5,8 @@ const {{spec.title | caseUcfirst}}Exception = require("./exception.js");
 const { globalConfig } = require("./config.js");
 
 class Client {
+  static CHUNK_SIZE = 5*1024*1024;
+  
   constructor() {
     this.endpoint = '{{spec.endpoint}}';
     this.headers = {

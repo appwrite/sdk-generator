@@ -1,4 +1,6 @@
 const fs = require('fs');
+const { promisify } = require('util');
+const libClient = require('../client.js');
 const childProcess = require('child_process');
 const { Command } = require('commander');
 const { sdkForProject, sdkForConsole } = require('../sdks')
@@ -8,7 +10,7 @@ const { localConfig, globalConfig } = require("../config");
 const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description(commandDescriptions['{{ service.name | caseLower }}'])
 
 {% for method in service.methods %}
-const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}, {% endfor %}parseOutput = true, sdk = undefined, json }) => {
+const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}, {% endfor %}parseOutput = true, sdk = undefined, json{% if 'multipart/form-data' in method.consumes %}, onProgress = () => {}{% endif %}}) => {
 {% for parameter in method.parameters.all %}
     /* @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} */
 {% endfor %}
@@ -37,13 +39,13 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
     childProcess.execSync(`tar --cd '${folderPath}' -zcvf code.tar.gz .`, { stdio: 'pipe' });
     let archivePath = fs.realpathSync('code.tar.gz')
     if (typeof archivePath !== 'undefined') {
-        payload['{{ parameter.name }}'] = fs.createReadStream(archivePath);
+        payload['{{ parameter.name }}'] = archivePath;
     }
 
 {% elseif parameter.type == 'file' %}
     let filePath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
     if (typeof filePath !== 'undefined') {
-        payload['{{ parameter.name }}'] = fs.createReadStream(filePath);
+        payload['{{ parameter.name }}'] = filePath;
     }
 
 {% else %}
@@ -63,7 +65,67 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
         success()
     }
 {% else %}
-    const response = await client.call('{{ method.method | caseLower }}', path, {
+    let response = undefined;
+{% if 'multipart/form-data' in method.consumes %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+    const { size: size } = await promisify(fs.stat)({{ parameter.name | caseCamel | escapeKeyword }});
+
+    if(size <= libClient.CHUNK_SIZE) {
+        payload['{{ parameter.name }}'] = fs.createReadStream(payload['{{ parameter.name }}']);
+
+        response = await client.call('{{ method.method | caseLower }}', path, {
+{% for parameter in method.parameters.header %}
+            '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+            '{{ key }}': '{{ header }}',
+{% endfor %}
+        }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+    } else {
+        const streamFilePath = payload['{{ parameter.name }}'];
+        let id = undefined;
+
+        const totalCounters = Math.ceil(size / libClient.CHUNK_SIZE);
+
+        for(let counter = 0; counter < totalCounters; counter++) {
+                const start = (counter * libClient.CHUNK_SIZE);
+                const end = Math.min((((counter * libClient.CHUNK_SIZE) + libClient.CHUNK_SIZE) - 1), size);
+                const headers = {
+{% for parameter in method.parameters.header %}
+                        '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+                        '{{ key }}': '{{ header }}',
+{% endfor %}
+                        'content-range': 'bytes ' + start + '-' + end + '/' + size
+                };
+
+                if(id) {
+                        headers['x-appwrite-id'] = id;
+                }
+
+                const stream = fs.createReadStream(streamFilePath, {
+                        start,
+                        end
+                });
+                payload['{{ parameter.name }}'] = stream;
+
+                response = await client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+
+                if(!id) {
+                        id = response['$id'];
+                }
+
+                if(onProgress !== null) {
+                        onProgress(Math.min((counter+1) * libClient.CHUNK_SIZE, size) / size * 100);
+                }
+        }
+    }
+{% endif %}
+{% endfor %}
+{% else %}
+    response = await client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
         '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
@@ -71,6 +133,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
         '{{ key }}': '{{ header }}',
 {% endfor %}
     }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+{% endif %}
 {% if method.packaging %}
 
     fs.unlinkSync(archivePath);
