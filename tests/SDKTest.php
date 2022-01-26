@@ -312,26 +312,8 @@ class SDKTest extends TestCase
                 'cp -Rf tests/sdks/go/* tests/tmp/go/src/github.com/appwrite/go-sdk/'
             ],
             'envs' => [
-                'go1.12' => 'docker run --rm -v $(pwd):/app -v $(pwd)/tests/tmp/go:/go -w /app golang:1.12 go run tests/languages/go/tests.go',
-                // 'go1.17' => 'docker run --rm -v $(pwd):/app -v $(pwd)/tests/tmp/go:/go -w /app golang:1.17 go run tests/languages/go/tests.go',
-            ],
-            'supportException' => false,
-            'expectedOutput' => [
-                ...FOO_RESPONSES,
-                ...BAR_RESPONSES,
-                ...GENERAL_RESPONSES,
-                // ...EXCEPTION_RESPONSES,
-            ],
-        ],
-        'go' => [
-            'class' => 'Appwrite\SDK\Language\Go',
-            'build' => [
-                'mkdir -p tests/tmp/go/src/github.com/appwrite/go-sdk',
-                'cp -Rf tests/sdks/go/* tests/tmp/go/src/github.com/appwrite/go-sdk/'
-            ],
-            'envs' => [
-                'go1.12' => 'docker run --rm -v $(pwd):/app -v $(pwd)/tests/tmp/go:/go -w /app golang:1.12 go run tests/languages/go/tests.go',
-                // 'go1.17' => 'docker run --rm -v $(pwd):/app -v $(pwd)/tests/tmp/go:/go -w /app golang:1.17 go run tests/languages/go/tests.go',
+                'go1.12' => 'docker run --rm -v $(pwd):/app -v $(pwd)/tests/tmp/go:/go -w /app golang:1.12 sh -c "cd tests/languages/go/ && ./test.sh"',
+                'go1.17' => 'docker run --rm -v $(pwd):/app -v $(pwd)/tests/tmp/go:/go -w /app golang:1.17 sh -c "cd tests/languages/go/ && ./test.sh"',
             ],
             'supportException' => false,
             'expectedOutput' => [
@@ -392,7 +374,7 @@ class SDKTest extends TestCase
         }
 
 //        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin', 'go'];
-        $whitelist = ['cli', 'go'];
+        $whitelist = ['node', 'go'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
