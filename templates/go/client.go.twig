@@ -1,12 +1,15 @@
 package {{ spec.title | caseLower }}
 
 import (
+	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
-	"crypto/tls"
 	"net/url"
+	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -56,11 +59,6 @@ func (clt *Client) SetSelfSigned(status bool) {
 	clt.selfSigned = status
 }
 
-// Your API Key
-func (clt *Client) SetKey(value string) {
-	clt.AddHeader("X-Appwrite-Key", value)
-}
-
 // AddHeader add a new custom header that the Client should send on each request
 func (clt *Client) AddHeader(key string, value string) {
 	clt.headers[key] = value
@@ -103,7 +101,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 	} else {
 		frm := url.Values{}
 		for key, val := range params {
-			frm.Add(key, ToString(val))
+			frm.Add(key, toString(val))
 		}
 		reqBody = strings.NewReader(frm.Encode())
 	}
@@ -116,7 +114,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 
 	// Set Client headers
 	for key, val := range clt.headers {
-		req.Header.Set(key, ToString(val))
+		req.Header.Set(key, toString(val))
 	}
 
 	//Set default headers
@@ -126,15 +124,26 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 
 	// Set Custom headers
 	for key, val := range headers {
-		req.Header.Set(key, ToString(val))
+		req.Header.Set(key, toString(val))
 	}
 
 	if isGet {
 		q := req.URL.Query()
 		for key, val := range params {
-			q.Add(key, ToString(val))
+			rt := reflect.TypeOf(val)
+			switch rt.Kind() {
+				case reflect.Array:
+				case reflect.Slice:
+					arr := reflect.ValueOf(val)
+					for i := 0; i < arr.Len(); i++ {
+						q.Add(fmt.Sprintf("%s[]",key), toString(arr.Index(i)))
+					}
+				default:
+					q.Add(key, toString(val))
+			}
 		}
-		req.URL.RawQuery = q.Encode()
+		rawQuery := q.Encode()
+		req.URL.RawQuery = rawQuery
 	}
 
 	// Make request
@@ -154,4 +163,33 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 	var jsonResponse map[string]interface{}
 	json.Unmarshal(responseData, &jsonResponse)
 	return jsonResponse, nil
+}
+
+// toString changes arg to string
+func toString(arg interface{}) string {
+	var tmp = reflect.Indirect(reflect.ValueOf(arg)).Interface()
+	switch v := tmp.(type) {
+	case int:
+		return strconv.Itoa(v)
+	case int8:
+		return strconv.FormatInt(int64(v), 10)
+	case int16:
+		return strconv.FormatInt(int64(v), 10)
+	case int32:
+		return strconv.FormatInt(int64(v), 10)
+	case int64:
+		return strconv.FormatInt(v, 10)
+	case string:
+		return v
+	case float32:
+		return strconv.FormatFloat(float64(v), 'f', -1, 32)
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	case reflect.Value:
+		return toString(v.Interface())
+	case fmt.Stringer:
+		return v.String()
+	default:
+		return fmt.Sprintf("%s", v)
+	}
 }

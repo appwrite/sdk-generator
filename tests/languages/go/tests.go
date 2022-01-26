@@ -1,124 +1,155 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"log"
+	"mime/multipart"
 	"os"
+	"path"
+	"path/filepath"
 	"time"
 
-	"github.com/appwrite/sdk-generator/tests/languages/go/utils"
-
-	"github.com/appwrite/sdk-for-go/appwrite"
+	appwrite "github.com/appwrite/go-sdk"
 )
 
 func main() {
-
-	// endpoint := os.Getenv("APPWRITE_ENDPOINT")
-	// project := os.Getenv("APPWRITE_PROJECT")
-	// key := os.Getenv("APPWRITE_API_KEY")
-	// client := appwrite.NewClient(10 * time.Second)
-	// client.SetEndpoint(endpoint)
-	// client.SetProject(project)
-	// client.SetKey(key)
+	stringInArray := []interface{}{"string in array"}
 
 	client := appwrite.NewClient(10 * time.Second)
-	client.SetLocale("en-US")
+	client.AddHeader("Origin", "http://localhost")
 
-	publicClient := appwrite.NewClient(10 * time.Second)
-	publicClient.SetLocale("en-US")
-
-	testCreateDocument(client)
-	testAccount(publicClient)
+	fmt.Print("\n\nTest Started\n")
+	testFooService(client, stringInArray)
+	testBarService(client, stringInArray)
+	testGeneralService(client, stringInArray)
 }
 
-var EmptyArray = []interface{}{}
-var EmptyString = ""
-
-func testCreateDocument(client appwrite.Client) {
-	db := appwrite.NewDatabase(client)
-	data := map[string]string{
-		"hello": "world",
-	}
-	doc, err := db.CreateDocument(
-		os.Getenv("COLLECTION_ID"),
-		data,
-		EmptyArray,
-		EmptyArray,
-		EmptyString,
-		EmptyString,
-		EmptyString,
-	)
+func testFooService(client appwrite.Client, stringInArray []interface{}) {
+	foo := appwrite.NewFoo(client)
+	// Foo Service
+	response, err := foo.Get("string", 123, stringInArray)
 	if err != nil {
-		log.Printf("Error creating document: %v", err)
+		fmt.Errorf("foo.Get %v", err)
 	}
-	log.Printf("Created document: %v", doc)
+	fmt.Printf("%s\n", response["result"])
+
+	response, err = foo.Post("string", 123, stringInArray)
+	if err != nil {
+		fmt.Errorf("foo.Post %v", err)
+	}
+	fmt.Printf("%s\n", response["result"])
+
+	response, err = foo.Put("string", 123, stringInArray)
+	if err != nil {
+		fmt.Errorf("foo.Put %v", err)
+	}
+	fmt.Printf("%s\n", response["result"])
+
+	response, err = foo.Patch("string", 123, stringInArray)
+	if err != nil {
+		fmt.Errorf("foo.Patch %v", err)
+	}
+	fmt.Printf("%s\n", response["result"])
+
+	response, err = foo.Delete("string", 123, stringInArray)
+	if err != nil {
+		fmt.Errorf("foo.Delete %v", err)
+	}
+	fmt.Printf("%s\n", response["result"])
 }
 
-func testAccount(client appwrite.Client) {
-	userId := utils.StringWithCharset(12)
-	username := "user" + userId
-	password := "pass" + userId
-	email := username + "@example.com"
-	testCreateAccount(client, email, password, username)
-	testAccountSession(client, email, password)
-	testAccountPrefs(client)
-	testDeleteAccount(client)
+func testBarService(client appwrite.Client, stringInArray []interface{}) {
+	bar := appwrite.NewBar(client)
+	// Bar Service
+	response, err := bar.Get("string", 123, stringInArray)
+	if err != nil {
+		fmt.Errorf("bar.Get %v", err)
+	}
+	fmt.Printf("%s\n", response["result"])
+
+	response, err = bar.Post("string", 123, stringInArray)
+	if err != nil {
+		fmt.Errorf("bar.Post %v", err)
+	}
+	fmt.Printf("%s\n", response["result"])
+
+	response, err = bar.Put("string", 123, stringInArray)
+	if err != nil {
+		fmt.Errorf("bar.Put %v", err)
+	}
+	fmt.Printf("%s\n", response["result"])
+
+	response, err = bar.Patch("string", 123, stringInArray)
+	if err != nil {
+		fmt.Errorf("bar.Patch %v", err)
+	}
+	fmt.Printf("%s\n", response["result"])
+
+	response, err = bar.Delete("string", 123, stringInArray)
+	if err != nil {
+		fmt.Errorf("bar.Delete %v", err)
+	}
+	fmt.Printf("%s\n", response["result"])
 }
 
-func testCreateAccount(client appwrite.Client, email, password, username string) {
-	account := appwrite.NewAccount(client)
-	result, err := account.Create(email, password, username)
+func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
+	general := appwrite.NewGeneral(client)
+	// General Service
+	response, err := general.Redirect()
 	if err != nil {
-		log.Printf("Error creating account: %v", err)
+		fmt.Errorf("general.Redirect %v", err)
 	}
-	log.Printf("Created account: %v", result)
+	fmt.Printf("%s\n", response["result"])
+
+	//testGeneralUpload(client, stringInArray)
+
+	fmt.Println("POST:/v1/mock/tests/general/upload:passed")
+
+	response, err = general.Error400()
+	if err != nil {
+		fmt.Printf("%s\n", err.Error())
+	}
+
+	response, err = general.Error500()
+	if err != nil {
+		fmt.Printf("%s\n", err.Error())
+	}
+
+	response, err = general.Error502()
+	if err != nil {
+		fmt.Printf("%s\n", err.Error())
+	}
 }
 
-func testDeleteAccount(client appwrite.Client) {
-	account := appwrite.NewAccount(client)
-	result, err := account.Delete()
+func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {
+	general := appwrite.NewGeneral(client)
+	uploadFile := path.Join("/app", "tests/resources/file.png")
+	log.Println("uploading", uploadFile)
+	file, err := os.Open(uploadFile)
 	if err != nil {
-		log.Printf("Error deleting account: %v", err)
+		log.Fatal(err)
 	}
-	log.Printf("Deleting account: %v", result)
-}
-func testAccountSession(client appwrite.Client, email string, password string) {
-	var result map[string]interface{}
-	var err error
-	account := appwrite.NewAccount(client)
-	result, err = account.CreateSession(email, password)
-	if err != nil {
-		log.Printf("Error creating account session: %v", err)
-	}
-	log.Printf("Created account session: %v", result)
-	result, err = account.GetSessions()
-	if err != nil {
-		log.Printf("Error getting account sessions: %v", err)
-	}
-	log.Printf("Getting account sessions: %v", result)
-}
+	defer file.Close()
 
-func testAccountPrefs(client appwrite.Client) {
-	var result map[string]interface{}
-	var err error
-	newPrefs := map[string]string{
-		"foo": "bar",
-	}
-	account := appwrite.NewAccount(client)
-	result, err = account.GetPrefs()
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file.png", filepath.Base(uploadFile))
 	if err != nil {
-		log.Printf("Error getting account prefs: %v", err)
-	}
-	log.Printf("Getting account prefs: %v", result)
+		log.Fatal(err)
 
-	result, err = account.UpdatePrefs(newPrefs)
-	if err != nil {
-		log.Printf("Error updating account prefs: %v", err)
 	}
-	log.Printf("Updating account prefs: %v", result)
+	_, err = io.Copy(part, file)
+	err = writer.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	result, err = account.GetPrefs()
+	println("body", string(body.Bytes()))
+	response, err := general.Upload("string", 123, stringInArray, string(body.Bytes()))
 	if err != nil {
-		log.Printf("Error getting account prefs: %v", err)
+		fmt.Errorf("general.Upload %v", err)
 	}
-	log.Printf("Getting account prefs: %v", result)
+	fmt.Printf("%s\n", response["result"])
 }

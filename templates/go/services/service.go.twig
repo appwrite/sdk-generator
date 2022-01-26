@@ -21,7 +21,6 @@ func New{{ service.name | caseUcfirst }}(clt Client) {{ service.name | caseUcfir
 	service := {{ service.name | caseUcfirst }}{
 		client: clt,
 	}
-
 	return service
 }
 {% for method in service.methods %}

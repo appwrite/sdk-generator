@@ -308,34 +308,20 @@ class SDKTest extends TestCase
         'go' => [
             'class' => 'Appwrite\SDK\Language\Go',
             'build' => [
+                'mkdir -p tests/tmp/go/src/github.com/appwrite/go-sdk',
+                'cp -Rf tests/sdks/go/* tests/tmp/go/src/github.com/appwrite/go-sdk/'
             ],
             'envs' => [
-                'go1.12' => 'docker run --rm -v $(pwd):/app -w /app golang:1.12 go run tests/languages/go/tests.go',
-                'go1.17' => 'docker run --rm -v $(pwd):/app -w /app golang:1.17 go run tests/languages/go/tests.go',
+                'go1.12' => 'docker run --rm -v $(pwd):/app -v $(pwd)/tests/tmp/go:/go -w /app golang:1.12 go run tests/languages/go/tests.go',
+                // 'go1.17' => 'docker run --rm -v $(pwd):/app -v $(pwd)/tests/tmp/go:/go -w /app golang:1.17 go run tests/languages/go/tests.go',
             ],
             'supportException' => false,
-        ],
-
-        'go' => [
-            'class' => 'Appwrite\SDK\Language\Go',
-            'build' => [
+            'expectedOutput' => [
+                ...FOO_RESPONSES,
+                ...BAR_RESPONSES,
+                ...GENERAL_RESPONSES,
+                // ...EXCEPTION_RESPONSES,
             ],
-            'envs' => [
-                'go1.12' => 'docker run --rm -v $(pwd):/app -w /app golang:1.12 sh tests/languages/go/test.sh',
-                'go1.17' => 'docker run --rm -v $(pwd):/app -w /app golang:1.17 sh tests/languages/go/test.sh',
-            ],
-            'supportException' => false,
-        ],
-
-        'go' => [
-            'class' => 'Appwrite\SDK\Language\Go',
-            'build' => [
-            ],
-            'envs' => [
-                'go1.12' => 'docker run --rm -v $(pwd):/app -w /app golang:1.12 sh tests/languages/go/test.sh',
-                'go1.17' => 'docker run --rm -v $(pwd):/app -w /app golang:1.17 sh tests/languages/go/test.sh',
-            ],
-            'supportException' => false,
         ],
     ];
 
@@ -365,7 +351,8 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin', 'go'];
+//        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin', 'go'];
+        $whitelist = ['cli', 'go'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
