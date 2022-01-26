@@ -76,7 +76,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% if parameter.type == 'file' %}
         const {size: size} = await Deno.stat({{ parameter.name | caseCamel | escapeKeyword }});
 
-        if(size <= Client.CHUNK_SIZE) {
+        if (size <= Client.CHUNK_SIZE) {
             payload['{{ parameter.name }}'] = new File([await Deno.readFile({{ parameter.name | caseCamel | escapeKeyword }})], basename({{ parameter.name | caseCamel | escapeKeyword }}));
 
             return await this.client.call('{{ method.method | caseLower }}', path, {
@@ -95,7 +95,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
             const totalCounters = Math.ceil(size / Client.CHUNK_SIZE);
 
-            for(let counter = 0; counter < totalCounters; counter++) {
+            for (let counter = 0; counter < totalCounters; counter++) {
                     const start = (counter * Client.CHUNK_SIZE);
                     const end = Math.min((((counter * Client.CHUNK_SIZE) + Client.CHUNK_SIZE) - 1), size);
                     const headers: { [header: string]: string } = {
@@ -108,7 +108,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
                             'content-range': 'bytes ' + start + '-' + end + '/' + size
                     };
 
-                    if(id) {
+                    if (id) {
                             headers['x-appwrite-id'] = id;
                     }
                     
@@ -133,11 +133,11 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
                     response = await this.client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
-                    if(!id) {
+                    if (!id) {
                             id = response['$id'];
                     }
 
-                    if(onProgress !== null) {
+                    if (onProgress !== null) {
                             onProgress(Math.min((counter+1) * Client.CHUNK_SIZE, size) / size * 100);
                     }
             }

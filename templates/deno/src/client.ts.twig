@@ -5,7 +5,7 @@ export interface Payload {
 }
 
 export class Client {
-    static CHUNK_SIZE = 5*1024*1024;
+    static CHUNK_SIZE = 5*1024*1024; // 5MB
     
     endpoint: string = 'https://appwrite.io/v1';
     headers: Payload = {
@@ -95,14 +95,14 @@ export class Client {
             const contentType = response.headers.get('content-type');
 
             if (contentType && contentType.includes('application/json')) {
-                if(response.status >= 400) {
+                if (response.status >= 400) {
                     let res = await response.json();
                     throw new {{ spec.title | caseUcfirst}}Exception(res.message, res.status, res);
                 }
 
                 return response.json();
             } else {
-                if(response.status >= 400) {
+                if (response.status >= 400) {
                     let res = await response.text();
                     throw new {{ spec.title | caseUcfirst}}Exception(res, response.status, null);
                 }
