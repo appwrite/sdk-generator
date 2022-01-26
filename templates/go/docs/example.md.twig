@@ -1,9 +1,11 @@
+# {{ service.name | caseUcfirst }} Example
+
+```go
 package main
 
 import (
     "fmt"
-    "time"
-    "github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}"
+    appwrite "github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}"
 )
 
 func main() {
@@ -30,3 +32,4 @@ func main() {
 
     fmt.Println(response)
 }
+```

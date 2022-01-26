@@ -1,16 +1,13 @@
 package {{ spec.title | caseLower }}
 
 import (
-	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
-	"crypto/tls"
 	"net/url"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -62,11 +59,6 @@ func (clt *Client) SetSelfSigned(status bool) {
 	clt.selfSigned = status
 }
 
-// Your API Key
-func (clt *Client) SetKey(value string) {
-	clt.AddHeader("X-Appwrite-Key", value)
-}
-
 // AddHeader add a new custom header that the Client should send on each request
 func (clt *Client) AddHeader(key string, value string) {
 	clt.headers[key] = value
@@ -111,7 +103,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 	} else {
 		frm := url.Values{}
 		for key, val := range params {
-			frm.Add(key, ToString(val))
+			frm.Add(key, toString(val))
 		}
 		reqBody = strings.NewReader(frm.Encode())
 	}
@@ -132,24 +124,9 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		return nil, err
 	}
 
-	for key, val := range params {
-		rt := reflect.TypeOf(val)
-		switch rt.Kind() {
-		case reflect.Array:
-		case reflect.Slice:
-			arr := reflect.ValueOf(val)
-			for i := 0; i < arr.Len(); i++ {
-				err = writer.WriteField(fmt.Sprintf("%s[]", key), toString(arr.Index(i)))
-				if err != nil {
-					return nil, err
-				}
-			}
-		default:
-			err = writer.WriteField(key, toString(val))
-			if err != nil {
-				return nil, err
-			}
-		}
+	// Set Client headers
+	for key, val := range clt.headers {
+		req.Header.Set(key, toString(val))
 	}
 
 	err = writer.Close()
@@ -246,9 +223,23 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		req.Header.Set(key, toString(val))
 	}
 
-	// Set Client headers
-	for key, val := range clt.headers {
-		req.Header.Set(key, toString(val))
+	if isGet {
+		q := req.URL.Query()
+		for key, val := range params {
+			rt := reflect.TypeOf(val)
+			switch rt.Kind() {
+				case reflect.Array:
+				case reflect.Slice:
+					arr := reflect.ValueOf(val)
+					for i := 0; i < arr.Len(); i++ {
+						q.Add(fmt.Sprintf("%s[]",key), toString(arr.Index(i)))
+					}
+				default:
+					q.Add(key, toString(val))
+			}
+		}
+		rawQuery := q.Encode()
+		req.URL.RawQuery = rawQuery
 	}
 
 	// Make request
@@ -267,29 +258,6 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 	var jsonResponse map[string]interface{}
 	json.Unmarshal(responseData, &jsonResponse)
 	return jsonResponse, nil
-}
-
-func getOutput(params map[string]interface{}, paramName string, responseData []byte, contentType string) (string, error) {
-	if strings.HasPrefix(contentType, "text") || strings.HasSuffix(contentType, "json") {
-		return string(responseData), nil
-	}
-	path, ok := params[paramName].(string)
-	if !ok {
-		return "", os.ErrNotExist
-	}
-	file, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-
-	if _, err = file.Write(responseData); err != nil {
-		return "", err
-	}
-
-	if err := file.Close(); err != nil {
-		return "", err
-	}
-	return file.Name(), nil
 }
 
 // toString changes arg to string
