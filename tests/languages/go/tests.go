@@ -106,16 +106,20 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
 	}
+	// fmt.Printf("%v\n", response)
 
 	response, err = general.Error500()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
 	}
+	// fmt.Printf("%v\n", response)
 
 	response, err = general.Error502()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
 	}
+	// fmt.Printf("%v\n", response)
+
 }
 
 func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {
