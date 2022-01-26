@@ -96,7 +96,7 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
 }
 
 class {{ spec.title | caseUcfirst }} {
-    static CHUNK_SIZE = 5*1024*1024;
+    static CHUNK_SIZE = 5*1024*1024; // 5MB
 
     config = {
         endpoint: '{{ spec.endpoint }}',
