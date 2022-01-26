@@ -49,7 +49,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% if parameter.type == 'file' %}
         const { size: size } = await promisify(fs.stat)({{ parameter.name | caseCamel | escapeKeyword }});
 
-        if(size <= client.CHUNK_SIZE) {
+        if (size <= client.CHUNK_SIZE) {
                 payload['{{ parameter.name }}'] = fs.createReadStream({{ parameter.name | caseCamel | escapeKeyword }});
                 
                 return await this.client.call('{{ method.method | caseLower }}', path, {
@@ -66,7 +66,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 
                 const totalCounters = Math.ceil(size / client.CHUNK_SIZE);
 
-                for(let counter = 0; counter < totalCounters; counter++) {
+                for (let counter = 0; counter < totalCounters; counter++) {
                         const start = (counter * client.CHUNK_SIZE);
                         const end = Math.min((((counter * client.CHUNK_SIZE) + client.CHUNK_SIZE) - 1), size);
                         const headers = {
@@ -79,7 +79,7 @@ class {{ service.name | caseUcfirst }} extends Service {
                                 'content-range': 'bytes ' + start + '-' + end + '/' + size
                         };
 
-                        if(id) {
+                        if (id) {
                                 headers['x-appwrite-id'] = id;
                         }
 
@@ -91,11 +91,11 @@ class {{ service.name | caseUcfirst }} extends Service {
 
                         response = await this.client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
-                        if(!id) {
+                        if (!id) {
                                 id = response['$id'];
                         }
                         
-                        if(onProgress !== null) {
+                        if (onProgress !== null) {
                                 onProgress(Math.min((counter+1) * client.CHUNK_SIZE, size) / size * 100);
                         }
                 }

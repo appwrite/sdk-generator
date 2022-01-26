@@ -4,7 +4,7 @@ const FormData = require('form-data');
 const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
 
 class Client {
-    static CHUNK_SIZE = 5*1024*1024;
+    static CHUNK_SIZE = 5*1024*1024; // 5MB
     
     constructor() {
         this.endpoint = '{{spec.endpoint}}';
