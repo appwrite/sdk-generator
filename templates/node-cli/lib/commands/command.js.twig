@@ -71,7 +71,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 {% if parameter.type == 'file' %}
     const { size: size } = await promisify(fs.stat)({{ parameter.name | caseCamel | escapeKeyword }});
 
-    if(size <= libClient.CHUNK_SIZE) {
+    if (size <= libClient.CHUNK_SIZE) {
         payload['{{ parameter.name }}'] = fs.createReadStream(payload['{{ parameter.name }}']);
 
         response = await client.call('{{ method.method | caseLower }}', path, {
@@ -88,7 +88,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 
         const totalCounters = Math.ceil(size / libClient.CHUNK_SIZE);
 
-        for(let counter = 0; counter < totalCounters; counter++) {
+        for (let counter = 0; counter < totalCounters; counter++) {
                 const start = (counter * libClient.CHUNK_SIZE);
                 const end = Math.min((((counter * libClient.CHUNK_SIZE) + libClient.CHUNK_SIZE) - 1), size);
                 const headers = {
@@ -101,7 +101,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
                         'content-range': 'bytes ' + start + '-' + end + '/' + size
                 };
 
-                if(id) {
+                if (id) {
                         headers['x-appwrite-id'] = id;
                 }
 
@@ -113,11 +113,11 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 
                 response = await client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
-                if(!id) {
+                if (!id) {
                         id = response['$id'];
                 }
 
-                if(onProgress !== null) {
+                if (onProgress !== null) {
                         onProgress(Math.min((counter+1) * libClient.CHUNK_SIZE, size) / size * 100);
                 }
         }
