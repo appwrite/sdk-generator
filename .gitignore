@@ -12,7 +12,10 @@
 # exclude everything
 examples/*
 tests/tmp
+<<<<<<< HEAD
 .phpunit.result.cache
+=======
+>>>>>>> d39223ec (Creating a first testable version for go 1.12)
 
 # exception to the rule
 !examples/.gitkeep 
