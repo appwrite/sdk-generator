@@ -18,6 +18,15 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
     let client = !sdk ? await {% if service.name == "projects" %}sdkForConsole(){% else %}sdkForProject(){% endif %} : sdk;
     let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
     let payload = {};
+{% if method.parameters.path|length > 0 %}
+
+    /** Path Params */
+{% endif %}
+{% for parameter in method.parameters.path %}
+    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+    }
+{% endfor %}
 {% if method.parameters.query|length > 0 %}
 
     /** Query Params */

@@ -94,7 +94,9 @@ const initFunction = async () => {
 }
 
 const initCollection = async () => {
+  // TODO: Pagination?
   let response = await databaseListCollections({
+    limit: 100,
     parseOutput: false
   })
 
