@@ -27,7 +27,7 @@ const POOL_MAX_DEBOUNCES = 30;
 
 const awaitPools = {
     wipeAttributes: async (collectionId, iteration = 1) => {
-        if(iteration > POOL_MAX_DEBOUNCES) {
+        if (iteration > POOL_MAX_DEBOUNCES) {
             return false;
         }
 
@@ -38,7 +38,7 @@ const awaitPools = {
             parseOutput: false
         });
 
-        if(remoteAttributes.length <= 0) {
+        if (remoteAttributes.length <= 0) {
             return true;
         }
 
@@ -46,7 +46,7 @@ const awaitPools = {
         return await awaitPools.wipeAttributes(collectionId, iteration + 1);
     },
     wipeIndexes: async (collectionId, iteration = 1) => {
-        if(iteration > POOL_MAX_DEBOUNCES) {
+        if (iteration > POOL_MAX_DEBOUNCES) {
             return false;
         }
 
@@ -57,7 +57,7 @@ const awaitPools = {
             parseOutput: false
         });
 
-        if(remoteIndexes.length <= 0) {
+        if (remoteIndexes.length <= 0) {
             return true;
         }
 
@@ -65,7 +65,7 @@ const awaitPools = {
         return await awaitPools.wipeIndexes(collectionId, iteration + 1);
     },
     expectAttributes: async (collectionId, attributeKeys, iteration = 1) => {
-        if(iteration > POOL_MAX_DEBOUNCES) {
+        if (iteration > POOL_MAX_DEBOUNCES) {
             return false;
         }
 
@@ -77,8 +77,8 @@ const awaitPools = {
         });
 
         const readyAttributeKeys = remoteAttributes.filter((attribute) => {
-            if(attributeKeys.includes(attribute.key)) {
-                if(['stuck', 'failed'].includes(attribute.status)) {
+            if (attributeKeys.includes(attribute.key)) {
+                if (['stuck', 'failed'].includes(attribute.status)) {
                     throw new Error(`Attribute '${attribute.key}' failed!`);
                 }
 
@@ -88,7 +88,7 @@ const awaitPools = {
             return false;
         }).map(attribute => attribute.key);
 
-        if(readyAttributeKeys.length >= attributeKeys.length) {
+        if (readyAttributeKeys.length >= attributeKeys.length) {
             return true;
         }
 
@@ -96,7 +96,7 @@ const awaitPools = {
         return await awaitPools.expectAttributes(collectionId, attributeKeys, iteration + 1);
     },
     expectIndexes: async (collectionId, indexKeys, iteration = 1) => {
-        if(iteration > POOL_MAX_DEBOUNCES) {
+        if (iteration > POOL_MAX_DEBOUNCES) {
             return false;
         }
 
@@ -108,8 +108,8 @@ const awaitPools = {
         });
 
         const readyIndexKeys = remoteIndexes.filter((index) => {
-            if(indexKeys.includes(index.key)) {
-                if(['stuck', 'failed'].includes(index.status)) {
+            if (indexKeys.includes(index.key)) {
+                if (['stuck', 'failed'].includes(index.status)) {
                     throw new Error(`Index '${index.key}' failed!`);
                 }
 
@@ -119,7 +119,7 @@ const awaitPools = {
             return false;
         }).map(index => index.key);
 
-        if(readyIndexKeys.length >= indexKeys.length) {
+        if (readyIndexKeys.length >= indexKeys.length) {
             return true;
         }
 
@@ -334,7 +334,7 @@ const deployCollection = async () => {
             }));
 
             const deleteIndexesPoolStatus = await awaitPools.wipeIndexes(collection['$id']);
-            if(!deleteIndexesPoolStatus) {
+            if (!deleteIndexesPoolStatus) {
                 throw new Error("Index deletion did not finish for too long.");
             }
 
@@ -354,7 +354,7 @@ const deployCollection = async () => {
             }));
 
             const deleteAttributesPoolStatus = await awaitPools.wipeAttributes(collection['$id']);
-            if(!deleteAttributesPoolStatus) {
+            if (!deleteAttributesPoolStatus) {
                 throw new Error("Attribute deletion did not finish for too long.");
             }
 
@@ -364,7 +364,7 @@ const deployCollection = async () => {
 
             const attributeKeys = collection.attributes.map(attribute => attribute.key);
             const createPoolStatus = await awaitPools.expectAttributes(collection['$id'], attributeKeys);
-            if(!createPoolStatus) {
+            if (!createPoolStatus) {
                 throw new Error("Attribute creation did not finish for too long.");
             }
 
@@ -384,7 +384,7 @@ const deployCollection = async () => {
 
             const indexKeys = collection.indexes.map(attribute => attribute.key);
             const indexPoolStatus = await awaitPools.expectIndexes(collection['$id'], indexKeys);
-            if(!indexPoolStatus) {
+            if (!indexPoolStatus) {
                 throw new Error("Index creation did not finish for too long.");
             }
 
@@ -408,7 +408,7 @@ const deployCollection = async () => {
 
                 const attributeKeys = collection.attributes.map(attribute => attribute.key);
                 const attributePoolStatus = await awaitPools.expectAttributes(collection['$id'], attributeKeys);
-                if(!attributePoolStatus) {
+                if (!attributePoolStatus) {
                     throw new Error("Attribute creation did not finish for too long.");
                 }
 
@@ -428,7 +428,7 @@ const deployCollection = async () => {
 
                 const indexKeys = collection.indexes.map(attribute => attribute.key);
                 const indexPoolStatus = await awaitPools.expectIndexes(collection['$id'], indexKeys);
-                if(!indexPoolStatus) {
+                if (!indexPoolStatus) {
                     throw new Error("Index creation did not finish for too long.");
                 }
 
