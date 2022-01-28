@@ -63,8 +63,10 @@ const sdkForProject = async () => {
 
   if (key) {
     return client
+{% if sdk.isTest != "true" %}
       .setKey(key)
       .setMode("default");
+{% endif %}
   }
 
   if (cookie) {

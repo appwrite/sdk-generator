@@ -280,7 +280,8 @@ class SDKTest extends TestCase
             'expectedOutput' => [
                 ...FOO_RESPONSES,
                 ...BAR_RESPONSES,
-                ...GENERAL_RESPONSES
+                ...GENERAL_RESPONSES,
+                'POST:/v1/mock/tests/general/upload:passed', // for large file upload
             ],
         ],
 
