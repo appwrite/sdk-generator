@@ -284,6 +284,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 	if err != nil {
 		return nil, err
 	}
+	//fmt.Println("responseData", string(responseData))
 
 	var isJson = strings.HasPrefix(resp.Header.Get("content-type"), "application/json")
 	if isJson {
