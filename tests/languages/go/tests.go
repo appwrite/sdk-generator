@@ -1,14 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"log"
-	"mime/multipart"
-	"os"
 	"path"
-	"path/filepath"
 	"time"
 
 	appwrite "github.com/appwrite/sdk-for-go/appwrite"
@@ -102,7 +96,7 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 	}
 	fmt.Printf("%s\n", response["result"])
 
-	//testGeneralUpload(client, stringInArray)
+	testGeneralUpload(client, stringInArray)
 
 	//fmt.Println("POST:/v1/mock/tests/general/upload:passed")
 
@@ -126,28 +120,8 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {
 	general := appwrite.NewGeneral(client)
 	uploadFile := path.Join("/app", "tests/resources/file.png")
-	log.Println("uploading", uploadFile)
-	file, err := os.Open(uploadFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
 
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file.png", filepath.Base(uploadFile))
-	if err != nil {
-		log.Fatal(err)
-
-	}
-	_, err = io.Copy(part, file)
-	err = writer.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	println("body", string(body.Bytes()))
-	response, err := general.Upload("string", 123, stringInArray, string(body.Bytes()))
+	response, err := general.Upload("string", 123, stringInArray, uploadFile)
 	if err != nil {
 		fmt.Errorf("general.Upload => error %v", err)
 	}
