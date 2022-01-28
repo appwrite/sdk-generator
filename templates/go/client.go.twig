@@ -280,7 +280,6 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 
 	// Handle response
 	defer resp.Body.Close()
-
 	responseData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err

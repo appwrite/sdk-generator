@@ -308,19 +308,19 @@ class SDKTest extends TestCase
         'go' => [
             'class' => 'Appwrite\SDK\Language\Go',
             'build' => [
-                'mkdir -p tests/tmp/go/src/github.com/appwrite/go-sdk',
-                'cp -Rf tests/sdks/go/* tests/tmp/go/src/github.com/appwrite/go-sdk/'
+                'mkdir -p tests/tmp/go/src/github.com/appwrite/sdk-for-go',
+                'cp -Rf tests/sdks/go/* tests/tmp/go/src/github.com/appwrite/sdk-for-go/'
             ],
             'envs' => [
-                'go1.12' => 'docker run --rm -v $(pwd):/app -v $(pwd)/tests/tmp/go:/go -w /app golang:1.12 sh -c "cd tests/languages/go/ && ./test.sh"',
-                'go1.17' => 'docker run --rm -v $(pwd):/app -v $(pwd)/tests/tmp/go:/go -w /app golang:1.17 sh -c "cd tests/languages/go/ && ./test.sh"',
+                'go1.12' => 'docker run --rm -v $(pwd):/app -w /app golang:1.12 sh -c "cd tests/languages/go/ && ./test.sh"',
+                'go1.17' => 'docker run --rm -v $(pwd):/app -w /app golang:1.17 sh -c "cd tests/languages/go/ && ./test.sh"',
             ],
             'supportException' => false,
             'expectedOutput' => [
                 ...FOO_RESPONSES,
                 ...BAR_RESPONSES,
                 ...GENERAL_RESPONSES,
-                // ...EXCEPTION_RESPONSES,
+                ...EXCEPTION_RESPONSES,
             ],
         ],
     ];
@@ -425,7 +425,6 @@ class SDKTest extends TestCase
                 }
 
                 $this->assertIsArray($output);
- 
                 $removed = '';
                 do {
                     $removed = array_shift($output);
