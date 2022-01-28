@@ -10,7 +10,7 @@ const { localConfig, globalConfig } = require("../config");
 const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description(commandDescriptions['{{ service.name | caseLower }}'])
 
 {% for method in service.methods %}
-const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}, {% endfor %}parseOutput = true, sdk = undefined, json{% if 'multipart/form-data' in method.consumes %}, onProgress = () => {}{% endif %}}) => {
+const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}, {% endfor %}parseOutput = true, sdk = undefined{% if 'multipart/form-data' in method.consumes %}, onProgress = () => {}{% endif %}}) => {
 {% for parameter in method.parameters.all %}
     /* @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} */
 {% endfor %}
@@ -61,7 +61,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
     const queryParams = new URLSearchParams(payload);
     path = `${globalConfig.getEndpoint()}${path}?${queryParams.toString()}`;
     if (parseOutput) { 
-        parse(path, json)
+        parse(path)
         success()
     }
 {% else %}
@@ -140,7 +140,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 {% endif %}
     
     if (parseOutput) {
-        parse(response, json)
+        parse(response)
         success()
     }
     return response;
@@ -157,7 +157,6 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 {% for parameter in method.parameters.all %}
     .{% if parameter.required %}requiredOption{% else %}option{% endif %}(`--{{ parameter.name | escapeKeyword }} <{{ parameter.name | escapeKeyword }}{% if parameter.array.type|length > 0 %}...{% endif %}>`, `{{ parameter.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`{% if parameter.type|typeName == 'boolean' %}, parseBool{% elseif parameter.type|typeName == 'number' %}, parseInteger{% endif %})
 {% endfor %}
-    .option(`--json`, `Output in JSON format`)
 {% endautoescape %}
     .action(actionRunner({{ service.name | caseLower }}{{ method.name | caseUcfirst }}))
 

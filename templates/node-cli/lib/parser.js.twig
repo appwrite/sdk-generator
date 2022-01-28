@@ -1,10 +1,15 @@
 const chalk = require('chalk');
 const commander = require('commander');
 const Table = require('cli-table3');
-const { description } = require('../package.json')
+const { description } = require('../package.json');
 
-const parse = (data, json = false) => {
-    if (json) {
+const cliConfig = {
+  verbose: false,
+  json: false
+};
+
+const parse = (data) => {
+    if (cliConfig.json) {
         drawJSON(data);
         return;
     }
@@ -101,7 +106,12 @@ const drawJSON = (data) => {
 }
 
 const parseError = (err) => {
-    error(err.message)
+    if(cliConfig.verbose) {
+        console.error(err);
+    }
+
+    error(err.message);
+
     process.exit(1)
 }
 
@@ -176,5 +186,6 @@ module.exports = {
     log,
     success,
     error,
-    commandDescriptions
+    commandDescriptions,
+    cliConfig
 }
