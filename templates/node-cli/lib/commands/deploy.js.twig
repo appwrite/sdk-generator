@@ -3,7 +3,7 @@ const { Command } = require("commander");
 const { localConfig } = require("../config");
 const { questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
-const { functionsGet, functionsCreate, functionsCreateTag, functionsUpdateTag } = require('./functions');
+const { functionsGet, functionsCreate, functionsCreateDeployment, functionsUpdateDeployment } = require('./functions');
 const {
     databaseCreateBooleanAttribute,
     databaseGetCollection,
@@ -16,8 +16,117 @@ const {
     databaseCreateUrlAttribute,
     databaseCreateIpAttribute,
     databaseCreateEnumAttribute,
-    databaseDeleteAttribute
+    databaseDeleteAttribute,
+    databaseListAttributes,
+    databaseListIndexes,
+    databaseDeleteIndex
 } = require("./database");
+
+const POOL_DEBOUNCE = 2000; // in milliseconds
+const POOL_MAX_DEBOUNCES = 30;
+
+const awaitPools = {
+    wipeAttributes: async (collectionId, iteration = 1) => {
+        if (iteration > POOL_MAX_DEBOUNCES) {
+            return false;
+        }
+
+        // TODO: Pagination?
+        const { attributes: remoteAttributes } = await databaseListAttributes({
+            collectionId,
+            limit: 100,
+            parseOutput: false
+        });
+
+        if (remoteAttributes.length <= 0) {
+            return true;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
+        return await awaitPools.wipeAttributes(collectionId, iteration + 1);
+    },
+    wipeIndexes: async (collectionId, iteration = 1) => {
+        if (iteration > POOL_MAX_DEBOUNCES) {
+            return false;
+        }
+
+        // TODO: Pagination?
+        const { indexes: remoteIndexes } = await databaseListIndexes({
+            collectionId,
+            limit: 100,
+            parseOutput: false
+        });
+
+        if (remoteIndexes.length <= 0) {
+            return true;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
+        return await awaitPools.wipeIndexes(collectionId, iteration + 1);
+    },
+    expectAttributes: async (collectionId, attributeKeys, iteration = 1) => {
+        if (iteration > POOL_MAX_DEBOUNCES) {
+            return false;
+        }
+
+        // TODO: Pagination?
+        const { attributes: remoteAttributes } = await databaseListAttributes({
+            collectionId,
+            limit: 100,
+            parseOutput: false
+        });
+
+        const readyAttributeKeys = remoteAttributes.filter((attribute) => {
+            if (attributeKeys.includes(attribute.key)) {
+                if (['stuck', 'failed'].includes(attribute.status)) {
+                    throw new Error(`Attribute '${attribute.key}' failed!`);
+                }
+
+                return attribute.status === 'available';
+            }
+
+            return false;
+        }).map(attribute => attribute.key);
+
+        if (readyAttributeKeys.length >= attributeKeys.length) {
+            return true;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
+        return await awaitPools.expectAttributes(collectionId, attributeKeys, iteration + 1);
+    },
+    expectIndexes: async (collectionId, indexKeys, iteration = 1) => {
+        if (iteration > POOL_MAX_DEBOUNCES) {
+            return false;
+        }
+
+        // TODO: Pagination?
+        const { indexes: remoteIndexes } = await databaseListIndexes({
+            collectionId,
+            limit: 100,
+            parseOutput: false
+        });
+
+        const readyIndexKeys = remoteIndexes.filter((index) => {
+            if (indexKeys.includes(index.key)) {
+                if (['stuck', 'failed'].includes(index.status)) {
+                    throw new Error(`Index '${index.key}' failed!`);
+                }
+
+                return index.status === 'available';
+            }
+
+            return false;
+        }).map(index => index.key);
+
+        if (readyIndexKeys.length >= indexKeys.length) {
+            return true;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
+        return await awaitPools.expectIndexes(collectionId, indexKeys, iteration + 1);
+    },
+}
 
 const deploy = new Command("deploy")
     .description(commandDescriptions['deploy'])
@@ -78,11 +187,11 @@ const deployFunction = async () => {
         }
 
         try {
-            response = await functionsCreateTag({
+            response = await functionsCreateDeployment({
                 functionId: func['$id'],
                 entrypoint: func.entrypoint,
                 code: func.path,
-                automaticDeploy: true,
+                deploy: true,
                 parseOutput: false
             })
 
@@ -208,34 +317,78 @@ const deployCollection = async () => {
             }
 
             log(`Updating attributes ... `);
-            collection.attributes.forEach(async attribute => {
+
+            // TODO: Pagination?
+            const { indexes: remoteIndexes } = await databaseListIndexes({
+                collectionId: collection['$id'],
+                limit: 100,
+                parseOutput: false
+            });
+
+            await Promise.all(remoteIndexes.map(async index => {
+                await databaseDeleteIndex({
+                    collectionId: collection['$id'],
+                    key: index.key,
+                    parseOutput: false
+                });
+            }));
+
+            const deleteIndexesPoolStatus = await awaitPools.wipeIndexes(collection['$id']);
+            if (!deleteIndexesPoolStatus) {
+                throw new Error("Index deletion did not finish for too long.");
+            }
+
+            // TODO: Pagination?
+            const { attributes: remoteAttributes } = await databaseListAttributes({
+                collectionId: collection['$id'],
+                limit: 100,
+                parseOutput: false
+            });
+            
+            await Promise.all(remoteAttributes.map(async attribute => {
                 await databaseDeleteAttribute({
                     collectionId: collection['$id'],
                     key: attribute.key,
                     parseOutput: false
-                })
-            });
+                });
+            }));
 
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            const deleteAttributesPoolStatus = await awaitPools.wipeAttributes(collection['$id']);
+            if (!deleteAttributesPoolStatus) {
+                throw new Error("Attribute deletion did not finish for too long.");
+            }
 
-            collection.attributes.forEach(async attribute => {
+            await Promise.all(collection.attributes.map(async attribute => {
                 await createAttribute(collection['$id'], attribute);
-            });
+            }));
 
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            const attributeKeys = collection.attributes.map(attribute => attribute.key);
+            const createPoolStatus = await awaitPools.expectAttributes(collection['$id'], attributeKeys);
+            if (!createPoolStatus) {
+                throw new Error("Attribute creation did not finish for too long.");
+            }
+
+            success(`Created ${collection.attributes.length} attributes`);
 
             log(`Creating indexes ...`)
-            collection.indexes.forEach(async index => {
+            await Promise.all(collection.indexes.map(async index => {
                 await databaseCreateIndex({
                     collectionId: collection['$id'],
-                    indexId: index.key,
+                    key: index.key,
                     type: index.type,
                     attributes: index.attributes,
                     orders: index.orders,
                     parseOutput: false
-                })
-            })
+                });
+            }));
 
+            const indexKeys = collection.indexes.map(attribute => attribute.key);
+            const indexPoolStatus = await awaitPools.expectIndexes(collection['$id'], indexKeys);
+            if (!indexPoolStatus) {
+                throw new Error("Index creation did not finish for too long.");
+            }
+
+            success(`Created ${collection.indexes.length} indexes`);
         } catch (e) {
             if (e.code == 404) {
                 log(`Collection ${collection.name} does not exist in the project. Creating ... `);
@@ -249,25 +402,37 @@ const deployCollection = async () => {
                 })
 
                 log(`Creating attributes ... `);
-                collection.attributes.forEach(async attribute => {
+                await Promise.all(collection.attributes.map(async attribute => {
                     await createAttribute(collection['$id'], attribute);
-                });
+                }));
 
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                const attributeKeys = collection.attributes.map(attribute => attribute.key);
+                const attributePoolStatus = await awaitPools.expectAttributes(collection['$id'], attributeKeys);
+                if (!attributePoolStatus) {
+                    throw new Error("Attribute creation did not finish for too long.");
+                }
+
+                success(`Created ${collection.attributes.length} attributes`);
 
                 log(`Creating indexes ...`);
-                collection.indexes.forEach(async index => {
+                await Promise.all(collection.indexes.map(async index => {
                     await databaseCreateIndex({
                         collectionId: collection['$id'],
-                        indexId: index.key,
+                        key: index.key,
                         type: index.type,
                         attributes: index.attributes,
                         orders: index.orders,
                         parseOutput: false
-                    })
-                })
+                    });
+                }));
 
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                const indexKeys = collection.indexes.map(attribute => attribute.key);
+                const indexPoolStatus = await awaitPools.expectIndexes(collection['$id'], indexKeys);
+                if (!indexPoolStatus) {
+                    throw new Error("Index creation did not finish for too long.");
+                }
+
+                success(`Created ${collection.indexes.length} indexes`);
 
                 success(`Deployed ${collection.name} ( ${collection['$id']} )`);
             } else {
