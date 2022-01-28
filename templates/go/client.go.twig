@@ -14,6 +14,24 @@ import (
 	"time"
 )
 
+// ClientError represents an error of a client request
+type ClientError struct {
+	statusCode int
+	message    string
+}
+
+func (ce *ClientError) Error() string {
+	return ce.message
+}
+
+func (ce *ClientError) GetMessage() string {
+	return ce.message
+}
+
+func (ce *ClientError) GetStatusCode() int {
+	return ce.statusCode
+}
+
 // Client is the client struct to access Appwrite services
 type Client struct {
 	client     *http.Client
@@ -36,6 +54,10 @@ func NewClient(timeout time.Duration) Client {
 		timeout: timeout,
 		headers: headers,
 	}
+}
+
+func (clt *Client) String() string {
+	return fmt.Sprintf("%s\n%s\n%v", clt.endpoint, clt.headers, clt.timeout)
 }
 
 func getDefaultClient(timeout time.Duration) (*http.Client, error) {
@@ -89,26 +111,33 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 	urlPath := clt.endpoint + path
 	isGet := strings.ToUpper(method) == "GET"
 	isJsonRequest := headers["content-type"] == "application/json"
-	var reqBody *strings.Reader
+	var req *http.Request
+	var err error
 	if !isGet {
+		var reqBody *strings.Reader
 		if isJsonRequest {
 			json, err := json.Marshal(params)
 			if err != nil {
 				return nil, err
 			}
 			reqBody = strings.NewReader(string(json))
+		} else {
+			frm := url.Values{}
+			for key, val := range params {
+				frm.Add(key, toString(val))
+			}
+			reqBody = strings.NewReader(frm.Encode())
+		}
+		// Create and modify HTTP request before sending
+		req, err = http.NewRequest(method, urlPath, reqBody)
+		if err != nil {
+			return nil, err
 		}
 	} else {
-		frm := url.Values{}
-		for key, val := range params {
-			frm.Add(key, toString(val))
+		req, err = http.NewRequest(method, urlPath, nil)
+		if err != nil {
+			return nil, err
 		}
-	}
-
-	// Create and modify HTTP request before sending
-	req, err := http.NewRequest(method, urlPath, reqBody)
-	if err != nil {
-		return nil, err
 	}
 
 	// Set Client headers
@@ -145,23 +174,44 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		req.URL.RawQuery = rawQuery
 	}
 
+	//fmt.Println("req", req)
 	// Make request
-	response, err := clt.client.Do(req)
+	resp, err := clt.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
 	// Handle response
-	defer response.Body.Close()
+	defer resp.Body.Close()
  
-	responseData, err := ioutil.ReadAll(response.Body)
+	responseData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	var jsonResponse map[string]interface{}
-	json.Unmarshal(responseData, &jsonResponse)
-	return jsonResponse, nil
+	var isJson = !strings.HasPrefix(resp.Header.Get("content-type"), "text")
+	if isJson {
+		var jsonResponse map[string]interface{}
+		json.Unmarshal(responseData, &jsonResponse)
+		if resp.StatusCode < 200 || resp.StatusCode > 300 {
+			message, ok := jsonResponse["message"].(string)
+			if !ok {
+				message = "N/A"
+			}
+			return nil, &ClientError{
+				statusCode: resp.StatusCode,
+				message:    message,
+			}
+		}
+		return jsonResponse, nil
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 300 {
+		return nil, &ClientError{
+			statusCode: resp.StatusCode,
+			message:    string(responseData),
+		}
+	}
+	return map[string]interface{}{"result": string(responseData)}, nil
 }
 
 // toString changes arg to string
