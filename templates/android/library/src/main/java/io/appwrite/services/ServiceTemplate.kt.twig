@@ -1,6 +1,6 @@
 {% macro parameter(parameter) %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{% if not parameter.required %}? = null{% endif %}{% endmacro %}
-{% macro method_parameters(parameters) %}
-{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% endif %}
+{% macro method_parameters(parameters, consumes) %}
+{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, onProgress: (Double) -> Unit)? = null{% endif %}{% endif %}
 {% endmacro %}
 {% macro methodNeedsSecurityParameters(method) %}
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
@@ -44,7 +44,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
      */
     @JvmOverloads
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ _self.method_parameters(method.parameters) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: {{ _self.resultType(sdk.namespace, method) }}{% endif %} {
+    suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ _self.method_parameters(method.parameters, method.consumes) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: {{ _self.resultType(sdk.namespace, method) }}{% endif %} {
         val path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %}
 
         val params = mapOf<String, Any?>(
@@ -122,6 +122,24 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {% endif %}
         }
 {% endif %}
+{% if 'multipart/form-data' in method.consumes %}
+ {% for parameter in method.parameters.all %}
+ {% if parameter.type == 'file' %}
+        val paramName = '{{ parameter.name }}'
+ {% endif %}
+ {% endfor %}
+        return client.chunkedUpload(
+            path,
+            headers,
+            params,
+            paramName,
+            onProgress!!,
+            responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java,
+{% if method.responseModel %}
+            convert = convert
+{% endif %}
+        )
+ {% else %}
         return client.call(
             "{{ method.method | caseUpper }}",
             path,
@@ -132,6 +150,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             convert = convert
 {% endif %}
         )
+{% endif %}
 {% endif %}
     }
     

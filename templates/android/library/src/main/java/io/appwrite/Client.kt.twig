@@ -42,6 +42,10 @@ class Client @JvmOverloads constructor(
     private var selfSigned: Boolean = false
 ) : CoroutineScope {
 
+    companion object {
+        const val CHUNK_SIZE = 5*1024*1024; // 5MB
+    }
+
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Main + job
 
