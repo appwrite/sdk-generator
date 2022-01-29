@@ -97,8 +97,7 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 	fmt.Printf("%s\n", response["result"])
 
 	testGeneralUpload(client, stringInArray)
-
-	//fmt.Println("POST:/v1/mock/tests/general/upload:passed")
+	testGeneralDownload(client)
 
 	response, err = general.Error400()
 	if err != nil {
@@ -114,7 +113,6 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
 	}
-
 }
 
 func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {
@@ -124,6 +122,15 @@ func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {
 	response, err := general.Upload("string", 123, stringInArray, uploadFile)
 	if err != nil {
 		fmt.Errorf("general.Upload => error %v", err)
+	}
+	fmt.Printf("%s\n", response["result"])
+}
+
+func testGeneralDownload(client appwrite.Client) {
+	general := appwrite.NewGeneral(client)
+	response, err := general.Download()
+	if err != nil {
+		fmt.Errorf("general.Download => error %v", err)
 	}
 	fmt.Printf("%s\n", response["result"])
 }

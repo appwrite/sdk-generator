@@ -289,15 +289,42 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 				message:    message,
 			}
 		}
+		jsonResponse["status"] = resp.StatusCode
+		jsonResponse["headers"] = resp.Header
 		return jsonResponse, nil
+	}
+	output, err := getOutput(responseData, resp.Header.Get("content-type"))
+	if err != nil {
+		return nil, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 300 {
 		return nil, &ClientError{
 			statusCode: resp.StatusCode,
-			message:    string(responseData),
+			message:    output,
 		}
 	}
-	return map[string]interface{}{"result": string(responseData)}, nil
+	return map[string]interface{}{
+		"status":  resp.StatusCode,
+		"headers": resp.Header,
+		"result":  output}, nil
+}
+
+func getOutput(responseData []byte, contentType string) (string, error) {
+	if strings.HasPrefix(contentType, "text") || strings.HasSuffix(contentType, "json") {
+		return string(responseData), nil
+	}
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
+	if err != nil {
+		return "", err
+	}
+	if _, err = tmpFile.Write(responseData); err != nil {
+		return "", err
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		return "", err
+	}
+	return tmpFile.Name(), nil
 }
 
 // toString changes arg to string
