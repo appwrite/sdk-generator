@@ -50,7 +50,6 @@ type Client struct {
 // NewClient initializes a new Appwrite client with a given timeout
 func NewClient(timeout time.Duration) Client {
 	headers := map[string]string{
-		"content-type":               "",
 		"x-sdk-version":              "appwrite:go:0.0.1",
 		"X-Appwrite-Response-Format": "0.8.0",
 	}
@@ -136,14 +135,26 @@ func newfileUploadRequest(uri string, params map[string]interface{}, paramName s
 		return nil, err
 	}
 
-	for key, _ := range params {
-		val, ok := params[key].(string)
-		if ok {
-			_ = writer.WriteField(key, val)
-		} else {
-			return nil, fmt.Errorf("%s is not a string value", key)
+	for key, val := range params {
+		rt := reflect.TypeOf(val)
+		switch rt.Kind() {
+		case reflect.Array:
+		case reflect.Slice:
+			arr := reflect.ValueOf(val)
+			for i := 0; i < arr.Len(); i++ {
+				err = writer.WriteField(fmt.Sprintf("%s[]", key), toString(arr.Index(i)))
+				if err != nil {
+					return nil, err
+				}
+			}
+		default:
+			err = writer.WriteField(key, toString(val))
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
+
 	err = writer.Close()
 	if err != nil {
 		return nil, err
@@ -243,7 +254,6 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		req.Header.Set(key, toString(val))
 	}
 
-	fmt.Println("req", req)
 	// Make request
 	resp, err := clt.client.Do(req)
 	if err != nil {
@@ -257,7 +267,6 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 	if err != nil {
 		return nil, err
 	}
-	//fmt.Println("responseData", string(responseData))
 
 	var isJson = !strings.HasPrefix(resp.Header.Get("content-type"), "text")
 	if isJson {
