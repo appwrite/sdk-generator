@@ -115,7 +115,6 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
 	}
-
 }
 
 func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {
@@ -136,4 +135,13 @@ func testGeneralDownload(client appwrite.Client) {
 		fmt.Errorf("general.Download => error %v", err)
 	}
 	fmt.Printf("%s\n", response.Result)
+}
+
+func testGeneralDownload(client appwrite.Client) {
+	general := appwrite.NewGeneral(client)
+	response, err := general.Download()
+	if err != nil {
+		fmt.Errorf("general.Download => error %v", err)
+	}
+	fmt.Printf("%s\n", response["result"])
 }

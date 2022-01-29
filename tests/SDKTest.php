@@ -31,6 +31,10 @@ const GENERAL_RESPONSES = [
     'POST:/v1/mock/tests/general/upload:passed',
 ];
 
+const EXTENDED_GENERAL_RESPONSES = [
+    'Download test passed.',
+];
+
 const EXCEPTION_RESPONSES = [
     'Mock 400 error',
     'Server Error',
@@ -320,6 +324,7 @@ class SDKTest extends TestCase
                 ...FOO_RESPONSES,
                 ...BAR_RESPONSES,
                 ...GENERAL_RESPONSES,
+                ...EXTENDED_GENERAL_RESPONSES,
                 ...EXCEPTION_RESPONSES,
             ],
         ],
