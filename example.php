@@ -301,11 +301,11 @@ try {
         ->setURL('https://example.com')
         ->setVersion('0.0.1')
         ->setGitUserName('appwrite')
-        ->setGitRepoName('go-sdk')
+        ->setGitRepoName('sdk-for-go')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('CHANGELOG')
+        ->setChangelog('**CHANGELOG**')
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([

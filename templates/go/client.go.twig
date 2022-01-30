@@ -50,8 +50,10 @@ type Client struct {
 // NewClient initializes a new Appwrite client with a given timeout
 func NewClient(timeout time.Duration) Client {
 	headers := map[string]string{
-		"x-sdk-version":              "appwrite:go:0.0.1",
-		"X-Appwrite-Response-Format": "0.8.0",
+{% for key,header in spec.global.defaultHeaders %}
+		"{{key}}" : "{{header}}",
+		"x-sdk-version": "appwrite:go:{{sdk.version}}",
+{% endfor %}
 	}
 	httpClient, err := getDefaultClient(timeout)
 	if err != nil { panic(err) }

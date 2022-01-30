@@ -373,7 +373,7 @@ class SDKTest extends TestCase
                 ->setVersion('0.0.1')
                 ->setExamples('**EXAMPLES** <HTML>')
                 ->setNamespace("io appwrite")
-                ->setGitUserName('repoowner')
+                ->setGitUserName('appwrite')
                 ->setGitRepoName('reponame')
                 ->setLicense('BSD-3-Clause')
                 ->setLicenseContent('demo license')
