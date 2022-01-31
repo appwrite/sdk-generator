@@ -327,17 +327,8 @@ class Client @JvmOverloads constructor(
                         .charStream()
                         .buffered()
                         .use(BufferedReader::readText)
-                        
                     val error = if (response.headers["content-type"]?.contains("application/json") == true) {
-                        val map = gson.fromJson<Map<String, Any>>(
-                            body,
-                            object : TypeToken<Map<String, Any>>(){}.type
-                        )
-                        {{ spec.title | caseUcfirst }}Exception(
-                            map["message"] as? String ?: "", 
-                            (map["code"] as Number).toInt(), 
-                            body
-                        )
+                        body.fromJson()
                     } else {
                         {{ spec.title | caseUcfirst }}Exception(body, response.code)
                     }
