@@ -232,6 +232,7 @@ class SDKTest extends TestCase
                 ...FOO_RESPONSES,
                 ...BAR_RESPONSES,
                 ...GENERAL_RESPONSES,
+                'POST:/v1/mock/tests/general/upload:passed', // for large file upload
                 ...EXCEPTION_RESPONSES,
                 ...REALTIME_RESPONSES,
             ],
