@@ -1,15 +1,18 @@
 
-dist: xenial
+dist: focal
 
 arch:
   - amd64
+
+services:
+  - docker
 
 os: linux
 
 language: php
 
 php:
-  - 7.4
+  - 8.0
 
 env:
   - SDK=Android
@@ -31,11 +34,6 @@ notifications:
     - team@appwrite.io
 
 before_install:
-  - curl -fsSL https://get.docker.com | sh
-  - echo '{"experimental":"enabled"}' | sudo tee /etc/docker/daemon.json
-  - mkdir -p $HOME/.docker
-  - echo '{"experimental":"enabled"}' | sudo tee $HOME/.docker/config.json
-  - sudo service docker start
   - >
     if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
       echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
