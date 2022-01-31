@@ -350,6 +350,12 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Query.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Query.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.title | caseUcfirst}}Exception.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/exceptions/Exception.kt.twig',
                 'minify'        => false,
