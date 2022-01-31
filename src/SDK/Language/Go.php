@@ -89,13 +89,13 @@ class Go extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'appwrite/client.go',
+                'destination'   => '{{ spec.title }}/client.go',
                 'template'      => 'go/client.go.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'service',
-                'destination'   => 'appwrite/{{service.name | caseDash}}.go',
+                'destination'   => '{{ spec.title }}/{{service.name | caseDash}}.go',
                 'template'      => 'go/services/service.go.twig',
                 'minify'        => false,
             ],
@@ -117,25 +117,18 @@ class Go extends Language {
         switch ($type) {
             case self::TYPE_INTEGER:
                 return 'int';
-                break;
             case self::TYPE_NUMBER:
                 return 'float64';
-                break;
             case self::TYPE_STRING:
                 return 'string';
-                break;
             case self::TYPE_FILE:
                 return 'string'; // '*os.File';
-                break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
-                break;
             case self::TYPE_OBJECT:
                 return 'interface{}';
-                break;
             case self::TYPE_ARRAY:
-                 return '[]interface{}';
-                break;
+                return '[]interface{}';
         }
 
         return $type;
@@ -189,7 +182,7 @@ class Go extends Language {
                     $output .= ($default) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "\"{$default}\"";
+                    $output .= "nil";
                     break;
             }
         }

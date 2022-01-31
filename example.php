@@ -401,8 +401,8 @@ try {
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
         ->setChangelog('**CHANGELOG**')
         ->setVersion('0.0.1')
-        ->setGitUserName('appwrite')
-        ->setGitRepoName('go-sdk')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
     ;
