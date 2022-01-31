@@ -11,6 +11,21 @@ language: php
 php:
   - 7.4
 
+env:
+  - SDK=Android
+  - SDK=CLI
+  - SDK=Dart
+  - SDK=Deno
+  - SDK=Flutter
+  - SDK=Kotlin
+  - SDK=Node
+  - SDK=PHP
+  - SDK=Python
+  - SDK=Ruby
+  - SDK=SwiftClient
+  - SDK=SwiftServer
+  - SDK=Web
+
 notifications:
   email:
     - team@appwrite.io
@@ -32,4 +47,4 @@ install:
   - composer install
 
 script:
-  - vendor/bin/phpunit
+  - vendor/bin/phpunit tests/${SDK}Test.php
