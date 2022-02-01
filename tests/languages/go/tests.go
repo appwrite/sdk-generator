@@ -5,7 +5,7 @@ import (
 	"path"
 	"time"
 
-	appwrite "github.com/appwrite/sdk-for-go/appwrite"
+	"github.com/appwrite/sdk-for-go/appwrite"
 )
 
 func main() {
