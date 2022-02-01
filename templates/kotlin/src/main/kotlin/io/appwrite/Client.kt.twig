@@ -286,7 +286,7 @@ class Client @JvmOverloads constructor(
                         .charStream()
                         .buffered()
                         .use(BufferedReader::readText)
-
+                        
                     val error = if (response.headers["content-type"]?.contains("application/json") == true) {
                         val map = gson.fromJson<Map<String, Any>>(
                             body,
