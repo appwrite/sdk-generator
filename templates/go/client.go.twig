@@ -20,6 +20,10 @@ import (
 	"time"
 )
 
+const (
+	fileNameKey = "file"
+)
+
 // ClientError represents an error of a client request
 type ClientError struct {
 	statusCode int
@@ -196,7 +200,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		if !isPost {
 			return nil, errors.New("fileupload needs POST Request")
 		}
-		req, err = newfileUploadRequest(urlPath, params, "file")
+		req, err = newfileUploadRequest(urlPath, params, fileNameKey)
 		if err != nil {
 			return nil, err
 		}
@@ -295,7 +299,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		jsonResponse["headers"] = resp.Header
 		return jsonResponse, nil
 	}
-	output, err := getOutput(responseData, resp.Header.Get("content-type"))
+	output, err := getOutput(params, fileNameKey, responseData, resp.Header.Get("content-type"))
 	if err != nil {
 		return nil, err
 	}
@@ -311,22 +315,27 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		"result":  output}, nil
 }
 
-func getOutput(responseData []byte, contentType string) (string, error) {
+func getOutput(params map[string]interface{}, paramName string, responseData []byte, contentType string) (string, error) {
 	if strings.HasPrefix(contentType, "text") || strings.HasSuffix(contentType, "json") {
 		return string(responseData), nil
 	}
-	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
+	path, ok := params[paramName].(string)
+	if !ok {
+		return "", os.ErrNotExist
+	}
+	file, err := os.Open(path)
 	if err != nil {
 		return "", err
 	}
-	if _, err = tmpFile.Write(responseData); err != nil {
+
+	if _, err = file.Write(responseData); err != nil {
 		return "", err
 	}
 
-	if err := tmpFile.Close(); err != nil {
+	if err := file.Close(); err != nil {
 		return "", err
 	}
-	return tmpFile.Name(), nil
+	return file.Name(), nil
 }
 
 // toString changes arg to string
