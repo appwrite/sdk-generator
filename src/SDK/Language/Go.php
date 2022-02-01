@@ -89,13 +89,13 @@ class Go extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '{{ spec.title }}/client.go',
+                'destination'   => '{{ spec.title | caseLower}}/client.go',
                 'template'      => 'go/client.go.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '{{ spec.title }}/{{service.name | caseDash}}.go',
+                'destination'   => '{{ spec.title | caseLower}}/{{service.name | caseDash}}.go',
                 'template'      => 'go/services/service.go.twig',
                 'minify'        => false,
             ],
