@@ -114,7 +114,6 @@ export class {{ service.name | caseUcfirst }} extends Service {
                     
                     const totalBuffer = new Uint8Array(Client.CHUNK_SIZE);
 
-                    // 16kB chunks block limit: https://github.com/denoland/deno/discussions/9906
                     for (let blockIndex = 0; blockIndex < Client.CHUNK_SIZE / Client.DENO_READ_CHUNK_SIZE; blockIndex++) {
                             const buf = new Uint8Array(Client.DENO_READ_CHUNK_SIZE);
                             const cursorPosition = await Deno.seek(stream.rid, start + (blockIndex * 16384), Deno.SeekMode.Start);
