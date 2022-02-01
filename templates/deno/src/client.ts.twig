@@ -5,6 +5,9 @@ export interface Payload {
 }
 
 export class Client {
+    static CHUNK_SIZE = 5*1024*1024; // 5MB
+    static DENO_READ_CHUNK_SIZE = 16384; // 16kb; refference: https://github.com/denoland/deno/discussions/9906
+    
     endpoint: string = 'https://appwrite.io/v1';
     headers: Payload = {
         'content-type': '',
@@ -93,14 +96,14 @@ export class Client {
             const contentType = response.headers.get('content-type');
 
             if (contentType && contentType.includes('application/json')) {
-                if(response.status >= 400) {
+                if (response.status >= 400) {
                     let res = await response.json();
                     throw new {{ spec.title | caseUcfirst}}Exception(res.message, res.status, res);
                 }
 
                 return response.json();
             } else {
-                if(response.status >= 400) {
+                if (response.status >= 400) {
                     let res = await response.text();
                     throw new {{ spec.title | caseUcfirst}}Exception(res, response.status, null);
                 }
