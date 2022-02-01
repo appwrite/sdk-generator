@@ -12,6 +12,7 @@ let CRLF = "\r\n"
 open class Client {
 
     // MARK: Properties
+    public static var chunkSize = 5 * 1024 * 1024 // 5MB
 
     open var endPoint = "{{spec.endpoint}}"
 
@@ -362,6 +363,68 @@ open class Client {
             }
         }
     }
+
+      
+    func chunkedUpload<T>(
+        path: String,
+        headers: inout [String: String],
+        params: inout [String: Any?],
+        paramName: String,
+        convert: (([String: Any]) -> T)? = nil,
+        onProgress: ((Double) -> Void)? = nil,
+        completion: ((Result<T, AppwriteError>) -> Void)? = nil
+    ) {
+        let file = params[paramName] as! File
+        let size = file.buffer.storageCapacity
+
+        if (size < Client.chunkSize) {
+            call(
+                method: "POST",
+                path: path,
+                headers: headers,
+                params: params,
+                convert: convert,
+                completion: completion
+            )
+        }
+
+        var input = file.buffer
+        var offset = 0
+        var result = [String:Any]()
+
+        while (offset < size) {
+            guard let slice = input.readSlice(length: Client.chunkSize) else {
+                break
+            }
+            params[paramName] = File(
+                name: file.name,
+                buffer: slice
+            )
+            headers["content-range"] = "bytes \(offset)-\(min((offset + Client.chunkSize) - 1, size))/\(size)"
+
+            call(
+                method: "POST",
+                path: path,
+                headers: headers,
+                params: params,
+                convert: { map in return map }
+            ) { response in
+                switch response {
+                case let .success(map):
+                    result = map
+                case let .failure(error):
+                    completion?(.failure(error))
+                }
+            }
+            
+            offset += Client.chunkSize
+            headers["x-appwrite-id"] = String(describing: result["$id"])
+            onProgress?(Double(min(offset, size))/Double(size * 100))
+        }
+
+        completion?(.success(convert!(result)))
+    }
+
 
     private func randomBoundary() -> String {
         var string = ""
