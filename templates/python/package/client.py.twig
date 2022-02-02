@@ -1,9 +1,12 @@
 import io
 import requests
+import os
+from .input_file import InputFile
 from .exception import {{spec.title | caseUcfirst}}Exception
 
 class Client:
     def __init__(self):
+        self._chunk_size = 5*1024*1024
         self._self_signed = False
         self._endpoint = '{{spec.endpoint}}'
         self._global_headers = {
@@ -61,8 +64,8 @@ class Client:
             del headers['content-type']
             
             for key in data.copy():
-                if isinstance(data[key], io.BufferedIOBase):
-                    files[key] = data[key]
+                if isinstance(data[key], InputFile):
+                    files[key] = data[key].file
                     del data[key]
         response = None
         try:
@@ -94,6 +97,49 @@ class Client:
                     raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code)
             else:
                 raise {{spec.title | caseUcfirst}}Exception(e)
+
+    def chunked_upload(
+        self,
+        path,
+        headers = None,
+        params = None,
+        param_name = '',
+        on_progress = None,
+    ):
+        path = str(params[param_name])
+        size = os.stat(path).st_size
+
+        if size < self._chunk_size:
+            return self.call(
+                'post',
+                path,
+                headers,
+                params
+            )
+
+        input = open(path, "rb")
+        offset = 0
+
+        while True:
+            slice = input.read(self._chunk_size)
+            if not slice:
+                break
+
+            params[param_name] = InputFile(path, slice)
+            headers["content-range"] = f'bytes {offset}-{min((offset + self._chunk_size) - 1, size)}/{size}'
+
+            result = self.call(
+                'post',
+                path,
+                headers,
+                params,
+            )
+            
+            offset = offset + self._chunk_size
+            headers["x-appwrite-id"] = result["$id"]
+            on_progress(min(offset, size)/size * 100)
+
+        return result
 
     def flatten(self, data, prefix=''):
         output = {}
