@@ -157,6 +157,18 @@ class Tests: XCTestCase {
         }
         group.wait()
 
+        let url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
+        let buffer = ByteBuffer(data: try! Data(contentsOf: url))
+        let file = File(name: "large_file.mp4", buffer: buffer)
+        general.upload(x: "string", y: 123, z: ["string in array"], file: file) { result in
+            switch result {
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( mock.result)
+            }
+            group.leave()
+        }
+        group.wait()
+
         group.enter()
         general.error400() { result in
             switch result {
