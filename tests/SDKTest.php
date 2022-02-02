@@ -132,6 +132,7 @@ class SDKTest extends TestCase
                 ...FOO_RESPONSES,
                 ...BAR_RESPONSES,
                 ...GENERAL_RESPONSES,
+                'POST:/v1/mock/tests/general/upload:passed',
                 ...EXCEPTION_RESPONSES,
                 ...REALTIME_RESPONSES,
             ],
@@ -152,6 +153,7 @@ class SDKTest extends TestCase
                 ...FOO_RESPONSES,
                 ...BAR_RESPONSES,
                 ...GENERAL_RESPONSES,
+                'POST:/v1/mock/tests/general/upload:passed', // large file upload
                 ...EXCEPTION_RESPONSES,
             ],
         ],
@@ -332,7 +334,8 @@ class SDKTest extends TestCase
             throw new \Exception('Failed to fetch spec from Appwrite server');
         }
 
-        $whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin', 'swift-server', 'swift-client'];
+        //$whitelist = ['php', 'cli', 'node', 'ruby', 'python', 'deno', 'dotnet', 'dart', 'flutter', 'web', 'android', 'kotlin', 'swift-server', 'swift-client'];
+        $whitelist = ['kotlin','android'];
 
         foreach ($this->languages as $language => $options) {
             if (!empty($whitelist) && !in_array($language, $whitelist)) {
