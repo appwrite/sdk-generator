@@ -91,7 +91,7 @@ const initFunction = async () => {
     name: response['name'],
     runtime: response['runtime'],
     path: answers.name,
-    entrypoint: answers.runtime.entrypoint || ""
+    entrypoint: answers.runtime.entrypoint || ''
   };
 
   localConfig.addFunction(data);
