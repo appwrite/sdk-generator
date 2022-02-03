@@ -113,7 +113,7 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% if method.responseModel %}
             convert: convert,
 {% endif %}
-            onProgress: onProgress!,
+            onProgress: onProgress,
             completion: completion
         )
 {% else %}
