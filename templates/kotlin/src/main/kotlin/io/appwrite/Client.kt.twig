@@ -330,7 +330,7 @@ class Client @JvmOverloads constructor(
 
             offset += CHUNK_SIZE
             headers["x-appwrite-id"] = result!!["\$id"].toString()
-            onProgress?.invoke(offset.coerceAtMost(size).toDouble()/(size * 100))
+            onProgress?.invoke(offset.coerceAtMost(size).toDouble()/size * 100)
         }
 
         return convert(result as Map<String, Any>)
