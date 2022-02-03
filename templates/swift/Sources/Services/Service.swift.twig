@@ -42,11 +42,12 @@ open class {{ service.name | caseUcfirst }}: Service {
         path = path.replacingOccurrences(
           of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}",
           with: {% if method.parameters.path %}{{ parameter.name | caseCamel | escapeKeyword }}{% else %}""{% endif %}
+        
         )
 
 {% endfor %}
 {% if method.parameters.query or method.parameters.body or method.parameters.formData or _self.methodNeedsSecurityParameters(method) %}
-        var params: [String: Any?] = [
+        {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} params: [String: Any?] = [
 {% else %}
         let params: [String: Any?] = [:]
 {% endif %}
@@ -85,7 +86,7 @@ open class {{ service.name | caseUcfirst }}: Service {
             completion: completion
         )
 {% else %}
-        var headers: [String: String] = [
+        {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} headers: [String: String] = [
 {{ method.headers|map((header, key) => "            \"#{key}\": \"#{header}\"")|join(',\n')|raw }}
         ]
 
