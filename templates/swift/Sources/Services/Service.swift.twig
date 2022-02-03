@@ -98,6 +98,7 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% endif %}
         }
 
+{% endif %}
 {% if 'multipart/form-data' in method.consumes %}
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
@@ -127,7 +128,6 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% endif %}
             completion: completion
         )
-{% endif %}
 {% endif %}
 {% endif %}
     }
