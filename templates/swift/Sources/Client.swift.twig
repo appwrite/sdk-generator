@@ -377,7 +377,7 @@ open class Client {
         let file = params[paramName] as! File
         let size = file.buffer.storageCapacity
 
-        if (size < Client.chunkSize) {
+        if size < Client.chunkSize {
             call(
                 method: "POST",
                 path: path,
@@ -392,7 +392,7 @@ open class Client {
         var offset = 0
         var result = [String:Any]()
 
-        while (offset < size) {
+        while offset < size {
             guard let slice = input.readSlice(length: Client.chunkSize) else {
                 break
             }
@@ -419,7 +419,7 @@ open class Client {
             
             offset += Client.chunkSize
             headers["x-appwrite-id"] = String(describing: result["$id"])
-            onProgress?(Double(min(offset, size))/Double(size * 100))
+            onProgress?(Double(min(offset, size))/Double(size) * 100.0)
         }
 
         completion?(.success(convert!(result)))
