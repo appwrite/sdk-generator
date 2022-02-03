@@ -1,0 +1,45 @@
+#pragma once
+
+#include <string>
+#include "include/json.hpp"
+#include <cpr/cpr.h>
+
+using json = nlohmann::json;
+using string = std::string;
+
+namespace {{ spec.title | caseUcfirst }} {
+
+class Client {
+ protected:
+    bool selfSigned = false;
+    string endpoint = "{{spec.endpoint}}";
+    cpr::Header headers = {
+        { "content-type", "" },
+        { "x-sdk-version", "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}" },
+{% for key,header in spec.global.defaultHeaders %}
+        { "{{key}}", "{{header}}"},
+{% endfor %}
+    };
+
+ public:
+    inline static const string METHOD_GET;
+    inline static const string METHOD_POST;
+    inline static const string METHOD_PUT;
+    inline static const string METHOD_PATCH;
+    inline static const string METHOD_DELETE;
+    inline static const string METHOD_HEAD;
+    inline static const string METHOD_OPTIONS;
+    inline static const string METHOD_CONNECT;
+    inline static const string METHOD_TRACE;
+
+    Client();
+    ~Client();
+{% for header in spec.global.headers %}
+    Client& set{{header.key | caseUcfirst}}(string value);
+{% endfor %}
+    Client& setSelfSigned(bool status = true);
+    Client& setEndpoint(string endpoint);
+    Client& addHeader(string key, string value);
+   json call(string method, string path = "", cpr::Header headers, cpr::Parameter params);
+};
+} // namespace {{ spec.title | caseUcfirst }}
