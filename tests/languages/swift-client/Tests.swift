@@ -43,7 +43,7 @@ class Tests: XCTestCase {
         group.enter()
         foo.get(x: "string", y: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): print( error.message)
+            case .failure(let error): print(error.message)
             case .success(let mock): print( mock.result)
             }
             group.leave()
@@ -145,10 +145,10 @@ class Tests: XCTestCase {
         group.wait()
         group.enter()
 
-        let url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
-        let buffer = ByteBuffer(data: try! Data(contentsOf: url))
-        let file = File(name: "file.png", buffer: buffer)
-        general.upload(x: "string", y: 123, z: ["string in array"], file: file) { result in
+        var url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
+        var buffer = ByteBuffer(data: try! Data(contentsOf: url))
+        var file = File(name: "file.png", buffer: buffer)
+        general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil) { result in
             switch result {
             case .failure(let error): print( error.message)
             case .success(let mock): print( mock.result)
@@ -157,10 +157,10 @@ class Tests: XCTestCase {
         }
         group.wait()
 
-        let url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
-        let buffer = ByteBuffer(data: try! Data(contentsOf: url))
-        let file = File(name: "large_file.mp4", buffer: buffer)
-        general.upload(x: "string", y: 123, z: ["string in array"], file: file) { result in
+        url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
+        buffer = ByteBuffer(data: try! Data(contentsOf: url))
+        file = File(name: "large_file.mp4", buffer: buffer)
+        general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil) { result in
             switch result {
             case .failure(let error): print( error.message)
             case .success(let mock): print( mock.result)
