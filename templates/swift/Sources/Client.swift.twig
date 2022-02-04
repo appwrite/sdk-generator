@@ -34,6 +34,8 @@ open class Client {
     private static let boundaryChars =
         "abcdefghijklmnopqrstuvwxyz1234567890"
 
+    private static let boundary = randomBoundary()
+
     private static var eventLoopGroupProvider =
         HTTPClient.EventLoopGroupProvider.createNew
 
@@ -280,7 +282,7 @@ open class Client {
         with params: [String: Any?]
     ) throws {
         if request.headers["content-type"][0] == "multipart/form-data" {
-            buildMultipart(&request, with: params)
+            buildMultipart(&request, with: params, chunked: request.headers["content-range"] != nil)
         } else {
             try buildJSON(&request, with: params)
         }
@@ -343,6 +345,14 @@ open class Client {
                 default:
                     var message = ""
 
+                    if response.body == nil {
+                        completion(.failure(AppwriteError(
+                            message: "No response body: \(response.status.code), \(response.description)",
+                            code: Int(response.status.code)
+                        )))
+                        return
+                    }
+
                     do {
                         let dict = try JSONSerialization
                             .jsonObject(with: response.body!) as? [String: Any]
@@ -375,7 +385,7 @@ open class Client {
         completion: ((Result<T, AppwriteError>) -> Void)? = nil
     ) {
         let file = params[paramName] as! File
-        let size = file.buffer.storageCapacity
+        let size = file.buffer.readableBytes
 
         if size < Client.chunkSize {
             call(
@@ -386,11 +396,13 @@ open class Client {
                 convert: convert,
                 completion: completion
             )
+            return
         }
 
         var input = file.buffer
         var offset = 0
         var result = [String:Any]()
+        let group = DispatchGroup()
 
         while offset < size {
             guard let slice = input.readSlice(length: Client.chunkSize) else {
@@ -400,23 +412,31 @@ open class Client {
                 name: file.name,
                 buffer: slice
             )
+            
             headers["content-range"] = "bytes \(offset)-\(min((offset + Client.chunkSize) - 1, size))/\(size)"
+
+            group.enter()
 
             call(
                 method: "POST",
                 path: path,
                 headers: headers,
                 params: params,
-                convert: { map in return map }
+                convert: { return $0 }
             ) { response in
                 switch response {
                 case let .success(map):
                     result = map
+                    group.leave()
                 case let .failure(error):
                     completion?(.failure(error))
+                    group.leave()
+                    return
                 }
             }
             
+            group.wait()
+
             offset += Client.chunkSize
             headers["x-appwrite-id"] = String(describing: result["$id"])
             onProgress?(Double(min(offset, size))/Double(size) * 100.0)
@@ -445,7 +465,8 @@ open class Client {
 
     private func buildMultipart(
         _ request: inout HTTPClient.Request,
-        with params: [String: Any?] = [:]
+        with params: [String: Any?] = [:],
+        chunked: Boolean = false
     ) {
         func addPart(name: String, value: Any) {
             bodyBuffer.writeString(DASHDASH)
@@ -471,7 +492,6 @@ open class Client {
             bodyBuffer.writeString(CRLF)
         }
 
-        let boundary = randomBoundary()
         var bodyBuffer = ByteBuffer()
 
         for (key, value) in params {
@@ -495,7 +515,9 @@ open class Client {
         bodyBuffer.writeString(CRLF)
 
         request.headers.remove(name: "content-type")
+        if !chunked {
         request.headers.add(name: "Content-Length", value: bodyBuffer.readableBytes.description)
+        }
         request.headers.add(name: "Content-Type", value: "multipart/form-data;boundary=\"\(boundary)\"")
         request.body = .byteBuffer(bodyBuffer)
     }
