@@ -282,7 +282,7 @@ open class Client {
         with params: [String: Any?]
     ) throws {
         if request.headers["content-type"][0] == "multipart/form-data" {
-            buildMultipart(&request, with: params, chunked: request.headers["content-range"] != nil)
+            buildMultipart(&request, with: params, chunked: !request.headers["content-range"].isEmpty)
         } else {
             try buildJSON(&request, with: params)
         }
@@ -347,7 +347,7 @@ open class Client {
 
                     if response.body == nil {
                         completion(.failure(AppwriteError(
-                            message: "No response body: \(response.status.code), \(response.description)",
+                            message: "Unknown error with status code \(response.status.code)",
                             code: Int(response.status.code)
                         )))
                         return
@@ -374,7 +374,6 @@ open class Client {
         }
     }
 
-      
     func chunkedUpload<T>(
         path: String,
         headers: inout [String: String],
@@ -405,12 +404,12 @@ open class Client {
         let group = DispatchGroup()
 
         while offset < size {
-            guard let slice = input.readSlice(length: Client.chunkSize) else {
-                break
-            }
+            let slice = input.readSlice(length: Client.chunkSize)
+                ?? input.readSlice(length: size - offset)
+            
             params[paramName] = File(
                 name: file.name,
-                buffer: slice
+                buffer: slice!
             )
             
             headers["content-range"] = "bytes \(offset)-\(min((offset + Client.chunkSize) - 1, size))/\(size)"
@@ -430,7 +429,6 @@ open class Client {
                     group.leave()
                 case let .failure(error):
                     completion?(.failure(error))
-                    group.leave()
                     return
                 }
             }
@@ -438,7 +436,7 @@ open class Client {
             group.wait()
 
             offset += Client.chunkSize
-            headers["x-appwrite-id"] = String(describing: result["$id"])
+            headers["x-appwrite-id"] = result["$id"] as? String
             onProgress?(Double(min(offset, size))/Double(size) * 100.0)
         }
 
@@ -446,7 +444,7 @@ open class Client {
     }
 
 
-    private func randomBoundary() -> String {
+    private static func randomBoundary() -> String {
         var string = ""
         for _ in 0..<16 {
             string.append(Client.boundaryChars.randomElement()!)
@@ -466,11 +464,11 @@ open class Client {
     private func buildMultipart(
         _ request: inout HTTPClient.Request,
         with params: [String: Any?] = [:],
-        chunked: Boolean = false
+        chunked: Bool = false
     ) {
         func addPart(name: String, value: Any) {
             bodyBuffer.writeString(DASHDASH)
-            bodyBuffer.writeString(boundary)
+            bodyBuffer.writeString(Client.boundary)
             bodyBuffer.writeString(CRLF)
             bodyBuffer.writeString("Content-Disposition: form-data; name=\"\(name)\"")
 
@@ -510,7 +508,7 @@ open class Client {
         }
 
         bodyBuffer.writeString(DASHDASH)
-        bodyBuffer.writeString(boundary)
+        bodyBuffer.writeString(Client.boundary)
         bodyBuffer.writeString(DASHDASH)
         bodyBuffer.writeString(CRLF)
 
@@ -518,7 +516,7 @@ open class Client {
         if !chunked {
         request.headers.add(name: "Content-Length", value: bodyBuffer.readableBytes.description)
         }
-        request.headers.add(name: "Content-Type", value: "multipart/form-data;boundary=\"\(boundary)\"")
+        request.headers.add(name: "Content-Type", value: "multipart/form-data;boundary=\"\(Client.boundary)\"")
         request.body = .byteBuffer(bodyBuffer)
     }
 
