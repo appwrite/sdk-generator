@@ -110,6 +110,8 @@ class Client:
         size = os.stat(path).st_size
 
         if size < self._chunk_size:
+            slice = open(path, 'rb').read()
+            params[param_name] = InputFile(path, slice)
             return self.call(
                 'post',
                 path,
@@ -117,13 +119,11 @@ class Client:
                 params
             )
 
-        input = open(path, "rb")
+        input = open(path, 'rb')
         offset = 0
 
-        while True:
-            slice = input.read(self._chunk_size)
-            if not slice:
-                break
+        while offest < size:
+            slice = input.read(self._chunk_size) or input.read(size - offset)
 
             params[param_name] = InputFile(path, slice)
             headers["content-range"] = f'bytes {offset}-{min((offset + self._chunk_size) - 1, size)}/{size}'

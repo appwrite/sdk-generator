@@ -55,7 +55,7 @@ print(response['result'])
 response = general.redirect()
 print(response['result'])
 
-response = general.upload('string', 123, ['string in array'], open('./tests/resources/file.png', 'rb'))
+response = general.upload('string', 123, ['string in array'], './tests/resources/file.png')
 print(response['result'])
 
 try:
