@@ -40,6 +40,6 @@ class Client {
     Client& setSelfSigned(bool status = true);
     Client& setEndpoint(string endpoint);
     Client& addHeader(string key, string value);
-   json call(string method, string path = "", cpr::Header headers, cpr::Parameter params);
+   json call(string method, string path = "", cpr::Header headers, cpr::Payload params);
 };
 } // namespace {{ spec.title | caseUcfirst }}

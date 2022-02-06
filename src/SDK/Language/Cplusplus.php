@@ -43,7 +43,7 @@ class Cplusplus extends Language
             'const_cast',
             'continue',
             'default',
-            'delete',
+            'xdelete',
             'do',
             'double',
             'dynamic_cast',
@@ -109,7 +109,7 @@ class Cplusplus extends Language
      */
     public function getIdentifierOverrides()
     {
-        return ['delete' => 'xdelete'];
+        return ['xdelete' => 'delete'];
     }
 
     /**

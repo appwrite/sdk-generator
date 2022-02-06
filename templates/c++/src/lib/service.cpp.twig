@@ -1,0 +1,14 @@
+#include "include/client.hpp"
+#include "include/service.hpp"
+
+namespace {{ spec.title | caseUcfirst }} {
+
+/**
+ * @param Client client
+ */
+Service::Service(Client client) {
+    this->client = &client;
+}
+
+Service::~Service() {}
+} // namespace {{ spec.title | caseUcfirst }}

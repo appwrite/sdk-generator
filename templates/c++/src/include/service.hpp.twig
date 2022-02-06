@@ -1,0 +1,13 @@
+#include "client.hpp"
+
+namespace {{spec.title | caseUcfirst}} {
+
+class Service {
+    protected:
+    Client* client;
+public:
+   explicit Service(Client client);
+     ~Service();
+    
+};
+} // namespace {{spec.title | caseUcfirst}}
