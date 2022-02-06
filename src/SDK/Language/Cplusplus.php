@@ -180,14 +180,14 @@ class Cplusplus extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/services/service.cpp',
-                'template'      => 'c++/src/services/service.cpp.twig',
+                'destination'   => 'src/lib/service.cpp',
+                'template'      => 'c++/src/lib/service.cpp.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/services/service.hpp',
-                'template'      => 'c++/src/services/service.hpp.twig',
+                'destination'   => 'src/include/service.hpp',
+                'template'      => 'c++/src/include/service.hpp.twig',
                 'minify'        => false,
             ],
             [
