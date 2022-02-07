@@ -65,7 +65,7 @@ class Go extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'main.go',
+                'destination'   => 'example/main.go',
                 'template'      => 'go/main.go.twig',
                 'minify'        => false,
             ],

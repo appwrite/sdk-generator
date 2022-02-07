@@ -8,7 +8,15 @@ import (
 	"github.com/{{sdk.gitUserName}}/sdk-for-go/appwrite"
 )
 
+const (
+	EmptyParentDocument     = ""
+	EmptyParentProperty     = ""
+	EmptyParentPropertyType = ""
+)
+
 func main() {
+	var EmptyArray = []interface{}{}
+
 	client := appwrite.NewClient(10 * time.Second)
 	client.SetEndpoint(os.Getenv("APPWRITE_ENDPOINT"))
 	client.SetProject(os.Getenv("APPWRITE_PROJECT"))
@@ -18,15 +26,14 @@ func main() {
 	data := map[string]string{
 		"hello": "world",
 	}
-	var EmptyArray = []interface{}{}
 	doc, err := db.CreateDocument(
 		os.Getenv("COLLECTION_ID"),
 		data,
 		EmptyArray,
 		EmptyArray,
-		"",
-		"",
-		"",
+		EmptyParentDocument,
+		EmptyParentProperty,
+		EmptyParentPropertyType,
 	)
 	if err != nil {
 		log.Printf("Error creating document: %v", err)
