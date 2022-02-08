@@ -139,6 +139,9 @@ class Client:
             offset = offset + self._chunk_size
             headers["x-appwrite-id"] = result["$id"]
             on_progress(min(offset, size)/size * 100)
+            
+            if "$id" in result: 
+                headers["x-appwrite-id"] = result["$id"]
 
         return result
 
