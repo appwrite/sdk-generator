@@ -24,21 +24,21 @@ const (
 	fileNameKey = "file"
 )
 
-// AppwriteError represents an error of a client request
-type AppwriteError struct {
+// {{ spec.title | caseUcfirst }}Error represents an error of a client request
+type {{ spec.title | caseUcfirst }}Error struct {
 	statusCode int
 	message    string
 }
 
-func (ce *AppwriteError) Error() string {
+func (ce *{{ spec.title | caseUcfirst }}Error) Error() string {
 	return ce.message
 }
 
-func (ce *AppwriteError) GetMessage() string {
+func (ce *{{ spec.title | caseUcfirst }}Error) GetMessage() string {
 	return ce.message
 }
 
-func (ce *AppwriteError) GetStatusCode() int {
+func (ce *{{ spec.title | caseUcfirst }}Error) GetStatusCode() int {
 	return ce.statusCode
 }
 
@@ -283,7 +283,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 			if !ok {
 				message = "N/A"
 			}
-			return nil, &AppwriteError{
+			return nil, &{{ spec.title | caseUcfirst }}Error{
 				statusCode: resp.StatusCode,
 				message:    message,
 			}
@@ -297,7 +297,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		return nil, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 399 {
-		return nil, &AppwriteError{
+		return nil, &{{ spec.title | caseUcfirst }}Error{
 			statusCode: resp.StatusCode,
 			message:    output,
 		}
