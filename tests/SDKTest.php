@@ -319,7 +319,6 @@ class SDKTest extends TestCase
                 'go1.12' => 'docker run --rm -v $(pwd):/app -w /app golang:1.12 sh -c "cd tests/languages/go/ && ./test.sh"',
                 'go1.17' => 'docker run --rm -v $(pwd):/app -w /app golang:1.17 sh -c "cd tests/languages/go/ && ./test.sh"',
             ],
-            'supportException' => false,
             'expectedOutput' => [
                 ...FOO_RESPONSES,
                 ...BAR_RESPONSES,

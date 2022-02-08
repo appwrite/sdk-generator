@@ -52,16 +52,16 @@ import (
 	"os"
 	"time"
 
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/appwrite"
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/{{ sdk.gitRepoName|url_encode }}"
 )
 
 func main() {
-	client := appwrite.NewClient(10 * time.Second)
-	client.SetEndpoint(os.Getenv("APPWRITE_ENDPOINT"))
-	client.SetProject(os.Getenv("APPWRITE_PROJECT"))
-	client.SetKey(os.Getenv("APPWRITE_API_KEY"))
+	client := {{ sdk.gitRepoName|url_encode }}.NewClient(10 * time.Second)
+	client.SetEndpoint(os.Getenv("YOUR_ENDPOINT"))
+	client.SetProject(os.Getenv("YOUR_PROJECT_ID"))
+	client.SetKey(os.Getenv("YOUR_KEY"))
 
-	db := appwrite.NewDatabase(client)
+	db := {{ sdk.gitRepoName|url_encode }}.NewDatabase(client)
 	data := map[string]string{
 		"hello": "world",
 	}
