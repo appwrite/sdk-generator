@@ -346,7 +346,7 @@ open class Client {
                     var message = ""
 
                     if response.body == nil {
-                        completion(.failure(AppwriteError(
+                        completion(.failure({{ spec.title | caseUcfirst }}Error(
                             message: "Unknown error with status code \(response.status.code)",
                             code: Int(response.status.code)
                         )))
@@ -363,7 +363,7 @@ open class Client {
                         message =  response.body!.readString(length: response.body!.readableBytes)!
                     }
 
-                    let error = AppwriteError(
+                    let error = {{ spec.title | caseUcfirst }}Error(
                         message: message,
                         code: Int(response.status.code)
                     )
@@ -381,7 +381,7 @@ open class Client {
         paramName: String,
         convert: (([String: Any]) -> T)? = nil,
         onProgress: ((Double) -> Void)? = nil,
-        completion: ((Result<T, AppwriteError>) -> Void)? = nil
+        completion: ((Result<T, {{ spec.title | caseUcfirst }}Error>) -> Void)? = nil
     ) {
         let file = params[paramName] as! File
         let size = file.buffer.readableBytes
