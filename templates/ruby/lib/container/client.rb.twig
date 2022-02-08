@@ -9,6 +9,7 @@ module {{ spec.title | caseUcfirst }}
     class Client
 
         def initialize
+            @chunk_size = 5*1024*1024
             @headers = {
                 'user-agent' => RUBY_PLATFORM + ':{{ language.name | caseLower }}-' + RUBY_VERSION,
                 'x-sdk-version' => '{{ spec.title | caseDash }}:{{ language.name | caseLower }}:{{ sdk.version }}'{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
@@ -92,6 +93,61 @@ module {{ spec.title | caseUcfirst }}
             uri = URI.parse(@endpoint + path + ((method == "GET" && params.length) ? '?' + encode(params) : ''))
 
             fetch(method, uri, headers, params, response_type)
+        end
+
+        def chunked_upload(
+            path:,
+            headers:,
+            params:,
+            param_name: '',
+            on_progress: nil,
+            response_type: nil
+        )
+            file_path = params[param_name.to_sym]
+            size = ::File.size(file_path)
+
+            if size < @chunk_size
+                slice = ::File.read(file_path)
+                params[param_name] = File.new(file_path, slice)
+                return call(
+                    method: 'POST',
+                    path: path,
+                    headers: headers,
+                    params: params,
+                    response_type: response_type,
+                )
+            end
+
+            input = ::File.open(file_path)
+            offset = 0
+
+            while offset < size
+                slice = input.read(@chunk_size)
+
+                params[param_name] = File.new(file_path, slice)
+                headers['content-range'] = "bytes #{offset}-#{[offset + @chunk_size - 1, size].min}/#{size}"
+
+                result = call(
+                    method: 'POST',
+                    path: path,
+                    headers: headers,
+                    params: params,
+                )
+
+                offset += @chunk_size
+
+                if defined? result['$id']
+                    headers['x-appwrite-id'] = result['$id']
+                end
+
+                unless on_progress.nil?
+                    on_progress(min(offset, size)/size * 100)
+                end
+            end
+
+            return result unless response_type.respond_to?("from")
+
+            response_type.from(map: result)
         end
 
         private
