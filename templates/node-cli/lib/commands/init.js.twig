@@ -1,4 +1,5 @@
 const fs = require("fs");
+const path = require("path");
 const childProcess = require('child_process');
 const { Command } = require("commander");
 const inquirer = require("inquirer");
@@ -85,6 +86,13 @@ const initFunction = async () => {
 
   // Execute the child process but do not print any std output
   childProcess.execSync(command, { stdio: 'pipe' });
+
+  const readmePath = path.join(process.cwd(), answers.name, 'README.md');
+  const readmeFile = fs.readFileSync(readmePath).toString();
+  const newReadmeFile = readmeFile.split('\n');
+  newReadmeFile[0] = `# ${answers.name}`;
+  newReadmeFile.splice(1, 2);
+  fs.writeFileSync(readmePath, newReadmeFile.join('\n'));
 
   let data = {
     $id: response['$id'],
