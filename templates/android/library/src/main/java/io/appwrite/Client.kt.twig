@@ -309,7 +309,7 @@ class Client @JvmOverloads constructor(
      *
      * @return [T]
      */
-    @Throws(AppwriteException::class)
+    @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun <T> chunkedUpload(
         path: String,
         headers:  MutableMap<String, String>,
