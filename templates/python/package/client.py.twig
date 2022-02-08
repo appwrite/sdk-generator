@@ -65,7 +65,7 @@ class Client:
             
             for key in data.copy():
                 if isinstance(data[key], InputFile):
-                    files[key] = data[key].file
+                    files[key] = (data[key].name, data[key].file)
                     del data[key]
         response = None
         try:
@@ -106,12 +106,13 @@ class Client:
         param_name = '',
         on_progress = None,
     ):
-        path = str(params[param_name])
-        size = os.stat(path).st_size
+        file_path = str(params[param_name])
+        file_name = os.path.basename(file_path)
+        size = os.stat(file_path).st_size
 
         if size < self._chunk_size:
-            slice = open(path, 'rb').read()
-            params[param_name] = InputFile(path, slice)
+            slice = open(file_path, 'rb').read()
+            params[param_name] = InputFile(file_path, file_name, slice)
             return self.call(
                 'post',
                 path,
@@ -119,13 +120,13 @@ class Client:
                 params
             )
 
-        input = open(path, 'rb')
+        input = open(file_path, 'rb')
         offset = 0
 
-        while offest < size:
+        while offset < size:
             slice = input.read(self._chunk_size) or input.read(size - offset)
 
-            params[param_name] = InputFile(path, slice)
+            params[param_name] = InputFile(file_path, file_name, slice)
             headers["content-range"] = f'bytes {offset}-{min((offset + self._chunk_size) - 1, size)}/{size}'
 
             result = self.call(
