@@ -1,7 +1,7 @@
 {
     "swagger": "2.0",
     "info": {
-        "version": "0.12.0",
+        "version": "0.13.0",
         "title": "Appwrite",
         "description": "Appwrite backend as a service cuts up to 70% of the time and costs required for building a modern application. We abstract and simplify common development tasks behind a REST APIs, to help you develop your app in a fast and secure way. For full API documentation and tutorials go to [https:\/\/appwrite.io\/docs](https:\/\/appwrite.io\/docs)",
         "termsOfService": "https:\/\/appwrite.io\/policy\/terms",
@@ -15,7 +15,7 @@
             "url": "https:\/\/raw.githubusercontent.com\/appwrite\/appwrite\/master\/LICENSE"
         }
     },
-    "host": "appwrite.io",
+    "host": "HOSTNAME",
     "basePath": "\/v1",
     "schemes": ["https"],
     "consumes": ["application\/json", "multipart\/form-data"],
@@ -77,7 +77,7 @@
                 },
                 "x-appwrite": {
                     "method": "get",
-                    "weight": 47,
+                    "weight": 46,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/get.md",
@@ -112,7 +112,7 @@
                 },
                 "x-appwrite": {
                     "method": "delete",
-                    "weight": 56,
+                    "weight": 55,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/delete.md",
@@ -141,7 +141,7 @@
                 "consumes": ["application\/json"],
                 "produces": ["application\/json"],
                 "tags": ["account"],
-                "description": "Update currently logged in user account email address. After changing user address, user confirmation status is being reset and a new confirmation mail is sent. For security measures, user password is required to complete this request.\nThis endpoint can also be used to convert an anonymous account to a normal one, by passing an email address and a new password.",
+                "description": "Update currently logged in user account email address. After changing user address, the user confirmation status will get reset. A new confirmation email is not sent automatically however you can use the send confirmation email endpoint again to send the confirmation email. For security measures, user password is required to complete this request.\nThis endpoint can also be used to convert an anonymous account to a normal one, by passing an email address and a new password.\n",
                 "responses": {
                     "200": {
                         "description": "User",
@@ -152,7 +152,7 @@
                 },
                 "x-appwrite": {
                     "method": "updateEmail",
-                    "weight": 54,
+                    "weight": 53,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/update-email.md",
@@ -186,7 +186,7 @@
                             },
                             "password": {
                                 "type": "string",
-                                "description": "User password. Must be between 6 to 32 chars.",
+                                "description": "User password. Must be at least 8 chars.",
                                 "default": null,
                                 "x-example": "password"
                             }
@@ -214,7 +214,7 @@
                 },
                 "x-appwrite": {
                     "method": "getLogs",
-                    "weight": 50,
+                    "weight": 49,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/get-logs.md",
@@ -236,7 +236,7 @@
                 }],
                 "parameters": [{
                     "name": "limit",
-                    "description": "Maximum number of logs to return in response.  Use this value to manage pagination. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
+                    "description": "Maximum number of logs to return in response. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -245,7 +245,7 @@
                     "in": "query"
                 }, {
                     "name": "offset",
-                    "description": "Offset value. The default value is 0. Use this param to manage pagination.",
+                    "description": "Offset value. The default value is 0. Use this value to manage pagination. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -273,7 +273,7 @@
                 },
                 "x-appwrite": {
                     "method": "updateName",
-                    "weight": 52,
+                    "weight": 51,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/update-name.md",
@@ -329,7 +329,7 @@
                 },
                 "x-appwrite": {
                     "method": "updatePassword",
-                    "weight": 53,
+                    "weight": 52,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/update-password.md",
@@ -357,13 +357,13 @@
                         "properties": {
                             "password": {
                                 "type": "string",
-                                "description": "New user password. Must be between 6 to 32 chars.",
+                                "description": "New user password. Must be at least 8 chars.",
                                 "default": null,
                                 "x-example": "password"
                             },
                             "oldPassword": {
                                 "type": "string",
-                                "description": "Old user password. Must be between 6 to 32 chars.",
+                                "description": "Current user password. Must be at least 8 chars.",
                                 "default": "",
                                 "x-example": "password"
                             }
@@ -391,7 +391,7 @@
                 },
                 "x-appwrite": {
                     "method": "getPrefs",
-                    "weight": 48,
+                    "weight": 47,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/get-prefs.md",
@@ -418,7 +418,7 @@
                 "consumes": ["application\/json"],
                 "produces": ["application\/json"],
                 "tags": ["account"],
-                "description": "Update currently logged in user account preferences. You can pass only the specific settings you wish to update.",
+                "description": "Update currently logged in user account preferences. The object you pass is stored as is, and replaces any previous value. The maximum allowed prefs size is 64kB and throws error if exceeded.",
                 "responses": {
                     "200": {
                         "description": "User",
@@ -429,7 +429,7 @@
                 },
                 "x-appwrite": {
                     "method": "updatePrefs",
-                    "weight": 55,
+                    "weight": 54,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/update-prefs.md",
@@ -458,7 +458,7 @@
                             "prefs": {
                                 "type": "object",
                                 "description": "Prefs key-value JSON object.",
-                                "default": null,
+                                "default": {},
                                 "x-example": "{}"
                             }
                         },
@@ -485,14 +485,14 @@
                 },
                 "x-appwrite": {
                     "method": "createRecovery",
-                    "weight": 59,
+                    "weight": 58,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/create-recovery.md",
                     "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master\/docs\/references\/account\/create-recovery.md",
                     "rate-limit": 10,
                     "rate-time": 3600,
-                    "rate-key": "url:{url},email:{param-email}",
+                    "rate-key": ["url:{url},email:{param-email}", "ip:{ip}"],
                     "scope": "public",
                     "platforms": ["client", "server"],
                     "packaging": false,
@@ -545,7 +545,7 @@
                 },
                 "x-appwrite": {
                     "method": "updateRecovery",
-                    "weight": 60,
+                    "weight": 59,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/update-recovery.md",
@@ -573,7 +573,7 @@
                         "properties": {
                             "userId": {
                                 "type": "string",
-                                "description": "User account UID address.",
+                                "description": "User ID.",
                                 "default": null,
                                 "x-example": "[USER_ID]"
                             },
@@ -585,13 +585,13 @@
                             },
                             "password": {
                                 "type": "string",
-                                "description": "New password. Must be between 6 to 32 chars.",
+                                "description": "New user password. Must be at least 8 chars.",
                                 "default": null,
                                 "x-example": "password"
                             },
                             "passwordAgain": {
                                 "type": "string",
-                                "description": "New password again. Must be between 6 to 32 chars.",
+                                "description": "Repeat new user password. Must be at least 8 chars.",
                                 "default": null,
                                 "x-example": "password"
                             }
@@ -619,7 +619,7 @@
                 },
                 "x-appwrite": {
                     "method": "getSessions",
-                    "weight": 49,
+                    "weight": 48,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/get-sessions.md",
@@ -654,7 +654,7 @@
                 },
                 "x-appwrite": {
                     "method": "deleteSessions",
-                    "weight": 58,
+                    "weight": 57,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/delete-sessions.md",
@@ -694,7 +694,7 @@
                 },
                 "x-appwrite": {
                     "method": "getSession",
-                    "weight": 51,
+                    "weight": 50,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/get-session.md",
@@ -716,7 +716,7 @@
                 }],
                 "parameters": [{
                     "name": "sessionId",
-                    "description": "Session unique ID. Use the string 'current' to get the current device session.",
+                    "description": "Session ID. Use the string 'current' to get the current device session.",
                     "required": true,
                     "type": "string",
                     "x-example": "[SESSION_ID]",
@@ -737,7 +737,7 @@
                 },
                 "x-appwrite": {
                     "method": "deleteSession",
-                    "weight": 57,
+                    "weight": 56,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/delete-session.md",
@@ -759,7 +759,7 @@
                 }],
                 "parameters": [{
                     "name": "sessionId",
-                    "description": "Session unique ID. Use the string 'current' to delete the current device session.",
+                    "description": "Session ID. Use the string 'current' to delete the current device session.",
                     "required": true,
                     "type": "string",
                     "x-example": "[SESSION_ID]",
@@ -785,7 +785,7 @@
                 },
                 "x-appwrite": {
                     "method": "createVerification",
-                    "weight": 61,
+                    "weight": 60,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/create-verification.md",
@@ -839,7 +839,7 @@
                 },
                 "x-appwrite": {
                     "method": "updateVerification",
-                    "weight": 62,
+                    "weight": 61,
                     "cookies": false,
                     "type": "",
                     "demo": "account\/update-verification.md",
@@ -867,7 +867,7 @@
                         "properties": {
                             "userId": {
                                 "type": "string",
-                                "description": "User unique ID.",
+                                "description": "User ID.",
                                 "default": null,
                                 "x-example": "[USER_ID]"
                             },
@@ -901,7 +901,7 @@
                 },
                 "x-appwrite": {
                     "method": "getBrowser",
-                    "weight": 64,
+                    "weight": 63,
                     "cookies": false,
                     "type": "location",
                     "demo": "avatars\/get-browser.md",
@@ -977,7 +977,7 @@
                 },
                 "x-appwrite": {
                     "method": "getCreditCard",
-                    "weight": 63,
+                    "weight": 62,
                     "cookies": false,
                     "type": "location",
                     "demo": "avatars\/get-credit-card.md",
@@ -1053,7 +1053,7 @@
                 },
                 "x-appwrite": {
                     "method": "getFavicon",
-                    "weight": 67,
+                    "weight": 66,
                     "cookies": false,
                     "type": "location",
                     "demo": "avatars\/get-favicon.md",
@@ -1103,7 +1103,7 @@
                 },
                 "x-appwrite": {
                     "method": "getFlag",
-                    "weight": 65,
+                    "weight": 64,
                     "cookies": false,
                     "type": "location",
                     "demo": "avatars\/get-flag.md",
@@ -1179,7 +1179,7 @@
                 },
                 "x-appwrite": {
                     "method": "getImage",
-                    "weight": 66,
+                    "weight": 65,
                     "cookies": false,
                     "type": "location",
                     "demo": "avatars\/get-image.md",
@@ -1247,7 +1247,7 @@
                 },
                 "x-appwrite": {
                     "method": "getInitials",
-                    "weight": 69,
+                    "weight": 68,
                     "cookies": false,
                     "type": "location",
                     "demo": "avatars\/get-initials.md",
@@ -1329,7 +1329,7 @@
                 },
                 "x-appwrite": {
                     "method": "getQR",
-                    "weight": 68,
+                    "weight": 67,
                     "cookies": false,
                     "type": "location",
                     "demo": "avatars\/get-q-r.md",
@@ -1386,6 +1386,183 @@
                 }]
             }
         },
+        "\/builds": {
+            "get": {
+                "summary": "Get Builds",
+                "operationId": "functionsListBuilds",
+                "consumes": ["application\/json"],
+                "produces": ["application\/json"],
+                "tags": ["functions"],
+                "description": "Get a list of all the current user build logs. You can use the query params to filter your results. On admin mode, this endpoint will return a list of all of the project's executions. [Learn more about different API modes](\/docs\/admin).",
+                "responses": {
+                    "200": {
+                        "description": "Builds List",
+                        "schema": {
+                            "$ref": "#\/definitions\/buildList"
+                        }
+                    }
+                },
+                "x-appwrite": {
+                    "method": "listBuilds",
+                    "weight": 200,
+                    "cookies": false,
+                    "type": "",
+                    "demo": "functions\/list-builds.md",
+                    "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master\/docs\/references\/functions\/list-builds.md",
+                    "rate-limit": 0,
+                    "rate-time": 3600,
+                    "rate-key": "url:{url},ip:{ip}",
+                    "scope": "execution.read",
+                    "platforms": ["client", "server", "server"],
+                    "packaging": false,
+                    "auth": {
+                        "Project": [],
+                        "Key": []
+                    }
+                },
+                "security": [{
+                    "Project": [],
+                    "Key": [],
+                    "JWT": []
+                }],
+                "parameters": [{
+                    "name": "limit",
+                    "description": "Results limit value. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
+                    "required": false,
+                    "type": "integer",
+                    "format": "int32",
+                    "x-example": 0,
+                    "default": 25,
+                    "in": "query"
+                }, {
+                    "name": "offset",
+                    "description": "Results offset. The default value is 0. Use this param to manage pagination.",
+                    "required": false,
+                    "type": "integer",
+                    "format": "int32",
+                    "x-example": 0,
+                    "default": 0,
+                    "in": "query"
+                }, {
+                    "name": "search",
+                    "description": "Search term to filter your list results. Max length: 256 chars.",
+                    "required": false,
+                    "type": "string",
+                    "x-example": "[SEARCH]",
+                    "default": "",
+                    "in": "query"
+                }, {
+                    "name": "cursor",
+                    "description": "ID of the build used as the starting point for the query, excluding the build itself. Should be used for efficient pagination when working with large sets of data.",
+                    "required": false,
+                    "type": "string",
+                    "x-example": "[CURSOR]",
+                    "default": "",
+                    "in": "query"
+                }, {
+                    "name": "cursorDirection",
+                    "description": "Direction of the cursor.",
+                    "required": false,
+                    "type": "string",
+                    "x-example": "after",
+                    "default": "after",
+                    "in": "query"
+                }]
+            }
+        },
+        "\/builds\/{buildId}": {
+            "get": {
+                "summary": "Get Build",
+                "operationId": "functionsGetBuild",
+                "consumes": ["application\/json"],
+                "produces": ["application\/json"],
+                "tags": ["functions"],
+                "description": "",
+                "responses": {
+                    "200": {
+                        "description": "Build",
+                        "schema": {
+                            "$ref": "#\/definitions\/build"
+                        }
+                    }
+                },
+                "x-appwrite": {
+                    "method": "getBuild",
+                    "weight": 201,
+                    "cookies": false,
+                    "type": "",
+                    "demo": "functions\/get-build.md",
+                    "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master\/docs\/references\/functions\/get-build.md",
+                    "rate-limit": 0,
+                    "rate-time": 3600,
+                    "rate-key": "url:{url},ip:{ip}",
+                    "scope": "execution.read",
+                    "platforms": ["client", "server", "server"],
+                    "packaging": false,
+                    "auth": {
+                        "Project": [],
+                        "Key": []
+                    }
+                },
+                "security": [{
+                    "Project": [],
+                    "Key": [],
+                    "JWT": []
+                }],
+                "parameters": [{
+                    "name": "buildId",
+                    "description": "Build unique ID.",
+                    "required": true,
+                    "type": "string",
+                    "x-example": "[BUILD_ID]",
+                    "in": "path"
+                }]
+            },
+            "post": {
+                "summary": "Retry Build",
+                "operationId": "functionsRetryBuild",
+                "consumes": ["application\/json"],
+                "produces": [],
+                "tags": ["functions"],
+                "description": "",
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    }
+                },
+                "x-appwrite": {
+                    "method": "retryBuild",
+                    "weight": 202,
+                    "cookies": false,
+                    "type": "",
+                    "demo": "functions\/retry-build.md",
+                    "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master\/docs\/references\/functions\/retry-build.md",
+                    "rate-limit": 0,
+                    "rate-time": 3600,
+                    "rate-key": "url:{url},ip:{ip}",
+                    "scope": "functions.write",
+                    "platforms": ["client", "server", "server"],
+                    "packaging": false,
+                    "auth": {
+                        "Project": [],
+                        "Key": []
+                    }
+                },
+                "security": [{
+                    "Project": [],
+                    "Key": [],
+                    "JWT": []
+                }],
+                "parameters": [{
+                    "name": "buildId",
+                    "description": "Build unique ID.",
+                    "required": true,
+                    "type": "string",
+                    "x-example": "[BUILD_ID]",
+                    "in": "path"
+                }]
+            }
+        },
         "\/database\/collections": {
             "get": {
                 "summary": "List Collections",
@@ -1404,7 +1581,7 @@
                 },
                 "x-appwrite": {
                     "method": "listCollections",
-                    "weight": 71,
+                    "weight": 70,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/list-collections.md",
@@ -1434,7 +1611,7 @@
                     "in": "query"
                 }, {
                     "name": "limit",
-                    "description": "Results limit value. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
+                    "description": "Maximum number of collection to return in response. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -1443,7 +1620,7 @@
                     "in": "query"
                 }, {
                     "name": "offset",
-                    "description": "Results offset. The default value is 0. Use this param to manage pagination.",
+                    "description": "Offset value. The default value is 0. Use this param to manage pagination. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -1493,7 +1670,7 @@
                 },
                 "x-appwrite": {
                     "method": "createCollection",
-                    "weight": 70,
+                    "weight": 69,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/create-collection.md",
@@ -1523,7 +1700,7 @@
                                 "type": "string",
                                 "description": "Unique Id. Choose your own unique ID or pass the string `unique()` to auto generate it. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.",
                                 "default": null,
-                                "x-example": null
+                                "x-example": "[COLLECTION_ID]"
                             },
                             "name": {
                                 "type": "string",
@@ -1533,13 +1710,13 @@
                             },
                             "permission": {
                                 "type": "string",
-                                "description": "Permissions type model to use for reading documents in this collection. You can use collection-level permission set once on the collection using the `read` and `write` params, or you can set document-level permission where each document read and write params will decide who has access to read and write to each document individually. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                                "description": "Permissions type model to use for reading documents in this collection. You can use collection-level permission set once on the collection using the `read` and `write` params, or you can set document-level permission where each document read and write params will decide who has access to read and write to each document individually. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                                 "default": null,
                                 "x-example": "document"
                             },
                             "read": {
                                 "type": "array",
-                                "description": "An array of strings with read permissions. By default no user is granted with any read permissions. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                                "description": "An array of strings with read permissions. By default no user is granted with any read permissions. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                                 "default": null,
                                 "x-example": "[\"role:all\"]",
                                 "items": {
@@ -1548,7 +1725,7 @@
                             },
                             "write": {
                                 "type": "array",
-                                "description": "An array of strings with write permissions. By default no user is granted with any write permissions. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                                "description": "An array of strings with write permissions. By default no user is granted with any write permissions. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                                 "default": null,
                                 "x-example": "[\"role:all\"]",
                                 "items": {
@@ -1579,7 +1756,7 @@
                 },
                 "x-appwrite": {
                     "method": "getCollection",
-                    "weight": 72,
+                    "weight": 71,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/get-collection.md",
@@ -1601,7 +1778,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID.",
+                    "description": "Collection ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -1625,7 +1802,7 @@
                 },
                 "x-appwrite": {
                     "method": "updateCollection",
-                    "weight": 76,
+                    "weight": 75,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/update-collection.md",
@@ -1647,7 +1824,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID.",
+                    "description": "Collection ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -1666,13 +1843,13 @@
                             },
                             "permission": {
                                 "type": "string",
-                                "description": "Permissions type model to use for reading documents in this collection. You can use collection-level permission set once on the collection using the `read` and `write` params, or you can set document-level permission where each document read and write params will decide who has access to read and write to each document individually. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                                "description": "Permissions type model to use for reading documents in this collection. You can use collection-level permission set once on the collection using the `read` and `write` params, or you can set document-level permission where each document read and write params will decide who has access to read and write to each document individually. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                                 "default": null,
                                 "x-example": "document"
                             },
                             "read": {
                                 "type": "array",
-                                "description": "An array of strings with read permissions. By default inherits the existing read permissions. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                                "description": "An array of strings with read permissions. By default inherits the existing read permissions. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                                 "default": null,
                                 "x-example": "[\"role:all\"]",
                                 "items": {
@@ -1681,12 +1858,18 @@
                             },
                             "write": {
                                 "type": "array",
-                                "description": "An array of strings with write permissions. By default inherits the existing write permissions. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                                "description": "An array of strings with write permissions. By default inherits the existing write permissions. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                                 "default": null,
                                 "x-example": "[\"role:all\"]",
                                 "items": {
                                     "type": "string"
                                 }
+                            },
+                            "enabled": {
+                                "type": "boolean",
+                                "description": "Is collection enabled?",
+                                "default": true,
+                                "x-example": false
                             }
                         },
                         "required": ["name", "permission"]
@@ -1707,7 +1890,7 @@
                 },
                 "x-appwrite": {
                     "method": "deleteCollection",
-                    "weight": 77,
+                    "weight": 76,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/delete-collection.md",
@@ -1729,7 +1912,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID.",
+                    "description": "Collection ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -1755,7 +1938,7 @@
                 },
                 "x-appwrite": {
                     "method": "listAttributes",
-                    "weight": 86,
+                    "weight": 85,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/list-attributes.md",
@@ -1777,7 +1960,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -1803,7 +1986,7 @@
                 },
                 "x-appwrite": {
                     "method": "createBooleanAttribute",
-                    "weight": 85,
+                    "weight": 84,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/create-boolean-attribute.md",
@@ -1825,7 +2008,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -1836,9 +2019,9 @@
                     "schema": {
                         "type": "object",
                         "properties": {
-                            "attributeId": {
+                            "key": {
                                 "type": "string",
-                                "description": "Attribute ID.",
+                                "description": "Attribute Key.",
                                 "default": null,
                                 "x-example": null
                             },
@@ -1861,7 +2044,7 @@
                                 "x-example": false
                             }
                         },
-                        "required": ["attributeId", "required"]
+                        "required": ["key", "required"]
                     }
                 }]
             }
@@ -1884,7 +2067,7 @@
                 },
                 "x-appwrite": {
                     "method": "createEmailAttribute",
-                    "weight": 79,
+                    "weight": 78,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/create-email-attribute.md",
@@ -1906,7 +2089,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -1917,9 +2100,9 @@
                     "schema": {
                         "type": "object",
                         "properties": {
-                            "attributeId": {
+                            "key": {
                                 "type": "string",
-                                "description": "Attribute ID.",
+                                "description": "Attribute Key.",
                                 "default": null,
                                 "x-example": null
                             },
@@ -1942,7 +2125,7 @@
                                 "x-example": false
                             }
                         },
-                        "required": ["attributeId", "required"]
+                        "required": ["key", "required"]
                     }
                 }]
             }
@@ -1965,7 +2148,7 @@
                 },
                 "x-appwrite": {
                     "method": "createEnumAttribute",
-                    "weight": 80,
+                    "weight": 79,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/create-enum-attribute.md",
@@ -1987,7 +2170,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -1998,9 +2181,9 @@
                     "schema": {
                         "type": "object",
                         "properties": {
-                            "attributeId": {
+                            "key": {
                                 "type": "string",
-                                "description": "Attribute ID.",
+                                "description": "Attribute Key.",
                                 "default": null,
                                 "x-example": null
                             },
@@ -2032,7 +2215,7 @@
                                 "x-example": false
                             }
                         },
-                        "required": ["attributeId", "elements", "required"]
+                        "required": ["key", "elements", "required"]
                     }
                 }]
             }
@@ -2055,7 +2238,7 @@
                 },
                 "x-appwrite": {
                     "method": "createFloatAttribute",
-                    "weight": 84,
+                    "weight": 83,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/create-float-attribute.md",
@@ -2077,7 +2260,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -2088,9 +2271,9 @@
                     "schema": {
                         "type": "object",
                         "properties": {
-                            "attributeId": {
+                            "key": {
                                 "type": "string",
-                                "description": "Attribute ID.",
+                                "description": "Attribute Key.",
                                 "default": null,
                                 "x-example": null
                             },
@@ -2125,7 +2308,7 @@
                                 "x-example": false
                             }
                         },
-                        "required": ["attributeId", "required"]
+                        "required": ["key", "required"]
                     }
                 }]
             }
@@ -2148,7 +2331,7 @@
                 },
                 "x-appwrite": {
                     "method": "createIntegerAttribute",
-                    "weight": 83,
+                    "weight": 82,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/create-integer-attribute.md",
@@ -2170,7 +2353,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -2181,9 +2364,9 @@
                     "schema": {
                         "type": "object",
                         "properties": {
-                            "attributeId": {
+                            "key": {
                                 "type": "string",
-                                "description": "Attribute ID.",
+                                "description": "Attribute Key.",
                                 "default": null,
                                 "x-example": null
                             },
@@ -2218,7 +2401,7 @@
                                 "x-example": false
                             }
                         },
-                        "required": ["attributeId", "required"]
+                        "required": ["key", "required"]
                     }
                 }]
             }
@@ -2241,7 +2424,7 @@
                 },
                 "x-appwrite": {
                     "method": "createIpAttribute",
-                    "weight": 81,
+                    "weight": 80,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/create-ip-attribute.md",
@@ -2263,7 +2446,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -2274,9 +2457,9 @@
                     "schema": {
                         "type": "object",
                         "properties": {
-                            "attributeId": {
+                            "key": {
                                 "type": "string",
-                                "description": "Attribute ID.",
+                                "description": "Attribute Key.",
                                 "default": null,
                                 "x-example": null
                             },
@@ -2299,7 +2482,7 @@
                                 "x-example": false
                             }
                         },
-                        "required": ["attributeId", "required"]
+                        "required": ["key", "required"]
                     }
                 }]
             }
@@ -2311,7 +2494,7 @@
                 "consumes": ["application\/json"],
                 "produces": ["application\/json"],
                 "tags": ["database"],
-                "description": "Create a new string attribute.\n",
+                "description": "Create a string attribute.\n",
                 "responses": {
                     "201": {
                         "description": "AttributeString",
@@ -2322,7 +2505,7 @@
                 },
                 "x-appwrite": {
                     "method": "createStringAttribute",
-                    "weight": 78,
+                    "weight": 77,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/create-string-attribute.md",
@@ -2344,7 +2527,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -2355,9 +2538,9 @@
                     "schema": {
                         "type": "object",
                         "properties": {
-                            "attributeId": {
+                            "key": {
                                 "type": "string",
-                                "description": "Attribute ID.",
+                                "description": "Attribute Key.",
                                 "default": null,
                                 "x-example": null
                             },
@@ -2386,7 +2569,7 @@
                                 "x-example": false
                             }
                         },
-                        "required": ["attributeId", "size", "required"]
+                        "required": ["key", "size", "required"]
                     }
                 }]
             }
@@ -2409,7 +2592,7 @@
                 },
                 "x-appwrite": {
                     "method": "createUrlAttribute",
-                    "weight": 82,
+                    "weight": 81,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/create-url-attribute.md",
@@ -2431,7 +2614,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -2442,9 +2625,9 @@
                     "schema": {
                         "type": "object",
                         "properties": {
-                            "attributeId": {
+                            "key": {
                                 "type": "string",
-                                "description": "Attribute ID.",
+                                "description": "Attribute Key.",
                                 "default": null,
                                 "x-example": null
                             },
@@ -2467,12 +2650,12 @@
                                 "x-example": false
                             }
                         },
-                        "required": ["attributeId", "required"]
+                        "required": ["key", "required"]
                     }
                 }]
             }
         },
-        "\/database\/collections\/{collectionId}\/attributes\/{attributeId}": {
+        "\/database\/collections\/{collectionId}\/attributes\/{key}": {
             "get": {
                 "summary": "Get Attribute",
                 "operationId": "databaseGetAttribute",
@@ -2484,7 +2667,7 @@
                     "200": {
                         "description": "AttributeBoolean, or AttributeInteger, or AttributeFloat, or AttributeEmail, or AttributeEnum, or AttributeURL, or AttributeIP, or AttributeString",
                         "schema": {
-                            "oneOf": [{
+                            "x-oneOf": [{
                                 "$ref": "#\/definitions\/attributeBoolean"
                             }, {
                                 "$ref": "#\/definitions\/attributeInteger"
@@ -2506,7 +2689,7 @@
                 },
                 "x-appwrite": {
                     "method": "getAttribute",
-                    "weight": 87,
+                    "weight": 86,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/get-attribute.md",
@@ -2528,14 +2711,14 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
                     "in": "path"
                 }, {
-                    "name": "attributeId",
-                    "description": "Attribute ID.",
+                    "name": "key",
+                    "description": "Attribute Key.",
                     "required": true,
                     "type": "string",
                     "in": "path"
@@ -2555,7 +2738,7 @@
                 },
                 "x-appwrite": {
                     "method": "deleteAttribute",
-                    "weight": 88,
+                    "weight": 87,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/delete-attribute.md",
@@ -2577,14 +2760,14 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
                     "in": "path"
                 }, {
-                    "name": "attributeId",
-                    "description": "Attribute ID.",
+                    "name": "key",
+                    "description": "Attribute Key.",
                     "required": true,
                     "type": "string",
                     "in": "path"
@@ -2609,7 +2792,7 @@
                 },
                 "x-appwrite": {
                     "method": "listDocuments",
-                    "weight": 94,
+                    "weight": 93,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/list-documents.md",
@@ -2632,7 +2815,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -2650,7 +2833,7 @@
                     "in": "query"
                 }, {
                     "name": "limit",
-                    "description": "Maximum number of documents to return in response.  Use this value to manage pagination. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
+                    "description": "Maximum number of documents to return in response. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -2659,7 +2842,7 @@
                     "in": "query"
                 }, {
                     "name": "offset",
-                    "description": "Offset value. The default value is 0. Use this param to manage pagination.",
+                    "description": "Offset value. The default value is 0. Use this value to manage pagination. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -2668,7 +2851,7 @@
                     "in": "query"
                 }, {
                     "name": "cursor",
-                    "description": "ID of the document used as the starting point for the query, excluding the document itself. Should be used for efficient pagination when working with large sets of data.",
+                    "description": "ID of the document used as the starting point for the query, excluding the document itself. Should be used for efficient pagination when working with large sets of data. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "string",
                     "x-example": "[CURSOR]",
@@ -2723,7 +2906,7 @@
                 },
                 "x-appwrite": {
                     "method": "createDocument",
-                    "weight": 93,
+                    "weight": 92,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/create-document.md",
@@ -2746,7 +2929,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection with validation rules using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection). Make sure to define attributes before creating documents.",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -2759,19 +2942,19 @@
                         "properties": {
                             "documentId": {
                                 "type": "string",
-                                "description": "Unique Id. Choose your own unique ID or pass the string `unique()` to auto generate it. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.",
+                                "description": "Document ID. Choose your own unique ID or pass the string `unique()` to auto generate it. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.",
                                 "default": null,
-                                "x-example": null
+                                "x-example": "[DOCUMENT_ID]"
                             },
                             "data": {
                                 "type": "object",
                                 "description": "Document data as JSON object.",
-                                "default": null,
+                                "default": {},
                                 "x-example": "{}"
                             },
                             "read": {
                                 "type": "array",
-                                "description": "An array of strings with read permissions. By default only the current user is granted with read permissions. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                                "description": "An array of strings with read permissions. By default only the current user is granted with read permissions. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                                 "default": null,
                                 "x-example": "[\"role:all\"]",
                                 "items": {
@@ -2780,7 +2963,7 @@
                             },
                             "write": {
                                 "type": "array",
-                                "description": "An array of strings with write permissions. By default only the current user is granted with write permissions. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                                "description": "An array of strings with write permissions. By default only the current user is granted with write permissions. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                                 "default": null,
                                 "x-example": "[\"role:all\"]",
                                 "items": {
@@ -2811,7 +2994,7 @@
                 },
                 "x-appwrite": {
                     "method": "getDocument",
-                    "weight": 95,
+                    "weight": 94,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/get-document.md",
@@ -2834,14 +3017,14 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
                     "in": "path"
                 }, {
                     "name": "documentId",
-                    "description": "Document unique ID.",
+                    "description": "Document ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[DOCUMENT_ID]",
@@ -2865,7 +3048,7 @@
                 },
                 "x-appwrite": {
                     "method": "updateDocument",
-                    "weight": 97,
+                    "weight": 96,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/update-document.md",
@@ -2888,14 +3071,14 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection with validation rules using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
                     "in": "path"
                 }, {
                     "name": "documentId",
-                    "description": "Document unique ID.",
+                    "description": "Document ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[DOCUMENT_ID]",
@@ -2909,12 +3092,12 @@
                             "data": {
                                 "type": "object",
                                 "description": "Document data as JSON object.",
-                                "default": null,
+                                "default": {},
                                 "x-example": "{}"
                             },
                             "read": {
                                 "type": "array",
-                                "description": "An array of strings with read permissions. By default inherits the existing read permissions. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                                "description": "An array of strings with read permissions. By default inherits the existing read permissions. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                                 "default": null,
                                 "x-example": "[\"role:all\"]",
                                 "items": {
@@ -2923,7 +3106,7 @@
                             },
                             "write": {
                                 "type": "array",
-                                "description": "An array of strings with write permissions. By default inherits the existing write permissions. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                                "description": "An array of strings with write permissions. By default inherits the existing write permissions. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                                 "default": null,
                                 "x-example": "[\"role:all\"]",
                                 "items": {
@@ -2949,7 +3132,7 @@
                 },
                 "x-appwrite": {
                     "method": "deleteDocument",
-                    "weight": 98,
+                    "weight": 97,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/delete-document.md",
@@ -2972,14 +3155,14 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
                     "in": "path"
                 }, {
                     "name": "documentId",
-                    "description": "Document unique ID.",
+                    "description": "Document ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[DOCUMENT_ID]",
@@ -3005,7 +3188,7 @@
                 },
                 "x-appwrite": {
                     "method": "listIndexes",
-                    "weight": 90,
+                    "weight": 89,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/list-indexes.md",
@@ -3027,7 +3210,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -3051,7 +3234,7 @@
                 },
                 "x-appwrite": {
                     "method": "createIndex",
-                    "weight": 89,
+                    "weight": 88,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/create-index.md",
@@ -3073,7 +3256,7 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
@@ -3084,9 +3267,9 @@
                     "schema": {
                         "type": "object",
                         "properties": {
-                            "indexId": {
+                            "key": {
                                 "type": "string",
-                                "description": "Index ID.",
+                                "description": "Index Key.",
                                 "default": null,
                                 "x-example": null
                             },
@@ -3115,12 +3298,12 @@
                                 }
                             }
                         },
-                        "required": ["indexId", "type", "attributes"]
+                        "required": ["key", "type", "attributes"]
                     }
                 }]
             }
         },
-        "\/database\/collections\/{collectionId}\/indexes\/{indexId}": {
+        "\/database\/collections\/{collectionId}\/indexes\/{key}": {
             "get": {
                 "summary": "Get Index",
                 "operationId": "databaseGetIndex",
@@ -3138,7 +3321,7 @@
                 },
                 "x-appwrite": {
                     "method": "getIndex",
-                    "weight": 91,
+                    "weight": 90,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/get-index.md",
@@ -3160,14 +3343,14 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
                     "in": "path"
                 }, {
-                    "name": "indexId",
-                    "description": "Index ID.",
+                    "name": "key",
+                    "description": "Index Key.",
                     "required": true,
                     "type": "string",
                     "in": "path"
@@ -3187,7 +3370,7 @@
                 },
                 "x-appwrite": {
                     "method": "deleteIndex",
-                    "weight": 92,
+                    "weight": 91,
                     "cookies": false,
                     "type": "",
                     "demo": "database\/delete-index.md",
@@ -3209,14 +3392,14 @@
                 }],
                 "parameters": [{
                     "name": "collectionId",
-                    "description": "Collection unique ID. You can create a new collection using the Database service [server integration](\/docs\/server\/database#createCollection).",
+                    "description": "Collection ID. You can create a new collection using the Database service [server integration](https:\/\/appwrite.io\/docs\/server\/database#createCollection).",
                     "required": true,
                     "type": "string",
                     "x-example": "[COLLECTION_ID]",
                     "in": "path"
                 }, {
-                    "name": "indexId",
-                    "description": "Index ID.",
+                    "name": "key",
+                    "description": "Index Key.",
                     "required": true,
                     "type": "string",
                     "in": "path"
@@ -3241,7 +3424,7 @@
                 },
                 "x-appwrite": {
                     "method": "list",
-                    "weight": 187,
+                    "weight": 186,
                     "cookies": false,
                     "type": "",
                     "demo": "functions\/list.md",
@@ -3271,7 +3454,7 @@
                     "in": "query"
                 }, {
                     "name": "limit",
-                    "description": "Results limit value. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
+                    "description": "Maximum number of functions to return in response. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -3280,7 +3463,7 @@
                     "in": "query"
                 }, {
                     "name": "offset",
-                    "description": "Results offset. The default value is 0. Use this param to manage pagination.",
+                    "description": "Offset value. The default value is 0. Use this value to manage pagination. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -3289,7 +3472,7 @@
                     "in": "query"
                 }, {
                     "name": "cursor",
-                    "description": "ID of the function used as the starting point for the query, excluding the function itself. Should be used for efficient pagination when working with large sets of data.",
+                    "description": "ID of the function used as the starting point for the query, excluding the function itself. Should be used for efficient pagination when working with large sets of data. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "string",
                     "x-example": "[CURSOR]",
@@ -3330,7 +3513,7 @@
                 },
                 "x-appwrite": {
                     "method": "create",
-                    "weight": 186,
+                    "weight": 185,
                     "cookies": false,
                     "type": "",
                     "demo": "functions\/create.md",
@@ -3358,9 +3541,9 @@
                         "properties": {
                             "functionId": {
                                 "type": "string",
-                                "description": "Unique Id. Choose your own unique ID or pass the string `unique()` to auto generate it. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.",
+                                "description": "Function ID. Choose your own unique ID or pass the string `unique()` to auto generate it. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.",
                                 "default": null,
-                                "x-example": null
+                                "x-example": "[FUNCTION_ID]"
                             },
                             "name": {
                                 "type": "string",
@@ -3370,7 +3553,7 @@
                             },
                             "execute": {
                                 "type": "array",
-                                "description": "An array of strings with execution permissions. By default no user is granted with any execute permissions. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                                "description": "An array of strings with execution permissions. By default no user is granted with any execute permissions. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                                 "default": null,
                                 "x-example": null,
                                 "items": {
@@ -3381,12 +3564,12 @@
                                 "type": "string",
                                 "description": "Execution runtime.",
                                 "default": null,
-                                "x-example": "dotnet-5.0"
+                                "x-example": "ruby-3.0"
                             },
                             "vars": {
                                 "type": "object",
-                                "description": "Key-value JSON object.",
-                                "default": {},
+                                "description": "Key-value JSON object that will be passed to the function as environment variables.",
+                                "default": [],
                                 "x-example": "{}"
                             },
                             "events": {
@@ -3413,6 +3596,46 @@
                         },
                         "required": ["functionId", "name", "execute", "runtime"]
                     }
+                }]
+            }
+        },
+        "\/functions\/runtimes": {
+            "get": {
+                "summary": "List the currently active function runtimes.",
+                "operationId": "functionsListRuntimes",
+                "consumes": ["application\/json"],
+                "produces": ["application\/json"],
+                "tags": ["functions"],
+                "description": "Get a list of all runtimes that are currently active in your project.",
+                "responses": {
+                    "200": {
+                        "description": "Runtimes List",
+                        "schema": {
+                            "$ref": "#\/definitions\/runtimeList"
+                        }
+                    }
+                },
+                "x-appwrite": {
+                    "method": "listRuntimes",
+                    "weight": 187,
+                    "cookies": false,
+                    "type": "",
+                    "demo": "functions\/list-runtimes.md",
+                    "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master\/docs\/references\/functions\/list-runtimes.md",
+                    "rate-limit": 0,
+                    "rate-time": 3600,
+                    "rate-key": "url:{url},ip:{ip}",
+                    "scope": "functions.read",
+                    "platforms": ["server"],
+                    "packaging": false,
+                    "auth": {
+                        "Project": [],
+                        "Key": []
+                    }
+                },
+                "security": [{
+                    "Project": [],
+                    "Key": []
                 }]
             }
         },
@@ -3456,7 +3679,7 @@
                 }],
                 "parameters": [{
                     "name": "functionId",
-                    "description": "Function unique ID.",
+                    "description": "Function ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FUNCTION_ID]",
@@ -3502,7 +3725,7 @@
                 }],
                 "parameters": [{
                     "name": "functionId",
-                    "description": "Function unique ID.",
+                    "description": "Function ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FUNCTION_ID]",
@@ -3521,7 +3744,7 @@
                             },
                             "execute": {
                                 "type": "array",
-                                "description": "An array of strings with execution permissions. By default no user is granted with any execute permissions. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                                "description": "An array of strings with execution permissions. By default no user is granted with any execute permissions. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                                 "default": null,
                                 "x-example": null,
                                 "items": {
@@ -3530,8 +3753,8 @@
                             },
                             "vars": {
                                 "type": "object",
-                                "description": "Key-value JSON object.",
-                                "default": {},
+                                "description": "Key-value JSON object that will be passed to the function as environment variables.",
+                                "default": [],
                                 "x-example": "{}"
                             },
                             "events": {
@@ -3551,7 +3774,7 @@
                             },
                             "timeout": {
                                 "type": "integer",
-                                "description": "Function maximum execution time in seconds.",
+                                "description": "Maximum execution time in seconds.",
                                 "default": 15,
                                 "x-example": 1
                             }
@@ -3596,7 +3819,7 @@
                 }],
                 "parameters": [{
                     "name": "functionId",
-                    "description": "Function unique ID.",
+                    "description": "Function ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FUNCTION_ID]",
@@ -3645,14 +3868,14 @@
                 }],
                 "parameters": [{
                     "name": "functionId",
-                    "description": "Function unique ID.",
+                    "description": "Function ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FUNCTION_ID]",
                     "in": "path"
                 }, {
                     "name": "limit",
-                    "description": "Results limit value. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
+                    "description": "Maximum number of executions to return in response. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -3661,7 +3884,7 @@
                     "in": "query"
                 }, {
                     "name": "offset",
-                    "description": "Results offset. The default value is 0. Use this param to manage pagination.",
+                    "description": "Offset value. The default value is 0. Use this value to manage pagination. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -3678,7 +3901,7 @@
                     "in": "query"
                 }, {
                     "name": "cursor",
-                    "description": "ID of the execution used as the starting point for the query, excluding the execution itself. Should be used for efficient pagination when working with large sets of data.",
+                    "description": "ID of the execution used as the starting point for the query, excluding the execution itself. Should be used for efficient pagination when working with large sets of data. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "string",
                     "x-example": "[CURSOR]",
@@ -3734,7 +3957,7 @@
                 }],
                 "parameters": [{
                     "name": "functionId",
-                    "description": "Function unique ID.",
+                    "description": "Function ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FUNCTION_ID]",
@@ -3750,6 +3973,12 @@
                                 "description": "String of custom data to send to function.",
                                 "default": "",
                                 "x-example": "[DATA]"
+                            },
+                            "async": {
+                                "type": "boolean",
+                                "description": "Execute code asynchronously. Default value is true.",
+                                "default": true,
+                                "x-example": false
                             }
                         }
                     }
@@ -3797,14 +4026,14 @@
                 }],
                 "parameters": [{
                     "name": "functionId",
-                    "description": "Function unique ID.",
+                    "description": "Function ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FUNCTION_ID]",
                     "in": "path"
                 }, {
                     "name": "executionId",
-                    "description": "Execution unique ID.",
+                    "description": "Execution ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[EXECUTION_ID]",
@@ -3852,7 +4081,7 @@
                 }],
                 "parameters": [{
                     "name": "functionId",
-                    "description": "Function unique ID.",
+                    "description": "Function ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FUNCTION_ID]",
@@ -3865,7 +4094,7 @@
                         "properties": {
                             "tag": {
                                 "type": "string",
-                                "description": "Tag unique ID.",
+                                "description": "Tag ID.",
                                 "default": null,
                                 "x-example": "[TAG]"
                             }
@@ -3915,7 +4144,7 @@
                 }],
                 "parameters": [{
                     "name": "functionId",
-                    "description": "Function unique ID.",
+                    "description": "Function ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FUNCTION_ID]",
@@ -3930,7 +4159,7 @@
                     "in": "query"
                 }, {
                     "name": "limit",
-                    "description": "Results limit value. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
+                    "description": "Maximum number of tags to return in response. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -3939,7 +4168,7 @@
                     "in": "query"
                 }, {
                     "name": "offset",
-                    "description": "Results offset. The default value is 0. Use this param to manage pagination.",
+                    "description": "Offset value. The default value is 0. Use this value to manage pagination. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -3948,7 +4177,7 @@
                     "in": "query"
                 }, {
                     "name": "cursor",
-                    "description": "ID of the tag used as the starting point for the query, excluding the tag itself. Should be used for efficient pagination when working with large sets of data.",
+                    "description": "ID of the tag used as the starting point for the query, excluding the tag itself. Should be used for efficient pagination when working with large sets of data. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "string",
                     "x-example": "[CURSOR]",
@@ -4011,23 +4240,30 @@
                 }],
                 "parameters": [{
                     "name": "functionId",
-                    "description": "Function unique ID.",
+                    "description": "Function ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FUNCTION_ID]",
                     "in": "path"
                 }, {
-                    "name": "command",
-                    "description": "Code execution command.",
+                    "name": "entrypoint",
+                    "description": "Entrypoint File.",
                     "required": true,
                     "type": "string",
-                    "x-example": "[COMMAND]",
+                    "x-example": "[ENTRYPOINT]",
                     "in": "formData"
                 }, {
                     "name": "code",
                     "description": "Gzip file with your code package. When used with the Appwrite CLI, pass the path to your code directory, and the CLI will automatically package your code. Use a path that is within the current directory.",
                     "required": true,
                     "type": "file",
+                    "in": "formData"
+                }, {
+                    "name": "automaticDeploy",
+                    "description": "Automatically deploy the function when it is finished building.",
+                    "required": true,
+                    "type": "boolean",
+                    "x-example": false,
                     "in": "formData"
                 }]
             }
@@ -4072,14 +4308,14 @@
                 }],
                 "parameters": [{
                     "name": "functionId",
-                    "description": "Function unique ID.",
+                    "description": "Function ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FUNCTION_ID]",
                     "in": "path"
                 }, {
                     "name": "tagId",
-                    "description": "Tag unique ID.",
+                    "description": "Tag ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[TAG_ID]",
@@ -4122,14 +4358,14 @@
                 }],
                 "parameters": [{
                     "name": "functionId",
-                    "description": "Function unique ID.",
+                    "description": "Function ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FUNCTION_ID]",
                     "in": "path"
                 }, {
                     "name": "tagId",
-                    "description": "Tag unique ID.",
+                    "description": "Tag ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[TAG_ID]",
@@ -4142,20 +4378,20 @@
                 "summary": "Get HTTP",
                 "operationId": "healthGet",
                 "consumes": ["application\/json"],
-                "produces": [],
+                "produces": ["application\/json"],
                 "tags": ["health"],
                 "description": "Check the Appwrite HTTP server is up and responsive.",
                 "responses": {
-                    "500": {
-                        "description": "File",
+                    "200": {
+                        "description": "Health Status",
                         "schema": {
-                            "type": "file"
+                            "$ref": "#\/definitions\/healthStatus"
                         }
                     }
                 },
                 "x-appwrite": {
                     "method": "get",
-                    "weight": 106,
+                    "weight": 105,
                     "cookies": false,
                     "type": "",
                     "demo": "health\/get.md",
@@ -4179,26 +4415,26 @@
         },
         "\/health\/anti-virus": {
             "get": {
-                "summary": "Get Anti virus",
-                "operationId": "healthGetAntiVirus",
+                "summary": "Get Antivirus",
+                "operationId": "healthGetAntivirus",
                 "consumes": ["application\/json"],
-                "produces": [],
+                "produces": ["application\/json"],
                 "tags": ["health"],
-                "description": "Check the Appwrite Anti Virus server is up and connection is successful.",
+                "description": "Check the Appwrite Antivirus server is up and connection is successful.",
                 "responses": {
-                    "500": {
-                        "description": "File",
+                    "200": {
+                        "description": "Health Antivirus",
                         "schema": {
-                            "type": "file"
+                            "$ref": "#\/definitions\/healthAntivirus"
                         }
                     }
                 },
                 "x-appwrite": {
-                    "method": "getAntiVirus",
-                    "weight": 117,
+                    "method": "getAntivirus",
+                    "weight": 116,
                     "cookies": false,
                     "type": "",
-                    "demo": "health\/get-anti-virus.md",
+                    "demo": "health\/get-antivirus.md",
                     "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/master\/docs\/references\/health\/get-storage-anti-virus.md",
                     "rate-limit": 0,
                     "rate-time": 3600,
@@ -4222,20 +4458,20 @@
                 "summary": "Get Cache",
                 "operationId": "healthGetCache",
                 "consumes": ["application\/json"],
-                "produces": [],
+                "produces": ["application\/json"],
                 "tags": ["health"],
                 "description": "Check the Appwrite in-memory cache server is up and connection is successful.",
                 "responses": {
-                    "500": {
-                        "description": "File",
+                    "200": {
+                        "description": "Health Status",
                         "schema": {
-                            "type": "file"
+                            "$ref": "#\/definitions\/healthStatus"
                         }
                     }
                 },
                 "x-appwrite": {
                     "method": "getCache",
-                    "weight": 109,
+                    "weight": 108,
                     "cookies": false,
                     "type": "",
                     "demo": "health\/get-cache.md",
@@ -4262,20 +4498,20 @@
                 "summary": "Get DB",
                 "operationId": "healthGetDB",
                 "consumes": ["application\/json"],
-                "produces": [],
+                "produces": ["application\/json"],
                 "tags": ["health"],
                 "description": "Check the Appwrite database server is up and connection is successful.",
                 "responses": {
-                    "500": {
-                        "description": "File",
+                    "200": {
+                        "description": "Health Status",
                         "schema": {
-                            "type": "file"
+                            "$ref": "#\/definitions\/healthStatus"
                         }
                     }
                 },
                 "x-appwrite": {
                     "method": "getDB",
-                    "weight": 108,
+                    "weight": 107,
                     "cookies": false,
                     "type": "",
                     "demo": "health\/get-d-b.md",
@@ -4302,20 +4538,20 @@
                 "summary": "Get Certificates Queue",
                 "operationId": "healthGetQueueCertificates",
                 "consumes": ["application\/json"],
-                "produces": [],
+                "produces": ["application\/json"],
                 "tags": ["health"],
                 "description": "Get the number of certificates that are waiting to be issued against [Letsencrypt](https:\/\/letsencrypt.org\/) in the Appwrite internal queue server.",
                 "responses": {
-                    "500": {
-                        "description": "File",
+                    "200": {
+                        "description": "Health Queue",
                         "schema": {
-                            "type": "file"
+                            "$ref": "#\/definitions\/healthQueue"
                         }
                     }
                 },
                 "x-appwrite": {
                     "method": "getQueueCertificates",
-                    "weight": 114,
+                    "weight": 113,
                     "cookies": false,
                     "type": "",
                     "demo": "health\/get-queue-certificates.md",
@@ -4342,20 +4578,20 @@
                 "summary": "Get Functions Queue",
                 "operationId": "healthGetQueueFunctions",
                 "consumes": ["application\/json"],
-                "produces": [],
+                "produces": ["application\/json"],
                 "tags": ["health"],
                 "description": "",
                 "responses": {
-                    "500": {
-                        "description": "File",
+                    "200": {
+                        "description": "Health Queue",
                         "schema": {
-                            "type": "file"
+                            "$ref": "#\/definitions\/healthQueue"
                         }
                     }
                 },
                 "x-appwrite": {
                     "method": "getQueueFunctions",
-                    "weight": 115,
+                    "weight": 114,
                     "cookies": false,
                     "type": "",
                     "demo": "health\/get-queue-functions.md",
@@ -4382,20 +4618,20 @@
                 "summary": "Get Logs Queue",
                 "operationId": "healthGetQueueLogs",
                 "consumes": ["application\/json"],
-                "produces": [],
+                "produces": ["application\/json"],
                 "tags": ["health"],
                 "description": "Get the number of logs that are waiting to be processed in the Appwrite internal queue server.",
                 "responses": {
-                    "500": {
-                        "description": "File",
+                    "200": {
+                        "description": "Health Queue",
                         "schema": {
-                            "type": "file"
+                            "$ref": "#\/definitions\/healthQueue"
                         }
                     }
                 },
                 "x-appwrite": {
                     "method": "getQueueLogs",
-                    "weight": 112,
+                    "weight": 111,
                     "cookies": false,
                     "type": "",
                     "demo": "health\/get-queue-logs.md",
@@ -4422,20 +4658,20 @@
                 "summary": "Get Usage Queue",
                 "operationId": "healthGetQueueUsage",
                 "consumes": ["application\/json"],
-                "produces": [],
+                "produces": ["application\/json"],
                 "tags": ["health"],
                 "description": "Get the number of usage stats that are waiting to be processed in the Appwrite internal queue server.",
                 "responses": {
-                    "500": {
-                        "description": "File",
+                    "200": {
+                        "description": "Health Queue",
                         "schema": {
-                            "type": "file"
+                            "$ref": "#\/definitions\/healthQueue"
                         }
                     }
                 },
                 "x-appwrite": {
                     "method": "getQueueUsage",
-                    "weight": 113,
+                    "weight": 112,
                     "cookies": false,
                     "type": "",
                     "demo": "health\/get-queue-usage.md",
@@ -4462,20 +4698,20 @@
                 "summary": "Get Webhooks Queue",
                 "operationId": "healthGetQueueWebhooks",
                 "consumes": ["application\/json"],
-                "produces": [],
+                "produces": ["application\/json"],
                 "tags": ["health"],
                 "description": "Get the number of webhooks that are waiting to be processed in the Appwrite internal queue server.",
                 "responses": {
-                    "500": {
-                        "description": "File",
+                    "200": {
+                        "description": "Health Queue",
                         "schema": {
-                            "type": "file"
+                            "$ref": "#\/definitions\/healthQueue"
                         }
                     }
                 },
                 "x-appwrite": {
                     "method": "getQueueWebhooks",
-                    "weight": 111,
+                    "weight": 110,
                     "cookies": false,
                     "type": "",
                     "demo": "health\/get-queue-webhooks.md",
@@ -4502,20 +4738,20 @@
                 "summary": "Get Local Storage",
                 "operationId": "healthGetStorageLocal",
                 "consumes": ["application\/json"],
-                "produces": [],
+                "produces": ["application\/json"],
                 "tags": ["health"],
                 "description": "Check the Appwrite local storage device is up and connection is successful.",
                 "responses": {
-                    "500": {
-                        "description": "File",
+                    "200": {
+                        "description": "Health Status",
                         "schema": {
-                            "type": "file"
+                            "$ref": "#\/definitions\/healthStatus"
                         }
                     }
                 },
                 "x-appwrite": {
                     "method": "getStorageLocal",
-                    "weight": 116,
+                    "weight": 115,
                     "cookies": false,
                     "type": "",
                     "demo": "health\/get-storage-local.md",
@@ -4542,20 +4778,20 @@
                 "summary": "Get Time",
                 "operationId": "healthGetTime",
                 "consumes": ["application\/json"],
-                "produces": [],
+                "produces": ["application\/json"],
                 "tags": ["health"],
                 "description": "Check the Appwrite server time is synced with Google remote NTP server. We use this technology to smoothly handle leap seconds with no disruptive events. The [Network Time Protocol](https:\/\/en.wikipedia.org\/wiki\/Network_Time_Protocol) (NTP) is used by hundreds of millions of computers and devices to synchronize their clocks over the Internet. If your computer sets its own clock, it likely uses NTP.",
                 "responses": {
-                    "500": {
-                        "description": "File",
+                    "200": {
+                        "description": "Health Time",
                         "schema": {
-                            "type": "file"
+                            "$ref": "#\/definitions\/healthTime"
                         }
                     }
                 },
                 "x-appwrite": {
                     "method": "getTime",
-                    "weight": 110,
+                    "weight": 109,
                     "cookies": false,
                     "type": "",
                     "demo": "health\/get-time.md",
@@ -4595,7 +4831,7 @@
                 },
                 "x-appwrite": {
                     "method": "get",
-                    "weight": 99,
+                    "weight": 98,
                     "cookies": false,
                     "type": "",
                     "demo": "locale\/get.md",
@@ -4636,7 +4872,7 @@
                 },
                 "x-appwrite": {
                     "method": "getContinents",
-                    "weight": 103,
+                    "weight": 102,
                     "cookies": false,
                     "type": "",
                     "demo": "locale\/get-continents.md",
@@ -4677,7 +4913,7 @@
                 },
                 "x-appwrite": {
                     "method": "getCountries",
-                    "weight": 100,
+                    "weight": 99,
                     "cookies": false,
                     "type": "",
                     "demo": "locale\/get-countries.md",
@@ -4718,7 +4954,7 @@
                 },
                 "x-appwrite": {
                     "method": "getCountriesEU",
-                    "weight": 101,
+                    "weight": 100,
                     "cookies": false,
                     "type": "",
                     "demo": "locale\/get-countries-e-u.md",
@@ -4759,7 +4995,7 @@
                 },
                 "x-appwrite": {
                     "method": "getCountriesPhones",
-                    "weight": 102,
+                    "weight": 101,
                     "cookies": false,
                     "type": "",
                     "demo": "locale\/get-countries-phones.md",
@@ -4800,7 +5036,7 @@
                 },
                 "x-appwrite": {
                     "method": "getCurrencies",
-                    "weight": 104,
+                    "weight": 103,
                     "cookies": false,
                     "type": "",
                     "demo": "locale\/get-currencies.md",
@@ -4841,7 +5077,7 @@
                 },
                 "x-appwrite": {
                     "method": "getLanguages",
-                    "weight": 105,
+                    "weight": 104,
                     "cookies": false,
                     "type": "",
                     "demo": "locale\/get-languages.md",
@@ -4882,7 +5118,7 @@
                 },
                 "x-appwrite": {
                     "method": "listFiles",
-                    "weight": 150,
+                    "weight": 149,
                     "cookies": false,
                     "type": "",
                     "demo": "storage\/list-files.md",
@@ -4913,7 +5149,7 @@
                     "in": "query"
                 }, {
                     "name": "limit",
-                    "description": "Results limit value. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
+                    "description": "Maximum number of files to return in response. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -4922,7 +5158,7 @@
                     "in": "query"
                 }, {
                     "name": "offset",
-                    "description": "Results offset. The default value is 0. Use this param to manage pagination.",
+                    "description": "Offset value. The default value is 0. Use this param to manage pagination. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -4931,7 +5167,7 @@
                     "in": "query"
                 }, {
                     "name": "cursor",
-                    "description": "ID of the file used as the starting point for the query, excluding the file itself. Should be used for efficient pagination when working with large sets of data.",
+                    "description": "ID of the file used as the starting point for the query, excluding the file itself. Should be used for efficient pagination when working with large sets of data. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "string",
                     "x-example": "[CURSOR]",
@@ -4972,7 +5208,7 @@
                 },
                 "x-appwrite": {
                     "method": "createFile",
-                    "weight": 149,
+                    "weight": 148,
                     "cookies": false,
                     "type": "upload",
                     "demo": "storage\/create-file.md",
@@ -4995,9 +5231,10 @@
                 }],
                 "parameters": [{
                     "name": "fileId",
-                    "description": "Unique Id. Choose your own unique ID or pass the string `unique()` to auto generate it. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.",
+                    "description": "File ID. Choose your own unique ID or pass the string `unique()` to auto generate it. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.",
                     "required": true,
                     "type": "string",
+                    "x-example": "[FILE_ID]",
                     "in": "formData"
                 }, {
                     "name": "file",
@@ -5007,7 +5244,7 @@
                     "in": "formData"
                 }, {
                     "name": "read",
-                    "description": "An array of strings with read permissions. By default only the current user is granted with read permissions. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                    "description": "An array of strings with read permissions. By default only the current user is granted with read permissions. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                     "required": false,
                     "type": "array",
                     "collectionFormat": "multi",
@@ -5017,7 +5254,7 @@
                     "in": "formData"
                 }, {
                     "name": "write",
-                    "description": "An array of strings with write permissions. By default only the current user is granted with write permissions. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                    "description": "An array of strings with write permissions. By default only the current user is granted with write permissions. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                     "required": false,
                     "type": "array",
                     "collectionFormat": "multi",
@@ -5046,7 +5283,7 @@
                 },
                 "x-appwrite": {
                     "method": "getFile",
-                    "weight": 151,
+                    "weight": 150,
                     "cookies": false,
                     "type": "",
                     "demo": "storage\/get-file.md",
@@ -5069,7 +5306,7 @@
                 }],
                 "parameters": [{
                     "name": "fileId",
-                    "description": "File unique ID.",
+                    "description": "File ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FILE_ID]",
@@ -5093,7 +5330,7 @@
                 },
                 "x-appwrite": {
                     "method": "updateFile",
-                    "weight": 155,
+                    "weight": 154,
                     "cookies": false,
                     "type": "",
                     "demo": "storage\/update-file.md",
@@ -5116,7 +5353,7 @@
                 }],
                 "parameters": [{
                     "name": "fileId",
-                    "description": "File unique ID.",
+                    "description": "File ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FILE_ID]",
@@ -5129,7 +5366,7 @@
                         "properties": {
                             "read": {
                                 "type": "array",
-                                "description": "An array of strings with read permissions. By default no user is granted with any read permissions. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                                "description": "An array of strings with read permissions. By default no user is granted with any read permissions. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                                 "default": null,
                                 "x-example": null,
                                 "items": {
@@ -5138,7 +5375,7 @@
                             },
                             "write": {
                                 "type": "array",
-                                "description": "An array of strings with write permissions. By default no user is granted with any write permissions. [learn more about permissions](\/docs\/permissions) and get a full list of available permissions.",
+                                "description": "An array of strings with write permissions. By default no user is granted with any write permissions. [learn more about permissions](https:\/\/appwrite.io\/docs\/permissions) and get a full list of available permissions.",
                                 "default": null,
                                 "x-example": null,
                                 "items": {
@@ -5164,7 +5401,7 @@
                 },
                 "x-appwrite": {
                     "method": "deleteFile",
-                    "weight": 156,
+                    "weight": 155,
                     "cookies": false,
                     "type": "",
                     "demo": "storage\/delete-file.md",
@@ -5187,7 +5424,7 @@
                 }],
                 "parameters": [{
                     "name": "fileId",
-                    "description": "File unique ID.",
+                    "description": "File ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FILE_ID]",
@@ -5213,7 +5450,7 @@
                 },
                 "x-appwrite": {
                     "method": "getFileDownload",
-                    "weight": 153,
+                    "weight": 152,
                     "cookies": false,
                     "type": "location",
                     "demo": "storage\/get-file-download.md",
@@ -5236,7 +5473,7 @@
                 }],
                 "parameters": [{
                     "name": "fileId",
-                    "description": "File unique ID.",
+                    "description": "File ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FILE_ID]",
@@ -5262,7 +5499,7 @@
                 },
                 "x-appwrite": {
                     "method": "getFilePreview",
-                    "weight": 152,
+                    "weight": 151,
                     "cookies": false,
                     "type": "location",
                     "demo": "storage\/get-file-preview.md",
@@ -5285,7 +5522,7 @@
                 }],
                 "parameters": [{
                     "name": "fileId",
-                    "description": "File unique ID",
+                    "description": "File ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FILE_ID]",
@@ -5361,11 +5598,11 @@
                     "in": "query"
                 }, {
                     "name": "rotation",
-                    "description": "Preview image rotation in degrees. Pass an integer between 0 and 360.",
+                    "description": "Preview image rotation in degrees. Pass an integer between -360 and 360.",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
-                    "x-example": 0,
+                    "x-example": -360,
                     "default": 0,
                     "in": "query"
                 }, {
@@ -5404,7 +5641,7 @@
                 },
                 "x-appwrite": {
                     "method": "getFileView",
-                    "weight": 154,
+                    "weight": 153,
                     "cookies": false,
                     "type": "location",
                     "demo": "storage\/get-file-view.md",
@@ -5427,7 +5664,7 @@
                 }],
                 "parameters": [{
                     "name": "fileId",
-                    "description": "File unique ID.",
+                    "description": "File ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[FILE_ID]",
@@ -5442,7 +5679,7 @@
                 "consumes": ["application\/json"],
                 "produces": ["application\/json"],
                 "tags": ["teams"],
-                "description": "Get a list of all the current user teams. You can use the query params to filter your results. On admin mode, this endpoint will return a list of all of the project's teams. [Learn more about different API modes](\/docs\/admin).",
+                "description": "Get a list of all the teams in which the current user is a member. You can use the parameters to filter your results.\r\n\r\nIn admin mode, this endpoint returns a list of all the teams in the current project. [Learn more about different API modes](\/docs\/admin).",
                 "responses": {
                     "200": {
                         "description": "Teams List",
@@ -5453,7 +5690,7 @@
                 },
                 "x-appwrite": {
                     "method": "list",
-                    "weight": 160,
+                    "weight": 159,
                     "cookies": false,
                     "type": "",
                     "demo": "teams\/list.md",
@@ -5484,7 +5721,7 @@
                     "in": "query"
                 }, {
                     "name": "limit",
-                    "description": "Results limit value. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
+                    "description": "Maximum number of teams to return in response. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -5493,7 +5730,7 @@
                     "in": "query"
                 }, {
                     "name": "offset",
-                    "description": "Results offset. The default value is 0. Use this param to manage pagination.",
+                    "description": "Offset value. The default value is 0. Use this param to manage pagination. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -5502,7 +5739,7 @@
                     "in": "query"
                 }, {
                     "name": "cursor",
-                    "description": "ID of the team used as the starting point for the query, excluding the team itself. Should be used for efficient pagination when working with large sets of data.",
+                    "description": "ID of the team used as the starting point for the query, excluding the team itself. Should be used for efficient pagination when working with large sets of data. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "string",
                     "x-example": "[CURSOR]",
@@ -5532,7 +5769,7 @@
                 "consumes": ["application\/json"],
                 "produces": ["application\/json"],
                 "tags": ["teams"],
-                "description": "Create a new team. The user who creates the team will automatically be assigned as the owner of the team. The team owner can invite new members, who will be able add new owners and update or delete the team from your project.",
+                "description": "Create a new team. The user who creates the team will automatically be assigned as the owner of the team. Only the users with the owner role can invite new members, add new owners and delete or update the team.",
                 "responses": {
                     "201": {
                         "description": "Team",
@@ -5543,7 +5780,7 @@
                 },
                 "x-appwrite": {
                     "method": "create",
-                    "weight": 159,
+                    "weight": 158,
                     "cookies": false,
                     "type": "",
                     "demo": "teams\/create.md",
@@ -5572,9 +5809,9 @@
                         "properties": {
                             "teamId": {
                                 "type": "string",
-                                "description": "Unique Id. Choose your own unique ID or pass the string `unique()` to auto generate it. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.",
+                                "description": "Team ID. Choose your own unique ID or pass the string `unique()` to auto generate it. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.",
                                 "default": null,
-                                "x-example": null
+                                "x-example": "[TEAM_ID]"
                             },
                             "name": {
                                 "type": "string",
@@ -5604,7 +5841,7 @@
                 "consumes": ["application\/json"],
                 "produces": ["application\/json"],
                 "tags": ["teams"],
-                "description": "Get a team by its unique ID. All team members have read access for this resource.",
+                "description": "Get a team by its ID. All team members have read access for this resource.",
                 "responses": {
                     "200": {
                         "description": "Team",
@@ -5615,7 +5852,7 @@
                 },
                 "x-appwrite": {
                     "method": "get",
-                    "weight": 161,
+                    "weight": 160,
                     "cookies": false,
                     "type": "",
                     "demo": "teams\/get.md",
@@ -5638,7 +5875,7 @@
                 }],
                 "parameters": [{
                     "name": "teamId",
-                    "description": "Team unique ID.",
+                    "description": "Team ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[TEAM_ID]",
@@ -5651,7 +5888,7 @@
                 "consumes": ["application\/json"],
                 "produces": ["application\/json"],
                 "tags": ["teams"],
-                "description": "Update a team by its unique ID. Only team owners have write access for this resource.",
+                "description": "Update a team using its ID. Only members with the owner role can update the team.",
                 "responses": {
                     "200": {
                         "description": "Team",
@@ -5662,7 +5899,7 @@
                 },
                 "x-appwrite": {
                     "method": "update",
-                    "weight": 162,
+                    "weight": 161,
                     "cookies": false,
                     "type": "",
                     "demo": "teams\/update.md",
@@ -5685,7 +5922,7 @@
                 }],
                 "parameters": [{
                     "name": "teamId",
-                    "description": "Team unique ID.",
+                    "description": "Team ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[TEAM_ID]",
@@ -5698,7 +5935,7 @@
                         "properties": {
                             "name": {
                                 "type": "string",
-                                "description": "Team name. Max length: 128 chars.",
+                                "description": "New team name. Max length: 128 chars.",
                                 "default": null,
                                 "x-example": "[NAME]"
                             }
@@ -5713,7 +5950,7 @@
                 "consumes": ["application\/json"],
                 "produces": [],
                 "tags": ["teams"],
-                "description": "Delete a team by its unique ID. Only team owners have write access for this resource.",
+                "description": "Delete a team using its ID. Only team members with the owner role can delete the team.",
                 "responses": {
                     "204": {
                         "description": "No content"
@@ -5721,7 +5958,7 @@
                 },
                 "x-appwrite": {
                     "method": "delete",
-                    "weight": 163,
+                    "weight": 162,
                     "cookies": false,
                     "type": "",
                     "demo": "teams\/delete.md",
@@ -5744,7 +5981,7 @@
                 }],
                 "parameters": [{
                     "name": "teamId",
-                    "description": "Team unique ID.",
+                    "description": "Team ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[TEAM_ID]",
@@ -5759,7 +5996,7 @@
                 "consumes": ["application\/json"],
                 "produces": ["application\/json"],
                 "tags": ["teams"],
-                "description": "Get a team members by the team unique ID. All team members have read access for this list of resources.",
+                "description": "Use this endpoint to list a team's members using the team's ID. All team members have read access to this endpoint.",
                 "responses": {
                     "200": {
                         "description": "Memberships List",
@@ -5770,7 +6007,7 @@
                 },
                 "x-appwrite": {
                     "method": "getMemberships",
-                    "weight": 165,
+                    "weight": 164,
                     "cookies": false,
                     "type": "",
                     "demo": "teams\/get-memberships.md",
@@ -5793,7 +6030,7 @@
                 }],
                 "parameters": [{
                     "name": "teamId",
-                    "description": "Team unique ID.",
+                    "description": "Team ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[TEAM_ID]",
@@ -5808,7 +6045,7 @@
                     "in": "query"
                 }, {
                     "name": "limit",
-                    "description": "Results limit value. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
+                    "description": "Maximum number of memberships to return in response. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -5817,7 +6054,7 @@
                     "in": "query"
                 }, {
                     "name": "offset",
-                    "description": "Results offset. The default value is 0. Use this param to manage pagination.",
+                    "description": "Offset value. The default value is 0. Use this value to manage pagination. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -5826,7 +6063,7 @@
                     "in": "query"
                 }, {
                     "name": "cursor",
-                    "description": "ID of the membership used as the starting point for the query, excluding the membership itself. Should be used for efficient pagination when working with large sets of data.",
+                    "description": "ID of the membership used as the starting point for the query, excluding the membership itself. Should be used for efficient pagination when working with large sets of data. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "string",
                     "x-example": "[CURSOR]",
@@ -5856,7 +6093,7 @@
                 "consumes": ["application\/json"],
                 "produces": ["application\/json"],
                 "tags": ["teams"],
-                "description": "Use this endpoint to invite a new member to join your team. If initiated from Client SDK, an email with a link to join the team will be sent to the new member's email address if the member doesn't exist in the project it will be created automatically. If initiated from server side SDKs, new member will automatically be added to the team.\n\nUse the 'URL' parameter to redirect the user from the invitation email back to your app. When the user is redirected, use the [Update Team Membership Status](\/docs\/client\/teams#teamsUpdateMembershipStatus) endpoint to allow the user to accept the invitation to the team.  While calling from side SDKs the redirect url can be empty string.\n\nPlease note that in order to avoid a [Redirect Attacks](https:\/\/github.com\/OWASP\/CheatSheetSeries\/blob\/master\/cheatsheets\/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.md) the only valid redirect URL's are the once from domains you have set when added your platforms in the console interface.",
+                "description": "Invite a new member to join your team. If initiated from the client SDK, an email with a link to join the team will be sent to the member's email address and an account will be created for them should they not be signed up already. If initiated from server-side SDKs, the new member will automatically be added to the team.\n\nUse the 'url' parameter to redirect the user from the invitation email back to your app. When the user is redirected, use the [Update Team Membership Status](\/docs\/client\/teams#teamsUpdateMembershipStatus) endpoint to allow the user to accept the invitation to the team. \n\nPlease note that to avoid a [Redirect Attack](https:\/\/github.com\/OWASP\/CheatSheetSeries\/blob\/master\/cheatsheets\/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.md) the only valid redirect URL's are the once from domains you have set when adding your platforms in the console interface.",
                 "responses": {
                     "201": {
                         "description": "Membership",
@@ -5867,7 +6104,7 @@
                 },
                 "x-appwrite": {
                     "method": "createMembership",
-                    "weight": 164,
+                    "weight": 163,
                     "cookies": false,
                     "type": "",
                     "demo": "teams\/create-membership.md",
@@ -5890,7 +6127,7 @@
                 }],
                 "parameters": [{
                     "name": "teamId",
-                    "description": "Team unique ID.",
+                    "description": "Team ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[TEAM_ID]",
@@ -5903,7 +6140,7 @@
                         "properties": {
                             "email": {
                                 "type": "string",
-                                "description": "New team member email.",
+                                "description": "Email of the new team member.",
                                 "default": null,
                                 "x-example": "email@example.com"
                             },
@@ -5924,7 +6161,7 @@
                             },
                             "name": {
                                 "type": "string",
-                                "description": "New team member name. Max length: 128 chars.",
+                                "description": "Name of the new team member. Max length: 128 chars.",
                                 "default": "",
                                 "x-example": "[NAME]"
                             }
@@ -5952,7 +6189,7 @@
                 },
                 "x-appwrite": {
                     "method": "getMembership",
-                    "weight": 166,
+                    "weight": 165,
                     "cookies": false,
                     "type": "",
                     "demo": "teams\/get-membership.md",
@@ -5975,14 +6212,14 @@
                 }],
                 "parameters": [{
                     "name": "teamId",
-                    "description": "Team unique ID.",
+                    "description": "Team ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[TEAM_ID]",
                     "in": "path"
                 }, {
                     "name": "membershipId",
-                    "description": "membership unique ID.",
+                    "description": "Membership ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[MEMBERSHIP_ID]",
@@ -5995,7 +6232,7 @@
                 "consumes": ["application\/json"],
                 "produces": ["application\/json"],
                 "tags": ["teams"],
-                "description": "",
+                "description": "Modify the roles of a team member. Only team members with the owner role have access to this endpoint. Learn more about [roles and permissions](\/docs\/permissions).",
                 "responses": {
                     "200": {
                         "description": "Membership",
@@ -6006,7 +6243,7 @@
                 },
                 "x-appwrite": {
                     "method": "updateMembershipRoles",
-                    "weight": 167,
+                    "weight": 166,
                     "cookies": false,
                     "type": "",
                     "demo": "teams\/update-membership-roles.md",
@@ -6029,7 +6266,7 @@
                 }],
                 "parameters": [{
                     "name": "teamId",
-                    "description": "Team unique ID.",
+                    "description": "Team ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[TEAM_ID]",
@@ -6049,7 +6286,7 @@
                         "properties": {
                             "roles": {
                                 "type": "array",
-                                "description": "Array of strings. Use this param to set the user roles in the team. A role can be any string. Learn more about [roles and permissions](\/docs\/permissions). Max length for each role is 32 chars.",
+                                "description": "An array of strings. Use this param to set the user's roles in the team. A role can be any string. Learn more about [roles and permissions](https:\/\/appwrite.io\/docs\/permissions). Max length for each role is 32 chars.",
                                 "default": null,
                                 "x-example": null,
                                 "items": {
@@ -6075,7 +6312,7 @@
                 },
                 "x-appwrite": {
                     "method": "deleteMembership",
-                    "weight": 169,
+                    "weight": 168,
                     "cookies": false,
                     "type": "",
                     "demo": "teams\/delete-membership.md",
@@ -6098,7 +6335,7 @@
                 }],
                 "parameters": [{
                     "name": "teamId",
-                    "description": "Team unique ID.",
+                    "description": "Team ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[TEAM_ID]",
@@ -6120,7 +6357,7 @@
                 "consumes": ["application\/json"],
                 "produces": ["application\/json"],
                 "tags": ["teams"],
-                "description": "Use this endpoint to allow a user to accept an invitation to join a team after being redirected back to your app from the invitation email recieved by the user.",
+                "description": "Use this endpoint to allow a user to accept an invitation to join a team after being redirected back to your app from the invitation email received by the user.",
                 "responses": {
                     "200": {
                         "description": "Membership",
@@ -6131,7 +6368,7 @@
                 },
                 "x-appwrite": {
                     "method": "updateMembershipStatus",
-                    "weight": 168,
+                    "weight": 167,
                     "cookies": false,
                     "type": "",
                     "demo": "teams\/update-membership-status.md",
@@ -6153,7 +6390,7 @@
                 }],
                 "parameters": [{
                     "name": "teamId",
-                    "description": "Team unique ID.",
+                    "description": "Team ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[TEAM_ID]",
@@ -6173,7 +6410,7 @@
                         "properties": {
                             "userId": {
                                 "type": "string",
-                                "description": "User unique ID.",
+                                "description": "User ID.",
                                 "default": null,
                                 "x-example": "[USER_ID]"
                             },
@@ -6207,7 +6444,7 @@
                 },
                 "x-appwrite": {
                     "method": "list",
-                    "weight": 171,
+                    "weight": 170,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/list.md",
@@ -6237,7 +6474,7 @@
                     "in": "query"
                 }, {
                     "name": "limit",
-                    "description": "Results limit value. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
+                    "description": "Maximum number of users to return in response. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -6246,7 +6483,7 @@
                     "in": "query"
                 }, {
                     "name": "offset",
-                    "description": "Results offset. The default value is 0. Use this param to manage pagination.",
+                    "description": "Offset value. The default value is 0. Use this param to manage pagination. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -6255,7 +6492,7 @@
                     "in": "query"
                 }, {
                     "name": "cursor",
-                    "description": "ID of the user used as the starting point for the query, excluding the user itself. Should be used for efficient pagination when working with large sets of data.",
+                    "description": "ID of the user used as the starting point for the query, excluding the user itself. Should be used for efficient pagination when working with large sets of data. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "string",
                     "x-example": "[CURSOR]",
@@ -6296,7 +6533,7 @@
                 },
                 "x-appwrite": {
                     "method": "create",
-                    "weight": 170,
+                    "weight": 169,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/create.md",
@@ -6324,9 +6561,9 @@
                         "properties": {
                             "userId": {
                                 "type": "string",
-                                "description": "Unique Id. Choose your own unique ID or pass the string `unique()` to auto generate it. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.",
+                                "description": "User ID. Choose your own unique ID or pass the string `unique()` to auto generate it. Valid chars are a-z, A-Z, 0-9, period, hyphen, and underscore. Can't start with a special char. Max length is 36 chars.",
                                 "default": null,
-                                "x-example": null
+                                "x-example": "[USER_ID]"
                             },
                             "email": {
                                 "type": "string",
@@ -6336,7 +6573,7 @@
                             },
                             "password": {
                                 "type": "string",
-                                "description": "User password. Must be between 6 to 32 chars.",
+                                "description": "User password. Must be at least 8 chars.",
                                 "default": null,
                                 "x-example": "password"
                             },
@@ -6370,7 +6607,7 @@
                 },
                 "x-appwrite": {
                     "method": "get",
-                    "weight": 172,
+                    "weight": 171,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/get.md",
@@ -6392,7 +6629,7 @@
                 }],
                 "parameters": [{
                     "name": "userId",
-                    "description": "User unique ID.",
+                    "description": "User ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[USER_ID]",
@@ -6413,7 +6650,7 @@
                 },
                 "x-appwrite": {
                     "method": "delete",
-                    "weight": 184,
+                    "weight": 183,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/delete.md",
@@ -6435,7 +6672,7 @@
                 }],
                 "parameters": [{
                     "name": "userId",
-                    "description": "User unique ID.",
+                    "description": "User ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[USER_ID]",
@@ -6461,7 +6698,7 @@
                 },
                 "x-appwrite": {
                     "method": "updateEmail",
-                    "weight": 180,
+                    "weight": 179,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/update-email.md",
@@ -6483,7 +6720,7 @@
                 }],
                 "parameters": [{
                     "name": "userId",
-                    "description": "User unique ID.",
+                    "description": "User ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[USER_ID]",
@@ -6524,7 +6761,7 @@
                 },
                 "x-appwrite": {
                     "method": "getLogs",
-                    "weight": 175,
+                    "weight": 174,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/get-logs.md",
@@ -6546,14 +6783,14 @@
                 }],
                 "parameters": [{
                     "name": "userId",
-                    "description": "User unique ID.",
+                    "description": "User ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[USER_ID]",
                     "in": "path"
                 }, {
                     "name": "limit",
-                    "description": "Maximum number of logs to return in response.  Use this value to manage pagination. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
+                    "description": "Maximum number of logs to return in response. By default will return maximum 25 results. Maximum of 100 results allowed per request.",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -6562,7 +6799,7 @@
                     "in": "query"
                 }, {
                     "name": "offset",
-                    "description": "Offset value. The default value is 0. Use this param to manage pagination.",
+                    "description": "Offset value. The default value is 0. Use this value to manage pagination. [learn more about pagination](https:\/\/appwrite.io\/docs\/pagination)",
                     "required": false,
                     "type": "integer",
                     "format": "int32",
@@ -6590,7 +6827,7 @@
                 },
                 "x-appwrite": {
                     "method": "updateName",
-                    "weight": 178,
+                    "weight": 177,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/update-name.md",
@@ -6612,7 +6849,7 @@
                 }],
                 "parameters": [{
                     "name": "userId",
-                    "description": "User unique ID.",
+                    "description": "User ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[USER_ID]",
@@ -6653,7 +6890,7 @@
                 },
                 "x-appwrite": {
                     "method": "updatePassword",
-                    "weight": 179,
+                    "weight": 178,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/update-password.md",
@@ -6675,7 +6912,7 @@
                 }],
                 "parameters": [{
                     "name": "userId",
-                    "description": "User unique ID.",
+                    "description": "User ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[USER_ID]",
@@ -6688,7 +6925,7 @@
                         "properties": {
                             "password": {
                                 "type": "string",
-                                "description": "New user password. Must be between 6 to 32 chars.",
+                                "description": "New user password. Must be at least 8 chars.",
                                 "default": null,
                                 "x-example": "password"
                             }
@@ -6716,7 +6953,7 @@
                 },
                 "x-appwrite": {
                     "method": "getPrefs",
-                    "weight": 173,
+                    "weight": 172,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/get-prefs.md",
@@ -6738,7 +6975,7 @@
                 }],
                 "parameters": [{
                     "name": "userId",
-                    "description": "User unique ID.",
+                    "description": "User ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[USER_ID]",
@@ -6751,7 +6988,7 @@
                 "consumes": ["application\/json"],
                 "produces": ["application\/json"],
                 "tags": ["users"],
-                "description": "Update the user preferences by its unique ID. You can pass only the specific settings you wish to update.",
+                "description": "Update the user preferences by its unique ID. The object you pass is stored as is, and replaces any previous value. The maximum allowed prefs size is 64kB and throws error if exceeded.",
                 "responses": {
                     "200": {
                         "description": "Preferences",
@@ -6762,7 +6999,7 @@
                 },
                 "x-appwrite": {
                     "method": "updatePrefs",
-                    "weight": 181,
+                    "weight": 180,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/update-prefs.md",
@@ -6784,7 +7021,7 @@
                 }],
                 "parameters": [{
                     "name": "userId",
-                    "description": "User unique ID.",
+                    "description": "User ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[USER_ID]",
@@ -6798,7 +7035,7 @@
                             "prefs": {
                                 "type": "object",
                                 "description": "Prefs key-value JSON object.",
-                                "default": null,
+                                "default": {},
                                 "x-example": "{}"
                             }
                         },
@@ -6825,7 +7062,7 @@
                 },
                 "x-appwrite": {
                     "method": "getSessions",
-                    "weight": 174,
+                    "weight": 173,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/get-sessions.md",
@@ -6847,7 +7084,7 @@
                 }],
                 "parameters": [{
                     "name": "userId",
-                    "description": "User unique ID.",
+                    "description": "User ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[USER_ID]",
@@ -6868,7 +7105,7 @@
                 },
                 "x-appwrite": {
                     "method": "deleteSessions",
-                    "weight": 183,
+                    "weight": 182,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/delete-sessions.md",
@@ -6890,7 +7127,7 @@
                 }],
                 "parameters": [{
                     "name": "userId",
-                    "description": "User unique ID.",
+                    "description": "User ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[USER_ID]",
@@ -6913,7 +7150,7 @@
                 },
                 "x-appwrite": {
                     "method": "deleteSession",
-                    "weight": 182,
+                    "weight": 181,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/delete-session.md",
@@ -6935,14 +7172,14 @@
                 }],
                 "parameters": [{
                     "name": "userId",
-                    "description": "User unique ID.",
+                    "description": "User ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[USER_ID]",
                     "in": "path"
                 }, {
                     "name": "sessionId",
-                    "description": "User unique session ID.",
+                    "description": "Session ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[SESSION_ID]",
@@ -6968,7 +7205,7 @@
                 },
                 "x-appwrite": {
                     "method": "updateStatus",
-                    "weight": 176,
+                    "weight": 175,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/update-status.md",
@@ -6990,7 +7227,7 @@
                 }],
                 "parameters": [{
                     "name": "userId",
-                    "description": "User unique ID.",
+                    "description": "User ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[USER_ID]",
@@ -7003,7 +7240,7 @@
                         "properties": {
                             "status": {
                                 "type": "boolean",
-                                "description": "User Status. To activate the user pass `true` and to block the user pass `false`",
+                                "description": "User Status. To activate the user pass `true` and to block the user pass `false`.",
                                 "default": null,
                                 "x-example": false
                             }
@@ -7031,7 +7268,7 @@
                 },
                 "x-appwrite": {
                     "method": "updateVerification",
-                    "weight": 177,
+                    "weight": 176,
                     "cookies": false,
                     "type": "",
                     "demo": "users\/update-verification.md",
@@ -7053,7 +7290,7 @@
                 }],
                 "parameters": [{
                     "name": "userId",
-                    "description": "User unique ID.",
+                    "description": "User ID.",
                     "required": true,
                     "type": "string",
                     "x-example": "[USER_ID]",
@@ -7066,7 +7303,7 @@
                         "properties": {
                             "emailVerification": {
                                 "type": "boolean",
-                                "description": "User Email Verification Status.",
+                                "description": "User email verification status.",
                                 "default": null,
                                 "x-example": false
                             }
@@ -7329,6 +7566,28 @@
             },
             "required": ["sum", "functions"]
         },
+        "runtimeList": {
+            "description": "Runtimes List",
+            "type": "object",
+            "properties": {
+                "sum": {
+                    "type": "integer",
+                    "description": "Total number of items available on the server.",
+                    "x-example": 5,
+                    "format": "int32"
+                },
+                "runtimes": {
+                    "type": "array",
+                    "description": "List of runtimes.",
+                    "items": {
+                        "type": "object",
+                        "$ref": "#\/definitions\/runtime"
+                    },
+                    "x-example": ""
+                }
+            },
+            "required": ["sum", "runtimes"]
+        },
         "tagList": {
             "description": "Tags List",
             "type": "object",
@@ -7372,6 +7631,28 @@
                 }
             },
             "required": ["sum", "executions"]
+        },
+        "buildList": {
+            "description": "Builds List",
+            "type": "object",
+            "properties": {
+                "sum": {
+                    "type": "integer",
+                    "description": "Total number of items available on the server.",
+                    "x-example": 5,
+                    "format": "int32"
+                },
+                "builds": {
+                    "type": "array",
+                    "description": "List of builds.",
+                    "items": {
+                        "type": "object",
+                        "$ref": "#\/definitions\/build"
+                    },
+                    "x-example": ""
+                }
+            },
+            "required": ["sum", "builds"]
         },
         "countryList": {
             "description": "Countries List",
@@ -7513,6 +7794,11 @@
                     "description": "Collection name.",
                     "x-example": "My Collection"
                 },
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Collection enabled.",
+                    "x-example": false
+                },
                 "permission": {
                     "type": "string",
                     "description": "Collection permission model. Possible values: `document` or `collection`",
@@ -7522,7 +7808,7 @@
                     "type": "array",
                     "description": "Collection attributes.",
                     "items": {
-                        "anyOf": [{
+                        "x-anyOf": [{
                             "$ref": "#\/definitions\/attributeBoolean"
                         }, {
                             "$ref": "#\/definitions\/attributeInteger"
@@ -7552,7 +7838,7 @@
                     "x-example": {}
                 }
             },
-            "required": ["$id", "$read", "$write", "name", "permission", "attributes", "indexes"]
+            "required": ["$id", "$read", "$write", "name", "enabled", "permission", "attributes", "indexes"]
         },
         "attributeList": {
             "description": "Attributes List",
@@ -7568,7 +7854,7 @@
                     "type": "array",
                     "description": "List of attributes.",
                     "items": {
-                        "anyOf": [{
+                        "x-anyOf": [{
                             "$ref": "#\/definitions\/attributeBoolean"
                         }, {
                             "$ref": "#\/definitions\/attributeInteger"
@@ -7618,20 +7904,23 @@
                 "array": {
                     "type": "boolean",
                     "description": "Is attribute an array?",
-                    "x-example": false
+                    "x-example": false,
+                    "x-nullable": true
                 },
                 "size": {
-                    "type": "string",
+                    "type": "integer",
                     "description": "Attribute size.",
-                    "x-example": 128
+                    "x-example": 128,
+                    "format": "int32"
                 },
                 "default": {
                     "type": "string",
                     "description": "Default value for attribute when not provided. Cannot be set when attribute is required.",
-                    "x-example": "default"
+                    "x-example": "default",
+                    "x-nullable": true
                 }
             },
-            "required": ["key", "type", "status", "required", "array", "size", "default"]
+            "required": ["key", "type", "status", "required", "size"]
         },
         "attributeInteger": {
             "description": "AttributeInteger",
@@ -7660,28 +7949,32 @@
                 "array": {
                     "type": "boolean",
                     "description": "Is attribute an array?",
-                    "x-example": false
+                    "x-example": false,
+                    "x-nullable": true
                 },
                 "min": {
                     "type": "integer",
                     "description": "Minimum value to enforce for new documents.",
                     "x-example": 1,
-                    "format": "int32"
+                    "format": "int32",
+                    "x-nullable": true
                 },
                 "max": {
                     "type": "integer",
                     "description": "Maximum value to enforce for new documents.",
                     "x-example": 10,
-                    "format": "int32"
+                    "format": "int32",
+                    "x-nullable": true
                 },
                 "default": {
                     "type": "integer",
                     "description": "Default value for attribute when not provided. Cannot be set when attribute is required.",
                     "x-example": 10,
-                    "format": "int32"
+                    "format": "int32",
+                    "x-nullable": true
                 }
             },
-            "required": ["key", "type", "status", "required", "array", "min", "max", "default"]
+            "required": ["key", "type", "status", "required"]
         },
         "attributeFloat": {
             "description": "AttributeFloat",
@@ -7710,28 +8003,32 @@
                 "array": {
                     "type": "boolean",
                     "description": "Is attribute an array?",
-                    "x-example": false
+                    "x-example": false,
+                    "x-nullable": true
                 },
                 "min": {
                     "type": "number",
                     "description": "Minimum value to enforce for new documents.",
                     "x-example": 1.5,
-                    "format": "double"
+                    "format": "double",
+                    "x-nullable": true
                 },
                 "max": {
                     "type": "number",
                     "description": "Maximum value to enforce for new documents.",
                     "x-example": 10.5,
-                    "format": "double"
+                    "format": "double",
+                    "x-nullable": true
                 },
                 "default": {
                     "type": "number",
                     "description": "Default value for attribute when not provided. Cannot be set when attribute is required.",
                     "x-example": 2.5,
-                    "format": "double"
+                    "format": "double",
+                    "x-nullable": true
                 }
             },
-            "required": ["key", "type", "status", "required", "array", "min", "max", "default"]
+            "required": ["key", "type", "status", "required"]
         },
         "attributeBoolean": {
             "description": "AttributeBoolean",
@@ -7760,15 +8057,17 @@
                 "array": {
                     "type": "boolean",
                     "description": "Is attribute an array?",
-                    "x-example": false
+                    "x-example": false,
+                    "x-nullable": true
                 },
                 "default": {
                     "type": "boolean",
                     "description": "Default value for attribute when not provided. Cannot be set when attribute is required.",
-                    "x-example": false
+                    "x-example": false,
+                    "x-nullable": true
                 }
             },
-            "required": ["key", "type", "status", "required", "array", "default"]
+            "required": ["key", "type", "status", "required"]
         },
         "attributeEmail": {
             "description": "AttributeEmail",
@@ -7797,7 +8096,8 @@
                 "array": {
                     "type": "boolean",
                     "description": "Is attribute an array?",
-                    "x-example": false
+                    "x-example": false,
+                    "x-nullable": true
                 },
                 "format": {
                     "type": "string",
@@ -7807,10 +8107,11 @@
                 "default": {
                     "type": "string",
                     "description": "Default value for attribute when not provided. Cannot be set when attribute is required.",
-                    "x-example": "default@example.com"
+                    "x-example": "default@example.com",
+                    "x-nullable": true
                 }
             },
-            "required": ["key", "type", "status", "required", "array", "format", "default"]
+            "required": ["key", "type", "status", "required", "format"]
         },
         "attributeEnum": {
             "description": "AttributeEnum",
@@ -7839,7 +8140,8 @@
                 "array": {
                     "type": "boolean",
                     "description": "Is attribute an array?",
-                    "x-example": false
+                    "x-example": false,
+                    "x-nullable": true
                 },
                 "elements": {
                     "type": "array",
@@ -7857,10 +8159,11 @@
                 "default": {
                     "type": "string",
                     "description": "Default value for attribute when not provided. Cannot be set when attribute is required.",
-                    "x-example": "element"
+                    "x-example": "element",
+                    "x-nullable": true
                 }
             },
-            "required": ["key", "type", "status", "required", "array", "elements", "format", "default"]
+            "required": ["key", "type", "status", "required", "elements", "format"]
         },
         "attributeIp": {
             "description": "AttributeIP",
@@ -7889,7 +8192,8 @@
                 "array": {
                     "type": "boolean",
                     "description": "Is attribute an array?",
-                    "x-example": false
+                    "x-example": false,
+                    "x-nullable": true
                 },
                 "format": {
                     "type": "string",
@@ -7899,10 +8203,11 @@
                 "default": {
                     "type": "string",
                     "description": "Default value for attribute when not provided. Cannot be set when attribute is required.",
-                    "x-example": "192.0.2.0"
+                    "x-example": "192.0.2.0",
+                    "x-nullable": true
                 }
             },
-            "required": ["key", "type", "status", "required", "array", "format", "default"]
+            "required": ["key", "type", "status", "required", "format"]
         },
         "attributeUrl": {
             "description": "AttributeURL",
@@ -7931,7 +8236,8 @@
                 "array": {
                     "type": "boolean",
                     "description": "Is attribute an array?",
-                    "x-example": false
+                    "x-example": false,
+                    "x-nullable": true
                 },
                 "format": {
                     "type": "string",
@@ -7941,10 +8247,11 @@
                 "default": {
                     "type": "string",
                     "description": "Default value for attribute when not provided. Cannot be set when attribute is required.",
-                    "x-example": "http:\/\/example.com"
+                    "x-example": "http:\/\/example.com",
+                    "x-nullable": true
                 }
             },
-            "required": ["key", "type", "status", "required", "array", "format", "default"]
+            "required": ["key", "type", "status", "required", "format"]
         },
         "index": {
             "description": "Index",
@@ -7958,7 +8265,7 @@
                 "type": {
                     "type": "string",
                     "description": "Index type.",
-                    "x-example": ""
+                    "x-example": "primary"
                 },
                 "status": {
                     "type": "string",
@@ -8531,12 +8838,9 @@
                     "x-example": "5e5ea5c16897e"
                 },
                 "execute": {
-                    "type": "array",
-                    "description": "Document execute permissions.",
-                    "items": {
-                        "type": "string"
-                    },
-                    "x-example": "role:all"
+                    "type": "string",
+                    "description": "Execution permissions.",
+                    "x-example": "role:member"
                 },
                 "name": {
                     "type": "string",
@@ -8611,6 +8915,51 @@
             },
             "required": ["$id", "execute", "name", "dateCreated", "dateUpdated", "status", "runtime", "tag", "vars", "events", "schedule", "scheduleNext", "schedulePrevious", "timeout"]
         },
+        "runtime": {
+            "description": "Runtime",
+            "type": "object",
+            "properties": {
+                "$id": {
+                    "type": "string",
+                    "description": "Runtime ID.",
+                    "x-example": "python-3.8"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Runtime Name.",
+                    "x-example": "Python"
+                },
+                "version": {
+                    "type": "string",
+                    "description": "Runtime version.",
+                    "x-example": "3.8"
+                },
+                "base": {
+                    "type": "string",
+                    "description": "Base Docker image used to build the runtime.",
+                    "x-example": "python:3.8-alpine"
+                },
+                "image": {
+                    "type": "string",
+                    "description": "Image name of Docker Hub.",
+                    "x-example": "appwrite\\\/runtime-for-python:3.8"
+                },
+                "logo": {
+                    "type": "string",
+                    "description": "Name of the logo image.",
+                    "x-example": "python.png"
+                },
+                "supports": {
+                    "type": "array",
+                    "description": "List of supported architectures.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "x-example": "amd64"
+                }
+            },
+            "required": ["$id", "name", "version", "base", "image", "logo", "supports"]
+        },
         "tag": {
             "description": "Tag",
             "type": "object",
@@ -8631,18 +8980,44 @@
                     "x-example": 1592981250,
                     "format": "int32"
                 },
-                "command": {
+                "entrypoint": {
                     "type": "string",
-                    "description": "The entrypoint command in use to execute the tag code.",
+                    "description": "The entrypoint file to use to execute the tag code.",
                     "x-example": "enabled"
                 },
                 "size": {
-                    "type": "string",
+                    "type": "integer",
                     "description": "The code size in bytes.",
-                    "x-example": "python-3.8"
+                    "x-example": 128,
+                    "format": "int32"
+                },
+                "status": {
+                    "type": "string",
+                    "description": "The tags current built status",
+                    "x-example": "ready"
+                },
+                "buildId": {
+                    "type": "string",
+                    "description": "The current build ID.",
+                    "x-example": "5e5ea5c16897e"
+                },
+                "buildStdout": {
+                    "type": "string",
+                    "description": "The stdout of the build.",
+                    "x-example": ""
+                },
+                "buildStderr": {
+                    "type": "string",
+                    "description": "The stderr of the build.",
+                    "x-example": ""
+                },
+                "automaticDeploy": {
+                    "type": "boolean",
+                    "description": "Whether the tag should be automatically deployed.",
+                    "x-example": true
                 }
             },
-            "required": ["$id", "functionId", "dateCreated", "command", "size"]
+            "required": ["$id", "functionId", "dateCreated", "entrypoint", "size", "status", "buildId", "buildStdout", "buildStderr", "automaticDeploy"]
         },
         "execution": {
             "description": "Execution",
@@ -8682,9 +9057,9 @@
                     "description": "The status of the function execution. Possible values can be: `waiting`, `processing`, `completed`, or `failed`.",
                     "x-example": "processing"
                 },
-                "exitCode": {
+                "statusCode": {
                     "type": "integer",
-                    "description": "The script exit code.",
+                    "description": "The script status code.",
                     "x-example": 0,
                     "format": "int32"
                 },
@@ -8705,7 +9080,46 @@
                     "format": "double"
                 }
             },
-            "required": ["$id", "$read", "functionId", "dateCreated", "trigger", "status", "exitCode", "stdout", "stderr", "time"]
+            "required": ["$id", "$read", "functionId", "dateCreated", "trigger", "status", "statusCode", "stdout", "stderr", "time"]
+        },
+        "build": {
+            "description": "Build",
+            "type": "object",
+            "properties": {
+                "$id": {
+                    "type": "string",
+                    "description": "Build ID.",
+                    "x-example": "5e5ea5c16897e"
+                },
+                "dateCreated": {
+                    "type": "integer",
+                    "description": "The tag creation date in Unix timestamp.",
+                    "x-example": 1592981250,
+                    "format": "int32"
+                },
+                "status": {
+                    "type": "string",
+                    "description": "The build status.",
+                    "x-example": "ready"
+                },
+                "stdout": {
+                    "type": "string",
+                    "description": "The stdout of the build.",
+                    "x-example": ""
+                },
+                "stderr": {
+                    "type": "string",
+                    "description": "The stderr of the build.",
+                    "x-example": ""
+                },
+                "buildTime": {
+                    "type": "integer",
+                    "description": "The build time in seconds.",
+                    "x-example": 0,
+                    "format": "int32"
+                }
+            },
+            "required": ["$id", "dateCreated", "status", "stdout", "stderr", "buildTime"]
         },
         "country": {
             "description": "Country",
@@ -8828,6 +9242,79 @@
                 }
             },
             "required": ["code", "countryCode", "countryName"]
+        },
+        "healthAntivirus": {
+            "description": "Health Antivirus",
+            "type": "object",
+            "properties": {
+                "version": {
+                    "type": "string",
+                    "description": "Antivirus version.",
+                    "x-example": "1.0.0"
+                },
+                "status": {
+                    "type": "string",
+                    "description": "Antivirus status. Possible values can are: `disabled`, `offline`, `online`",
+                    "x-example": "online"
+                }
+            },
+            "required": ["version", "status"]
+        },
+        "healthQueue": {
+            "description": "Health Queue",
+            "type": "object",
+            "properties": {
+                "size": {
+                    "type": "integer",
+                    "description": "Amount of actions in the queue.",
+                    "x-example": 8,
+                    "format": "int32"
+                }
+            },
+            "required": ["size"]
+        },
+        "healthStatus": {
+            "description": "Health Status",
+            "type": "object",
+            "properties": {
+                "ping": {
+                    "type": "integer",
+                    "description": "Duration in milliseconds how long the health check took.",
+                    "x-example": 128,
+                    "format": "int32"
+                },
+                "status": {
+                    "type": "string",
+                    "description": "Service status. Possible values can are: `pass`, `fail`",
+                    "x-example": "pass"
+                }
+            },
+            "required": ["ping", "status"]
+        },
+        "healthTime": {
+            "description": "Health Time",
+            "type": "object",
+            "properties": {
+                "remoteTime": {
+                    "type": "integer",
+                    "description": "Current unix timestamp on trustful remote server.",
+                    "x-example": 1639490751,
+                    "format": "int32"
+                },
+                "localTime": {
+                    "type": "integer",
+                    "description": "Current unix timestamp of local server where Appwrite runs.",
+                    "x-example": 1639490844,
+                    "format": "int32"
+                },
+                "diff": {
+                    "type": "integer",
+                    "description": "Difference of unix remote and local timestamps in milliseconds.",
+                    "x-example": 93,
+                    "format": "int32"
+                }
+            },
+            "required": ["remoteTime", "localTime", "diff"]
         }
     },
     "externalDocs": {
