@@ -116,7 +116,7 @@ func isFileUpload(headers map[string]interface{}) bool {
 	return false
 }
 
-func newfileUploadRequest(uri string, params map[string]interface{}, paramName string) (*http.Request, error) {
+func (clt *Client) newfileUploadRequest(uri string, params map[string]interface{}, paramName string) (*http.Request, error) {
 	path, ok := params[paramName].(string)
 	if !ok {
 		return nil, os.ErrNotExist
@@ -167,7 +167,7 @@ func newfileUploadRequest(uri string, params map[string]interface{}, paramName s
 	}
 
 	req, err := http.NewRequest("POST", uri, body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
+	clt.AddHeader("content-type", writer.FormDataContentType())
 	return req, err
 }
 
@@ -200,7 +200,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		if !isPost {
 			return nil, errors.New("fileupload needs POST Request")
 		}
-		req, err = newfileUploadRequest(urlPath, params, fileNameKey)
+		req, err = clt.newfileUploadRequest(urlPath, params, fileNameKey)
 		if err != nil {
 			return nil, err
 		}
@@ -232,11 +232,6 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 			}
 		}
 
-		// Set Custom headers
-		for key, val := range headers {
-			req.Header.Set(key, toString(val))
-		}
-
 		if isGet {
 			q := req.URL.Query()
 			for key, val := range params {
@@ -262,6 +257,11 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 	}
 	defer file.Close()
 
+	// Set Custom headers
+	for key, val := range headers {
+		req.Header.Set(key, toString(val))
+	}
+
 	// Set Client headers
 	for key, val := range clt.headers {
 		req.Header.Set(key, toString(val))
@@ -281,11 +281,11 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		return nil, err
 	}
 
-	var isJson = !strings.HasPrefix(resp.Header.Get("content-type"), "text")
+	var isJson = strings.HasPrefix(resp.Header.Get("content-type"), "application/json")
 	if isJson {
 		var jsonResponse map[string]interface{}
 		json.Unmarshal(responseData, &jsonResponse)
-		if resp.StatusCode < 200 || resp.StatusCode > 300 {
+		if resp.StatusCode < 200 || resp.StatusCode > 399 {
 			message, ok := jsonResponse["message"].(string)
 			if !ok {
 				message = "N/A"
@@ -303,7 +303,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode < 200 || resp.StatusCode > 300 {
+	if resp.StatusCode < 200 || resp.StatusCode > 399 {
 		return nil, &ClientError{
 			statusCode: resp.StatusCode,
 			message:    output,
