@@ -58,6 +58,9 @@ print(response['result'])
 response = general.upload('string', 123, ['string in array'], './tests/resources/file.png')
 print(response['result'])
 
+response = general.upload('string', 123, ['string in array'], './tests/resources/large_file.mp4')
+print(response['result'])
+
 try:
     response = general.error400()
 except AppwriteException as e:
