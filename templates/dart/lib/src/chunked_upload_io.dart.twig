@@ -6,6 +6,7 @@ import 'response.dart';
 import 'dart:math';
 import 'input_file.dart';
 import 'exception.dart';
+import 'upload_progress.dart';
 
 Future<Response> chunkedUpload({
   required Client client,
@@ -13,7 +14,7 @@ Future<Response> chunkedUpload({
   required Map<String, dynamic> params,
   required String paramName,
   required Map<String, String> headers,
-  Function(double)? onProgress,
+  Function(UploadProgress)? onProgress,
 }) async {
   InputFile file = params[paramName];
   if (file.path == null) {
@@ -48,7 +49,14 @@ Future<Response> chunkedUpload({
     if(offset < size) {
       headers['x-appwrite-id'] = res.data['\$id'];
     }
-    onProgress?.call(min(offset,size)/size * 100);
+    final progress = UploadProgress(
+      $id: res.data['\$id'],
+      progress: min(offset,size)/size * 100,
+      sizeUploaded: min(offset,size),
+      chunksTotal: res.data['chunksTotal'],
+      chunksUploaded: res.data['chunksUploaded'],
+    )
+    onProgress?.call(progress);
   }
   return res;
 }
