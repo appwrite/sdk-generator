@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/{{ sdk.gitRepoName|url_encode }}"
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/{{ sdk.gitUserName|url_encode }}"
 )
 
 const (
@@ -17,12 +17,12 @@ const (
 func main() {
 	var EmptyArray = []interface{}{}
 
-	client := {{ sdk.gitRepoName|url_encode }}.NewClient(10 * time.Second)
+	client := {{ sdk.gitUserName|url_encode }}.NewClient(10 * time.Second)
 	client.SetEndpoint(os.Getenv("YOUR_ENDPOINT"))
 	client.SetProject(os.Getenv("YOUR_PROJECT_ID"))
 	client.SetKey(os.Getenv("YOUR_KEY"))
 
-	db := {{ sdk.gitRepoName|url_encode }}.NewDatabase(client)
+	db := {{ sdk.gitUserName|url_encode }}.NewDatabase(client)
 	data := map[string]string{
 		"hello": "world",
 	}
