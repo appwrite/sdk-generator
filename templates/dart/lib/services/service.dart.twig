@@ -66,12 +66,16 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% if parameter.type == 'file' %}
           final paramName = '{{ parameter.name }}';
 {% endif %}
+{% if parameter.isUploadID %}
+          final idParamName = '{{ parameter.name }}';
+{% endif %}
 {% endfor %}
           res = await chunkedUpload(
             client: client,
             path: path,
             params: params,
             paramName: paramName,
+            idParamName: idParamName,
             headers: headers,
             onProgress: onProgress,
           );

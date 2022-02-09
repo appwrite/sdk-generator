@@ -13,6 +13,7 @@ Future<Response> chunkedUpload({
   required String path,
   required Map<String, dynamic> params,
   required String paramName,
+  required String idParamName,
   required Map<String, String> headers,
   Function(UploadProgress)? onProgress,
 }) async {
@@ -33,8 +34,21 @@ Future<Response> chunkedUpload({
       headers: headers,
     );
   }
-  // read chunk and upload each chunk
+
   var offset = 0;
+  if(params[idParamName] != 'unique()') {
+    //make a request to check if a file already exists
+    try {
+      res = await client.call(
+        HttpMethod.get,
+        path: path + '/' + params[idParamName],
+        headers: headers,
+      );
+      final int chunksUploaded = res.data['chunksUploaded'] as int;
+      var offset = chunksUploaded * Client.CHUNK_SIZE;
+    } on {{spec.title | caseUcfirst}}Exception catch (_) {}
+  }
+  // read chunk and upload each chunk
   final raf = iofile.openSync(mode: io.FileMode.read);
 
   while (offset < size) {
@@ -58,5 +72,6 @@ Future<Response> chunkedUpload({
     )
     onProgress?.call(progress);
   }
+  raf.close();
   return res;
 }
