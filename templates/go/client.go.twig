@@ -51,18 +51,18 @@ type Client struct {
 	selfSigned bool
 }
 
-// NewClient initializes a new Appwrite client with a given timeout
+// NewClient initializes a new {{ spec.title }} client with a given timeout
 func NewClient(timeout time.Duration) Client {
 	headers := map[string]string{
 {% for key,header in spec.global.defaultHeaders %}
 		"{{key}}" : "{{header}}",
-		"x-sdk-version": "appwrite:go:{{sdk.version}}",
+		"x-sdk-version": "{{ sdk.gitUserName|url_encode }}:go:{{sdk.version}}",
 {% endfor %}
 	}
 	httpClient, err := getDefaultClient(timeout)
 	if err != nil { panic(err) }
 	return Client {
-		endpoint: "https://appwrite.io/v1",
+		endpoint: "https://{{ sdk.gitUserName|url_encode }}.io/v1",
 		client: httpClient,
 		timeout: timeout,
 		headers: headers,

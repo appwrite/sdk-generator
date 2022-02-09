@@ -36,10 +36,10 @@ go get github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}
 * Then inject these environment variables:
 
   ```bash
-  export APPWRITE_ENDPOINT=https://appwrite.io/v1  
-  export APPWRITE_PROJECT=6…8  
+  export YOUR_ENDPOINT=https://{{ sdk.gitUserName|url_encode }}.io/v1  
+  export YOUR_PROJECT_ID=6…8  
+  export YOUR_KEY="7055781…cd95"  
   export COLLECTION_ID=616a095b20180  
-  export APPWRITE_API_KEY="7055781…cd95"  
   ```
 
 Create `main.go` file with:
