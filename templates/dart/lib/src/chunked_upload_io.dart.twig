@@ -46,7 +46,7 @@ Future<Response> chunkedUpload({
         path: path, headers: headers, params: params);
     offset += Client.CHUNK_SIZE;
     if(offset < size) {
-      headers['x-appwrite-id'] = res.data['\$id'];
+      headers['x-{{spec.title | caseLower }}-id'] = res.data['\$id'];
     }
     onProgress?.call(min(offset,size)/size * 100);
   }

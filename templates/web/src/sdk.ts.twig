@@ -534,7 +534,7 @@ class {{ spec.title | caseUcfirst }} {
                 }
 
                     if (id) {
-                        headers['x-appwrite-id'] = id;
+                        headers['x-{{spec.title | caseLower }}-id'] = id;
                     }
 
                     const stream = {{ parameter.name | caseCamel | escapeKeyword }}.slice(start, end + 1);

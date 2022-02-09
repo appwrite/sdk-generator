@@ -80,7 +80,7 @@ class {{ service.name | caseUcfirst }} extends Service {
                         };
 
                         if (id) {
-                                headers['x-appwrite-id'] = id;
+                                headers['x-{{spec.title | caseLower }}-id'] = id;
                         }
 
                         const stream = fs.createReadStream({{ parameter.name | caseCamel | escapeKeyword }}, {
