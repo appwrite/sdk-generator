@@ -26,13 +26,13 @@ composer update --ignore-platform-reqs --optimize-autoloader
 **Docker (UNIX)**
 
 ```bash
-docker run --rm --interactive --tty --volume "$(pwd)":/app composer install
+docker run --rm --interactive --tty --volume "$(pwd)":/app composer install --ignore-platform-reqs
 ```
 
 **Docker (Windows)**
 
 ```bash
-docker run --rm --interactive --tty --volume "%cd%":/app composer install
+docker run --rm --interactive --tty --volume "%cd%":/app composer install --ignore-platform-reqs
 ```
 
 Create language and SDK instances and generate code to target directory.
@@ -87,7 +87,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | Web                    | ES5+                | [NPM Coding Style]     | NPM, Yarn,         | [@eldadfux]    |
 | Flutter                |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim] [@lohanidamodar]   |
 | Android (Kotlin, Java) | 5.0+                | [Android style guide]  | Gradle, Maven      | [@abnegate]    |
-| iOS (Swift)            |                     |                        | Swift Pkg Manager  | [@armino-dev]  |
+| iOS, macOS (Swift)     | iOS 15+, macOS 11+  | [Swift Style Guide]    | Swift Pkg Manager  | [@abnegate]    |
 | Unity (Csharp)         |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 
 ## Supported Server SDKs
@@ -97,15 +97,15 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | TypeScript |                     | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
 | NodeJS     | 8, 10, 12           | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
 | PHP        | 7.0+                | [PHP FIG]              | Composer           | [@eldadfux]    |
-| Ruby       | 2.4+                | [Ruby Style Guide]     | GEM                | [@eldadfux]    |
-| Python     | 3.5+                | [PEP8]                 | PIP                | [@eldadfux]    |
+| Ruby       | 2.4+                | [Ruby Style Guide]     | GEM                | [@eldadfux] [@abnegate] |
+| Python     | 3.5+                | [PEP8]                 | PIP                | [@eldadfux] [@abnegate] |
 | Dart       | 2.7+                | [Effective Dart]       | pub                | [@lohanidamodar] |
 | Go         |                     | [Effective Go]         | go get             | [@panz3r]      |
 | .NET       | .NET core 3.1       | [C# Coding Conventions]| NuGet              | [@komemi] [@TorstenDittmann]     |
 | D          |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Kotlin     | 1.4.31+             | [Kotlin style guide]   | Gradle, Maven      | [@abnegate]    |
 | Java       | 8+                  | [Google style guide]   | Gradle, Maven      | [@abnegate]    |
-| Swift      |                     |                        | Swift Pkg Manager  | [@armino-dev]  |
+| Swift      | 5.5+                | [Swift Style Guide]    | Swift Pkg Manager  | [@abnegate]    |
 | Docker CLI |                     |                        | Docker Hub         | [@christyjacob4]  |
 
 [@Almoullim]:           https://github.com/Almoullim
