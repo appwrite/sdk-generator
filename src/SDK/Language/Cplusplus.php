@@ -209,16 +209,16 @@ class Cplusplus extends Language
                 'minify'        => false,
             ],
             [
-                'scope' => 'copy',
-                'destination' => 'src/include/json.hpp',
-                'template' => 'c++/src/include/json.hpp',
-                'minify' => false
+                'scope'         => 'copy',
+                'destination'   => 'src/include/json.hpp',
+                'template'      => 'c++/src/include/json.hpp',
+                'minify'        => false
             ],
             [
-                'scope' => 'copy',
-                'destination' => 'src/CMakeLists.txt',
-                'template' => 'c++/src/CMakeLists.txt',
-                'minify' => false
+                'scope'         => 'copy',
+                'destination'   => 'src/CMakeLists.txt',
+                'template'      => 'c++/src/CMakeLists.txt',
+                'minify'        => false
             ]
         ];
     }
@@ -241,7 +241,7 @@ class Cplusplus extends Language
             case self::TYPE_OBJECT:
                 return 'json';
             case self::TYPE_FILE:
-                return 'fstream';
+                return 'std::fstream';
             case self::TYPE_ARRAY:
                 return 'std::vector<string>';
         }
@@ -278,6 +278,8 @@ class Cplusplus extends Language
                     $output .= '""';
                     break;
                 case self::TYPE_ARRAY:
+                    $output .= '{}';
+                    break;
                 case self::TYPE_OBJECT:
                     $output .= '{}';
                     break;
@@ -288,6 +290,7 @@ class Cplusplus extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_ARRAY:
+
                 case self::TYPE_INTEGER:
                     $output .= $default;
                     break;
@@ -351,15 +354,17 @@ class Cplusplus extends Language
                 case self::TYPE_STRING:
                     $output .= "\"$example\"";
                     break;
-                    /* TODO
-                 * case self::TYPE_ARRAY:
-                 * case self::TYPE_OBJECT:
-                 *     $output .= $example;
-                 *     break;
-                 * case self::TYPE_FILE:
-                 *     $output .= "open('/path/to/file.png', 'rb')"; //TODO add file class
-                 *     break;
-                 */
+                    // TODO
+                case self::TYPE_ARRAY:
+                    $output .= "{$example}";
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= $example;
+                    break;
+                    //   case self::TYPE_FILE:
+                    //       $output .= "open('/path/to/file.png', 'rb')"; //TODO add file class
+                    //       break;
+
             }
         }
 
