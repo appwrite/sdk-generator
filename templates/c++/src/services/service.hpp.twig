@@ -16,7 +16,7 @@ class {{ service.name | caseUcfirst }} : public Service {
  public:
     using Service::Service;
 {% for method in service.methods %}
-    {% if method.type == 'location' %}string{% else %}json{% endif %} {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.type | typeName }} {{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}{{ parameter | paramDefault }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %});
+    {% if method.type == 'location' %}string{% else %}json{% endif %} {{ method.name | caseCamel | escapeKeyword }}({% for parameter in method.parameters.all %}{{ parameter.type | typeName }} {{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}{{ parameter | paramDefault }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %});
 {% endfor %}
 };
 } // namespace {{ spec.title | caseUcfirst }}

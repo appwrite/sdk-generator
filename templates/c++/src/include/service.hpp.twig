@@ -4,9 +4,9 @@ namespace {{spec.title | caseUcfirst}} {
 
 class Service {
     protected:
-    Client* client;
+    Client client;
 public:
-   explicit Service(Client client);
+   explicit Service(Client &client);
      ~Service();
     
 };

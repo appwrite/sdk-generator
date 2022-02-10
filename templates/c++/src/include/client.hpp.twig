@@ -22,15 +22,16 @@ class Client {
     };
 
  public:
-    inline static const string METHOD_GET;
-    inline static const string METHOD_POST;
-    inline static const string METHOD_PUT;
-    inline static const string METHOD_PATCH;
-    inline static const string METHOD_DELETE;
-    inline static const string METHOD_HEAD;
-    inline static const string METHOD_OPTIONS;
-    inline static const string METHOD_CONNECT;
-    inline static const string METHOD_TRACE;
+    inline static const string METHOD_GET = "METHOD_GET";
+    inline static const string METHOD_POST = "METHOD_POST";
+    inline static const string METHOD_PUT = "METHOD_PUT";
+    inline static const string METHOD_PATCH = "METHOD_PATCH";
+    inline static const string METHOD_DELETE = "METHOD_DELETE";
+    inline static const string METHOD_HEAD = "METHOD_HEAD";
+    inline static const string METHOD_OPTIONS = "METHOD_OPTIONS";
+    inline static const string METHOD_CONNECT = "METHOD_CONNECT";
+    inline static const string METHOD_TRACE = "METHOD_TRACE";
+
 
     Client();
     ~Client();
@@ -40,6 +41,6 @@ class Client {
     Client& setSelfSigned(bool status = true);
     Client& setEndpoint(string endpoint);
     Client& addHeader(string key, string value);
-   json call(string method, string path = "", cpr::Header headers, cpr::Payload params);
+   json call(string method,  cpr::Header headers, cpr::Payload params,string path = "");
 };
 } // namespace {{ spec.title | caseUcfirst }}
