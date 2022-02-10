@@ -137,7 +137,7 @@ module {{ spec.title | caseUcfirst }}
                 offset += @chunk_size
 
                 if defined? result['$id']
-                    headers['x-appwrite-id'] = result['$id']
+                    headers['x-{{ spec.title }}-id'] = result['$id']
                 end
 
                 unless on_progress.nil?
@@ -203,7 +203,7 @@ module {{ spec.title | caseUcfirst }}
                 end
 
                 if response.code.to_i >= 400
-                    raise Appwrite::Exception.new(result['message'], result['status'], result)
+                    raise {{spec.title | caseUcfirst}}::Exception.new(result['message'], result['status'], result)
                 end
 
                 unless response_type.respond_to?("from")
@@ -214,7 +214,7 @@ module {{ spec.title | caseUcfirst }}
             end
 
             if response.code.to_i >= 400
-                raise Appwrite::Exception.new(response.body, response.code, response)
+                raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, response)
             end
 
             return response.body if response.body_permitted?
