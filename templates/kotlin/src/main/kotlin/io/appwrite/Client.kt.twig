@@ -268,7 +268,7 @@ class Client @JvmOverloads constructor(
      *
      * @return [T]
      */
-    @Throws(AppwriteException::class)
+    @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun <T> chunkedUpload(
         path: String,
         headers:  MutableMap<String, String>,
@@ -329,7 +329,7 @@ class Client @JvmOverloads constructor(
             )
 
             offset += CHUNK_SIZE
-            headers["x-appwrite-id"] = result!!["\$id"].toString()
+            headers["x-{{ spec.title | caseLower }}-id"] = result!!["\$id"].toString()
             onProgress?.invoke(offset.coerceAtMost(size).toDouble()/size * 100)
         }
 
