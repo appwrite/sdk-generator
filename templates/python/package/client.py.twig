@@ -139,7 +139,7 @@ class Client:
             offset = offset + self._chunk_size
             
             if "$id" in result: 
-                headers["x-appwrite-id"] = result["$id"]
+                headers["x-{{ spec.title | caseLower }}-id"] = result["$id"]
 
             if on_progress is not None:
                 on_progress(min(offset, size)/size * 100)
