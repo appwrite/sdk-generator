@@ -43,7 +43,7 @@ class Cplusplus extends Language
             'const_cast',
             'continue',
             'default',
-            'xdelete',
+            'delete',
             'do',
             'double',
             'dynamic_cast',
@@ -109,7 +109,7 @@ class Cplusplus extends Language
      */
     public function getIdentifierOverrides()
     {
-        return ['xdelete' => 'delete'];
+        return [];
     }
 
     /**
@@ -213,6 +213,12 @@ class Cplusplus extends Language
                 'destination' => 'src/include/json.hpp',
                 'template' => 'c++/src/include/json.hpp',
                 'minify' => false
+            ],
+            [
+                'scope' => 'copy',
+                'destination' => 'src/CMakeLists.txt',
+                'template' => 'c++/src/CMakeLists.txt',
+                'minify' => false
             ]
         ];
     }
@@ -237,7 +243,7 @@ class Cplusplus extends Language
             case self::TYPE_FILE:
                 return 'fstream';
             case self::TYPE_ARRAY:
-                return 'std::vector';
+                return 'std::vector<string>';
         }
 
         return $type;
