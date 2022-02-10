@@ -436,7 +436,7 @@ open class Client {
             group.wait()
 
             offset += Client.chunkSize
-            headers["x-appwrite-id"] = result["$id"] as? String
+            headers["x-{{ spec.title | caseLower }}-id"] = result["$id"] as? String
             onProgress?(Double(min(offset, size))/Double(size) * 100.0)
         }
 
