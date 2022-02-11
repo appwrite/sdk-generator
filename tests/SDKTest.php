@@ -168,12 +168,13 @@ class SDKTest extends TestCase
                 'cp tests/languages/swift-server/Tests.swift tests/sdks/swift-server/Tests/AppwriteTests/Tests.swift',
             ],
             'envs' => [
-                'swift-5.5' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-server swift:5.5 swift test',
+                'swift-5.5' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-server swiftarm/swift:5.5.2-focal-multi-arch swift test',
             ],
             'expectedOutput' => [
                 ...FOO_RESPONSES,
                 ...BAR_RESPONSES,
                 ...GENERAL_RESPONSES,
+                'POST:/v1/mock/tests/general/upload:passed', // large file upload
                 ...EXCEPTION_RESPONSES,
             ],
         ],
@@ -185,12 +186,13 @@ class SDKTest extends TestCase
                 'cp tests/languages/swift-client/Tests.swift tests/sdks/swift-client/Tests/AppwriteTests/Tests.swift',
             ],
             'envs' => [
-                'swift-5.5' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-client swift:5.5 swift test',
+                'swift-5.5' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-client swiftarm/swift:5.5.2-focal-multi-arch swift test',
             ],
             'expectedOutput' => [
                 ...FOO_RESPONSES,
                 ...BAR_RESPONSES,
                 ...GENERAL_RESPONSES,
+                'POST:/v1/mock/tests/general/upload:passed', // large file upload
                 ...EXCEPTION_RESPONSES,
                 ...REALTIME_RESPONSES,
             ],
