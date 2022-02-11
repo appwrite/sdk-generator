@@ -126,6 +126,30 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
     constructor(client: Client);
   }
 
+  type QueryTypesSingle = string | number | boolean;
+  type QueryTypesList = string[] | number[] | boolean[];
+  type QueryTypes = QueryTypesSingle | QueryTypesList;
+
+  export class Query {
+    static equal(attribute: string, value: QueryTypes): string;
+
+    static notEqual(attribute: string, value: QueryTypes): string;
+
+    static lesser(attribute: string, value: QueryTypes): string;
+
+    static lesserEqual(attribute: string, value: QueryTypes): string;
+
+    static greater(attribute: string, value: QueryTypes): string;
+
+    static greaterEqual(attribute: string, value: QueryTypes): string;
+
+    static search(attribute: string, value: string): string;
+
+    private static addQuery(attribute: string, oper: string, value: QueryTypes): string;
+
+    private static parseValues(value: QueryTypes): string;
+  }
+
 {% for service in spec.services %}
   export class {{ service.name | caseUcfirst }} extends Service {
 {% for method in service.methods %}
