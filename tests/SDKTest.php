@@ -280,16 +280,18 @@ class SDKTest extends TestCase
         'ruby' => [
             'class' => 'Appwrite\SDK\Language\Ruby',
             'build' => [
-                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/ruby --env GEM_HOME=/app/vendor ruby:2.7-alpine sh -c "apk add git build-base && bundle install"',
+                'docker run --rm -v $(pwd):/app -w /app/tests/sdks/ruby --env GEM_HOME=/app/vendor ruby:3.1-alpine sh -c "apk add git build-base && bundle install"',
             ],
             'envs' => [
-                'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.7-alpine ruby tests/languages/ruby/tests.rb',
+                'ruby-3.1' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:3.1-alpine ruby tests/languages/ruby/tests.rb',
                 'ruby-3.0' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:3.0-alpine ruby tests/languages/ruby/tests.rb',
+                'ruby-2.7' => 'docker run --rm -v $(pwd):/app -w /app --env GEM_HOME=vendor ruby:2.7-alpine ruby tests/languages/ruby/tests.rb',
             ],
             'expectedOutput' => [
                 ...FOO_RESPONSES,
                 ...BAR_RESPONSES,
                 ...GENERAL_RESPONSES,
+                'POST:/v1/mock/tests/general/upload:passed',
                 ...EXCEPTION_RESPONSES,
             ],
         ],
