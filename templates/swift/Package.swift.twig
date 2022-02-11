@@ -4,6 +4,12 @@ import PackageDescription
 
 let package = Package(
     name: "{{spec.title | caseUcfirst}}",
+    platforms: [
+        .iOS("15.0"),
+        .macOS("11.0"),
+        .watchOS("6.0"),
+        .tvOS("13.0"),
+    ],
     products: [
         .library(
             name: "{{spec.title | caseUcfirst}}",
