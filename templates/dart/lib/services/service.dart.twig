@@ -62,11 +62,11 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
           res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
         } else {
+          String idParamName = '';
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
           final paramName = '{{ parameter.name }}';
 {% endif %}
-          String idParamName = '';
 {% if parameter.isUploadID %}
           idParamName = '{{ parameter.name }}';
 {% endif %}
