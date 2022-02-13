@@ -86,11 +86,13 @@ type Realtime = {
 class {{spec.title | caseUcfirst}}Exception extends Error {
     code: number;
     response: string;
-    constructor(message: string, code: number = 0, response: string = '') {
+    type: string;
+    constructor(message: string, code: number = 0, type: string = '', response: string = '') {
         super(message);
         this.name = '{{spec.title | caseUcfirst}}Exception';
         this.message = message;
         this.code = code;
+        this.type = type;
         this.response = response;
     }
 }
@@ -396,7 +398,7 @@ class {{ spec.title | caseUcfirst }} {
             }
 
             if (400 <= response.status) {
-                throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data);
+                throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, data);
             }
 
             const cookieFallback = response.headers.get('X-Fallback-Cookies');

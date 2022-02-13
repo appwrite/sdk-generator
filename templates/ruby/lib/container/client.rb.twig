@@ -143,11 +143,11 @@ module {{ spec.title | caseUcfirst }}
                 begin
                     result = JSON.parse(response.body)
                 rescue JSON::ParserError => e
-                    raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, response)
+                    raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, nil, response)
                 end
 
                 if response.code.to_i >= 400
-                    raise Appwrite::Exception.new(result['message'], result['status'], result)
+                    raise {{spec.title | caseUcfirst}}::Exception.new(result['message'], result['status'], result['type'], result)
                 end
 
                 unless response_type.respond_to?("from")
@@ -158,7 +158,7 @@ module {{ spec.title | caseUcfirst }}
             end
 
             if response.code.to_i >= 400
-                raise Appwrite::Exception.new(response.body, response.code, response)
+                raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, response)
             end
 
             return response.body if response.body_permitted?

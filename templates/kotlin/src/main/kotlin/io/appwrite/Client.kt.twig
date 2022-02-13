@@ -294,7 +294,8 @@ class Client @JvmOverloads constructor(
                         )
                         {{ spec.title | caseUcfirst }}Exception(
                             map["message"] as? String ?: "", 
-                            (map["code"] as Number).toInt(), 
+                            (map["code"] as Number).toInt(),
+                            map["type"] as? String ?: "", 
                             body
                         )
                     } else {

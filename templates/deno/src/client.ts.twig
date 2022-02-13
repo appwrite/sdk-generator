@@ -107,7 +107,7 @@ export class Client {
                 return response;
             }
         } catch(error) {
-            throw new {{ spec.title | caseUcfirst}}Exception(error?.response?.message || error.message, error?.response?.code, error.response);
+            throw new {{ spec.title | caseUcfirst}}Exception(error?.response?.message || error.message, error?.response?.code, error?.response?.type, error.response);
         }
     }
 

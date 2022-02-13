@@ -5,5 +5,6 @@ import java.lang.Exception
 class {{spec.title | caseUcfirst}}Exception(
     override val message: String? = null,
     val code: Int? = null,
+    val type: String? = null,
     val response: String? = null
 ) : Exception(message)
