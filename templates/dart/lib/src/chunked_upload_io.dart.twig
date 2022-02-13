@@ -36,7 +36,7 @@ Future<Response> chunkedUpload({
   }
 
   var offset = 0;
-  if(params[idParamName] != 'unique()') {
+  if(idParamName.isNotEmpty && params[idParamName] != 'unique()') {
     //make a request to check if a file already exists
     try {
       res = await client.call(
