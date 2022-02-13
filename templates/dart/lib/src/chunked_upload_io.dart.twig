@@ -69,7 +69,7 @@ Future<Response> chunkedUpload({
       sizeUploaded: min(offset,size),
       chunksTotal: res.data['chunksTotal'],
       chunksUploaded: res.data['chunksUploaded'],
-    )
+    );
     onProgress?.call(progress);
   }
   raf.close();
