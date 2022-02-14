@@ -23,8 +23,13 @@ publishing {
         }
     }
     publications {
-        maven(MavenPublication) {
+        mavenJava(MavenPublication) {
             from components.java
+
+            groupId = PUBLISH_GROUP_ID
+            artifactId = PUBLISH_ARTIFACT_ID
+            version = PUBLISH_VERSION
+
             versionMapping {
                 usage('java-api') {
                     fromResolutionOf('runtimeClasspath')
@@ -33,10 +38,6 @@ publishing {
                     fromResolutionResult()
                 }
             }
-
-            groupId = PUBLISH_GROUP_ID
-            artifactId = PUBLISH_ARTIFACT_ID
-            version = PUBLISH_VERSION
 
             pom {
                 name = PUBLISH_ARTIFACT_ID
@@ -61,6 +62,20 @@ publishing {
                 scm {
                     connection = GITHUB_SCM_CONNECTION
                     url = POM_SCM_URL
+                }
+
+                withXml {
+                    def dependencies = asNode().appendNode("dependencies")
+
+                    configurations
+                            .getByName("releaseCompileClasspath")
+                            .resolvedConfiguration
+                            .firstLevelModuleDependencies.forEach {
+                        def dependency = dependencies.appendNode("dependency")
+                        dependency.appendNode("groupId", it.moduleGroup)
+                        dependency.appendNode("artifactId", it.moduleName)
+                        dependency.appendNode("version", it.moduleVersion)
+                    }
                 }
             }
         }
