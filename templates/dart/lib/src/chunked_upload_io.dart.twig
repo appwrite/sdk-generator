@@ -45,7 +45,7 @@ Future<Response> chunkedUpload({
         headers: headers,
       );
       final int chunksUploaded = res.data['chunksUploaded'] as int;
-      var offset = chunksUploaded * Client.CHUNK_SIZE;
+      offset = chunksUploaded * Client.CHUNK_SIZE;
     } on {{spec.title | caseUcfirst}}Exception catch (_) {}
   }
   // read chunk and upload each chunk
@@ -54,7 +54,7 @@ Future<Response> chunkedUpload({
   while (offset < size) {
     final chunk = raf.readSync(Client.CHUNK_SIZE);
     params[paramName] =
-        http.MultipartFile.fromBytes(paramName, chunk, filename: iofile.path);
+        http.MultipartFile.fromBytes(paramName, chunk, filename: file.fileName);
     headers['content-range'] =
         'bytes $offset-${min<int>(((offset + Client.CHUNK_SIZE) - 1), size)}/$size';
     res = await client.call(HttpMethod.post,
