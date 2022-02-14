@@ -63,20 +63,6 @@ publishing {
                     connection = GITHUB_SCM_CONNECTION
                     url = POM_SCM_URL
                 }
-
-                withXml {
-                    def dependencies = asNode().appendNode("dependencies")
-
-                    configurations
-                            .getByName("releaseCompileClasspath")
-                            .resolvedConfiguration
-                            .firstLevelModuleDependencies.forEach {
-                        def dependency = dependencies.appendNode("dependency")
-                        dependency.appendNode("groupId", it.moduleGroup)
-                        dependency.appendNode("artifactId", it.moduleName)
-                        dependency.appendNode("version", it.moduleVersion)
-                    }
-                }
             }
         }
     }
@@ -87,5 +73,10 @@ ext["signing.password"] = rootProject.ext["signing.password"]
 ext["signing.secretKeyRingFile"] = rootProject.ext["signing.secretKeyRingFile"]
 
 signing {
+    useInMemoryPgpKeys(
+        rootProject.ext["signing.keyId"],
+        rootProject.ext["signing.key"],
+        rootProject.ext["signing.password"],
+    )
     sign publishing.publications
 }
