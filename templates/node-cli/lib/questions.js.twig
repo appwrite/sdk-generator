@@ -2,6 +2,31 @@ const { localConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { functionsListRuntimes } = require('./commands/functions');
 
+const getEntrypoint = (runtime) => {
+  const languge = runtime.split('-')[0];
+
+  switch (languge) {
+    case 'dart':
+      return 'lib/main.dart';
+    case 'deno':
+      return 'src/mod.ts';
+    case 'node':
+      return 'src/index.js';
+    case 'php':
+      return 'src/index.php';
+    case 'python':
+      return 'src/index.py';
+    case 'ruby':
+      return 'src/index.rb';
+    case 'rust':
+      return 'main.rs';
+    case 'swift':
+      return 'Sources/swift-5.5/main.swift';
+  }
+
+  return undefined;
+};
+
 const questionsInitProject = [
   {
     type: "confirm",
@@ -92,7 +117,7 @@ const questionsInitFunction = [
       let choices = runtimes.map((runtime, idx) => {
         return {
           name: `${runtime.name} (${runtime['$id']})`,
-          value: runtime['$id']
+          value: { id: runtime['$id'], entrypoint: getEntrypoint(runtime['$id'])}
         }
       })
       return choices;

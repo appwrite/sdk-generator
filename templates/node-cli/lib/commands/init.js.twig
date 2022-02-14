@@ -1,4 +1,5 @@
 const fs = require("fs");
+const path = require("path");
 const childProcess = require('child_process');
 const { Command } = require("commander");
 const inquirer = require("inquirer");
@@ -59,10 +60,14 @@ const initFunction = async () => {
     throw new Error(`( ${answers.name} ) already exists in the current directory. Please choose another name.`);
   }
 
+  if(!answers.runtime.entrypoint) {
+    log(`Entrypoint for this runtime not found. You will be asked to configure entrypoint when you first deploy the function.`);
+  }
+
   let response = await functionsCreate({
     functionId: 'unique()',
     name: answers.name,
-    runtime: answers.runtime,
+    runtime: answers.runtime.id,
     parseOutput: false
   })
 
@@ -72,21 +77,29 @@ const initFunction = async () => {
     git init && \
     git remote add -f origin https://github.com/{{ sdk.gitUserName }}/functions-starter && \
     git config core.sparseCheckout true && \
-    echo '${answers.runtime}' >> .git/info/sparse-checkout && \ 
-    git pull origin main && \
+    echo '${answers.runtime.id}' >> .git/info/sparse-checkout && \ 
+    git pull origin dev && \
+    git checkout dev && \
     rm -rf .git && \
-    mv ${answers.runtime}/* . && \
-    rm -rf ${answers.runtime}`;
+    mv ${answers.runtime.id}/* . && \
+    rm -rf ${answers.runtime.id}`;
 
   // Execute the child process but do not print any std output
   childProcess.execSync(command, { stdio: 'pipe' });
+
+  const readmePath = path.join(process.cwd(), answers.name, 'README.md');
+  const readmeFile = fs.readFileSync(readmePath).toString();
+  const newReadmeFile = readmeFile.split('\n');
+  newReadmeFile[0] = `# ${answers.name}`;
+  newReadmeFile.splice(1, 2);
+  fs.writeFileSync(readmePath, newReadmeFile.join('\n'));
 
   let data = {
     $id: response['$id'],
     name: response['name'],
     runtime: response['runtime'],
     path: answers.name,
-    command: ''
+    entrypoint: answers.runtime.entrypoint || ''
   };
 
   localConfig.addFunction(data);
