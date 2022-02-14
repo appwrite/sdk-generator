@@ -4,7 +4,7 @@ export class {{ spec.title | caseUcfirst}}Exception {
     response: any;
     type: String;
 
-    constructor(message: String, code: Number = 0, type: String, response: any = "") {
+    constructor(message: String, code: Number = 0, type: String = "", response: any = "") {
         this.message = message;
         this.code = code;
         this.type = type;
