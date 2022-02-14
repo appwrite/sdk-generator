@@ -357,14 +357,14 @@ open class Client {
                         message = dict?["message"] as? String
                             ?? response.status.reasonPhrase
                         
-                        type = dict?["type"] as? String
+                        type = dict?["type"] as? String ?? ""
                     } catch {
                         message =  response.body!.readString(length: response.body!.readableBytes)!
                     }
 
                     let error = {{ spec.title | caseUcfirst}}Error(
                         message: message,
-                        code: Int(response.status.code)
+                        code: Int(response.status.code),
                         type: type
                     )
 
