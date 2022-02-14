@@ -10,7 +10,7 @@ const { localConfig, globalConfig } = require("../config");
 const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description(commandDescriptions['{{ service.name | caseLower }}'])
 
 {% for method in service.methods %}
-const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}, {% endfor %}parseOutput = true, sdk = undefined, json{% if 'multipart/form-data' in method.consumes %}, onProgress = () => {}{% endif %}{% if method.type == 'location' %}, destination{% endif %}}) => {
+const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}, {% endfor %}parseOutput = true, sdk = undefined{% if 'multipart/form-data' in method.consumes %}, onProgress = () => {}{% endif %}{% if method.type == 'location' %}, destination{% endif %}}) => {
 {% for parameter in method.parameters.all %}
     /* @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} */
 {% endfor %}
@@ -152,7 +152,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 {% endif %}
     
     if (parseOutput) {
-        parse(response, json)
+        parse(response)
         success()
     }
     return response;
@@ -172,7 +172,6 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 {% if method.type == 'location' %}
     .requiredOption(`--destination <path>`, `output file path.`)
 {% endif %}
-    .option(`--json`, `Output in JSON format`)
 {% endautoescape %}
     .action(actionRunner({{ service.name | caseLower }}{{ method.name | caseUcfirst }}))
 
