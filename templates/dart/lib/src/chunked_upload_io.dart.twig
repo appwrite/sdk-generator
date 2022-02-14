@@ -45,13 +45,14 @@ Future<Response> chunkedUpload({
         headers: headers,
       );
       final int chunksUploaded = res.data['chunksUploaded'] as int;
-      offset = chunksUploaded * Client.CHUNK_SIZE;
+      offset = min(size, chunksUploaded * Client.CHUNK_SIZE);
     } on {{spec.title | caseUcfirst}}Exception catch (_) {}
   }
   // read chunk and upload each chunk
   final raf = iofile.openSync(mode: io.FileMode.read);
 
   while (offset < size) {
+    raf.setPositionSync(offset);
     final chunk = raf.readSync(Client.CHUNK_SIZE);
     params[paramName] =
         http.MultipartFile.fromBytes(paramName, chunk, filename: file.fileName);
