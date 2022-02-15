@@ -1,6 +1,7 @@
 task createBuildConfig()  {
     doLast {
         def file = new File("${buildDir.path}/generated/BuildConfig.java")
+        file.getParentFile().mkdirs()
         file.createNewFile()
         file.text = """
             public class BuildConfig {
