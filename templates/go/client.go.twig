@@ -42,7 +42,7 @@ func (ce *{{ spec.title | caseUcfirst }}Error) GetStatusCode() int {
 	return ce.statusCode
 }
 
-// Client is the client struct to access Appwrite services
+// Client is the client struct to access {{ spec.title | caseUcfirst }}  services
 type Client struct {
 	client     *http.Client
 	headers    map[string]string
@@ -51,7 +51,7 @@ type Client struct {
 	selfSigned bool
 }
 
-// NewClient initializes a new {{ spec.title }} client with a given timeout
+// NewClient initializes a new {{ spec.title | caseUcfirst }} client with a given timeout
 func NewClient(timeout time.Duration) Client {
 	headers := map[string]string{
 {% for key,header in spec.global.defaultHeaders %}
