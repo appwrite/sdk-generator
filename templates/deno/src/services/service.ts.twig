@@ -1,5 +1,5 @@
 {% macro get_generics(definition, spec, output = false, first = false) %}
-{% spaceless %}
+{% apply spaceless %}
     {% if first and definition.additionalProperties %}
         {{definition.name | caseUcfirst}} extends Models.{{definition.name | caseUcfirst}}
     {% endif %}
@@ -11,10 +11,10 @@
             {{_self.get_generics(spec.definitions[property.sub_schema], spec, true)}}
         {% endif %}
     {% endfor %}
-{% endspaceless %}
+{% endapply %}
 {% endmacro %}
 {% macro get_generics_return(definition, spec) %}
-{% spaceless %}
+{% apply spaceless %}
     {% for property in definition.properties %}
         {% if spec.definitions[property.sub_schema].additionalProperties %}
             {{property.sub_schema | caseUcfirst}}
@@ -23,7 +23,7 @@
             {{_self.get_generics_return(spec.definitions[property.sub_schema], spec)}}
         {% endif %}
     {% endfor %}
-{% endspaceless %}
+{% endapply %}
 {% endmacro %}
 import { basename } from "https://deno.land/std@0.122.0/path/mod.ts";
 import { Service } from '../service.ts';
