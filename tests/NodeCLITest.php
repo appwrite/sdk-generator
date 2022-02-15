@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class NodeTest extends Base
+class NodeCLITest extends Base
 {
     protected string $language = 'node-cli';
     protected string $class = 'Appwrite\SDK\Language\NodeCLI';
