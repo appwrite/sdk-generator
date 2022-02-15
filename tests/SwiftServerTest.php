@@ -4,7 +4,7 @@ namespace Tests;
 
 class SwiftServerTest extends Base
 {
-    protected string $language = 'swift';
+    protected string $language = 'swift-server';
     protected string $class = 'Appwrite\SDK\Language\Swift';
     protected array $build = [
         'mkdir -p tests/sdks/swift-server/Tests/AppwriteTests',
