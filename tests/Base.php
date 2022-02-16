@@ -43,6 +43,10 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
+    const EXTENDED_GENERAL_RESPONSES = [
+        'Download test passed.',
+    ];
+
     const EXCEPTION_RESPONSES = [
         'Mock 400 error',
         'Server Error',
@@ -85,7 +89,7 @@ abstract class Base extends TestCase
             ->setVersion('0.0.1')
             ->setExamples('**EXAMPLES** <HTML>')
             ->setNamespace("io appwrite")
-            ->setGitUserName('repoowner')
+            ->setGitUserName('appwrite')    // this needs to be appwrite, otherwise the go.mod is invalid
             ->setGitRepoName('reponame')
             ->setLicense('BSD-3-Clause')
             ->setLicenseContent('demo license')
