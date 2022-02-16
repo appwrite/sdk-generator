@@ -34,15 +34,6 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
-    const COOKIE_RESPONSES = [
-        'GET:/v1/mock/tests/general/set-cookie:passed',
-        'GET:/v1/mock/tests/general/get-cookie:passed',
-    ];
-
-    const LARGE_FILE_RESPONSES = [
-        'POST:/v1/mock/tests/general/upload:passed',
-    ];
-
     const EXTENDED_GENERAL_RESPONSES = [
         'Download test passed.',
     ];
@@ -89,7 +80,7 @@ abstract class Base extends TestCase
             ->setVersion('0.0.1')
             ->setExamples('**EXAMPLES** <HTML>')
             ->setNamespace("io appwrite")
-            ->setGitUserName('repoowner')    // this needs to be appwrite, otherwise the go.mod is invalid
+            ->setGitUserName('appwrite')    // this needs to be appwrite, otherwise the go.mod is invalid
             ->setGitRepoName('reponame')
             ->setLicense('BSD-3-Clause')
             ->setLicenseContent('demo license')
