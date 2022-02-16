@@ -18,6 +18,6 @@ class NodeCLITest extends Base
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
-        ...Base::LARGE_FILE_RESPONSES,
+        'POST:/v1/mock/tests/general/upload:passed', //large file
     ];
 }
