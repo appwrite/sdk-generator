@@ -40,7 +40,7 @@ class ClientMixin {
     } else if (method == HttpMethod.get) {
       final encoded = <String, dynamic>{};
       if (params.isNotEmpty) {
-        params.keys.forEach((key) {
+        for(var key in params.keys) {
           if (params[key] is int || params[key] is double) {
             encoded[key] = params[key].toString();
           } else if (params[key] is List) {
@@ -48,7 +48,7 @@ class ClientMixin {
           } else {
             encoded[key] = params[key];
           }
-        });
+        }
       }
       uri = Uri(
           fragment: uri.fragment,
@@ -67,9 +67,7 @@ class ClientMixin {
   }
 
   Response prepareResponse(http.Response res, {ResponseType? responseType}) {
-    if (responseType == null) {
-      responseType = ResponseType.json;
-    }
+    responseType ??= ResponseType.json;
     if (res.statusCode >= 400) {
       if ((res.headers['content-type'] ?? '').contains('application/json')) {
         final response = json.decode(res.body);
@@ -82,7 +80,7 @@ class ClientMixin {
         throw {{spec.title | caseUcfirst}}Exception(res.body);
       }
     }
-    var data;
+    dynamic data;
     if ((res.headers['content-type'] ?? '').contains('application/json')) {
       if (responseType == ResponseType.json) {
         data = json.decode(res.body);
@@ -103,7 +101,7 @@ class ClientMixin {
 
   Future<http.Response> toResponse(http.StreamedResponse streamedResponse) async {
     if(streamedResponse.statusCode == 204) {
-        return new http.Response('',
+        return http.Response('',
           streamedResponse.statusCode,
           headers: streamedResponse.headers.map((k,v) => k.toLowerCase()=='content-type' ? MapEntry(k, 'text/plain') : MapEntry(k,v)),
           request: streamedResponse.request,
