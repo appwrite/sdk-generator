@@ -44,7 +44,7 @@ class ClientIO extends ClientBase with ClientMixin {
 
   ClientIO({
     String endPoint = 'https://appwrite.io/v1',
-    selfSigned = false,
+    this.selfSigned = false,
   }) : _endPoint = endPoint {
     _nativeClient = HttpClient()
       ..badCertificateCallback =

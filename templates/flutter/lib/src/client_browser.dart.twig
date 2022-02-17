@@ -1,4 +1,5 @@
 import 'dart:html' as html;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_web_auth/flutter_web_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/browser_client.dart';
@@ -99,6 +100,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
     _httpClient.withCredentials = true;
   }
 
+  @override
   Future<Response> call(
     HttpMethod method, {
     String path = '',
@@ -121,7 +123,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
       final cookieFallback = res.headers['x-fallback-cookies'];
       if (cookieFallback != null) {
-        print(
+        debugPrint(
             'Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
         addHeader('X-Fallback-Cookies', cookieFallback);
         html.window.localStorage['cookieFallback'] = cookieFallback;
