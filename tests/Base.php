@@ -80,7 +80,7 @@ abstract class Base extends TestCase
             ->setVersion('0.0.1')
             ->setExamples('**EXAMPLES** <HTML>')
             ->setNamespace("io appwrite")
-            ->setGitUserName('appwrite')    // this needs to be appwrite, otherwise the go.mod is invalid
+            ->setGitUserName('repoowner')    // this needs to be appwrite, otherwise the go.mod is invalid
             ->setGitRepoName('reponame')
             ->setLicense('BSD-3-Clause')
             ->setLicenseContent('demo license')
