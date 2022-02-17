@@ -16,7 +16,7 @@ class {{ service.name | caseUcfirst }} extends Service {
      ///
 {% endif %}
     {% if method.type == 'webAuth' %}Future{% elseif method.type == 'location' %} Future<Uint8List> {% else %} {% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters) }}) async {
-        final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+        const String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
 
         final Map<String, dynamic> params = {
 {% for parameter in method.parameters.query %}
@@ -61,9 +61,11 @@ class {{ service.name | caseUcfirst }} extends Service {
       return client.webAuth(url);
 
 {% elseif method.type == 'location' %}
-        params.keys.forEach((key) {if (params[key] is int || params[key] is double) {
-          params[key] = params[key].toString();
-        }});
+        for (var key in params.keys) {
+          if (params[key] is int || params[key] is double) {
+            params[key] = params[key].toString();
+          }
+        }
 
         final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, responseType: ResponseType.bytes);
         return res.data;
