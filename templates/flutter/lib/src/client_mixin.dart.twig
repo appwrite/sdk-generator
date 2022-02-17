@@ -40,7 +40,7 @@ class ClientMixin {
     } else if (method == HttpMethod.get) {
       final encoded = <String, dynamic>{};
       if (params.isNotEmpty) {
-        params.keys.forEach((key) {
+        for (var key in params.keys) {
           if (params[key] is int || params[key] is double) {
             encoded[key] = params[key].toString();
           } else if (params[key] is List) {
