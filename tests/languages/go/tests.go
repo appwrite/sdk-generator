@@ -5,13 +5,14 @@ import (
 	"path"
 	"time"
 
-	"github.com/appwrite/sdk-for-go/appwrite"
+	"github.com/repoowner/sdk-for-go/appwrite"
 )
 
 func main() {
 	stringInArray := []interface{}{"string in array"}
 
 	client := appwrite.NewClient(10 * time.Second)
+	client.SetEndpoint("https://appwrite.io/v1")
 	client.AddHeader("Origin", "http://localhost")
 	fmt.Print("\n\nTest Started\n")
 	testFooService(client, stringInArray)
