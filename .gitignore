@@ -12,6 +12,7 @@
 # exclude everything
 examples/*
 tests/tmp
+.phpunit.result.cache
 
 # exception to the rule
 !examples/.gitkeep 
