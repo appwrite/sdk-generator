@@ -2,11 +2,12 @@ package main
 
 import (
     "fmt"
+    "time"
     "github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}"
 )
 
 func main() {
-    var client := {{ spec.title | caseLower }}.Client{}
+    var client := {{ spec.title | caseLower }}.NewClient(10 * time.Second)
 
 {% if method.security|length > 0 %}
     client.SetEndpoint("https://[HOSTNAME_OR_IP]/v1") // Your API Endpoint
