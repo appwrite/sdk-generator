@@ -136,12 +136,3 @@ func testGeneralDownload(client appwrite.Client) {
 	}
 	fmt.Printf("%s\n", response.Result)
 }
-
-func testGeneralDownload(client appwrite.Client) {
-	general := appwrite.NewGeneral(client)
-	response, err := general.Download()
-	if err != nil {
-		fmt.Errorf("general.Download => error %v", err)
-	}
-	fmt.Printf("%s\n", response["result"])
-}
