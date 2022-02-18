@@ -17,17 +17,16 @@ type {{ service.name | caseUcfirst }} struct {
 	client Client
 }
 
-func New{{ service.name | caseUcfirst }}(clt Client) {{ service.name | caseUcfirst }} {  
-	service := {{ service.name | caseUcfirst }}{
+func New{{ service.name | caseUcfirst }}(clt Client) *{{ service.name | caseUcfirst }} {
+	return &{{ service.name | caseUcfirst }}{
 		client: clt,
 	}
-	return service
 }
 {% for method in service.methods %}
 
 {% if method.description %}{{ ((method.name | caseUcfirst) ~ ' ' ~ method.description | caseLcfirst) | godocComment }}{% else %}// {{ method.name | caseUcfirst }}{% endif %}
 
-func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({% if method.parameters.all|length > 0 %}{% for parameter in method.parameters.all %}{{ parameter.name | caseUcfirst }} {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}) (map[string]interface{}, error) {
+func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({% if method.parameters.all|length > 0 %}{% for parameter in method.parameters.all %}{{ parameter.name | caseUcfirst }} {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}) (*ClientResponse, error) {
 {% if method.parameters.path|length > 0 %}
 	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
 	path := r.Replace("{{ method.path }}")
