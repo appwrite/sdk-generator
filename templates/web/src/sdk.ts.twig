@@ -535,7 +535,7 @@ class {{ spec.title | caseUcfirst }} {
 {% if parameter.isUploadID %}
             if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
                 try {
-                    response = await this.call('GET', new URL(this.config.endpoint + path + {{ parameter.name }}), headers);
+                    response = await this.call('GET', new URL(this.config.endpoint + path + '/' + {{ parameter.name }}), headers);
                     counter = response.chunksUploaded;
                 } catch(e) {
                 }
