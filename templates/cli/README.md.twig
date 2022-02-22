@@ -26,10 +26,18 @@ This tutorial assumes that you have docker setup and running on your machine.
 
 You can install the CLI by getting our installation script.
 
-### Linux / MacOS 
+### Linux / MacOS Terminal
 ```bash
 $ wget -q https://{{ spec.title | lower }}.io/cli/install.sh  -O - | /bin/bash  
 ```
+
+### MacOS via [Homebrew](https://brew.sh)
+```bash
+$ brew tap appwrite/sdk-for-node-cli https://github.com/appwrite/sdk-for-node-cli
+$ brew update
+$ brew install --HEAD appwrite 
+```
+> Please not that `--HEAD` will be removed with official release.
 
 ### Windows
 ```powershell
