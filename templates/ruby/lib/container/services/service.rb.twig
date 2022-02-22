@@ -3,7 +3,6 @@
 module {{spec.title | caseUcfirst}}
     class {{ service.name | caseUcfirst }} < Service
 
-        include Models
 {% for method in service.methods %}
 {{ method.description | rubyComment }}
         #
@@ -55,7 +54,7 @@ module {{spec.title | caseUcfirst}}
                 param_name: param_name,
                 on_progress: on_progress,
 {% if method.responseModel and method.responseModel != 'any' %}
-                response_type: {{method.responseModel | caseUcfirst}}
+                response_type: Models::{{method.responseModel | caseUcfirst}}
 {% endif %}
             )
 {% else %}
