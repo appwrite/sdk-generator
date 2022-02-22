@@ -83,6 +83,12 @@ class NodeCLI extends JS
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'Formula/appwrite.rb',
+                'template'      => 'node-cli/Formula/appwrite.rb',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => '.github/workflows/npm-publish.yml',
                 'template'      => 'node-cli/.github/workflows/npm-publish.yml',
                 'minify'        => false,

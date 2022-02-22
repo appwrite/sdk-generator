@@ -45,10 +45,18 @@ $ {{ language.params.executableName|caseLower }} -v
 
 If you do not have `npm` installed, you can always install the prebuilt binaries for your architecture and OS using our convenient installation scripts.
 
-### Linux / MacOS 
+### Linux / MacOS Terminal
 ```bash
 $ wget -q {{ sdk.url }}/cli/install.sh  -O - | /bin/bash
 ```
+
+### MacOS via [Homebrew](https://brew.sh)
+```bash
+$ brew tap appwrite/sdk-for-node-cli https://github.com/appwrite/sdk-for-node-cli
+$ brew update
+$ brew install --HEAD appwrite 
+```
+> Please not that `--HEAD` will be removed with official release.
 
 ### Windows
 ```powershell
