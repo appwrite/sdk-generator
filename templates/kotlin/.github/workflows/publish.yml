@@ -31,10 +31,11 @@ jobs:
         run: |
           if ${{ endswith(github.event.release.tag_name, '-SNAPSHOT') }}; then
             echo "Publising Snapshot Version ${{ github.event.release.tag_name}} to Snapshot repository"
+            ./gradlew publishToSonatype
           else
             echo "Publising Release Version ${{ github.event.release.tag_name}} to Staging repository"
+            ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository
           fi
-          ./gradlew publishMavenPublicationToSonatypeRepository
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
@@ -42,3 +43,4 @@ jobs:
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
           SIGNING_SECRET_KEY_RING_FILE: ${{ secrets.SIGNING_SECRET_KEY_RING_FILE }}
           SONATYPE_STAGING_PROFILE_ID: ${{ secrets.SONATYPE_STAGING_PROFILE_ID }}
+          SDK_VERSION: ${{ github.event.release.tag_name }}
