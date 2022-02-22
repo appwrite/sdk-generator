@@ -38,10 +38,6 @@ class {{ service.name | caseUcfirst }} extends Service {
         };
 
 {% if method.type == 'location' %}
-        for(var key in params.keys) {if (params[key] is int || params[key] is double) {
-          params[key] = params[key].toString();
-        }}
-        
         final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, responseType: ResponseType.bytes);
         return res.data;
 {% else %}
