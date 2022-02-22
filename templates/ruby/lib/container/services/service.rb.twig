@@ -64,7 +64,7 @@ module {{spec.title | caseUcfirst}}
                 headers: headers,
                 params: params,
 {% if method.responseModel and method.responseModel != 'any' %}
-                response_type: {{method.responseModel | caseUcfirst}}
+                response_type: Models::{{method.responseModel | caseUcfirst}}
 {% endif %}
             )
 {% endif %}
