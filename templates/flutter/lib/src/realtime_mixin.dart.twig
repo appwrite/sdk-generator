@@ -19,6 +19,7 @@ mixin RealtimeMixin {
   String? _lastUrl;
   late WebSocketFactory getWebSocket;
   GetFallbackCookie? getFallbackCookie;
+  int? get closeCode => _websok?.closeCode;
 
   Future<dynamic> _closeConnection() async {
     await _websok?.sink.close(normalClosure);
