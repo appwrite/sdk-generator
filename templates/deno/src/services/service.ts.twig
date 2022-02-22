@@ -25,8 +25,9 @@
     {% endfor %}
 {% endapply %}
 {% endmacro %}
+import { basename } from "https://deno.land/std@0.122.0/path/mod.ts";
 import { Service } from '../service.ts';
-import { Payload } from '../client.ts';
+import { Payload, Client } from '../client.ts';
 import { AppwriteException } from '../exception.ts';
 import type { Models } from '../models.d.ts'
 
@@ -47,7 +48,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
      * @throws {AppwriteException}
      * @returns {Promise}
      */
-    async {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'webAuth' %}Response{% elseif method.type == 'location' %}Response{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}> {
+    async {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: number) => {}{% endif %}): Promise<{% if method.type == 'webAuth' %}Response{% elseif method.type == 'location' %}Response{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}> {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
@@ -69,8 +70,82 @@ export class {{ service.name | caseUcfirst }} extends Service {
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
             payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
-
 {% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+        const {size: size} = await Deno.stat({{ parameter.name | caseCamel | escapeKeyword }});
+
+        if (size <= Client.CHUNK_SIZE) {
+            payload['{{ parameter.name }}'] = new File([await Deno.readFile({{ parameter.name | caseCamel | escapeKeyword }})], basename({{ parameter.name | caseCamel | escapeKeyword }}));
+
+            return await this.client.call('{{ method.method | caseLower }}', path, {
+{% for parameter in method.parameters.header %}
+                '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+                '{{ key }}': '{{ header }}',
+{% endfor %}
+            }, payload);
+        } else {
+            const stream = await Deno.open({{ parameter.name | caseCamel | escapeKeyword }}, { read: true });
+
+            let id = undefined;
+            let response = undefined;
+
+            const totalCounters = Math.ceil(size / Client.CHUNK_SIZE);
+
+            for (let counter = 0; counter < totalCounters; counter++) {
+                    const start = (counter * Client.CHUNK_SIZE);
+                    const end = Math.min((((counter * Client.CHUNK_SIZE) + Client.CHUNK_SIZE) - 1), size);
+                    const headers: { [header: string]: string } = {
+{% for parameter in method.parameters.header %}
+                            '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+                            '{{ key }}': '{{ header }}',
+{% endfor %}
+                            'content-range': 'bytes ' + start + '-' + end + '/' + size
+                    };
+
+                    if (id) {
+                            headers['x-{{spec.title | caseLower }}-id'] = id;
+                    }
+                    
+                    const totalBuffer = new Uint8Array(Client.CHUNK_SIZE);
+
+                    for (let blockIndex = 0; blockIndex < Client.CHUNK_SIZE / Client.DENO_READ_CHUNK_SIZE; blockIndex++) {
+                            const buf = new Uint8Array(Client.DENO_READ_CHUNK_SIZE);
+                            const cursorPosition = await Deno.seek(stream.rid, start + (blockIndex * 16384), Deno.SeekMode.Start);
+                            const numberOfBytesRead = await Deno.read(stream.rid, buf);
+
+                            if (!numberOfBytesRead) {
+                                    break;
+                            }
+
+                            for (let byteIndex = 0; byteIndex < Client.DENO_READ_CHUNK_SIZE; byteIndex++) {
+                                    totalBuffer[(blockIndex * Client.DENO_READ_CHUNK_SIZE) + byteIndex] = buf[byteIndex];
+                            }
+                    }
+                    
+                    payload['{{ parameter.name }}'] = new File([totalBuffer], basename({{ parameter.name | caseCamel | escapeKeyword }}));
+
+                    response = await this.client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+
+                    if (!id) {
+                            id = response['$id'];
+                    }
+
+                    if (onProgress !== null) {
+                            onProgress(Math.min((counter+1) * Client.CHUNK_SIZE, size) / size * 100);
+                    }
+            }
+
+            return response;
+        }
+{% endif %}
+{% endfor %}
+{% else %}
         return await this.client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
@@ -79,6 +154,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
             '{{ key }}': '{{ header }}',
 {% endfor %}
         }, payload);
+{% endif %}
     }
 {% endfor %}
 }

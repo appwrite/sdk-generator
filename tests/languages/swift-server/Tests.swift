@@ -21,7 +21,6 @@ class Tests: XCTestCase {
         let group = DispatchGroup()
 
         let client = Client()
-            .setEndpointRealtime("wss://demo.appwrite.io/v1")
             .setProject("console")
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
@@ -135,11 +134,10 @@ class Tests: XCTestCase {
         }
         group.wait()
         group.enter()
-
-        let url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
-        let buffer = ByteBuffer(data: try! Data(contentsOf: url))
-        let file = File(name: "file.png", buffer: buffer)
-        general.upload(x: "string", y: 123, z: ["string in array"], file: file) { result in
+        var url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
+        var buffer = ByteBuffer(data: try! Data(contentsOf: url))
+        var file = File(name: "file.png", buffer: buffer)
+        general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil) { result in
             switch result {
             case .failure(let error): print(error.message)
             case .success(let mock): print(mock.result)
@@ -147,7 +145,18 @@ class Tests: XCTestCase {
             group.leave()
         }
         group.wait()
-
+        group.enter()
+        url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
+        buffer = ByteBuffer(data: try! Data(contentsOf: url))
+        file = File(name: "large_file.mp4", buffer: buffer)
+        general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil) { result in
+            switch result {
+            case .failure(let error): print(error.message)
+            case .success(let mock): print(mock.result)
+            }
+            group.leave()
+        }
+        group.wait()
         group.enter()
         general.error400() { result in
             switch result {

@@ -1,5 +1,8 @@
 const Service = require('../service.js');
 const {{spec.title | caseUcfirst}}Exception = require('../exception.js');
+const client = require('../client.js');
+const { promisify } = require('util');
+const fs = require('fs');
 
 class {{ service.name | caseUcfirst }} extends Service {
 {% for method in service.methods %}
@@ -17,7 +20,7 @@ class {{ service.name | caseUcfirst }} extends Service {
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {Promise}
      */
-    async {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}) {
+    async {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = () => {}{% endif %}) {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
@@ -41,6 +44,67 @@ class {{ service.name | caseUcfirst }} extends Service {
         }
 {% endfor %}
 
+{% if 'multipart/form-data' in method.consumes %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+        const { size: size } = await promisify(fs.stat)({{ parameter.name | caseCamel | escapeKeyword }});
+
+        if (size <= client.CHUNK_SIZE) {
+                payload['{{ parameter.name }}'] = fs.createReadStream({{ parameter.name | caseCamel | escapeKeyword }});
+                
+                return await this.client.call('{{ method.method | caseLower }}', path, {
+{% for parameter in method.parameters.header %}
+                '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+                '{{ key }}': '{{ header }}',
+{% endfor %}
+                }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+        } else {
+                let id = undefined;
+                let response = undefined;
+
+                const totalCounters = Math.ceil(size / client.CHUNK_SIZE);
+
+                for (let counter = 0; counter < totalCounters; counter++) {
+                        const start = (counter * client.CHUNK_SIZE);
+                        const end = Math.min((((counter * client.CHUNK_SIZE) + client.CHUNK_SIZE) - 1), size);
+                        const headers = {
+{% for parameter in method.parameters.header %}
+                                '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+                                '{{ key }}': '{{ header }}',
+{% endfor %}
+                                'content-range': 'bytes ' + start + '-' + end + '/' + size
+                        };
+
+                        if (id) {
+                                headers['x-{{spec.title | caseLower }}-id'] = id;
+                        }
+
+                        const stream = fs.createReadStream({{ parameter.name | caseCamel | escapeKeyword }}, {
+                                start,
+                                end
+                        });
+                        payload['{{ parameter.name }}'] = stream;
+
+                        response = await this.client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+
+                        if (!id) {
+                                id = response['$id'];
+                        }
+                        
+                        if (onProgress !== null) {
+                                onProgress(Math.min((counter+1) * client.CHUNK_SIZE, size) / size * 100);
+                        }
+                }
+
+                return response;
+        }
+{% endif %}
+{% endfor %}
+{% else %}
         return await this.client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
@@ -49,6 +113,7 @@ class {{ service.name | caseUcfirst }} extends Service {
             '{{ key }}': '{{ header }}',
 {% endfor %}
         }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+{% endif %}
     }
 {% endfor %}
 }

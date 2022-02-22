@@ -13,6 +13,8 @@ class DenoTest extends Base
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
-        ...Base::GENERAL_RESPONSES
+        ...Base::GENERAL_RESPONSES,
+        ...Base::LARGE_FILE_RESPONSES,
+        ...Base::EXCEPTION_RESPONSES,
     ];
 }

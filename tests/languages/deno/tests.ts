@@ -64,11 +64,13 @@ async function start() {
   // @ts-ignore
   console.log(response.result)
 
-  let fileArray = new File([await Deno.readFile(`./tests/resources/file.png`)], "file.png")
-  response = await general.upload('string', 123, ['string in array'], fileArray)
+  response = await general.upload('string', 123, ['string in array'], './tests/resources/file.png')
   // @ts-ignore
   console.log(response.result)
 
+  response = await general.upload('string', 123, ['string in array'], './tests/resources/large_file.mp4')
+  // @ts-ignore
+  console.log(response.result)
 
   try {
     response = await general.error400();

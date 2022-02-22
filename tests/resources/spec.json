@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "version": "0.9.3",
+    "version": "0.10.4",
     "title": "Appwrite",
     "description": "Appwrite backend as a service cuts up to 70% of the time and costs required for building a modern application. We abstract and simplify common development tasks behind a REST APIs, to help you develop your app in a fast and secure way. For full API documentation and tutorials go to [https://appwrite.io/docs](https://appwrite.io/docs)",
     "termsOfService": "https://appwrite.io/policy/terms",
@@ -60,7 +60,7 @@
         },
         "x-appwrite": {
           "method": "get",
-          "weight": 181,
+          "weight": 187,
           "cookies": false,
           "type": "",
           "demo": "bar/get.md",
@@ -117,7 +117,7 @@
         },
         "x-appwrite": {
           "method": "post",
-          "weight": 182,
+          "weight": 188,
           "cookies": false,
           "type": "",
           "demo": "bar/post.md",
@@ -178,7 +178,7 @@
         },
         "x-appwrite": {
           "method": "put",
-          "weight": 184,
+          "weight": 190,
           "cookies": false,
           "type": "",
           "demo": "bar/put.md",
@@ -239,7 +239,7 @@
         },
         "x-appwrite": {
           "method": "patch",
-          "weight": 183,
+          "weight": 189,
           "cookies": false,
           "type": "",
           "demo": "bar/patch.md",
@@ -300,7 +300,7 @@
         },
         "x-appwrite": {
           "method": "delete",
-          "weight": 185,
+          "weight": 191,
           "cookies": false,
           "type": "",
           "demo": "bar/delete.md",
@@ -363,7 +363,7 @@
         },
         "x-appwrite": {
           "method": "get",
-          "weight": 176,
+          "weight": 182,
           "cookies": false,
           "type": "",
           "demo": "foo/get.md",
@@ -420,7 +420,7 @@
         },
         "x-appwrite": {
           "method": "post",
-          "weight": 177,
+          "weight": 183,
           "cookies": false,
           "type": "",
           "demo": "foo/post.md",
@@ -481,7 +481,7 @@
         },
         "x-appwrite": {
           "method": "put",
-          "weight": 179,
+          "weight": 185,
           "cookies": false,
           "type": "",
           "demo": "foo/put.md",
@@ -542,7 +542,7 @@
         },
         "x-appwrite": {
           "method": "patch",
-          "weight": 178,
+          "weight": 184,
           "cookies": false,
           "type": "",
           "demo": "foo/patch.md",
@@ -603,7 +603,7 @@
         },
         "x-appwrite": {
           "method": "delete",
-          "weight": 180,
+          "weight": 186,
           "cookies": false,
           "type": "",
           "demo": "foo/delete.md",
@@ -666,7 +666,7 @@
         },
         "x-appwrite": {
           "method": "error400",
-          "weight": 193,
+          "weight": 199,
           "cookies": false,
           "type": "",
           "demo": "general/error400.md",
@@ -698,7 +698,7 @@
         },
         "x-appwrite": {
           "method": "error500",
-          "weight": 194,
+          "weight": 200,
           "cookies": false,
           "type": "",
           "demo": "general/error500.md",
@@ -730,7 +730,7 @@
         },
         "x-appwrite": {
           "method": "error502",
-          "weight": 195,
+          "weight": 201,
           "cookies": false,
           "type": "",
           "demo": "general/error502.md",
@@ -759,7 +759,7 @@
         },
         "x-appwrite": {
           "method": "download",
-          "weight": 186,
+          "weight": 192,
           "cookies": false,
           "type": "location",
           "demo": "general/download.md",
@@ -786,7 +786,7 @@
         "responses": { "204": { "description": "No content" } },
         "x-appwrite": {
           "method": "empty",
-          "weight": 192,
+          "weight": 198,
           "cookies": false,
           "type": "",
           "demo": "general/empty.md",
@@ -818,7 +818,7 @@
         },
         "x-appwrite": {
           "method": "getCookie",
-          "weight": 191,
+          "weight": 197,
           "cookies": false,
           "type": "",
           "demo": "general/get-cookie.md",
@@ -845,7 +845,7 @@
         "responses": { "301": { "description": "No content" } },
         "x-appwrite": {
           "method": "redirect",
-          "weight": 188,
+          "weight": 194,
           "cookies": false,
           "type": "",
           "demo": "general/redirect.md",
@@ -877,7 +877,7 @@
         },
         "x-appwrite": {
           "method": "redirected",
-          "weight": 189,
+          "weight": 195,
           "cookies": false,
           "type": "",
           "demo": "general/redirected.md",
@@ -909,7 +909,7 @@
         },
         "x-appwrite": {
           "method": "setCookie",
-          "weight": 190,
+          "weight": 196,
           "cookies": false,
           "type": "",
           "demo": "general/set-cookie.md",
@@ -941,7 +941,7 @@
         },
         "x-appwrite": {
           "method": "upload",
-          "weight": 187,
+          "weight": 193,
           "cookies": false,
           "type": "",
           "demo": "general/upload.md",

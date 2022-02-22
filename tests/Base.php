@@ -33,6 +33,10 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
+    const LARGE_FILE_RESPONSES = [
+        'POST:/v1/mock/tests/general/upload:passed',
+    ];
+
     const EXCEPTION_RESPONSES = [
         'Mock 400 error',
         'Server Error',
