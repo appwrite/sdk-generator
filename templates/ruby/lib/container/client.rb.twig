@@ -217,7 +217,11 @@ module {{ spec.title | caseUcfirst }}
                 raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, response)
             end
 
-            return response.body if response.body_permitted?
+            if response.respond_to?("body_permitted?")
+                return response.body if response.body_permitted?
+            end
+
+            return response
         end
         
         def encode_form_data(value, key=nil)
