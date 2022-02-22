@@ -71,8 +71,10 @@ const sdkForProject = async () => {
 
   if (cookie) {
     return client
+{% if sdk.isTest != "true" %}
       .setCookie(cookie)
       .setMode("admin");
+{% endif %}
   }
 
   throw new Error("Session not found. Please run `{{ language.params.executableName }} login` to create a session.");

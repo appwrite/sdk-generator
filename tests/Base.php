@@ -86,7 +86,8 @@ abstract class Base extends TestCase
             ->setChangelog('--changelog--')
             ->setDefaultHeaders([
                 'X-Appwrite-Response-Format' => '0.8.0',
-            ]);
+            ])
+            ->setIsTest("true");
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
 
