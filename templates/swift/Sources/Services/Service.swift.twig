@@ -31,6 +31,9 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% for parameter in method.parameters.all %}
         {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %},
 {% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+        onProgress: ((Double) -> Void)? = nil,
+{% endif %}
         completion: ((Result<{{ _self.resultType(spec, method) }}, {{ spec.title | caseUcfirst}}Error>) -> Void)? = nil
     ) {
 {% if method.parameters.path %}        var{% else %}        let{% endif %} path: String = "{{ method.path }}"
@@ -39,11 +42,12 @@ open class {{ service.name | caseUcfirst }}: Service {
         path = path.replacingOccurrences(
           of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}",
           with: {% if method.parameters.path %}{{ parameter.name | caseCamel | escapeKeyword }}{% else %}""{% endif %}
+        
         )
 
 {% endfor %}
 {% if method.parameters.query or method.parameters.body or method.parameters.formData or _self.methodNeedsSecurityParameters(method) %}
-        let params: [String: Any?] = [
+        {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} params: [String: Any?] = [
 {% else %}
         let params: [String: Any?] = [:]
 {% endif %}
@@ -82,7 +86,7 @@ open class {{ service.name | caseUcfirst }}: Service {
             completion: completion
         )
 {% else %}
-        let headers: [String: String] = [
+        {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} headers: [String: String] = [
 {{ method.headers|map((header, key) => "            \"#{key}\": \"#{header}\"")|join(',\n')|raw }}
         ]
 
@@ -96,6 +100,25 @@ open class {{ service.name | caseUcfirst }}: Service {
         }
 
 {% endif %}
+{% if 'multipart/form-data' in method.consumes %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+        let paramName = "{{ parameter.name }}"
+
+{% endif %}
+{% endfor %}
+        client.chunkedUpload(
+            path: path,
+            headers: &headers,
+            params: &params,
+            paramName: paramName,
+{% if method.responseModel %}
+            convert: convert,
+{% endif %}
+            onProgress: onProgress,
+            completion: completion
+        )
+{% else %}
         client.call(
             method: "{{ method.method | caseUpper }}",
             path: path,
@@ -106,6 +129,7 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% endif %}
             completion: completion
         )
+{% endif %}
 {% endif %}
     }
 

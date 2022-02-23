@@ -59,7 +59,10 @@ echo "{$response['result']}\n";
 $response = $general->redirect();
 echo "{$response['result']}\n";
 
-$response = $general->upload('string', 123, ['string in array'], new \CURLFile(__DIR__ . '/../../resources/file.png', 'image/png', 'file.png'));
+$response = $general->upload('string', 123, ['string in array'], __DIR__ . '/../../resources/file.png');
+echo "{$response['result']}\n";
+
+$response = $general->upload('string', 123, ['string in array'], __DIR__ . '/../../resources/large_file.mp4');
 echo "{$response['result']}\n";
 
 try {

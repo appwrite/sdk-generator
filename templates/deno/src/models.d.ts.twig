@@ -1,5 +1,5 @@
 {% macro sub_schema(property, definition, spec) %}
-{% spaceless %}
+{% apply spaceless %}
     {% if property.sub_schema %}
         {% if _self.get_generics_sub(definition, spec) %}
             {{property.sub_schema | caseUcfirst}}<{{ _self.get_generics_sub(definition, spec) }}>{% if property.type == 'array' %}[]{% endif %}
@@ -9,10 +9,10 @@
     {% else %}
         {{property.type | typeName}}
     {% endif %}
-{% endspaceless %}
+{% endapply %}
 {% endmacro %}
 {% macro get_generics(definition, spec) %}
-{% spaceless %}
+{% apply spaceless %}
     {% for property in definition.properties %}
         {% if spec.definitions[property.sub_schema].additionalProperties %}
             {{property.sub_schema | caseUcfirst}} extends Models.{{property.sub_schema | caseUcfirst}}
@@ -21,10 +21,10 @@
             {{_self.get_generics(spec.definitions[property.sub_schema], spec)}}
         {% endif %}
     {% endfor %}
-{% endspaceless %}
+{% endapply %}
 {% endmacro %}
 {% macro get_generics_sub(definition, spec, output = false) %}
-{% spaceless %}
+{% apply spaceless %}
     {% for property in definition.properties %}
         {% if spec.definitions[property.sub_schema].additionalProperties and output %}
             {{property.sub_schema | caseUcfirst}}
@@ -33,7 +33,7 @@
             {{_self.get_generics_sub(spec.definitions[property.sub_schema], spec, true)}}
         {% endif %}
     {% endfor %}
-{% endspaceless %}
+{% endapply %}
 {% endmacro %}
 export namespace Models {
 {% for definition in spec.definitions %}

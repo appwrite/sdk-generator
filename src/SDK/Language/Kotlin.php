@@ -278,6 +278,12 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'scripts/configure.gradle',
+                'template'      => '/kotlin/scripts/configure.gradle',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'scripts/publish.gradle',
                 'template'      => '/kotlin/scripts/publish.gradle',
                 'minify'        => false,
