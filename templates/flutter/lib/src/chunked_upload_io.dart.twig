@@ -66,8 +66,8 @@ Future<Response> chunkedUpload({
     }
     final progress = UploadProgress(
       $id: res.data['\$id'] ?? '',
-      progress: min(offset,size)/size * 100,
-      sizeUploaded: min(offset,size),
+      progress: min(offset-1,size)/size * 100,
+      sizeUploaded: min(offset-1,size),
       chunksTotal: res.data['chunksTotal'] ?? 0,
       chunksUploaded: res.data['chunksUploaded'] ?? 0,
     );
