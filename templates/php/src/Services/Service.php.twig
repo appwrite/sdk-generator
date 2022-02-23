@@ -82,7 +82,7 @@ class {{ service.name | caseUcfirst }} extends Service
             if(${{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
                 try {
                     $response = $this->client->call(Client::METHOD_GET, new URL($path . '/' . {{ parameter.name }}), headers);
-                    $counter = $response['chunksUploaded'];
+                    $counter = $response['chunksUploaded'] ?? 0;
                 } catch(\Exception $e) {
                 }
             }
@@ -92,7 +92,7 @@ class {{ service.name | caseUcfirst }} extends Service
         $headers = ['content-type' => 'multipart/form-data'];
         $handle = @fopen(${{ parameter.name | caseCamel }}, "rb");
         $start = $counter * Client::CHUNK_SIZE;
-        while ($start < $totalSize) {
+        while ($start < $size) {
             fseek($handle, $start);
             $params['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(@fread($handle, Client::CHUNK_SIZE)), $mimeType, $postedName);
             $headers['content-range'] = 'bytes ' . ($counter * Client::CHUNK_SIZE) . '-' . min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size) . '/' . $size;
