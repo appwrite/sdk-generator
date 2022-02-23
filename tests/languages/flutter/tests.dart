@@ -1,7 +1,9 @@
+import 'package:flutter/material.dart';
 import '../lib/packageName.dart';
 import '../lib/models.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   Client client = Client();
   Foo foo = Foo(client);
   Bar bar = Bar(client);

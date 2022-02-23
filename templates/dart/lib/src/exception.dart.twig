@@ -5,6 +5,7 @@ class {{spec.title | caseUcfirst}}Exception implements Exception {
 
   {{spec.title | caseUcfirst}}Exception([this.message = "", this.code, this.response]);
   
+  @override
   String toString() {
     if (message == null) return "{{spec.title | caseUcfirst}}Exception";
     return "{{spec.title | caseUcfirst}}Exception: $message (${code ?? 0})";
