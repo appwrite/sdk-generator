@@ -18,7 +18,7 @@
 {{ spec.title | upper }}_INSTALL_DIR="/usr/local/bin"
 
 # {{ spec.title | caseUcfirst }} CLI Executable name 
-{{ spec.title | upper }}_EXECUTABLE_NAME=appwrite
+{{ spec.title | upper }}_EXECUTABLE_NAME={{ language.params.executableName }}
 
 # {{ spec.title | caseUcfirst }} executable file path 
 {{ spec.title | upper }}_EXECUTABLE_FILEPATH="${{ spec.title | upper }}_INSTALL_DIR/${{ spec.title | upper }}_EXECUTABLE_NAME"
@@ -106,7 +106,7 @@ downloadBinary() {
     printSuccess
 
     GITHUB_LATEST_VERSION=$( echo $res | sed -e 's/.*"tag_name":"\([^"]*\)".*/\1/')
-    GITHUB_FILE="appwrite-cli-${OS}-${ARCH}"
+    GITHUB_FILE="{{ language.params.npmPackage }}-${OS}-${ARCH}"
     GITHUB_URL="https://github.com/$GITHUB_REPOSITORY_NAME/releases/download/$GITHUB_LATEST_VERSION/$GITHUB_FILE"
 
     printf "${GREEN}🚦 Downloading {{ spec.title | caseUcfirst }} CLI $GITHUB_LATEST_VERSION ... ${NC}\n"
@@ -154,7 +154,7 @@ installCompleted() {
     echo "[4/4] Wrapping up installation ... "
     cleanup
     printf "🤘 May the force be with you. \n"
-    echo "🚀 To get started with {{ spec.title | caseUcfirst }} CLI, please visit https://appwrite.io/docs/command-line"
+    echo "🚀 To get started with {{ spec.title | caseUcfirst }} CLI, please visit {{ sdk.url }}/docs/command-line"
 }
 
 # Installation Starts here 
