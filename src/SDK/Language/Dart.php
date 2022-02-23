@@ -332,6 +332,12 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/src/upload_progress.dart',
+                'template'      => 'dart/lib/src/upload_progress.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/src/response.dart',
                 'template'      => 'dart/lib/src/response.dart.twig',
                 'minify'        => false,
