@@ -12,6 +12,7 @@ class CLI extends Node
         'npmPackage' => 'packageName',
         'executableName' => 'executable',
         'logo' => '',
+        'logoUnescaped' => '',
     ];
 
     /**
@@ -32,6 +33,17 @@ class CLI extends Node
     public function setLogo($logo)
     {
         $this->setParam('logo', $logo);
+
+        return $this;
+    }
+
+    /**
+     * @param string $logo
+     * @return $this
+     */
+    public function setLogoUnescaped($logo)
+    {
+        $this->setParam('logoUnescaped', $logo);
 
         return $this;
     }

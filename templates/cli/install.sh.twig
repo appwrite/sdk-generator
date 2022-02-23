@@ -42,7 +42,8 @@ NC='\033[0m' # No Color
 
 greeting() {
     echo -e "${RED}"
-    cat << "EOF"{{ language.params.logo | raw }}
+    cat << "EOF"
+{{ language.params.logoUnescaped | raw }}
 EOF
     echo -e "${NC}\n"
     echo "🔥 Welcome to the {{ spec.title | caseUcfirst }} CLI install shield 🛡"

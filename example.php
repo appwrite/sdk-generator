@@ -39,7 +39,7 @@ try {
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1&platform=console'); // Enable only with Appwrite local server running on port 80
     // $spec = file_get_contents('https://appwrite.io/specs/swagger2?platform=client');
-    $spec = file_get_contents('./specs/swagger-appwrite-0.13.0.json');
+    $spec = file_get_contents('./specs/swagger2-latest-console.json');
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -148,13 +148,22 @@ try {
     $language  = new CLI();
     $language->setNPMPackage('appwrite-cli');
     $language->setExecutableName('appwrite');
-    $language->setLogo("
+    $language->setLogo(json_encode("
     _                            _ _           ___   __   _____ 
    /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
   //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
  /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
  \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
-       |_|   |_|                                                ");
+       |_|   |_|                                                
+
+"));
+    $language->setLogoUnescaped("
+     _                            _ _           ___   __   _____ 
+    /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
+   //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
+  /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
+  \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
+        |_|   |_|                                                ");
 
     $sdk  = new SDK($language, new Swagger2($spec));
 

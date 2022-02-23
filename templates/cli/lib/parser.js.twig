@@ -145,14 +145,7 @@ const error = (message) => {
     console.error(`${chalk.red.bold("✗ Error")} ${chalk.red(message ?? "")}`);
 }
 
-const logo = "\n" +
-    "    _                            _ _           ___   __   _____ \n" +
-    "   /_\\  _ __  _ ____      ___ __(_) |_ ___    / __\\ / /   \\_   \\\n" +
-    "  //_\\\\| '_ \\| '_ \\ \\ /\\ / / '__| | __/ _ \\  / /   / /     / /\\/\n" +
-    " /  _  \\ |_) | |_) \\ V  V /| |  | | ||  __/ / /___/ /___/\\/ /_  \n" +
-    " \\_/ \\_/ .__/| .__/ \\_/\\_/ |_|  |_|\\__\\___| \\____/\\____/\\____/  \n" +
-    "       |_|   |_|                                                  \n" +
-    "\n";
+const logo = {{ language.params.logo | raw }};
 
 const commandDescriptions = {
     "account": `The account command allows you to authenticate and manage a user account.`,
