@@ -58,7 +58,7 @@ class SDK
         'readme' => '',
         'changelog' => '',
         'examples' => '',
-        'isTest' => 'false'
+        'test' => 'false'
     ];
 
     /**
@@ -510,9 +510,9 @@ class SDK
      * @param string $test
      * @return $this
      */
-    public function setIsTest(string $isTest)
+    public function setTest(string $test)
     {
-        $this->setParam('isTest', $isTest);
+        $this->setParam('test', $test);
 
         return $this;
     }

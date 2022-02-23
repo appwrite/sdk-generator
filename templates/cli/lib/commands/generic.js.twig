@@ -3,7 +3,7 @@ const { Command } = require("commander");
 const { sdkForConsole } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, log, parse } = require("../parser");
-{% if sdk.isTest != "true" %}
+{% if sdk.test != "true" %}
 const { questionsLogin } = require("../questions");
 const { accountCreateSession, accountDeleteSession } = require("./account");
 
@@ -102,7 +102,7 @@ const client = new Command("client")
 
 
 module.exports = {
-{% if sdk.isTest != "true" %}
+{% if sdk.test != "true" %}
     login,
     logout,
 {% endif %}

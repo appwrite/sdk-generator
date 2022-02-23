@@ -171,7 +171,7 @@ const commandDescriptions = {
     "login": `The login command allows you to authenticate and manage a user account.`,
     "logout": `The logout command allows you to logout of your {{ spec.title|caseUcfirst }} account.`,
     "main": chalk.redBright(`${logo}${description}`),
-{% if sdk.isTest == "true" %}
+{% if sdk.test == "true" %}
 {% for service in spec.services %}
     "{{ service.name | caseLower }}": `The {{ service.name }} command allows you to manage your {{ service.name }} service.`,
 {% endfor %}
