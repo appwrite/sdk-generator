@@ -2,7 +2,7 @@
 
 namespace Appwrite\SDK\Language;
 
-class NodeCLI extends JS
+class CLI extends JS
 {
 
     /**
@@ -30,7 +30,7 @@ class NodeCLI extends JS
      */
     public function getName()
     {
-        return 'node-cli';
+        return 'cli';
     }
 
     /**
@@ -42,115 +42,115 @@ class NodeCLI extends JS
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
-                'template'      => 'node-cli/README.md.twig',
+                'template'      => 'cli/README.md.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'package.json',
-                'template'      => 'node-cli/package.json.twig',
+                'template'      => 'cli/package.json.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE.md',
-                'template'      => 'node-cli/LICENSE.md.twig',
+                'template'      => 'cli/LICENSE.md.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'install.sh',
-                'template'      => 'node-cli/install.sh.twig',
+                'template'      => 'cli/install.sh.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'index.js',
-                'template'      => 'node-cli/index.js.twig',
+                'template'      => 'cli/index.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => 'node-cli/docs/example.md.twig',
+                'template'      => 'cli/docs/example.md.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '.gitignore',
-                'template'      => 'node-cli/.gitignore',
+                'template'      => 'cli/.gitignore',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'copy',
                 'destination'   => 'Formula/appwrite.rb',
-                'template'      => 'node-cli/Formula/appwrite.rb',
+                'template'      => 'cli/Formula/appwrite.rb',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'copy',
                 'destination'   => '.github/workflows/npm-publish.yml',
-                'template'      => 'node-cli/.github/workflows/npm-publish.yml',
+                'template'      => 'cli/.github/workflows/npm-publish.yml',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/sdks.js',
-                'template'      => 'node-cli/lib/sdks.js.twig',
+                'template'      => 'cli/lib/sdks.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/questions.js',
-                'template'      => 'node-cli/lib/questions.js.twig',
+                'template'      => 'cli/lib/questions.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/parser.js',
-                'template'      => 'node-cli/lib/parser.js.twig',
+                'template'      => 'cli/lib/parser.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/exception.js',
-                'template'      => 'node-cli/lib/exception.js.twig',
+                'template'      => 'cli/lib/exception.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/config.js',
-                'template'      => 'node-cli/lib/config.js.twig',
+                'template'      => 'cli/lib/config.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/client.js',
-                'template'      => 'node-cli/lib/client.js.twig',
+                'template'      => 'cli/lib/client.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/commands/init.js',
-                'template'      => 'node-cli/lib/commands/init.js.twig',
+                'template'      => 'cli/lib/commands/init.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/commands/deploy.js',
-                'template'      => 'node-cli/lib/commands/deploy.js.twig',
+                'template'      => 'cli/lib/commands/deploy.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'service',
                 'destination'   => '/lib/commands/{{service.name | caseDash}}.js',
-                'template'      => 'node-cli/lib/commands/command.js.twig',
+                'template'      => 'cli/lib/commands/command.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/commands/generic.js',
-                'template'      => 'node-cli/lib/commands/generic.js.twig',
+                'template'      => 'cli/lib/commands/generic.js.twig',
                 'minify'        => false,
             ]
         ];

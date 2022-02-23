@@ -4,7 +4,7 @@ class Appwrite < Formula
   desc "CLI is a Node based command-line tool for Appwrite API"
   homepage "https://appwrite.io"
   license "BSD-3-Clause"
-  head "https://github.com/appwrite/sdk-for-node-cli.git", branch: "main"
+  head "https://github.com/appwrite/sdk-for-cli.git", branch: "main"
 
   depends_on "node"
 

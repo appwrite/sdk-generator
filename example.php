@@ -6,7 +6,7 @@ use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\Web;
 use Appwrite\SDK\Language\Node;
-use Appwrite\SDK\Language\NodeCLI;
+use Appwrite\SDK\Language\CLI;
 use Appwrite\SDK\Language\PHP;
 use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
@@ -144,8 +144,8 @@ try {
 
     // $sdk->generate(__DIR__ . '/examples/node');
 
-    // Node CLI
-    $language  = new NodeCLI();
+    // CLI
+    $language  = new CLI();
     $language->setNPMPackage('appwrite-cli');
     $language->setExecutableName('appwrite');
     $sdk  = new SDK($language, new Swagger2($spec));
@@ -161,7 +161,7 @@ try {
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('appwrite')
-        ->setGitRepoName('sdk-for-node-cli')
+        ->setGitRepoName('sdk-for-cli')
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
@@ -169,7 +169,7 @@ try {
         ])
     ;
 
-    $sdk->generate(__DIR__ . '/examples/node-cli');
+    $sdk->generate(__DIR__ . '/examples/cli');
 
 //     // Ruby
 //     $sdk  = new SDK(new Ruby(), new Swagger2($spec));

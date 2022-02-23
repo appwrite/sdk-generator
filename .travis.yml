@@ -16,7 +16,7 @@ php:
 
 env:
   - SDK=Android
-  - SDK=NodeCLI
+  - SDK=CLI
   - SDK=Dart
   - SDK=Deno
   - SDK=Flutter
