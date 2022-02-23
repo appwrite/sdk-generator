@@ -1,12 +1,15 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.5.31'
-    id 'java-library'
+    id "org.jetbrains.kotlin.jvm" version '1.5.31'
+    id "java-library"
+    id "io.github.gradle-nexus.publish-plugin" version "1.1.0"
 }
+
+apply from: "${rootDir}/scripts/configure.gradle"
 
 ext {
     PUBLISH_GROUP_ID = '{{ sdk.namespace | caseDot }}'
     PUBLISH_ARTIFACT_ID = '{{ sdk.gitRepoName | caseDash }}'
-    PUBLISH_VERSION = '{{ sdk.version }}'
+    PUBLISH_VERSION = System.getenv('SDK_VERSION')
     POM_URL = 'https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}'
     POM_SCM_URL = 'https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}'
     POM_ISSUE_URL = 'https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}/issues'
@@ -41,6 +44,7 @@ test {
 }
 
 compileKotlin {
+    dependsOn createBuildConfig
     kotlinOptions.jvmTarget = '1.8'
 }
 

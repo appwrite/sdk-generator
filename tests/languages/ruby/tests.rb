@@ -49,8 +49,10 @@ puts response.result
 response = general.redirect()
 puts response["result"]
 
-file = Appwrite::File.new('./tests/resources/file.png')
-response = general.upload(x: 'string', y: 123, z:['string in array'], file: file)
+response = general.upload(x: 'string', y: 123, z:['string in array'], file: './tests/resources/file.png')
+puts response.result
+
+response = general.upload(x: 'string', y: 123, z:['string in array'], file: './tests/resources/large_file.mp4')
 puts response.result
 
 begin
