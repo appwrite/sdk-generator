@@ -82,9 +82,9 @@ class CLI extends Node
                 'minify'        => false,
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'Formula/appwrite.rb',
-                'template'      => 'cli/Formula/appwrite.rb',
+                'template'      => 'cli/Formula/appwrite.rb.twig',
                 'minify'        => false,
             ],
             [

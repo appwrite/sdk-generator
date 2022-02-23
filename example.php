@@ -157,6 +157,7 @@ try {
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://appwrite.io')
         ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicense('BSD-3-Clause')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
         ->setChangelog('**CHANGELOG**')
