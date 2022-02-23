@@ -9,8 +9,7 @@ import (
 )
 
 func main() {
-
-	fmt.Printf("\nTest Started\n")
+	stringInArray := []interface{}{"string in array"}
 
 	client := appwrite.NewClient(10 * time.Second)
 	client.SetEndpoint("https://appwrite.io/v1")
