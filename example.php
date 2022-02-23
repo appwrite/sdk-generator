@@ -148,6 +148,14 @@ try {
     $language  = new CLI();
     $language->setNPMPackage('appwrite-cli');
     $language->setExecutableName('appwrite');
+    $language->setLogo("
+    _                            _ _           ___   __   _____ 
+   /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
+  //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
+ /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
+ \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
+       |_|   |_|                                                ");
+
     $sdk  = new SDK($language, new Swagger2($spec));
 
     $sdk

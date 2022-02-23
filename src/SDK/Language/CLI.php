@@ -10,8 +10,8 @@ class CLI extends Node
      */
     protected $params = [
         'npmPackage' => 'packageName',
-        'bowerPackage' => 'packageName',
         'executableName' => 'executable',
+        'logo' => '',
     ];
 
     /**
@@ -21,6 +21,17 @@ class CLI extends Node
     public function setExecutableName($name)
     {
         $this->setParam('executableName', $name);
+
+        return $this;
+    }
+
+    /**
+     * @param string $logo
+     * @return $this
+     */
+    public function setLogo($logo)
+    {
+        $this->setParam('logo', $logo);
 
         return $this;
     }
