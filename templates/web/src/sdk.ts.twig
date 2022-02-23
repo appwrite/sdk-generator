@@ -565,8 +565,8 @@ class {{ spec.title | caseUcfirst }} {
                 if (onProgress) {
                     onProgress({
                         $id: response.$id,
-                        progress: Math.min((counter + 1) * Appwrite.CHUNK_SIZE, size) / size * 100,
-                        sizeUpploaded: end+1,
+                        progress: Math.min((counter + 1) * {{ spec.title | caseUcfirst }}.CHUNK_SIZE - 1, size) / size * 100,
+                        sizeUpploaded: end,
                         chunksTotal: response.chunksTotal,
                         chunksUploaded: response.chunksUploaded
                     });
