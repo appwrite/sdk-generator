@@ -52,11 +52,11 @@ $ wget -q {{ sdk.url }}/cli/install.sh  -O - | /bin/bash
 
 ### MacOS via [Homebrew](https://brew.sh)
 ```bash
-$ brew tap appwrite/sdk-for-cli https://github.com/appwrite/sdk-for-cli
+$ brew tap {{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }} https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}
 $ brew update
-$ brew install --HEAD appwrite 
+$ brew install --HEAD {{ language.params.executableName }} 
 ```
-> Please not that `--HEAD` will be removed with official release.
+> Please note that `--HEAD` will be removed with official release.
 
 ### Windows
 ```powershell
