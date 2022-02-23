@@ -2,7 +2,7 @@
 
 namespace Appwrite\SDK\Language;
 
-class CLI extends JS
+class CLI extends Node
 {
 
     /**
