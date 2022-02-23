@@ -7,7 +7,7 @@ class {{ service.name | caseUcfirst }}(Service):
         super({{ service.name | caseUcfirst }}, self).__init__(client)
 {% for method in service.methods %}
 
-    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}):
+    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}):
 {% if method.title %}
         """{{ method.title }}"""
 
@@ -40,6 +40,22 @@ class {{ service.name | caseUcfirst }}(Service):
             params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 
 {% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+        param_name = '{{ parameter.name }}'
+
+{% endif %}
+{% endfor %}
+        return self.client.chunked_upload(path, {
+{% for parameter in method.parameters.header %}
+            '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
+{% endfor %}
+{% for key, header in method.headers %}
+            '{{ key }}': '{{ header }}',
+{% endfor %}
+        }, params, param_name, on_progress)
+{% else %}
         return self.client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
@@ -48,4 +64,5 @@ class {{ service.name | caseUcfirst }}(Service):
             '{{ key }}': '{{ header }}',
 {% endfor %}
         }, params)
+{% endif %}
 {% endfor %}

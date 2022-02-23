@@ -65,8 +65,12 @@ void main() async {
   final res = await general.redirect();
   print(res['result']);
 
-  final file = await MultipartFile.fromPath('file', '../../resources/file.png',
-      filename: 'file.png');
+  var file = InputFile(path: '../../resources/file.png');
+  response = await general.upload(
+      x: 'string', y: 123, z: ['string in array'], file: file);
+  print(response.result);
+
+  file = InputFile(path: '../../resources/large_file.mp4');
   response = await general.upload(
       x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);

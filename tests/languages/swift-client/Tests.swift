@@ -33,18 +33,17 @@ class Tests: XCTestCase {
         var realtimeResponse = "Realtime failed!"
 
         let expectation = XCTestExpectation(description: "realtime server")    
-        realtime.subscribe(channels: ["tests"]) { message in
+        _ = realtime.subscribe(channels: ["tests"]) { message in
             realtimeResponse = message.payload!["response"] as! String
             expectation.fulfill()
         }
         
-
         // Foo Tests
         group.enter()
         foo.get(x: "string", y: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let mock): print( mock.result)
+            case .failure(let error): print(error.message)
+            case .success(let mock): print(mock.result)
             }
             group.leave()
         }
@@ -52,8 +51,8 @@ class Tests: XCTestCase {
         group.enter()
         foo.post(x: "string", y: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let mock): print( mock.result)
+            case .failure(let error): print(error.message)
+            case .success(let mock): print(mock.result)
             }
             group.leave()
         }
@@ -61,8 +60,8 @@ class Tests: XCTestCase {
         group.enter()
         foo.put(x: "string", y: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let mock): print( mock.result)
+            case .failure(let error): print(error.message)
+            case .success(let mock): print(mock.result)
             }
             group.leave()
         }
@@ -70,8 +69,8 @@ class Tests: XCTestCase {
         group.enter()
         foo.patch(x: "string", y: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let mock): print( mock.result)
+            case .failure(let error): print(error.message)
+            case .success(let mock): print(mock.result)
             }
             group.leave()
         }
@@ -79,8 +78,8 @@ class Tests: XCTestCase {
         group.enter()
         foo.delete(x: "string", y: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let mock): print( mock.result)
+            case .failure(let error): print(error.message)
+            case .success(let mock): print(mock.result)
             }
             group.leave()
         }
@@ -90,8 +89,8 @@ class Tests: XCTestCase {
         group.enter()
         bar.get(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let mock): print( mock.result)
+            case .failure(let error): print(error.message)
+            case .success(let mock): print(mock.result)
             }
             group.leave()
         }
@@ -99,8 +98,8 @@ class Tests: XCTestCase {
         group.enter()
         bar.post(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let mock): print( mock.result)
+            case .failure(let error): print(error.message)
+            case .success(let mock): print(mock.result)
             }
             group.leave()
         }
@@ -108,8 +107,8 @@ class Tests: XCTestCase {
         group.enter()
         bar.put(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let mock): print( mock.result)
+            case .failure(let error): print(error.message)
+            case .success(let mock): print(mock.result)
             }
             group.leave()
         }
@@ -117,8 +116,8 @@ class Tests: XCTestCase {
         group.enter()
         bar.patch(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let mock): print( mock.result)
+            case .failure(let error): print(error.message)
+            case .success(let mock): print(mock.result)
             }
             group.leave()
         }
@@ -126,8 +125,8 @@ class Tests: XCTestCase {
         group.enter()
         bar.delete(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let mock): print( mock.result)
+            case .failure(let error): print(error.message)
+            case .success(let mock): print(mock.result)
             }
             group.leave()
         }
@@ -137,31 +136,41 @@ class Tests: XCTestCase {
         group.enter()
         general.redirect() { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let mock): print( (mock as! [String: Any])["result"] as! String)
+            case .failure(let error): print(error.message)
+            case .success(let mock): print((mock as! [String: Any])["result"] as! String)
             }
             group.leave()
         }
         group.wait()
         group.enter()
-
-        let url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
-        let buffer = ByteBuffer(data: try! Data(contentsOf: url))
-        let file = File(name: "file.png", buffer: buffer)
-        general.upload(x: "string", y: 123, z: ["string in array"], file: file) { result in
+        var url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
+        var buffer = ByteBuffer(data: try! Data(contentsOf: url))
+        var file = File(name: "file.png", buffer: buffer)
+        general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil) { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let mock): print( mock.result)
+            case .failure(let error): print(error.message)
+            case .success(let mock): print(mock.result)
             }
             group.leave()
         }
         group.wait()
-
+        group.enter()
+        url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
+        buffer = ByteBuffer(data: try! Data(contentsOf: url))
+        file = File(name: "large_file.mp4", buffer: buffer)
+        general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil) { result in
+            switch result {
+            case .failure(let error): print(error.message)
+            case .success(let mock): print(mock.result)
+            }
+            group.leave()
+        }
+        group.wait()
         group.enter()
         general.error400() { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let error): print( error.message)
+            case .failure(let error): print(error.message)
+            case .success(let error): print(error.message)
             }
             group.leave()
         }
@@ -169,8 +178,8 @@ class Tests: XCTestCase {
         group.enter()
         general.error500() { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let error): print( error.message)
+            case .failure(let error): print(error.message)
+            case .success(let error): print(error.message)
             }
             group.leave()
         }
@@ -178,8 +187,8 @@ class Tests: XCTestCase {
         group.enter()
         general.error502() { result in
             switch result {
-            case .failure(let error): print( error.message)
-            case .success(let error): print( (error as! Error).message)
+            case .failure(let error): print(error.message)
+            case .success(let error): print((error as! Error).message)
             }
             group.leave()
         }
@@ -188,5 +197,4 @@ class Tests: XCTestCase {
         wait(for: [expectation], timeout: 10.0)
         print( realtimeResponse)
     }
-
 }
