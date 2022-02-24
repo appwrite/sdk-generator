@@ -3,7 +3,7 @@ const { Command } = require("commander");
 const { localConfig } = require("../config");
 const { questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
-const { functionsGet, functionsCreate, functionsCreateDeployment, functionsUpdateDeployment } = require('./functions');
+const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment } = require('./functions');
 const {
     databaseCreateBooleanAttribute,
     databaseGetCollection,
@@ -154,19 +154,39 @@ const deployFunction = async () => {
         log(`Deploying function ${func.name} ( ${func['$id']} )`)
 
         try {
-            await functionsGet({
+            response = await functionsGet({
                 functionId: func['$id'],
                 parseOutput: false,
-            })
+            });
+
+            if(response.runtime !== func.runtime) {
+                throw new Error(`Runtime missmatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.json`);
+            }
+
+            response = await functionsUpdate({
+                functionId: func['$id'],
+                name: func.name,
+                execute: func.execute,
+                vars: func.vars,
+                events: func.events,
+                schedule: func.schedule,
+                timeout: func.timeout,
+                parseOutput: false
+            });
         } catch (e) {
             if (e.code == 404) {
                 log(`Function ${func.name} ( ${func['$id']} ) does not exist in the project. Creating ... `);
                 response = await functionsCreate({
-                    functionId: 'unique()',
+                    functionId: func.$id || 'unique()',
                     name: func.name,
                     runtime: func.runtime,
+                    execute: func.execute,
+                    vars: func.vars,
+                    events: func.events,
+                    schedule: func.schedule,
+                    timeout: func.timeout,
                     parseOutput: false
-                })
+                });
 
                 localConfig.updateFunction(func['$id'], {
                     "$id": response['$id'],
@@ -191,7 +211,7 @@ const deployFunction = async () => {
                 functionId: func['$id'],
                 entrypoint: func.entrypoint,
                 code: func.path,
-                deploy: true,
+                activate: true,
                 parseOutput: false
             })
 
