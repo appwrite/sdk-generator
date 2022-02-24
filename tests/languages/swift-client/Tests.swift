@@ -21,7 +21,7 @@ class Tests: XCTestCase {
     func test() throws {
         let group = DispatchGroup()
         let client = Client()
-            .setEndpointRealtime("wss://demo.appwrite.io/v1")
+            .setEndpointRealtime("ws://demo.appwrite.io/v1")
             .setProject("console")
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
