@@ -11,7 +11,7 @@ class SwiftClientTest extends Base
         'cp tests/languages/swift-client/Tests.swift tests/sdks/swift-client/Tests/AppwriteTests/Tests.swift',
     ];
     protected array $envs = [
-        'swift-5.5' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-client swift:5.5 swift test',
+        'swift-5.5' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-client swiftarm/swift:5.5.2-focal-multi-arch swift test',
     ];
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

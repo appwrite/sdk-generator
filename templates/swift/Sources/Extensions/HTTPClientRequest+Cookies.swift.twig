@@ -9,6 +9,12 @@ extension HTTPClient.Request {
     }
 }
 
+extension HTTPClientRequest {
+    public mutating func addDomainCookies() {
+        headers.addDomainCookies(for: URL(string: url)!.host!)
+    }
+}
+
 extension HTTPHeaders {
     public mutating func addDomainCookies(for domain: String) {
         let cookieJson = UserDefaults.standard.string(forKey: "\(domain)-cookies")
