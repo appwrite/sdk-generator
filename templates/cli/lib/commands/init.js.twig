@@ -78,8 +78,7 @@ const initFunction = async () => {
     git remote add -f origin https://github.com/{{ sdk.gitUserName }}/functions-starter && \
     git config core.sparseCheckout true && \
     echo '${answers.runtime.id}' >> .git/info/sparse-checkout && \ 
-    git pull origin dev && \
-    git checkout dev && \
+    git pull origin main && \
     rm -rf .git && \
     mv ${answers.runtime.id}/* . && \
     rm -rf ${answers.runtime.id}`;
