@@ -2,7 +2,7 @@ part of {{ language.params.packageName }};
 {% macro parameter(parameter) %}
 {% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{% endmacro %}
 {% macro method_parameters(parameters, consumes) %}
-{% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, Function(double)? onProgress{% endif %}{{ '}' }}{% endif %}
+{% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, Function(UploadProgress)? onProgress{% endif %}{{ '}' }}{% endif %}
 {% endmacro %}
 {% macro map_parameter(parameter) %}'{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},{% endmacro %}
 
@@ -38,10 +38,6 @@ class {{ service.name | caseUcfirst }} extends Service {
         };
 
 {% if method.type == 'location' %}
-        params.keys.forEach((key) {if (params[key] is int || params[key] is double) {
-          params[key] = params[key].toString();
-        }});
-        
         final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, responseType: ResponseType.bytes);
         return res.data;
 {% else %}
@@ -62,9 +58,13 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
           res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
         } else {
+          String idParamName = '';
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
           final paramName = '{{ parameter.name }}';
+{% endif %}
+{% if parameter.isUploadID %}
+          idParamName = '{{ parameter.name }}';
 {% endif %}
 {% endfor %}
           res = await chunkedUpload(
@@ -72,6 +72,7 @@ class {{ service.name | caseUcfirst }} extends Service {
             path: path,
             params: params,
             paramName: paramName,
+            idParamName: idParamName,
             headers: headers,
             onProgress: onProgress,
           );

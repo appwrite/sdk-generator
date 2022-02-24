@@ -23,8 +23,13 @@ publishing {
         }
     }
     publications {
-        maven(MavenPublication) {
+        mavenJava(MavenPublication) {
             from components.java
+
+            groupId = PUBLISH_GROUP_ID
+            artifactId = PUBLISH_ARTIFACT_ID
+            version = PUBLISH_VERSION
+
             versionMapping {
                 usage('java-api') {
                     fromResolutionOf('runtimeClasspath')
@@ -33,10 +38,6 @@ publishing {
                     fromResolutionResult()
                 }
             }
-
-            groupId = PUBLISH_GROUP_ID
-            artifactId = PUBLISH_ARTIFACT_ID
-            version = PUBLISH_VERSION
 
             pom {
                 name = PUBLISH_ARTIFACT_ID
@@ -72,5 +73,10 @@ ext["signing.password"] = rootProject.ext["signing.password"]
 ext["signing.secretKeyRingFile"] = rootProject.ext["signing.secretKeyRingFile"]
 
 signing {
+    useInMemoryPgpKeys(
+        rootProject.ext["signing.keyId"],
+        rootProject.ext["signing.secretKeyRingFile"],
+        rootProject.ext["signing.password"],
+    )
     sign publishing.publications
 }

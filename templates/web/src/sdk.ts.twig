@@ -83,6 +83,14 @@ type Realtime = {
     onMessage: (event: MessageEvent) => void;
 }
 
+export type UploadProgress = {
+    $id: string;
+    progress: number;
+    sizeUploaded: number;
+    chunksTotal: number;
+    chunksUploaded: number;
+}
+
 class {{spec.title | caseUcfirst}}Exception extends Error {
     code: number;
     response: string;
@@ -453,7 +461,7 @@ class {{ spec.title | caseUcfirst }} {
          * @returns {% if method.type == 'webAuth' %}{void|string}{% elseif method.type == 'location' %}{URL}{% else %}{Promise}{% endif %}
 
          */
-        {{ method.name | caseCamel }}: {% if method.type != 'location' and method.type != 'webAuth'%}async {% if spec.definitions[method.responseModel].additionalProperties %}<{{method.responseModel | caseUcfirst}} extends Models.{{method.responseModel | caseUcfirst}}>{% endif %}{% for property in spec.definitions[method.responseModel].properties %}{% if spec.definitions[property.sub_schema].additionalProperties %}<{{property.sub_schema | caseUcfirst}} extends Models.{{property.sub_schema | caseUcfirst}}>{% endif %}{% endfor %}{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: number) => {}{% endif %}): {% if method.type == 'webAuth' %}void | URL{% elseif method.type == 'location' %}URL{% else %}Promise<{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% for property in spec.definitions[method.responseModel].properties %}{% if spec.definitions[property.sub_schema].additionalProperties %}<{{property.sub_schema | caseUcfirst}}>{% endif %}{% endfor %}{% else %}{}{% endif %}>{% endif %} => {
+        {{ method.name | caseCamel }}: {% if method.type != 'location' and method.type != 'webAuth'%}async {% if spec.definitions[method.responseModel].additionalProperties %}<{{method.responseModel | caseUcfirst}} extends Models.{{method.responseModel | caseUcfirst}}>{% endif %}{% for property in spec.definitions[method.responseModel].properties %}{% if spec.definitions[property.sub_schema].additionalProperties %}<{{property.sub_schema | caseUcfirst}} extends Models.{{property.sub_schema | caseUcfirst}}>{% endif %}{% endfor %}{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): {% if method.type == 'webAuth' %}void | URL{% elseif method.type == 'location' %}URL{% else %}Promise<{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% for property in spec.definitions[method.responseModel].properties %}{% if spec.definitions[property.sub_schema].additionalProperties %}<{{property.sub_schema | caseUcfirst}}>{% endif %}{% endfor %}{% else %}{}{% endif %}>{% endif %} => {
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
             if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
@@ -508,6 +516,7 @@ class {{ spec.title | caseUcfirst }} {
 
             if (size <= {{ spec.title | caseUcfirst }}.CHUNK_SIZE) {
                 return await this.call('{{ method.method | caseLower }}', uri, {
+            
 {% for parameter in method.parameters.header %}
                     '{{ parameter.name | caseCamel | escapeKeyword }}': this.${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
@@ -515,44 +524,64 @@ class {{ spec.title | caseUcfirst }} {
                     '{{ key }}': '{{ header }}',
 {% endfor %}
                 }, payload);
-            } else {
-                let id = undefined;
-                let response = undefined;
+            }
+            let id = undefined;
+            let response = undefined;
 
-                const totalCounters = Math.ceil(size / {{ spec.title | caseUcfirst }}.CHUNK_SIZE);
-                for (let counter = 0; counter < totalCounters; counter++) {
-                    const start = (counter * {{ spec.title | caseUcfirst }}.CHUNK_SIZE);
-                    const end = Math.min((((counter * {{ spec.title | caseUcfirst }}.CHUNK_SIZE) + {{ spec.title | caseUcfirst }}.CHUNK_SIZE) - 1), size);
-                    const headers: { [header: string]: string } = {
+            const headers: { [header: string]: string } = {
 {% for parameter in method.parameters.header %}
-                        '{{ parameter.name | caseCamel | escapeKeyword }}': this.${{ parameter.name | caseCamel | escapeKeyword }},
+                '{{ parameter.name | caseCamel | escapeKeyword }}': this.${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
 {% for key, header in method.headers %}
-                        '{{ key }}': '{{ header }}',
-                        'content-range': 'bytes ' + start + '-' + end + '/' + size
+                '{{ key }}': '{{ header }}',
 {% endfor %}
-                }
-
-                    if (id) {
-                        headers['x-{{spec.title | caseLower }}-id'] = id;
-                    }
-
-                    const stream = {{ parameter.name | caseCamel | escapeKeyword }}.slice(start, end + 1);
-                    payload['{{ parameter.name }}'] = new File([stream], {{ parameter.name | caseCamel | escapeKeyword }}.name);
-
-                    response = await this.call('{{ method.method | caseLower }}', uri, headers, payload);
-
-                    if (!id) {
-                        id = response['$id'];
-                    }
-
-                    if (onProgress) {
-                        onProgress(Math.min((counter + 1) * {{ spec.title | caseUcfirst }}.CHUNK_SIZE, size) / size * 100);
-                    }
-                }
-
-                return response;
             }
+
+            let counter = 0;
+            const totalCounters = Math.ceil(size / {{ spec.title | caseUcfirst }}.CHUNK_SIZE);
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+            if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
+                try {
+                    response = await this.call('GET', new URL(this.config.endpoint + path + '/' + {{ parameter.name }}), headers);
+                    counter = response.chunksUploaded;
+                } catch(e) {
+                }
+            }
+{% endif %}
+{% endfor %}
+
+            for (counter; counter < totalCounters; counter++) {
+                const start = (counter * {{ spec.title | caseUcfirst }}.CHUNK_SIZE);
+                const end = Math.min((((counter * {{ spec.title | caseUcfirst }}.CHUNK_SIZE) + {{ spec.title | caseUcfirst }}.CHUNK_SIZE) - 1), size);
+
+                headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size
+
+                if (id) {
+                    headers['x-{{spec.title | caseLower }}-id'] = id;
+                }
+
+                const stream = {{ parameter.name | caseCamel | escapeKeyword }}.slice(start, end + 1);
+                payload['{{ parameter.name }}'] = new File([stream], {{ parameter.name | caseCamel | escapeKeyword }}.name);
+
+                response = await this.call('{{ method.method | caseLower }}', uri, headers, payload);
+
+                if (!id) {
+                    id = response['$id'];
+                }
+
+                if (onProgress) {
+                    onProgress({
+                        $id: response.$id,
+                        progress: Math.min((counter + 1) * Appwrite.CHUNK_SIZE, size) / size * 100,
+                        sizeUploaded: end+1,
+                        chunksTotal: response.chunksTotal,
+                        chunksUploaded: response.chunksUploaded
+                    });
+                }
+            }
+
+            return response;
 {% endif %}
 {% endfor %}
 {% else %}

@@ -15,6 +15,7 @@ ClientBase createClient({
 class ClientBrowser extends ClientBase with ClientMixin {
   String _endPoint;
   Map<String, String>? _headers;
+  @override
   late Map<String, String> config;
   late BrowserClient _httpClient;
 
@@ -31,18 +32,20 @@ class ClientBrowser extends ClientBase with ClientMixin {
 {% endfor %}
     };
 
-    this.config = {};
+    config = {};
 
     assert(_endPoint.startsWith(RegExp("http://|https://")),
         "endPoint $_endPoint must start with 'http'");
   }
 
+  @override
   String get endPoint => _endPoint;
 
 {% for header in spec.global.headers %}
 {% if header.description %}
     /// {{header.description}}
 {% endif %}
+    @override
     ClientBrowser set{{header.key | caseUcfirst}}(value) {
         config['{{ header.key | caseCamel }}'] = value;
         addHeader('{{header.name}}', value);
@@ -50,20 +53,24 @@ class ClientBrowser extends ClientBase with ClientMixin {
     }
 {% endfor %}
 
+  @override
   ClientBrowser setSelfSigned({bool status = true}) {
     return this;
   }
 
+  @override
   ClientBrowser setEndpoint(String endPoint) {
-    this._endPoint = endPoint;
+    _endPoint = endPoint;
     return this;
   }
 
+  @override
   ClientBrowser addHeader(String key, String value) {
     _headers![key] = value;
     return this;
   }
 
+  @override
   Future<Response> call(
     HttpMethod method, {
     String path = '',
@@ -72,20 +79,20 @@ class ClientBrowser extends ClientBase with ClientMixin {
     ResponseType? responseType,
   }) async {
     late http.Response res;
-    http.BaseRequest request = this.prepareRequest(
+    http.BaseRequest request = prepareRequest(
       method,
       uri: Uri.parse(_endPoint + path),
-      headers: {...this._headers!, ...headers},
+      headers: {..._headers!, ...headers},
       params: params,
     );
     try {
       final streamedResponse = await _httpClient.send(request);
       res = await toResponse(streamedResponse);
 
-      return this.prepareResponse(res, responseType: responseType);
+      return prepareResponse(res, responseType: responseType);
     } catch (e) {
       if (e is {{spec.title | caseUcfirst}}Exception) {
-        throw e;
+        rethrow;
       }
       throw {{spec.title | caseUcfirst}}Exception(e.toString());
     }
