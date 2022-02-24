@@ -249,7 +249,9 @@ open class Client {
                 method: .RAW(value: method)
             )
         } catch {
-            completion?(Result.failure({{ spec.title | caseUcfirst }}Error(message: error.localizedDescription)))
+            completion?(Result.failure({{ spec.title | caseUcfirst }}Error(
+                message: error.localizedDescription
+            )))
             return
         }
 
@@ -264,7 +266,9 @@ open class Client {
         do {
             try buildBody(for: &request, with: validParams)
         } catch let error {
-            completion?(Result.failure({{ spec.title | caseUcfirst}}Error(message: error.localizedDescription)))
+            completion?(Result.failure({{ spec.title | caseUcfirst}}Error(
+                message: error.localizedDescription
+            )))
             return
         }
 
@@ -317,7 +321,10 @@ open class Client {
             }
 
             switch result {
-            case .failure(let error): print(error)
+            case .failure(let error): 
+                completion(.failure({{ spec.title | caseUcfirst}}Error(
+                    message: error.localizedDescription
+                )))
             case .success(var response):
                 switch response.status.code {
                 case 0..<400:
@@ -344,6 +351,7 @@ open class Client {
                     }
                 default:
                     var message = ""
+                    var type = ""
 
                     if response.body == nil {
                         completion(.failure({{ spec.title | caseUcfirst }}Error(
@@ -359,13 +367,16 @@ open class Client {
 
                         message = dict?["message"] as? String
                             ?? response.status.reasonPhrase
+                        
+                        type = dict?["type"] as? String ?? ""
                     } catch {
                         message =  response.body!.readString(length: response.body!.readableBytes)!
                     }
 
                     let error = {{ spec.title | caseUcfirst }}Error(
                         message: message,
-                        code: Int(response.status.code)
+                        code: Int(response.status.code),
+                        type: type
                     )
 
                     completion(.failure(error))
