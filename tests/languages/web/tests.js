@@ -31,5 +31,5 @@ server.listen(3000, async () => {
         await browser.close();
         server.close();
         exit(0);
-    }, 10000);
+    }, 15000);
 });

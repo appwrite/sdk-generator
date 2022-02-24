@@ -119,9 +119,9 @@ class Client {
             if('response' in error && error.response !== undefined) {
                 if(error.response && 'data' in error.response) {
                     if (typeof(error.response.data) === 'string') {
-                        throw new {{spec.title | caseUcfirst}}Exception(error.response.data, error.response.status, error.response.data);
+                        throw new {{spec.title | caseUcfirst}}Exception(error.response.data, error.response.status, '', error.response.data);
                     } else {
-                        throw new {{spec.title | caseUcfirst}}Exception(error.response.data.message, error.response.status, error.response.data);
+                        throw new {{spec.title | caseUcfirst}}Exception(error.response.data.message, error.response.status, error.response.data.type, error.response.data);
                     }
                 } else {
                     throw new {{spec.title | caseUcfirst}}Exception(error.response.statusText, error.response.status, error.response.data);
