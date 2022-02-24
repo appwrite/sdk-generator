@@ -2,6 +2,9 @@
 
 namespace Tests;
 
+use Appwrite\SDK\Language;
+use Appwrite\SDK\Language\CLI;
+
 class CLITest extends Base
 {
     protected string $language = 'cli';
@@ -20,4 +23,29 @@ class CLITest extends Base
         ...Base::GENERAL_RESPONSES,
         'POST:/v1/mock/tests/general/upload:passed', //large file
     ];
+
+    public function getLanguage(): Language
+    {
+        $language  = new CLI();
+        $language->setNPMPackage('appwrite-cli');
+        $language->setExecutableName('appwrite');
+        $language->setLogo(json_encode("
+       _                            _ _           ___   __   _____ 
+      /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
+     //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
+    /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
+    \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
+        |_|   |_|                                                
+
+    "));
+        $language->setLogoUnescaped("
+       _                            _ _           ___   __   _____ 
+      /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
+     //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
+    /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
+    \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
+            |_|   |_|                                                ");
+
+        return $language;
+    }
 }
