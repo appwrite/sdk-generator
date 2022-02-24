@@ -64,7 +64,7 @@ const client = new Command("client")
             parse(config)
         }
 
-        if (endpoint) {
+        if (endpoint !== undefined) {
             try {
                 let url = new URL(endpoint);
                 if (url.protocol === "http:" || url.protocol === "https:") {
@@ -77,11 +77,11 @@ const client = new Command("client")
             }
         }
 
-        if (key) {
+        if (key !== undefined) {
             globalConfig.setKey(key)
         }
 
-        if (projectId) {
+        if (projectId !== undefined) {
             localConfig.setProject(projectId, '');
         }
 
@@ -89,7 +89,7 @@ const client = new Command("client")
             globalConfig.setSelfSigned(selfSigned);
         }
 
-        if (reset) {
+        if (reset !== undefined) {
             globalConfig.setEndpoint("");
             globalConfig.setKey("");
             globalConfig.setCookie("");
