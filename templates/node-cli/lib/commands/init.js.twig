@@ -56,7 +56,7 @@ const initProject = async () => {
 const initFunction = async () => {
   let answers = await inquirer.prompt(questionsInitFunction)
 
-  if (fs.existsSync(answers.name)) {
+  if (fs.existsSync(path.join(process.cwd(), 'functions', answers.name))) {
     throw new Error(`( ${answers.name} ) already exists in the current directory. Please choose another name.`);
   }
 
@@ -72,8 +72,8 @@ const initFunction = async () => {
   })
 
   let command = `
-    mkdir -m 777 -p '${answers.name}' && \
-    cd '${answers.name}' && \
+    mkdir -m 777 -p 'functions/${answers.name}' && \
+    cd 'functions/${answers.name}' && \
     git init && \
     git remote add -f origin https://github.com/{{ sdk.gitUserName }}/functions-starter && \
     git config core.sparseCheckout true && \
@@ -87,7 +87,7 @@ const initFunction = async () => {
   // Execute the child process but do not print any std output
   childProcess.execSync(command, { stdio: 'pipe' });
 
-  const readmePath = path.join(process.cwd(), answers.name, 'README.md');
+  const readmePath = path.join(process.cwd(), 'functions', answers.name, 'README.md');
   const readmeFile = fs.readFileSync(readmePath).toString();
   const newReadmeFile = readmeFile.split('\n');
   newReadmeFile[0] = `# ${answers.name}`;
@@ -96,10 +96,15 @@ const initFunction = async () => {
 
   let data = {
     $id: response['$id'],
-    name: response['name'],
-    runtime: response['runtime'],
-    path: answers.name,
-    entrypoint: answers.runtime.entrypoint || ''
+    name: response.name,
+    runtime: response.runtime,
+    path: `functions/${answers.name}`,
+    entrypoint: answers.runtime.entrypoint || '',
+    execute: response.execute,
+    vars: response.vars,
+    events: response.events,
+    schedule: response.schedule,
+    timeout: response.timeout,
   };
 
   localConfig.addFunction(data);
