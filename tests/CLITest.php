@@ -7,18 +7,17 @@ class CLITest extends Base
     protected string $language = 'cli';
     protected string $class = 'Appwrite\SDK\Language\CLI';
     protected array $build = [
-        'printf "\nCOPY ./files /usr/local/code/files" >> tests/sdks/cli/Dockerfile',
-        'cat tests/sdks/cli/Dockerfile',
-        'mkdir tests/sdks/cli/files',
-        'cp tests/resources/file.png tests/sdks/cli/files/',
-        'docker build -t cli:latest tests/sdks/cli',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli node:16-alpine npm install',
+        'cp tests/languages/cli/test.js tests/sdks/cli/test.js'
     ];
     protected array $envs = [
-        'default' => 'php tests/languages/cli/test.php',
+        'nodejs-14' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli node:14-alpine node test.js',
+        'nodejs-16' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli node:16-alpine node test.js',
     ];
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
-        ...Base::GENERAL_RESPONSES
+        ...Base::GENERAL_RESPONSES,
+        'POST:/v1/mock/tests/general/upload:passed', //large file
     ];
 }

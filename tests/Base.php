@@ -87,7 +87,7 @@ abstract class Base extends TestCase
             ->setDefaultHeaders([
                 'X-Appwrite-Response-Format' => '0.8.0',
             ])
-            ->setIsTest("true");
+            ->setTest("true");
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
 

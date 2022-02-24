@@ -2,12 +2,11 @@
 
 include_once 'vendor/autoload.php';
 
-use Appwrite\SDK\Language\CLI;
 use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\Web;
 use Appwrite\SDK\Language\Node;
-use Appwrite\SDK\Language\NodeCLI;
+use Appwrite\SDK\Language\CLI;
 use Appwrite\SDK\Language\PHP;
 use Appwrite\SDK\Language\Python;
 use Appwrite\SDK\Language\Ruby;
@@ -40,7 +39,7 @@ try {
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1&platform=console'); // Enable only with Appwrite local server running on port 80
     // $spec = file_get_contents('https://appwrite.io/specs/swagger2?platform=client');
-    $spec = file_get_contents('./specs/swagger-appwrite-0.13.0.json');
+    $spec = file_get_contents('./specs/swagger2-latest-console.json');
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -145,10 +144,27 @@ try {
 
     // $sdk->generate(__DIR__ . '/examples/node');
 
-    // Node CLI
-    $language  = new NodeCLI();
+    // CLI
+    $language  = new CLI();
     $language->setNPMPackage('appwrite-cli');
     $language->setExecutableName('appwrite');
+    $language->setLogo(json_encode("
+    _                            _ _           ___   __   _____ 
+   /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
+  //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
+ /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
+ \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
+       |_|   |_|                                                
+
+"));
+    $language->setLogoUnescaped("
+     _                            _ _           ___   __   _____ 
+    /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
+   //_\\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
+  /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
+  \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
+        |_|   |_|                                                ");
+
     $sdk  = new SDK($language, new Swagger2($spec));
 
     $sdk
@@ -158,11 +174,12 @@ try {
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://appwrite.io')
         ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicense('BSD-3-Clause')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
         ->setChangelog('**CHANGELOG**')
         ->setGitUserName('appwrite')
-        ->setGitRepoName('sdk-for-node-cli')
+        ->setGitRepoName('sdk-for-cli')
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
@@ -170,7 +187,7 @@ try {
         ])
     ;
 
-    $sdk->generate(__DIR__ . '/examples/node-cli');
+    $sdk->generate(__DIR__ . '/examples/cli');
 
 //     // Ruby
 //     $sdk  = new SDK(new Ruby(), new Swagger2($spec));
@@ -390,38 +407,6 @@ try {
 //     ;
 
 //     $sdk->generate(__DIR__ . '/examples/HTTP');
-
-//     // CLI
-//     $cli = new CLI();
-//     $cli->setExecutableName('appwrite');
-//     $cli->setLogo("
-//     _                            _ _           ___   __   _____ 
-//    /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
-//   //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
-//  /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
-//  \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
-//        |_|   |_|                                                  
-//  ");
-//     $sdk  = new SDK($cli, new Swagger2($spec));
-//     $sdk
-//         ->setName('NAME')
-//         ->setDescription('Repo description goes here')
-//         ->setShortDescription('Repo short description goes here')
-//         ->setURL('https://example.com')
-//         ->setLogo('https://appwrite.io/v1/images/console.png')
-//         ->setLicenseContent('test test test')
-//         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-//         ->setChangelog('**CHANGELOG**')
-//         ->setVersion('0.0.1')
-//         ->setGitUserName('repoowner')
-//         ->setGitRepoName('reponame')
-//         ->setTwitter('appwrite_io')
-//         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
-//         // ->setDefaultHeaders([
-//         //     'X-Appwrite-Response-Format' => '0.7.0',
-//         // ])
-//     ;
-//     $sdk->generate(__DIR__ . '/examples/CLI');
 
 //     // Android
 
