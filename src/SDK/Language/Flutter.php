@@ -230,6 +230,12 @@ class Flutter extends Dart {
 				'minify'        => false,
 			],
             [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/upload_progress.dart',
+                'template'      => 'dart/lib/src/upload_progress.dart.twig',
+                'minify'        => false,
+            ],
+            [
 				'scope'         => 'default',
 				'destination'   => '/lib/models.dart',
 				'template'      => 'flutter/lib/models.dart.twig',
