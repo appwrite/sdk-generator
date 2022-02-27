@@ -29,6 +29,8 @@ open class Client {
 
     open var config: [String: String] = [:]
 
+    open var selfSigned: Bool = false
+
     open var http: HTTPClient
 
     private static let boundaryChars =
@@ -119,6 +121,7 @@ open class Client {
     /// @return Client
     ///
     open func setSelfSigned(_ status: Bool = true) -> Client {
+        self.selfSigned = status
         try! http.syncShutdown()
         http = Client.createHTTP(selfSigned: status)
         return self

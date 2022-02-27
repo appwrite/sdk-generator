@@ -38,7 +38,7 @@ open class Realtime : Service {
             reconnect = false
             closeSocket()
         } else {
-            socketClient = WebSocketClient(url, delegate: self)!
+            socketClient = WebSocketClient(url, tlsEnabled: !client.selfSigned, delegate: self)!
         }
 
         try! socketClient?.connect()
