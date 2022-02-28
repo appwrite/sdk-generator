@@ -1,7 +1,7 @@
 const fs = require('fs');
+const tar = require("tar");
 const { promisify } = require('util');
 const libClient = require('../client.js');
-const childProcess = require('child_process');
 const { Command } = require('commander');
 const { sdkForProject, sdkForConsole } = require('../sdks')
 const { parse, actionRunner, parseInteger, parseBool, commandDescriptions, success, log } = require('../parser')
@@ -36,7 +36,14 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
     let folderPath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
     if (!fs.lstatSync(folderPath).isDirectory())
         throw new Error('The path is not a directory.');
-    childProcess.execSync(`tar --cd '${folderPath}' -zcvf code.tar.gz .`, { stdio: 'pipe' });
+    
+    await tar
+        .create({
+            gzip: true,
+            sync: true,
+            cwd: folderPath,
+            file: 'code.tar.gz'
+        }, ['./'])
     let archivePath = fs.realpathSync('code.tar.gz')
     if (typeof archivePath !== 'undefined') {
         payload['{{ parameter.name }}'] = archivePath;
