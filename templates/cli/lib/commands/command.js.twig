@@ -137,7 +137,13 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
                 }
 
                 if (onProgress !== null) {
-                        onProgress(Math.min((counter+1) * libClient.CHUNK_SIZE, size) / size * 100);
+                    onProgress({
+                        $id: response['$id'],
+                        progress: Math.min((counter+1) * libClient.CHUNK_SIZE, size) / size * 100,
+                        sizeUploaded: end+1,
+                        chunksTotal: response['chunksTotal'],
+                        chunksUploaded: response['chunksUploaded']
+                    });
                 }
         }
     }

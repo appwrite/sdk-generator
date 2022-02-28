@@ -89,7 +89,13 @@ class {{ service.name | caseUcfirst }} extends Service
                     $id = $response['$id'];
                 }
                 if($onProgress !== null) {
-                    $onProgress(min(($counter+1) * Client.CHUNK_SIZE, $size) / $size * 100);
+                    $onProgress([
+                        '$id' => $response['$id'],
+                        'progress' => min(($counter+1) * Client.CHUNK_SIZE, $size) / $size * 100,
+                        'sizeUploaded' => $end + 1,
+                        'chunksTotal' => $response['chunksTotal'],
+                        'chunksUploaded' => $response['chunksUploaded']
+                    ]);
                 }
             }
             @fclose($handle);
