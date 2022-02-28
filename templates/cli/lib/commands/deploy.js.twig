@@ -167,7 +167,7 @@ const deployFunction = async () => {
                 functionId: func['$id'],
                 name: func.name,
                 execute: func.execute,
-                vars: func.vars,
+                vars: response.vars,
                 events: func.events,
                 schedule: func.schedule,
                 timeout: func.timeout,
