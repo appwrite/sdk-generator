@@ -89,7 +89,7 @@ class {{ service.name | caseUcfirst }} extends Service
                     $id = $response['$id'];
                 }
                 if($onProgress !== null) {
-                    $onProgress(min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size) / $size * 100);
+                    $onProgress(min(($counter+1) * Client.CHUNK_SIZE, $size) / $size * 100);
                 }
             }
             @fclose($handle);
