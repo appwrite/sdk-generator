@@ -20,10 +20,10 @@ class {{ service.name | caseUcfirst }} extends Service
      * @param {{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
      * @throws {{spec.title | caseUcfirst}}Exception
-     * @return {% if (method.type == 'location') or (method.method | caseUpper == 'DELETE') %}string{% else %}array{% endif %}
+     * @return {% if method.type == 'location' %}string{% else %}array{% endif %}
 
      */
-    public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, callable $onProgress = null{% endif %}): {% if (method.type == 'location') or (method.method | caseUpper == 'DELETE') %}string{% else %}array{% endif %}
+    public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, callable $onProgress = null{% endif %}): {% if method.type == 'location' %}string{% else %}array{% endif %}
 
     {
 {% for parameter in method.parameters.all %}
