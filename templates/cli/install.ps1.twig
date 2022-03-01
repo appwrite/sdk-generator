@@ -1,15 +1,20 @@
+## <script src="/dist/scripts/cli-bash.js"></script>
+## <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism-okaidia.min.css" rel="stylesheet" />
+## <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-core.min.js" data-manual></script>
+## <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-bash.min.js"></script>
+## <style>body {color: #272822; background-color: #272822; font-size: 0.8em;} </style>
 # Love open-source, dev-tooling and passionate about code as much as we do?
 # ---
 # We're always looking for awesome hackers like you to join our 100% remote team!
-# Check and see if you find any relevant position @ https://appwrite.io/company/careers
+# Check and see if you find any relevant position @ https://{{ spec.title | lower }}.io/company/careers 👩‍💻 😎
 # (and let us know you found this message...)
 
 # This script contains hidden JS code to allow better readability and syntax highlighting
 # You can use "View source" of this page to see the full script.
 
 # REPO
-$GITHUB_x64_URL = "https://github.com/appwrite/sdk-for-cli/releases/download/{{ sdk.version }}/appwrite-cli-win-x64.exe"
-$GITHUB_arm64_URL = "https://github.com/appwrite/sdk-for-cli/releases/download/{{ sdk.version }}/appwrite-cli-win-arm64.exe"
+$GITHUB_x64_URL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.executableName }}-cli-win-x64.exe"
+$GITHUB_arm64_URL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.executableName }}-cli-win-arm64.exe"
 
 # Appwrite download directory
 ${{ spec.title | upper }}_DOWNLOAD_DIR = Join-Path -Path $env:TEMP -ChildPath "{{ language.params.executableName }}.exe"
@@ -21,13 +26,8 @@ $USER_PATH_ENV_VAR = [Environment]::GetEnvironmentVariable("PATH", "User")
 
 function Greeting {
     Write-Host @"
-    _                            _ _           ___   __   _____ 
-   /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
-  //_\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
- /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
- \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
-       |_|   |_|                                                  
- 
+{{ language.params.logoUnescaped | raw }}
+
 "@ -ForegroundColor red
     Write-Host "Welcome to the {{ spec.title | caseUcfirst }} CLI install shield."  
 }
@@ -54,17 +54,17 @@ function DownloadBinary {
     }
    
 
-   Move-Item $APPWRITE_DOWNLOAD_DIR $APPWRITE_INSTALL_DIR
+   Move-Item ${{ spec.title | upper }}_DOWNLOAD_DIR ${{ spec.title | upper }}_INSTALL_DIR
 }
 
 
 function Install {
     Write-Host "[3/4] Starting installation ..."
 
-    if ($USER_PATH_ENV_VAR -like '*Appwrite*') {
+    if ($USER_PATH_ENV_VAR -like '*{{ spec.title | caseUcfirst }}*') {
         Write-Host "Skipping to add {{ spec.title | caseUcfirst }} to User Path."
     } else {
-        [System.Environment]::SetEnvironmentVariable("PATH", $USER_PATH_ENV_VAR + ";$APPWRITE_INSTALL_DIR", "User")
+        [System.Environment]::SetEnvironmentVariable("PATH", $USER_PATH_ENV_VAR + ";${{ spec.title | upper }}_INSTALL_DIR", "User")
     }
 }
 
