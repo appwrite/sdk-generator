@@ -352,10 +352,10 @@ class {{ spec.title | caseUcfirst }} {
 
     private async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<any> {
         method = method.toUpperCase();
-        headers = {
-            ...headers,
-            ...this.headers
-        }
+
+
+        headers = Object.assign({}, this.headers, headers);
+        
         let options: RequestInit = {
             method,
             headers,
