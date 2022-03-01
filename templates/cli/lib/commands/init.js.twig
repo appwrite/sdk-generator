@@ -100,7 +100,6 @@ const initFunction = async () => {
     path: `functions/${answers.name}`,
     entrypoint: answers.runtime.entrypoint || '',
     execute: response.execute,
-    vars: response.vars,
     events: response.events,
     schedule: response.schedule,
     timeout: response.timeout,
