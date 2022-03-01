@@ -26,6 +26,12 @@ jobs:
           sudo bash -c "echo '$GPG_KEY_CONTENTS' | base64 -d > '$SIGNING_SECRET_KEY_RING_FILE'"
           chmod +x ./gradlew
 
+        # Builds the artifacts of the library
+      - name: Build Release Artifacts
+        run: ./gradlew assemble
+        env:
+          SDK_VERSION: ${{ github.event.release.tag_name }}
+
         # Runs upload, and then closes & releases the repository
       - name: Publish Release Version to MavenCentral
         run: |
@@ -34,7 +40,7 @@ jobs:
             ./gradlew publishToSonatype
           else
             echo "Publising Release Version ${{ github.event.release.tag_name}} to Staging repository"
-            ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository
+            ./gradlew publishToSonatype --max-workers 1 closeAndReleaseSonatypeStagingRepository
           fi
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
