@@ -16,10 +16,10 @@
 $GITHUB_x64_URL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.executableName }}-cli-win-x64.exe"
 $GITHUB_arm64_URL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.executableName }}-cli-win-arm64.exe"
 
-# Appwrite download directory
+# {{ spec.title | caseUcfirst }} download directory
 ${{ spec.title | upper }}_DOWNLOAD_DIR = Join-Path -Path $env:TEMP -ChildPath "{{ language.params.executableName }}.exe"
 
-# Appwrite CLI location
+# {{ spec.title | caseUcfirst }} CLI location
 ${{ spec.title | upper }}_INSTALL_DIR = Join-Path -Path $env:LOCALAPPDATA -ChildPath "{{ spec.title | caseUcfirst }}"
 
 $USER_PATH_ENV_VAR = [Environment]::GetEnvironmentVariable("PATH", "User")
