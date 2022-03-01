@@ -79,7 +79,10 @@ class Client {
             process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
         }
 
-        headers = Object.assign(this.headers, headers);
+        headers = {
+            ...this.headers,
+            ...headers
+        };
 
         let contentType = headers['content-type'].toLowerCase();
 

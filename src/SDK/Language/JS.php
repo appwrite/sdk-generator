@@ -130,7 +130,7 @@ abstract class JS extends Language {
             case self::TYPE_ARRAY:
                 return 'string[]';
             case self::TYPE_FILE:
-                return 'File';
+                return 'string';
             break;
         }
 

@@ -70,13 +70,13 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% for parameter in method.parameters.query %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}.toString(){% endif %};
         }
 
 {% endfor %}
 {% for parameter in method.parameters.body %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}.toString(){% endif %};
         }
 {% endfor %}
 {% if 'multipart/form-data' in method.consumes %}
