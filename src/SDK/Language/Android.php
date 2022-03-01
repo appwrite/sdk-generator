@@ -160,6 +160,12 @@ class Android extends Kotlin {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/UploadProgress.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/UploadProgress.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/WebAuthComponent.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/WebAuthComponent.kt.twig',
                 'minify'        => false,

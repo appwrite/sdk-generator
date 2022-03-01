@@ -165,6 +165,12 @@ class Swift extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/UploadProgress.swift',
+                'template'      => 'swift/Sources/Models/UploadProgress.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Codable+JSON.swift',
                 'template'      => 'swift/Sources/Extensions/Codable+JSON.swift.twig',
                 'minify'        => false,
