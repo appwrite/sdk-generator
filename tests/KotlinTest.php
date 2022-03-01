@@ -13,7 +13,7 @@ class KotlinTest extends Base
     ];
     protected array $envs = [
         'java-8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:8-jdk-alpine sh -c "./gradlew :test -q && cat result.txt"',
-        'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/kotlin adoptopenjdk/openjdk11:alpine sh -c "./gradlew :test -q && cat result.txt"',
+        //'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/kotlin adoptopenjdk/openjdk11:alpine sh -c "./gradlew :test -q && cat result.txt"',
     ];
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
