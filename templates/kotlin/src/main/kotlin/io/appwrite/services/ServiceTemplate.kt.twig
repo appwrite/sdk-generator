@@ -1,6 +1,6 @@
 {% macro parameter(parameter) %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{% if not parameter.required %}? = null{% endif %}{% endmacro %}
 {% macro method_parameters(parameters, consumes) %}
-{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, onProgress: ((Double) -> Unit)? = null{% endif %}{% endif %}
+{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, onProgress: ((UploadProgress) -> Unit)? = null{% endif %}{% endif %}
 {% endmacro %}
 {% macro methodNeedsSecurityParameters(method) %}
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
