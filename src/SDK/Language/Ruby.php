@@ -193,10 +193,6 @@ class Ruby extends Language {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
                 return 'number';
-            break;
-            case self::TYPE_FILE:
-                return 'File';
-            break;
         }
 
         return $type;

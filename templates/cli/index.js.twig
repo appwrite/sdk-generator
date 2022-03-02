@@ -1,0 +1,39 @@
+#! /usr/bin/env node
+const program = require("commander");
+const chalk = require("chalk");
+const { version } = require("./package.json");
+const { commandDescriptions, cliConfig } = require("./lib/parser");
+const { client } = require("./lib/commands/generic");
+{% if sdk.test != "true" %}
+const { login, logout } = require("./lib/commands/generic");
+const { init } = require("./lib/commands/init");
+const { deploy } = require("./lib/commands/deploy");
+{% endif %}
+{% for service in spec.services %}
+const { {{ service.name | caseLower }} } = require("./lib/commands/{{ service.name | caseLower }}");
+{% endfor %}
+
+program
+  .description(commandDescriptions['main'])
+  .version(version, "-v, --version")
+  .option("--verbose", "Show complete error log")
+  .option("--json", "Output in JSON format")
+  .on("option:json", () => {
+    cliConfig.json = true;
+  })
+  .on("option:verbose", () => {
+    cliConfig.verbose = true;
+  })
+  .showSuggestionAfterError()
+{% if sdk.test != "true" %}
+  .addCommand(login)
+  .addCommand(init)
+  .addCommand(deploy)
+  .addCommand(logout)
+{% endif %}
+{% for service in spec.services %}
+  .addCommand({{ service.name | caseLower }})
+{% endfor %}
+  .addCommand(client)
+  .parse(process.argv);
+  

@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use Appwrite\SDK\Language;
 use Appwrite\SDK\SDK;
 use Appwrite\Spec\Swagger2;
 use PHPUnit\Framework\TestCase;
@@ -30,6 +31,10 @@ abstract class Base extends TestCase
 
     const GENERAL_RESPONSES = [
         'GET:/v1/mock/tests/general/redirect/done:passed',
+        'POST:/v1/mock/tests/general/upload:passed',
+    ];
+
+    const LARGE_FILE_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
@@ -65,7 +70,7 @@ abstract class Base extends TestCase
             throw new \Exception('Failed to parse spec.');
         }
 
-        $sdk = new SDK(new $this->class(), new Swagger2($spec));
+        $sdk = new SDK($this->getLanguage(), new Swagger2($spec));
 
         $sdk
             ->setDescription('Repo description goes here')
@@ -82,7 +87,8 @@ abstract class Base extends TestCase
             ->setChangelog('--changelog--')
             ->setDefaultHeaders([
                 'X-Appwrite-Response-Format' => '0.8.0',
-            ]);
+            ])
+            ->setTest("true");
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
 
@@ -137,5 +143,10 @@ abstract class Base extends TestCase
                 $this->assertEquals($output[$i], $row);
             }
         }
+    }
+
+    public function getLanguage(): Language 
+    {
+        return new $this->class();
     }
 }
