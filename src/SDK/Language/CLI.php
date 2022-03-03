@@ -88,6 +88,12 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'install.ps1',
+                'template'      => 'cli/install.ps1.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'index.js',
                 'template'      => 'cli/index.js.twig',
                 'minify'        => false,
