@@ -217,7 +217,7 @@ class Dart extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'InputFile(path: \'./path-to-files/image.jpg\', fileName: \'image.jpg\')';
+                    $output .= 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
