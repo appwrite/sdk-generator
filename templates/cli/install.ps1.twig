@@ -56,6 +56,7 @@ function Install {
     if ($USER_PATH_ENV_VAR -like '*{{ spec.title | caseUcfirst }}*') {
         Write-Host "Skipping to add {{ spec.title | caseUcfirst }} to User Path."
     } else {
+        New-Item -Path $APPWRITE_INSTALL_DIR -ItemType Directory -Force
         [System.Environment]::SetEnvironmentVariable("PATH", $USER_PATH_ENV_VAR + ";${{ spec.title | upper }}_INSTALL_DIR", "User")
     }
 }
