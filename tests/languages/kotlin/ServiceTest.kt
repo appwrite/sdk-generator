@@ -71,6 +71,9 @@ class ServiceTest {
             mock = general.upload("string", 123, listOf("string in array"), File("../../resources/file.png"))
             writeToFile(mock.result)
 
+            mock = general.upload("string", 123, listOf("string in array"), File("../../resources/large_file.mp4"))
+            writeToFile(mock.result)
+
             try {
                 general.error400()
             } catch (e: AppwriteException) {

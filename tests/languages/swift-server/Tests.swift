@@ -20,7 +20,6 @@ class Tests: XCTestCase {
 
     func test() async throws {
         let client = Client()
-            .setEndpointRealtime("wss://demo.appwrite.io/v1")
             .setProject("console")
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
@@ -69,10 +68,16 @@ class Tests: XCTestCase {
         let result = try await general.redirect()
         print((result as! [String: Any])["result"] as! String)
 
-        let url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
-        let buffer = ByteBuffer(data: try! Data(contentsOf: url))
-        let file = File(name: "file.png", buffer: buffer)
-        mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file)
+        var url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
+        var buffer = ByteBuffer(data: try! Data(contentsOf: url))
+        var file = File(name: "file.png", buffer: buffer)
+        mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
+        print(mock.result)
+
+		url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
+        buffer = ByteBuffer(data: try! Data(contentsOf: url))
+        file = File(name: "large_file.mp4", buffer: buffer)
+        mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
         print(mock.result)
 
         do {

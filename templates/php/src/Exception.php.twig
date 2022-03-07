@@ -12,14 +12,28 @@ class {{spec.title | caseUcfirst}}Exception extends Exception {
   private $response;
 
   /**
+   * @var string
+   */
+  private $type;
+
+  /**
    * @param String $message
    * @param int $code
    * @param mixed $response
    */
-  public function __construct($message = null, $code = 0, $response = null)
+  public function __construct($message = null, $code = 0, $type = null, $response = null)
   {
       parent::__construct($message, $code);
       $this->response = $response;
+      $this->type = $type;
+  }
+
+  /**
+   * @return string
+   */
+  public function getType()
+  {
+      return $this->type;
   }
   
   /**

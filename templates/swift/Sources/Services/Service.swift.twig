@@ -32,6 +32,9 @@ open class {{ service.name | caseUcfirst }}: Service {
         {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last %},{% endif %}
 
 {% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+        onProgress: ((UploadProgress) -> Void)? = nil
+{% endif %}
     ) async throws -> {{ _self.resultType(spec, method) }} {
 {% if method.parameters.path %}        var{% else %}        let{% endif %} path: String = "{{ method.path }}"
 
@@ -44,7 +47,7 @@ open class {{ service.name | caseUcfirst }}: Service {
 
 {% endfor %}
 {% if method.parameters.query or method.parameters.body or method.parameters.formData or _self.methodNeedsSecurityParameters(method) %}
-        let params: [String: Any?] = [
+        {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} params: [String: Any?] = [
 {% else %}
         let params: [String: Any?] = [:]
 {% endif %}
@@ -84,7 +87,7 @@ open class {{ service.name | caseUcfirst }}: Service {
             params: params
         )
 {% else %}
-        let headers: [String: String] = [
+        {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} headers: [String: String] = [
 {{ method.headers|map((header, key) => "            \"#{key}\": \"#{header}\"")|join(',\n')|raw }}
         ]
 
@@ -98,6 +101,24 @@ open class {{ service.name | caseUcfirst }}: Service {
         }
 
 {% endif %}
+{% if 'multipart/form-data' in method.consumes %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+        let paramName = "{{ parameter.name }}"
+
+{% endif %}
+{% endfor %}
+        return try await client.chunkedUpload(
+            path: path,
+            headers: &headers,
+            params: &params,
+            paramName: paramName,
+{% if method.responseModel %}
+            convert: convert,
+{% endif %}
+            onProgress: onProgress
+        )
+{% else %}
         return try await client.call(
             method: "{{ method.method | caseUpper }}",
             path: path,
@@ -106,6 +127,7 @@ open class {{ service.name | caseUcfirst }}: Service {
             convert: convert
 {% endif %}
         )
+{% endif %}
 {% endif %}
     }
 
