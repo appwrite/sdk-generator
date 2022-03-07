@@ -1,4 +1,4 @@
-## <script src="/dist/scripts/cli-powershell.js"></script>
+## <script src="/dist/scripts/cli-bash.js"></script>
 ## <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism-okaidia.min.css" rel="stylesheet" />
 ## <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-core.min.js" data-manual></script>
 ## <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-powershell.min.js"></script>
@@ -6,50 +6,32 @@
 # Love open-source, dev-tooling and passionate about code as much as we do?
 # ---
 # We're always looking for awesome hackers like you to join our 100% remote team!
-# Check and see if you find any relevant position @ https://{{ spec.title | lower }}.io/company/careers
+# Check and see if you find any relevant position @ https://{{ spec.title | lower }}.io/company/careers 👩‍💻 😎
 # (and let us know you found this message...)
 
 # This script contains hidden JS code to allow better readability and syntax highlighting
 # You can use "View source" of this page to see the full script.
 
+# REPO
+$GITHUB_x64_URL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.executableName }}-cli-win-x64.exe"
+$GITHUB_arm64_URL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.executableName }}-cli-win-arm64.exe"
+
+# {{ spec.title | caseUcfirst }} download directory
+${{ spec.title | upper }}_DOWNLOAD_DIR = Join-Path -Path $env:TEMP -ChildPath "{{ language.params.executableName }}.exe"
+
 # {{ spec.title | caseUcfirst }} CLI location
 ${{ spec.title | upper }}_INSTALL_DIR = Join-Path -Path $env:LOCALAPPDATA -ChildPath "{{ spec.title | caseUcfirst }}"
-
-# {{ spec.title | caseUcfirst }} CLI Executable name 
-${{ spec.title | upper }}_EXECUTABLE_NAME = "{{ language.params.executableName }}.ps1"
-
-# {{ spec.title | caseUcfirst }} executable file path 
-${{ spec.title | upper }}_EXECUTABLE_FILEPATH = Join-Path -Path ${{ spec.title | upper }}_INSTALL_DIR -ChildPath ${{ spec.title | upper }}_EXECUTABLE_NAME
-
-# {{ spec.title | caseUcfirst }} CLI image name
-${{ spec.title | upper }}_CLI_IMAGE_NAME = "{{ spec.title | lower }}/cli"
-
-# {{ spec.title | caseUcfirst }} CLI image version 
-${{ spec.title | upper }}_CLI_IMAGE_VERSION = "{{ sdk.version }}"
-
-${{ spec.title | upper }}_EXECUTABLE_CONTENT = @"
-`$allowList = 'version', 'help', 'init', 'client' {% for service in spec.services %}, '{{ service.name }}'{% endfor %}
-
-if ( `$args.count -eq 0 ) {
-    `$args += 'help'
-}
-
-if ( -not (`$allowList -contains `$args[0])) {
-    Write-Host "Looks like a crazy hamster flipped a bit.`n`nUse {{ language.params.executableName }} help for a list of supported commands."
-    exit 1
-}
-
-docker run -i --rm --volume {{ spec.title | lower }}-cli:/usr/local/code/app/.preferences/ --volume `$pwd``:/usr/local/code/files:rw --network host ${{ spec.title | upper }}_CLI_IMAGE_NAME`:${{ spec.title | upper }}_CLI_IMAGE_VERSION (`$args | % {[uri]::EscapeUriString(`$_)})
-"@
 
 $USER_PATH_ENV_VAR = [Environment]::GetEnvironmentVariable("PATH", "User")
 
 function Greeting {
-    Write-Host @"{{ language.params.logo | raw }}
+    Write-Host @"
+{{ language.params.logoUnescaped | raw }}
+
 "@ -ForegroundColor red
-    Write-Host "Welcome to the {{ spec.title | caseUcfirst }} CLI install shield."
-    
+    Write-Host "Welcome to the {{ spec.title | caseUcfirst }} CLI install shield."  
 }
+
 
 function CheckSystemInfo {
     Write-Host "[1/4] Getting System Info ..."
@@ -61,34 +43,27 @@ function CheckSystemInfo {
     }
 }
 
-function PerformChecks {
+function DownloadBinary {
+    Write-Host "[2/4] Downloading {{ spec.title | caseUcfirst }} CLI binary ..."
+    Write-Host "🚦 Fetching latest version ... " -ForegroundColor green
 
-    Write-Host "[2/4] Performing Checks ..."
-
-    if (!(docker --version)) {
-        throw "Docker could not be found. Please install docker for your OS from https://docs.docker.com/get-docker/ and try again."
+    if((Get-CimInstance Win32_operatingsystem).OSArchitecture -like '*ARM*') {
+      Invoke-WebRequest -Uri $GITHUB_arm64_URL -OutFile ${{ spec.title | upper }}_DOWNLOAD_DIR
+    } else {
+      Invoke-WebRequest -Uri $GITHUB_x64_URL -OutFile ${{ spec.title | upper }}_DOWNLOAD_DIR
     }
+   
 
-    if (!(docker ps)) {
-        throw "The docker daemon is not operational. Make sure that docker is running and try again."
-    }
+   Move-Item ${{ spec.title | upper }}_DOWNLOAD_DIR ${{ spec.title | upper }}_INSTALL_DIR
 }
+
 
 function Install {
     Write-Host "[3/4] Starting installation ..."
 
-    $out = (Invoke-Expression "docker pull ${{ spec.title | upper }}_CLI_IMAGE_NAME`:${{ spec.title | upper }}_CLI_IMAGE_VERSION") | Out-String
-
-    if ($out -NotMatch "Image is up to date|Downloaded newer image") {
-        throw "Failed to fetch docker image. Exiting ..."
-    }
-
-    [void](New-Item -Path ${{ spec.title | upper }}_EXECUTABLE_FILEPATH -Value ${{ spec.title | upper }}_EXECUTABLE_CONTENT -ItemType File -Force)
-
     if ($USER_PATH_ENV_VAR -like '*{{ spec.title | caseUcfirst }}*') {
         Write-Host "Skipping to add {{ spec.title | caseUcfirst }} to User Path."
-    }
-    else {
+    } else {
         [System.Environment]::SetEnvironmentVariable("PATH", $USER_PATH_ENV_VAR + ";${{ spec.title | upper }}_INSTALL_DIR", "User")
     }
 }
@@ -101,11 +76,13 @@ function InstallCompleted {
     Write-Host "[4/4] Finishing Installation ... "
     cleanup
     Write-Host "🤘 May the force be with you."
-    Write-Host "To get started with {{ spec.title | caseUcfirst }} CLI, please visit https://{{ spec.title | lower }}.io/docs/command-line"
+    Write-Host "To get started with {{ spec.title | caseUcfirst }} CLI, please visit {{ sdk.url }}/docs/command-line"
 }
+
 
 Greeting
 CheckSystemInfo
-PerformChecks
+DownloadBinary
 Install
+CleanUp
 InstallCompleted

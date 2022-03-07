@@ -128,7 +128,7 @@ class Dart extends Language {
                 return 'String';
             break;
             case self::TYPE_FILE:
-                return 'http.MultipartFile';
+                return 'InputFile';
             break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
@@ -332,6 +332,12 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/src/upload_progress.dart',
+                'template'      => 'dart/lib/src/upload_progress.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/src/response.dart',
                 'template'      => 'dart/lib/src/response.dart.twig',
                 'minify'        => false,
@@ -406,6 +412,24 @@ class Dart extends Language {
                 'scope'         => 'default',
                 'destination'   => '.travis.yml',
                 'template'      => 'dart/.travis.yml.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/src/input_file.dart',
+                'template'      => 'dart/lib/src/input_file.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/src/chunked_upload_io.dart',
+                'template'      => 'dart/lib/src/chunked_upload_io.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/src/chunked_upload_stub.dart',
+                'template'      => 'dart/lib/src/chunked_upload_stub.dart.twig',
                 'minify'        => false,
             ],
         ];

@@ -24,11 +24,12 @@ server.listen(3000, async () => {
     });
     await page.goto('http://localhost:3000');
     await page.setInputFiles('#file', path.join(__dirname, '/../../resources/file.png'));
+    await page.setInputFiles('#file2', path.join(__dirname, '/../../resources/large_file.mp4'));
     await page.click('#start');
 
     setTimeout(async () => {
         await browser.close();
         server.close();
         exit(0);
-    }, 10000);
+    }, 15000);
 });

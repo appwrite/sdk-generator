@@ -71,6 +71,7 @@ class Python extends Language {
             'except',
             'in',
             'raise',
+            'async'
         ];
     }
 
@@ -164,6 +165,12 @@ class Python extends Language {
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/exception.py',
                 'template'      => 'python/package/exception.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/input_file.py',
+                'template'      => 'python/package/input_file.py.twig',
                 'minify'        => false,
             ],
             [

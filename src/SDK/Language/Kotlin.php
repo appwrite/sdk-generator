@@ -278,6 +278,12 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'scripts/configure.gradle',
+                'template'      => '/kotlin/scripts/configure.gradle',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'scripts/publish.gradle',
                 'template'      => '/kotlin/scripts/publish.gradle',
                 'minify'        => false,
@@ -382,6 +388,12 @@ class Kotlin extends Language {
                 'scope'         => 'service',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/ServiceTemplate.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/UploadProgress.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/UploadProgress.kt.twig',
                 'minify'        => false,
             ],
             [
