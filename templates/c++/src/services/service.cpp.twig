@@ -21,15 +21,40 @@ namespace {{ spec.title | caseUcfirst }} {
 {% if method.type == "location" %}string{% else %}json{% endif %} {{ service.name | caseUcfirst }}::{{ method.name | caseCamel | escapeKeyword }}({% for parameter in method.parameters.all %}{{ parameter.type | typeName }} {{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}) {
     cpr::Payload params = {
 {% for parameter in method.parameters.query %}
+{% if parameter.type == 'integer' %}
+        {{ '{' }}"{{ parameter.name }}", std::to_string({{ parameter.name | caseCamel | escapeKeyword }}){{ '}' }},
+{% elseif parameter.type == 'boolean' %}
+        {{ '{' }}"{{ parameter.name }}", std::to_string({{ parameter.name | caseCamel | escapeKeyword }}){{ '}' }},
+{% else %}
         {{ '{' }}"{{ parameter.name }}", {{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }},
+{% endif %}
 {% endfor %}
 {% for parameter in method.parameters.body %}
+{% if parameter.type == 'integer' %}
+        {{ '{' }}"{{ parameter.name }}", std::to_string({{ parameter.name | caseCamel | escapeKeyword }}){{ '}' }},
+{% elseif parameter.type == 'boolean' %}
+        {{ '{' }}"{{ parameter.name }}", std::to_string({{ parameter.name | caseCamel | escapeKeyword }}){{ '}' }},
+ {% else %}
         {{ '{' }}"{{ parameter.name }}", {{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }},
+{% endif %}
 {% endfor %}
 {% for parameter in method.parameters.formData %}
-        {{ '{' }}"{{ parameter.name }}", {{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }},
+{% if parameter.type == 'integer' %}
+        {{ '{' }}"{{ parameter.name }}", std::to_string({{ parameter.name | caseCamel | escapeKeyword }}){{ '}' }},
+{% elseif parameter.type == 'boolean' %}
+        {{ '{' }}"{{ parameter.name }}", std::to_string({{ parameter.name | caseCamel | escapeKeyword }}){{ '}' }},
+ {% else %}
+        {{ '{' }}"{{ parameter.name }}", {{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }},    
+{% endif %}
 {% endfor %}
     };
+
+{# 
+{% if parameter.type == 'integer' %}
+{{parameter.name}} = {{parameter.name}}.toString();
+{% endif %}
+ #}
+
     cpr::Header headers = {
 {% for parameter in method.parameters.header %}
         {{ '{' }}"{{ parameter.name }}", {{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }},
