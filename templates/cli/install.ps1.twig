@@ -23,7 +23,22 @@ ${{ spec.title | upper }}_DOWNLOAD_DIR = Join-Path -Path $env:TEMP -ChildPath "{
 ${{ spec.title | upper }}_INSTALL_DIR = Join-Path -Path $env:LOCALAPPDATA -ChildPath "{{ spec.title | caseUcfirst }}/"
 ${{ spec.title | upper }}_EXE_INSTALL_DIR = Join-Path -Path ${{ spec.title | upper }}_INSTALL_DIR -ChildPath "{{ spec.title | lower }}.exe"
 
+$global:progressPreference = 'silentlyContinue'
 
+
+function Greeting {
+    Write-Host @"
+
+     _                            _ _           ___   __   _____ 
+    /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
+   //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
+  /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
+  \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
+        |_|   |_|                                                
+
+"@ -ForegroundColor red
+    Write-Host "Welcome to the Appwrite CLI install shield."  
+}
 
 function CheckSystemInfo {
     Write-Host "[1/4] Getting System Info ..."
@@ -37,16 +52,13 @@ function CheckSystemInfo {
 
 function DownloadBinary {
     Write-Host "[2/4] Downloading {{ spec.title | caseUcfirst }} CLI binary ..."
-    Write-Host "🚦 Fetching latest version ... " -ForegroundColor green
+    Write-Host "Fetching latest version ... " -ForegroundColor green
 
     if((Get-CimInstance Win32_operatingsystem).OSArchitecture -like '*ARM*') {
       Invoke-WebRequest -Uri $GITHUB_arm64_URL -OutFile ${{ spec.title | upper }}_DOWNLOAD_DIR
     } else {
       Invoke-WebRequest -Uri $GITHUB_x64_URL -OutFile ${{ spec.title | upper }}_DOWNLOAD_DIR
     }
-   
-
-   Move-Item ${{ spec.title | upper }}_DOWNLOAD_DIR ${{ spec.title | upper }}_EXE_INSTALL_DIR
 }
 
 
@@ -56,19 +68,32 @@ function Install {
     if ($USER_PATH_ENV_VAR -like '*{{ spec.title | caseUcfirst }}*') {
         Write-Host "Skipping to add {{ spec.title | caseUcfirst }} to User Path."
     } else {
-        New-Item -Path $APPWRITE_INSTALL_DIR -ItemType Directory -Force
         [System.Environment]::SetEnvironmentVariable("PATH", $USER_PATH_ENV_VAR + ";${{ spec.title | upper }}_INSTALL_DIR", "User")
     }
+
+    if (!(Test-Path -Path ${{ spec.title | upper }}_INSTALL_DIR)) {
+      New-Item -Path ${{ spec.title | upper }}_INSTALL_DIR -ItemType Directory | Out-Null
+    }
+
+    if(Test-Path -Path ${{ spec.title | upper }}_EXE_INSTALL_DIR) {
+      Remove-Item -Path ${{ spec.title | upper }}_EXE_INSTALL_DIR
+    }
+
+    Move-Item ${{ spec.title | upper }}_DOWNLOAD_DIR ${{ spec.title | upper }}_EXE_INSTALL_DIR
 }
 
 function CleanUp {
     Write-Host "Cleaning up mess ..."
+
+    if (Test-Path -Path ${{ spec.title | upper }}_DOWNLOAD_DIR) {
+      Remove-Item -Path ${{ spec.title | upper }}_DOWNLOAD_DIR 
+    }
+
 }
 
 function InstallCompleted {
     Write-Host "[4/4] Finishing Installation ... "
-    cleanup
-    Write-Host "🤘 May the force be with you."
+    Write-Host "May the force be with you."
     Write-Host "To get started with {{ spec.title | caseUcfirst }} CLI, please visit {{ sdk.url }}/docs/command-line"
 }
 
