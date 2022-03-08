@@ -231,10 +231,6 @@ open class Client {
         convert: (([String: Any]) -> T)? = nil,
         completion: ((Result<T, {{ spec.title | caseUcfirst }}Error>) -> Void)? = nil
     ) {
-        self.headers.merge(headers) { (_, new) in
-            new
-        }
-
         let validParams = params.filter { $0.value != nil }
 
         let queryParameters = method == "GET" && !validParams.isEmpty
@@ -256,7 +252,10 @@ open class Client {
             return
         }
 
-        addHeaders(to: &request)
+        for (key, value) in self.headers.merging(headers, uniquingKeysWith: { $1 }) {
+            request.headers.add(name: key, value: value)
+        }
+
         request.addDomainCookies()
 
         if "GET" == method {
@@ -274,12 +273,6 @@ open class Client {
         }
 
         execute(request, withSink: sink, convert: convert, completion: completion)
-    }
-
-    private func addHeaders(to request: inout HTTPClient.Request) {
-        for (key, value) in self.headers {
-            request.headers.add(name: key, value: value)
-        }
     }
 
     private func buildBody(
