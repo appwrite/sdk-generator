@@ -106,6 +106,7 @@ class Client:
         params = None,
         param_name = '',
         on_progress = None,
+        upload_id = ''
     ):
         file_path = str(params[param_name])
         file_name = os.path.basename(file_path)
@@ -125,9 +126,9 @@ class Client:
         offset = 0
         counter = 0
 
-        if params['fileId'] != 'unique()':
+        if upload_id != 'unique()':
             try:
-                result = self.call('get', path + '/' + params['fileId'], headers)
+                result = self.call('get', path + '/' + upload_id, headers)
                 counter = result['chunksUploaded']
             except:
                 pass
