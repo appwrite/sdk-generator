@@ -165,18 +165,6 @@ class Flutter extends Dart {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/src/redirect_browser.dart',
-                'template'      => 'flutter/lib/src/redirect_browser.dart.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/lib/src/redirect_stub.dart',
-                'template'      => 'flutter/lib/src/redirect_stub.dart.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/lib/src/response.dart',
                 'template'      => 'flutter/lib/src/response.dart.twig',
                 'minify'        => false,
@@ -242,6 +230,12 @@ class Flutter extends Dart {
 				'minify'        => false,
 			],
             [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/upload_progress.dart',
+                'template'      => 'dart/lib/src/upload_progress.dart.twig',
+                'minify'        => false,
+            ],
+            [
 				'scope'         => 'default',
 				'destination'   => '/lib/models.dart',
 				'template'      => 'flutter/lib/models.dart.twig',
@@ -275,6 +269,24 @@ class Flutter extends Dart {
                 'scope'         => 'default',
                 'destination'   => '.travis.yml',
                 'template'      => 'flutter/.travis.yml.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/src/input_file.dart',
+                'template'      => 'flutter/lib/src/input_file.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/src/chunked_upload_io.dart',
+                'template'      => 'flutter/lib/src/chunked_upload_io.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/src/chunked_upload_stub.dart',
+                'template'      => 'flutter/lib/src/chunked_upload_stub.dart.twig',
                 'minify'        => false,
             ],
         ];

@@ -1,6 +1,8 @@
 {{ language.params.executableName }} {{ service.name }} {{ method.name }}{% if method.parameters.all | length > 0 %} \{% endif %}
 
 {% for parameter in method.parameters.all %}
-        --{{ parameter.name }}="{{ parameter.example }}"{% if not loop.last %} \{% endif %}
+{% if parameter.required %}
+        --{{ parameter.name }} {{ parameter | paramExample }}{% if not loop.last %} \{% endif %}
+{% endif %}
 
 {% endfor %}
