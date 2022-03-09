@@ -101,20 +101,35 @@ export class {{ service.name | caseUcfirst }} extends Service {
             let id = undefined;
             let response = undefined;
 
+            let counter = 0;
             const totalCounters = Math.ceil(size / Client.CHUNK_SIZE);
 
-            for (let counter = 0; counter < totalCounters; counter++) {
-                    const start = (counter * Client.CHUNK_SIZE);
-                    const end = Math.min((((counter * Client.CHUNK_SIZE) + Client.CHUNK_SIZE) - 1), size);
-                    const headers: { [header: string]: string } = {
+            const headers: { [header: string]: string } = {
 {% for parameter in method.parameters.header %}
-                            '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+                    '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
 {% for key, header in method.headers %}
-                            '{{ key }}': '{{ header }}',
+                    '{{ key }}': '{{ header }}',
 {% endfor %}
-                            'content-range': 'bytes ' + start + '-' + end + '/' + size
-                    };
+            };
+
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+            if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
+                    try {
+                            response = await this.client.call('get', path + '/' + {{ parameter.name }}, headers);
+                            counter = response.chunksUploaded;
+                    } catch(e) {
+                    }
+            }
+{% endif %}
+{% endfor %}
+
+            for (counter; counter < totalCounters; counter++) {
+                    const start = (counter * Client.CHUNK_SIZE);
+                    const end = Math.min((((counter * Client.CHUNK_SIZE) + Client.CHUNK_SIZE) - 1), size);
+                    
+                    headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size
 
                     if (id) {
                             headers['x-{{spec.title | caseLower }}-id'] = id;
