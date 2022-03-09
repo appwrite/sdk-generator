@@ -48,6 +48,7 @@ class {{ service.name | caseUcfirst }}(Service):
 {% endif %}
 {% endfor %}
 
+        upload_id = ''
 {% for parameter in method.parameters.all %}
 {% if parameter.isUploadID %}
         upload_id = {{ parameter.name | escapeKeyword | caseSnake }}
