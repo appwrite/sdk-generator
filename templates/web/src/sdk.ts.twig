@@ -6,7 +6,6 @@ namespace Models {
     /**
      * {{ definition.description }}
      */
-
     export type {{ definition.name | caseUcfirst }}{{ definition.name | getGenerics(spec, true) | raw }} = {
 {% for property in definition.properties %}
         /**
