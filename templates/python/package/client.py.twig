@@ -123,6 +123,18 @@ class Client:
 
         input = open(file_path, 'rb')
         offset = 0
+        counter = 0
+
+        if params['fileId'] != 'unique()':
+            try:
+                result = self.call('get', path + '/' + params['fileId'], headers)
+                counter = result['chunksUploaded']
+            except:
+                pass
+
+        if counter > 0:
+            offset = counter * self._chunk_size
+            input.seek(offset)
 
         while offset < size:
             slice = input.read(self._chunk_size) or input.read(size - offset)
@@ -143,6 +155,7 @@ class Client:
                 headers["x-{{ spec.title | caseLower }}-id"] = result["$id"]
 
             if on_progress is not None:
+                end = min((((counter * self._chunk_size) + self._chunk_size) - 1), size)
                 on_progress({
                     "$id": result["$id"],
                     "progress": min(offset, size)/size * 100,
@@ -150,6 +163,8 @@ class Client:
                     "chunksTotal": result["chunksTotal"],
                     "chunksUploaded": result["chunksUploaded"],
                 })
+
+            counter = counter + 1
 
         return result
 
