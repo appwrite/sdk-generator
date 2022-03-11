@@ -29,12 +29,7 @@ $global:progressPreference = 'silentlyContinue'
 function Greeting {
     Write-Host @"
 
-     _                            _ _           ___   __   _____ 
-    /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
-   //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
-  /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
-  \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
-        |_|   |_|                                                
+{{ language.params.logoUnescaped | raw }}
 
 "@ -ForegroundColor red
     Write-Host "Welcome to the {{ spec.title | caseUcfirst }} CLI install shield."  
