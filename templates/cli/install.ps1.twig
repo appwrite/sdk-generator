@@ -20,7 +20,7 @@ $GITHUB_arm64_URL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName
 ${{ spec.title | upper }}_DOWNLOAD_DIR = Join-Path -Path $env:TEMP -ChildPath "{{ language.params.executableName }}.exe"
 
 # {{ spec.title | caseUcfirst }} CLI location
-${{ spec.title | upper }}_INSTALL_DIR = Join-Path -Path $env:LOCALAPPDATA -ChildPath "{{ spec.title | caseUcfirst }}/"
+${{ spec.title | upper }}_INSTALL_DIR = Join-Path -Path $env:LOCALAPPDATA -ChildPath "{{ spec.title | caseUcfirst }}"
 ${{ spec.title | upper }}_EXE_INSTALL_DIR = Join-Path -Path ${{ spec.title | upper }}_INSTALL_DIR -ChildPath "{{ spec.title | lower }}.exe"
 
 $global:progressPreference = 'silentlyContinue'
