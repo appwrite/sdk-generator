@@ -1,0 +1,223 @@
+const { localConfig } = require('./config');
+const { projectsList } = require('./commands/projects');
+const { functionsListRuntimes } = require('./commands/functions');
+
+const getEntrypoint = (runtime) => {
+  const languge = runtime.split('-')[0];
+
+  switch (languge) {
+    case 'dart':
+      return 'lib/main.dart';
+    case 'deno':
+      return 'src/mod.ts';
+    case 'node':
+      return 'src/index.js';
+    case 'php':
+      return 'src/index.php';
+    case 'python':
+      return 'src/index.py';
+    case 'ruby':
+      return 'src/index.rb';
+    case 'rust':
+      return 'main.rs';
+    case 'swift':
+      return 'Sources/swift-5.5/main.swift';
+  }
+
+  return undefined;
+};
+
+const questionsInitProject = [
+  {
+    type: "confirm",
+    name: "override",
+    message:
+      `An {{ spec.title|caseUcfirst }} project ( ${localConfig.getProject()['projectName']} ) is already associated with the current directory. Would you like to override`,
+    when() {
+      return Object.keys(localConfig.getProject()).length !== 0;
+    }
+  },
+  {
+    type: "list",
+    name: "start",
+    when(answers) {
+      if (answers.override == undefined) {
+        return true 
+      }
+      return answers.override;
+    },
+    message: "How would you like to start?",
+    choices: [
+      {
+        name: "Create a new {{ spec.title|caseUcfirst }} project",
+        value: "new",
+      },
+      {
+        name: "Link this directory to an existing {{ spec.title|caseUcfirst }} project",
+        value: "existing",
+      },
+    ],
+  },
+  {
+    type: "input",
+    name: "project",
+    message: "What would you like to name your project?",
+    default: "My Awesome Project",
+    when(answers) {
+      return answers.start == "new";
+    },
+  },
+  {
+    type: "list",
+    name: "project",
+    message: "Choose your {{ spec.title|caseUcfirst }} project.",
+    when(answers) {
+      return answers.start == "existing";
+    },
+    choices: async () => {
+      let response = await projectsList({
+        parseOutput: false
+      })
+      let projects = response["projects"]
+      let choices = projects.map((project, idx) => {
+        return {
+          name: `${project.name} (${project['$id']})`,
+          value: {
+            name: project.name,
+            id: project['$id']
+          }
+        }
+      })
+
+      if (choices.length == 0) {
+        throw new Error("No projects found. Please create a new project.")
+      }
+
+      return choices;
+    }
+  }
+];
+
+const questionsInitFunction = [
+  {
+    type: "input",
+    name: "name",
+    message: "What would you like to name your function?",
+    default: "My Awesome Function"
+  },
+  {
+    type: "list",
+    name: "runtime",
+    message: "What runtime would you like to use?",
+    choices: async () => {
+      let response = await functionsListRuntimes({
+        parseOutput: false
+      })
+      let runtimes = response["runtimes"]
+      let choices = runtimes.map((runtime, idx) => {
+        return {
+          name: `${runtime.name} (${runtime['$id']})`,
+          value: { id: runtime['$id'], entrypoint: getEntrypoint(runtime['$id'])}
+        }
+      })
+      return choices;
+    }
+  }
+];
+
+const questionsLogin = [
+  {
+    type: "input",
+    name: "email",
+    message: "Enter your email",
+    validate(value) {
+      if (!value) {
+        return "Please enter your email";
+      }
+      return true;
+    },
+  },
+  {
+    type: "password",
+    name: "password",
+    message: "Enter your password",
+    mask: "*",
+    validate(value) {
+      if (!value) {
+        return "Please enter your password";
+      }
+      return true;
+    }
+  },
+];
+
+const questionsDeployFunctions = [
+  {
+    type: "checkbox",
+    name: "functions",
+    message: "Which functions would you like to deploy?",
+    choices: () => {
+      let functions = localConfig.getFunctions();
+      if (functions.length === 0) {
+        throw new Error("No functions found in the current directory.");
+      }
+      let choices = functions.map((func, idx) => {
+        return {
+          name: `${func.name} (${func['$id']})`,
+          value: func
+        }
+      })
+      return choices;
+    }
+  }
+]
+
+const questionsDeployCollections = [
+  {
+    type: "checkbox",
+    name: "collections",
+    message: "Which collections would you like to deploy?",
+    choices: () => {
+      let collections = localConfig.getCollections();
+      if (collections.length === 0) {
+        throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
+      }
+      let choices = collections.map((collection, idx) => {
+        return {
+          name: `${collection.name} (${collection['$id']})`,
+          value: collection
+        }
+      })
+      return choices;
+    }
+  },
+  {
+    type: "input",
+    name: "override",
+    message: 'Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.'
+  },
+]
+
+const questionsGetEntrypoint = [
+  {
+    type: "input",
+    name: "entrypoint",
+    message: "Enter the entrypoint",
+    default: null,
+    validate(value) {
+      if (!value) {
+        return "Please enter your enrtypoint";
+      }
+      return true;
+    }
+  },
+]
+
+module.exports = {
+  questionsInitProject,
+  questionsLogin,
+  questionsInitFunction,
+  questionsDeployFunctions,
+  questionsDeployCollections,
+  questionsGetEntrypoint
+};

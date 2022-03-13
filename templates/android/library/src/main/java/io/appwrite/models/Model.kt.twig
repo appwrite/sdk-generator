@@ -1,5 +1,7 @@
-{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}>{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% endmacro %}
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}>{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}Map<String, Any>{% else %}{{property.type | typeName}}{% endif %}{% endif %}{% endmacro %}
 package {{ sdk.namespace | caseDot }}.models
+
+import com.google.gson.annotations.SerializedName
 
 /**
  * {{ definition.description }}
@@ -10,6 +12,7 @@ data class {{ definition.name | caseUcfirst }}(
      * {{ property.description }}
      *
      */
+    @SerializedName("{{ property.name | escapeKeyword | escapeDollarSign}}")
     {% if property.required %}val{% else%}var{% endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{_self.sub_schema(property)}}{% if not property.required %}?{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{{ "\n" }}{% endif %}
 
 {% endfor %}
@@ -21,7 +24,7 @@ data class {{ definition.name | caseUcfirst }}(
         @Suppress("UNCHECKED_CAST")
         fun from(map: Map<String, Any>) = {{ definition.name | caseUcfirst }}(
 {% for property in definition.properties %}
-            {{ property.name | escapeKeyword | removeDollarSign }} = {% if property.sub_schema %}{% if property.type == 'array' %}(map["{{ property.name | escapeDollarSign }}"] as List<Map<String, Any>>).map { {{property.sub_schema | caseUcfirst}}.from(map = it) }{% else %}{{property.sub_schema | caseUcfirst}}.from(map = map["{{property.name | escapeDollarSign }}"] as Map<String, Any>){% endif %}{% else %}map["{{ property.name | escapeDollarSign }}"] as{% if not property.required %}?{% endif %} {{ _self.sub_schema(property) }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            {{ property.name | escapeKeyword | removeDollarSign }} = {% if property.sub_schema %}{% if property.type == 'array' %}(map["{{ property.name | escapeDollarSign }}"] as List<Map<String, Any>>).map { {{property.sub_schema | caseUcfirst}}.from(map = it) }{% else %}{{property.sub_schema | caseUcfirst}}.from(map = map["{{property.name | escapeDollarSign }}"] as Map<String, Any>){% endif %}{% else %}{% if property.type == "integer" or property.type == "number" %}({% endif %}map["{{ property.name | escapeDollarSign }}"]{% if property.type == "integer" or property.type == "number" %} as{% if not property.required %}?{% endif %} Number){% endif %}{% if property.type == "integer" %}{% if not property.required %}?{% endif %}.toLong(){% elseif property.type == "number" %}{% if not property.required %}?{% endif %}.toDouble(){% else %} as{% if not property.required %}?{% endif %} {{ _self.sub_schema(property) }}{% endif %}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}

@@ -10,7 +10,10 @@
 </head>
 
 <body>
+    <p>File:</p>
     <input type="file" id="file" />
+    <p>Large file: (over 5MB)</p>
+    <input type="file" id="file2" />
     <button id="start">Start</button>
     <script type="module">
         document.getElementById("start").addEventListener("click", async () => {
@@ -20,7 +23,7 @@
             let sdk = new Appwrite();
 
             sdk.setProject('console');
-            sdk.setEndpointRealtime('wss://demo.appwrite.io/v1');
+            sdk.setEndpointRealtime('ws://demo.appwrite.io/v1');
 
             sdk.subscribe('tests', event => {
                 responseRealtime = event.payload.response;
@@ -67,6 +70,14 @@
                 123,
                 ["string in array"],
                 document.getElementById("file").files[0]
+            );
+            console.log(response.result);
+
+            response = await sdk.general.upload(
+                "string",
+                123,
+                ["string in array"],
+                document.getElementById("file2").files[0]
             );
             console.log(response.result);
 

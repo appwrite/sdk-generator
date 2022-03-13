@@ -4,6 +4,7 @@
 /tests/sdks
 /.vscode
 .vs
+.phpunit.*
 .env
 .envrc
 .hatch

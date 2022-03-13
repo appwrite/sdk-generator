@@ -222,7 +222,7 @@ class PHP extends Language {
                 $type = 'array';
                 break;
             case self::TYPE_FILE:
-                $type = '\CurlFile';
+                $type = 'string';
                 break;
         }
 
