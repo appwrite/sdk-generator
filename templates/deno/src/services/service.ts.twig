@@ -116,58 +116,58 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% for parameter in method.parameters.all %}
 {% if parameter.isUploadID %}
             if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
-                    try {
-                            response = await this.client.call('get', path + '/' + {{ parameter.name }}, headers);
-                            counter = response.chunksUploaded;
-                    } catch(e) {
-                    }
+                try {
+                    response = await this.client.call('get', path + '/' + {{ parameter.name }}, headers);
+                    counter = response.chunksUploaded;
+                } catch(e) {
+                }
             }
 {% endif %}
 {% endfor %}
 
             for (counter; counter < totalCounters; counter++) {
-                    const start = (counter * Client.CHUNK_SIZE);
-                    const end = Math.min((((counter * Client.CHUNK_SIZE) + Client.CHUNK_SIZE) - 1), size);
-                    
-                    headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size
+                const start = (counter * Client.CHUNK_SIZE);
+                const end = Math.min((((counter * Client.CHUNK_SIZE) + Client.CHUNK_SIZE) - 1), size);
+                
+                headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size
 
-                    if (id) {
-                            headers['x-{{spec.title | caseLower }}-id'] = id;
-                    }
-                    
-                    const totalBuffer = new Uint8Array(Client.CHUNK_SIZE);
+                if (id) {
+                    headers['x-{{spec.title | caseLower }}-id'] = id;
+                }
+                
+                const totalBuffer = new Uint8Array(Client.CHUNK_SIZE);
 
-                    for (let blockIndex = 0; blockIndex < Client.CHUNK_SIZE / Client.DENO_READ_CHUNK_SIZE; blockIndex++) {
-                            const buf = new Uint8Array(Client.DENO_READ_CHUNK_SIZE);
-                            const cursorPosition = await Deno.seek(stream.rid, start + (blockIndex * 16384), Deno.SeekMode.Start);
-                            const numberOfBytesRead = await Deno.read(stream.rid, buf);
+                for (let blockIndex = 0; blockIndex < Client.CHUNK_SIZE / Client.DENO_READ_CHUNK_SIZE; blockIndex++) {
+                    const buf = new Uint8Array(Client.DENO_READ_CHUNK_SIZE);
+                    const cursorPosition = await Deno.seek(stream.rid, start + (blockIndex * 16384), Deno.SeekMode.Start);
+                    const numberOfBytesRead = await Deno.read(stream.rid, buf);
 
-                            if (!numberOfBytesRead) {
-                                    break;
-                            }
-
-                            for (let byteIndex = 0; byteIndex < Client.DENO_READ_CHUNK_SIZE; byteIndex++) {
-                                    totalBuffer[(blockIndex * Client.DENO_READ_CHUNK_SIZE) + byteIndex] = buf[byteIndex];
-                            }
-                    }
-                    
-                    payload['{{ parameter.name }}'] = new File([totalBuffer], basename({{ parameter.name | caseCamel | escapeKeyword }}));
-
-                    response = await this.client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
-
-                    if (!id) {
-                            id = response['$id'];
+                    if (!numberOfBytesRead) {
+                        break;
                     }
 
-                    if (onProgress !== null) {
-                        onProgress({
-                            $id: response['$id'],
-                            progress: Math.min((counter+1) * Client.CHUNK_SIZE, size) / size * 100,
-                            sizeUploaded: end+1,
-                            chunksTotal: response['chunksTotal'],
-                            chunksUploaded: response['chunksUploaded']
-                        });
+                    for (let byteIndex = 0; byteIndex < Client.DENO_READ_CHUNK_SIZE; byteIndex++) {
+                        totalBuffer[(blockIndex * Client.DENO_READ_CHUNK_SIZE) + byteIndex] = buf[byteIndex];
                     }
+                }
+                
+                payload['{{ parameter.name }}'] = new File([totalBuffer], basename({{ parameter.name | caseCamel | escapeKeyword }}));
+
+                response = await this.client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+
+                if (!id) {
+                    id = response['$id'];
+                }
+
+                if (onProgress !== null) {
+                    onProgress({
+                        $id: response['$id'],
+                        progress: Math.min((counter+1) * Client.CHUNK_SIZE, size) / size * 100,
+                        sizeUploaded: end+1,
+                        chunksTotal: response['chunksTotal'],
+                        chunksUploaded: response['chunksUploaded']
+                    });
+                }
             }
 
             return response;
