@@ -34,13 +34,13 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% for parameter in method.parameters.query %}
 
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}.toString(){% endif %};
         }
 {% endfor %}
 {% for parameter in method.parameters.body %}
 
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword}};
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword}}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}.toString(){% endif %};
         }
 {% endfor %}
 
@@ -96,7 +96,13 @@ class {{ service.name | caseUcfirst }} extends Service {
                         }
                         
                         if (onProgress !== null) {
-                                onProgress(Math.min((counter+1) * client.CHUNK_SIZE, size) / size * 100);
+                                onProgress({
+                                        $id: response['$id'],
+                                        progress: Math.min((counter+1) * client.CHUNK_SIZE, size) / size * 100,
+                                        sizeUploaded: end+1,
+                                        chunksTotal: response['chunksTotal'],
+                                        chunksUploaded: response['chunksUploaded']
+                                });
                         }
                 }
 

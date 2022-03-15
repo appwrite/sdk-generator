@@ -66,7 +66,7 @@ export class Client {
     }
 
     async call(method: string, path: string = '', headers: Payload = {}, params: Payload = {}) {
-        headers = { ...this.headers, ...headers };
+        headers = Object.assign({}, this.headers, headers);
 
         let body;
         const url = new URL(this.endpoint + path);
@@ -98,19 +98,19 @@ export class Client {
             if (contentType && contentType.includes('application/json')) {
                 if (response.status >= 400) {
                     let res = await response.json();
-                    throw new {{ spec.title | caseUcfirst}}Exception(res.message, res.status, res);
+                    throw new {{ spec.title | caseUcfirst}}Exception(res.message, res.status, res.type ?? "", res);
                 }
 
                 return response.json();
             } else {
                 if (response.status >= 400) {
                     let res = await response.text();
-                    throw new {{ spec.title | caseUcfirst}}Exception(res, response.status, null);
+                    throw new {{ spec.title | caseUcfirst}}Exception(res, response.status, "", null);
                 }
                 return response;
             }
         } catch(error) {
-            throw new {{ spec.title | caseUcfirst}}Exception(error?.response?.message || error.message, error?.response?.code, error.response);
+            throw new {{ spec.title | caseUcfirst}}Exception(error?.response?.message || error.message, error?.response?.code, error?.response?.type, error.response);
         }
     }
 

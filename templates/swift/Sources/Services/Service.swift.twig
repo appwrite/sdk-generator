@@ -32,7 +32,7 @@ open class {{ service.name | caseUcfirst }}: Service {
         {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %},
 {% endfor %}
 {% if 'multipart/form-data' in method.consumes %}
-        onProgress: ((Double) -> Void)? = nil,
+        onProgress: ((UploadProgress) -> Void)? = nil,
 {% endif %}
         completion: ((Result<{{ _self.resultType(spec, method) }}, {{ spec.title | caseUcfirst}}Error>) -> Void)? = nil
     ) {

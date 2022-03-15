@@ -172,7 +172,7 @@ public class WebSocketClient {
         frameKey: String,
         headers: HTTPHeaders = HTTPHeaders(),
         maxFrameSize: Int = 14,
-        tlsEnabled: Bool = false,
+        tlsEnabled: Bool = true,
         delegate: WebSocketClientDelegate? = nil
     ) {
         self.host = host
@@ -193,19 +193,19 @@ public class WebSocketClient {
     ///     - delegate:     Delegate to handle message and error callbacks.
     public init?(
         _ url: String,
+        tlsEnabled: Bool = true,
         headers: HTTPHeaders = HTTPHeaders(),
         delegate: WebSocketClientDelegate? = nil
     ) {
         let rawUrl = URL(string: url)
-        let hasTLS =  rawUrl?.scheme == "wss" || rawUrl?.scheme == "https"
         self.frameKey = "tergregfgbsfdgfdsfgdbv=="
         self.host = rawUrl?.host ?? "localhost"
-        self.port = rawUrl?.port ?? (hasTLS ? 443 : 80)
+        self.port = rawUrl?.port ?? (tlsEnabled ? 443 : 80)
         self.uri = rawUrl?.path ?? "/"
         self.query = rawUrl?.query ?? ""
         self.headers = headers
         self.maxFrameSize = 24
-        self.tlsEnabled = hasTLS
+        self.tlsEnabled = tlsEnabled
         self.delegate = delegate
     }
     
