@@ -71,20 +71,54 @@ const initFunction = async () => {
     parseOutput: false
   })
 
-  let command = `
-    mkdir -m 777 -p 'functions/${answers.name}' && \
-    cd 'functions/${answers.name}' && \
+    let initFirstCommand = `
+    cd '${answers.name}' && \
     git init && \
     git remote add -f origin https://github.com/{{ sdk.gitUserName }}/functions-starter && \
-    git config core.sparseCheckout true && \
-    echo '${answers.runtime.id}' >> .git/info/sparse-checkout && \ 
-    git pull origin main && \
-    rm -rf .git && \
-    mv ${answers.runtime.id}/* . && \
-    rm -rf ${answers.runtime.id}`;
+    git config core.sparseCheckout true`;
+
+  let initSecondCommand = `
+    cd '${answers.name}' && \
+    git pull origin dev && \
+    git checkout dev`;
+
+  // Convert commands from unix based ones to windows based ones
+  if (process.platform == 'win32') {
+    initFirstCommand = initFirstCommand.replace(/'/g, '"').replace(/\\/g, '').replace(/\n/g, '').replace(/  +/g, ' ');
+    initFirstCommand = 'cmd /c "' + initFirstCommand + '"';
+    initSecondCommand = initSecondCommand.replace(/'/g, '"').replace(/\\/g, '').replace(/\n/g, '').replace(/  +/g, ' ');
+    initSecondCommand = 'cmd /c "' + initSecondCommand + '"';
+  }
+
+  fs.mkdirSync(answers.name, { recursive: true });
+  fs.chmodSync(answers.name, 0o777);
 
   // Execute the child process but do not print any std output
-  childProcess.execSync(command, { stdio: 'pipe' });
+  childProcess.execSync(initFirstCommand, { stdio: 'pipe' });
+
+  fs.writeFileSync(`${answers.name}/.git/info/sparse-checkout`, answers.runtime.id);
+
+  childProcess.execSync(initSecondCommand, { stdio: 'pipe' });
+
+  fs.rmSync(`${answers.name}/.git`, { recursive: true, force: true });
+  
+  // Copy files
+  function copyFolderSync(from, to) {
+    if (!fs.existsSync(to)) {
+      fs.mkdirSync(to, { recursive: true });
+    }
+
+    fs.readdirSync(from).forEach(element => {
+        if (fs.lstatSync(path.join(from, element)).isFile()) {
+            fs.copyFileSync(path.join(from, element), path.join(to, element));
+        } else {
+            copyFolderSync(path.join(from, element), path.join(to, element));
+        }
+    });
+}
+
+  copyFolderSync(`./${answers.name}/${answers.runtime.id}`, `./${answers.name}/`);
+  fs.rmSync(`./${answers.name}/${answers.runtime.id}`, { recursive: true, force: true });
 
   const readmePath = path.join(process.cwd(), 'functions', answers.name, 'README.md');
   const readmeFile = fs.readFileSync(readmePath).toString();
