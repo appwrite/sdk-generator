@@ -105,13 +105,13 @@
                 console.log(error.message);
             }
 
-            setTimeout(() => console.log(responseRealtime), 5000);
-
             response = await sdk.general.setCookie();
             console.log(response.result);
-
+            
             // response = await sdk.general.getCookie();
             // console.log(response.result);
+            
+            setTimeout(() => console.log(responseRealtime), 5000);
         });
     </script>
 </body>
