@@ -29,7 +29,7 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% endif %}
     open func {{ method.name | caseCamel }}(
 {% for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last %},{% endif %}
+        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
 
 {% endfor %}
 {% if 'multipart/form-data' in method.consumes %}
