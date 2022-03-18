@@ -24,8 +24,6 @@ class WebTest extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
-        // ...Base::COOKIE_RESPONSES, // web seems to not pass get-cookie, i believe it's because of origin issues
-        'GET:/v1/mock/tests/general/set-cookie:passed',
         ...Base::REALTIME_RESPONSES,
     ];
 }
