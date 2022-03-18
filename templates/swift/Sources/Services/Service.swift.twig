@@ -132,4 +132,51 @@ open class {{ service.name | caseUcfirst }}: Service {
     }
 
 {% endfor %}
+
+{% for method in service.methods %}
+    ///
+    /// {{ method.title }}
+    ///
+{% if method.description %}
+{{ method.description | swiftComment }}
+    ///
+{% endif %}
+{% for parameter in method.parameters.all %}
+    /// @param {{ parameter.type | typeName | raw}} {{ parameter.name | caseCamel }}
+{% endfor %}
+    /// @throws Exception
+    /// @return array
+    ///
+    @available(*, deprecated, message: "Use the async overload instead")
+{% if method.type == "webAuth" %}
+    @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+{% endif %}
+    open func {{ method.name | caseCamel }}(
+{% for parameter in method.parameters.all %}
+        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %},
+{% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+        onProgress: ((UploadProgress) -> Void)? = nil,
+{% endif %}
+        completion: ((Result<{{ _self.resultType(spec, method) }}, {{ spec.title | caseUcfirst}}Error>) -> Void)? = nil
+    ) {
+        Task {
+            do {
+                let result = try await {{ method.name | caseCamel }}(
+{% for parameter in method.parameters.all %}
+                    {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
+
+{% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+                    onProgress: onProgress
+{% endif %}
+                )
+                completion?(.success(result))
+            } catch {
+                completion?(.failure(error as! {{ spec.title | caseUcfirst}}Error))
+            }
+        }
+    }
+
+{% endfor %}
 }
