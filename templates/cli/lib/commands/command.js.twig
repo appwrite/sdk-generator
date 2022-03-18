@@ -134,7 +134,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
                 payload['{{ parameter.name }}'] = stream;
 
                 response = await client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %}).catch(err => {
-                    fs.unlinkSync(archivePath]);
+                    fs.unlinkSync(archivePath);
                     throw err
                 });
 
