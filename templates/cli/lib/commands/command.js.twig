@@ -104,6 +104,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
             fs.unlinkSync(archivePath);
             throw err
         });{% endif %}
+
     } else {
         const streamFilePath = payload['{{ parameter.name }}'];
         let id = undefined;
