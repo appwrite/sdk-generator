@@ -139,6 +139,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
                     throw err
                 });{% endif %}
 
+
                 if (!id) {
                         id = response['$id'];
                 }
