@@ -605,6 +605,7 @@ class SDK
                     foreach ($this->spec->getServices() as $key => $service) {
                         $methods = $this->spec->getMethods($key);
                         $params['service'] = [
+                            'description' => $service['description'] ?? '',
                             'name' => $key,
                             'features' => [
                                 'upload' => $this->hasUploads($methods),

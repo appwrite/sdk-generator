@@ -6,6 +6,9 @@ part of {{ language.params.packageName }};
 {% endmacro %}
 {% macro map_parameter(parameter) %}'{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},{% endmacro %}
 
+{%if service.description %}
+{{ service.description|dartComment}}
+{% endif %}
 class {{ service.name | caseUcfirst }} extends Service {
     {{ service.name | caseUcfirst }}(Client client): super(client);
 {% for method in service.methods %}

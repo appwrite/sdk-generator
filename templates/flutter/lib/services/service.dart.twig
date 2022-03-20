@@ -5,6 +5,10 @@ part of {{ language.params.packageName }};
 {% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, Function(UploadProgress)? onProgress{% endif %}{{ '}' }}{% endif %}
 {% endmacro %}
 {% macro map_parameter(parameter) %}'{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},{% endmacro %}
+
+{%if service.description %}
+{{ service.description|dartComment}}
+{% endif %}
 class {{ service.name | caseUcfirst }} extends Service {
     {{ service.name | caseUcfirst }}(Client client): super(client);
 {% for method in service.methods %}
