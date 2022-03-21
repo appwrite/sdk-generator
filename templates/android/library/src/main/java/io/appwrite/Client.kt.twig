@@ -362,7 +362,7 @@ class Client @JvmOverloads constructor(
         }
 
         generateSequence {
-            val readBytes = input.read(buffer)
+            val readBytes = input.read(buffer, offset.toInt(), CHUNK_SIZE)
             if (readBytes >= 0) {
                 buffer.copyOf(readBytes)
             } else {
