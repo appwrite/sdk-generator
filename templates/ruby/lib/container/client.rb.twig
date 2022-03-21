@@ -119,27 +119,26 @@ module {{ spec.title | caseUcfirst }}
                 )
             end
 
-            input = ::File.open(file_path)
             offset = 0
 
-            if idParamName&.empty? == false && params[idParamName] != "unique()"
+            if id_param_name&.empty? == false && params[id_param_name] != "unique()"
                 # Make a request to check if a file already exists
                 begin
                     current = call(
                         method: "GET",
-                        path: "#{path}/#{params[idParamName]}",
+                        path: "#{path}/#{params[id_param_name]}",
                         headers: headers,
                         params: {}
                     )
                     chunks_uploaded = current["chunksUploaded"].to_i
-                    offset = [size, (chunksUploaded * CHUNK_SIZE)].min
+                    offset = [size, (chunks_uploaded * CHUNK_SIZE)].min
                 rescue {{spec.title | caseUcfirst}}::Exception
-                    # File does not exist, start uplaod with 0 offset
+                    # File does not exist, start upload with 0 offset
                 end
             end
 
             while offset < size
-                slice = input.read(@chunk_size, offset)
+                slice = IO.read(file_path, @chunk_size, offset)
 
                 params[param_name] = File.new(file_path, slice)
                 headers['content-range'] = "bytes #{offset}-#{[offset + @chunk_size - 1, size].min}/#{size}"
