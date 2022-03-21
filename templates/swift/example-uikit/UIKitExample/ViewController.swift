@@ -22,7 +22,7 @@ class ViewController: UIViewController {
     var bucketId = "test"
     
     var fileId = "unique()"
-    var documentIs = "unique()"
+    var documentId = "unique()"
     
     lazy var account = Account(client)
     lazy var storage = Storage(client)
@@ -111,7 +111,7 @@ class ViewController: UIViewController {
         do {
             let response = try await database.createDocument(
                 collectionId: collectionId,
-                documentId: documentId
+                documentId: documentId,
                 data: [
                     "name": "Name \(Int.random(in: 0...Int.max))",
                     "description": "Description \(Int.random(in: 0...Int.max))"
