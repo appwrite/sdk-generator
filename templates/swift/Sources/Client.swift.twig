@@ -45,10 +45,8 @@ open class Client {
 
     public init() {
         http = Client.createHTTP()
-
-        #if os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
-        addUserAgent()
-        #endif
+        addUserAgentHeader()
+        addOriginHeader()
     }
 
     private static func createHTTP(
@@ -233,10 +231,6 @@ open class Client {
         convert: (([String: Any]) -> T)? = nil,
         completion: ((Result<T, {{ spec.title | caseUcfirst }}Error>) -> Void)? = nil
     ) {
-        self.headers.merge(headers) { (_, new) in
-            new
-        }
-
         let validParams = params.filter { $0.value != nil }
 
         let queryParameters = method == "GET" && !validParams.isEmpty
@@ -258,7 +252,10 @@ open class Client {
             return
         }
 
-        addHeaders(to: &request)
+        for (key, value) in self.headers.merging(headers, uniquingKeysWith: { $1 }) {
+            request.headers.add(name: key, value: value)
+        }
+
         request.addDomainCookies()
 
         if "GET" == method {
@@ -276,12 +273,6 @@ open class Client {
         }
 
         execute(request, withSink: sink, convert: convert, completion: completion)
-    }
-
-    private func addHeaders(to request: inout HTTPClient.Request) {
-        for (key, value) in self.headers {
-            request.headers.add(name: key, value: value)
-        }
     }
 
     private func buildBody(
@@ -534,43 +525,15 @@ open class Client {
 
         request.headers.remove(name: "content-type")
         if !chunked {
-        request.headers.add(name: "Content-Length", value: bodyBuffer.readableBytes.description)
+            request.headers.add(name: "Content-Length", value: bodyBuffer.readableBytes.description)
         }
         request.headers.add(name: "Content-Type", value: "multipart/form-data;boundary=\"\(Client.boundary)\"")
         request.body = .byteBuffer(bodyBuffer)
     }
 
-    private func addUserAgent() {
+    private func addUserAgentHeader() {
         let packageInfo = OSPackageInfo.get()
-        let deviceInfo = OSDeviceInfo()
-        var device = "";
-        var operatingSystem = ""
-
-        #if os(iOS)
-        let iosinfo = deviceInfo.iOSInfo
-        device = "\(iosinfo!.modelIdentifier) iOS/\(iosinfo!.systemVersion)";
-        operatingSystem = "ios"
-        #elseif os(tvOS)
-        let iosinfo = deviceInfo.iOSInfo
-        device = "\(iosinfo!.systemInfo.machine) tvOS/\(iosinfo!.systemVersion)";
-        operatingSystem = "tvos"
-        #elseif os(watchOS)
-        let iosinfo = deviceInfo.iOSInfo
-        device = "\(iosinfo!.systemInfo.machine) watchOS/\(iosinfo!.systemVersion)";
-        operatingSystem = "watchos"
-        #elseif os(macOS)
-        let macinfo = deviceInfo.macOSInfo
-        device = "(Macintosh; \(macinfo!.model))"
-        operatingSystem = "macos"
-        #elseif os(Linux)
-        let lininfo = deviceInfo.linuxInfo
-        device = "(Linux; U; \(lininfo!.id) \(lininfo!.version))"
-        operatingSystem = "linux"
-        #elseif os(Windows)
-        let wininfo = deviceInfo.windowsInfo
-        device = "(Windows NT; \(wininfo!.computerName))"
-        operatingSystem = "windows"
-        #endif
+        let device = Client.getDevice()
 
         #if !os(Linux) && !os(Windows)
         _ = addHeader(
@@ -578,6 +541,60 @@ open class Client {
             value: "\(packageInfo.packageName)/\(packageInfo.version) \(device)"
         )
         #endif
+    }
+
+    private func addOriginHeader() {
+        let packageInfo = OSPackageInfo.get()
+        let operatingSystem = Client.getOperatingSystem()
+        _ = addHeader(
+            key: "origin",
+            value: "{{ spec.title | caseLower }}-\(operatingSystem)://\(packageInfo.packageName)"
+        )
+    }
+}
+
+extension Client {
+    private static func getOperatingSystem() -> String {
+        #if os(iOS)
+        return "ios"
+        #elseif os(watchOS)
+        return "watchos"
+        #elseif os(tvOS)
+        return "tvos"
+        #elseif os(macOS)
+        return "macos"
+        #elseif os(Linux)
+        return "linux"
+        #elseif os(Windows)
+        return "windows"
+        #endif
+    }
+
+    private static func getDevice() -> String {
+        let deviceInfo = OSDeviceInfo()
+        var device = ""
+
+        #if os(iOS)
+        let info = deviceInfo.iOSInfo
+        device = "\(info!.modelIdentifier) iOS/\(info!.systemVersion)"
+        #elseif os(watchOS)
+        let info = deviceInfo.watchOSInfo
+        device = "\(info!.systemInfo.machine) watchOS/\(info!.systemVersion)"
+        #elseif os(tvOS)
+        let info = deviceInfo.tvOSInfo
+        device = "\(info!.systemInfo.machine) tvOS/\(info!.systemVersion)"
+        #elseif os(macOS)
+        let info = deviceInfo.macOSInfo
+        device = "(Macintosh; \(info!.model))"
+        #elseif os(Linux)
+        let info = deviceInfo.linuxInfo
+        device = "(Linux; U; \(info!.id) \(info!.version))"
+        #elseif os(Windows)
+        let info = deviceInfo.windowsInfo
+        device = "(Windows NT; \(info!.computerName))"
+        #endif
+
+        return device
     }
 }
 
