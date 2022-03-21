@@ -11,8 +11,8 @@ class KotlinJava11Test extends Base
         'cp tests/languages/kotlin/ServiceTest.kt tests/sdks/kotlin/src/test/kotlin/ServiceTest.kt',
         'chmod +x tests/sdks/kotlin/gradlew',
     ];
-    
-    protected string $command = 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:11-jdk-alpine sh -c "./gradlew :test -q && cat result.txt"';
+    protected string $command =
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:11-jdk-slim sh -c "./gradlew test -q && cat result.txt"';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
