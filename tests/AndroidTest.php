@@ -12,7 +12,15 @@ class AndroidTest extends Base
         'chmod +x tests/sdks/android/gradlew',
     ];
     protected array $envs = [
-        'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:latest-jdk11 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
+        // Android 10
+        //'android-29-jdk8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-29-jdk8 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
+        //'android-29-jdk11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-29-jdk11 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
+        // Android 11
+        'android-30-jdk8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-30-jdk8 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
+        'android-30-jdk11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-30-jdk11 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
+        // Android 12
+        'android-32-jdk8' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-32-jdk8 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
+        'android-32-jdk11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-32-jdk11 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
     ];
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
