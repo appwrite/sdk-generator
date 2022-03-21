@@ -225,7 +225,7 @@ class Client @JvmOverloads constructor(
         headers:  Map<String, String> = mapOf(), 
         params: Map<String, Any?> = mapOf(),
         responseType: Class<T>,
-        convert: ((Map<String, Any,>) -> T)? = null
+        converter: ((Map<String, Any,>) -> T)? = null
     ): T {
         val filteredParams = params.filterValues { it != null }
 
@@ -261,7 +261,7 @@ class Client @JvmOverloads constructor(
                 .get()
                 .build()
 
-            return awaitResponse(request, responseType, convert)
+            return awaitResponse(request, responseType, converter)
         }
 
         val body = if (MultipartBody.FORM.toString() == headers["content-type"]) {
@@ -298,7 +298,7 @@ class Client @JvmOverloads constructor(
             .method(method, body)
             .build()
 
-        return awaitResponse(request, responseType, convert)
+        return awaitResponse(request, responseType, converter)
     }
 
     /**
@@ -316,8 +316,9 @@ class Client @JvmOverloads constructor(
         headers:  MutableMap<String, String>,
         params: MutableMap<String, Any?>,
         responseType: Class<T>,
-        convert: ((Map<String, Any,>) -> T),
+        converter: ((Map<String, Any,>) -> T),
         paramName: String,
+        idParamName: String? = null,
         onProgress: ((UploadProgress) -> Unit)? = null,
     ): T {
         val file = params[paramName] as File
@@ -330,12 +331,12 @@ class Client @JvmOverloads constructor(
                 file.asRequestBody()
             )
             return call(
-                "POST",
+                method = "POST",
                 path,
                 headers,
                 params,
                 responseType,
-                convert
+                converter
             )
         }
 
@@ -343,6 +344,22 @@ class Client @JvmOverloads constructor(
         val buffer = ByteArray(CHUNK_SIZE)
         var offset = 0L
         var result: Map<*, *>? = null
+
+        if (idParamName?.isNotEmpty() == true && params[idParamName] != "unique()") {
+            // Make a request to check if a file already exists
+            try {
+                val current = call(
+                    method = "GET",
+                    path = "$path/$params[idParamName]",
+                    headers = headers,
+                    params = emptyMap(),
+                    responseType = Map::class.java,
+                )
+                val chunksUploaded = current["chunksUploaded"] as Long
+                offset = size.coerceAtMost(chunksUploaded * CHUNK_SIZE)
+            } catch (ex: {{spec.title | caseUcfirst}}Exception) {
+            }
+        }
 
         generateSequence {
             val readBytes = input.read(buffer)
@@ -363,11 +380,11 @@ class Client @JvmOverloads constructor(
                 "bytes $offset-${((offset + CHUNK_SIZE) - 1).coerceAtMost(size)}/$size"
 
             result = call(
-                "POST",
+                method = "POST",
                 path,
                 headers,
                 params,
-                Map::class.java
+                responseType = Map::class.java
             )
 
             offset += CHUNK_SIZE
@@ -381,7 +398,7 @@ class Client @JvmOverloads constructor(
             ))
         }
 
-        return convert(result as Map<String, Any>)
+        return converter(result as Map<String, Any>)
     }
 
     /**
@@ -389,7 +406,7 @@ class Client @JvmOverloads constructor(
      *
      * @param request
      * @param responseType
-     * @param convert
+     * @param converter
      *
      * @return [T]
      */
@@ -397,7 +414,7 @@ class Client @JvmOverloads constructor(
     private suspend fun <T> awaitResponse(
         request: Request,
         responseType: Class<T>,
-        convert: ((Map<String, Any,>) -> T)? = null
+        converter: ((Map<String, Any,>) -> T)? = null
     ) = suspendCancellableCoroutine<T> {
         http.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
@@ -463,7 +480,7 @@ class Client @JvmOverloads constructor(
                     object : TypeToken<Map<String, Any>>(){}.type
                 )
                 it.resume(
-                    convert?.invoke(map) ?: map as T
+                    converter?.invoke(map) ?: map as T
                 )
             }
         })

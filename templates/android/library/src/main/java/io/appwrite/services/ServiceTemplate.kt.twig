@@ -114,7 +114,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {{ method.headers|map((header, key) => "            \"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
         )
 {% if method.responseModel %}
-        val convert: (Map<String, Any>) -> {{ _self.resultType(sdk.namespace, method) }} = {
+        val converter: (Map<String, Any>) -> {{ _self.resultType(sdk.namespace, method) }} = {
 {% if method.responseModel == 'any' %}
             it
 {% else %}
@@ -123,9 +123,13 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         }
 {% endif %}
 {% if 'multipart/form-data' in method.consumes %}
+        var idParamName: String? = null
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
         val paramName = "{{ parameter.name }}"
+{% endif %}
+{% if parameter.isUploadID %}
+        idParamName = "{{ parameter.name }}"
 {% endif %}
 {% endfor %}
         return client.chunkedUpload(
@@ -134,9 +138,10 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             params,
             responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java,
 {% if method.responseModel %}
-            convert = convert,
+            converter,
 {% endif %}
             paramName,
+            idParamName,
             onProgress,
         )
 {% else %}
@@ -147,7 +152,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             params,
             responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java,
 {% if method.responseModel %}
-            convert = convert,
+            converter,
 {% endif %}
         )
 {% endif %}
