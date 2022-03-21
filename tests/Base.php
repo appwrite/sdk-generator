@@ -90,6 +90,10 @@ abstract class Base extends TestCase
             ])
             ->setTest("true");
 
+        $dir = __DIR__ . '/sdks/' . $this->language;
+
+        $this->rmdir_recursive($dir);
+
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
 
         /**
@@ -143,6 +147,18 @@ abstract class Base extends TestCase
                 $this->assertEquals($output[$i], $row);
             }
         }
+    }
+
+    private function rmdir_recursive($dir) {
+        if (!\is_dir($dir)) {
+            return;
+        }
+        foreach(\scandir($dir) as $file) {
+            if ('.' === $file || '..' === $file) continue;
+            if (\is_dir("$dir/$file")) $this->rmdir_recursive("$dir/$file");
+            else \unlink("$dir/$file");
+        }
+        rmdir($dir);
     }
 
     public function getLanguage(): Language 
