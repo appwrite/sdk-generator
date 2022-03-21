@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class AndroidTest extends Base
+class Android5Java11Test extends Base
 {
     protected string $language = 'android';
     protected string $class = 'Appwrite\SDK\Language\Android';
@@ -11,9 +11,9 @@ class AndroidTest extends Base
         'cp tests/languages/android/ServiceTest.kt tests/sdks/android/library/src/test/java/ServiceTest.kt',
         'chmod +x tests/sdks/android/gradlew',
     ];
-    protected array $envs = [
-        'java-11' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:latest-jdk11 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"',
-    ];
+    protected string $command =
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-21-jdk-11 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"';
+
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
