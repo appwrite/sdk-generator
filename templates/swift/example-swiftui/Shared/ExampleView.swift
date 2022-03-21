@@ -21,19 +21,19 @@ struct ExampleView: View {
                 .padding()
 
             Button("Login") {
-                viewModel.login()
+                Task { await viewModel.login() }
             }
 
             Button("Login with Facebook") {
-                viewModel.loginWithFacebook()
+                Task { await viewModel.loginWithFacebook() }
             }
 
             Button("Register") {
-                viewModel.register()
+                Task { await viewModel.register() }
             }
 
             Button("Download image") {
-                viewModel.download()
+                Task { await viewModel.download() }
             }
             
             Button("Upload image") {
@@ -55,7 +55,7 @@ struct ExampleView: View {
             #endif
         }
         .onChange(of: imageToUpload) { img in
-            viewModel.upload(image: img)
+            Task { await viewModel.upload(image: img) }
         }
         .registerOAuthHandler()
     }
