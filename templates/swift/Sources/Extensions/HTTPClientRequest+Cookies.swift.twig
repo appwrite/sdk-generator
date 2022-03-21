@@ -15,8 +15,12 @@ extension HTTPHeaders {
         let cookies: [HTTPClient.Cookie?]? = try? cookieJson?.fromJson(to: [HTTPClient.Cookie].self)
             ?? [(try? cookieJson?.fromJson(to: HTTPClient.Cookie.self))]
 
-        if let authCookie = cookies?.first(where: { $0?.name.starts(with: "a_session_") == true } ) {
-            add(name: "cookie", value: "\(authCookie!.name)=\(authCookie!.value)")
+        var cookiesValue = ""
+        for cookie in cookies ?? [] {
+            if let cookie = cookie {
+                cookiesValue += "\(cookie.name)=\(cookie.value);"
+            }
         }
-    }
+        add(name: "Cookie", value: cookiesValue)
+}
 }
