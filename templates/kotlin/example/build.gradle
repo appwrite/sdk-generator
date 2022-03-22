@@ -1,0 +1,29 @@
+plugins {
+    id 'application'
+    id 'org.jetbrains.kotlin.jvm' version '1.6.10'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+    }
+}
+
+dependencies {
+    implementation project(":library")
+    //implementation("io.appwrite:sdk-for-kotlin:0.3.0")
+    implementation 'com.google.code.gson:gson:2.9.0'
+}
+
+application {
+    mainClassName = "io.appwrite.example.MainKt"
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = '11'
+}
+
+compileTestKotlin {
+    kotlinOptions.jvmTarget = '11'
+}

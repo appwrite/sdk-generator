@@ -28,7 +28,7 @@ jobs:
 
         # Builds the artifacts of the library
       - name: Build Release Artifacts
-        run: ./gradlew assemble
+        run: ./gradlew library:assemble
         env:
           SDK_VERSION: ${{ github.event.release.tag_name }}
 
@@ -37,10 +37,10 @@ jobs:
         run: |
           if ${{ endswith(github.event.release.tag_name, '-SNAPSHOT') }}; then
             echo "Publising Snapshot Version ${{ github.event.release.tag_name}} to Snapshot repository"
-            ./gradlew publishToSonatype
+            ./gradlew library:publishToSonatype
           else
             echo "Publising Release Version ${{ github.event.release.tag_name}} to Staging repository"
-            ./gradlew publishToSonatype --max-workers 1 closeAndReleaseSonatypeStagingRepository
+            ./gradlew library:publishToSonatype --max-workers 1 library:closeAndReleaseSonatypeStagingRepository
           fi
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
