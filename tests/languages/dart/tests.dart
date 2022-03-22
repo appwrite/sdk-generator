@@ -52,12 +52,12 @@ void main() async {
   print(res['result']);
 
   var file = InputFile(path: '../../resources/file.png',
-      fileName: 'file.png');
+      filename: 'file.png');
   response = await general.upload(
       x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
-  file = InputFile(path: '../../resources/large_file.mp4', fileName: 'large_file.mp4');
+  file = InputFile(path: '../../resources/large_file.mp4', filename: 'large_file.mp4');
   response = await general.upload(
       x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
