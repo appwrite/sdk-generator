@@ -109,7 +109,12 @@ class Tests: XCTestCase {
         }
 
         wait(for: [expectation], timeout: 10.0)
-
         print(realtimeResponse)
+
+        mock = try await general.setCookie()
+        print(mock.result)
+
+        mock = try await general.getCookie()
+        print(mock.result)
     }
 }
