@@ -425,8 +425,10 @@ open class Client {
                     let chunksUploaded = map["chunksUploaded"] as! Int
                     offset = min(size, (chunksUploaded * Client.chunkSize))
                     group.leave()
-                case .failure:
+                case let .failure(error):
+                    completion?(.failure(error))
                     group.leave()
+                    return
                 }
             }
             group.wait()
