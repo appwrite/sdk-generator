@@ -34,6 +34,11 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
+    const COOKIE_RESPONSES = [
+        'GET:/v1/mock/tests/general/set-cookie:passed',
+        'GET:/v1/mock/tests/general/get-cookie:passed',
+    ];
+
     const LARGE_FILE_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];

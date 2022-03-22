@@ -196,5 +196,25 @@ class Tests: XCTestCase {
 
         wait(for: [expectation], timeout: 10.0)
         print( realtimeResponse)
+
+        group.enter()
+        general.setCookie() { result in
+            switch result {
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( mock.result)
+            }
+            group.leave()
+        }
+        group.wait()
+
+        group.enter()
+        general.getCookie() { result in
+            switch result {
+            case .failure(let error): print( error.message)
+            case .success(let mock): print( mock.result)
+            }
+            group.leave()
+        }
+        group.wait()
     }
 }
