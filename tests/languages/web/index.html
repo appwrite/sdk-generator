@@ -105,7 +105,9 @@
                 console.log(error.message);
             }
 
-            setTimeout(() => console.log(responseRealtime), 5000);
+            await Promise.resolve(resolve=>setTimeout(() => resolve, 5000));
+            console.log(responseRealtime)
+
         });
     </script>
 </body>
