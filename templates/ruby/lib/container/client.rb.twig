@@ -120,21 +120,17 @@ module {{ spec.title | caseUcfirst }}
             end
 
             offset = 0
-
+            id_param_name = id_param_name.to_sym if id_param_name
             if id_param_name&.empty? == false && params[id_param_name] != "unique()"
                 # Make a request to check if a file already exists
-                begin
-                    current = call(
-                        method: "GET",
-                        path: "#{path}/#{params[id_param_name]}",
-                        headers: headers,
-                        params: {}
-                    )
-                    chunks_uploaded = current["chunksUploaded"].to_i
-                    offset = [size, (chunks_uploaded * CHUNK_SIZE)].min
-                rescue {{spec.title | caseUcfirst}}::Exception
-                    # File does not exist, start upload with 0 offset
-                end
+                current = call(
+                    method: "GET",
+                    path: "#{path}/#{params[id_param_name]}",
+                    headers: headers,
+                    params: {}
+                )
+                chunks_uploaded = current['chunksUploaded'].to_i
+                offset = [size, (chunks_uploaded * @chunk_size)].min
             end
 
             while offset < size
@@ -160,8 +156,8 @@ module {{ spec.title | caseUcfirst }}
                     id: result['$id'],
                     progress: ([offset, size].min).to_f/size.to_f * 100.0,
                     size_uploaded: [offset, size].min,
-                    chunks_total: result['chunks_total'],
-                    chunks_uploaded: result['chunks_uploaded']
+                    chunks_total: result['chunksTotal'],
+                    chunks_uploaded: result['chunksUploaded']
                 }) unless on_progress.nil?
             end
 
