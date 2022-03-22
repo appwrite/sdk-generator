@@ -275,9 +275,9 @@ open class Client {
         func complete(with response: HTTPClientResponse) async throws -> T {
             switch response.status.code {
             case 0..<400:
-                if response.headers["cookies"].count > 0 {
+                if response.headers["Set-Cookie"].count > 0 {
                     UserDefaults.standard.set(
-                        try! response.headers["cookies"].toJson(),
+                        response.headers["Set-Cookie"],
                         forKey: URL(string: request.url)!.host! + "-cookies"
                     )
                 }

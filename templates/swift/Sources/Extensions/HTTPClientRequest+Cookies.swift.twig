@@ -17,16 +17,11 @@ extension HTTPClientRequest {
 
 extension HTTPHeaders {
     public mutating func addDomainCookies(for domain: String) {
-        let cookieJson = UserDefaults.standard.string(forKey: "\(domain)-cookies")
-        let cookies: [HTTPClient.Cookie?]? = try? cookieJson?.fromJson(to: [HTTPClient.Cookie].self)
-            ?? [(try? cookieJson?.fromJson(to: HTTPClient.Cookie.self))]
-
-        var cookiesValue = ""
-        for cookie in cookies ?? [] {
-            if let cookie = cookie {
-                cookiesValue += "\(cookie.name)=\(cookie.value);"
-            }
+        guard let cookies = UserDefaults.standard.stringArray(forKey: "\(domain)-cookies") else {
+            return
         }
-        add(name: "Cookie", value: cookiesValue)
+        for cookie in cookies {
+            add(name: "Cookie", value: cookie)
+        }
     }
 }
