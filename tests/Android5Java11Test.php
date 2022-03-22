@@ -20,6 +20,7 @@ class Android5Java11Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
-        ...Base::REALTIME_RESPONSES
+        ...Base::REALTIME_RESPONSES,
+        ...Base::COOKIE_RESPONSES,
     ];
 }
