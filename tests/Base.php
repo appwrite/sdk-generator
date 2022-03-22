@@ -56,7 +56,7 @@ abstract class Base extends TestCase
     protected string $class = '';
     protected string $language = '';
     protected array $build = [];
-    protected array $envs = [];
+    protected string $command = '';
     protected array $expectedOutput = [];
 
     public function setUp(): void
@@ -121,36 +121,28 @@ abstract class Base extends TestCase
             }
         }
 
-        /**
-         * Run tests on all different envs
-         */
-        foreach ($this->envs as $key => $command) {
-            echo "Running tests for the {$key} environment...\n";
+        $output = [];
 
-            $output = [];
+        ob_end_clean();
+        echo "Env Executing: {$this->command}\n";
+        ob_start();
 
-            ob_end_clean();
-            echo "Env Executing: {$command}\n";
-            ob_start();
+        exec($this->command, $output);
 
-            exec($command, $output);
+        foreach ($output as $i => $row) {
+            echo "{$row}\n";
+        }
 
-            foreach ($output as $i => $row) {
-                echo "{$row}\n";
-            }
+        $this->assertIsArray($output);
 
-            $this->assertIsArray($output);
+        do {
+            $removed = array_shift($output);
+        } while ($removed != 'Test Started' && sizeof($output) != 0);
 
-            $removed = '';
-            do {
-                $removed = array_shift($output);
-            } while ($removed != 'Test Started' && sizeof($output) != 0);
+        $this->assertGreaterThanOrEqual(count($this->expectedOutput), count($output));
 
-            $this->assertGreaterThanOrEqual(count($this->expectedOutput), count($output));
-
-            foreach ($this->expectedOutput as $i => $row) {
-                $this->assertEquals($output[$i], $row);
-            }
+        foreach ($this->expectedOutput as $i => $row) {
+            $this->assertEquals($output[$i], $row);
         }
     }
 
