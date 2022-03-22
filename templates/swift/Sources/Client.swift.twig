@@ -415,7 +415,7 @@ open class Client {
             group.enter()
             call(
                 method: "GET",
-                path: "\(path)/\(params[idParamName!])",
+                path: path + "/" + (params[idParamName!] as! String),
                 headers: headers,
                 params: [:],
                 converter: { return $0 }
