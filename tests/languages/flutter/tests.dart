@@ -100,9 +100,9 @@ void main() async {
 
   await Future.delayed(Duration(seconds: 5));
 
-  // response = await general.setCookie();
-  // print(response.result);
+  response = await general.setCookie();
+  print(response.result);
 
-  // response = await general.getCookie();
-  // print(response.result);
+  response = await general.getCookie();
+  print(response.result);
 }
