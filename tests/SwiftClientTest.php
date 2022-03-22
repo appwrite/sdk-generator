@@ -20,5 +20,6 @@ class SwiftClientTest extends Base
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
+        ...Base::COOKIE_RESPONSES,
     ];
 }
