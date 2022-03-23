@@ -189,8 +189,6 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		}
 		clt.client = httpClient
 	}
-	return false
-}
 
 	if clt.selfSigned {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -259,11 +257,6 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 			req.URL.RawQuery = rawQuery
 		}
 	}
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
 
 	// Set Custom headers
 	for key, val := range headers {

@@ -14,6 +14,18 @@ const (
 	EmptyParentPropertyType = ""
 )
 
+const (
+	EmptyParentDocument     = ""
+	EmptyParentProperty     = ""
+	EmptyParentPropertyType = ""
+)
+
+const (
+	EmptyParentDocument     = ""
+	EmptyParentProperty     = ""
+	EmptyParentPropertyType = ""
+)
+
 func main() {
 	var EmptyArray = []interface{}{}
 
