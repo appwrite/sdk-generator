@@ -32,6 +32,12 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/query.ts',
+                'template'      => 'deno/src/query.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/service.ts',
                 'template'      => 'deno/src/service.ts.twig',
                 'minify'        => false,
@@ -95,7 +101,7 @@ class Deno extends JS
                 return 'string';
             break;
             case self::TYPE_FILE:
-                return 'File | Blob';
+                return 'string';
             break;
             case self::TYPE_BOOLEAN:
                 return 'boolean';

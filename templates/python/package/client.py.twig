@@ -1,9 +1,12 @@
 import io
 import requests
+import os
+from .input_file import InputFile
 from .exception import {{spec.title | caseUcfirst}}Exception
 
 class Client:
     def __init__(self):
+        self._chunk_size = 5*1024*1024
         self._self_signed = False
         self._endpoint = '{{spec.endpoint}}'
         self._global_headers = {
@@ -46,6 +49,7 @@ class Client:
         data = {}
         json = {}
         files = {}
+        stringify = False
         
         headers = {**self._global_headers, **headers}
 
@@ -59,17 +63,17 @@ class Client:
 
         if headers['content-type'].startswith('multipart/form-data'):
             del headers['content-type']
-            
+            stringify = True
             for key in data.copy():
-                if isinstance(data[key], io.BufferedIOBase):
-                    files[key] = data[key]
+                if isinstance(data[key], InputFile):
+                    files[key] = (data[key].name, data[key].file)
                     del data[key]
         response = None
         try:
             response = requests.request(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
                 method=method,
                 url=self._endpoint + path,
-                params=self.flatten(params),
+                params=self.flatten(params, stringify=stringify),
                 data=self.flatten(data),
                 json=json,
                 files=files,
@@ -89,13 +93,67 @@ class Client:
             if response != None:
                 content_type = response.headers['Content-Type']
                 if content_type.startswith('application/json'):
-                    raise {{spec.title | caseUcfirst}}Exception(response.json()['message'], response.status_code, response.json())
+                    raise {{spec.title | caseUcfirst}}Exception(response.json()['message'], response.status_code, response.json().get('type'), response.json())
                 else:
                     raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code)
             else:
                 raise {{spec.title | caseUcfirst}}Exception(e)
 
-    def flatten(self, data, prefix=''):
+    def chunked_upload(
+        self,
+        path,
+        headers = None,
+        params = None,
+        param_name = '',
+        on_progress = None,
+    ):
+        file_path = str(params[param_name])
+        file_name = os.path.basename(file_path)
+        size = os.stat(file_path).st_size
+
+        if size < self._chunk_size:
+            slice = open(file_path, 'rb').read()
+            params[param_name] = InputFile(file_path, file_name, slice)
+            return self.call(
+                'post',
+                path,
+                headers,
+                params
+            )
+
+        input = open(file_path, 'rb')
+        offset = 0
+
+        while offset < size:
+            slice = input.read(self._chunk_size) or input.read(size - offset)
+
+            params[param_name] = InputFile(file_path, file_name, slice)
+            headers["content-range"] = f'bytes {offset}-{min((offset + self._chunk_size) - 1, size)}/{size}'
+
+            result = self.call(
+                'post',
+                path,
+                headers,
+                params,
+            )
+            
+            offset = offset + self._chunk_size
+            
+            if "$id" in result: 
+                headers["x-{{ spec.title | caseLower }}-id"] = result["$id"]
+
+            if on_progress is not None:
+                on_progress({
+                    "$id": result["$id"],
+                    "progress": min(offset, size)/size * 100,
+                    "sizeUploaded": end+1,
+                    "chunksTotal": result["chunksTotal"],
+                    "chunksUploaded": result["chunksUploaded"],
+                })
+
+        return result
+
+    def flatten(self, data, prefix='', stringify=False):
         output = {}
         i = 0
 
@@ -106,9 +164,12 @@ class Client:
             i += 1
             
             if isinstance(value, list) or isinstance(value, dict):
-                output = {**output, **self.flatten(value, finalKey)}
+                output = {**output, **self.flatten(value, finalKey, stringify)}
             else:
-                output[finalKey] = value
+                if stringify:
+                    output[finalKey] = str(value)
+                else:
+                    output[finalKey] = value
 
         return output
 

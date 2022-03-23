@@ -13,6 +13,27 @@ class Node extends JS
     }
 
     /**
+     * @param $type
+     * @return string
+     */
+    public function getTypeName($type)
+    {
+        switch ($type) {
+            case self::TYPE_INTEGER:
+            case self::TYPE_NUMBER:
+                return 'number';
+            break;
+            case self::TYPE_ARRAY:
+                return 'string[]';
+            case self::TYPE_FILE:
+                return 'string';
+            break;
+        }
+
+        return $type;
+    }
+
+    /**
      * @return array
      */
     public function getFiles()
@@ -34,6 +55,12 @@ class Node extends JS
                 'scope'         => 'default',
                 'destination'   => 'lib/client.js',
                 'template'      => 'node/lib/client.js.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/query.js',
+                'template'      => 'node/lib/query.js.twig',
                 'minify'        => false,
             ],
             [

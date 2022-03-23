@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart';
 import 'exception.dart';
@@ -9,16 +10,17 @@ import 'realtime_message.dart';
 import 'realtime_response.dart';
 import 'realtime_response_connected.dart';
 
-typedef Future<WebSocketChannel> WebSocketFactory(Uri uri);
-typedef String? GetFallbackCookie();
+typedef WebSocketFactory = Future<WebSocketChannel> Function(Uri uri);
+typedef GetFallbackCookie = String? Function();
 
 mixin RealtimeMixin {
   late Client client;
-  Map<String, List<StreamController<RealtimeMessage>>> _channels = {};
+  final Map<String, List<StreamController<RealtimeMessage>>> _channels = {};
   WebSocketChannel? _websok;
   String? _lastUrl;
   late WebSocketFactory getWebSocket;
   GetFallbackCookie? getFallbackCookie;
+  int? get closeCode => _websok?.closeCode;
 
   Future<dynamic> _closeConnection() async {
     await _websok?.sink.close(normalClosure);
@@ -28,15 +30,17 @@ mixin RealtimeMixin {
   _createSocket() async {
     final uri = _prepareUri();
     if (_websok == null) {
-      await getWebSocket(uri);
+      _websok = await getWebSocket(uri);
+      _lastUrl = uri.toString();
+    } else {
+      if (_lastUrl == uri.toString() && _websok?.closeCode == null) {
+        return;
+      }
+      await _closeConnection();
+      _lastUrl = uri.toString();
+      _websok = await getWebSocket(uri);
     }
-    if (_lastUrl == uri.toString() && _websok?.closeCode == null) {
-      return;
-    }
-    await _closeConnection();
-    _lastUrl = uri.toString();
-    print('subscription: $_lastUrl');
-    _websok = await getWebSocket(uri);
+    debugPrint('subscription: $_lastUrl');
 
     try {
       _websok?.stream.listen((response) {
@@ -63,13 +67,13 @@ mixin RealtimeMixin {
             break;
           case 'event':
             final message = RealtimeMessage.fromMap(data.data);
-            message.channels.forEach((channel) {
-              if (this._channels[channel] != null) {
-                this._channels[channel]!.forEach((stream) {
+            for(var channel in message.channels) {
+              if (_channels[channel] != null) {
+                for( var stream in _channels[channel]!) {
                   stream.sink.add(message);
-                });
+                }
               }
-            });
+            }
             break;
         }
       });
@@ -104,24 +108,24 @@ mixin RealtimeMixin {
 
   RealtimeSubscription subscribeTo(List<String> channels) {
     StreamController<RealtimeMessage> controller = StreamController.broadcast();
-    channels.forEach((channel) {
-      if (!this._channels.containsKey(channel)) {
-        this._channels[channel] = [];
+    for(var channel in channels) {
+      if (!_channels.containsKey(channel)) {
+        _channels[channel] = [];
       }
-      this._channels[channel]!.add(controller);
-    });
+      _channels[channel]!.add(controller);
+    }
     Future.delayed(Duration.zero, () => _createSocket());
     RealtimeSubscription subscription = RealtimeSubscription(
         stream: controller.stream,
         close: () async {
           controller.close();
-          channels.forEach((channel) {
-            this._channels[channel]!.remove(controller);
-            if (this._channels[channel]!.length < 1) {
-              this._channels.remove(channel);
+          for(var channel in channels) {
+            _channels[channel]!.remove(controller);
+            if (_channels[channel]!.isEmpty) {
+              _channels.remove(channel);
             }
-          });
-          if(this._channels.isNotEmpty) {
+          }
+          if(_channels.isNotEmpty) {
             await Future.delayed(Duration.zero, () => _createSocket());
           } else {
             await _closeConnection();
@@ -134,8 +138,8 @@ mixin RealtimeMixin {
     if (response.data['code'] == 1008) {
       throw {{spec.title | caseUcfirst}}Exception(response.data["message"], response.data["code"]);
     } else {
-      print("Reconnecting in one second.");
-      Future.delayed(Duration(seconds: 1), () {
+      debugPrint("Reconnecting in one second.");
+      Future.delayed(const Duration(seconds: 1), () {
         _createSocket();
       });
     }

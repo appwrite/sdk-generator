@@ -4,8 +4,10 @@
 /tests/sdks
 /.vscode
 .vs
+.phpunit.*
 .env
-
+.envrc
+.hatch
 # exclude everything
 examples/*
 

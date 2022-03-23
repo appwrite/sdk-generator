@@ -58,6 +58,7 @@ class SDK
         'readme' => '',
         'changelog' => '',
         'examples' => '',
+        'test' => 'false'
     ];
 
     /**
@@ -218,11 +219,13 @@ class SDK
         $this->twig->addFilter(new TwigFilter('removeDollarSign', function ($value) {
             return str_replace('$','',$value);
         }));
+        $this->twig->addFilter(new TwigFilter('unescape', function ($value) {
+            return html_entity_decode($value);
+        }));
         $this->twig->addFilter(new TwigFilter('overrideIdentifier', function ($value) use ($language) {
             if(isset($language->getIdentifierOverrides()[$value])) {
                 return $language->getIdentifierOverrides()[$value];
             }
-
             return $value;
         }));
     }
@@ -504,6 +507,17 @@ class SDK
     }
 
     /**
+     * @param string $test
+     * @return $this
+     */
+    public function setTest(string $test)
+    {
+        $this->setParam('test', $test);
+
+        return $this;
+    }
+
+    /**
      * @param string $key
      * @param string $value
      * @return SDK
@@ -591,6 +605,7 @@ class SDK
                     foreach ($this->spec->getServices() as $key => $service) {
                         $methods = $this->spec->getMethods($key);
                         $params['service'] = [
+                            'description' => $service['description'] ?? '',
                             'name' => $key,
                             'features' => [
                                 'upload' => $this->hasUploads($methods),

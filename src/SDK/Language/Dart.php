@@ -101,7 +101,8 @@ class Dart extends Language {
             "set",
             "yield",
             "required",
-            "default"
+            "extension",
+            "late"
         ];
     }
 
@@ -110,7 +111,7 @@ class Dart extends Language {
      */
     public function getIdentifierOverrides()
     {
-        return [];
+        return ['Function' => 'Func'];
     }
 
     /**
@@ -127,7 +128,7 @@ class Dart extends Language {
                 return 'String';
             break;
             case self::TYPE_FILE:
-                return 'http.MultipartFile';
+                return 'InputFile';
             break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
@@ -216,7 +217,7 @@ class Dart extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'await MultipartFile.fromPath(\''.$param['name'].'\', \'./path-to-files/image.jpg\', \'image.jpg\')';
+                    $output .= 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -331,8 +332,20 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/src/upload_progress.dart',
+                'template'      => 'dart/lib/src/upload_progress.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/src/response.dart',
                 'template'      => 'dart/lib/src/response.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/query.dart',
+                'template'      => 'dart/lib/query.dart.twig',
                 'minify'        => false,
             ],
             [
@@ -399,6 +412,24 @@ class Dart extends Language {
                 'scope'         => 'default',
                 'destination'   => '.travis.yml',
                 'template'      => 'dart/.travis.yml.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/src/input_file.dart',
+                'template'      => 'dart/lib/src/input_file.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/src/chunked_upload_io.dart',
+                'template'      => 'dart/lib/src/chunked_upload_io.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/src/chunked_upload_stub.dart',
+                'template'      => 'dart/lib/src/chunked_upload_stub.dart.twig',
                 'minify'        => false,
             ],
         ];

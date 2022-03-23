@@ -1,4 +1,4 @@
-{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}[{{property.sub_schema | caseUcfirst}}]{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% endmacro %}
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}[{{property.sub_schema | caseUcfirst}}]{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}[String : Any]{% else %}{{property.type | typeName}}{% endif %}{% endif %}{% endmacro %}
 
 /// {{ definition.description }}
 public class {{ definition.name | caseUcfirst }} {
@@ -15,7 +15,7 @@ public class {{ definition.name | caseUcfirst }} {
 {% endif %}
     init(
 {% for property in definition.properties %}
-        {{ property.name | escapeKeyword | removeDollarSign }}: {{_self.sub_schema(property)}}{% if not property.required %}? = {{ property.default }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+        {{ property.name | escapeKeyword | removeDollarSign }}: {{_self.sub_schema(property)}}{% if not property.required %}?{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}

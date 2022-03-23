@@ -134,6 +134,12 @@ class Ruby extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/query.rb',
+                'template'      => 'ruby/lib/container/query.rb.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}/service.rb',
                 'template'      => 'ruby/lib/container/service.rb.twig',
                 'minify'        => false,
@@ -187,10 +193,6 @@ class Ruby extends Language {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
                 return 'number';
-            break;
-            case self::TYPE_FILE:
-                return 'File';
-            break;
         }
 
         return $type;
