@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class FlutterTest extends Base
+class FlutterStableTest extends Base
 {
     protected string $language = 'flutter';
     protected string $class = 'Appwrite\SDK\Language\Flutter';
@@ -10,9 +10,9 @@ class FlutterTest extends Base
         'mkdir -p tests/sdks/flutter/test',
         'cp tests/languages/flutter/tests.dart tests/sdks/flutter/test/appwrite_test.dart',
     ];
-    protected array $envs = [
-        'flutter-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart"',
-    ];
+    protected string $command =
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:stable sh -c "flutter pub get && flutter test test/appwrite_test.dart"';
+
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
@@ -20,5 +20,6 @@ class FlutterTest extends Base
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
+        ...Base::COOKIE_RESPONSES,
     ];
 }

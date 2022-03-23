@@ -16,14 +16,20 @@ class ViewController: UIViewController {
     
     let client = Client()
         .setEndpoint(host)
-        .setProject("60f6a0d6e2a52")
+        .setProject("test")
 
-    let COLLECTION_ID = "6155742223662"
+    let collectionId = "test"
+    var bucketId = "test"
+    
+    var fileId = "unique()"
+    var documentId = "unique()"
     
     lazy var account = Account(client)
     lazy var storage = Storage(client)
     lazy var realtime = Realtime(client)
     lazy var database = Database(client)
+    
+    var response = ""
     
     var picker: ImagePicker?
     
@@ -37,70 +43,54 @@ class ViewController: UIViewController {
         picker = ImagePicker(presentationController: self, delegate: self)
     }
 
-    @IBAction func registerClick(_ sender: Any) {
-        let disptch = DispatchGroup()
-        disptch.enter()
-        var string: String = ""
-        
-        account.create(email: "jake@appwrite.io", password: "password") { result in
-            switch result {
-            case .failure(let error): string = error.message
-            case .success(var response): string = response.body!.readString(length: response.body!.readableBytes) ?? ""
-            }
-            disptch.leave()
-        }
-        disptch.wait()
-        self.text.text = string
-    }
-    
-    @IBAction func loginClick(_ sender: Any) {
-        account.createSession(email: "jake@appwrite.io", password: "password") { result in
-            var string: String = ""
-            
-            switch result {
-            case .failure(let error): string = error.message
-            case .success(var response):
-                string = response.body!.readString(length: response.body!.readableBytes) ?? ""
-            }
-
-            DispatchQueue.main.async {
-                self.text.text = string
-            }
+    @IBAction func registerClick(_ sender: Any) async {
+        do {
+            let response = try await account.create(
+                userId: "unique()",
+                email: "jake@appwrite.io",
+                password: "password"
+            )
+            self.response = String(describing: response.toMap())
+        } catch {
+            self.response = String(describing: error)
         }
     }
     
-    @IBAction func loginWithFacebook(_ sender: UIButton) {
-        account.createOAuth2Session(
-            provider: "facebook",
-            success: "https://demo.appwrite.io/auth/oauth2/success",
-            failure: "https://demo.appwrite.io/auth/oauth2/failure") { result in
-                var string: String = ""
-                
-                switch result {
-                case .failure(let error): string = error.message
-                case .success(let response): string = response.description
-                }
-
-                DispatchQueue.main.async {
-                    self.text.text = string
-                }
-            }
-        
+    @IBAction func loginClick(_ sender: Any) async {
+        do {
+            let response = try await account.createSession(
+                email: "jake@appwrite.io",
+                password: "password"
+            )
+            self.response = String(describing: response.toMap())
+        } catch {
+            self.response = String(describing: error)
+        }
     }
     
-    @IBAction func download(_ sender: Any) {
-        storage.getFileDownload(fileId: "614afaf579352") { result in
-            switch result {
-            case .failure(let error):
-                DispatchQueue.main.async {
-                    self.text.text = error.message
-                }
-            case .success(var response):
-                let data = response.body!.readData(length: response.body!.readableBytes)!
-                DispatchQueue.main.async {
-                    self.image.image = UIImage(data: data)
-                }
-            }
+    @IBAction func loginWithFacebook(_ sender: UIButton) async {
+        do {
+            let response = try await account.createOAuth2Session(
+                provider: "facebook",
+                success: "https://demo.appwrite.io/auth/oauth2/success",
+                failure: "https://demo.appwrite.io/auth/oauth2/failure"
+            )
+            self.response = String(describing: response)
+        } catch {
+            self.response = String(describing: error)
+        }
+    }
+    
+    @IBAction func download(_ sender: Any) async {
+        do {
+            let response = try await storage.getFileDownload(
+                bucketId: bucketId,
+                fileId: fileId
+            )
+            let data = response.getData(at: 0, length: response.readableBytes)!
+            self.image.image = UIImage(data: data)
+        } catch {
+            self.response = String(describing: error)
         }
     }
     
@@ -110,57 +100,49 @@ class ViewController: UIViewController {
     }
     
     @IBAction func subscribe(_ sender: Any) {
-        _ = realtime.subscribe(channel:"collections.\(COLLECTION_ID).documents") { message in
+        _ = realtime.subscribe(channel:"collections.\(collectionId).documents") { message in
             DispatchQueue.main.async {
                 self.text.text = String(describing: message)
             }
         }
     }
     
-    @IBAction func createDocument(_ sender: Any) {
-        database.createDocument(
-            collectionId: COLLECTION_ID,
-            data: [
-                "name": "Name \(Int.random(in: 0...Int.max))",
-                "description": "Description \(Int.random(in: 0...Int.max))"
-            ]
-        ) { result in
-            var string: String = ""
-            
-            switch result {
-            case .failure(let error): string = error.message
-            case .success(var response):
-                string = response.body!.readString(length: response.body!.readableBytes) ?? ""
-            }
-
-            DispatchQueue.main.async {
-                self.text.text = string
-            }
+    @IBAction func createDocument(_ sender: Any) async {
+        do {
+            let response = try await database.createDocument(
+                collectionId: collectionId,
+                documentId: documentId,
+                data: [
+                    "name": "Name \(Int.random(in: 0...Int.max))",
+                    "description": "Description \(Int.random(in: 0...Int.max))"
+                ],
+                read: ["role:all"],
+                write: []
+            )
+            self.response = String(describing: response)
+        } catch {
+            self.response = String(describing: error)
         }
     }
     
 }
 
 extension ViewController: ImagePickerDelegate {
-    func didSelect(image: UIImage?) {
-        var output = ""
-        
+    func didSelect(image: UIImage?) async {
         let buffer = ByteBufferAllocator()
             .buffer(data: image!.jpegData(compressionQuality: 1)!)
         
         let file = File(name: "my_image.jpg", buffer: buffer)
         
-        storage.createFile(file: file) { result in
-            switch result {
-            case .failure(let error):
-                output = error.message
-            case .success(var response):
-                output = response.body!.readString(length: response.body!.readableBytes) ?? ""
-            }
-            
-            DispatchQueue.main.async {
-                self.text.text = output
-            }
+        do {
+            let response = try await storage.createFile(
+                bucketId: bucketId,
+                fileId: fileId,
+                file: file
+            )
+            self.response = String(describing: response.toMap())
+        } catch {
+            self.response = String(describing: error)
         }
     }
 }
