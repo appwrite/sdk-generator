@@ -13,6 +13,7 @@ error_reporting(E_ALL);
 
 abstract class Base extends TestCase
 {
+
     const FOO_RESPONSES = [
         'GET:/v1/mock/tests/foo:passed',
         'POST:/v1/mock/tests/foo:passed',
@@ -36,6 +37,11 @@ abstract class Base extends TestCase
 
     const EXTENDED_GENERAL_RESPONSES = [
         'Download test passed.',
+    ];
+
+    const COOKIE_RESPONSES = [
+        'GET:/v1/mock/tests/general/set-cookie:passed',
+        'GET:/v1/mock/tests/general/get-cookie:passed',
     ];
 
     const LARGE_FILE_RESPONSES = [
