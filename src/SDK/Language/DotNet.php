@@ -151,7 +151,7 @@ class DotNet extends Language {
     {
         switch ($type) {
             case self::TYPE_INTEGER:
-                return 'int';
+                return 'long';
             case self::TYPE_NUMBER:
                 return 'double';
             case self::TYPE_STRING:
@@ -286,37 +286,31 @@ class DotNet extends Language {
                 'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'dotnet/README.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => 'dotnet/CHANGELOG.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => 'dotnet/LICENSE.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '.travis.yml',
                 'template'      => 'dotnet/.travis.yml.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'dotnet/docs/example.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}.sln',
                 'template'      => 'dotnet/src/Appwrite.sln',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'copy',
@@ -327,55 +321,41 @@ class DotNet extends Language {
                 'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/{{ spec.title | caseUcfirst }}.csproj',
                 'template'      => 'dotnet/src/Appwrite/Appwrite.csproj.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Client.cs',
                 'template'      => 'dotnet/src/Appwrite/Client.cs.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Helpers/ExtensionMethods.cs',
                 'template'      => 'dotnet/src/Appwrite/Helpers/ExtensionMethods.cs',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Helpers/Int32JsonConverter.cs',
-                'template'      => 'dotnet/src/Appwrite/Helpers/Int32JsonConverter.cs',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/OrderType.cs',
                 'template'      => 'dotnet/src/Appwrite/Models/OrderType.cs.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/Exception.cs',
                 'template'      => 'dotnet/src/Appwrite/Models/Exception.cs.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Services/Service.cs',
                 'template'      => 'dotnet/src/Appwrite/Services/Service.cs.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'service',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Services/{{service.name | caseUcfirst}}.cs',
                 'template'      => 'dotnet/src/Appwrite/Services/ServiceTemplate.cs.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'definition',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/src/Appwrite/Models/Model.cs.twig',
-                'minify'        => false,
             ]
         ];
     }

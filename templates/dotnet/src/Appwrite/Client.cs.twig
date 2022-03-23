@@ -29,7 +29,6 @@ namespace {{ spec.title | caseUcfirst }}
             NullValueHandling = NullValueHandling.Ignore,
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
             Converters = new List<JsonConverter> {
-                new Int32JsonConverter(),
                 new StringEnumConverter()
             }
         };
@@ -39,7 +38,6 @@ namespace {{ spec.title | caseUcfirst }}
             NullValueHandling = NullValueHandling.Ignore,
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
             Converters = new List<JsonConverter> {
-                new Int32JsonConverter(),
                 new StringEnumConverter()
             }
         };
