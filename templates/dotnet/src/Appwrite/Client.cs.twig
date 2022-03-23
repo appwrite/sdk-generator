@@ -129,11 +129,17 @@ namespace {{ spec.title | caseUcfirst }}
         {
             var methodGet = "GET".Equals(method, StringComparison.OrdinalIgnoreCase);
 
-            var queryString = methodGet ? "?" + parameters.ToQueryString() : string.Empty;
+            var queryString = methodGet ?
+                "?" + parameters.ToQueryString() :
+                string.Empty;
 
-            var request = new HttpRequestMessage(new HttpMethod(method), _endPoint + path + queryString);
+            var request = new HttpRequestMessage(
+                new HttpMethod(method),
+                _endPoint + path + queryString);
 
-            if ("multipart/form-data".Equals(headers["content-type"], StringComparison.OrdinalIgnoreCase))
+            if ("multipart/form-data".Equals(
+                headers["content-type"],
+                StringComparison.OrdinalIgnoreCase))
             {
                 var form = new MultipartFormDataContent();
 

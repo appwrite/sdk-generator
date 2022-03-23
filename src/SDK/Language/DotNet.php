@@ -138,7 +138,8 @@ class DotNet extends Language {
     public function getIdentifierOverrides()
     {
         return [
-            'Jwt' => 'JWT'
+            'Jwt' => 'JWT',
+            'Domain' => 'XDomain',
         ];
     }
 

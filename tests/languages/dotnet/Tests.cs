@@ -65,6 +65,9 @@ namespace AppwriteTests
             mock = await general.Upload("string", 123, new List<object>() { "string in array" }, new FileInfo("../../../../../../../resources/file.png"));
             TestContext.WriteLine(mock.Result);
 
+            mock = await general.Upload("string", 123, new List<object>() { "string in array" }, new FileInfo("../../../../../../../resources/large_file.mp4"));
+            TestContext.WriteLine(mock.Result);
+
             try
             {
                 await general.Error400();
@@ -91,6 +94,12 @@ namespace AppwriteTests
             {
                 TestContext.WriteLine(e.Message);
             }
+
+            mock = await general.SetCookie();
+            TestContext.WriteLine(mock.Result);
+
+            mock = await general.GetCookie();
+            TestContext.WriteLine(mock.Result);
         }
     }
 }
