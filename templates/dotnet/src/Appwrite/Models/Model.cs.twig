@@ -23,7 +23,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
 
         public {{ definition.name | caseUcfirst | overrideIdentifier }}(
 {% for property in definition.properties %}
-            {{ _self.sub_schema(property) }} {{ property.name | caseCamel | escapeKeyword }}{% if not property.required %} = {{ property.default }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            {{ _self.sub_schema(property) }} {{ property.name | caseCamel | escapeKeyword }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}
