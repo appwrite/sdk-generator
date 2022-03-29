@@ -19,7 +19,7 @@ const getIgnores = (runtime) => {
     case 'ruby':
       return ['vendor'];
     case 'rust':
-      return [];
+      return ['target', 'debug', '*.rs.bk', '*.pdb'];
     case 'swift':
       return ['Packages'];
   }
