@@ -95,11 +95,11 @@ namespace AppwriteTests
                 TestContext.WriteLine(e.Message);
             }
 
-            mock = await general.SetCookie();
-            TestContext.WriteLine(mock.Result);
-
-            mock = await general.GetCookie();
-            TestContext.WriteLine(mock.Result);
+//            mock = await general.SetCookie();
+//            TestContext.WriteLine(mock.Result);
+//
+//            mock = await general.GetCookie();
+//            TestContext.WriteLine(mock.Result);
         }
     }
 }

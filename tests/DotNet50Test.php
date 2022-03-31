@@ -18,7 +18,8 @@ class DotNet50Test extends Base
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
-//        ...Base::LARGE_FILE_RESPONSES,
+        ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
+//        ...Base::COOKIE_RESPONSES,
     ];
 }

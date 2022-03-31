@@ -24,6 +24,8 @@ namespace {{ spec.title | caseUcfirst }}
         private readonly Dictionary<string, string> _config;
         private string _endPoint;
 
+        private static int ChunkSize = 5 * 1024 * 1024;
+
         public static JsonSerializerSettings DeserializerSettings { get; set; } = new JsonSerializerSettings {
             MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
             NullValueHandling = NullValueHandling.Ignore,
@@ -251,6 +253,83 @@ namespace {{ spec.title | caseUcfirst }}
             {
                 throw new {{spec.title | caseUcfirst}}Exception(e.Message, e);
             }
+        }
+
+        public async Task<T> ChunkedUpload(
+            string path,
+            Dictionary<string, string> headers,
+            Dictionary<string, object> parameters,
+            Func<Dictionary<string, object>, T>? converter,
+            string paramName,
+            string? idParamName = null,
+            Action<UploadProgress>? onProgress = null) where T : class
+        {
+            var file = parameters[paramName] as FileInfo
+            var size = file.Length
+            var offset = 0;
+            var input = file.OpenRead();
+            var buffer = new byte[ChunkSize];
+            var result = new Dictionary<string, object>();
+
+            if (size < ChunkSize) {
+                await input.ReadAsync(buffer, 0, (int)size);
+                var content = new MultipartFormDataContent();
+                content.Add(new ByteArrayContent(buffer), paramName, file.Name);
+                parameters[paramName] = content;
+                return await Call<T>(
+                    method: "POST",
+                    path,
+                    headers,
+                    parameters,
+                    converter
+                )
+            }
+
+            if (idParamName?.IsNullOrEmpty() && parameters[idParamName] != "unique()") {
+                // Make a request to check if a file already exists
+                var current = await Call<Dictionary<string, object>>(
+                    method: "GET",
+                    path: "$path/${params[idParamName]}",
+                    headers,
+                    parameters = new Dictionary<string, object>()
+                )
+                var chunksUploaded = (long)current["chunksUploaded"]
+                offset = Math.Min((chunksUploaded * ChunkSize), size)
+            }
+
+            while (offset < size) {
+                input.Seek(offset, SeekOrigin.Begin);
+
+                await input.ReadAsync(buffer, 0, ChunkSize);
+
+                var content = new MultipartFormDataContent();
+                content.Add(new ByteArrayContent(buffer), paramName, file.Name);
+
+                parameters[paramName] = content;
+
+                headers["Content-Range"] =
+                    $"bytes {offset}-{Math.Min(((offset + CHUNK_SIZE) - 1), size)}/{size}";
+
+                result = Call<Dictionary<string, object>>(
+                    method: "POST",
+                    path,
+                    headers,
+                    parameters
+                )
+
+                offset += ChunkSize
+                headers["x-appwrite-id"] = result["$id"].ToString()
+
+                onProgress?.Invoke(
+                    UploadProgress(
+                        id = result["$id"].ToString(),
+                        progress = Math.Min(offset, size) / size * 100,
+                        sizeUploaded = Math.Min(offset, size),
+                        chunksTotal = long.Parse(result["chunksTotal"].ToString()),
+                        chunksUploaded = long.Parse(["chunksUploaded"].ToString())))
+            }
+
+            return converter(result);
         }
     }
 }
