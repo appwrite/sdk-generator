@@ -55,6 +55,11 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
         payload['{{ parameter.name }}'] = filePath;
     }
 
+{% elseif parameter.type == 'object' %}
+    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+        payload['{{ parameter.name }}'] = JSON.parse({{ parameter.name | caseCamel | escapeKeyword}});
+    }
+
 {% else %}
     if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
         payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword}}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}.toString(){% endif %};
