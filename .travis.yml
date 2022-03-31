@@ -42,7 +42,7 @@ env:
   - SDK=Ruby31
   - SDK=SwiftClient55
   - SDK=SwiftServer55
-  - SDK=WebChromium
+#  - SDK=WebChromium
   - SDK=WebNode
 
 notifications:
