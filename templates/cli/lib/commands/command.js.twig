@@ -105,7 +105,11 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
-        }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+        }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %}){% if method.packaging %}.catch(err => {
+            fs.unlinkSync(archivePath);
+            throw err
+        });{% endif %}
+
     } else {
         const streamFilePath = payload['{{ parameter.name }}'];
         let id = undefined;
@@ -135,7 +139,11 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
                 });
                 payload['{{ parameter.name }}'] = stream;
 
-                response = await client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+                response = await client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %}){% if method.packaging %}.catch(err => {
+                    fs.unlinkSync(archivePath);
+                    throw err
+                });{% endif %}
+
 
                 if (!id) {
                         id = response['$id'];
