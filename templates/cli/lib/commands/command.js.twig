@@ -47,15 +47,9 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
     if(xfunction.ignore) {
         ignorer.add(xfunction.ignore);
         log('Ignoring files using configuration from appwrite.json');
-    } else if(fs.existsSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.appwriteignore'))) {
-        ignorer.add(fs.readFileSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.appwriteignore')).toString());
-        log('Ignoring files using configuration from .appwriteignore');
     } else if(fs.existsSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore'))) {
         ignorer.add(fs.readFileSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore')).toString());
         log('Ignoring files using configuration from .gitignore');
-    } else {
-        log('Not ignoring any files.');
-        // No ignoring in place
     }
     
     const files = getAllFiles({{ parameter.name | caseCamel | escapeKeyword }}).map((file) => pathLib.relative({{ parameter.name | caseCamel | escapeKeyword }}, file)).filter((file) => !ignorer.ignores(file));
