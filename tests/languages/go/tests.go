@@ -11,7 +11,11 @@ import (
 func main() {
 	stringInArray := []interface{}{"string in array"}
 
-	client := appwrite.NewClient(10 * time.Second)
+	client := appwrite.NewClient()
+	err := client.SetTimeout(10 * time.Second)
+	if err != nil {
+		panic(err)
+	}
 	client.SetEndpoint("https://appwrite.io/v1")
 	client.AddHeader("Origin", "http://localhost")
 	fmt.Print("\n\nTest Started\n")

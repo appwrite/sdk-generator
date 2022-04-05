@@ -22,6 +22,7 @@ import (
 
 const (
 	fileNameKey = "file"
+	defaultTimeout = 10 * time.Second
 )
 
 // {{ spec.title | caseUcfirst }}Error represents an error of a client request
@@ -60,19 +61,19 @@ type Client struct {
 }
 
 // NewClient initializes a new {{ spec.title | caseUcfirst }} client with a given timeout
-func NewClient(timeout time.Duration) Client {
+func NewClient() Client {
 	headers := map[string]string{
 {% for key,header in spec.global.defaultHeaders %}
 		"{{key}}" : "{{header}}",
 		"x-sdk-version": "{{ sdk.gitUserName|url_encode }}:go:{{sdk.version}}",
 {% endfor %}
 	}
-	httpClient, err := getDefaultClient(timeout)
+	httpClient, err := getDefaultClient(defaultTimeout)
 	if err != nil { panic(err) }
 	return Client {
 		endpoint: "https://{{ sdk.gitUserName|url_encode }}.io/v1",
 		client: httpClient,
-		timeout: timeout,
+		timeout: defaultTimeout,
 		headers: headers,
 	}
 }
@@ -90,6 +91,14 @@ func getDefaultClient(timeout time.Duration) (*http.Client, error) {
 		Jar: jar,
 		Timeout: timeout,
 	}, nil
+}
+
+func (clt *Client) SetTimeout(timeout time.Duration) error {
+	clt.timeout = timeout
+	httpClient, err := getDefaultClient(timeout)
+	if err != nil { return err }
+	clt.client = httpClient
+	return nil
 }
 
 // SetEndpoint sets the default endpoint to which the Client connects to

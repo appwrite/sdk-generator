@@ -14,25 +14,14 @@ const (
 	EmptyParentPropertyType = ""
 )
 
-const (
-	EmptyParentDocument     = ""
-	EmptyParentProperty     = ""
-	EmptyParentPropertyType = ""
-)
-
-const (
-	EmptyParentDocument     = ""
-	EmptyParentProperty     = ""
-	EmptyParentPropertyType = ""
-)
-
 func main() {
 	var EmptyArray = []interface{}{}
 
-	client := {{ sdk.gitUserName|url_encode }}.NewClient(10 * time.Second)
+	client := {{ sdk.gitUserName|url_encode }}.NewClient()
 	client.SetEndpoint(os.Getenv("YOUR_ENDPOINT"))
 	client.SetProject(os.Getenv("YOUR_PROJECT_ID"))
 	client.SetKey(os.Getenv("YOUR_KEY"))
+	client.SetTimeout(10 * time.Second)
 
 	db := {{ sdk.gitUserName|url_encode }}.NewDatabase(client)
 	data := map[string]string{
@@ -40,12 +29,10 @@ func main() {
 	}
 	doc, err := db.CreateDocument(
 		os.Getenv("COLLECTION_ID"),
+		EmptyParentDocument,
 		data,
 		EmptyArray,
 		EmptyArray,
-		EmptyParentDocument,
-		EmptyParentProperty,
-		EmptyParentPropertyType,
 	)
 	if err != nil {
 		log.Printf("Error creating document: %v", err)
