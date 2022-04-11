@@ -21,7 +21,7 @@ class Node extends JS
         switch ($type) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
-                return 'number';
+                return 'number | string';
             break;
             case self::TYPE_ARRAY:
                 return 'string[]';
