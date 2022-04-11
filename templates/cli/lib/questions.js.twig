@@ -1,6 +1,7 @@
 const { localConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { functionsListRuntimes } = require('./commands/functions');
+const JSONbig = require("json-bigint")({ storeAsString: true });
 
 const getEntrypoint = (runtime) => {
   const languge = runtime.split('-')[0];
@@ -185,7 +186,7 @@ const questionsDeployCollections = [
       let choices = collections.map((collection, idx) => {
         return {
           name: `${collection.name} (${collection['$id']})`,
-          value: collection
+          value: JSONbig.stringify(collection)
         }
       })
       return choices;

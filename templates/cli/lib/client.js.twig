@@ -1,5 +1,6 @@
 const os = require('os');
 const axios = require("axios");
+const JSONbig = require("json-bigint")({ storeAsString: true });
 const FormData = require("form-data");
 const {{spec.title | caseUcfirst}}Exception = require("./exception.js");
 const { globalConfig } = require("./config.js");
@@ -130,11 +131,9 @@ class Client {
       params: method.toUpperCase() === "GET" ? params : {},
       headers: headers,
       data:
-        method.toUpperCase() === "GET" ||
-          contentType.startsWith("multipart/form-data")
-          ? formData
-          : params,
+        method.toUpperCase() === "GET" || contentType.startsWith("multipart/form-data") ? formData : params,
       json: contentType.startsWith("application/json"),
+      transformRequest: method.toUpperCase() === "GET" || contentType.startsWith("multipart/form-data") ? undefined : (data) =>  JSONbig.stringify(data),
       responseType: responseType,
     };
     try {

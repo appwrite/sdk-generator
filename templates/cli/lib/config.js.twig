@@ -2,6 +2,7 @@ const os = require('os');
 const fs = require("fs");
 const _path = require("path");
 const process = require("process");
+const JSONbig = require("json-bigint")({ storeAsString: true });
 
 class Config {
     constructor(path) {
@@ -11,7 +12,8 @@ class Config {
 
     read() {
         try {
-            this.data = require(this.path);
+            const file = fs.readFileSync(this.path).toString();
+            this.data = JSONbig.parse(file);
         } catch (e) {
             // console.log(`${this.path} not found. Empty data`);
             this.data = {};
@@ -23,7 +25,7 @@ class Config {
         if (!fs.existsSync(dir)){
             fs.mkdirSync(dir, { recursive: true });
         }
-        fs.writeFileSync(this.path, JSON.stringify(this.data, null, 4));
+        fs.writeFileSync(this.path, JSONbig.stringify(this.data, null, 4));
     }
 
     get(key) {
@@ -46,7 +48,7 @@ class Config {
     }
 
     has(key) {
-        return this.data.hasOwnProperty(key);
+        return this.data[key] !== undefined;
     }
 
     keys() {
@@ -58,7 +60,7 @@ class Config {
     }
 
     toString() {
-        return JSON.stringify(this.data, null, 4);
+        return JSONbig.stringify(this.data, null, 4);
     }
 }
 
