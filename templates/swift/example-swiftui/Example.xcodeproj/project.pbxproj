@@ -12,8 +12,8 @@
 		1D34C2532702E4A000D1DA8D /* ExampleViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D34C2522702E4A000D1DA8D /* ExampleViewModel.swift */; };
 		1D34C2552702E4B500D1DA8D /* ExampleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D34C2542702E4B500D1DA8D /* ExampleView.swift */; };
 		1D43900826FC8B2500C71E3E /* ImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D43900726FC8B2500C71E3E /* ImagePicker.swift */; };
-		1DC4093C26BA74470025A85C /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 1DC4093B26BA74470025A85C /* Appwrite */; };
-		1DC4093E26BA744D0025A85C /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 1DC4093D26BA744D0025A85C /* Appwrite */; };
+		1DBB414827E87CA000ECF86F /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 1DBB414727E87CA000ECF86F /* Appwrite */; };
+		1DBB414A27E87CA800ECF86F /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 1DBB414927E87CA800ECF86F /* Appwrite */; };
 		2358B1EE270AC9DC0016EFBA /* ExampleViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D34C2522702E4A000D1DA8D /* ExampleViewModel.swift */; };
 		2358B1EF270AC9E30016EFBA /* ExampleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D34C2542702E4B500D1DA8D /* ExampleView.swift */; };
 		2358B1F0270AC9E80016EFBA /* ImagePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D43900726FC8B2500C71E3E /* ImagePicker.swift */; };
@@ -50,7 +50,7 @@
 		1D34C2522702E4A000D1DA8D /* ExampleViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExampleViewModel.swift; sourceTree = "<group>"; };
 		1D34C2542702E4B500D1DA8D /* ExampleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExampleView.swift; sourceTree = "<group>"; };
 		1D43900726FC8B2500C71E3E /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
-		1DC4093A26BA73C50025A85C /* swift-client */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "swift-client"; path = "../../../examples/swift-client"; sourceTree = "<group>"; };
+		1DBB414627E87BDB00ECF86F /* swift-client */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "swift-client"; path = "../../../examples/swift-client"; sourceTree = "<group>"; };
 		23DDF5922709A457006EFAFA /* ImagePicker+iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImagePicker+iOS.swift"; sourceTree = "<group>"; };
 		23DDF5942709A46A006EFAFA /* ImagePicker+macOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImagePicker+macOS.swift"; sourceTree = "<group>"; };
 		23DDF597270AC2DA006EFAFA /* OSImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSImage.swift; sourceTree = "<group>"; };
@@ -88,7 +88,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1DC4093E26BA744D0025A85C /* Appwrite in Frameworks */,
+				1DBB414A27E87CA800ECF86F /* Appwrite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -96,13 +96,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1DC4093C26BA74470025A85C /* Appwrite in Frameworks */,
+				1DBB414827E87CA000ECF86F /* Appwrite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1DBB414527E87BDB00ECF86F /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				1DBB414627E87BDB00ECF86F /* swift-client */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
 		1DC4093526BA6E7A0025A85C /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -121,7 +129,7 @@
 		4B1152396B94D0F596CEBB52 = {
 			isa = PBXGroup;
 			children = (
-				1DC4093A26BA73C50025A85C /* swift-client */,
+				1DBB414527E87BDB00ECF86F /* Packages */,
 				4B115B49441350FF784C7745 /* Products */,
 				4B11566FD1E1FA1ABD88E438 /* Shared */,
 				4B115E925CD74030DFF6498C /* iOS */,
@@ -211,7 +219,7 @@
 			);
 			name = "test (iOS)";
 			packageProductDependencies = (
-				1DC4093B26BA74470025A85C /* Appwrite */,
+				1DBB414727E87CA000ECF86F /* Appwrite */,
 			);
 			productName = "test (iOS)";
 			productReference = 4B115DA4916DAA4E8F13734F /* test.app */;
@@ -231,7 +239,7 @@
 			);
 			name = "test (macOS)";
 			packageProductDependencies = (
-				1DC4093D26BA744D0025A85C /* Appwrite */,
+				1DBB414927E87CA800ECF86F /* Appwrite */,
 			);
 			productName = "test (macOS)";
 			productReference = 4B11505C9899942E695B59FF /* test.app */;
@@ -464,7 +472,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -502,7 +510,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -715,11 +723,11 @@
 /* End XCConfigurationList section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		1DC4093B26BA74470025A85C /* Appwrite */ = {
+		1DBB414727E87CA000ECF86F /* Appwrite */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Appwrite;
 		};
-		1DC4093D26BA744D0025A85C /* Appwrite */ = {
+		1DBB414927E87CA800ECF86F /* Appwrite */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Appwrite;
 		};

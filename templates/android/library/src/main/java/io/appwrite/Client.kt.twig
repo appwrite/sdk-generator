@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import {{ sdk.namespace | caseDot }}.{{ spec.title | caseLower }}.BuildConfig
+import {{ sdk.namespace | caseDot }}.cookies.stores.SharedPreferencesCookieStore
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
 import {{ sdk.namespace | caseDot }}.json.PreciseNumberAdapter
@@ -13,7 +14,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.suspendCancellableCoroutine
-import net.gotev.cookiestore.SharedPreferencesCookieStore
 import okhttp3.*
 import okhttp3.Headers.Companion.toHeaders
 import okhttp3.HttpUrl.Companion.toHttpUrl

@@ -25,6 +25,7 @@ env:
   - SDK=DartStable
   - SDK=Deno1171
   - SDK=FlutterStable
+  - SDK=FlutterBeta
   - SDK=KotlinJava8
   - SDK=KotlinJava11
   - SDK=KotlinJava17
