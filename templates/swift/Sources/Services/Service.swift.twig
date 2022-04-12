@@ -120,9 +120,8 @@ open class {{ service.name | caseUcfirst }}: Service {
             method: "{{ method.method | caseUpper }}",
             path: path,
             headers: headers,
-            params: params,
-{% if method.responseModel %}
-            converter: converter,
+            params: params{% if method.responseModel %},
+            converter: converter
 {% endif %}
         )
 {% endif %}

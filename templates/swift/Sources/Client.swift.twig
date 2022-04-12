@@ -270,7 +270,7 @@ open class Client {
     private func execute<T>(
         _ request: HTTPClientRequest,
         withSink bufferSink: ((ByteBuffer) -> Void)? = nil,
-        convert: (([String: Any]) -> T)? = nil
+        converter: (([String: Any]) -> T)? = nil
     ) async throws -> T {
         func complete(with response: HTTPClientResponse) async throws -> T {
             switch response.status.code {
@@ -290,7 +290,7 @@ open class Client {
                     let data = try await response.body.collect(upTo: Int.max)
                     let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
 
-                    return convert?(dict!) ?? dict! as! T
+                    return converter?(dict!) ?? dict! as! T
                 }
             default:
                 var message = ""
@@ -354,26 +354,15 @@ open class Client {
 
         if idParamName != nil && params[idParamName!] as! String != "unique()" {
             // Make a request to check if a file already exists
-            group.enter()
-            call(
+            let map = try! await call(
                 method: "GET",
                 path: path + "/" + (params[idParamName!] as! String),
                 headers: headers,
                 params: [:],
                 converter: { return $0 }
-            ) { response in
-                switch response {
-                case let .success(map):
-                    let chunksUploaded = map["chunksUploaded"] as! Int
-                    offset = min(size, (chunksUploaded * Client.chunkSize))
-                    group.leave()
-                case let .failure(error):
-                    completion?(.failure(error))
-                    group.leave()
-                    return
-                }
-            }
-            group.wait()
+            )
+            let chunksUploaded = map["chunksUploaded"] as! Int
+            offset = min(size, (chunksUploaded * Client.chunkSize))
         }
 
         while offset < size {
@@ -392,7 +381,7 @@ open class Client {
                 path: path,
                 headers: headers,
                 params: params,
-                convert: { return $0 }
+                converter: { return $0 }
             )
 
             offset += Client.chunkSize
