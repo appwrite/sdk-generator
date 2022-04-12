@@ -27,6 +27,7 @@ env:
   - SDK=FlutterStable
   - SDK=Go112
   - SDK=Go118
+  - SDK=FlutterBeta
   - SDK=KotlinJava8
   - SDK=KotlinJava11
   - SDK=Node12
@@ -42,7 +43,7 @@ env:
   - SDK=Ruby31
   - SDK=SwiftClient55
   - SDK=SwiftServer55
-#  - SDK=WebChromium
+  - SDK=WebChromium
   - SDK=WebNode
 
 notifications:
