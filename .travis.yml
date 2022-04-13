@@ -28,6 +28,7 @@ env:
   - SDK=FlutterBeta
   - SDK=KotlinJava8
   - SDK=KotlinJava11
+  - SDK=KotlinJava17
   - SDK=Node12
   - SDK=Node14
   - SDK=Node16
