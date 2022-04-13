@@ -47,12 +47,18 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
     let archivePath = fs.realpathSync('code.tar.gz')
     if (typeof archivePath !== 'undefined') {
         payload['{{ parameter.name }}'] = archivePath;
+        {{ parameter.name }} = archivePath;
     }
 
 {% elseif parameter.type == 'file' %}
     let filePath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
     if (typeof filePath !== 'undefined') {
         payload['{{ parameter.name }}'] = filePath;
+    }
+
+{% elseif parameter.type == 'object' %}
+    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+        payload['{{ parameter.name }}'] = JSON.parse({{ parameter.name | caseCamel | escapeKeyword}});
     }
 
 {% else %}
@@ -100,51 +106,70 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
-        }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+        }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %}){% if method.packaging %}.catch(err => {
+            fs.unlinkSync(archivePath);
+            throw err
+        });{% endif %}
+
     } else {
         const streamFilePath = payload['{{ parameter.name }}'];
         let id = undefined;
 
+        let counter = 0;
         const totalCounters = Math.ceil(size / libClient.CHUNK_SIZE);
 
-        for (let counter = 0; counter < totalCounters; counter++) {
-                const start = (counter * libClient.CHUNK_SIZE);
-                const end = Math.min((((counter * libClient.CHUNK_SIZE) + libClient.CHUNK_SIZE) - 1), size);
-                const headers = {
+        const headers = {
 {% for parameter in method.parameters.header %}
-                        '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+            '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
 {% for key, header in method.headers %}
-                        '{{ key }}': '{{ header }}',
+            '{{ key }}': '{{ header }}',
 {% endfor %}
-                        'content-range': 'bytes ' + start + '-' + end + '/' + size
-                };
+        };
 
-                if (id) {
-                        headers['x-appwrite-id'] = id;
-                }
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+        if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
+            try {
+                response = await client.call('get', path + '/' + {{ parameter.name }}, headers);
+                counter = response.chunksUploaded;
+            } catch(e) {
+            }
+        }
+{% endif %}
+{% endfor %}
 
-                const stream = fs.createReadStream(streamFilePath, {
-                        start,
-                        end
+        for (counter; counter < totalCounters; counter++) {
+            const start = (counter * libClient.CHUNK_SIZE);
+            const end = Math.min((((counter * libClient.CHUNK_SIZE) + libClient.CHUNK_SIZE) - 1), size);
+
+            headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
+
+            if (id) {
+                headers['x-appwrite-id'] = id;
+            }
+
+            const stream = fs.createReadStream(streamFilePath, {
+                start,
+                end
+            });
+            payload['{{ parameter.name }}'] = stream;
+
+            response = await client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+
+            if (!id) {
+                id = response['$id'];
+            }
+
+            if (onProgress !== null) {
+                onProgress({
+                    $id: response['$id'],
+                    progress: Math.min((counter+1) * libClient.CHUNK_SIZE, size) / size * 100,
+                    sizeUploaded: end+1,
+                    chunksTotal: response['chunksTotal'],
+                    chunksUploaded: response['chunksUploaded']
                 });
-                payload['{{ parameter.name }}'] = stream;
-
-                response = await client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
-
-                if (!id) {
-                        id = response['$id'];
-                }
-
-                if (onProgress !== null) {
-                    onProgress({
-                        $id: response['$id'],
-                        progress: Math.min((counter+1) * libClient.CHUNK_SIZE, size) / size * 100,
-                        sizeUploaded: end+1,
-                        chunksTotal: response['chunksTotal'],
-                        chunksUploaded: response['chunksUploaded']
-                    });
-                }
+            }
         }
     }
 {% endif %}
