@@ -9,7 +9,7 @@ class DotNet60Test extends Base
     protected array $build = [
         'mkdir -p tests/sdks/dotnet/src/test',
         'cp tests/languages/dotnet/Tests.cs tests/sdks/dotnet/src/test/Tests.cs',
-        'cp tests/languages/dotnet/Tests.csproj tests/sdks/dotnet/src/test/Tests.csproj',
+        'cp tests/languages/dotnet/Tests60.csproj tests/sdks/dotnet/src/test/Tests.csproj',
     ];
     protected string $command =
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:6.0-alpine dotnet test --verbosity normal --framework net6.0';

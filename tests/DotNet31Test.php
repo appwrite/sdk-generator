@@ -9,7 +9,7 @@ class DotNet31Test extends Base
     protected array $build = [
         'mkdir -p tests/sdks/dotnet/src/test',
         'cp tests/languages/dotnet/Tests.cs tests/sdks/dotnet/src/test/Tests.cs',
-        'cp tests/languages/dotnet/Tests.csproj tests/sdks/dotnet/src/test/Tests.csproj',
+        'cp tests/languages/dotnet/Tests31.csproj tests/sdks/dotnet/src/test/Tests.csproj',
     ];
     protected string $command =
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:3.1 dotnet test --verbosity normal --framework netcoreapp3.1';
