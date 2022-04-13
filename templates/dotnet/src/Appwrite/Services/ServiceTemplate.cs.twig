@@ -2,8 +2,8 @@
 {% if parameter.name == 'orderType' %}{{ 'OrderType orderType = OrderType.ASC' }}{% else %}
 {{ parameter.type | typeName }}{% if not parameter.required %}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% endif %}
 {% endmacro %}
-{% macro method_parameters(parameters) %}
-{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ', ' }}{% endif %}{% endfor %}{% endif %}
+{% macro method_parameters(parameters, consumes) %}
+{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ', ' }}{% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %},{% endif %}{% endif %}{% if 'multipart/form-data' in consumes %} Action<UploadProgress>? onProgress = null{% endif %}
 {% endmacro %}
 {% macro map_parameter(parameter) %}
 {% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.ToString()'}}{% else %}
@@ -40,7 +40,7 @@ namespace {{ spec.title | caseUcfirst }}
         /// </para>
 {% endif %}
         /// </summary>
-        public Task{% if method.type != "webAuth" %}<{{ _self.resultType(spec.title, method) }}>{% endif %} {{ method.name | caseUcfirst }}({{ _self.method_parameters(method.parameters) }})
+        public Task{% if method.type != "webAuth" %}<{{ _self.resultType(spec.title, method) }}>{% endif %} {{ method.name | caseUcfirst }}({{ _self.method_parameters(method.parameters, method.consumes) }})
         {
             var path = "{{ method.path }}"{% if method.parameters.path | length == 0 %};{% endif %}
 
@@ -88,7 +88,7 @@ namespace {{ spec.title | caseUcfirst }}
 {% endif %}
 
 {% if 'multipart/form-data' in method.consumes %}
-            var idParamName: String? = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}null{% endif %};
+            string? idParamName = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}null{% endif %};
 
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
@@ -99,9 +99,9 @@ namespace {{ spec.title | caseUcfirst }}
             return _client.ChunkedUpload(
                 path,
                 headers,
-                params,
+                parameters,
 {% if method.responseModel %}
-                converter,
+                Convert,
 {% endif %}
                 paramName,
                 idParamName,

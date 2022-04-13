@@ -339,6 +339,11 @@ class DotNet extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/UploadProgress.cs',
+                'template'      => 'dotnet/src/Appwrite/Models/UploadProgress.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/Exception.cs',
                 'template'      => 'dotnet/src/Appwrite/Models/Exception.cs.twig',
             ],

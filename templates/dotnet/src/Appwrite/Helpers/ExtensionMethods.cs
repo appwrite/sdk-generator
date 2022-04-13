@@ -8,12 +8,12 @@ namespace {{ spec.title | caseUcfirst }}
 {
     public static class ExtensionMethods
     {
-        public static string ToJson(this Dictionary<string, object> dict)
+        public static string ToJson(this Dictionary<string, object?> dict)
         {
             return JsonConvert.SerializeObject(dict, Client.SerializerSettings);
         }
 
-        public static string ToQueryString(this Dictionary<string, object> parameters)
+        public static string ToQueryString(this Dictionary<string, object?> parameters)
         {
             var query = new List<string>();
 
