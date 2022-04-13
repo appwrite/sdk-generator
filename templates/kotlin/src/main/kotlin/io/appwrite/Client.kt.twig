@@ -340,7 +340,7 @@ class Client @JvmOverloads constructor(
             )
 
             offset += CHUNK_SIZE
-            headers["x-appwrite-id"] = result!!["\$id"].toString()
+            headers["x-{{ spec.title | caseLower }}-id"] = result!!["\$id"].toString()
             onProgress?.invoke(
                 UploadProgress(
                     id = result!!["\$id"].toString(),
