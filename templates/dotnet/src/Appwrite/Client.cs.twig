@@ -24,7 +24,7 @@ namespace {{ spec.title | caseUcfirst }}
         private readonly Dictionary<string, string> _config;
         private string _endPoint;
 
-        private static int ChunkSize = 5 * 1024 * 1024;
+        private static readonly int ChunkSize = 5 * 1024 * 1024;
 
         public static JsonSerializerSettings DeserializerSettings { get; set; } = new JsonSerializerSettings {
             MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
@@ -111,13 +111,13 @@ namespace {{ spec.title | caseUcfirst }}
             return this;
         }
 
-        public Task Call(
+        public Task<Dictionary<string, object?>> Call(
             string method,
             string path,
             Dictionary<string, string> headers,
             Dictionary<string, object?> parameters)
         {
-            return Call<object>(method, path, headers, parameters);
+            return Call<Dictionary<string, object?>>(method, path, headers, parameters);
         }
 
         public async Task<T> Call<T>(
