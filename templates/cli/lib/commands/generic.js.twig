@@ -1,5 +1,6 @@
 const inquirer = require("inquirer");
 const { Command } = require("commander");
+const Client = require("../client");
 const { sdkForConsole } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, log, parse } = require("../parser");
@@ -68,6 +69,13 @@ const client = new Command("client")
             try {
                 let url = new URL(endpoint);
                 if (url.protocol === "http:" || url.protocol === "https:") {
+                    let apClient = new Client().setEndpoint(endpoint);
+                    let response = await apClient.call('GET', '/mock/tests/foo', {}, {'x': 'a', 'y': 1, 'z': ['a']});
+                    if(response.result && response.result === 'GET:/v1/mock/tests/foo:passed') {
+                        globalConfig.setEndpoint(endpoint);
+                    } else {
+                        throw new Error();
+                    }
                     globalConfig.setEndpoint(endpoint);
                 } else {
                     throw new Error();
