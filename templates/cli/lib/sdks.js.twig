@@ -7,7 +7,24 @@ const questionGetEndpoint = [
     type: "input",
     name: "endpoint",
     message: "Enter the endpoint of your {{ spec.title|caseUcfirst }} server",
-    default: "http://localhost/v1"
+    default: "http://localhost/v1",
+    validate: async (value) => {
+      if(!value) {
+        return 'Please provide valid endpoint';
+      }
+      let client = new Client().setEndpoint(value);
+      try {
+        let response = await client.call('GET', '/mock/tests/foo', {}, {'x': 'a', 'y': 1, 'z': ['a']});
+        if(response.result && response.result === 'GET:/v1/mock/tests/foo:passed') {
+          return true;
+        } else {
+          return 'Not a valid endpoint or Appwrite server is not running as expected';
+        }
+      } catch (error) {
+        return 'Not a valid endpoint or Appwrite server is not running as expected';
+      }
+      return true;
+    }
   }
 ]
 
