@@ -17,9 +17,23 @@ void main() { // Init SDK
 {% endfor %}  ;
 {% endif %}
 {% if method.type == 'location' %}
+  // downloading file
+  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+{% if loop.first %}
+
+{% endif %}
+{% if parameter.required %}
+    {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
+{% endif %}
+{% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %}).then((bytes) {
+    final file = File('path_to/file.pdf');
+    file.writeAsBytesSync(bytes)
+  }).catchError((error) {
+      print(error.response);
+  })
 }
 
-//displaying image
+//displaying image preview
 FutureBuilder(
   future: {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
 {% if loop.first %}
