@@ -127,7 +127,7 @@ class Node extends JS
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "fs.createReadStream(__dirname + '/file.png')";
+                    $output .= "__dirname + '/file.png'";
                     break;
             }
         }
@@ -146,7 +146,7 @@ class Node extends JS
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "fs.createReadStream(__dirname + '/file.png')";
+                    $output .= "__dirname + '/file.png'";
                     break;
             }
         }
