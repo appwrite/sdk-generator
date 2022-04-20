@@ -169,7 +169,7 @@ try {
 
     $sdk
         ->setName('NAME')
-        ->setVersion('0.0.19')
+        ->setVersion('0.16.0')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://appwrite.io')
