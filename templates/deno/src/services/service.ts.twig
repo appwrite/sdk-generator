@@ -150,6 +150,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
                         totalBuffer[(blockIndex * Client.DENO_READ_CHUNK_SIZE) + byteIndex] = buf[byteIndex];
                     }
                 }
+
+                // Shrink empty bytes
+                totalBuffer = new Uint8Array(totalBuffer.buffer, 0);
                 
                 payload['{{ parameter.name }}'] = new File([totalBuffer], basename({{ parameter.name | caseCamel | escapeKeyword }}));
 
