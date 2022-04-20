@@ -309,7 +309,7 @@ class PHP extends Language {
                     $output .= '[]';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "new \CURLFile('/path/to/file.png', 'image/png', 'file.png')";
+                    $output .= "'/path/to/file.png'";
                     break;
             }
         }
@@ -330,7 +330,7 @@ class PHP extends Language {
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "new \CURLFile('/path/to/file.png', 'image/png', 'file.png')";
+                    $output .= "'/path/to/file.png'";
                     break;
             }
         }
