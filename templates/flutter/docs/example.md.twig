@@ -26,7 +26,7 @@ void main() { // Init SDK
     {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
 {% endif %}
 {% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %}).then((bytes) {
-    final file = File('path_to/file.pdf');
+    final file = File('path_to_file/filename.ext');
     file.writeAsBytesSync(bytes)
   }).catchError((error) {
       print(error.response);
