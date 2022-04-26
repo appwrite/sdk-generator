@@ -54,9 +54,17 @@ const initProject = async () => {
 }
 
 const initFunction = async () => {
-  let answers = await inquirer.prompt(questionsInitFunction)
+  let answers = await inquirer.prompt(questionsInitFunction);
 
-  if (fs.existsSync(path.join(process.cwd(), 'functions', answers.name))) {
+  if (!fs.existsSync(path.join(process.cwd(), 'functions'))) {
+    fs.mkdirSync(path.join(process.cwd(), 'functions'), {
+      recursive: true
+    });
+  }
+
+  const functionDir = path.join(process.cwd(), 'functions', answers.name);
+
+  if (fs.existsSync(functionDir)) {
     throw new Error(`( ${answers.name} ) already exists in the current directory. Please choose another name.`);
   }
 
@@ -71,20 +79,39 @@ const initFunction = async () => {
     parseOutput: false
   })
 
-  let command = `
-    mkdir -m 777 -p 'functions/${answers.name}' && \
-    cd 'functions/${answers.name}' && \
-    git init && \
-    git remote add -f origin https://github.com/{{ sdk.gitUserName }}/functions-starter && \
-    git config core.sparseCheckout true && \
-    echo '${answers.runtime.id}' >> .git/info/sparse-checkout && \ 
-    git pull origin main && \
-    rm -rf .git && \
-    mv ${answers.runtime.id}/* . && \
-    rm -rf ${answers.runtime.id}`;
+  fs.mkdirSync(functionDir, "777");
 
-  // Execute the child process but do not print any std output
-  childProcess.execSync(command, { stdio: 'pipe' });
+  const gitInitCommands =
+    `git init && ` +
+    `git remote add -f origin https://github.com/appwrite/functions-starter && ` +
+    `git config core.sparseCheckout true`;
+  childProcess.execSync(gitInitCommands, { stdio: 'pipe', cwd: functionDir });
+
+  fs.writeFileSync(path.join(functionDir, ".git/info/sparse-checkout"), `${answers.runtime.id}`);
+
+  const gitPullCommands = `git pull origin main`;
+  childProcess.execSync(gitPullCommands, { stdio: 'pipe', cwd: functionDir });
+
+  fs.rmSync(path.join(functionDir, ".git"), { recursive: true });
+    const copyRecursiveSync = (src, dest) => {
+    let exists = fs.existsSync(src);
+    let stats = exists && fs.statSync(src);
+    let isDirectory = exists && stats.isDirectory();
+    if (isDirectory) {
+      if (!fs.existsSync(dest)) {
+        fs.mkdirSync(dest);
+      }
+
+      fs.readdirSync(src).forEach(function(childItemName) {
+        copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName));
+      });
+    } else {
+      fs.copyFileSync(src, dest);
+    }
+  };
+  copyRecursiveSync(path.join(functionDir, answers.runtime.id), functionDir);
+  
+  fs.rmSync(path.join(functionDir, answers.runtime.id), { recursive: true });
 
   const readmePath = path.join(process.cwd(), 'functions', answers.name, 'README.md');
   const readmeFile = fs.readFileSync(readmePath).toString();
