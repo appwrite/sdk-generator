@@ -46,7 +46,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 
     if(func.ignore) {
         ignorer.add(func.ignore);
-        log('Ignoring files in appwrite.json');
+        log('Ignoring files using configuration from appwrite.json');
     } else if(fs.existsSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore'))) {
         ignorer.add(fs.readFileSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore')).toString());
         log('Ignoring files in .gitignore');
