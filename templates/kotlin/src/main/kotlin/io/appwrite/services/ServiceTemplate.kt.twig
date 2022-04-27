@@ -112,7 +112,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {{ method.headers|map((header, key) => "            \"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
         )
 {% if method.responseModel %}
-        val convert: (Map<String, Any>) -> {{ _self.resultType(sdk.namespace, method) }} = {
+        val converter: (Map<String, Any>) -> {{ _self.resultType(sdk.namespace, method) }} = {
 {% if method.responseModel == 'any' %}
             it
 {% else %}
@@ -121,6 +121,8 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         }
 {% endif %}
 {% if 'multipart/form-data' in method.consumes %}
+        val idParamName: String? = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}null{% endif %}
+
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
         val paramName = "{{ parameter.name }}"
@@ -132,9 +134,10 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             params,
             responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java,
 {% if method.responseModel %}
-            convert = convert,
+            converter,
 {% endif %}
             paramName,
+            idParamName,
             onProgress,
         )
 {% else %}
@@ -145,7 +148,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             params,
             responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java,
 {% if method.responseModel %}
-            convert = convert,
+            converter,
 {% endif %}
         )
 {% endif %}

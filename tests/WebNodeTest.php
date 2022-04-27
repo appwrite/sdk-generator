@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class WebTest extends Base
+class WebNodeTest extends Base
 {
     protected string $language = 'web';
     protected string $class = 'Appwrite\SDK\Language\Web';
@@ -13,11 +13,9 @@ class WebTest extends Base
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm install', //  npm list --depth 0 &&
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm run build',
     ];
-    protected array $envs = [
-        'chromium' => 'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
-        // 'firefox' => 'docker run --rm -v $(pwd):/app -e BROWSER=firefox -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js',
-        'node' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node node.js',
-    ];
+    protected string $command =
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node node.js';
+
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
