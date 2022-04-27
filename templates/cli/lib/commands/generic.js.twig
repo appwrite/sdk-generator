@@ -70,8 +70,8 @@ const client = new Command("client")
                 let url = new URL(endpoint);
                 if (url.protocol === "http:" || url.protocol === "https:") {
                     let apClient = new Client().setEndpoint(endpoint);
-                    let response = await apClient.call('GET', '/mock/tests/foo', {}, {'x': 'a', 'y': 1, 'z': ['a']});
-                    if(response.result && response.result === 'GET:/v1/mock/tests/foo:passed') {
+                    let response = await apClient.call('GET', '/health/version', {}, {'x': 'a', 'y': 1, 'z': ['a']});
+                    if(response.version) {
                         globalConfig.setEndpoint(endpoint);
                     } else {
                         throw new Error();
