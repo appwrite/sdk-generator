@@ -86,7 +86,7 @@ impl Display for {{ definition.name | caseUcfirst }} {
         let mut formatBuffer = String::new();
 {% for property in definition.properties %}
 {% if property.type != 'array' %}
-        formatBuffer.push_str(&format!("{}", self.{{ property.name | escapeKeyword | removeDollarSign }}));
+        formatBuffer.push_str(&format!("{:?}", self.{{ property.name | escapeKeyword | removeDollarSign }}));
 {% else %}
         for item in &self.{{ property.name | escapeKeyword | removeDollarSign }} {
             formatBuffer.push_str(&format!("{}", item));

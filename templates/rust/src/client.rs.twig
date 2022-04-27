@@ -10,7 +10,7 @@ pub struct Client {
     client: reqwest::blocking::Client,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(untagged)]
 pub enum ParamType {
     Bool(bool),
