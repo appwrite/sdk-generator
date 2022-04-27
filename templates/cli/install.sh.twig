@@ -27,13 +27,12 @@
 {{ spec.title | upper }}_TEMP_NAME=temp-$(date +%s)
 
 # {{ spec.title | caseUcfirst }} CLI image name
-{{ spec.title | upper }}_CLI_IMAGE_NAME={{ spec.title | lower }}/cli
-
-# {{ spec.title | caseUcfirst }} CLI image version 
-{{ spec.title | upper }}_CLI_IMAGE_VERSION={{ sdk.version }}
+GITHUB_REPOSITORY_NAME={{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}
 
 # sudo is required to copy executable to {{ spec.title | upper }}_INSTALL_DIR for linux
 USE_SUDO="false"
+OS=""
+ARCH=""
 
 # Add some color to life
 RED='\033[0;31m'
@@ -43,19 +42,23 @@ NC='\033[0m' # No Color
 
 greeting() {
     echo -e "${RED}"
-    cat << "EOF"{{ language.params.logo | raw }}
+    cat << "EOF"
+{{ language.params.logoUnescaped | raw }}
 EOF
     echo -e "${NC}\n"
-    echo "🔥 Welcome to the {{ spec.title | caseUcfirst }} CLI install shield 🛡."
+    echo "🔥 Welcome to the {{ spec.title | caseUcfirst }} CLI install shield 🛡"
 }
 
 getSystemInfo() {
     echo "[1/4] Getting System Info ..."
+    
     ARCH=$(uname -m)
     case $ARCH in
-        armv7*) ARCH="arm";;
-        aarch64) ARCH="arm64";;
-        x86_64) ARCH="amd64";;
+        i386|i686) ARCH="x64" ;;
+        x86_64) ARCH="x64";;
+        armv6*) ARCH="arm64" ;;
+        armv7*) ARCH="arm64" ;;
+        aarch64*) ARCH="arm64" ;;
     esac
 
     OS=$(echo `uname`|tr '[:upper:]' '[:lower:]')
@@ -85,67 +88,25 @@ printSuccess() {
     printf "${GREEN}✅ Done ... ${NC}\n\n"
 }
 
-performChecks() {
-    echo "[2/4] Performing Checks ..."
+downloadBinary() {
+    echo "[2/4] Downloading executable for $OS ($ARCH) ..."
 
-    # Check if docker is installed 
-    printf "${GREEN}🚦 Checking if docker is installed ... ${NC}\n"
-    if ! command -v docker  &> /dev/null; then
-        printf "${RED}❌ Docker could not be found. Please install docker for your OS from https://docs.docker.com/get-docker/ and try again.${NC}\n"
+    GITHUB_LATEST_VERSION="{{ sdk.version }}"
+    GITHUB_FILE="{{ language.params.npmPackage }}-${OS}-${ARCH}"
+    GITHUB_URL="https://github.com/$GITHUB_REPOSITORY_NAME/releases/download/$GITHUB_LATEST_VERSION/$GITHUB_FILE"
+
+    printf "${GREEN}🚦 Downloading {{ spec.title | caseUcfirst }} CLI $GITHUB_LATEST_VERSION ... ${NC}\n"
+    res=$(curl -s $GITHUB_URL)
+    if [[ "$res" == *"Not Found"* ]]; then
+        printf "${RED}❌ Couldn't find executable for $OS ($ARCH). Please contact the {{ spec.title | caseUcfirst }} team ${NC} \n"
         exit 1
     fi
+    curl -L -o ${{ spec.title | upper }}_TEMP_NAME $GITHUB_URL
     printSuccess
-
-    # Check if the Docker Daemon is running
-    printf "${GREEN}🏃‍ Checking if docker daemon is running ... ${NC}\n"
-    rep=$(curl -s --unix-socket /var/run/docker.sock http://ping > /dev/null)
-    status=$?
-    if [ "$status" == "7" ]; then
-        printf "${RED}❌ The docker daemon is not operational. Make sure that docker is running and try again.${NC} \n"
-        exit 1
-    fi
-    printSuccess
-
 }
 
 install() {
-
-    echo "[3/4] Starting installation ..."
-
-    # Fetch the {{ spec.title | caseUcfirst }} CLI Image.
-    printf "${GREEN}🐳 Pulling docker image ... ${NC}\n"
-    out=$(docker pull "${{ spec.title | upper }}_CLI_IMAGE_NAME:${{ spec.title | upper }}_CLI_IMAGE_VERSION")
-    if [[ $out != *"Image is up to date"* ]] && [[ $out != *"Downloaded newer image"* ]]; then
-        printf "${RED}❌ Failed to fetch docker image. Exiting ... ${NC}\n"
-        exit 1
-    fi
-    printSuccess
-    
-    echo '#!/bin/bash
-
-allowList=(version help init client{% for service in spec.services %} {{ service.name }}{% endfor %})
-
-if [[ -z $1 ]]; then 
-    set -- "$@" help
-fi 
-
-# Check if the command is in the allowList
-if [[ ! " ${allowList[@]} " =~ " ${1} " ]]; then
-    printf "\nLooks like a crazy hamster 🐹 flipped a bit.\n\nUse {{ language.params.executableName }} help for a list of supported commands.\n"
-    exit 1
-fi
-
-# https://stackoverflow.com/a/30655982/2299554
-for x in "${@}" ; do
-    # try to figure out if quoting was required for the $x
-    if [[ "$x" != "${x%[[:space:]]*}" ]]; then
-        x="\""$x"\""
-    fi
-    x="${x// /%20}"
-    _args=$_args" "$x
-done
-
-bash -c "docker run -i --rm --volume {{ spec.title | lower }}-cli:/usr/local/code/app/.preferences/ --volume \"$PWD\":/usr/local/code/files:rw --network host '${{ spec.title | upper }}_CLI_IMAGE_NAME:${{ spec.title | upper }}_CLI_IMAGE_VERSION' $_args" ' > ${{ spec.title | upper }}_TEMP_NAME
+    echo "[3/4] Installing ..."
 
     printf "${GREEN}🚧 Setting Permissions ${NC}\n"
     chmod +x ${{ spec.title | upper }}_TEMP_NAME
@@ -165,7 +126,7 @@ bash -c "docker run -i --rm --volume {{ spec.title | lower }}-cli:/usr/local/cod
 }
 
 cleanup() {
-    echo "🧹 Cleaning up mess ... "
+    printf "${GREEN}🧹 Cleaning up mess ... ${NC}\n"
     rm ${{ spec.title | upper }}_TEMP_NAME 
     if [ $? -ne 0 ]; then
         printf "${RED}❌ Failed to remove temporary file ... ${NC}\n"
@@ -179,12 +140,12 @@ installCompleted() {
     echo "[4/4] Wrapping up installation ... "
     cleanup
     printf "🤘 May the force be with you. \n"
-    echo "🚀 To get started with {{ spec.title | caseUcfirst }} CLI, please visit https://{{ spec.title | lower }}.io/docs/command-line"
+    echo "🚀 To get started with {{ spec.title | caseUcfirst }} CLI, please visit {{ sdk.url }}/docs/command-line"
 }
 
 # Installation Starts here 
 greeting
 getSystemInfo
-performChecks
+downloadBinary
 install
 installCompleted

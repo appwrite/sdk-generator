@@ -20,10 +20,10 @@ class {{ service.name | caseUcfirst }} extends Service
      * @param {{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
      * @throws {{spec.title | caseUcfirst}}Exception
-     * @return {% if method.type == 'location' %}string{% else %}array{% endif %}
+     * @return {% if (method.type == 'location') %}string{% else %}array{% endif %}
 
      */
-    public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}): {% if method.type == 'location' %}string{% else %}array{% endif %}
+    public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, callable $onProgress = null{% endif %}): {% if (method.type == 'location') %}string{% else %}array{% endif %}
 
     {
 {% for parameter in method.parameters.all %}
@@ -55,6 +55,71 @@ class {{ service.name | caseUcfirst }} extends Service
         }
 
 {% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+        $size = filesize(${{ parameter.name | caseCamel }});
+        $mimeType = mime_content_type(${{ parameter.name | caseCamel }});
+        $postedName = basename(${{ parameter.name | caseCamel }});
+        //send single file if size is less than or equal to 5MB
+        if ($size <= Client::CHUNK_SIZE) {
+            $params['{{ parameter.name }}'] = new \CURLFile(${{ parameter.name | caseCamel }}, $mimeType, $postedName);
+            return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
+{% for param in method.parameters.header %}
+                '{{ param.name }}' => ${{ param.name | caseCamel }},
+{% endfor %}
+{% for key, header in method.headers %}
+                '{{ key }}' => '{{ header }}',
+{% endfor %}
+                ], $params);
+        }
+
+        $id = '';
+        $counter = 0;
+
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+            if(${{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
+                try {
+                    $response = $this->client->call(Client::METHOD_GET, new URL($path . '/' . {{ parameter.name }}), headers);
+                    $counter = $response['chunksUploaded'] ?? 0;
+                } catch(\Exception $e) {
+                }
+            }
+{% endif %}
+{% endfor %}
+
+        $headers = ['content-type' => 'multipart/form-data'];
+        $handle = @fopen(${{ parameter.name | caseCamel }}, "rb");
+        $start = $counter * Client::CHUNK_SIZE;
+        while ($start < $size) {
+            fseek($handle, $start);
+            $params['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(@fread($handle, Client::CHUNK_SIZE)), $mimeType, $postedName);
+            $headers['content-range'] = 'bytes ' . ($counter * Client::CHUNK_SIZE) . '-' . min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size) . '/' . $size;
+            if(!empty($id)) {
+                $headers['x-{{spec.title | caseLower }}-id'] = $id;
+            }
+            $response = $this->client->call(Client::METHOD_POST, $path, $headers, $params);
+            $counter++;
+            $start += Client::CHUNK_SIZE;
+            if(empty($id)) {
+                $id = $response['$id'];
+            }
+            if($onProgress !== null) {
+                $onProgress([
+                    '$id' => $response['$id'],
+                    'progress' => min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size) / $size * 100,
+                    'sizeUploaded' => min($counter * Client::CHUNK_SIZE),
+                    'chunksTotal' => $response['chunksTotal'],
+                    'chunksUploaded' => $response['chunksUploaded'], 
+                ]);
+            }
+        }
+        @fclose($handle);
+        return $response;
+{% endif %}
+{% endfor %}
+{% else %}
         return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}' => ${{ parameter.name | caseCamel | escapeKeyword }},
@@ -63,6 +128,7 @@ class {{ service.name | caseUcfirst }} extends Service
             '{{ key }}' => '{{ header }}',
 {% endfor %}
         ], $params);
+{% endif %}
     }
 {% if not loop.last %}
 

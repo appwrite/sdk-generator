@@ -7,15 +7,20 @@ abstract class ClientBase implements Client {
 {% if header.description %}
   /// {{header.description}}
 {% endif %}
+  @override
   ClientBase set{{header.key | caseUcfirst}}(value);
 {% endfor %}
 
+  @override
   ClientBase setSelfSigned({bool status = true});
 
+  @override
   ClientBase setEndpoint(String endPoint);
 
+  @override
   ClientBase addHeader(String key, String value);
 
+  @override
   Future<Response> call(
     HttpMethod method, {
     String path = '',

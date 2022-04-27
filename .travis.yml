@@ -1,26 +1,57 @@
 
-dist: xenial
+dist: focal
 
 arch:
   - amd64
+
+services:
+  - docker
 
 os: linux
 
 language: php
 
 php:
-  - 7.4
+  - 8.0
+
+env:
+  - SDK=Android11Java8
+  - SDK=Android11Java11
+  - SDK=Android12Java8
+  - SDK=Android12Java11
+  - SDK=CLINode14
+  - SDK=CLINode16
+  - SDK=DartBeta
+  - SDK=DartStable
+  - SDK=Deno1171
+  - SDK=FlutterStable
+  - SDK=Go112
+  - SDK=Go118
+  - SDK=FlutterBeta
+  - SDK=KotlinJava8
+  - SDK=KotlinJava11
+  - SDK=KotlinJava17
+  - SDK=Node12
+  - SDK=Node14
+  - SDK=Node16
+  - SDK=PHP74
+  - SDK=PHP80
+  - SDK=Python38
+  - SDK=Python39
+  - SDK=Python310
+  - SDK=Ruby27
+  - SDK=Ruby30
+  - SDK=Ruby31
+  - SDK=SwiftClient55
+  - SDK=SwiftServer55
+  - SDK=WebChromium
+  - SDK=WebNode
 
 notifications:
   email:
     - team@appwrite.io
 
 before_install:
-  - curl -fsSL https://get.docker.com | sh
-  - echo '{"experimental":"enabled"}' | sudo tee /etc/docker/daemon.json
-  - mkdir -p $HOME/.docker
-  - echo '{"experimental":"enabled"}' | sudo tee $HOME/.docker/config.json
-  - sudo service docker start
   - >
     if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
       echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
@@ -32,4 +63,4 @@ install:
   - composer install
 
 script:
-  - vendor/bin/phpunit
+  - vendor/bin/phpunit tests/${SDK}Test.php

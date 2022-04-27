@@ -1,4 +1,4 @@
-{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}>{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% endmacro %}
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}>{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}Map<String, Any>{% else %}{{property.type | typeName}}{% endif %}{% endif %}{% endmacro %}
 package {{ sdk.namespace | caseDot }}.models
 
 import com.google.gson.annotations.SerializedName
