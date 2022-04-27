@@ -14,7 +14,7 @@ const questionGetEndpoint = [
       }
       let client = new Client().setEndpoint(value);
       try {
-        let response = await client.call('GET', '/health/version', {}, {'x': 'a', 'y': 1, 'z': ['a']});
+        let response = await client.call('GET', '/health/version');
         if(response.version) {
           return true;
         } else {
