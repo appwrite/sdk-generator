@@ -116,5 +116,7 @@ class Tests: XCTestCase {
 
         mock = try await general.getCookie()
         print(mock.result)
+
+        try! await general.empty()
     }
 }
