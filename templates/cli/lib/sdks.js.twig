@@ -9,21 +9,20 @@ const questionGetEndpoint = [
     message: "Enter the endpoint of your {{ spec.title|caseUcfirst }} server",
     default: "http://localhost/v1",
     async validate(value) {
-      if(!value) {
-        return 'Please provide valid endpoint';
+      if (!value) {
+        return "Please enter a valid endpoint.";
       }
       let client = new Client().setEndpoint(value);
       try {
-        let response = await client.call('GET', '/health/version');
-        if(response.version) {
+        let response = await client.call('get', '/health/version');
+        if (response.version) {
           return true;
         } else {
-          return 'Not a valid endpoint or Appwrite server is not running as expected';
+          throw new Error();
         }
       } catch (error) {
-        return 'Not a valid endpoint or Appwrite server is not running as expected';
+        return "Invalid endpoint or your Appwrite server is not running as expected.";
       }
-      return true;
     }
   }
 ]
