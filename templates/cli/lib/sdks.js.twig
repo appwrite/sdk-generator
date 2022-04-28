@@ -8,7 +8,7 @@ const questionGetEndpoint = [
     name: "endpoint",
     message: "Enter the endpoint of your {{ spec.title|caseUcfirst }} server",
     default: "http://localhost/v1",
-    validate: async (value) => {
+    async validate(value) {
       if(!value) {
         return 'Please provide valid endpoint';
       }
