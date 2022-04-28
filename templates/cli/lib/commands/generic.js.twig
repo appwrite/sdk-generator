@@ -74,7 +74,7 @@ const client = new Command("client")
                     if(response.version) {
                         globalConfig.setEndpoint(endpoint);
                     } else {
-                        throw new Error();
+                        throw new Error("Invalid endpoint or your Appwrite server is not running as expected.");
                     }
                     globalConfig.setEndpoint(endpoint);
                 } else {
