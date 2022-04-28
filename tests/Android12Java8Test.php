@@ -8,7 +8,7 @@ class Android12Java8Test extends Base
     protected string $class = 'Appwrite\SDK\Language\Android';
     protected array $build = [
         'mkdir -p tests/sdks/android/library/src/test/java',
-        'cp tests/languages/android/ServiceTest.kt tests/sdks/android/library/src/test/java/ServiceTest.kt',
+        'cp tests/languages/android/Tests.kt tests/sdks/android/library/src/test/java/Tests.kt',
         'chmod +x tests/sdks/android/gradlew',
     ];
     protected string $command =
