@@ -224,6 +224,12 @@ class Rust extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '.gitignore',
+                'template'      => '/rust/.gitignore.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => '/rust/LICENSE.twig',
                 'minify'        => false,
