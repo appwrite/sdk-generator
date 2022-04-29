@@ -1,4 +1,5 @@
 #[derive(Debug, Serialize, Clone, Deserialize)]
+#[serde(untagged)]
 pub enum Attribute {
     AttributeString(crate::models::AttributeString),
     AttributeInteger(crate::models::AttributeInteger),
