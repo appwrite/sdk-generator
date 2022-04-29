@@ -46,6 +46,7 @@ env:
   - SDK=SwiftServer55
   - SDK=WebChromium
   - SDK=WebNode
+  - SDK=Rust
 
 notifications:
   email:
