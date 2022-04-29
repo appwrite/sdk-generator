@@ -18,9 +18,9 @@ use Appwrite\SDK\Language\Swift;
 use Appwrite\SDK\Language\SwiftClient;
 use Appwrite\SDK\Language\DotNet;
 use Appwrite\SDK\Language\Flutter;
-use Appwrite\SDK\Language\Rust;
 use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Kotlin;
+use Appwrite\SDK\Language\Rust;
 
 try {
 
@@ -410,64 +410,8 @@ try {
 
     $sdk->generate(__DIR__ . '/examples/HTTP');
 
-    // CLI
-    $cli = new CLI();
-    $cli->setExecutableName('appwrite');
-    $cli->setLogo("
-    _                            _ _           ___   __   _____ 
-   /_\  _ __  _ ____      ___ __(_) |_ ___    / __\ / /   \_   \
-  //_\\| '_ \| '_ \ \ /\ / / '__| | __/ _ \  / /   / /     / /\/
- /  _  \ |_) | |_) \ V  V /| |  | | ||  __/ / /___/ /___/\/ /_  
- \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/  
-       |_|   |_|                                                  
- ");
-    $sdk  = new SDK($cli, new Swagger2($spec));
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setURL('https://example.com')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setVersion('0.0.1')
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
-        ->setTwitter('appwrite_io')
-        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
-        // ->setDefaultHeaders([
-        //     'X-Appwrite-Response-Format' => '0.7.0',
-        // ])
-    ;
-    $sdk->generate(__DIR__ . '/examples/CLI');
-
-    // Rust
-    $rust = new Rust();
-    $rust->setPackageName('appwrite');
-
-    $sdk  = new SDK($rust, new Swagger2($spec));
-
-    $sdk
-        ->setName('NAME')
-        ->setDescription('Repo description goes here')
-        ->setShortDescription('Repo short description goes here')
-        ->setURL('https://example.com')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
-        ->setChangelog('**CHANGELOG**')
-        ->setVersion('0.0.1')
-        ->setGitUserName('repoowner')
-        ->setGitRepoName('reponame')
-        ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
-
-    $sdk->generate(__DIR__ . '/examples/rust');
-
     // Android
+
     $sdk = new SDK(new Android(), new Swagger2($spec));
     
     $sdk
@@ -514,6 +458,31 @@ try {
         ])
     ;
     $sdk->generate(__DIR__ . '/examples/kotlin');
+
+    // Rust
+    $rust = new Rust();
+    $rust->setPackageName('appwrite');
+
+    $sdk  = new SDK($rust, new Swagger2($spec));
+
+    $sdk
+        ->setName('NAME')
+        ->setDescription('Appwrite is an open-source backend as a service server that abstract and simplify complex and repetitive development tasks behind a very simple to use REST API. Appwrite aims to help you develop your apps faster and in a more secure way. Use the Flutter SDK to integrate your app with the Appwrite server to easily start interacting with all of Appwrite backend APIs and tools. For full API documentation and tutorials go to https://appwrite.io/docs')
+        ->setShortDescription('Appwrite Rust SDK')
+        ->setURL('https://example.com')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
+        ->setVersion('0.0.1')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/rust');    
 }
 catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
