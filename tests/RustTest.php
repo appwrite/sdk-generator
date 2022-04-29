@@ -12,7 +12,7 @@ class RustTest extends Base
         'cp ../../../languages/rust/main.rs ./src/main.rs',
         'echo \'Appwrite = { path = "../" }\' >> Cargo.toml'
     ];
-    protected string $command = 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/rust rust:stable sh -c "cargo build && cargo test"';
+    protected string $command = 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/rust rust:latest sh -c "cargo build && cargo test"';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
