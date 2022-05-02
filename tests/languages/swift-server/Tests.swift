@@ -82,20 +82,20 @@ class Tests: XCTestCase {
 
         do {
             try await general.error400()
-        } catch let error as AppwriteError {
-            print(error.message)
+        } catch {
+            print(error.localizedDescription)
         }
 
         do {
             try await general.error500()
-        } catch let error as AppwriteError {
-            print(error.message)
+        } catch {
+            print(error.localizedDescription)
         }
 
         do {
             try await general.error502()
-        } catch let error as AppwriteError {
-            print(error.message)
+        } catch {
+            print(error.localizedDescription)
         }
     }
 }
