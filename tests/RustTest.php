@@ -16,9 +16,6 @@ class RustTest extends Base
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
-        ...Base::LARGE_FILE_RESPONSES,
-        ...Base::EXCEPTION_RESPONSES,
-        ...Base::REALTIME_RESPONSES,
-        ...Base::COOKIE_RESPONSES,
+        ...Base::EXCEPTION_RESPONSES
     ];
 }

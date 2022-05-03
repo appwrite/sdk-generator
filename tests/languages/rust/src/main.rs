@@ -12,23 +12,23 @@ fn main() {
 
     // Foo
 
-    println!("{:?}", foo.get("string", 123, &["string in array"]).unwrap());
-    println!("{:?}", foo.post("string", 123, &["string in array"]).unwrap());
-    println!("{:?}", foo.put("string", 123, &["string in array"]).unwrap());
-    println!("{:?}", foo.patch("string", 123, &["string in array"]).unwrap());
-    println!("{:?}", foo.delete("string", 123, &["string in array"]).unwrap());
+    println!("{}", foo.get("string", 123, &["string in array"]).unwrap().result);
+    println!("{}", foo.post("string", 123, &["string in array"]).unwrap().result);
+    println!("{}", foo.put("string", 123, &["string in array"]).unwrap().result);
+    println!("{}", foo.patch("string", 123, &["string in array"]).unwrap().result);
+    println!("{}", foo.delete("string", 123, &["string in array"]).unwrap().result);
 
     // Bar
 
-    println!("{:?}", bar.get("string", 123, &["string in array"]).unwrap());
-    println!("{:?}", bar.post("string", 123, &["string in array"]).unwrap());
-    println!("{:?}", bar.put("string", 123, &["string in array"]).unwrap());
-    println!("{:?}", bar.patch("string", 123, &["string in array"]).unwrap());
-    println!("{:?}", bar.delete("string", 123, &["string in array"]).unwrap());
+    println!("{}", bar.get("string", 123, &["string in array"]).unwrap().result);
+    println!("{}", bar.post("string", 123, &["string in array"]).unwrap().result);
+    println!("{}", bar.put("string", 123, &["string in array"]).unwrap().result);
+    println!("{}", bar.patch("string", 123, &["string in array"]).unwrap().result);
+    println!("{}", bar.delete("string", 123, &["string in array"]).unwrap().result);
 
     // General
-    println!("{:?}", general.redirect().unwrap()["result"].as_str().unwrap());
-    println!("{:?}", general.upload("string", 123, &["string in array"], PathBuf::from("../../../resources/file.png")).unwrap());
+    println!("{}", general.redirect().unwrap()["result"].as_str().unwrap());
+    println!("{}", general.upload("string", 123, &["string in array"], PathBuf::from("../../../resources/file.png")).unwrap().result);
 
     match general.error400() {
       Ok(data) => println!("{}", data),
