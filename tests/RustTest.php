@@ -7,12 +7,10 @@ class RustTest extends Base
     protected string $language = 'rust';
     protected string $class = 'Appwrite\SDK\Language\Rust';
     protected array $build = [
-        'mkdir -p tests/sdks/rust/tests',
-        'cd tests/sdks/rust/tests && cargo init',
-        'cp ../../../languages/rust/main.rs ./src/main.rs',
-        'echo \'Appwrite = { path = "../" }\' >> Cargo.toml'
+        'cp -r tests/languages/rust/ tests/sdks/rust/tests/',
+        // 'cd tests/sdks/rust/tests/ && cargo build'
     ];
-    protected string $command = 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/rust rust:latest sh -c "cargo build && cargo test"';
+    protected string $command = 'docker run --network host --rm -v $(pwd):/app -w /app/tests/sdks/rust/tests rust:latest cargo run';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

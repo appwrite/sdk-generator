@@ -1,14 +1,14 @@
-use Appwrite;
+use packageName;
 use std::path::PathBuf;
 
 fn main() {
-    let client = Appwrite::client::Client::new();
+    let client = packageName::client::Client::new();
 
     println!("Test Started");
 
-    let foo = Appwrite::services::Foo::new(&client);
-    let bar = Appwrite::services::Bar::new(&client);
-    let general = Appwrite::services::General::new(&client);
+    let foo = packageName::services::Foo::new(&client);
+    let bar = packageName::services::Bar::new(&client);
+    let general = packageName::services::General::new(&client);
 
     // Foo
 
