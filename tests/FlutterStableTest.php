@@ -18,6 +18,7 @@ class FlutterStableTest extends Base
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
+        ...Base::DOWNLOAD_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         ...Base::COOKIE_RESPONSES,

@@ -90,6 +90,9 @@ class Tests: XCTestCase {
 		mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
 		print(mock.result)
 
+        var res = try await general.download()
+        print(res.readString(length: res.readableBytes)!)
+
         do {
             try await general.error400()
         } catch let error as AppwriteError {

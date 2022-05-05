@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class SwiftClient55Test extends Base
+class SwiftClient56Test extends Base
 {
     protected string $language = 'swift-client';
     protected string $class = 'Appwrite\SDK\Language\SwiftClient';
@@ -11,7 +11,7 @@ class SwiftClient55Test extends Base
         'cp tests/languages/swift-client/Tests.swift tests/sdks/swift-client/Tests/AppwriteTests/Tests.swift',
     ];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-client swiftarm/swift:5.5.2-focal-multi-arch swift test';
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-client swift:5.6.1-focal swift test';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

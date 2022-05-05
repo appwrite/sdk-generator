@@ -63,7 +63,6 @@ class Tests: XCTestCase {
         mock = try await bar.delete(xrequired: "string", xdefault: 123, z: ["string in array"])
         print(mock.result)
 
-
         // General Tests
         let result = try await general.redirect()
         print((result as! [String: Any])["result"] as! String)
@@ -80,6 +79,10 @@ class Tests: XCTestCase {
         mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
         print(mock.result)
 
+        var res = try await general.download()
+        print(res.readString(length: res.readableBytes)!)
+
+        // Exception Tests
         do {
             try await general.error400()
         } catch let error as AppwriteError {

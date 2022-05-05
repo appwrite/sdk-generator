@@ -55,6 +55,9 @@ puts response.result
 response = general.upload(x: 'string', y: 123, z:['string in array'], file: './tests/resources/large_file.mp4')
 puts response.result
 
+response = general.download()
+puts response.body
+
 begin
     general.error400()
 rescue Appwrite::Exception => error

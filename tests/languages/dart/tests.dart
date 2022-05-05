@@ -62,6 +62,9 @@ void main() async {
       x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
+  final download = await general.download();
+  print(new String.fromCharCodes(download));
+
   try {
     await general.error400();
   } on AppwriteException catch (e) {

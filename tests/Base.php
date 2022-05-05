@@ -35,7 +35,7 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
-    const EXTENDED_GENERAL_RESPONSES = [
+    const DOWNLOAD_RESPONSES = [
         'Download test passed.',
     ];
 
