@@ -6,10 +6,17 @@ const getIgnores = (runtime) => {
   const languge = runtime.split('-')[0];
 
   switch (languge) {
+    case 'cpp':
+        return ['build', 'CMakeFiles', 'CMakeCaches.txt'];
     case 'dart':
       return ['.packages', '.dart_tool'];
     case 'deno':
       return [];
+    case 'dotnet':
+        return ['bin', 'obj', '.nuget'];
+    case 'java':
+    case 'kotlin':
+        return ['build'];
     case 'node':
       return ['node_modules', '.npm'];
     case 'php':
@@ -21,7 +28,7 @@ const getIgnores = (runtime) => {
     case 'rust':
       return ['target', 'debug', '*.rs.bk', '*.pdb'];
     case 'swift':
-      return ['Packages'];
+      return ['.build', '.swiftpm'];
   }
 
   return undefined;
