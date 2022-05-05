@@ -285,7 +285,7 @@ open class Client {
                 case is Bool.Type:
                     return true as! T
                 case is ByteBuffer.Type:
-                    return response.body as! T
+                    return try await response.body.collect(upTo: Int.max) as! T
                 default:
                     let data = try await response.body.collect(upTo: Int.max)
                     let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
