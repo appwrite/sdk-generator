@@ -29,6 +29,7 @@ fn main() {
     // General
     println!("{}", general.redirect().unwrap()["result"].as_str().unwrap());
     println!("{}", general.upload("string", 123, &["string in array"], PathBuf::from("../../../resources/file.png")).unwrap().result);
+    println!("{}", general.upload("string", 123, &["string in array"], PathBuf::from("../../../resources/large_file.mp4")).unwrap().result);
 
     match general.error400() {
       Ok(data) => println!("{}", data),
