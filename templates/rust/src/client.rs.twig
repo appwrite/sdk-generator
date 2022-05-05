@@ -10,6 +10,8 @@ pub struct Client {
     client: reqwest::blocking::Client,
 }
 
+pub static CHUNK_SIZE: u64 = 5*1024*1024; // 5MB
+
 #[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(untagged)]
 pub enum ParamType {
@@ -20,6 +22,7 @@ pub enum ParamType {
     FilePath(PathBuf),
     Object(HashMap<String, ParamType>),
     Float(f64),
+    StreamData(Vec<u8>, String),
     OptionalBool(Option<bool>),
     OptionalNumber(Option<i64>),
     OptionalArray(Option<Vec<ParamType>>),
@@ -195,6 +198,7 @@ impl Client {
                             ParamType::FilePath(data) => form = form.file(k, data).unwrap(),
                             ParamType::Number(data) => form = form.text(k, data.to_string()),
                             ParamType::Float(data) => form = form.text(k, data.to_string()),
+                            ParamType::StreamData(data, filename) => form = form.part(k, reqwest::blocking::multipart::Part::bytes(data).file_name(filename)),
                             // This shouldn't be possible due to the flatten function, so we won't handle this for now
                             ParamType::Array(_data) => {
                                 //todo: Feed this back into a flatten function if needed

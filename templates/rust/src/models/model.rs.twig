@@ -74,8 +74,6 @@ pub struct {{ definition.name | caseUcfirst }} {
     {% if property.name | escapeKeyword | removeDollarSign != property.name %}
     #[serde(rename(serialize = "{{ property.name | escapeKeyword | removeDollarSign }}", deserialize = "{{ property.name }}"))]
     {% endif %}
-
-
     pub {{ property.name | escapeKeyword | removeDollarSign }}: {% if not property.required %}EmptyOption<{% endif %}{% if property.type == 'string' %}String{% elseif property.type == "array" and property.items['x-anyOf'] and 'attribute' in property.items['x-anyOf'][0]['$ref'] %}Vec<Attribute>{% elseif _self.sub_schema(property) == '&[&str]' %}Vec<String>{% else %}{{_self.sub_schema(property)}}{% endif %}{% if not property.required %}>{% endif %},
 {% endfor %}
 {% if definition.additionalProperties %}

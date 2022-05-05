@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::services::{{spec.title | caseUcfirst}}Exception;
 use crate::models;
 use serde_json::json;
+use std::io::Read;
 
 #[derive(Clone)]
 pub struct {{ service.name | caseUcfirst }} {
@@ -23,7 +24,7 @@ impl {{ service.name | caseUcfirst }} {
     pub fn {{ method.name | caseSnake }}(&self{% if method.parameters.all|length >= 1 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword}}: {% if parameter.required != 1 %}Option<{% endif %}{{ parameter.type | typeName }}{% if parameter.required != 1%}>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) -> Result<{% if method.type == 'location' %}Vec<u8>{% elseif method.responseModel and method.responseModel != 'any' %}models::{{method.responseModel | caseUcfirst}}{% else %}serde_json::value::Value{% endif %}, {{spec.title | caseUcfirst}}Exception> {
         let path = "{{ method.path|replace({'{': '', '}': ""}) }}"{% for parameter in method.parameters.path %}.replace("{{ parameter.name | caseCamel }}", &{{ parameter.name | caseSnake }}){% endfor %};
 {% if method.headers %}
-        let headers: HashMap<String, String> = [
+        let {% if 'multipart/form-data' in method.consumes %}mut{% endif %} headers: HashMap<String, String> = [
 {% for parameter in method.parameters.header %}
             ("{{ parameter.name }}".to_string(), "{{ parameter.name | caseCamel }}".to_string()),
 {% endfor %}
@@ -51,18 +52,117 @@ impl {{ service.name | caseUcfirst }} {
 {% endif %}
 {% endfor %}
 
-        let params: HashMap<String, ParamType> = [
+        let {% if 'multipart/form-data' in method.consumes %}mut{% endif %} params: HashMap<String, ParamType> = [
 {% for parameter in method.parameters.query %}
-            ("{{ parameter.name }}".to_string(), {% if parameter.type == 'number' %} ParamType::{% if parameter.required != 1 %}{% if parameter.type != 'string' %}Optional{% endif %}{% endif %}Float({% elseif parameter.type == 'integer' %} ParamType::{% if parameter.required != 1 %}Optional{% endif %}Number({% elseif parameter.type == 'string' %}ParamType::String({% elseif parameter.type == 'array' %}ParamType::Array({% elseif parameter.type == 'boolean' %}ParamType::{% if parameter.required != 1 %}Optional{% endif %}Bool({% elseif parameter.type == 'object' %}ParamType::{% if parameter.required != 1 %}Optional{% endif %}Object({% elseif parameter.type == 'file' %}ParamType::{% if parameter.required != 1 %}Optional{% endif %}FilePath({% endif %}{{ parameter.name | caseSnake | escapeKeyword }}{% if parameter.type == 'array' %}.into_iter().map(|x| ParamType::String(x.to_string())).collect(){% endif %}{% if parameter.type == 'string' %}.to_string(){% endif %}{% if parameter.type == 'object' %}.unwrap(){% endif %})),
+{% if parameter.type != 'file' %}
+            ("{{ parameter.name }}".to_string(), {% if parameter.type == 'number' %} ParamType::{% if parameter.required != 1 %}{% if parameter.type != 'string' %}Optional{% endif %}{% endif %}Float({% elseif parameter.type == 'integer' %} ParamType::{% if parameter.required != 1 %}Optional{% endif %}Number({% elseif parameter.type == 'string' %}ParamType::String({% elseif parameter.type == 'array' %}ParamType::Array({% elseif parameter.type == 'boolean' %}ParamType::{% if parameter.required != 1 %}Optional{% endif %}Bool({% elseif parameter.type == 'object' %}ParamType::{% if parameter.required != 1 %}Optional{% endif %}Object({% endif %}{{ parameter.name | caseSnake | escapeKeyword }}{% if parameter.type == 'array' %}.into_iter().map(|x| ParamType::String(x.to_string())).collect(){% endif %}{% if parameter.type == 'string' %}.to_string(){% endif %}{% if parameter.type == 'object' %}.unwrap(){% endif %})),
+{% endif %}
 {% endfor %}
 {% for parameter in method.parameters.body %}
-            ("{{ parameter.name }}".to_string(), {% if parameter.type == 'number' %} ParamType::{% if parameter.required != 1 %}{% if parameter.type != 'string' %}Optional{% endif %}{% endif %}Float({% elseif parameter.type == 'integer' %} ParamType::{% if parameter.required != 1 %}Optional{% endif %}Number({% elseif parameter.type == 'string' %}ParamType::String({% elseif parameter.type == 'array' %}ParamType::Array({% elseif parameter.type == 'boolean' %}ParamType::{% if parameter.required != 1 %}Optional{% endif %}Bool({% elseif parameter.type == 'object' %}ParamType::{% if parameter.required != 1 %}Optional{% endif %}Object({% elseif parameter.type == 'file' %}ParamType::{% if parameter.required != 1 %}Optional{% endif %}FilePath({% endif %}{% if parameter.type == 'object' and parameter.required != 1 %}match {% endif %}{{ parameter.name | caseSnake | escapeKeyword }}{% if parameter.type == 'array' %}.into_iter().map(|x| ParamType::String(x.to_string())).collect(){% endif %}{% if parameter.type == 'string' %}.to_string(){% endif %}{% if parameter.type == 'object' and parameter.required != 1 %} {
+{% if parameter.type != 'file' %}
+            ("{{ parameter.name }}".to_string(), {% if parameter.type == 'number' %} ParamType::{% if parameter.required != 1 %}{% if parameter.type != 'string' %}Optional{% endif %}{% endif %}Float({% elseif parameter.type == 'integer' %} ParamType::{% if parameter.required != 1 %}Optional{% endif %}Number({% elseif parameter.type == 'string' %}ParamType::String({% elseif parameter.type == 'array' %}ParamType::Array({% elseif parameter.type == 'boolean' %}ParamType::{% if parameter.required != 1 %}Optional{% endif %}Bool({% elseif parameter.type == 'object' %}ParamType::{% if parameter.required != 1 %}Optional{% endif %}Object({% endif %}{% if parameter.type == 'object' and parameter.required != 1 %}match {% endif %}{{ parameter.name | caseSnake | escapeKeyword }}{% if parameter.type == 'array' %}.into_iter().map(|x| ParamType::String(x.to_string())).collect(){% endif %}{% if parameter.type == 'string' %}.to_string(){% endif %}{% if parameter.type == 'object' and parameter.required != 1 %} {
                 Some(data) => data,
                 None => Some(HashMap::new())
             }{% elseif parameter.type == 'object' and parameter.required == 1 %}.unwrap(){% endif %})),
+{% endif %}
 {% endfor %}
         ].iter().cloned().collect();
 
+{% if 'multipart/form-data' in method.consumes %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+        let mut fileBuf = std::fs::File::open({{ parameter.name | caseSnake | escapeKeyword }}.clone()).unwrap();
+
+        let size = fileBuf.metadata().unwrap().len();
+
+        match size {
+            size if size <= crate::client::CHUNK_SIZE => {
+                params.insert("{{ parameter.name }}".to_string(), ParamType::FilePath({{ parameter.name | caseSnake | escapeKeyword }}));
+                match self.client.clone().call("POST", &path, Some(headers), Some(params)) {
+                    Ok(r) => {
+                        Ok(r.json::<models::{{method.responseModel | caseUcfirst}}>().unwrap())
+                    }
+                    Err(e) => {
+                        Err(e)
+                    }
+                }
+            }
+            _ => {
+                // Stream Data.
+                let mut id = "".to_string();
+
+                let mut resumeCounter: u64 = 0;
+                let totalCounters = (((size / crate::client::CHUNK_SIZE) as f64).ceil() as u64) + 1;
+
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+                if file_id != "unique()" {
+                    let filePath = format!("{{ method.path|replace({'{': '', '}': ""}) }}{}", file_id);
+                    match self.client.clone().call("GET", &filePath, Some(headers.clone()), None) {
+                        Ok(r) => {
+                            match r.json::<serde_json::Value>() {
+                                Ok(data) => {
+                                    resumeCounter = data["chunksUploaded"].as_u64().unwrap();
+                                },
+                                Err(_e) => ()
+                            };
+                        }
+                        Err(_e) => ()
+                    };
+                }
+{% endif %}
+{% endfor %}
+
+                let response: reqwest::blocking::Response;
+
+                for counter in resumeCounter..totalCounters {
+                    let mut headers: HashMap<String, String> = [
+                        ("content-type".to_string(), "multipart/form-data".to_string()),
+                    ].iter().cloned().collect();
+
+                    let mut params = params.clone();
+
+                    headers.insert("content-range".to_string(), format!("bytes {}-{}/{}", (counter * crate::client::CHUNK_SIZE),
+                        std::cmp::min((counter * crate::client::CHUNK_SIZE) + crate::client::CHUNK_SIZE - 1, size), size));
+
+                    if id.len() != 0 {
+                        headers.insert("x-appwrite-id".to_string(), id.to_string());
+                    }
+
+                    let mut chunk = Vec::with_capacity(crate::client::CHUNK_SIZE as usize);
+
+                    match fileBuf.by_ref().take(crate::client::CHUNK_SIZE).read_to_end(&mut chunk) {
+                        Ok(_) => (),
+                        Err(e) => {
+                            return Err(AppwriteException::new(format!("A error occoured. ERR: {}, This could either be a connection error or an internal Appwrite error. Please check your Appwrite instance logs. ", e), 0, "".to_string()))
+                        }
+                    };
+
+                    params.insert("file".to_string(), ParamType::StreamData(chunk, {{ parameter.name | caseSnake | escapeKeyword }}.file_name().unwrap().to_string_lossy().to_string()));
+
+                    let response = match self.client.clone().call("POST", &path, Some(headers), Some(params)) {
+                        Ok(r) => r,
+                        Err(e) => {
+                            return Err(e);
+                        }
+                    };
+
+                    // If last chunk, return the response.
+                    if counter == totalCounters - 1 {
+                        return Ok(response.json::<models::{{method.responseModel | caseUcfirst}}>().unwrap());
+                    } else {
+                        if id.len() == 0 {
+                            id = response.json::<serde_json::Value>().unwrap()["$id"].as_str().unwrap().to_owned();
+                        }
+                    }
+                };
+
+                return Err(AppwriteException::new("Error uploading chunk data.".to_string(), 500, "0".to_string()));
+            }
+        }
+{% endif %}
+{% endfor %}
+{% else %}
         let response = self.client.clone().call("{{ method.method | caseUpper }}", &path, {% if method.headers %}Some(headers){% else %}None{% endif %}, Some(params) );
 
 {% if method.type == 'location' %}
@@ -113,6 +213,7 @@ impl {{ service.name | caseUcfirst }} {
                 Err(e)
             }
         }
+{% endif %}
 {% endif %}
     }
 {% endfor %}
