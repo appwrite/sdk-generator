@@ -7,7 +7,7 @@
             {{property.sub_schema | caseUcfirst}}{% if property.type == 'array' %}[]{% endif %}
         {% endif %}
     {% elseif property.sub_schemas %}
-        {% for subProperty in property.sub_schemas %}{{subProperty | caseUcfirst}}{% if property.type == 'array' %}[]{% endif %}{% if loop.last == false %} | {% endif %}{% endfor %}
+        ({% for subProperty in property.sub_schemas %}{{subProperty | caseUcfirst}}{% if loop.last == false %} | {% endif %}{% endfor %}){% if property.type == 'array' %}[]{% endif %}
     {% else %}
         {{property.type | typeName}}
     {% endif %}
