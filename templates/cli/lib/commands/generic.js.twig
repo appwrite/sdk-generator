@@ -72,8 +72,8 @@ const client = new Command("client")
                     throw new Error();
                 }
                 
-                let apClient = new Client().setEndpoint(endpoint);
-                let response = await apClient.call('GET', '/health/version');
+                let client = new Client().setEndpoint(endpoint);
+                let response = await client.call('GET', '/health/version');
                 if(!response.version) {
                     throw new Error();
                 }
