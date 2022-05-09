@@ -12,3 +12,19 @@ open class {{ spec.title | caseUcfirst}}Error : Swift.Error, Decodable {
         self.type = type
     }
 }
+
+extension {{ spec.title | caseUcfirst}}Error: CustomStringConvertible {
+    public var description: String {
+        get {
+            return self.message
+        }
+    }
+}
+
+extension {{ spec.title | caseUcfirst}}Error: LocalizedError {
+    public var errorDescription: String? {
+        get {
+            return self.message
+        }
+    }
+}
