@@ -1,9 +1,17 @@
-import 'package:http/http.dart' show MultipartFile;
+import 'package:http/http.dart' show MultipartFile, encoding;
 
 class InputFile {
   final MultipartFile? file;
   final String? path;
   final String? filename;
+  final List<int>? bytes;
+  final String? contentType;
 
-  InputFile({this.file, this.path, this.filename});
+  InputFile({this.path, this.filename, @deprecated this.file});
+
+  /// Only for Files below 5 MB in size
+  InputFile.fromMultipartFile(this.file);
+
+  InputFile.fromBytes(this.bytes, { this.filename, this.contentType });
+
 }
