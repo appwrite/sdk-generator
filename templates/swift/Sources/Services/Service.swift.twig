@@ -29,22 +29,20 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% endif %}
     open func {{ method.name | caseCamel }}(
 {% for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %},
+        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
+
 {% endfor %}
 {% if 'multipart/form-data' in method.consumes %}
-        onProgress: ((UploadProgress) -> Void)? = nil,
+        onProgress: ((UploadProgress) -> Void)? = nil
 {% endif %}
-        completion: ((Result<{{ _self.resultType(spec, method) }}, {{ spec.title | caseUcfirst}}Error>) -> Void)? = nil
-    ) {
+    ) async throws -> {{ _self.resultType(spec, method) }} {
 {% if method.parameters.path %}        var{% else %}        let{% endif %} path: String = "{{ method.path }}"
-
 {% for parameter in method.parameters.path %}
         path = path.replacingOccurrences(
           of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}",
           with: {% if method.parameters.path %}{{ parameter.name | caseCamel | escapeKeyword }}{% else %}""{% endif %}
-        
-        )
 
+        )
 {% endfor %}
 {% if method.parameters.query or method.parameters.body or method.parameters.formData or _self.methodNeedsSecurityParameters(method) %}
         {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} params: [String: Any?] = [
@@ -66,71 +64,115 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% if method.parameters.query or method.parameters.body or method.parameters.formData or _self.methodNeedsSecurityParameters(method) %}
         ]
 {% endif %}
-
 {% if method.type == 'webAuth' %}
         let query = "?\(client.parametersToQueryString(params: params))"
         let url = URL(string: client.endPoint + path + query)!
         let callbackScheme = "appwrite-callback-\(client.config["project"] ?? "")"
+        let group = DispatchGroup()
 
+        group.enter()
         WebAuthComponent.authenticate(url: url, callbackScheme: callbackScheme) { result in
-            guard let completion = completion else {
-                return
-            }
-            completion(result.map { _ in true })
+            group.leave()
         }
+        group.wait()
+        
+        return true
 {% elseif method.type == 'location' %}
-        client.call(
+        return try await client.call(
             method: "{{ method.method | caseUpper }}",
             path: path,
-            params: params,
-            completion: completion
+            params: params
         )
 {% else %}
         {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} headers: [String: String] = [
 {{ method.headers|map((header, key) => "            \"#{key}\": \"#{header}\"")|join(',\n')|raw }}
         ]
-
 {% if method.responseModel %}
-        let convert: ([String: Any]) -> {{ _self.resultType(spec, method) }} = { dict in
+        let converter: ([String: Any]) -> {{ _self.resultType(spec, method) }} = { dict in
 {% if method.responseModel == 'any' %}
             return dict
 {% else %}
             return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: dict)
 {% endif %}
         }
-
 {% endif %}
 {% if 'multipart/form-data' in method.consumes %}
+        let idParamName: String? = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}nil{% endif %}
+
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
         let paramName = "{{ parameter.name }}"
-
 {% endif %}
 {% endfor %}
-        client.chunkedUpload(
+        return try await client.chunkedUpload(
             path: path,
             headers: &headers,
             params: &params,
             paramName: paramName,
+            idParamName: idParamName,
 {% if method.responseModel %}
-            convert: convert,
+            converter: converter,
 {% endif %}
-            onProgress: onProgress,
-            completion: completion
+            onProgress: onProgress
         )
 {% else %}
-        client.call(
+        return try await client.call(
             method: "{{ method.method | caseUpper }}",
             path: path,
             headers: headers,
-            params: params,
-{% if method.responseModel %}
-            convert: convert,
+            params: params{% if method.responseModel %},
+            converter: converter
 {% endif %}
-            completion: completion
         )
 {% endif %}
 {% endif %}
+    }
+
+{% endfor %}
+
+{% for method in service.methods %}
+    ///
+    /// {{ method.title }}
+    ///
+{% if method.description %}
+{{ method.description | swiftComment }}
+    ///
+{% endif %}
+{% for parameter in method.parameters.all %}
+    /// @param {{ parameter.type | typeName | raw}} {{ parameter.name | caseCamel }}
+{% endfor %}
+    /// @throws Exception
+    /// @return array
+    ///
+    @available(*, deprecated, message: "Use the async overload instead")
+{% if method.type == "webAuth" %}
+    @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+{% endif %}
+    open func {{ method.name | caseCamel }}(
+{% for parameter in method.parameters.all %}
+        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %},
+{% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+        onProgress: ((UploadProgress) -> Void)? = nil,
+{% endif %}
+        completion: ((Result<{{ _self.resultType(spec, method) }}, {{ spec.title | caseUcfirst}}Error>) -> Void)? = nil
+    ) {
+        Task {
+            do {
+                let result = try await {{ method.name | caseCamel }}(
+{% for parameter in method.parameters.all %}
+                    {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
+
+{% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+                    onProgress: onProgress
+{% endif %}
+                )
+                completion?(.success(result))
+            } catch {
+                completion?(.failure(error as! {{ spec.title | caseUcfirst}}Error))
+            }
+        }
     }
 
 {% endfor %}

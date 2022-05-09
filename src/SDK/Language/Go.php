@@ -59,7 +59,13 @@ class Go extends Language {
         return [
             [
                 'scope'         => 'default',
-                'destination'   => 'main.go',
+                'destination'   => 'go.mod',
+                'template'      => 'go/go.mod.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'example/main.go',
                 'template'      => 'go/main.go.twig',
                 'minify'        => false,
             ],
@@ -83,19 +89,13 @@ class Go extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'client.go',
+                'destination'   => '{{ spec.title | caseLower}}/client.go',
                 'template'      => 'go/client.go.twig',
                 'minify'        => false,
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'utils.go',
-                'template'      => 'go/utils.go.twig',
-                'minify'        => false,
-            ],
-            [
                 'scope'         => 'service',
-                'destination'   => '{{service.name | caseDash}}.go',
+                'destination'   => '{{ spec.title | caseLower}}/{{service.name | caseDash}}.go',
                 'template'      => 'go/services/service.go.twig',
                 'minify'        => false,
             ],
@@ -117,19 +117,18 @@ class Go extends Language {
         switch ($type) {
             case self::TYPE_INTEGER:
                 return 'int';
-            break;
+            case self::TYPE_NUMBER:
+                return 'float64';
             case self::TYPE_STRING:
                 return 'string';
-            break;
             case self::TYPE_FILE:
                 return 'string'; // '*os.File';
-            break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
-            break;
+            case self::TYPE_OBJECT:
+                return 'interface{}';
             case self::TYPE_ARRAY:
-                 return '[]interface{}';
-            break;
+                return '[]interface{}';
         }
 
         return $type;
@@ -161,6 +160,9 @@ class Go extends Language {
                 case self::TYPE_STRING:
                     $output .= '""';
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= 'nil';
+                    break;
                 case self::TYPE_ARRAY:
                     $output .= '[]';
                     break;
@@ -173,11 +175,14 @@ class Go extends Language {
                 case self::TYPE_ARRAY:
                     $output .= $default;
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= "\"$default\"";
+                    break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "\"{$default}\"";
+                    $output .= "nil";
                     break;
             }
         }
@@ -206,6 +211,9 @@ class Go extends Language {
                 case self::TYPE_STRING:
                     $output .= '""';
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= 'nil';
+                    break;
                 case self::TYPE_ARRAY:
                     $output .= '[]';
                     break;
@@ -220,6 +228,9 @@ class Go extends Language {
                 case self::TYPE_INTEGER:
                 case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= 'nil';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';

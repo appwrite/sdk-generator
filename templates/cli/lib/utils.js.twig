@@ -1,0 +1,19 @@
+const fs = require("fs");
+const path = require("path");
+
+function getAllFiles(folder) {
+    const files = [];
+    for(const pathDir of fs.readdirSync(folder)) {
+        const pathAbsolute = path.join(folder, pathDir);
+        if (fs.statSync(pathAbsolute).isDirectory()) {
+            files.push(...getAllFiles(pathAbsolute));
+        } else {
+            files.push(pathAbsolute);
+        }
+    }
+    return files;
+}
+
+module.exports = {
+    getAllFiles
+};

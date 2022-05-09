@@ -9,14 +9,19 @@ extension HTTPClient.Request {
     }
 }
 
+extension HTTPClientRequest {
+    public mutating func addDomainCookies() {
+        headers.addDomainCookies(for: URL(string: url)!.host!)
+    }
+}
+
 extension HTTPHeaders {
     public mutating func addDomainCookies(for domain: String) {
-        let cookieJson = UserDefaults.standard.string(forKey: "\(domain)-cookies")
-        let cookies: [HTTPClient.Cookie?]? = try? cookieJson?.fromJson(to: [HTTPClient.Cookie].self)
-            ?? [(try? cookieJson?.fromJson(to: HTTPClient.Cookie.self))]
-
-        if let authCookie = cookies?.first(where: { $0?.name.starts(with: "a_session_") == true } ) {
-            add(name: "cookie", value: "\(authCookie!.name)=\(authCookie!.value)")
+        guard let cookies = UserDefaults.standard.stringArray(forKey: "\(domain)-cookies") else {
+            return
+        }
+        for cookie in cookies {
+            add(name: "Cookie", value: cookie)
         }
     }
 }

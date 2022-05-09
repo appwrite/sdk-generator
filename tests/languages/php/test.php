@@ -90,3 +90,5 @@ try {
 } catch (AppwriteException $e) {
     echo "{$e->getMessage()}\n";
 }
+
+$general->empty();

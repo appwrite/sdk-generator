@@ -27,7 +27,8 @@
         "matthiasmullie/minify": "^1.3"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.5.13"
+        "phpunit/phpunit": "^9.5.13",
+        "brianium/paratest": "^6.4"
     },
     "minimum-stability": "dev",
     "prefer-stable": true

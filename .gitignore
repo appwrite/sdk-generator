@@ -8,13 +8,19 @@
 .env
 .envrc
 .hatch
+
 # exclude everything
 examples/*
+tests/tmp
+.phpunit.result.cache
 
 # exception to the rule
-!examples/.gitkeep
+!examples/.gitkeep 
+
 **/.DS_Store
 templates/swift/example/.build
 templates/swift/example/Example.xcodeproj/project.xcworkspace/xcuserdata
 templates/swift/example/Example.xcodeproj/xcuserdata
 **/xcuserdata
+# exclude go checksum files
+go.sum
