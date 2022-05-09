@@ -54,9 +54,17 @@ const initProject = async () => {
 }
 
 const initFunction = async () => {
-  let answers = await inquirer.prompt(questionsInitFunction)
+  let answers = await inquirer.prompt(questionsInitFunction);
 
-  if (fs.existsSync(path.join(process.cwd(), 'functions', answers.name))) {
+  if (!fs.existsSync(path.join(process.cwd(), 'functions'))) {
+    fs.mkdirSync(path.join(process.cwd(), 'functions'), {
+      recursive: true
+    });
+  }
+
+  const functionDir = path.join(process.cwd(), 'functions', answers.name);
+
+  if (fs.existsSync(functionDir)) {
     throw new Error(`( ${answers.name} ) already exists in the current directory. Please choose another name.`);
   }
 
@@ -71,53 +79,47 @@ const initFunction = async () => {
     parseOutput: false
   })
 
-    let initFirstCommand = `
-    cd '${answers.name}' && \
-    git init && \
-    git remote add -f origin https://github.com/{{ sdk.gitUserName }}/functions-starter && \
-    git config core.sparseCheckout true`;
+  fs.mkdirSync(functionDir, "777");
 
-  let initSecondCommand = `
-    cd '${answers.name}' && \
-    git pull origin dev && \
-    git checkout dev`;
+  const gitInitCommands =
+    `git init && ` +
+    `git remote add -f origin https://github.com/{{ sdk.gitUserName }}/functions-starter && ` +
+    `git config core.sparseCheckout true`;
 
-  // Convert commands from unix based ones to windows based ones
+  const gitPullCommands = `git pull origin main`;
+
+  // Force use CMD as powershell does not support &&
   if (process.platform == 'win32') {
-    initFirstCommand = initFirstCommand.replace(/'/g, '"').replace(/\\/g, '').replace(/\n/g, '').replace(/  +/g, ' ');
-    initFirstCommand = 'cmd /c "' + initFirstCommand + '"';
-    initSecondCommand = initSecondCommand.replace(/'/g, '"').replace(/\\/g, '').replace(/\n/g, '').replace(/  +/g, ' ');
-    initSecondCommand = 'cmd /c "' + initSecondCommand + '"';
+    gitInitCommands = 'cmd /c "' + gitInitCommands + '"';
+    gitPullCommands = 'cmd /c "' + gitPullCommands + '"';
   }
 
-  fs.mkdirSync(answers.name, { recursive: true });
-  fs.chmodSync(answers.name, 0o777);
-
   // Execute the child process but do not print any std output
-  childProcess.execSync(initFirstCommand, { stdio: 'pipe' });
+  childProcess.execSync(gitInitCommands, { stdio: 'pipe' });
 
-  fs.writeFileSync(`${answers.name}/.git/info/sparse-checkout`, answers.runtime.id);
+  fs.writeFileSync(path.join(functionDir, ".git/info/sparse-checkout"), `${answers.runtime.id}`);
 
-  childProcess.execSync(initSecondCommand, { stdio: 'pipe' });
+  childProcess.execSync(gitPullCommands, { stdio: 'pipe' });
 
-  fs.rmSync(`${answers.name}/.git`, { recursive: true, force: true });
-  
-  // Copy files
-  function copyFolderSync(from, to) {
-    if (!fs.existsSync(to)) {
-      fs.mkdirSync(to, { recursive: true });
+  fs.rmSync(path.join(functionDir, ".git"), { recursive: true });
+    const copyRecursiveSync = (src, dest) => {
+    let exists = fs.existsSync(src);
+    let stats = exists && fs.statSync(src);
+    let isDirectory = exists && stats.isDirectory();
+    if (isDirectory) {
+      if (!fs.existsSync(dest)) {
+        fs.mkdirSync(dest);
+      }
+
+      fs.readdirSync(src).forEach(function(childItemName) {
+        copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName));
+      });
+    } else {
+      fs.copyFileSync(src, dest);
     }
+  };
+  copyRecursiveSync(path.join(functionDir, answers.runtime.id), functionDir);
 
-    fs.readdirSync(from).forEach(element => {
-        if (fs.lstatSync(path.join(from, element)).isFile()) {
-            fs.copyFileSync(path.join(from, element), path.join(to, element));
-        } else {
-            copyFolderSync(path.join(from, element), path.join(to, element));
-        }
-    });
-}
-
-  copyFolderSync(`./${answers.name}/${answers.runtime.id}`, `./${answers.name}/`);
   fs.rmSync(`./${answers.name}/${answers.runtime.id}`, { recursive: true, force: true });
 
   const readmePath = path.join(process.cwd(), 'functions', answers.name, 'README.md');
