@@ -23,6 +23,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.BufferedInputStream
 import java.io.BufferedReader
 import java.io.File
+import java.io.RandomAccessFile
 import java.io.IOException
 import java.net.CookieManager
 import java.net.CookiePolicy
@@ -225,7 +226,7 @@ class Client @JvmOverloads constructor(
         headers:  Map<String, String> = mapOf(), 
         params: Map<String, Any?> = mapOf(),
         responseType: Class<T>,
-        convert: ((Map<String, Any,>) -> T)? = null
+        converter: ((Map<String, Any,>) -> T)? = null
     ): T {
         val filteredParams = params.filterValues { it != null }
 
@@ -261,7 +262,7 @@ class Client @JvmOverloads constructor(
                 .get()
                 .build()
 
-            return awaitResponse(request, responseType, convert)
+            return awaitResponse(request, responseType, converter)
         }
 
         val body = if (MultipartBody.FORM.toString() == headers["content-type"]) {
@@ -298,7 +299,7 @@ class Client @JvmOverloads constructor(
             .method(method, body)
             .build()
 
-        return awaitResponse(request, responseType, convert)
+        return awaitResponse(request, responseType, converter)
     }
 
     /**
@@ -316,8 +317,9 @@ class Client @JvmOverloads constructor(
         headers:  MutableMap<String, String>,
         params: MutableMap<String, Any?>,
         responseType: Class<T>,
-        convert: ((Map<String, Any,>) -> T),
+        converter: ((Map<String, Any,>) -> T),
         paramName: String,
+        idParamName: String? = null,
         onProgress: ((UploadProgress) -> Unit)? = null,
     ): T {
         val file = params[paramName] as File
@@ -330,58 +332,68 @@ class Client @JvmOverloads constructor(
                 file.asRequestBody()
             )
             return call(
-                "POST",
+                method = "POST",
                 path,
                 headers,
                 params,
                 responseType,
-                convert
+                converter
             )
         }
 
-        val input = file.inputStream().buffered()
+        val input = RandomAccessFile(file, "r")
         val buffer = ByteArray(CHUNK_SIZE)
         var offset = 0L
         var result: Map<*, *>? = null
 
-        generateSequence {
-            val readBytes = input.read(buffer)
-            if (readBytes >= 0) {
-                buffer.copyOf(readBytes)
-            } else {
-                input.close()
-                null
-            }
-        }.forEach {
+        if (idParamName?.isNotEmpty() == true && params[idParamName] != "unique()") {
+            // Make a request to check if a file already exists
+            val current = call(
+                method = "GET",
+                path = "$path/${params[idParamName]}",
+                headers = headers,
+                params = emptyMap(),
+                responseType = Map::class.java,
+            )
+            val chunksUploaded = current["chunksUploaded"] as Long
+            offset = (chunksUploaded * CHUNK_SIZE).coerceAtMost(size)
+        }
+
+        while (offset < size) {
+            input.seek(offset)
+            input.read(buffer)
+
             params[paramName] = MultipartBody.Part.createFormData(
                 paramName,
                 file.name,
-                it.toRequestBody()
+                buffer.toRequestBody()
             )
 
             headers["Content-Range"] =
                 "bytes $offset-${((offset + CHUNK_SIZE) - 1).coerceAtMost(size)}/$size"
 
             result = call(
-                "POST",
+                method = "POST",
                 path,
                 headers,
                 params,
-                Map::class.java
+                responseType = Map::class.java
             )
 
             offset += CHUNK_SIZE
             headers["x-{{ spec.title | caseLower }}-id"] = result!!["\$id"].toString()
-            onProgress?.invoke(UploadProgress(
-                id = result!!["\$id"].toString(),
-                progress = offset.coerceAtMost(size).toDouble()/size * 100,
-                sizeUploaded = offset.coerceAtMost(size),
-                chunksTotal = result!!["chunksTotal"].toString().toInt(),
-                chunksUploaded = result!!["chunksUploaded"].toString().toInt(),
-            ))
+            onProgress?.invoke(
+                UploadProgress(
+                    id = result!!["\$id"].toString(),
+                    progress = offset.coerceAtMost(size).toDouble() / size * 100,
+                    sizeUploaded = offset.coerceAtMost(size),
+                    chunksTotal = result!!["chunksTotal"].toString().toInt(),
+                    chunksUploaded = result!!["chunksUploaded"].toString().toInt(),
+                )
+            )
         }
 
-        return convert(result as Map<String, Any>)
+        return converter(result as Map<String, Any>)
     }
 
     /**
@@ -389,7 +401,7 @@ class Client @JvmOverloads constructor(
      *
      * @param request
      * @param responseType
-     * @param convert
+     * @param converter
      *
      * @return [T]
      */
@@ -397,7 +409,7 @@ class Client @JvmOverloads constructor(
     private suspend fun <T> awaitResponse(
         request: Request,
         responseType: Class<T>,
-        convert: ((Map<String, Any,>) -> T)? = null
+        converter: ((Map<String, Any,>) -> T)? = null
     ) = suspendCancellableCoroutine<T> {
         http.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
@@ -463,7 +475,7 @@ class Client @JvmOverloads constructor(
                     object : TypeToken<Map<String, Any>>(){}.type
                 )
                 it.resume(
-                    convert?.invoke(map) ?: map as T
+                    converter?.invoke(map) ?: map as T
                 )
             }
         })
