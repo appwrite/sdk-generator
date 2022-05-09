@@ -37,14 +37,12 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% endif %}
     ) async throws -> {{ _self.resultType(spec, method) }} {
 {% if method.parameters.path %}        var{% else %}        let{% endif %} path: String = "{{ method.path }}"
-
 {% for parameter in method.parameters.path %}
         path = path.replacingOccurrences(
           of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}",
           with: {% if method.parameters.path %}{{ parameter.name | caseCamel | escapeKeyword }}{% else %}""{% endif %}
 
         )
-
 {% endfor %}
 {% if method.parameters.query or method.parameters.body or method.parameters.formData or _self.methodNeedsSecurityParameters(method) %}
         {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} params: [String: Any?] = [
@@ -66,7 +64,6 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% if method.parameters.query or method.parameters.body or method.parameters.formData or _self.methodNeedsSecurityParameters(method) %}
         ]
 {% endif %}
-
 {% if method.type == 'webAuth' %}
         let query = "?\(client.parametersToQueryString(params: params))"
         let url = URL(string: client.endPoint + path + query)!
@@ -90,22 +87,21 @@ open class {{ service.name | caseUcfirst }}: Service {
         {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} headers: [String: String] = [
 {{ method.headers|map((header, key) => "            \"#{key}\": \"#{header}\"")|join(',\n')|raw }}
         ]
-
 {% if method.responseModel %}
-        let convert: ([String: Any]) -> {{ _self.resultType(spec, method) }} = { dict in
+        let converter: ([String: Any]) -> {{ _self.resultType(spec, method) }} = { dict in
 {% if method.responseModel == 'any' %}
             return dict
 {% else %}
             return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: dict)
 {% endif %}
         }
-
 {% endif %}
 {% if 'multipart/form-data' in method.consumes %}
+        let idParamName: String? = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}nil{% endif %}
+
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
         let paramName = "{{ parameter.name }}"
-
 {% endif %}
 {% endfor %}
         return try await client.chunkedUpload(
@@ -113,8 +109,9 @@ open class {{ service.name | caseUcfirst }}: Service {
             headers: &headers,
             params: &params,
             paramName: paramName,
+            idParamName: idParamName,
 {% if method.responseModel %}
-            convert: convert,
+            converter: converter,
 {% endif %}
             onProgress: onProgress
         )
@@ -124,7 +121,7 @@ open class {{ service.name | caseUcfirst }}: Service {
             path: path,
             headers: headers,
             params: params{% if method.responseModel %},
-            convert: convert
+            converter: converter
 {% endif %}
         )
 {% endif %}
