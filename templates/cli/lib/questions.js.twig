@@ -1,7 +1,7 @@
 const { localConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { functionsListRuntimes } = require('./commands/functions');
-const JSONbig = require("json-bigint")({ storeAsString: true });
+const JSONbig = require("json-bigint")({ storeAsString: false });
 
 const getEntrypoint = (runtime) => {
   const languge = runtime.split('-')[0];

@@ -1,5 +1,5 @@
 const inquirer = require("inquirer");
-const JSONbig = require("json-bigint")({ storeAsString: true });
+const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
 const { questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections } = require("../questions");

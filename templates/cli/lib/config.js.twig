@@ -2,7 +2,7 @@ const os = require('os');
 const fs = require("fs");
 const _path = require("path");
 const process = require("process");
-const JSONbig = require("json-bigint")({ storeAsString: true });
+const JSONbig = require("json-bigint")({ storeAsString: false });
 
 class Config {
     constructor(path) {
