@@ -55,9 +55,9 @@ function DownloadBinary {
     } else {
       Invoke-WebRequest -Uri $GITHUB_x64_URL -OutFile ${{ spec.title | upper }}_DOWNLOAD_DIR
     }
-   
-   New-Item -ItemType Directory -Path ${{ spec.title | upper }}_INSTALL_DIR
-   Move-Item ${{ spec.title | upper }}_DOWNLOAD_DIR ${{ spec.title | upper }}_INSTALL_PATH
+
+    New-Item -ItemType Directory -Path ${{ spec.title | upper }}_INSTALL_DIR
+    Move-Item ${{ spec.title | upper }}_DOWNLOAD_DIR ${{ spec.title | upper }}_INSTALL_PATH
 }
 
 
@@ -68,6 +68,7 @@ function Install {
         Write-Host "Skipping to add {{ spec.title | caseUcfirst }} to User Path."
     } else {
         [System.Environment]::SetEnvironmentVariable("PATH", $USER_PATH_ENV_VAR + ";${{ spec.title | upper }}_INSTALL_DIR", "User")
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User") 
     }
 }
 

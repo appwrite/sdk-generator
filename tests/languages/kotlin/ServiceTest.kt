@@ -91,6 +91,8 @@ class ServiceTest {
             } catch (e: AppwriteException) {
                 writeToFile(e.message)
             }
+
+            general.empty()
         }
     }
 

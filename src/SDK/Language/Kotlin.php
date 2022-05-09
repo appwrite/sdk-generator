@@ -197,7 +197,7 @@ class Kotlin extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'File("./path-to-files/image.jpg")';
+                    $output .= 'File("file.png")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
