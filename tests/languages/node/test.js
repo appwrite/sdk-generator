@@ -77,6 +77,7 @@ async function start() {
         console.log(error.message);
     }
 
+    await general.empty();
 }
 
 start();

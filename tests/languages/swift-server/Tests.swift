@@ -97,5 +97,7 @@ class Tests: XCTestCase {
         } catch let error as AppwriteError {
             print(error.message)
         }
+
+        try! await general.empty()
     }
 }
