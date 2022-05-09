@@ -1,6 +1,5 @@
 const URL = require('url').URL;
 const axios = require('axios');
-const JSONbig = require("json-bigint")({ storeAsString: true });
 const FormData = require('form-data');
 const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
 
@@ -112,8 +111,6 @@ class Client {
             headers: headers,
             data: (method.toUpperCase() === 'GET' || contentType.startsWith('multipart/form-data')) ? formData : params,
             json: (contentType.startsWith('application/json')),
-            transformResponse: (data) => JSONbig.parse(data),
-            transformRequest: method.toUpperCase() === 'GET' || contentType.startsWith('multipart/form-data') ? undefined : (data) => JSONbig.stringify(data),
             responseType: responseType
         };
         try {
