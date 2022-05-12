@@ -75,3 +75,5 @@ try:
     response = general.error502()
 except AppwriteException as e:
     print(e.message)
+
+general.empty()

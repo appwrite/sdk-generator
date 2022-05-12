@@ -4,7 +4,7 @@ import Appwrite
 import NIO
 
 let host = "https://localhost/v1"
-let projectId = "60f6a0d6e2a52"
+let projectId = "test"
 
 extension ExampleView {
     
@@ -22,65 +22,65 @@ extension ExampleView {
 
         @Published public var username: String = "test@test.test"
         @Published public var password: String = "password"
-        @Published public var fileId: String = "60f7a0178c3e5"
-        @Published public var collectionId: String = "6155742223662"
+        @Published public var userId: String = "unique()"
+        @Published public var bucketId: String = "test"
+        @Published public var fileId: String = "test"
+        @Published public var collectionId: String = "test"
         @Published public var isShowPhotoLibrary = false
         @Published public var response: String = ""
         
-        func register() {
-            account.create(email: username, password: password) { result in
-                DispatchQueue.main.async {
-                    switch result {
-                    case .failure(let error):
-                        self.response = error.message
-                    case .success(let response):
-                        self.response = response.email
-                    }
-                }
-            }
-            
-            
-        }
-        
-        func login() {
-            account.createSession(email: username, password: password) { result in
-                DispatchQueue.main.async {
-                    switch result {
-                    case .failure(let error):
-                        self.response = error.message
-                    case .success(let response):
-                        self.response = response.userId
-                    }
-                }
+        func register() async {
+            do {
+                let response = try await account.create(
+                    userId: userId,
+                    email: username,
+                    password: password
+                )
+                self.userId = response.id
+                self.response = String(describing: response.toMap())
+            } catch {
+                self.response = String(describing: error)
             }
         }
         
-        func loginWithFacebook() {
-            account.createOAuth2Session(
-                provider: "facebook",
-                success: "\(host)/auth/oauth2/success",
-                failure: "\(host)/auth/oauth2/failure"
-            ) { result in
-                switch result {
-                case .failure: self.response = "false"
-                case .success(let response): self.response = response.description
-                }
+        func login() async {
+            do {
+                let response = try await account.createSession(
+                    email: username,
+                    password: password
+                )
+                self.response = String(describing: response.toMap())
+            } catch {
+                self.response = String(describing: error)
             }
         }
         
-        func download() {
-            storage.getFileDownload(fileId: fileId) { result in
-                DispatchQueue.main.async {
-                    switch result {
-                    case .failure(let error): self.response = error.message
-                    case .success(let response):
-                        self.downloadedImage = Image(data: Data(buffer: response))
-                    }
-                }
+        func loginWithFacebook() async {
+            do {
+                let response = try await account.createOAuth2Session(
+                    provider: "facebook",
+                    success: "\(host)/auth/oauth2/success",
+                    failure: "\(host)/auth/oauth2/failure"
+                )
+                self.response = String(describing: response)
+            } catch {
+                self.response = String(describing: error)
             }
         }
         
-        func upload(image: OSImage) {
+        func download() async {
+            do {
+                let response = try await storage.getFileDownload(
+                    bucketId: bucketId,
+                    fileId: fileId
+                )
+                self.downloadedImage = Image(data: Data(buffer: response))
+            } catch {
+                self.response = String(describing: error)
+            }
+        }
+        
+        func upload(image: OSImage) async {
             let imageBuffer = ByteBufferAllocator()
                 .buffer(data: image.data)
                 
@@ -95,22 +95,22 @@ extension ExampleView {
                 buffer: imageBuffer
             )
             
-            storage.createFile(file: file) { result in
-                DispatchQueue.main.async {
-                    switch result {
-                    case .failure(let error):
-                        self.response = error.message
-                    case .success(let response):
-                        self.response = response.name
-                    }
-                }
+            do {
+                let response = try await storage.createFile(
+                    bucketId: bucketId,
+                    fileId: fileId,
+                    file: file
+                )
+                self.response = String(describing: response.toMap())
+            } catch {
+                self.response = String(describing: error)
             }
         }
         
         func subscribe() {
-            _ = realtime.subscribe(channels: ["collections.\(collectionId).documents"]) { response in
+            _ = realtime.subscribe(channels: ["collections.\(collectionId).documents"]) { event in
                 DispatchQueue.main.async {
-                    self.response = String(describing: response.payload!)
+                    self.response = String(describing: event.payload!)
                 }
             }
         }

@@ -145,7 +145,7 @@ class Deno extends JS
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "new File([fileBlob], 'file.png')";
+                    $output .= "'file.png'";
                     break;
             }
         }
@@ -164,7 +164,7 @@ class Deno extends JS
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "new File([fileBlob], 'file.png')";
+                    $output .= "'file.png'";
                     break;
             }
         }

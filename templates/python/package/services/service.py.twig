@@ -32,12 +32,19 @@ class {{ service.name | caseUcfirst }}(Service):
 {% endfor %}
 {% for parameter in method.parameters.body %}
         if {{ parameter.name | escapeKeyword | caseSnake }} is not None: 
+{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
+            params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
+{% else %}
             params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
-
+{% endif %}
 {% endfor %}
 {% for parameter in method.parameters.formData %}
         if {{ parameter.name | escapeKeyword | caseSnake }} is not None: 
+{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
+            params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
+{% else %}
             params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
 
 {% endfor %}
 {% if 'multipart/form-data' in method.consumes %}
@@ -47,6 +54,14 @@ class {{ service.name | caseUcfirst }}(Service):
 
 {% endif %}
 {% endfor %}
+
+        upload_id = ''
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+        upload_id = {{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
+{% endfor %}
+
         return self.client.chunked_upload(path, {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
@@ -54,7 +69,7 @@ class {{ service.name | caseUcfirst }}(Service):
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
-        }, params, param_name, on_progress)
+        }, params, param_name, on_progress, upload_id)
 {% else %}
         return self.client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
