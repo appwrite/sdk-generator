@@ -98,14 +98,14 @@ class Tests: XCTestCase {
 
         do {
             try await general.error500()
-        } catch let error as AppwriteError {
-            print(error.message)
+        } catch {
+            print(error.localizedDescription)
         }
 
         do {
             try await general.error502()
-        } catch let error as AppwriteError {
-            print(error.message)
+        } catch {
+            print(String(describing: error))
         }
 
         wait(for: [expectation], timeout: 10.0)
@@ -116,5 +116,7 @@ class Tests: XCTestCase {
 
         mock = try await general.getCookie()
         print(mock.result)
+
+        try! await general.empty()
     }
 }

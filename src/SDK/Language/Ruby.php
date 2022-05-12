@@ -280,7 +280,7 @@ class Ruby extends Language {
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "File.new()";
+                    $output .= "'dir/file.png'";
                     break;
             }
         }
@@ -301,7 +301,7 @@ class Ruby extends Language {
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "File.new()";
+                    $output .= "'file.png'";
                     break;
             }
         }

@@ -1,5 +1,6 @@
 const inquirer = require("inquirer");
 const { Command } = require("commander");
+const Client = require("../client");
 const { sdkForConsole } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, log, parse } = require("../parser");
@@ -67,13 +68,19 @@ const client = new Command("client")
         if (endpoint !== undefined) {
             try {
                 let url = new URL(endpoint);
-                if (url.protocol === "http:" || url.protocol === "https:") {
-                    globalConfig.setEndpoint(endpoint);
-                } else {
+                if (url.protocol !== "http:" && url.protocol !== "https:") {
                     throw new Error();
                 }
+                
+                let client = new Client().setEndpoint(endpoint);
+                let response = await client.call('GET', '/health/version');
+                if(!response.version) {
+                    throw new Error();
+                }
+                
+                globalConfig.setEndpoint(endpoint);
             } catch (_) {
-                throw new Error("Invalid endpoint");
+                throw new Error("Invalid endpoint or your Appwrite server is not running as expected.");
             }
         }
 
