@@ -80,8 +80,7 @@ Client& Client::addHeader(string key, string value) {
  * @throws {{spec.title | caseUcfirst}}Exception
  */
 json Client::call(string method, cpr::Header headers, cpr::Payload params, string path) {
-  //  return json({{ "{{" }}"fake response", "will fix soon (TM)" {{ "}}" }});
-
+  
   
         cpr::Url url = cpr::Url{this->endpoint + path};
 
@@ -121,6 +120,13 @@ json Client::call(string method, cpr::Header headers, cpr::Payload params, strin
                                           params,
                                          this->headers,
                                           cpr::VerifySsl{!this->selfSigned});
+        }
+         else if (method == "METHOD_PATCH")
+        {
+            responseHeaders = cpr::Patch(url,
+                                         params,
+                                         this->headers,
+                                         cpr::VerifySsl{!this->selfSigned});
         }
         else
         {
