@@ -72,3 +72,5 @@ begin
 rescue Appwrite::Exception => error
     puts error.message
 end
+
+general.empty()

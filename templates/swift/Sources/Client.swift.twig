@@ -288,6 +288,9 @@ open class Client {
                     return response.body as! T
                 default:
                     let data = try await response.body.collect(upTo: Int.max)
+                    if data.readableBytes == 0 {
+                        return true as! T
+                    }
                     let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
 
                     return converter?(dict!) ?? dict! as! T

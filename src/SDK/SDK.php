@@ -749,8 +749,11 @@ class SDK
      * @param string $str
      * @return string
      */
-    protected function helperCamelCase($str)
+    protected function helperCamelCase($str): string
     {
+        if ($str == null) {
+            return '';
+        }
         $str = preg_replace('/[^a-z0-9' . implode("", []) . ']+/i', ' ', $str);
         $str = trim($str);
         $str = ucwords($str);

@@ -89,6 +89,8 @@ async function start() {
   }catch(error){
     console.log(error.message);
   }
+
+  await general.empty();
 }
 
 start()

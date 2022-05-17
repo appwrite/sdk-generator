@@ -129,9 +129,6 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {% if parameter.type == 'file' %}
         val paramName = "{{ parameter.name }}"
 {% endif %}
-{% if parameter.isUploadID %}
-        idParamName = "{{ parameter.name }}"
-{% endif %}
 {% endfor %}
         return client.chunkedUpload(
             path,

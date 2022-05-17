@@ -131,6 +131,8 @@ class ServiceTest {
 
             mock = general.getCookie()
             writeToFile(mock.result)
+
+            general.empty()
         }
     }
 
