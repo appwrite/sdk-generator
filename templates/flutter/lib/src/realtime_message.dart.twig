@@ -68,7 +68,7 @@ class RealtimeMessage {
 
   @override
   int get hashCode {
-    return event.hashCode ^
+    return events.hashCode ^
         payload.hashCode ^
         channels.hashCode ^
         timestamp.hashCode;
