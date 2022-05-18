@@ -10,12 +10,13 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - name: Login to crates.io
-        run: |
-          cargo login ${{ secrets.CRATES_TOKEN }}
       - name: Dry Run Deployment
         run: | 
           cargo publish --dry-run
+        env: 
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
       - name: Final Deployment
         run: |
           cargo publish
+        env: 
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
