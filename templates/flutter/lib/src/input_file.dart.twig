@@ -7,9 +7,11 @@ class InputFile {
   final List<int>? bytes;
   final String? contentType;
 
+  /// Type definition for file parameters
+  /// @deprecated @param file use `InputFile.fromMultipartFile(file)` instead
   InputFile({this.path, this.filename, @deprecated this.file});
 
-  /// Only for Files below 5 MB in size
+  /// Use only for Files below 5 MB in size
   InputFile.fromMultipartFile(this.file);
 
   InputFile.fromBytes(this.bytes, { this.filename, this.contentType });
