@@ -235,6 +235,12 @@ class Rust extends Language
                 'minify'        => false,
             ],
             [
+                'scope'        => 'default',
+                'destination'  => 'src/models/attribute.rs',
+                'template'     => '/rust/src/models/attribute.rs.twig',
+                'minify'       => false,
+            ],
+            [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => '/rust/docs/example.md.twig',
@@ -281,7 +287,7 @@ class Rust extends Language
                 'destination'   => '/src/models/{{definition.name | caseSnake }}.rs',
                 'template'      => '/rust/src/models/model.rs.twig',
                 'minify'        => false,
-            ],
+            ]
         ];
     }
 }
