@@ -514,6 +514,11 @@ class {{ spec.title | caseUcfirst }} {
 {% if 'multipart/form-data' in method.consumes %}
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
+
+            if(!({{ parameter.name | caseCamel | escapeKeyword }} instanceof File)) {
+                throw new {{spec.title | caseUcfirst}}Exception('Parameter "{{ parameter.name | caseCamel | escapeKeyword }}" has to be a File.');
+            }
+
             const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
             if (size <= {{ spec.title | caseUcfirst }}.CHUNK_SIZE) {
