@@ -85,4 +85,6 @@ void main() async {
 
   // response = await general.getCookie();
   // print(response.result);
+
+  await general.empty();
 }

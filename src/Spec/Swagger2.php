@@ -312,6 +312,16 @@ class Swagger2 extends Spec
                         //nested model
                         $sch['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['items']['$ref']);
                     }
+
+                    if(isset($def['items']['x-anyOf'])) {
+                        //nested model
+                        $sch['properties'][$name]['sub_schemas'] = \array_map(fn($schema) => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-anyOf']);
+                    }
+
+                    if(isset($def['items']['x-oneOf'])) {
+                        //nested model
+                        $sch['properties'][$name]['sub_schemas'] = \array_map(fn($schema) => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-oneOf']);
+                    }
             }
             }
             $list[$key] = $sch;
