@@ -218,6 +218,12 @@ class Rust extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '.github/workflows/cargo-publish.yml',
+                'template'      => '/rust/.github/workflows/cargo-publish.yml',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => '/rust/CHANGELOG.md.twig',
                 'minify'        => false,

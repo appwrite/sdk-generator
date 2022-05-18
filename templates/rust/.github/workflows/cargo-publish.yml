@@ -1,0 +1,21 @@
+name: Publish Package to crates.io
+on:
+  release:
+    types: [published]
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Login to crates.io
+        run: |
+          cargo login ${{ secrets.CRATES_TOKEN }}
+      - name: Dry Run Deployment
+        run: | 
+          cargo publish --dry-run
+      - name: Final Deployment
+        run: |
+          cargo publish
