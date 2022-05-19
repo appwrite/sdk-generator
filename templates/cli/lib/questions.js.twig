@@ -197,7 +197,7 @@ const questionsDeployFunctions = [
       let choices = functions.map((func, idx) => {
         return {
           name: `${func.name} (${func['$id']})`,
-          value: func
+          value: JSONbig.stringify(func)
         }
       })
       return choices;
