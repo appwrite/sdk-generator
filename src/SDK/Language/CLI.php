@@ -73,6 +73,12 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'appwrite.json',
+                'template'      => 'cli/appwrite.json.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'LICENSE.md',
                 'template'      => 'cli/LICENSE.md.twig',
             ],

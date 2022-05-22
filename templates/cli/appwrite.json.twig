@@ -1,0 +1,23 @@
+{
+    "$schema": "https://raw.githubusercontent.com/ScoopInstaller/Scoop/master/schema.json",
+    "version": "{{ sdk.version }}",
+    "description": "Appwrite cli project manager",
+    "license": "BSD-3-Clause",
+    "url": "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.executableName }}-cli-win-x64.exe",
+    "bin": [
+        [
+            "{{ language.params.executableName }}-cli-win-x64.exe",
+            "{{ language.params.executableName|caseLower }}"
+        ]
+    ],
+    "homepage": "https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}",
+    "hash": "https://github.com/appwrite/sdk-for-cli/releases/download/$version/hashes",
+    "checkver": {
+        "url": "https://api.github.com/repos/appwrite/sdk-for-cli/releases",
+        "jsonpath": "$[0].tag_name"
+    },
+    "autoupdate": {
+        "url": "https://github.com/appwrite/sdk-for-cli/releases/download/$version/appwrite-cli-win-x64.exe",
+        "hash": "$url.sha256"
+    }
+}
