@@ -203,6 +203,58 @@ class Python extends Language {
                 'template'      => 'python/.travis.yml.twig',
                 'minify'        => false,
             ],
+
+            /* Async */
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/aio/__init__.py',
+                'template'      => 'python/package/aio/__init__.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/aio/client.py',
+                'template'      => 'python/package/aio/client.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/aio/query.py',
+                'template'      => 'python/package/aio/query.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/aio/exception.py',
+                'template'      => 'python/package/aio/exception.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/aio/input_file.py',
+                'template'      => 'python/package/aio/input_file.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/aio/service.py',
+                'template'      => 'python/package/aio/service.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/aio/services/__init__.py',
+                'template'      => 'python/package/aio/services/__init__.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '{{ spec.title | caseSnake}}/aio/services/{{service.name | caseSnake}}.py',
+                'template'      => 'python/package/aio/services/service.py.twig',
+                'minify'        => false,
+            ],
+
+
         ];
     }
 

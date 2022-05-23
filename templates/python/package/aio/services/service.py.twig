@@ -1,0 +1,83 @@
+from ..service import Service
+from ..exception import AppwriteException
+
+class {{ service.name | caseUcfirst }}(Service):
+
+    def __init__(self, client):
+        super({{ service.name | caseUcfirst }}, self).__init__(client)
+{% for method in service.methods %}
+
+    async def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}):
+{% if method.title %}
+        """{{ method.title }}"""
+
+{% endif %}
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+        if {{ parameter.name | escapeKeyword | caseSnake }} is None: 
+            raise {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | escapeKeyword | caseSnake }}"')
+
+{% endif %}
+{% endfor %}
+        params = {}
+        path = '{{ method.path }}'
+{% for parameter in method.parameters.path %}
+        path = path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | escapeKeyword | caseSnake }})                
+{% endfor %}
+
+{% for parameter in method.parameters.query %}
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None: 
+            params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+
+{% endfor %}
+{% for parameter in method.parameters.body %}
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None: 
+{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
+            params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
+{% else %}
+            params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
+{% endfor %}
+{% for parameter in method.parameters.formData %}
+        if {{ parameter.name | escapeKeyword | caseSnake }} is not None: 
+{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
+            params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
+{% else %}
+            params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
+
+{% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+        param_name = '{{ parameter.name }}'
+
+{% endif %}
+{% endfor %}
+
+        upload_id = ''
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+        upload_id = {{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
+{% endfor %}
+
+        return self.client.chunked_upload(path, {
+{% for parameter in method.parameters.header %}
+            '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
+{% endfor %}
+{% for key, header in method.headers %}
+            '{{ key }}': '{{ header }}',
+{% endfor %}
+        }, params, param_name, on_progress, upload_id)
+{% else %}
+        return await self.client.call('{{ method.method | caseLower }}', path, {
+{% for parameter in method.parameters.header %}
+            '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
+{% endfor %}
+{% for key, header in method.headers %}
+            '{{ key }}': '{{ header }}',
+{% endfor %}
+        }, params)
+{% endif %}
+{% endfor %}
