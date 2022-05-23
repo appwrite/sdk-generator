@@ -11,13 +11,8 @@
         ]
     ],
     "homepage": "https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}",
-    "hash": "https://github.com/appwrite/sdk-for-cli/releases/download/$version/hashes",
     "checkver": {
         "url": "https://api.github.com/repos/appwrite/sdk-for-cli/releases",
         "jsonpath": "$[0].tag_name"
-    },
-    "autoupdate": {
-        "url": "https://github.com/appwrite/sdk-for-cli/releases/download/$version/appwrite-cli-win-x64.exe",
-        "hash": "$url.sha256"
     }
 }
