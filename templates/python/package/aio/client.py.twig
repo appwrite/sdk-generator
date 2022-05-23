@@ -70,7 +70,7 @@ class Client:
                     del data[key]
         response = None
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(verify=(not self._self_signed), follow_redirects=True) as client:
                 response = await client.request(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
                     method=method,
                     url=self._endpoint + path,
@@ -79,7 +79,6 @@ class Client:
                     json=json,
                     files=files,
                     headers=headers,
-                    verify=(not self._self_signed),
                 )
 
                 response.raise_for_status()
