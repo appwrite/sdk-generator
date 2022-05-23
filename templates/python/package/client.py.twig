@@ -79,6 +79,7 @@ class Client:
                 files=files,
                 headers=headers,
                 verify=(not self._self_signed),
+                follow_redirects=True
             )
 
             response.raise_for_status()
