@@ -1,19 +1,21 @@
-import 'package:http/http.dart' show MultipartFile, encoding;
-
 class InputFile {
-  final MultipartFile? file;
-  final String? path;
+  late final String? path;
+  late final List<int>? bytes;
   final String? filename;
-  final List<int>? bytes;
   final String? contentType;
 
-  /// Type definition for file parameters
-  /// @deprecated @param file use `InputFile.fromMultipartFile(file)` instead
-  InputFile({this.path, this.filename, @deprecated this.file});
+  /// Provide a file using path
+  InputFile({required this.path, this.filename, this.contentType}) {
+    bytes = null;
+  }
 
-  /// Use only for Files below 5 MB in size
-  InputFile.fromMultipartFile(this.file);
+  InputFile._internal(this.bytes, {this.filename, this.contentType}) {
+    path = null;
+  }
 
-  InputFile.fromBytes(this.bytes, { this.filename, this.contentType });
-
+  /// Provide a file using bytes
+  factory InputFile.fromBytes(
+      {required List<int> bytes, String? filename, String? contentType}) {
+    return InputFile._internal(bytes, filename: filename, contentType: contentType);
+  }
 }
