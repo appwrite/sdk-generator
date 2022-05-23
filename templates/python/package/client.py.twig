@@ -1,5 +1,5 @@
 import io
-import requests
+import httpx
 import os
 from .input_file import InputFile
 from .exception import {{spec.title | caseUcfirst}}Exception
@@ -70,7 +70,7 @@ class Client:
                     del data[key]
         response = None
         try:
-            response = requests.request(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
+            response = httpx.request(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
                 method=method,
                 url=self._endpoint + path,
                 params=self.flatten(params, stringify=stringify),
