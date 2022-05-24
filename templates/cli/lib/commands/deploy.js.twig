@@ -149,7 +149,7 @@ const deployFunction = async () => {
     let response = {};
 
     let answers = await inquirer.prompt(questionsDeployFunctions)
-    let functions = answers.functions
+    let functions = answers.functions.map((func) => JSONbig.parse(func))
 
     for (let func of functions) {
         log(`Deploying function ${func.name} ( ${func['$id']} )`)
