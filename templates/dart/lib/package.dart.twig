@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:http/http.dart' show MultipartFile;
 import 'src/chunked_upload_stub.dart'
     if (dart.library.io) 'src/chunked_upload_io.dart';
+    if (dart.library.html) 'src/chunked_upload_browser.dart'
 import 'src/enums.dart';
 import 'src/client.dart';
 import 'src/service.dart';
