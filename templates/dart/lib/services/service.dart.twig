@@ -50,30 +50,17 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
         };
 
-
 {% if 'multipart/form-data' in method.consumes %}
-        dynamic res;
-        if(identical(0, 0.0)) {
+        String idParamName = '';
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
-          if(file.bytes == null) {
-            throw {{spec.title | caseUcfirst}}Exception("Bytes must be provided for non IO platforms");
-          }
-          params['{{ parameter.name }}'] = MultipartFile.fromBytes('{{ parameter.name }}', {{ parameter.name }}.bytes!, filename: {{ parameter.name }}.filename);
-{% endif %}
-{% endfor %}
-          res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
-        } else {
-          String idParamName = '';
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
-          final paramName = '{{ parameter.name }}';
+        final paramName = '{{ parameter.name }}';
 {% endif %}
 {% if parameter.isUploadID %}
-          idParamName = '{{ parameter.name }}';
+        idParamName = '{{ parameter.name }}';
 {% endif %}
 {% endfor %}
-          res = await chunkedUpload(
+        final res = await chunkedUpload(
             client: client,
             path: path,
             params: params,
@@ -81,8 +68,7 @@ class {{ service.name | caseUcfirst }} extends Service {
             idParamName: idParamName,
             headers: headers,
             onProgress: onProgress,
-          );
-        }
+        );
 {% else %}
         final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
 {% endif %}
