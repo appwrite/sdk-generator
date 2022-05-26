@@ -165,6 +165,12 @@ class Flutter extends Dart {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/src/secure_storage.dart',
+                'template'      => 'flutter/lib/src/secure_storage.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/src/response.dart',
                 'template'      => 'flutter/lib/src/response.dart.twig',
                 'minify'        => false,
