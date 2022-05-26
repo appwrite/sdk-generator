@@ -1,15 +1,32 @@
 import 'package:cookie_jar/cookie_jar.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SecureStorage implements Storage {
-    Future<void> init(bool persistSession, bool ignoreExpires){
-        
-    }
+  late FlutterSecureStorage _storage;
 
-    Future<String?> read(String key);
+  SecureStorage() {
+    _storage = FlutterSecureStorage(
+      aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    );
+  }
 
-    Future<void> write(String key, String value);
+  Future<void> init(bool persistSession, bool ignoreExpires) async {
+    return;
+  }
 
-    Future<void> delete(String key);
+  Future<String?> read(String key) {
+    return _storage.read(key: key);
+  }
 
-    Future<void> deleteAll(List<String> keys);
+  Future<void> write(String key, String value) {
+    return _storage.write(key: key, value: value);
+  }
+
+  Future<void> delete(String key) {
+    return _storage.delete(key: key);
+  }
+
+  Future<void> deleteAll(List<String> keys) {
+    return _storage.deleteAll();
+  }
 }
