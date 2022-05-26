@@ -75,7 +75,8 @@ Future<Response> chunkedUpload({
   while (offset < size) {
     var chunk;
     if (file.bytes != null) {
-      chunk = file.bytes!.getRange(offset, offset + Client.CHUNK_SIZE - 1);
+      final end = min(offset + Client.CHUNK_SIZE-1, size-1);
+      chunk = file.bytes!.getRange(offset, end).toList();
     } else {
       raf!.setPositionSync(offset);
       chunk = raf.readSync(Client.CHUNK_SIZE);
