@@ -13,6 +13,7 @@ namespace Models {
          * {{ property.description }}
          */
         {{ property.name | escapeKeyword }}{% if not property.required %}?{% endif %}: {{_self.sub_schema(property)}};
+        {% if definition.additionalProperties %}[key: string]?: any;{% endif %}
 {% endfor %}
     }
 {% endfor %}
