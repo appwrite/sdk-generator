@@ -14,6 +14,7 @@ namespace Models {
          */
         {{ property.name | escapeKeyword }}{% if not property.required %}?{% endif %}: {{_self.sub_schema(property)}};
 {% endfor %}
+        {% if definition.additionalProperties %}[key: string]: any;{% endif %}
     }
 {% endfor %}
 }
