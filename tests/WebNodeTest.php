@@ -10,11 +10,11 @@ class WebNodeTest extends Base
         'cp tests/languages/web/tests.js tests/sdks/web/tests.js',
         'cp tests/languages/web/node.js tests/sdks/web/node.js',
         'cp tests/languages/web/index.html tests/sdks/web/index.html',
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm install', //  npm list --depth 0 &&
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm run build',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.22.2-focal npm install', //  npm list --depth 0 &&
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.22.2-focal npm run build',
     ];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node node.js';
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.22.2-focal node node.js';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

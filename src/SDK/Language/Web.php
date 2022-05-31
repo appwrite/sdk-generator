@@ -23,8 +23,38 @@ class Web extends JS
         return [
             [
                 'scope'         => 'default',
-                'destination'   => 'src/sdk.ts',
-                'template'      => '/web/src/sdk.ts.twig',
+                'destination'   => 'src/index.ts',
+                'template'      => 'web/src/index.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/client.ts',
+                'template'      => 'web/src/client.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/service.ts',
+                'template'      => 'web/src/service.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => 'src/services/{{service.name | caseDash}}.ts',
+                'template'      => 'web/src/services/template.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/models.ts',
+                'template'      => 'web/src/models.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/query.ts',
+                'template'      => 'web/src/query.ts.twig',
                 'minify'        => false,
             ],
             [
