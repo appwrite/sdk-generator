@@ -10,8 +10,8 @@ class WebChromiumTest extends Base
         'cp tests/languages/web/tests.js tests/sdks/web/tests.js',
         'cp tests/languages/web/node.js tests/sdks/web/node.js',
         'cp tests/languages/web/index.html tests/sdks/web/index.html',
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web node:18-alpine npm install',
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web node:18-alpine npm run build',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.22.2-focal sudo npm install',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.22.2-focal npm run build',
     ];
     protected string $command =
         'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.22.2-focal node tests.js';
