@@ -55,6 +55,14 @@ const getEntrypoint = (runtime) => {
       return 'main.rs';
     case 'swift':
       return 'Sources/swift-5.5/main.swift';
+    case 'cpp':
+      return 'src/index.cc';
+    case 'dotnet':
+      return 'src/Index.cs';
+    case 'java':
+      return 'src/Index.java';
+    case 'kotlin':
+      return 'src/Index.kt';
   }
 
   return undefined;
@@ -197,7 +205,7 @@ const questionsDeployFunctions = [
       let choices = functions.map((func, idx) => {
         return {
           name: `${func.name} (${func['$id']})`,
-          value: func
+          value: JSONbig.stringify(func)
         }
       })
       return choices;
