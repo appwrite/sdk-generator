@@ -404,6 +404,10 @@ class Swift extends Language {
                 case self::TYPE_ARRAY:
                     $output .= '[]';
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= '[:]';
+                    break;
+                
             }
         }
         else {
@@ -419,6 +423,9 @@ class Swift extends Language {
                     break;
                 case self::TYPE_STRING:
                     $output .= "\"{$example}\"";
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= '[:]';
                     break;
             }
         }
