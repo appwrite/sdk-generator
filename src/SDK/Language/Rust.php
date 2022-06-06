@@ -217,7 +217,7 @@ class Rust extends Language
                 'minify'        => false,
             ],
             [
-                'scope'         => 'default',
+                'scope'         => 'copy',
                 'destination'   => '.github/workflows/cargo-publish.yml',
                 'template'      => '/rust/.github/workflows/cargo-publish.yml',
                 'minify'        => false,
