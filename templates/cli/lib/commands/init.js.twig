@@ -81,9 +81,9 @@ const initFunction = async () => {
 
   fs.mkdirSync(functionDir, "777");
 
-  const gitInitCommands = "git clone --depth 1 --sparse https://github.com/{{ sdk.gitUserName }}/functions-starter ."; // depth prevents fetching older commits reducing the amount fetched
+  let gitInitCommands = "git clone --depth 1 --sparse https://github.com/{{ sdk.gitUserName }}/functions-starter ."; // depth prevents fetching older commits reducing the amount fetched
 
-  const gitPullCommands = `git sparse-checkout add ${answers.runtime.id}`;
+  let gitPullCommands = `git sparse-checkout add ${answers.runtime.id}`;
 
   // Force use CMD as powershell does not support &&
   if (process.platform == 'win32') {
