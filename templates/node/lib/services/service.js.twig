@@ -1,6 +1,8 @@
 const Service = require('../service.js');
 const {{spec.title | caseUcfirst}}Exception = require('../exception.js');
+const InputFile = require('../inputFile.js');
 const client = require('../client.js');
+const Stream = require('stream');
 const { promisify } = require('util');
 const fs = require('fs');
 
@@ -34,48 +36,125 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% for parameter in method.parameters.query %}
 
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}.toString(){% endif %};
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" and parameter.type != "file" ) %}.toString(){% endif %};
         }
 {% endfor %}
 {% for parameter in method.parameters.body %}
 
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword}}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}.toString(){% endif %};
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword}}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" and parameter.type != "file" ) %}.toString(){% endif %};
         }
 {% endfor %}
 
 {% if 'multipart/form-data' in method.consumes %}
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
-        const { size: size } = await promisify(fs.stat)({{ parameter.name | caseCamel | escapeKeyword }});
+        const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
-        if (size <= client.CHUNK_SIZE) {
-            payload['{{ parameter.name }}'] = fs.createReadStream({{ parameter.name | caseCamel | escapeKeyword }});
+        // TODO: Resumable upload, somehow
+
+        const headers = {
+{% for parameter in method.parameters.header %}
+            '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+            '{{ key }}': '{{ header }}',
+{% endfor %}
+        };
+
+        let id = undefined;
+        let response = undefined;
+
+        let currentChunk = Buffer.from('');
+        let currentChunkSize = 0;
+        let currentChunkStart = 0;
+
+        const selfClient = this.client;
+
+        async function uploadChunk(lastUpload = false) {
+            const start = currentChunkStart;
+            const end = Math.min(((start + client.CHUNK_SIZE) - 1), size);
+
+            if(!lastUpload || currentChunkStart !== 0) {
+                headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
+            }
+
+            if (id) {
+                headers['x-{{spec.title | caseLower }}-id'] = id;
+            }
+
+            const stream = Stream.Readable.from(currentChunk.toString());
+            payload['{{ parameter.name }}'] = { type: 'file', file: stream, filename: file.name };
+
+            response = await selfClient.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+
+            if (!id) {
+                id = response['$id'];
+            }
+            
+            if (onProgress !== null) {
+                onProgress({
+                    $id: response['$id'],
+                    progress: Math.min((start+client.CHUNK_SIZE) * client.CHUNK_SIZE, size) / size * 100,
+                    sizeUploaded: end+1,
+                    chunksTotal: response['chunksTotal'],
+                    chunksUploaded: response['chunksUploaded']
+                });
+            }
+
+            currentChunkStart += client.CHUNK_SIZE;
+        }
+
+        return await new Promise((resolve, reject) => {
+            const writeStream = new Stream.Writable();
+            writeStream._write = async (chunk, encoding, next) => {
+                // TODO: What if chunk is 50MB? We need while loop here
+                const chunkSize = Buffer.byteLength(chunk);
+
+                if(chunkSize + currentChunkSize == client.CHUNK_SIZE) {
+                    // Upload chunk
+                    currentChunk = Buffer.concat([currentChunk, chunk]);
+                    await uploadChunk();
+                    currentChunk = Buffer.from('');
+                    currentChunkSize = 0;
+                } else if(chunkSize + currentChunkSize > client.CHUNK_SIZE) {
+                    // Upload chunk, put rest into next chunk
+                    const bytesToUpload = client.CHUNK_SIZE - currentChunkSize;
+                    chunk.copy(currentChunk, currentChunkSize + 1, 0, bytesToUpload);
+                    await uploadChunk();
+                    currentChunk = Buffer.from('');
+                    chunk.copy(currentChunk, 0, 0, chunkSize - bytesToUpload);
+                    currentChunkSize = chunkSize - bytesToUpload;
+                } else {
+                    // Append into current chunk
+                    currentChunk = Buffer.concat([currentChunk, chunk]);
+                    currentChunkSize = chunkSize + currentChunkSize;
+                }
+
+                next();
+            }
+
+            writeStream.on("finish", async () => {
+                if(currentChunkSize > 0) {
+                    await uploadChunk(true);
+                }
                 
-            return await this.client.call('{{ method.method | caseLower }}', path, {
-{% for parameter in method.parameters.header %}
-                '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
-                '{{ key }}': '{{ header }}',
-{% endfor %}
-            }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
-        } else {
-            let id = undefined;
-            let response = undefined;
+                resolve(response);
+            });
 
-            let counter = 0;
-            const totalCounters = Math.ceil(size / client.CHUNK_SIZE);
+            writeStream.on("error", (err) => {
+                reject(err);
+            });
+            
+            {{ parameter.name | caseCamel | escapeKeyword }}.stream.pipe(writeStream);
+        });
 
-            const headers = {
-{% for parameter in method.parameters.header %}
-                '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
-                '{{ key }}': '{{ header }}',
-{% endfor %}
-            };
+        /*
+// UPLOAD SINGLE_CHUNKED FILE
+payload['{{ parameter.name }}'] = fs.createReadStream({{ parameter.name | caseCamel | escapeKeyword }});
+return await this.client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
+// RESUMABLE UPLOAD:
 {% for parameter in method.parameters.all %}
 {% if parameter.isUploadID %}
             if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
@@ -88,41 +167,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endif %}
 {% endfor %}
 
-            for (counter; counter < totalCounters; counter++) {
-                const start = (counter * client.CHUNK_SIZE);
-                const end = Math.min((((counter * client.CHUNK_SIZE) + client.CHUNK_SIZE) - 1), size);
-
-                headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
-
-                if (id) {
-                    headers['x-{{spec.title | caseLower }}-id'] = id;
-                }
-
-                const stream = fs.createReadStream({{ parameter.name | caseCamel | escapeKeyword }}, {
-                    start,
-                    end
-                });
-                payload['{{ parameter.name }}'] = stream;
-
-                response = await this.client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
-
-                if (!id) {
-                    id = response['$id'];
-                }
-                
-                if (onProgress !== null) {
-                    onProgress({
-                        $id: response['$id'],
-                        progress: Math.min((counter+1) * client.CHUNK_SIZE, size) / size * 100,
-                        sizeUploaded: end+1,
-                        chunksTotal: response['chunksTotal'],
-                        chunksUploaded: response['chunksUploaded']
-                    });
-                }
-            }
-
-            return response;
-        }
+        */
 {% endif %}
 {% endfor %}
 {% else %}
