@@ -52,6 +52,20 @@ class {{ service.name | caseUcfirst }} extends Service {
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
         // TODO: Resumable upload, somehow
+        /*
+// RESUMABLE UPLOAD PREVIOUS LOGIC:
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+            if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
+                try {
+                    response = await this.client.call('get', path + '/' + {{ parameter.name }}, headers);
+                    counter = response.chunksUploaded;
+                } catch(e) {
+                }
+            }
+{% endif %}
+{% endfor %}
+        */
 
         const headers = {
 {% for parameter in method.parameters.header %}
@@ -120,10 +134,11 @@ class {{ service.name | caseUcfirst }} extends Service {
                 } else if(chunkSize + currentChunkSize > client.CHUNK_SIZE) {
                     // Upload chunk, put rest into next chunk
                     const bytesToUpload = client.CHUNK_SIZE - currentChunkSize;
-                    chunk.copy(currentChunk, currentChunkSize + 1, 0, bytesToUpload);
+                    const newChunkSection = chunk.slice(0, bytesToUpload);
+                    currentChunk = Buffer.concat([currentChunk, newChunkSection]);
+                    currentChunkSize = Buffer.byteLength(currentChunk);
                     await uploadChunk();
-                    currentChunk = Buffer.from('');
-                    chunk.copy(currentChunk, 0, 0, chunkSize - bytesToUpload);
+                    currentChunk = chunk.slice(bytesToUpload, undefined);
                     currentChunkSize = chunkSize - bytesToUpload;
                 } else {
                     // Append into current chunk
@@ -148,26 +163,6 @@ class {{ service.name | caseUcfirst }} extends Service {
             
             {{ parameter.name | caseCamel | escapeKeyword }}.stream.pipe(writeStream);
         });
-
-        /*
-// UPLOAD SINGLE_CHUNKED FILE
-payload['{{ parameter.name }}'] = fs.createReadStream({{ parameter.name | caseCamel | escapeKeyword }});
-return await this.client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
-
-// RESUMABLE UPLOAD:
-{% for parameter in method.parameters.all %}
-{% if parameter.isUploadID %}
-            if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
-                try {
-                    response = await this.client.call('get', path + '/' + {{ parameter.name }}, headers);
-                    counter = response.chunksUploaded;
-                } catch(e) {
-                }
-            }
-{% endif %}
-{% endfor %}
-
-        */
 {% endif %}
 {% endfor %}
 {% else %}
