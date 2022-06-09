@@ -81,4 +81,6 @@ async function start() {
     await general.empty();
 }
 
-start();
+start().catch((err) => {
+    console.log(err);
+});

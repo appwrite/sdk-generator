@@ -51,22 +51,6 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% if parameter.type == 'file' %}
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
-        // TODO: Resumable upload, somehow
-        /*
-// RESUMABLE UPLOAD PREVIOUS LOGIC:
-{% for parameter in method.parameters.all %}
-{% if parameter.isUploadID %}
-            if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
-                try {
-                    response = await this.client.call('get', path + '/' + {{ parameter.name }}, headers);
-                    counter = response.chunksUploaded;
-                } catch(e) {
-                }
-            }
-{% endif %}
-{% endfor %}
-        */
-
         const headers = {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
@@ -79,6 +63,20 @@ class {{ service.name | caseUcfirst }} extends Service {
         let id = undefined;
         let response = undefined;
 
+        let chunksUploaded = 0;
+
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+        if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
+            try {
+                response = await this.client.call('get', path + '/' + {{ parameter.name }}, headers);
+                chunksUploaded = response.chunksUploaded;
+            } catch(e) {
+            }
+        }
+{% endif %}
+{% endfor %}
+
         let currentChunk = Buffer.from('');
         let currentChunkSize = 0;
         let currentChunkStart = 0;
@@ -86,6 +84,11 @@ class {{ service.name | caseUcfirst }} extends Service {
         const selfClient = this.client;
 
         async function uploadChunk(lastUpload = false) {
+            if(chunksUploaded - 1 >= currentChunkStart / client.CHUNK_SIZE) {
+                return;
+            }
+            
+            // TODO: Use chunksUploaded somehow
             const start = currentChunkStart;
             const end = Math.min(((start + client.CHUNK_SIZE) - 1), size);
 
@@ -121,16 +124,14 @@ class {{ service.name | caseUcfirst }} extends Service {
 
         return await new Promise((resolve, reject) => {
             const writeStream = new Stream.Writable();
-            writeStream._write = async (chunk, encoding, next) => {
+            writeStream._write = async (mainChunk, encoding, next) => {
                 // Segment incoming chunk into up to 5MB chunks
-                const mainChunk = chunk;
-                const mainChunkSize = Buffer.byteLength(chunk);
-
+                const mainChunkSize = Buffer.byteLength(mainChunk);
                 const chunksCount = Math.ceil(mainChunkSize / client.CHUNK_SIZE);
                 const chunks = [];
 
                 for(let i = 0; i < chunksCount; i++) {
-                    const chunk = chunk.slice(chunksCount * client.CHUNK_SIZE, client.CHUNK_SIZE);
+                    const chunk = mainChunk.slice(i * client.CHUNK_SIZE, client.CHUNK_SIZE);
                     chunks.push(chunk);
                 }
 
