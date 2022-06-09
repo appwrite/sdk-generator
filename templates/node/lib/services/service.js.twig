@@ -88,7 +88,6 @@ class {{ service.name | caseUcfirst }} extends Service {
                 return;
             }
             
-            // TODO: Use chunksUploaded somehow
             const start = currentChunkStart;
             const end = Math.min(((start + client.CHUNK_SIZE) - 1), size);
 
