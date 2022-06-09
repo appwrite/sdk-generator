@@ -122,28 +122,41 @@ class {{ service.name | caseUcfirst }} extends Service {
         return await new Promise((resolve, reject) => {
             const writeStream = new Stream.Writable();
             writeStream._write = async (chunk, encoding, next) => {
-                // TODO: What if chunk is 50MB? We need while loop here
-                const chunkSize = Buffer.byteLength(chunk);
+                // Segment incoming chunk into up to 5MB chunks
+                const mainChunk = chunk;
+                const mainChunkSize = Buffer.byteLength(chunk);
 
-                if(chunkSize + currentChunkSize == client.CHUNK_SIZE) {
-                    // Upload chunk
-                    currentChunk = Buffer.concat([currentChunk, chunk]);
-                    await uploadChunk();
-                    currentChunk = Buffer.from('');
-                    currentChunkSize = 0;
-                } else if(chunkSize + currentChunkSize > client.CHUNK_SIZE) {
-                    // Upload chunk, put rest into next chunk
-                    const bytesToUpload = client.CHUNK_SIZE - currentChunkSize;
-                    const newChunkSection = chunk.slice(0, bytesToUpload);
-                    currentChunk = Buffer.concat([currentChunk, newChunkSection]);
-                    currentChunkSize = Buffer.byteLength(currentChunk);
-                    await uploadChunk();
-                    currentChunk = chunk.slice(bytesToUpload, undefined);
-                    currentChunkSize = chunkSize - bytesToUpload;
-                } else {
-                    // Append into current chunk
-                    currentChunk = Buffer.concat([currentChunk, chunk]);
-                    currentChunkSize = chunkSize + currentChunkSize;
+                const chunksCount = Math.ceil(mainChunkSize / client.CHUNK_SIZE);
+                const chunks = [];
+
+                for(let i = 0; i < chunksCount; i++) {
+                    const chunk = chunk.slice(chunksCount * client.CHUNK_SIZE, client.CHUNK_SIZE);
+                    chunks.push(chunk);
+                }
+
+                for (const chunk of chunks) {
+                    const chunkSize = Buffer.byteLength(chunk);
+
+                    if(chunkSize + currentChunkSize == client.CHUNK_SIZE) {
+                        // Upload chunk
+                        currentChunk = Buffer.concat([currentChunk, chunk]);
+                        await uploadChunk();
+                        currentChunk = Buffer.from('');
+                        currentChunkSize = 0;
+                    } else if(chunkSize + currentChunkSize > client.CHUNK_SIZE) {
+                        // Upload chunk, put rest into next chunk
+                        const bytesToUpload = client.CHUNK_SIZE - currentChunkSize;
+                        const newChunkSection = chunk.slice(0, bytesToUpload);
+                        currentChunk = Buffer.concat([currentChunk, newChunkSection]);
+                        currentChunkSize = Buffer.byteLength(currentChunk);
+                        await uploadChunk();
+                        currentChunk = chunk.slice(bytesToUpload, undefined);
+                        currentChunkSize = chunkSize - bytesToUpload;
+                    } else {
+                        // Append into current chunk
+                        currentChunk = Buffer.concat([currentChunk, chunk]);
+                        currentChunkSize = chunkSize + currentChunkSize;
+                    }
                 }
 
                 next();
