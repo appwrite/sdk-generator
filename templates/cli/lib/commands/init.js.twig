@@ -97,7 +97,7 @@ const initFunction = async () => {
   childProcess.execSync(gitPullCommands, { stdio: 'pipe', cwd: functionDir });
 
   fs.rmSync(path.join(functionDir, ".git"), { recursive: true });
-    const copyRecursiveSync = (src, dest) => {
+  const copyRecursiveSync = (src, dest) => {
     let exists = fs.existsSync(src);
     let stats = exists && fs.statSync(src);
     let isDirectory = exists && stats.isDirectory();
