@@ -185,6 +185,12 @@ class PHP extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/{{ spec.title | caseUcfirst}}/InputFile.php',
+                'template'      => 'php/src/InputFile.php.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/{{ spec.title | caseUcfirst}}Exception.php',
                 'template'      => 'php/src/Exception.php.twig',
                 'minify'        => false,
