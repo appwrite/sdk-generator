@@ -228,7 +228,7 @@ class PHP extends Language {
                 $type = 'array';
                 break;
             case self::TYPE_FILE:
-                $type = 'string';
+                $type = 'InputFile';
                 break;
         }
 

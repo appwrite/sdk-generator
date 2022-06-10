@@ -1,5 +1,5 @@
 <?php
-namespace Appwrite;
+namespace {{ spec.title | caseUcfirst }};
 
 class InputFile {
     private ?string $data;
@@ -29,19 +29,21 @@ class InputFile {
         return $this->filename;
     }
 
-    public static function withPath(string $path, ?string $mimeType, ?string $filename)
+    public static function withPath(string $path, ?string $mimeType = null, ?string $filename = null)
     {
         $instance = new InputFile();
         $instance->path = $path;
         $instance->mimeType = $mimeType;
         $instance->filename = $filename;
+        return $instance;
     } 
 
-    public static function withData(string $data, ?string $mimeType, ?string $filename)
+    public static function withData(string $data, ?string $mimeType = null, ?string $filename = null)
     {
         $instance = new InputFile();
         $instance->data = $data;
         $instance->mimeType = $mimeType;
         $instance->filename = $filename;
+        return $instance;
     }
 }

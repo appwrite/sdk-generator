@@ -2,6 +2,7 @@
 
 include __DIR__ . '/../../sdks/php/src/Appwrite/Client.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Service.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/InputFile.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/AppwriteException.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Foo.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Bar.php';
@@ -9,6 +10,7 @@ include __DIR__ . '/../../sdks/php/src/Appwrite/Services/General.php';
 
 use Appwrite\AppwriteException;
 use Appwrite\Client;
+use Appwrite\InputFile;
 use Appwrite\Services\Bar;
 use Appwrite\Services\Foo;
 use Appwrite\Services\General;
@@ -59,10 +61,10 @@ echo "{$response['result']}\n";
 $response = $general->redirect();
 echo "{$response['result']}\n";
 
-$response = $general->upload('string', 123, ['string in array'], __DIR__ . '/../../resources/file.png');
+$response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../resources/file.png'));
 echo "{$response['result']}\n";
 
-$response = $general->upload('string', 123, ['string in array'], __DIR__ . '/../../resources/large_file.mp4');
+$response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../resources/large_file.mp4'));
 echo "{$response['result']}\n";
 
 try {
