@@ -98,7 +98,7 @@ const initFunction = async () => {
     childProcess.execSync(gitPullCommands, { stdio: 'pipe', cwd: functionDir });
   } catch (error) {
     // Specialised errors with recommended actions to take
-    if (error.message.includes('error: unknown option `--sparse')) {
+    if (error.message.includes('error: unknown option`)) {
       throw new Error(`Error: ${error.message} \n\n Suggestion: Try updating your git to the latest version, then trying to run this command again.`)
     } else if (error.message.includes('is not recognized as an internal or external command,') || error.message.includes('command not found')) {
       throw new Error(`Error: ${error.message} \n\n Suggestion: It appears that git is not installed, try installing git then trying to run this command again.`)
