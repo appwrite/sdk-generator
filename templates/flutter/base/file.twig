@@ -1,0 +1,49 @@
+{% import "flutter/base/macros.twig"  as macros %}
+
+        final Map<String, dynamic> params = {
+{% for parameter in method.parameters.query %}
+            {{ macros.map_parameter(parameter) }}
+{% endfor %}
+{% for parameter in method.parameters.body %}
+            {{ macros.map_parameter(parameter) }}
+{% endfor %}
+        };
+
+        final Map<String, String> headers = {
+{% for key, header in method.headers %}
+            '{{ key }}': '{{ header }}',
+{% endfor %}
+        };
+
+{% if 'multipart/form-data' in method.consumes %}
+        dynamic res;
+        if(kIsWeb) {
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+          params['{{ parameter.name }}'] = {{ parameter.name }}.file;
+{% endif %}
+{% endfor %}
+          res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
+        } else {
+          String idParamName = '';
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+          final paramName = '{{ parameter.name }}';
+{% endif %}
+{% if parameter.isUploadID %}
+          idParamName = '{{ parameter.name }}';
+{% endif %}
+{% endfor %}
+          res = await chunkedUpload(
+            client: client,
+            path: path,
+            params: params,
+            paramName: paramName,
+            idParamName: idParamName,
+            headers: headers,
+            onProgress: onProgress,
+          );
+        }
+
+        return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst}}.fromMap(res.data){% else %} res.data{% endif %};
+{% endif %}

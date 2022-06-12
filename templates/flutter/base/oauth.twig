@@ -1,0 +1,44 @@
+{% import "flutter/base/macros.twig" as macros %}
+
+        final Map<String, dynamic> params = {
+{% for parameter in method.parameters.query %}
+            {{ macros.map_parameter(parameter) }}
+{% endfor %}
+{% for parameter in method.parameters.body %}
+            {{ macros.map_parameter(parameter) }}
+{% endfor %}
+{% if method.type == 'webAuth' %}
+{% if method.security|length > 0 %}
+{% for node in method.security %}
+{% for key,header in node|keys %}
+            '{{header|caseLower}}': client.config['{{header|caseLower}}'],
+{% endfor %}
+{% endfor %}
+{% endif %}
+{% endif %}
+        };
+
+{% if method.type == 'webAuth' %}
+
+        final List query = [];
+
+        params.forEach((key, value) {
+          if (value is List) { 
+            for (var item in value) {
+              query.add(Uri.encodeComponent(key + '[]') + '=' + Uri.encodeComponent(item));
+            }
+          } else if(value != null) {
+              query.add(Uri.encodeComponent(key) + '=' + Uri.encodeComponent(value));
+          }
+        });
+
+        Uri endpoint = Uri.parse(client.endPoint);
+        Uri url = Uri(scheme: endpoint.scheme,
+          host: endpoint.host,
+          port: endpoint.port,
+          path: endpoint.path + path,
+          query: query.join('&')
+        );
+
+      return client.webAuth(url);
+{% endif %}
