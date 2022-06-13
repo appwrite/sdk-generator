@@ -22,6 +22,8 @@ class {{ service.name | caseUcfirst }} extends Service {
 {{ include('flutter/base/file.twig') }}
 {% elseif method.type == 'webAuth' %}
 {{ include('flutter/base/oauth.twig') }}
+{% elseif method.type == 'location' %}
+{{ include('flutter/base/location.twig') }}
 {% else %}
 {{ include('flutter/base/api.twig') }}
 {% endif %}

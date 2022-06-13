@@ -7,21 +7,8 @@
 {% for parameter in method.parameters.body %}
             {{ macros.map_parameter(parameter) }}
 {% endfor %}
-{% if method.type == 'location' %}
-{% if method.security|length > 0 %}
-{% for node in method.security %}
-{% for key,header in node|keys %}
-            '{{header|caseLower}}': client.config['{{header|caseLower}}'],
-{% endfor %}
-{% endfor %}
-{% endif %}
-{% endif %}
         };
 
-{% if method.type == 'location' %}
-        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, responseType: ResponseType.bytes);
-        return res.data;
-{% else %}
         final Map<String, String> headers = {
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
@@ -31,4 +18,3 @@
         final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
 
         return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst}}.fromMap(res.data){% else %} res.data{% endif %};
-{% endif %}
