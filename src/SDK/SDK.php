@@ -133,48 +133,6 @@ class SDK
             }
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('comment2', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "     * " . wordwrap($value[$key], 75, "\n     * ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('comment3', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "         * " . wordwrap($value[$key], 75, "\n         * ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('dartComment', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "     /// " . wordwrap($value[$key], 75, "\n     /// ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('dotnetComment', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "        /// " . wordwrap($value[$key], 75, "\n        /// ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('swiftComment', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "    /// " . wordwrap($value[$key], 75, "\n    /// ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('rubyComment', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "        # " . wordwrap($line, 75, "\n        # ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value) {
             return str_replace('$', '\$', $value);
         }, ['is_safe'=>['html']]));
@@ -191,27 +149,12 @@ class SDK
         $this->twig->addFilter(new TwigFilter('html', function ($value) {
             return $value;
         }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('godocComment', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "// " . wordwrap($value[$key], 75, "\n// ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeKeyword', function ($value) use ($language) {
             if(in_array($value, $language->getKeywords())) {
                 return 'x' . $value;
             }
 
             return $value;
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('ucFirstAndEscape', function ($value) use ($language) {
-            $value = ucfirst((string)$this->helperCamelCase($value));
-            if(in_array($value, $language->getKeywords())) {
-                $value = 'x' . $value;
-            }
-
-            return ucfirst((string)$this->helperCamelCase($value));
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('caseHTML', function ($value) {
             return $value;
@@ -228,6 +171,11 @@ class SDK
             }
             return $value;
         }));
+
+        // Language specific filters
+        foreach($language->getTwigFilters() as $filter) {
+            $this->twig->addFilter($filter);
+        }
     }
 
     /**

@@ -2,6 +2,8 @@
 
 namespace Appwrite\SDK\Language;
 
+use Twig\TwigFilter;
+
 class Web extends JS {
 
     /**
@@ -140,5 +142,25 @@ class Web extends JS {
         }
 
         return $output;
+    }
+
+    public function getTwigFilters()
+    {
+        return [
+           new TwigFilter('comment2', function ($value) {
+                $value = explode("\n", $value);
+                foreach ($value as $key => $line) {
+                    $value[$key] = "     * " . wordwrap($value[$key], 75, "\n     * ");
+                }
+                return implode("\n", $value);
+            }, ['is_safe' => ['html']]),
+            new TwigFilter('comment3', function ($value) {
+                $value = explode("\n", $value);
+                foreach ($value as $key => $line) {
+                    $value[$key] = "         * " . wordwrap($value[$key], 75, "\n         * ");
+                }
+                return implode("\n", $value);
+            }, ['is_safe' => ['html']]),
+        ];
     }
 }

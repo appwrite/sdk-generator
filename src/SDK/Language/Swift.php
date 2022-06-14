@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 class Swift extends Language {
 
@@ -431,5 +432,18 @@ class Swift extends Language {
         }
 
         return $output;
+    }
+
+    public function getTwigFilters()
+    {
+        return [
+            new TwigFilter('swiftComment', function ($value) {
+                $value = explode("\n", $value);
+                foreach ($value as $key => $line) {
+                    $value[$key] = "    /// " . wordwrap($value[$key], 75, "\n    /// ");
+                }
+                return implode("\n", $value);
+            }, ['is_safe' => ['html']])
+        ];
     }
 }

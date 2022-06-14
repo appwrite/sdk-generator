@@ -74,4 +74,11 @@ abstract class Language {
     {
         return $this->params;
     }
+
+    /**
+     * @return array
+     */
+    public function getTwigFilters(){
+        return [];
+    }
 }

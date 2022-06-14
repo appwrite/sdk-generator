@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 class Ruby extends Language {
 
@@ -326,5 +327,18 @@ class Ruby extends Language {
         $output .= '}';
 
         return $output;
+    }
+
+    public function getTwigFilters()
+    {
+        return [
+            new TwigFilter('rubyComment', function ($value) {
+                $value = explode("\n", $value);
+                foreach ($value as $key => $line) {
+                    $value[$key] = "        # " . wordwrap($line, 75, "\n        # ");
+                }
+                return implode("\n", $value);
+            }, ['is_safe' => ['html']])
+        ];
     }
 }
