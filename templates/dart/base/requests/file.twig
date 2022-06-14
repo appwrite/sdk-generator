@@ -9,25 +9,16 @@
         };
 
 {% if 'multipart/form-data' in method.consumes %}
-        dynamic res;
-        if(identical(0, 0.0)) {
+        String idParamName = '';
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
-          params['{{ parameter.name }}'] = {{ parameter.name }}.file;
-{% endif %}
-{% endfor %}
-          res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
-        } else {
-          String idParamName = '';
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
-          final paramName = '{{ parameter.name }}';
+        final paramName = '{{ parameter.name }}';
 {% endif %}
 {% if parameter.isUploadID %}
-          idParamName = '{{ parameter.name }}';
+        idParamName = '{{ parameter.name }}';
 {% endif %}
 {% endfor %}
-          res = await chunkedUpload(
+        final res = await chunkedUpload(
             client: client,
             path: path,
             params: params,
@@ -35,8 +26,7 @@
             idParamName: idParamName,
             headers: headers,
             onProgress: onProgress,
-          );
-        }
+        );
 
         return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst}}.fromMap(res.data){% else %} res.data{% endif %};
 {% endif %}
