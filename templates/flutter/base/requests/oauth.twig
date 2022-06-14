@@ -1,11 +1,7 @@
+{% import 'flutter/base/utils.twig' as utils %}
         final Map<String, dynamic> params = {
-{% for parameter in method.parameters.query %}
-            '{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for parameter in method.parameters.body %}
-            '{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% if method.type == 'webAuth' %}
+            {{ utils.map_parameter(method.parameters.query) }}
+            {{ utils.map_parameter(method.parameters.body) }}
 {% if method.security|length > 0 %}
 {% for node in method.security %}
 {% for key,header in node|keys %}
@@ -13,10 +9,7 @@
 {% endfor %}
 {% endfor %}
 {% endif %}
-{% endif %}
         };
-
-{% if method.type == 'webAuth' %}
 
         final List query = [];
 
@@ -39,4 +32,3 @@
         );
 
       return client.webAuth(url);
-{% endif %}

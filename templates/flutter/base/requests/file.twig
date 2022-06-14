@@ -1,16 +1,11 @@
-      final Map<String, dynamic> params = {
-{% for parameter in method.parameters.query %}
-            '{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for parameter in method.parameters.body %}
-            '{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
+      {% import 'flutter/base/utils.twig' as utils %}
+        final Map<String, dynamic> params = {
+            {{ utils.map_parameter(method.parameters.query) }}
+            {{ utils.map_parameter(method.parameters.body) }}
         };
 
         final Map<String, String> headers = {
-{% for key, header in method.headers %}
-            '{{ key }}': '{{ header }}',
-{% endfor %}
+            {{ utils.map_headers(method.headers) }}
         };
 
 {% if 'multipart/form-data' in method.consumes %}
