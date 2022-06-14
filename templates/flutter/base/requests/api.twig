@@ -1,11 +1,9 @@
-{% import "flutter/base/macros.twig" as macros %}
-
         final Map<String, dynamic> params = {
 {% for parameter in method.parameters.query %}
-            {{ macros.map_parameter(parameter) }}
+            '{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
 {% for parameter in method.parameters.body %}
-            {{ macros.map_parameter(parameter) }}
+            '{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
         };
 
