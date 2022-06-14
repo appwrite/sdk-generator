@@ -20,52 +20,56 @@
             let response;
             let responseRealtime = 'Realtime failed!';
             // Init SDK
-            let sdk = new Appwrite();
+            const { Client, Foo, Bar, General } = Appwrite;
+            const client = new Client();
+            const foo = new Foo(client);
+            const bar = new Bar(client);
+            const general = new General(client);
 
-            sdk.setProject('console');
-            sdk.setEndpointRealtime('ws://demo.appwrite.io/v1');
+            client.setProject('console');
+            client.setEndpointRealtime('ws://demo.appwrite.io/v1');
 
-            sdk.subscribe('tests', event => {
+            client.subscribe('tests', event => {
                 responseRealtime = event.payload.response;
             });
 
             // Foo
-            response = await sdk.foo.get("string", 123, ["string in array"]);
+            response = await foo.get("string", 123, ["string in array"]);
             console.log(response.result);
 
-            response = await sdk.foo.post("string", 123, ["string in array"]);
+            response = await foo.post("string", 123, ["string in array"]);
             console.log(response.result);
 
-            response = await sdk.foo.put("string", 123, ["string in array"]);
+            response = await foo.put("string", 123, ["string in array"]);
             console.log(response.result);
 
-            response = await sdk.foo.patch("string", 123, ["string in array"]);
+            response = await foo.patch("string", 123, ["string in array"]);
             console.log(response.result);
 
-            response = await sdk.foo.delete("string", 123, ["string in array"]);
+            response = await foo.delete("string", 123, ["string in array"]);
             console.log(response.result);
 
             // Bar
-            response = await sdk.bar.get("string", 123, ["string in array"]);
+            response = await bar.get("string", 123, ["string in array"]);
             console.log(response.result);
 
-            response = await sdk.bar.post("string", 123, ["string in array"]);
+            response = await bar.post("string", 123, ["string in array"]);
             console.log(response.result);
 
-            response = await sdk.bar.put("string", 123, ["string in array"]);
+            response = await bar.put("string", 123, ["string in array"]);
             console.log(response.result);
 
-            response = await sdk.bar.patch("string", 123, ["string in array"]);
+            response = await bar.patch("string", 123, ["string in array"]);
             console.log(response.result);
 
-            response = await sdk.bar.delete("string", 123, ["string in array"]);
+            response = await bar.delete("string", 123, ["string in array"]);
             console.log(response.result);
 
             // General
-            response = await sdk.general.redirect();
+            response = await general.redirect();
             console.log(response.result);
 
-            response = await sdk.general.upload(
+            response = await general.upload(
                 "string",
                 123,
                 ["string in array"],
@@ -73,7 +77,7 @@
             );
             console.log(response.result);
 
-            response = await sdk.general.upload(
+            response = await general.upload(
                 "string",
                 123,
                 ["string in array"],
@@ -82,25 +86,25 @@
             console.log(response.result);
 
             try {
-                response = await sdk.general.empty();
+                response = await general.empty();
             } catch (error) {
                 console.log(error);
             }
 
             try {
-                response = await sdk.general.error400();
+                response = await general.error400();
             } catch (error) {
                 console.log(error.message);
             }
 
             try {
-                response = await sdk.general.error500();
+                response = await general.error500();
             } catch (error) {
                 console.log(error.message);
             }
 
             try {
-                response = await sdk.general.error502();
+                response = await general.error502();
             } catch (error) {
                 console.log(error.message);
             }
