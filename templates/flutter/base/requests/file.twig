@@ -18,8 +18,7 @@
         idParamName = '{{ parameter.name }}';
 {% endif %}
 {% endfor %}
-        final res = await chunkedUpload(
-            client: client,
+        final res = await client.chunkedUpload(
             path: path,
             params: params,
             paramName: paramName,
