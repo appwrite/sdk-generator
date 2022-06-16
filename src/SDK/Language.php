@@ -76,9 +76,11 @@ abstract class Language {
     }
 
     /**
-     * @return array
+     * Language specific filters.
+     * @return array 
      */
-    public function getTwigFilters(){
+    public function getFilters(): array
+    {
         return [];
     }
 }
