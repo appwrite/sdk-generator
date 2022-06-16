@@ -179,11 +179,6 @@ class SDK
             }
             return $value;
         }));
-
-        // Language specific filters
-        foreach($language->getTwigFilters() as $filter) {
-            $this->twig->addFilter($filter);
-        }
     }
 
     /**
