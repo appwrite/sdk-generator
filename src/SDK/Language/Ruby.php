@@ -329,7 +329,7 @@ class Ruby extends Language {
         return $output;
     }
 
-    public function getTwigFilters()
+    public function getFilters(): array
     {
         return [
             new TwigFilter('rubyComment', function ($value) {

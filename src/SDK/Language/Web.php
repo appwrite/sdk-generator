@@ -338,6 +338,20 @@ class Web extends JS
             new TwigFilter('getReturn', function (array $method, array $spec) {
                 return $this->getReturn($method, $spec);
             }),
+            new TwigFilter('comment2', function ($value) {
+                $value = explode("\n", $value);
+                foreach ($value as $key => $line) {
+                    $value[$key] = "     * " . wordwrap($value[$key], 75, "\n     * ");
+                }
+                return implode("\n", $value);
+            }, ['is_safe' => ['html']]),
+            new TwigFilter('comment3', function ($value) {
+                $value = explode("\n", $value);
+                foreach ($value as $key => $line) {
+                    $value[$key] = "         * " . wordwrap($value[$key], 75, "\n         * ");
+                }
+                return implode("\n", $value);
+            }, ['is_safe' => ['html']]),
         ];
     }
 }

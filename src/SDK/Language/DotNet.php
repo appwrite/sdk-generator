@@ -378,7 +378,7 @@ class DotNet extends Language {
         ];
     }
 
-    public function getTwigFilters()
+    public function getFilters(): array
     {
         return [
             new TwigFilter('dotnetComment', function ($value) {

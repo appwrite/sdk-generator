@@ -248,7 +248,7 @@ class Go extends Language {
         return $output;
     }
 
-    public function getTwigFilters()
+    public function getFilters(): array
     {
         return [
             new TwigFilter('godocComment', function ($value) {

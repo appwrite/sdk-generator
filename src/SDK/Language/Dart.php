@@ -436,7 +436,7 @@ class Dart extends Language {
         ];
     }
 
-    public function getTwigFilters()
+    public function getFilters(): array
     {
         return [
             new TwigFilter('dartComment', function ($value) {
