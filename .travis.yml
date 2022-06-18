@@ -37,7 +37,7 @@ env:
   - SDK=PHP74
   - SDK=PHP80
   - SDK=Python38
-  - SDK=Python39Async
+  - SDK=Python38Async
   - SDK=Python39
   - SDK=Python39Async
   - SDK=Python310
