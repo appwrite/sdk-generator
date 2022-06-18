@@ -1,15 +1,15 @@
-from appwrite.aio.client import Client
-from appwrite.aio.services.foo import Foo
-from appwrite.aio.services.bar import Bar
-from appwrite.aio.services.general import General
-from appwrite.aio.exception import AppwriteException
+from appwrite.aio.client import AsyncClient
+from appwrite.services.foo import Foo
+from appwrite.services.bar import Bar
+from appwrite.services.general import General
+from appwrite.exception import AppwriteException
 import os.path
 import asyncio
 
 
 loop = asyncio.get_event_loop()
 
-client = Client()
+client = AsyncClient()
 foo = Foo(client)
 bar = Bar(client)
 general = General(client)
