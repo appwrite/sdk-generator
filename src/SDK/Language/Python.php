@@ -219,30 +219,6 @@ class Python extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseSnake}}/aio/query.py',
-                'template'      => 'python/package/aio/query.py.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseSnake}}/aio/exception.py',
-                'template'      => 'python/package/aio/exception.py.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseSnake}}/aio/input_file.py',
-                'template'      => 'python/package/aio/input_file.py.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseSnake}}/aio/service.py',
-                'template'      => 'python/package/aio/service.py.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/aio/services/__init__.py',
                 'template'      => 'python/package/aio/services/__init__.py.twig',
                 'minify'        => false,
