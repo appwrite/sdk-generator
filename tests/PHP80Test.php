@@ -4,6 +4,20 @@ namespace Tests;
 
 class PHP80Test extends Base
 {
+    const FOO_RESPONSES = [
+        'GET:/v1/mock/tests/foo:passed',
+        'POST:/v1/mock/tests/foo:passed',
+        'PUT:/v1/mock/tests/foo:passed',
+        'PATCH:/v1/mock/tests/foo:passed',
+    ];
+
+    const BAR_RESPONSES = [
+        'GET:/v1/mock/tests/bar:passed',
+        'POST:/v1/mock/tests/bar:passed',
+        'PUT:/v1/mock/tests/bar:passed',
+        'PATCH:/v1/mock/tests/bar:passed',
+    ];
+
     protected string $language = 'php';
     protected string $class = 'Appwrite\SDK\Language\PHP';
     protected array $build = [];
@@ -11,8 +25,8 @@ class PHP80Test extends Base
         'docker run --rm -v $(pwd):/app -w /app php:8.0-cli-alpine php tests/languages/php/test.php';
 
     protected array $expectedOutput = [
-        ...Base::FOO_RESPONSES,
-        ...Base::BAR_RESPONSES,
+        ...self::FOO_RESPONSES,
+        ...self::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
