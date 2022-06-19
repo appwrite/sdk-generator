@@ -74,4 +74,13 @@ abstract class Language {
     {
         return $this->params;
     }
+
+    /**
+     * Language specific filters.
+     * @return array 
+     */
+    public function getFilters(): array
+    {
+        return [];
+    }
 }
