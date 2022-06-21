@@ -33,6 +33,7 @@ class InputFile {
     {
         $instance = new InputFile();
         $instance->path = $path;
+        $instance->data = null;
         $instance->mimeType = $mimeType;
         $instance->filename = $filename;
         return $instance;
@@ -41,6 +42,7 @@ class InputFile {
     public static function withData(string $data, ?string $mimeType = null, ?string $filename = null)
     {
         $instance = new InputFile();
+        $instance->path = null;
         $instance->data = $data;
         $instance->mimeType = $mimeType;
         $instance->filename = $filename;

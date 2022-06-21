@@ -3,7 +3,7 @@
         $size = 0;
         $mimeType = null;
         $postedName = null;
-        if(empty(${{ parameter.name | caseCamel }}->getPath())) {
+        if(empty(${{ parameter.name | caseCamel }}->getPath() ?? null)) {
             $size = strlen(${{ parameter.name | caseCamel }}->getData());
             $mimeType = ${{ parameter.name | caseCamel }}->getMimeType();
             $postedName = ${{ parameter.name | caseCamel }}->getFilename();

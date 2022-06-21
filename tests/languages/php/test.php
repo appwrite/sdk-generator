@@ -61,6 +61,14 @@ echo "{$response['result']}\n";
 $response = $general->redirect();
 echo "{$response['result']}\n";
 
+$data = file_get_contents(__DIR__ . '/../../resources/file.png');
+$response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'image/png', 'file.png'));
+echo "{$response['result']}\n";
+
+$data = file_get_contents(__DIR__ . '/../../resources/large_file.mp4');
+$response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'video/mp4', 'large_file.mp4'));
+echo "{$response['result']}\n";
+
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../resources/file.png'));
 echo "{$response['result']}\n";
 
