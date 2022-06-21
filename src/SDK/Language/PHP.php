@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 class PHP extends Language {
 
@@ -361,5 +362,22 @@ class PHP extends Language {
         $output .= ']';
 
         return $output;
+    }
+
+    protected function getReturn(array $method): string
+    {
+        if(($method['emptyResponse'] ?? true) || $method['type'] === 'location') {
+            return 'string';
+        }
+
+        return 'array';
+    }
+
+    public function getFilters(): array {
+        return [
+            new TwigFilter('getReturn', function($value) {
+                return $this->getReturn($value);
+            })
+        ];
     }
 }
