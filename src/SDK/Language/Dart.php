@@ -421,18 +421,6 @@ class Dart extends Language {
                 'template'      => 'dart/lib/src/input_file.dart.twig',
                 'minify'        => false,
             ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'lib/src/chunked_upload_io.dart',
-                'template'      => 'dart/lib/src/chunked_upload_io.dart.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'lib/src/chunked_upload_stub.dart',
-                'template'      => 'dart/lib/src/chunked_upload_stub.dart.twig',
-                'minify'        => false,
-            ],
         ];
     }
 
