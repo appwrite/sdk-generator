@@ -102,7 +102,7 @@ class {{ service.name | caseUcfirst }} extends Service
 {% if parameter.isUploadID %}
         if(${{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
-                $response = $this->client->call(Client::METHOD_GET, $path . '/' . ${{ parameter.name }},);
+                $response = $this->client->call(Client::METHOD_GET, $path . '/' . ${{ parameter.name }});
                 $counter = $response['chunksUploaded'] ?? 0;
             } catch(\Exception $e) {
             }
