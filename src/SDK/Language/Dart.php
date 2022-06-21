@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 class Dart extends Language {
 
@@ -432,6 +433,19 @@ class Dart extends Language {
                 'template'      => 'dart/lib/src/chunked_upload_stub.dart.twig',
                 'minify'        => false,
             ],
+        ];
+    }
+
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('dartComment', function ($value) {
+                $value = explode("\n", $value);
+                foreach ($value as $key => $line) {
+                    $value[$key] = "     /// " . wordwrap($value[$key], 75, "\n     /// ");
+                }
+                return implode("\n", $value);
+            }, ['is_safe' => ['html']]),
         ];
     }
 }
