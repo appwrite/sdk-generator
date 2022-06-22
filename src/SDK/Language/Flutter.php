@@ -87,12 +87,6 @@ class Flutter extends Dart {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/src/client_stub.dart',
-                'template'      => 'flutter/lib/src/client_stub.dart.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/lib/src/realtime.dart',
                 'template'      => 'flutter/lib/src/realtime.dart.twig',
                 'minify'        => false,

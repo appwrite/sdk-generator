@@ -2,6 +2,11 @@ import 'response.dart';
 import 'client.dart';
 import 'enums.dart';
 
+/// Implemented in `browser_client.dart` and `io_client.dart`.
+ClientBase createClient({required String endPoint, required bool selfSigned}) =>
+    throw UnsupportedError(
+        'Cannot create a client without dart:html or dart:io.');
+
 abstract class ClientBase implements Client {  
 {% for header in spec.global.headers %}
 {% if header.description %}
