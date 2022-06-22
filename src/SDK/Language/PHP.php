@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 class PHP extends Language {
 
@@ -185,6 +186,12 @@ class PHP extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/{{ spec.title | caseUcfirst}}/InputFile.php',
+                'template'      => 'php/src/InputFile.php.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/{{ spec.title | caseUcfirst}}Exception.php',
                 'template'      => 'php/src/Exception.php.twig',
                 'minify'        => false,
@@ -222,7 +229,7 @@ class PHP extends Language {
                 $type = 'array';
                 break;
             case self::TYPE_FILE:
-                $type = 'string';
+                $type = 'InputFile';
                 break;
         }
 
@@ -355,5 +362,22 @@ class PHP extends Language {
         $output .= ']';
 
         return $output;
+    }
+
+    protected function getReturn(array $method): string
+    {
+        if(($method['emptyResponse'] ?? true) || $method['type'] === 'location') {
+            return 'string';
+        }
+
+        return 'array';
+    }
+
+    public function getFilters(): array {
+        return [
+            new TwigFilter('getReturn', function($value) {
+                return $this->getReturn($value);
+            })
+        ];
     }
 }

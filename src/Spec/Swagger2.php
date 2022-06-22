@@ -149,7 +149,11 @@ class Swagger2 extends Spec
 
                     $responses = $method['responses'];
                     $responseModel = '';
+                    $emptyResponse = true;
                     foreach($responses as $code => $desc) {
+                        if($code != '204') {
+                            $emptyResponse = false;
+                        }
                         if(isset($desc['schema']) && isset($desc['schema']['$ref'])) {
                             $responseModel = $desc['schema']['$ref'];
                             if(!empty($responseModel)) {
@@ -178,6 +182,7 @@ class Swagger2 extends Spec
                             'query' => [],
                             'body' => [],
                         ],
+                        'emptyResponse' => $emptyResponse,
                         'responseModel' => $responseModel,
                     ];
 
