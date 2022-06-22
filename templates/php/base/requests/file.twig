@@ -1,20 +1,39 @@
-{% if 'multipart/form-data' in method.consumes %}
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
-        $size = filesize(${{ parameter.name | caseCamel }});
-        $mimeType = mime_content_type(${{ parameter.name | caseCamel }});
-        $postedName = basename(${{ parameter.name | caseCamel }});
-        //send single file if size is less than or equal to 5MB
-        if ($size <= Client::CHUNK_SIZE) {
-            $params['{{ parameter.name }}'] = new \CURLFile(${{ parameter.name | caseCamel }}, $mimeType, $postedName);
-            return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
-{% for param in method.parameters.header %}
-                '{{ param.name }}' => ${{ param.name | caseCamel }},
-{% endfor %}
-{% for key, header in method.headers %}
-                '{{ key }}' => '{{ header }}',
-{% endfor %}
-                ], $params);
+        $size = 0;
+        $mimeType = null;
+        $postedName = null;
+        if(empty(${{ parameter.name | caseCamel }}->getPath() ?? null)) {
+            $size = strlen(${{ parameter.name | caseCamel }}->getData());
+            $mimeType = ${{ parameter.name | caseCamel }}->getMimeType();
+            $postedName = ${{ parameter.name | caseCamel }}->getFilename();
+            if ($size <= Client::CHUNK_SIZE) {
+                $params['{{ parameter.name | caseCamel }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(${{ parameter.name | caseCamel }}->getData()), $mimeType, $postedName);
+                return $this->client->call(Client::METHOD_POST, $path, [
+    {% for param in method.parameters.header %}
+                    '{{ param.name }}' => ${{ param.name | caseCamel }},
+    {% endfor %}
+    {% for key, header in method.headers %}
+                    '{{ key }}' => '{{ header }}',
+    {% endfor %}
+                    ], $params);
+            }
+        } else {
+            $size = filesize(${{ parameter.name | caseCamel }}->getPath());
+            $mimeType = ${{ parameter.name | caseCamel }}->getMimeType() ?? mime_content_type(${{ parameter.name | caseCamel }}->getPath());
+            $postedName = ${{ parameter.name | caseCamel }}->getFilename() ?? basename(${{ parameter.name | caseCamel }}->getPath());
+            //send single file if size is less than or equal to 5MB
+            if ($size <= Client::CHUNK_SIZE) {
+                $params['{{ parameter.name }}'] = new \CURLFile(${{ parameter.name | caseCamel }}->getPath(), $mimeType, $postedName);
+                return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
+    {% for param in method.parameters.header %}
+                    '{{ param.name }}' => ${{ param.name | caseCamel }},
+    {% endfor %}
+    {% for key, header in method.headers %}
+                    '{{ key }}' => '{{ header }}',
+    {% endfor %}
+                    ], $params);
+            }
         }
 
         $id = '';
@@ -22,22 +41,33 @@
 
 {% for parameter in method.parameters.all %}
 {% if parameter.isUploadID %}
-            if(${{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
-                try {
-                    $response = $this->client->call(Client::METHOD_GET, new URL($path . '/' . {{ parameter.name }}), headers);
-                    $counter = $response['chunksUploaded'] ?? 0;
-                } catch(\Exception $e) {
-                }
+        if(${{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
+            try {
+                $response = $this->client->call(Client::METHOD_GET, $path . '/' . ${{ parameter.name }});
+                $counter = $response['chunksUploaded'] ?? 0;
+            } catch(\Exception $e) {
             }
+        }
 {% endif %}
 {% endfor %}
 
         $headers = ['content-type' => 'multipart/form-data'];
-        $handle = @fopen(${{ parameter.name | caseCamel }}, "rb");
+        $handle = null;
+
+        if(!empty(${{parameter.name}}->getPath())) {
+            $handle = @fopen(${{parameter.name}}->getPath(), "rb");
+        }
+
         $start = $counter * Client::CHUNK_SIZE;
         while ($start < $size) {
-            fseek($handle, $start);
-            $params['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(@fread($handle, Client::CHUNK_SIZE)), $mimeType, $postedName);
+            $chunk = '';
+            if(!empty($handle)) {
+                fseek($handle, $start);
+                $chunk = @fread($handle, Client::CHUNK_SIZE);
+            } else {
+                $chunk = substr($file->getData(), $start, Client::CHUNK_SIZE);
+            }
+            $params['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode($chunk), $mimeType, $postedName);
             $headers['content-range'] = 'bytes ' . ($counter * Client::CHUNK_SIZE) . '-' . min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size) . '/' . $size;
             if(!empty($id)) {
                 $headers['x-{{spec.title | caseLower }}-id'] = $id;
@@ -58,8 +88,9 @@
                 ]);
             }
         }
-        @fclose($handle);
+        if(!empty($handle)) {
+            @fclose($handle);
+        }
         return $response;
 {% endif %}
 {% endfor %}
-{% endif %}
