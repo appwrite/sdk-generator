@@ -4,9 +4,9 @@ const fs = require('fs');
 {% endif %}
 
 // Init SDK
-let client = new sdk.Client();
+const client = new sdk.Client();
 
-let {{ service.name | caseCamel }} = new sdk.{{service.name | caseUcfirst}}(client);
+const {{ service.name | caseCamel }} = new sdk.{{service.name | caseUcfirst}}(client);
 
 {% if method.security|length > 0 %}
 client
@@ -18,7 +18,7 @@ client
 {% endfor %};
 
 {% endif %}
-let promise = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
+const promise = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
 
 promise.then(function (response) {
     console.log(response);
