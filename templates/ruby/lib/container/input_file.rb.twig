@@ -1,0 +1,30 @@
+require 'mime/types'
+
+module {{spec.title | caseUcfirst}}
+    class InputFile
+        attr_accessor :path
+        attr_accessor :filename
+        attr_accessor :mime_type
+        attr_accessor :source_type
+
+        attr_accessor :data
+
+        def self.fromPath(path)
+            instance = InputFile.new
+            instance.path = path
+            instance.filename = ::File.basename(path)
+            instance.mime_type = MIME::Types.type_for(path)
+            instance.source_type = 'path'
+            instance
+        end
+
+        def self.fromBytes(bytes, filename: nil, mime_type: nil)
+            instance = InputFile.new
+            instance.data = bytes
+            instance.filename = filename
+            instance.mime_type = mime_type
+            instance.source_type = 'bytes'
+            instance
+        end
+    end
+end
