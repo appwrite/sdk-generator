@@ -1,10 +1,14 @@
-enum HttpMethod { get, post, put, delete, patch }
+enum HttpMethod { 
+  get,
+  post, 
+  put,
+  delete,
+  patch;
 
-extension HttpMethodString on HttpMethod {
-  String name() {
-    return toString().split('.').last.toUpperCase();
-  }
+  @override
+  String toString() => "$name".toUpperCase();  
 }
+
 
 enum ResponseType {
   /// Transform the response data to JSON object only when the

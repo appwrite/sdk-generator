@@ -15,9 +15,9 @@ class ClientMixin {
       params.removeWhere((key, value) => value == null);
     }
 
-    http.BaseRequest request = http.Request(method.name(), uri);
+    http.BaseRequest request = http.Request(method.toString(), uri);
     if (headers['content-type'] == 'multipart/form-data') {
-      request = http.MultipartRequest(method.name(), uri);
+      request = http.MultipartRequest(method.toString(), uri);
       if (params.isNotEmpty) {
         params.forEach((key, value) {
           if (value is http.MultipartFile) {
@@ -56,7 +56,7 @@ class ClientMixin {
           scheme: uri.scheme,
           queryParameters: params,
           port: uri.port);
-      request = http.Request(method.name(), uri);
+      request = http.Request(method.toString(), uri);
     } else {
       (request as http.Request).body = jsonEncode(params);
     }
