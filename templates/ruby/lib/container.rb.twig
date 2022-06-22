@@ -6,7 +6,7 @@ require 'mime/types'
 require_relative '{{ spec.title | caseSnake }}/client'
 require_relative '{{ spec.title | caseSnake }}/service'
 require_relative '{{ spec.title | caseSnake }}/exception'
-require_relative '{{ spec.title | caseSnake }}/file'
+require_relative '{{ spec.title | caseSnake }}/input_file'
 
 {% for defintion in spec.definitions %}
 require_relative '{{ spec.title | caseSnake }}/models/{{ defintion.name | caseSnake }}'
