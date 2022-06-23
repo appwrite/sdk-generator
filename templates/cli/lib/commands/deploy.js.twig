@@ -145,11 +145,20 @@ const deploy = new Command("deploy")
         await deployCollection()
     }));
 
-const deployFunction = async () => {
+const deployFunction = async ({ functionId = undefined }) => {
     let response = {};
+    let functions = [];
 
-    let answers = await inquirer.prompt(questionsDeployFunctions)
-    let functions = answers.functions.map((func) => JSONbig.parse(func))
+    if (functionId !== undefined) {
+        let func = localConfig.getFunction(functionId)
+        if (func['$id'] == undefined) {
+            throw new Error(`Function ${functionId} not found`);
+        }
+        functions = [func]
+    } else {
+        let answers = await inquirer.prompt(questionsDeployFunctions)
+        functions = answers.functions.map((func) => JSONbig.parse(func))
+    }
 
     for (let func of functions) {
         log(`Deploying function ${func.name} ( ${func['$id']} )`)
@@ -365,7 +374,7 @@ const deployCollection = async () => {
                 limit: 100,
                 parseOutput: false
             });
-            
+
             await Promise.all(remoteAttributes.map(async attribute => {
                 await databaseDeleteAttribute({
                     collectionId: collection['$id'],
@@ -466,6 +475,7 @@ const deployCollection = async () => {
 deploy
     .command("function")
     .description("Deploy functions in the current directory.")
+    .option("--functionId <functionId>", "Function ID.")
     .action(actionRunner(deployFunction));
 
 deploy
