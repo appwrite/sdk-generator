@@ -1,5 +1,6 @@
 
 const appwrite = require('../../sdks/node/index');
+const InputFile = require('../../sdks/node/lib/inputFile');
 const fs = require('fs');
 
 async function start() {
@@ -53,10 +54,10 @@ async function start() {
     response = await general.redirect();
     console.log(response.result);
 
-    response = await general.upload('string', 123, ['string in array'], __dirname + '/../../resources/file.png');
+    response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../resources/file.png', 'file.png'));
     console.log(response.result);
 
-    response = await general.upload('string', 123, ['string in array'], __dirname + '/../../resources/large_file.mp4');
+    response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../resources/large_file.mp4', 'large_file.mp4'));
     console.log(response.result);
 
     try {
@@ -80,4 +81,6 @@ async function start() {
     await general.empty();
 }
 
-start();
+start().catch((err) => {
+    console.log(err);
+});
