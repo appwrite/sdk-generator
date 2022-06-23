@@ -338,8 +338,18 @@ open class Client {
         converter: (([String: Any]) -> T)? = nil,
         onProgress: ((UploadProgress) -> Void)? = nil
     ) async throws -> T {
-        let file = params[paramName] as! File
-        let size = file.buffer.readableBytes
+        let input = params[paramName] as! InputFile
+
+        switch(input.sourceType) {
+        case "path":
+            input.data = ByteBuffer(data: try! Data(contentsOf: URL(fileURLWithPath: FileManager.default.currentDirectoryPath + input.path)))
+        case "data":
+            input.data = ByteBuffer(data: input.data as! Data)
+        default:
+            break
+        }
+
+        let size = (input.data as! ByteBuffer).readableBytes
 
         if size < Client.chunkSize {
             return try await call(
@@ -351,7 +361,6 @@ open class Client {
             )
         }
 
-        let input = file.buffer
         var offset = 0
         var result = [String:Any]()
 
@@ -368,15 +377,13 @@ open class Client {
             offset = min(size, (chunksUploaded * Client.chunkSize))
         }
 
-        while offset < size {
-            let slice = input.getSlice(at: offset, length: Client.chunkSize)
-                ?? input.getSlice(at: offset, length: Int(size - offset))
-            
-            params[paramName] = File(
-                name: file.name,
-                buffer: slice!
-            )
+        let cachedInput = input
 
+        while offset < size {
+            input.data = (cachedInput.data as! ByteBuffer).getSlice(at: offset, length: Client.chunkSize)
+                ?? (cachedInput.data as! ByteBuffer).getSlice(at: offset, length: Int(size - offset))
+            
+            params[paramName] = input
             headers["content-range"] = "bytes \(offset)-\(min((offset + Client.chunkSize) - 1, size))/\(size)"
 
             result = try await call(
@@ -429,12 +436,15 @@ open class Client {
             bodyBuffer.writeString(CRLF)
             bodyBuffer.writeString("Content-Disposition: form-data; name=\"\(name)\"")
 
-            if let file = value as? File {
-                bodyBuffer.writeString("; filename=\"\(file.name)\"")
+            if let file = value as? InputFile {
+                bodyBuffer.writeString("; filename=\"\(file.filename)\"")
                 bodyBuffer.writeString(CRLF)
                 bodyBuffer.writeString("Content-Length: \(bodyBuffer.readableBytes)")
                 bodyBuffer.writeString(CRLF+CRLF)
-                bodyBuffer.writeBuffer(&file.buffer)
+
+                var buffer = file.data! as! ByteBuffer
+
+                bodyBuffer.writeBuffer(&buffer)
                 bodyBuffer.writeString(CRLF)
                 return
             }
