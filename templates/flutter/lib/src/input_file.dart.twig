@@ -11,8 +11,8 @@ class InputFile {
   InputFile({this.path, this.filename, this.contentType, this.bytes}) {
     if (kIsWeb && bytes == null) {
       throw {{ spec.title | caseUcfirs }}Exception('On web `bytes` is required');
-    } else if(path == null) {
-      throw {{ spec.title | caseUcfirs }}Exception('On IO platforms `path is required`);
+    } else if(!kIsWeb && path == null && bytes == null) {
+      throw {{ spec.title | caseUcfirs }}Exception('On IO platforms one of `path` or `bytes`  is required`);
     }
   }
 }
