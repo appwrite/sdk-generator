@@ -95,8 +95,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
         };
 
-        let id = undefined;
-        let response = undefined;
+        let id: string | undefined = undefined;
+        let response: any = undefined;
 
         let chunksUploaded = 0;
 
@@ -133,7 +133,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
             if(currentPosition + 1 >= Client.CHUNK_SIZE) {
                 uploadableChunkTrimmed = uploadableChunk;
             } else {
-                uploadableChunkTrimmed = new Uint8Array(currentPosition + 1);
+                uploadableChunkTrimmed = new Uint8Array(currentPosition);
                 for(let i = 0; i <= currentPosition; i++) {
                     uploadableChunkTrimmed[i] = uploadableChunk[i];
                 }
