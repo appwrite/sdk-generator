@@ -6,7 +6,8 @@ class InputFile {
   final String? filename;
   final String? contentType;
 
-  /// Provide a file using path
+  /// Provide a file, use `path` for IO platforms
+  /// and provide `bytes` for web platform
   InputFile({this.path, this.filename, this.contentType, this.bytes}) {
     if (kIsWeb && bytes == null) {
       throw {{ spec.title | caseUcfirs }}Exception('On web `bytes` is required');
