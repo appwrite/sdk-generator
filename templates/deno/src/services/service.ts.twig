@@ -128,14 +128,12 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
             }
 
-            console.log(headers['content-range']);
-
             let uploadableChunkTrimmed: Uint8Array;
             
-            if(currentPosition >= Client.CHUNK_SIZE) {
+            if(currentPosition + 1 >= Client.CHUNK_SIZE) {
                 uploadableChunkTrimmed = uploadableChunk;
             } else {
-                uploadableChunkTrimmed = new Uint8Array(currentPosition);
+                uploadableChunkTrimmed = new Uint8Array(currentPosition + 1);
                 for(let i = 0; i <= currentPosition; i++) {
                     uploadableChunkTrimmed[i] = uploadableChunk[i];
                 }
@@ -145,7 +143,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 headers['x-{{spec.title | caseLower }}-id'] = id;
             }
 
-            payload['{{ parameter.name }}'] = new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.name);
+            payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.name), filename: {{ parameter.name | caseCamel | escapeKeyword }}.name };
 
             response = await this.client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
@@ -172,12 +170,14 @@ export class {{ service.name | caseUcfirst }} extends Service {
             let i = 0;
             for(const b of chunk) {
                 uploadableChunk[currentPosition] = chunk[i];
+
+                if(currentPosition + 1 >= Client.CHUNK_SIZE) {
+                    await uploadChunk();
+                    currentPosition--;
+                }
+
                 i++;
                 currentPosition++;
-
-                if(currentPosition >= Client.CHUNK_SIZE) {
-                    await uploadChunk();
-                }
             }
         }
 
