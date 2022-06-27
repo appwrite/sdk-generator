@@ -64,7 +64,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 
 {% endif %}
 {% endfor %}
-        let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+        let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
         let payload = {};
 {% for parameter in method.parameters.query %}
 
