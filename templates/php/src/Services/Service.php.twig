@@ -10,7 +10,6 @@ use {{ spec.title | caseUcfirst }}\InputFile;
 class {{ service.name | caseUcfirst }} extends Service
 {
 {% if service.globalParams | length %}
-
 {% for parameter in service.globalParams %}
      protected {{ parameter.type | typeName }} ${{ parameter.name | caseCamel | escapeKeyword }};
 
