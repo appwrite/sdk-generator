@@ -5,23 +5,23 @@ async function start() {
 
     console.log('\nTest Started');
     const client = new Client();
-    const foo = new Foo(client);
+    const foo = new Foo(client, 'string');
     const bar = new Bar(client);
     const general = new General(client);
     // Foo
-    response = await foo.get('string', 123, ['string in array']);
+    response = await foo.get(123, ['string in array']);
     console.log(response.result);
 
-    response = await foo.post('string', 123, ['string in array']);
+    response = await foo.post(123, ['string in array']);
     console.log(response.result);
 
-    response = await foo.put('string', 123, ['string in array']);
+    response = await foo.put(123, ['string in array']);
     console.log(response.result);
 
-    response = await foo.patch('string', 123, ['string in array']);
+    response = await foo.patch(123, ['string in array']);
     console.log(response.result);
 
-    response = await foo.delete('string', 123, ['string in array']);
+    response = await foo.delete(123, ['string in array']);
     console.log(response.result);
 
     // Bar
