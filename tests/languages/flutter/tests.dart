@@ -5,7 +5,7 @@ import '../lib/models.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Client client = Client();
-  Foo foo = Foo(client);
+  Foo foo = Foo(client, x: 'string');
   Bar bar = Bar(client);
   General general = General(client);
 
