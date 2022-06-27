@@ -1,5 +1,5 @@
 import { Service } from '../service';
-import { {{ spec.title | caseUcfirst}}Exception } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, Client } from '../client';
 import type { Models } from '../models';
 import type { UploadProgress } from '../client';
 
@@ -10,29 +10,17 @@ type Payload = {
 export class {{ service.name | caseUcfirst }} extends Service {
 {% if service.globalParams | length %}
 {% for parameter in service.globalParams %}
-    {{ parameter.name | caseCamel | escapeKeyword }};
-    /**
-     * Set {{ parameter.name }}.
-     *
-     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
-     *
-     * @return void
-     */
-     set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }})
+     protected {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }};
+     public set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}): void
      {
         this.{{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }};
      }
-    /**
-     * Get {{ parameter.name }}.
-     *
-     * @return {{ parameter.type | typeName }}
-     */
-     get{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }})
+     public get{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}): {{ parameter.type | typeName }}
      {
         return this.{{ parameter.name | caseCamel | escapeKeyword }};
      }
 {% endfor %}
-     constructor(client, {% for parameter in service.globalParams %} {{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
+     constructor(client: Client, {% for parameter in service.globalParams %} {{ parameter.name | caseCamel | escapeKeyword }}:{{ parameter.type | typeName }}{% if not parameter.required %}|null = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
      {
         super(client);
 
