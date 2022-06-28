@@ -147,8 +147,8 @@ class Ruby extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/{{ spec.title | caseDash }}/file.rb',
-                'template'      => 'ruby/lib/container/file.rb.twig',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/input_file.rb',
+                'template'      => 'ruby/lib/container/input_file.rb.twig',
                 'minify'        => false,
             ],
             [
@@ -281,7 +281,7 @@ class Ruby extends Language {
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "'dir/file.png'";
+                    $output .= "InputFile.fromPath('dir/file.png')";
                     break;
             }
         }
@@ -302,7 +302,7 @@ class Ruby extends Language {
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "'file.png'";
+                    $output .= "InputFile.fromPath('dir/file.png')";
                     break;
             }
         }
