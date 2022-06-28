@@ -133,7 +133,7 @@ class {{ service.name | caseUcfirst }} extends Service {
             }
 
             const stream = Stream.Readable.from(currentChunk);
-            payload['{{ parameter.name }}'] = { type: 'file', file: stream, filename: file.filename };
+            payload['{{ parameter.name }}'] = { type: 'file', file: stream, filename: {{ parameter.name }}.filename };
 
             response = await selfClient.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
