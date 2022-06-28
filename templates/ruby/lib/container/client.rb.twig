@@ -109,7 +109,7 @@ module {{ spec.title | caseUcfirst }}
             case input_file.source_type
             when 'path'
                 size = ::File.size(input_file.path)
-            when 'bytes'
+            when 'string'
                 size = input_file.data.bytesize
             end
 
@@ -117,7 +117,7 @@ module {{ spec.title | caseUcfirst }}
                 if input_file.source_type == 'path'
                     input_file.data = IO.read(input_file.path)
                 end
-                params[param_name] = input_file
+                params[param_name.to_sym] = input_file
                 return call(
                     method: 'POST',
                     path: path,
@@ -141,16 +141,20 @@ module {{ spec.title | caseUcfirst }}
                 offset = [size, (chunks_uploaded * @chunk_size)].min
             end
 
-            cached_input = input_file
-
             while offset < size
                 case input_file.source_type
                 when 'path'
-                    input_file.data = IO.read(input_file.path, @chunk_size, offset)
-                when 'bytes'
-                    input_file.data = cached_input.data.slice(offset, @chunk_size)
+                    string = IO.read(input_file.path, @chunk_size, offset)
+                when 'string'
+                    string = input_file.data.byteslice(offset, [@chunk_size, size - offset].min)
                 end
-                params[param_name] = input_file
+
+                params[param_name.to_sym] = InputFile::from_string(
+                    string,
+                    filename: input_file.filename,
+                    mime_type: input_file.mime_type
+                )
+
                 headers['content-range'] = "bytes #{offset}-#{[offset + @chunk_size - 1, size].min}/#{size}"
 
                 result = call(

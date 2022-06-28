@@ -19,7 +19,6 @@ class Ruby30Test extends Base
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
-        ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES
     ];
 }

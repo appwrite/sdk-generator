@@ -49,19 +49,35 @@ puts response.result
 response = general.redirect()
 puts response["result"]
 
-response = general.upload(x: 'string', y: 123, z:['string in array'], file: Appwrite::InputFile.fromPath('./tests/resources/file.png'))
-puts response.result
+begin
+    response = general.upload(x: 'string', y: 123, z:['string in array'], file: Appwrite::InputFile.from_path('./tests/resources/file.png'))
+    puts response.result
+rescue => e
+    puts e
+end
 
-response = general.upload(x: 'string', y: 123, z:['string in array'], file: Appwrite::InputFile.fromPath('./tests/resources/large_file.mp4'))
-puts response.result
+begin
+    response = general.upload(x: 'string', y: 123, z:['string in array'], file: Appwrite::InputFile.from_path('./tests/resources/large_file.mp4'))
+    puts response.result
+rescue => e
+    puts e
+end
 
-data = IO.read('./tests/resources/file.png')
-response = general.upload(x: 'string', y: 123, z:['string in array'], file: Appwrite::InputFile.fromBytes(data, filename:'file.png', mime_type: 'image/png'))
-puts response.result
+begin
+    string = IO.read('./tests/resources/file.png')
+    response = general.upload(x: 'string', y: 123, z:['string in array'], file: Appwrite::InputFile.from_string(string, filename:'file.png', mime_type: 'image/png'))
+    puts response.result
+rescue => e
+    puts e
+end
 
-data = IO.read('./tests/resources/large_file.mp4')
-response = general.upload(x: 'string', y: 123, z:['string in array'], file: Appwrite::InputFile.fromBytes(data, filename:'large_file.mp4', mime_type: 'video/mp4'))
-puts response.result
+begin
+    string = IO.read('./tests/resources/large_file.mp4')
+    response = general.upload(x: 'string', y: 123, z:['string in array'], file: Appwrite::InputFile.from_string(string, filename:'large_file.mp4', mime_type: 'video/mp4'))
+    puts response.result
+rescue => e
+    puts e
+end
 
 begin
     general.error400()
