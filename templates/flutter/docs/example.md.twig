@@ -5,7 +5,7 @@ import 'package:{{ language.params.packageName }}/{{ language.params.packageName
 
 void main() { // Init SDK
   Client client = Client();
-  {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = {{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %});
+  {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = {{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample }}{% endfor %}{% endif %});
 
 {% if method.security|length > 0 %}
   client
@@ -40,7 +40,7 @@ FutureBuilder(
 
 {% endif %}
 {% if parameter.required %}
-    {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
+    {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample }},
 {% endif %}
 {% endfor %}{% if method.parameters.all | filter((param) => not param.isGlobal) | length > 0 %}  {% endif %}
 ), //works for both public file and private file, for private files you need to be logged in
