@@ -93,7 +93,13 @@ class Client {
             let flatParams = Client.flatten(params);
             
             for (const key in flatParams) {
-                form.append(key, flatParams[key])
+                const value = flatParams[key];
+
+                if(value && value.type && value.type === 'file') {
+                    form.append(key, value.file, { filename: value.filename });
+                } else {
+                    form.append(key, flatParams[key]);
+                }
             }
 
             headers = {
