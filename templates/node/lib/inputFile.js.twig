@@ -5,41 +5,41 @@ const { promisify } = require('util');
 class InputFile {
   stream; // Content of file, readable stream
   size; // Total final size of the file content
-  name; // File name
+  filename; // File name
 
-  static fromPath = (filePath, name) => {
+  static fromPath = (filePath, filename) => {
     const stream = fs.createReadStream(filePath);
     const { size } = fs.statSync(filePath);
-    return new InputFile(stream, name, size);
+    return new InputFile(stream, filename, size);
   };
 
-  static fromBuffer = (buffer, name) => {
+  static fromBuffer = (buffer, filename) => {
     const stream = Readable.from(buffer.toString());
     const size = Buffer.byteLength(buffer);
-    return new InputFile(stream, name, size);
+    return new InputFile(stream, filename, size);
   };
 
-  static fromBlob = (blob, name) => {
+  static fromBlob = (blob, filename) => {
     const buffer = blob.arrayBuffer();
     const stream = Readable.from(buffer.toString());
     const size = Buffer.byteLength(buffer);
-    return new InputFile(stream, name);
+    return new InputFile(stream, filename);
   };
 
-  static fromStream = (stream, name, size) => {
-    return new InputFile(stream, name, size);
+  static fromStream = (stream, filename, size) => {
+    return new InputFile(stream, filename, size);
   };
 
-  static fromPlainText = (content, name) => {
+  static fromPlainText = (content, filename) => {
     const buffer = Buffer.from(content, "utf-8");
     const stream = Readable.from(buffer.toString());
     const size = Buffer.byteLength(buffer);
-    return new InputFile(stream, name, size);
+    return new InputFile(stream, filename, size);
   };
 
-  constructor(stream, name, size) {
+  constructor(stream, filename, size) {
     this.stream = stream;
-    this.name = name;
+    this.filename = filename;
     this.size = size;
   }
 }
