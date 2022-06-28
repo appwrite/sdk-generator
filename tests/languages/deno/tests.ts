@@ -64,11 +64,11 @@ async function start() {
   // @ts-ignore
   console.log(response.result)
 
-  response = await general.upload('string', 123, ['string in array'], './tests/resources/file.png')
+  response = await general.upload('string', 123, ['string in array'], appwrite.InputFile.fromPath('./tests/resources/file.png', 'file.png'))
   // @ts-ignore
   console.log(response.result)
 
-  response = await general.upload('string', 123, ['string in array'], './tests/resources/large_file.mp4')
+  response = await general.upload('string', 123, ['string in array'], appwrite.InputFile.fromPath('./tests/resources/file.png', 'file.png'))
   // @ts-ignore
   console.log(response.result)
 
@@ -93,4 +93,6 @@ async function start() {
   await general.empty();
 }
 
-start()
+start().catch((err) => {
+  console.error(err);
+});
