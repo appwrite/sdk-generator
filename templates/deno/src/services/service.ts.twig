@@ -164,7 +164,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 headers['x-{{spec.title | caseLower }}-id'] = id;
             }
 
-            payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.name), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
+            payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
 
             response = await this.client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
