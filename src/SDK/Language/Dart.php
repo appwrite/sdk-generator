@@ -112,7 +112,7 @@ class Dart extends Language {
      */
     public function getIdentifierOverrides()
     {
-        return ['Function' => 'Func'];
+        return ['Function' => 'Func', 'default' => 'xdefault', 'required' => 'xrequired'];
     }
 
     /**

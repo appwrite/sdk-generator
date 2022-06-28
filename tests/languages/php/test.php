@@ -16,7 +16,7 @@ use Appwrite\Services\Foo;
 use Appwrite\Services\General;
 
 $client = new Client();
-$foo = new Foo($client);
+$foo = new Foo($client, 'string');
 $bar = new Bar($client);
 $general = new General($client);
 
@@ -26,19 +26,19 @@ echo "\nTest Started\n";
 
 // Foo Service
 
-$response = $foo->get('string', 123, ['string in array']);
+$response = $foo->get(123, ['string in array']);
 echo "{$response['result']}\n";
 
-$response = $foo->post('string', 123, ['string in array']);
+$response = $foo->post(123, ['string in array']);
 echo "{$response['result']}\n";
 
-$response = $foo->put('string', 123, ['string in array']);
+$response = $foo->put(123, ['string in array']);
 echo "{$response['result']}\n";
 
-$response = $foo->patch('string', 123, ['string in array']);
+$response = $foo->patch(123, ['string in array']);
 echo "{$response['result']}\n";
 
-$response = $foo->delete('string', 123, ['string in array']);
+$response = $foo->delete(123, ['string in array']);
 echo "{$response['result']}\n";
 
 // Bar Service
