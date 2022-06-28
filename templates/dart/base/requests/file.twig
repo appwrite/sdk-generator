@@ -27,5 +27,5 @@
             onProgress: onProgress,
         );
 
-        return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst}}.fromMap(res.data){% else %} res.data{% endif %};
+        return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst | overrideIdentifier}}.fromMap(res.data){% else %} res.data{% endif %};
 {% endif %}
