@@ -584,6 +584,7 @@ class SDK
                         $params['service'] = [
                             'name' => $key,
                             'methods' => $methods,
+                            'globalParams' => $service['globalParams'] ?? [],
                             'features' => [
                                 'upload' => $this->hasUploads($methods),
                                 'location' => $this->hasLocation($methods),

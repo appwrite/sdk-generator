@@ -133,6 +133,11 @@ class Android extends Kotlin {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/InputFile.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/InputFile.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/RealtimeModels.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/models/RealtimeModels.kt.twig',
             ],
