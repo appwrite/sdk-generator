@@ -111,7 +111,7 @@ class Kotlin extends Language {
             case self::TYPE_STRING:
                 return 'String';
             case self::TYPE_FILE:
-                return 'File';
+                return 'InputFile';
             case self::TYPE_BOOLEAN:
                 return 'Boolean';
             case self::TYPE_ARRAY:
@@ -197,7 +197,7 @@ class Kotlin extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'File("file.png")';
+                    $output .= 'InputFile.fromPath("file.png")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -388,6 +388,12 @@ class Kotlin extends Language {
                 'scope'         => 'service',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/ServiceTemplate.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/InputFile.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/InputFile.kt.twig',
                 'minify'        => false,
             ],
             [

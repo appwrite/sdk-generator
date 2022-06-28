@@ -4,8 +4,9 @@ import com.google.gson.Gson
 import io.appwrite.exceptions.AppwriteException
 import io.appwrite.extensions.fromJson
 import io.appwrite.extensions.toJson
-import io.appwrite.models.Mock
 import io.appwrite.models.Error
+import io.appwrite.models.InputFile
+import io.appwrite.models.Mock
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
@@ -68,11 +69,32 @@ class ServiceTest {
             val result = general.redirect()
             writeToFile((result as Map<String, Any>)["result"] as String)
 
-            mock = general.upload("string", 123, listOf("string in array"), File("../../resources/file.png"))
-            writeToFile(mock.result)
-
-            mock = general.upload("string", 123, listOf("string in array"), File("../../resources/large_file.mp4"))
-            writeToFile(mock.result)
+            try {
+                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../resources/file.png"))
+                writeToFile(mock.result)
+            } catch (ex: Exception) {
+                writeToFile(ex.toString())
+            }
+            try {
+                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../resources/large_file.mp4"))
+                writeToFile(mock.result)
+            } catch (ex: Exception) {
+                writeToFile(ex.toString())
+            }
+            try {
+                var bytes = File("../../resources/file.png").readBytes()
+                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(bytes, "file.png", "image/png"))
+                writeToFile(mock.result)
+            } catch (ex: Exception) {
+                writeToFile(ex.toString())
+            }
+            try {
+                var bytes = File("../../resources/large_file.mp4").readBytes()
+                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(bytes, "large_file.mp4", "video/mp4"))
+                writeToFile(mock.result)
+            } catch (ex: Exception) {
+                writeToFile(ex.toString())
+            }
 
             try {
                 general.error400()
