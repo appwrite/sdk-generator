@@ -3,6 +3,7 @@ from appwrite.services.foo import Foo
 from appwrite.services.bar import Bar
 from appwrite.services.general import General
 from appwrite.exception import AppwriteException
+from appwrite.input_file import InputFile
 import os.path
 
 
@@ -55,10 +56,18 @@ print(response['result'])
 response = general.redirect()
 print(response['result'])
 
-response = general.upload('string', 123, ['string in array'], './tests/resources/file.png')
+response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/file.png'))
 print(response['result'])
 
-response = general.upload('string', 123, ['string in array'], './tests/resources/large_file.mp4')
+response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/large_file.mp4'))
+print(response['result'])
+
+data = open('./tests/resources/file.png', 'rb').read()
+response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'file.png', 'image/png'))
+print(response['result'])
+
+data = open('./tests/resources/large_file.mp4', 'rb').read()
+response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'large_file.mp4','video/mp4'))
 print(response['result'])
 
 try:
