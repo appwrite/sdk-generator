@@ -25,7 +25,7 @@ class Tests: XCTestCase {
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
 
-        let foo = Foo(client)
+        let foo = Foo(client, "string")
         let bar = Bar(client)
         let general = General(client)
         let realtime = Realtime(client)
@@ -41,19 +41,19 @@ class Tests: XCTestCase {
         var mock: Mock
 
         // Foo Tests
-        mock = try await foo.get(x: "string", y: 123, z: ["string in array"])
+        mock = try await foo.get(y: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await foo.post(x: "string", y: 123, z: ["string in array"])
+        mock = try await foo.post(y: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await foo.put(x: "string", y: 123, z: ["string in array"])
+        mock = try await foo.put(y: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await foo.patch(x: "string", y: 123, z: ["string in array"])
+        mock = try await foo.patch(y: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await foo.delete(x: "string", y: 123, z: ["string in array"])
+        mock = try await foo.delete(y: 123, z: ["string in array"])
         print(mock.result)
 
 
@@ -78,17 +78,41 @@ class Tests: XCTestCase {
         let result = try await general.redirect()
         print((result as! [String: Any])["result"] as! String)
 
-        var url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
-        var buffer = ByteBuffer(data: try! Data(contentsOf: url))
-        var file = File(name: "file.png", buffer: buffer)
-        mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
-        print(mock.result)
+        do {
+            var file = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
+            mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
+            print(mock.result)
+        } catch let error as AppwriteError {
+            print(error.message)
+        }
 
-        url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
-        buffer = ByteBuffer(data: try! Data(contentsOf: url))
-        file = File(name: "large_file.mp4", buffer: buffer)
-		mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
-		print(mock.result)
+        do {
+            var file = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
+            mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
+            print(mock.result)
+        } catch let error as AppwriteError {
+            print(error.message)
+        }
+
+        do {
+            var url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
+            var buffer = ByteBuffer(data: try! Data(contentsOf: url))
+            var file = InputFile.fromBuffer(buffer, filename: "file.png", mimeType: "image/png")
+            mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
+            print(mock.result)
+        } catch let error as AppwriteError {
+            print(error.message)
+        }
+
+        do {
+            var url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
+            var buffer = ByteBuffer(data: try! Data(contentsOf: url))
+            var file = InputFile.fromBuffer(buffer, filename: "large_file.mp4", mimeType: "video/mp4")
+            mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
+            print(mock.result)
+        } catch let error as AppwriteError {
+            print(error.message)
+        }
 
         do {
             try await general.error400()
@@ -98,14 +122,14 @@ class Tests: XCTestCase {
 
         do {
             try await general.error500()
-        } catch let error as AppwriteError {
-            print(error.message)
+        } catch {
+            print(error.localizedDescription)
         }
 
         do {
             try await general.error502()
-        } catch let error as AppwriteError {
-            print(error.message)
+        } catch {
+            print(String(describing: error))
         }
 
         wait(for: [expectation], timeout: 10.0)
@@ -116,5 +140,7 @@ class Tests: XCTestCase {
 
         mock = try await general.getCookie()
         print(mock.result)
+
+        try! await general.empty()
     }
 }

@@ -16,11 +16,14 @@
 $GITHUB_x64_URL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.executableName }}-cli-win-x64.exe"
 $GITHUB_arm64_URL = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.executableName }}-cli-win-arm64.exe"
 
+${{ spec.title | upper }}_BINARY_NAME = "{{ language.params.executableName }}.exe"
+
 # {{ spec.title | caseUcfirst }} download directory
-${{ spec.title | upper }}_DOWNLOAD_DIR = Join-Path -Path $env:TEMP -ChildPath "{{ language.params.executableName }}.exe"
+${{ spec.title | upper }}_DOWNLOAD_DIR = Join-Path -Path $env:TEMP -ChildPath ${{ spec.title | upper }}_BINARY_NAME
 
 # {{ spec.title | caseUcfirst }} CLI location
 ${{ spec.title | upper }}_INSTALL_DIR = Join-Path -Path $env:LOCALAPPDATA -ChildPath "{{ spec.title | caseUcfirst }}"
+${{ spec.title | upper }}_INSTALL_PATH = Join-Path -Path "${{ spec.title | upper }}_INSTALL_DIR" -ChildPath "${{ spec.title | upper }}_BINARY_NAME"
 
 $USER_PATH_ENV_VAR = [Environment]::GetEnvironmentVariable("PATH", "User")
 
@@ -52,9 +55,9 @@ function DownloadBinary {
     } else {
       Invoke-WebRequest -Uri $GITHUB_x64_URL -OutFile ${{ spec.title | upper }}_DOWNLOAD_DIR
     }
-   
 
-   Move-Item ${{ spec.title | upper }}_DOWNLOAD_DIR ${{ spec.title | upper }}_INSTALL_DIR
+    New-Item -ItemType Directory -Path ${{ spec.title | upper }}_INSTALL_DIR
+    Move-Item ${{ spec.title | upper }}_DOWNLOAD_DIR ${{ spec.title | upper }}_INSTALL_PATH
 }
 
 
@@ -65,6 +68,7 @@ function Install {
         Write-Host "Skipping to add {{ spec.title | caseUcfirst }} to User Path."
     } else {
         [System.Environment]::SetEnvironmentVariable("PATH", $USER_PATH_ENV_VAR + ";${{ spec.title | upper }}_INSTALL_DIR", "User")
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User") 
     }
 }
 

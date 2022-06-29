@@ -38,6 +38,12 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/inputFile.ts',
+                'template'      => 'deno/src/inputFile.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/service.ts',
                 'template'      => 'deno/src/service.ts.twig',
                 'minify'        => false,
@@ -101,7 +107,7 @@ class Deno extends JS
                 return 'string';
             break;
             case self::TYPE_FILE:
-                return 'string';
+                return 'InputFile';
             break;
             case self::TYPE_BOOLEAN:
                 return 'boolean';
@@ -145,7 +151,7 @@ class Deno extends JS
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "new File([fileBlob], 'file.png')";
+                    $output .= "'file.png'";
                     break;
             }
         }
@@ -164,7 +170,7 @@ class Deno extends JS
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "new File([fileBlob], 'file.png')";
+                    $output .= "'file.png'";
                     break;
             }
         }

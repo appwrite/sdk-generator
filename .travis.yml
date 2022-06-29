@@ -12,7 +12,7 @@ os: linux
 language: php
 
 php:
-  - 8.0
+  - 8.1
 
 env:
   - SDK=Android11Java8
@@ -28,6 +28,8 @@ env:
   - SDK=DotNet50
   - SDK=DotNet60
   - SDK=FlutterStable
+  - SDK=Go112
+  - SDK=Go118
   - SDK=FlutterBeta
   - SDK=KotlinJava8
   - SDK=KotlinJava11
