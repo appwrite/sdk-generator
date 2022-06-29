@@ -5,9 +5,34 @@ namespace {{ spec.title | caseUcfirst }}\Services;
 use {{ spec.title | caseUcfirst }}\{{spec.title | caseUcfirst}}Exception;
 use {{ spec.title | caseUcfirst }}\Client;
 use {{ spec.title | caseUcfirst }}\Service;
+use {{ spec.title | caseUcfirst }}\InputFile;
 
 class {{ service.name | caseUcfirst }} extends Service
 {
+{% if service.globalParams | length %}
+{% for parameter in service.globalParams %}
+     protected {{ parameter.type | typeName }} ${{ parameter.name | caseCamel | escapeKeyword }};
+
+     public function set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}): void
+     {
+          $this->{{ parameter.name | caseCamel | escapeKeyword }} = ${{ parameter.name | caseCamel | escapeKeyword }};
+     }
+
+     public function get{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}): {{ parameter.type | typeName }}
+     {
+          return $this->{{ parameter.name | caseCamel | escapeKeyword }};
+     }
+{% endfor %}
+
+     public function __construct(Client $client, {% for parameter in service.globalParams %} {{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
+     {
+          $this->client = $client;
+{% for parameter in service.globalParams %}
+          $this->{{ parameter.name | caseCamel | escapeKeyword }} = ${{ parameter.name | caseCamel | escapeKeyword }};
+{% endfor %}
+     }
+
+{% endif %}
 {% for method in service.methods %}
     /**
      * {{ method.title }}
@@ -16,118 +41,22 @@ class {{ service.name | caseUcfirst }} extends Service
 {{ method.description|comment1 }}
      *
 {% endif %}
-{% for parameter in method.parameters.all %}
+{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
      * @param {{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
      * @throws {{spec.title | caseUcfirst}}Exception
-     * @return {% if (method.type == 'location') %}string{% else %}array{% endif %}
+     * @return {{ method | getReturn }}
 
      */
-    public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, callable $onProgress = null{% endif %}): {% if (method.type == 'location') %}string{% else %}array{% endif %}
-
+    public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal ) %}{{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, callable $onProgress = null{% endif %}): {{ method | getReturn }}
     {
-{% for parameter in method.parameters.all %}
-{% if parameter.required %}
-        if (!isset(${{ parameter.name | caseCamel | escapeKeyword }})) {
-            throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
-        }
+        $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${% if parameter.isGlobal %}this->{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
 
-{% endif %}
-{% endfor %}
-        $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
-        $params = [];
-
-{% for parameter in method.parameters.query %}
-        if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
-            $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
-        }
-
-{% endfor %}
-{% for parameter in method.parameters.body %}
-        if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
-            $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
-        }
-
-{% endfor %}
-{% for parameter in method.parameters.formData %}
-        if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
-            $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
-        }
-
-{% endfor %}
+{{ include('php/base/params.twig') }}
 {% if 'multipart/form-data' in method.consumes %}
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
-        $size = filesize(${{ parameter.name | caseCamel }});
-        $mimeType = mime_content_type(${{ parameter.name | caseCamel }});
-        $postedName = basename(${{ parameter.name | caseCamel }});
-        //send single file if size is less than or equal to 5MB
-        if ($size <= Client::CHUNK_SIZE) {
-            $params['{{ parameter.name }}'] = new \CURLFile(${{ parameter.name | caseCamel }}, $mimeType, $postedName);
-            return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
-{% for param in method.parameters.header %}
-                '{{ param.name }}' => ${{ param.name | caseCamel }},
-{% endfor %}
-{% for key, header in method.headers %}
-                '{{ key }}' => '{{ header }}',
-{% endfor %}
-                ], $params);
-        }
-
-        $id = '';
-        $counter = 0;
-
-{% for parameter in method.parameters.all %}
-{% if parameter.isUploadID %}
-            if(${{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
-                try {
-                    $response = $this->client->call(Client::METHOD_GET, new URL($path . '/' . {{ parameter.name }}), headers);
-                    $counter = $response['chunksUploaded'] ?? 0;
-                } catch(\Exception $e) {
-                }
-            }
-{% endif %}
-{% endfor %}
-
-        $headers = ['content-type' => 'multipart/form-data'];
-        $handle = @fopen(${{ parameter.name | caseCamel }}, "rb");
-        $start = $counter * Client::CHUNK_SIZE;
-        while ($start < $size) {
-            fseek($handle, $start);
-            $params['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(@fread($handle, Client::CHUNK_SIZE)), $mimeType, $postedName);
-            $headers['content-range'] = 'bytes ' . ($counter * Client::CHUNK_SIZE) . '-' . min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size) . '/' . $size;
-            if(!empty($id)) {
-                $headers['x-{{spec.title | caseLower }}-id'] = $id;
-            }
-            $response = $this->client->call(Client::METHOD_POST, $path, $headers, $params);
-            $counter++;
-            $start += Client::CHUNK_SIZE;
-            if(empty($id)) {
-                $id = $response['$id'];
-            }
-            if($onProgress !== null) {
-                $onProgress([
-                    '$id' => $response['$id'],
-                    'progress' => min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size) / $size * 100,
-                    'sizeUploaded' => min($counter * Client::CHUNK_SIZE),
-                    'chunksTotal' => $response['chunksTotal'],
-                    'chunksUploaded' => $response['chunksUploaded'], 
-                ]);
-            }
-        }
-        @fclose($handle);
-        return $response;
-{% endif %}
-{% endfor %}
+{{ include('php/base/requests/file.twig') }}
 {% else %}
-        return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
-{% for parameter in method.parameters.header %}
-            '{{ parameter.name }}' => ${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
-            '{{ key }}' => '{{ header }}',
-{% endfor %}
-        ], $params);
+{{ include('php/base/requests/api.twig') }}
 {% endif %}
     }
 {% if not loop.last %}

@@ -1,5 +1,6 @@
 
 const appwrite = require('../../sdks/node/index');
+const InputFile = require('../../sdks/node/lib/inputFile');
 const fs = require('fs');
 
 async function start() {
@@ -8,7 +9,7 @@ async function start() {
     // Init SDK
     let client = new appwrite.Client();
 
-    let foo = new appwrite.Foo(client);
+    let foo = new appwrite.Foo(client, 'string');
     let bar = new appwrite.Bar(client);
     let general = new appwrite.General(client);
 
@@ -18,19 +19,19 @@ async function start() {
 
     // Foo
 
-    response = await foo.get('string', 123, ['string in array']);
+    response = await foo.get(123, ['string in array']);
     console.log(response.result);
 
-    response = await foo.post('string', 123, ['string in array']);
+    response = await foo.post(123, ['string in array']);
     console.log(response.result);
 
-    response = await foo.put('string', 123, ['string in array']);
+    response = await foo.put(123, ['string in array']);
     console.log(response.result);
 
-    response = await foo.patch('string', 123, ['string in array']);
+    response = await foo.patch(123, ['string in array']);
     console.log(response.result);
 
-    response = await foo.delete('string', 123, ['string in array']);
+    response = await foo.delete(123, ['string in array']);
     console.log(response.result);
 
     // Bar
@@ -53,10 +54,10 @@ async function start() {
     response = await general.redirect();
     console.log(response.result);
 
-    response = await general.upload('string', 123, ['string in array'], __dirname + '/../../resources/file.png');
+    response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../resources/file.png', 'file.png'));
     console.log(response.result);
 
-    response = await general.upload('string', 123, ['string in array'], __dirname + '/../../resources/large_file.mp4');
+    response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../resources/large_file.mp4', 'large_file.mp4'));
     console.log(response.result);
 
     try {
@@ -77,6 +78,9 @@ async function start() {
         console.log(error.message);
     }
 
+    await general.empty();
 }
 
-start();
+start().catch((err) => {
+    console.log(err);
+});

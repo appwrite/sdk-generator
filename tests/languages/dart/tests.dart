@@ -3,7 +3,7 @@ import '../lib/models.dart';
 
 void main() async {
   Client client = Client();
-  Foo foo = Foo(client);
+  Foo foo = Foo(client, x: 'string');
   Bar bar = Bar(client);
   General general = General(client);
 
@@ -14,19 +14,19 @@ void main() async {
   
   // Foo Tests
   Mock response;
-  response = await foo.get(x: 'string', y: 123, z: ['string in array']);
+  response = await foo.get(y: 123, z: ['string in array']);
   print(response.result);
 
-  response = await foo.post(x: 'string', y: 123, z: ['string in array']);
+  response = await foo.post(y: 123, z: ['string in array']);
   print(response.result);
 
-  response = await foo.put(x: 'string', y: 123, z: ['string in array']);
+  response = await foo.put(y: 123, z: ['string in array']);
   print(response.result);
 
-  response = await foo.patch(x: 'string', y: 123, z: ['string in array']);
+  response = await foo.patch(y: 123, z: ['string in array']);
   print(response.result);
 
-  response = await foo.delete(x: 'string', y: 123, z: ['string in array']);
+  response = await foo.delete(y: 123, z: ['string in array']);
   print(response.result);
 
   // Bar Tests
@@ -85,4 +85,6 @@ void main() async {
 
   // response = await general.getCookie();
   // print(response.result);
+
+  await general.empty();
 }

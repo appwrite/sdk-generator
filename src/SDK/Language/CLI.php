@@ -160,6 +160,12 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/utils.js',
+                'template'      => 'cli/lib/utils.js.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/commands/init.js',
                 'template'      => 'cli/lib/commands/init.js.twig',
                 'minify'        => false,

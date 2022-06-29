@@ -6,6 +6,10 @@ use stdClass;
 
 class Swagger2 extends Spec
 {
+    /**
+     * @var array
+     */
+    private array $serviceParams = [];
 
     /**
      * @return string
@@ -104,9 +108,11 @@ class Swagger2 extends Spec
                 if (isset($method['tags'])) {
                     foreach ($method['tags'] as $tag) {
                         if (!array_key_exists($tag, $list)) {
+                            $methods = $this->getMethods($tag);
                             $list[$tag] = [
                                 'name' => $tag,
-                                'methods' => $this->getMethods($tag),
+                                'methods' => $methods,
+                                'globalParams' => $this->serviceParams[$tag] ?? [],
                             ];
                         }
                     }
@@ -132,7 +138,7 @@ class Swagger2 extends Spec
     public function getMethods($service)
     {
         $list = [];
-
+        $serviceParams= [];
         $security = $this->getAttribute('securityDefinitions', []);
         $paths = $this->getAttribute('paths', []);
 
@@ -149,7 +155,11 @@ class Swagger2 extends Spec
 
                     $responses = $method['responses'];
                     $responseModel = '';
+                    $emptyResponse = true;
                     foreach($responses as $code => $desc) {
+                        if($code != '204') {
+                            $emptyResponse = false;
+                        }
                         if(isset($desc['schema']) && isset($desc['schema']['$ref'])) {
                             $responseModel = $desc['schema']['$ref'];
                             if(!empty($responseModel)) {
@@ -178,6 +188,7 @@ class Swagger2 extends Spec
                             'query' => [],
                             'body' => [],
                         ],
+                        'emptyResponse' => $emptyResponse,
                         'responseModel' => $responseModel,
                     ];
 
@@ -199,6 +210,7 @@ class Swagger2 extends Spec
                             'default' => $parameter['default'] ?? null,
                             'example' => $parameter['x-example'] ?? null,
                             'isUploadID' => $parameter['x-upload-id'] ?? false,
+                            'isGlobal' => $parameter['x-global'] ?? false,
                             'array' => [
                                 'type' => $parameter['items']['type'] ?? '',
                             ],
@@ -209,6 +221,10 @@ class Swagger2 extends Spec
                         }
 
                         $param['default'] = (is_array($param['default'])) ? json_encode($param['default']) : $param['default'];
+
+                        if(($parameter['x-global'] ?? false)) {
+                            $serviceParams[$param['name']] = $param;
+                        }
 
                         switch ($parameter['in']) {
                             case 'header':
@@ -234,6 +250,7 @@ class Swagger2 extends Spec
                                     $param['required'] = (in_array($key, $bodyRequired));
                                     $param['default'] = $value['default'] ?? null;
                                     $param['example'] = $value['x-example'] ?? null;
+                                    $param['isGlobal'] = $value['x-global'] ?? false;
                                     $param['isUploadID'] = $value['x-upload-id'] ?? false;
                                     $param['array'] = [
                                         'type' => $value['items']['type'] ?? '',
@@ -264,6 +281,8 @@ class Swagger2 extends Spec
                 }
             }
         }
+
+        $this->serviceParams[$service] = $serviceParams;
 
         return $list;
     }
@@ -311,6 +330,16 @@ class Swagger2 extends Spec
                     if(isset($def['items']['$ref'])) {
                         //nested model
                         $sch['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['items']['$ref']);
+                    }
+
+                    if(isset($def['items']['x-anyOf'])) {
+                        //nested model
+                        $sch['properties'][$name]['sub_schemas'] = \array_map(fn($schema) => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-anyOf']);
+                    }
+
+                    if(isset($def['items']['x-oneOf'])) {
+                        //nested model
+                        $sch['properties'][$name]['sub_schemas'] = \array_map(fn($schema) => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-oneOf']);
                     }
             }
             }

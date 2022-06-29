@@ -118,6 +118,8 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
 	}
+
+	general.Empty()
 }
 
 func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {

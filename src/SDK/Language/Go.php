@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 class Go extends Language {
 
@@ -245,5 +246,18 @@ class Go extends Language {
         }
 
         return $output;
+    }
+
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('godocComment', function ($value) {
+                $value = explode("\n", $value);
+                foreach ($value as $key => $line) {
+                    $value[$key] = "// " . wordwrap($value[$key], 75, "\n// ");
+                }
+                return implode("\n", $value);
+            }, ['is_safe' => ['html']])
+        ];
     }
 }

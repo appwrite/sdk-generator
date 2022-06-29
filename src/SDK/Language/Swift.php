@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 class Swift extends Language {
 
@@ -154,7 +155,7 @@ class Swift extends Language {
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/File.swift',
-                'template'      => 'swift/Sources/Models/File.swift.twig',
+                'template'      => 'swift/Sources/Models/InputFile.swift.twig',
                 'minify'        => false,
             ],
             [
@@ -185,6 +186,12 @@ class Swift extends Language {
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/HTTPClientRequest+Cookies.swift',
                 'template'      => 'swift/Sources/Extensions/HTTPClientRequest+Cookies.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/String+MimeTypes.swift',
+                'template'      => 'swift/Sources/Extensions/String+MimeTypes.swift.twig',
                 'minify'        => false,
             ],
             [
@@ -300,7 +307,7 @@ class Swift extends Language {
             case self::TYPE_STRING:
                 return 'String';
             case self::TYPE_FILE:
-                return 'File';
+                return 'InputFile';
             case self::TYPE_BOOLEAN:
                 return 'Bool';
             case self::TYPE_ARRAY:
@@ -389,7 +396,7 @@ class Swift extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'File(name: "image.jpg", buffer: yourByteBuffer)';
+                    $output .= 'InputFile.fromPath("file.png")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -404,6 +411,10 @@ class Swift extends Language {
                 case self::TYPE_ARRAY:
                     $output .= '[]';
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= '[:]';
+                    break;
+                
             }
         }
         else {
@@ -420,9 +431,25 @@ class Swift extends Language {
                 case self::TYPE_STRING:
                     $output .= "\"{$example}\"";
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= '[:]';
+                    break;
             }
         }
 
         return $output;
+    }
+
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('swiftComment', function ($value) {
+                $value = explode("\n", $value);
+                foreach ($value as $key => $line) {
+                    $value[$key] = "    /// " . wordwrap($value[$key], 75, "\n    /// ");
+                }
+                return implode("\n", $value);
+            }, ['is_safe' => ['html']])
+        ];
     }
 }
