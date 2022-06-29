@@ -21,25 +21,25 @@ namespace AppwriteTests
         public async Task Test1()
         {
             var client = new Client();
-            var foo = new Foo(client);
+            var foo = new Foo(client, "string");
             var bar = new Bar(client);
             var general = new General(client);
 
             Mock mock;
             // Foo Tests
-            mock = await foo.Get("string", 123, new List<object>() { "string in array" });
+            mock = await foo.Get(123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await foo.Post("string", 123, new List<object>() { "string in array" });
+            mock = await foo.Post(123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await foo.Put("string", 123, new List<object>() { "string in array" });
+            mock = await foo.Put(123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await foo.Patch("string", 123, new List<object>() { "string in array" });
+            mock = await foo.Patch(123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await foo.Delete("string", 123, new List<object>() { "string in array" });
+            mock = await foo.Delete(123, new List<object>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
             // Bar Tests
@@ -62,10 +62,18 @@ namespace AppwriteTests
             var result = await general.Redirect();
             TestContext.WriteLine((result as Dictionary<string, object>)["result"]);
 
-            mock = await general.Upload("string", 123, new List<object>() { "string in array" }, new FileInfo("../../../../../../../resources/file.png"));
+            mock = await general.Upload("string", 123, new List<object>() { "string in array" }, InputFile.FromPath("../../../../../../../resources/file.png"));
             TestContext.WriteLine(mock.Result);
 
-            mock = await general.Upload("string", 123, new List<object>() { "string in array" }, new FileInfo("../../../../../../../resources/large_file.mp4"));
+            mock = await general.Upload("string", 123, new List<object>() { "string in array" }, InputFile.FromPath("../../../../../../../resources/large_file.mp4"));
+            TestContext.WriteLine(mock.Result);
+
+            var info = new FileInfo("../../../../../../../resources/file.png");
+            mock = await general.Upload("string", 123, new List<object>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "file.png", "image/png"));
+            TestContext.WriteLine(mock.Result);
+
+            info = new FileInfo("../../../../../../../resources/large_file.mp4");
+            mock = await general.Upload("string", 123, new List<object>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
             TestContext.WriteLine(mock.Result);
 
             try

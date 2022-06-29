@@ -11,6 +11,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using {{ spec.title | caseUcfirst }}.Models;
 
 namespace {{ spec.title | caseUcfirst }}
 {
@@ -265,19 +266,46 @@ namespace {{ spec.title | caseUcfirst }}
             string? idParamName = null,
             Action<UploadProgress>? onProgress = null) where T : class
         {
-            var file = parameters[paramName] as FileInfo;
-            var size = file!.Length;
+            var input = parameters[paramName] as InputFile;
+            var size = 0L;
+            switch(input.SourceType)
+            {
+                case "path":
+                    var info = new FileInfo(input.Path);
+                    input.Data = info.OpenRead();
+                    size = info.Length;
+                    break;
+                case "stream":
+                    size = (input.Data as Stream).Length;
+                    break;
+                case "bytes":
+                    size = ((byte[])input.Data).Length;
+                    break;
+            };
+
             var offset = 0L;
-            var input = file!.OpenRead();
             var buffer = new byte[Math.Min(size, ChunkSize)];
             var result = new Dictionary<string, object?>();
 
-            if (size < ChunkSize) {
-                await input.ReadAsync(buffer, 0, (int)size);
+            if (size < ChunkSize)
+            {
+                switch(input.SourceType)
+                {
+                    case "path":
+                    case "stream":
+                        await (input.Data as Stream).ReadAsync(buffer, 0, (int)size);
+                        break;
+                    case "bytes":
+                        buffer = (byte[])input.Data;
+                        break;
+                }
+
                 var content = new MultipartFormDataContent {
-                    { new ByteArrayContent(buffer), paramName, file.Name }
+                    { new ByteArrayContent(buffer), paramName, input.Filename }
                 };
+
                 parameters[paramName] = content;
+
                 return await Call(
                     method: "POST",
                     path,
@@ -287,7 +315,8 @@ namespace {{ spec.title | caseUcfirst }}
                 );
             }
 
-            if (!string.IsNullOrEmpty(idParamName) && (string)parameters[idParamName] != "unique()") {
+            if (!string.IsNullOrEmpty(idParamName) && (string)parameters[idParamName] != "unique()")
+            {
                 // Make a request to check if a file already exists
                 var current = await Call<Dictionary<string, object?>>(
                     method: "GET",
@@ -299,13 +328,27 @@ namespace {{ spec.title | caseUcfirst }}
                 offset = Math.Min(chunksUploaded * ChunkSize, size);
             }
 
-            while (offset < size) {
-                input.Seek(offset, SeekOrigin.Begin);
+            while (offset < size)
+            {
+                switch(input.SourceType)
+                {
+                    case "path":
+                    case "stream":
+                        var stream = input.Data as Stream;
+                        stream.Seek(offset, SeekOrigin.Begin);
+                        await stream.ReadAsync(buffer, 0, ChunkSize);
+                        break;
+                    case "bytes":
+                        buffer = ((byte[])input.Data)
+                            .Skip((int)offset)
+                            .Take((int)Math.Min(size - offset, ChunkSize))
+                            .ToArray();
+                        break;
+                }
 
-                await input.ReadAsync(buffer, 0, ChunkSize);
-
-                var content = new MultipartFormDataContent();
-                content.Add(new ByteArrayContent(buffer), paramName, file.Name);
+                var content = new MultipartFormDataContent {
+                    { new ByteArrayContent(buffer), paramName, input.Filename }
+                };
 
                 parameters[paramName] = content;
 

@@ -158,7 +158,7 @@ class DotNet extends Language {
             case self::TYPE_STRING:
                 return 'string';
             case self::TYPE_FILE:
-                return 'FileInfo';
+                return 'InputFile';
             case self::TYPE_BOOLEAN:
                 return 'bool';
             case self::TYPE_ARRAY:
@@ -347,6 +347,11 @@ class DotNet extends Language {
                 'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/Exception.cs',
                 'template'      => 'dotnet/src/Appwrite/Models/Exception.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/InputFile.cs',
+                'template'      => 'dotnet/src/Appwrite/Models/InputFile.cs.twig',
             ],
             [
                 'scope'         => 'default',
