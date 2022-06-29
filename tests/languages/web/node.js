@@ -47,7 +47,7 @@ async function start() {
     console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip file upload test on Node.js
     console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip big file upload test on Node.js
 
-    response = await sdk.general.download();
+    response = await general.download();
     console.log(response.toString());
 
     try {
