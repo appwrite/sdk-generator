@@ -47,7 +47,7 @@ console.log(output.split('\n')[0].split(" : ")[1]);
 output = execSync("node index general upload --x string  --y 123 --z string in array --file ../../resources/large_file.mp4", { stdio: 'pipe'}).toString();
 console.log(output.split('\n')[0].split(" : ")[1]);
 
-execSync("node index general empty", { stdio: 'pipe'});
-
 output = execSync("node index general download --destination download.txt >/dev/null && cat download.txt", { stdio: 'pipe'}).toString();
 console.log(output);
+
+execSync("node index general empty", { stdio: 'pipe'});
