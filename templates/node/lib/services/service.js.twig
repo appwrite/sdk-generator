@@ -75,6 +75,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% if 'multipart/form-data' in method.consumes %}
 {# file section #}
 {# api section #}
+{% endif %}
   }
 }
 
