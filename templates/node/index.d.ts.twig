@@ -126,6 +126,18 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
     constructor(client: Client);
   }
 
+  export class InputFile {
+    static fromPath(filePath: string, filename: string): InputFile;
+
+    static fromBuffer(buffer: Buffer, filename: string): InputFile;
+
+    static fromBlob(blob: Blob, filename: string): InputFile;
+
+    static fromStream(stream: any, filename: string, size: number): InputFile;
+
+    static fromPlainText(content: string, filename: string): InputFile;
+  }
+
   type QueryTypesSingle = string | number | boolean;
   type QueryTypesList = string[] | number[] | boolean[];
   type QueryTypes = QueryTypesSingle | QueryTypesList;
@@ -152,6 +164,27 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 
 {% for service in spec.services %}
   export class {{ service.name | caseUcfirst }} extends Service {
+    constructor(client: Client{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}{% if not parameter.required %}|null{% endif %}{% endfor %});
+    
+{% if service.globalParams | length %}
+{% for parameter in service.globalParams %}
+    /**
+     * Get {{ parameter.name }}.
+     *
+     * @returns {{ '{' }}{{ parameter.type | typeName }}{{ '}' }}
+     */
+    get{{ parameter.name | caseUcfirst | escapeKeyword }}(): {{ parameter.type | typeName }};
+
+    /**
+     * Set {{ parameter.name }}.
+     *
+     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
+     * @returns {void}
+     */
+    set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}): void;
+
+{% endfor %}
+{% endif %}
 {% for method in service.methods %}
 {% set generics = _self.get_generics_method(spec.definitions[method.responseModel], spec, true, true) %}
 {% set generics_return = _self.get_generics_method_return(spec.definitions[method.responseModel], spec) %}
@@ -162,13 +195,13 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 {{ method.description|comment1 }}
      *
 {% endif %}
-{% for parameter in method.parameters.all %}
+{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
      * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {Promise}
      */
-    {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Buffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}>;
+    {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Buffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}>;
 {% endfor %}
   }
 {% endfor %}
