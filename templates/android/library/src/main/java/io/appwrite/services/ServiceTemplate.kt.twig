@@ -1,6 +1,6 @@
 {% macro parameter(parameter) %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{% if not parameter.required %}? = null{% endif %}{% endmacro %}
 {% macro method_parameters(parameters, consumes) %}
-{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, onProgress: ((UploadProgress) -> Unit)? = null{% endif %}{% endif %}
+{% if parameters.all|length > 0 %}{% for parameter in parameters.all | filter((param) => not param.isGlobal) %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, onProgress: ((UploadProgress) -> Unit)? = null{% endif %}{% endif %}
 {% endmacro %}
 {% macro methodNeedsSecurityParameters(method) %}
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
@@ -26,7 +26,22 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 {% endif %}
 import java.io.File
 
-class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
+class {{ service.name | caseUcfirst }} : Service {
+
+{% if service.globalParams | length %}
+{% for parameter in service.globalParams %}
+    val {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | overrideIdentifier }}{% if not parameter.required %}?{% endif %}
+
+{% endfor %}
+
+    public constructor(client: Client,{% for parameter in service.globalParams %} {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | overrideIdentifier }}{% if not parameter.required %}? = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) : super(client) {
+{% for parameter in service.globalParams %}
+        this.{{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }}
+{% endfor %}
+    }
+{% else %}
+    public constructor (client: Client) : super(client) { }
+{% endif %}
 
 {% for method in service.methods %}
     /**
@@ -36,7 +51,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {{ method.description|comment1 }}
      *
 {% endif %}
-{% for parameter in method.parameters.all %}
+{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description }}
 {% endfor %}
      * {% if method.type != "webAuth" %}@return [{{ _self.resultType(sdk.namespace, method) }}]{% endif %}
@@ -128,9 +143,6 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
         val paramName = "{{ parameter.name }}"
-{% endif %}
-{% if parameter.isUploadID %}
-        idParamName = "{{ parameter.name }}"
 {% endif %}
 {% endfor %}
         return client.chunkedUpload(

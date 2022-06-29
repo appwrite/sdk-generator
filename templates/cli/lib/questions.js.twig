@@ -1,6 +1,39 @@
 const { localConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { functionsListRuntimes } = require('./commands/functions');
+const JSONbig = require("json-bigint")({ storeAsString: false });
+
+const getIgnores = (runtime) => {
+  const languge = runtime.split('-')[0];
+
+  switch (languge) {
+    case 'cpp':
+        return ['build', 'CMakeFiles', 'CMakeCaches.txt'];
+    case 'dart':
+      return ['.packages', '.dart_tool'];
+    case 'deno':
+      return [];
+    case 'dotnet':
+        return ['bin', 'obj', '.nuget'];
+    case 'java':
+    case 'kotlin':
+        return ['build'];
+    case 'node':
+      return ['node_modules', '.npm'];
+    case 'php':
+      return ['vendor'];
+    case 'python':
+      return ['__pypackages__'];
+    case 'ruby':
+      return ['vendor'];
+    case 'rust':
+      return ['target', 'debug', '*.rs.bk', '*.pdb'];
+    case 'swift':
+      return ['.build', '.swiftpm'];
+  }
+
+  return undefined;
+};
 
 const getEntrypoint = (runtime) => {
   const languge = runtime.split('-')[0];
@@ -22,6 +55,14 @@ const getEntrypoint = (runtime) => {
       return 'main.rs';
     case 'swift':
       return 'Sources/swift-5.5/main.swift';
+    case 'cpp':
+      return 'src/index.cc';
+    case 'dotnet':
+      return 'src/Index.cs';
+    case 'java':
+      return 'src/Index.java';
+    case 'kotlin':
+      return 'src/Index.kt';
   }
 
   return undefined;
@@ -117,7 +158,7 @@ const questionsInitFunction = [
       let choices = runtimes.map((runtime, idx) => {
         return {
           name: `${runtime.name} (${runtime['$id']})`,
-          value: { id: runtime['$id'], entrypoint: getEntrypoint(runtime['$id'])}
+          value: { id: runtime['$id'], entrypoint: getEntrypoint(runtime['$id']), ignore: getIgnores(runtime['$id'])},
         }
       })
       return choices;
@@ -164,7 +205,7 @@ const questionsDeployFunctions = [
       let choices = functions.map((func, idx) => {
         return {
           name: `${func.name} (${func['$id']})`,
-          value: func
+          value: JSONbig.stringify(func)
         }
       })
       return choices;
@@ -185,7 +226,7 @@ const questionsDeployCollections = [
       let choices = collections.map((collection, idx) => {
         return {
           name: `${collection.name} (${collection['$id']})`,
-          value: collection
+          value: JSONbig.stringify(collection)
         }
       })
       return choices;

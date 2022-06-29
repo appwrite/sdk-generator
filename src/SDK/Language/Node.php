@@ -26,7 +26,7 @@ class Node extends JS
             case self::TYPE_ARRAY:
                 return 'string[]';
             case self::TYPE_FILE:
-                return 'string';
+                return 'InputFile';
             break;
         }
 
@@ -61,6 +61,12 @@ class Node extends JS
                 'scope'         => 'default',
                 'destination'   => 'lib/query.js',
                 'template'      => 'node/lib/query.js.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/inputFile.js',
+                'template'      => 'node/lib/inputFile.js.twig',
                 'minify'        => false,
             ],
             [
@@ -148,7 +154,7 @@ class Node extends JS
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "fs.createReadStream(__dirname + '/file.png')";
+                    $output .= "'file.png'";
                     break;
             }
         }
@@ -167,7 +173,7 @@ class Node extends JS
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "fs.createReadStream(__dirname + '/file.png')";
+                    $output .= "'file.png'";
                     break;
             }
         }

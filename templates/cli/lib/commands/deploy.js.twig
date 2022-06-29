@@ -1,4 +1,5 @@
 const inquirer = require("inquirer");
+const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
 const { questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections } = require("../questions");
@@ -148,7 +149,7 @@ const deployFunction = async () => {
     let response = {};
 
     let answers = await inquirer.prompt(questionsDeployFunctions)
-    let functions = answers.functions
+    let functions = answers.functions.map((func) => JSONbig.parse(func))
 
     for (let func of functions) {
         log(`Deploying function ${func.name} ( ${func['$id']} )`)
@@ -319,7 +320,7 @@ const createAttribute = async (collectionId, attribute) => {
 const deployCollection = async () => {
     let response = {};
     let answers = await inquirer.prompt(questionsDeployCollections[0])
-    let collections = answers.collections
+    let collections = answers.collections.map((collection) => JSONbig.parse(collection));
 
     for (let collection of collections) {
         log(`Deploying collection ${collection.name} ( ${collection['$id']} )`)

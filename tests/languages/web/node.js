@@ -1,47 +1,47 @@
-const requireAppwrite = require('./dist/cjs/sdk.js');
-const fs = require('fs');
+const { Client, Foo, Bar, General } = require('./dist/cjs/sdk.js');
 
 async function start() {
     let response;
 
     console.log('\nTest Started');
-    const { Appwrite } = requireAppwrite;
-    const sdk = new Appwrite();
-
+    const client = new Client();
+    const foo = new Foo(client, 'string');
+    const bar = new Bar(client);
+    const general = new General(client);
     // Foo
-    response = await sdk.foo.get('string', 123, ['string in array']);
+    response = await foo.get(123, ['string in array']);
     console.log(response.result);
 
-    response = await sdk.foo.post('string', 123, ['string in array']);
+    response = await foo.post(123, ['string in array']);
     console.log(response.result);
 
-    response = await sdk.foo.put('string', 123, ['string in array']);
+    response = await foo.put(123, ['string in array']);
     console.log(response.result);
 
-    response = await sdk.foo.patch('string', 123, ['string in array']);
+    response = await foo.patch(123, ['string in array']);
     console.log(response.result);
 
-    response = await sdk.foo.delete('string', 123, ['string in array']);
+    response = await foo.delete(123, ['string in array']);
     console.log(response.result);
 
     // Bar
-    response = await sdk.bar.get('string', 123, ['string in array']);
+    response = await bar.get('string', 123, ['string in array']);
     console.log(response.result);
 
-    response = await sdk.bar.post('string', 123, ['string in array']);
+    response = await bar.post('string', 123, ['string in array']);
     console.log(response.result);
 
-    response = await sdk.bar.put('string', 123, ['string in array']);
+    response = await bar.put('string', 123, ['string in array']);
     console.log(response.result);
 
-    response = await sdk.bar.patch('string', 123, ['string in array']);
+    response = await bar.patch('string', 123, ['string in array']);
     console.log(response.result);
 
-    response = await sdk.bar.delete('string', 123, ['string in array']);
+    response = await bar.delete('string', 123, ['string in array']);
     console.log(response.result);
 
     // General
-    response = await sdk.general.redirect();
+    response = await general.redirect();
     console.log(response.result);
   
     console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip file upload test on Node.js
@@ -51,22 +51,22 @@ async function start() {
     console.log(response.toString());
 
     try {
-        response = await sdk.general.empty();
+        response = await general.empty();
     } catch (error) {
         console.log(error);
     }
     try {
-        response = await sdk.general.error400();
+        response = await general.error400();
     } catch(error) {
         console.log(error.message);
     }
     try {
-        response = await sdk.general.error500();
+        response = await general.error500();
     } catch(error) {
         console.log(error.message);
     }
     try {
-        response = await sdk.general.error502();
+        response = await general.error502();
     } catch (error) {
         console.log(error.message);
     }

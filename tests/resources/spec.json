@@ -383,6 +383,7 @@
             "description": "Sample string param",
             "required": true,
             "type": "string",
+            "x-global": true,
             "x-example": "[]",
             "in": "query"
           },
@@ -445,6 +446,7 @@
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
+                  "x-global": true,
                   "x-example": "[]"
                 },
                 "y": {
@@ -506,6 +508,7 @@
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
+                  "x-global": true,
                   "x-example": "[]"
                 },
                 "y": {
@@ -567,6 +570,7 @@
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
+                  "x-global": true,
                   "x-example": "[]"
                 },
                 "y": {
@@ -628,6 +632,7 @@
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
+                  "x-global": true,
                   "x-example": "[]"
                 },
                 "y": {
