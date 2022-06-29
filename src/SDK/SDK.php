@@ -58,6 +58,7 @@ class SDK
         'readme' => '',
         'changelog' => '',
         'examples' => '',
+        'test' => 'false'
     ];
 
     /**
@@ -74,6 +75,14 @@ class SDK
         $this->twig = new Environment(new FilesystemLoader(__DIR__ . '/../../templates'), [
             'debug' => true
         ] );
+
+        /**
+         * Add language specific filters
+         */
+        foreach ($this->language->getFilters() as $filter) {
+            $this->twig->addFilter($filter);
+        }
+
         $this->twig->addExtension(new \Twig\Extension\DebugExtension());
 
         $this->twig->addFilter(new TwigFilter('caseLower', function ($value) {
@@ -132,34 +141,6 @@ class SDK
             }
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('comment2', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "     * " . wordwrap($value[$key], 75, "\n     * ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('comment3', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "         * " . wordwrap($value[$key], 75, "\n         * ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('dartComment', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "     /// " . wordwrap($value[$key], 75, "\n     /// ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('dotnetComment', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "        /// " . wordwrap($value[$key], 75, "\n        /// ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value) {
             return str_replace('$', '\$', $value);
         }, ['is_safe'=>['html']]));
@@ -176,13 +157,6 @@ class SDK
         $this->twig->addFilter(new TwigFilter('html', function ($value) {
             return $value;
         }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('godocComment', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "// " . wordwrap($value[$key], 75, "\n// ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeKeyword', function ($value) use ($language) {
             if(in_array($value, $language->getKeywords())) {
                 return 'x' . $value;
@@ -193,6 +167,18 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseHTML', function ($value) {
             return $value;
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('removeDollarSign', function ($value) {
+            return str_replace('$','',$value);
+        }));
+        $this->twig->addFilter(new TwigFilter('unescape', function ($value) {
+            return html_entity_decode($value);
+        }));
+        $this->twig->addFilter(new TwigFilter('overrideIdentifier', function ($value) use ($language) {
+            if(isset($language->getIdentifierOverrides()[$value])) {
+                return $language->getIdentifierOverrides()[$value];
+            }
+            return $value;
+        }));
     }
 
     /**
@@ -472,6 +458,17 @@ class SDK
     }
 
     /**
+     * @param string $test
+     * @return $this
+     */
+    public function setTest(string $test)
+    {
+        $this->setParam('test', $test);
+
+        return $this;
+    }
+
+    /**
      * @param string $key
      * @param string $value
      * @return SDK
@@ -524,6 +521,7 @@ class SDK
                 'contactURL' => $this->spec->getContactURL(),
                 'contactEmail' => $this->spec->getContactEmail(),
                 'services' => $this->spec->getServices(),
+                'definitions' => $this->spec->getDefinitions(),
                 'global' => [
                     'headers' => $this->spec->getGlobalHeaders(),
                     'defaultHeaders' => $this->defaultHeaders,
@@ -558,6 +556,8 @@ class SDK
                     foreach ($this->spec->getServices() as $key => $service) {
                         $methods = $this->spec->getMethods($key);
                         $params['service'] = [
+                            'globalParams' => $service['globalParams'] ?? [],
+                            'description' => $service['description'] ?? '',
                             'name' => $key,
                             'features' => [
                                 'upload' => $this->hasUploads($methods),
@@ -570,12 +570,21 @@ class SDK
                         $this->render($template, $destination, $block, $params, $minify);
                     }
                     break;
+                case 'definition':
+                    foreach ($this->spec->getDefinitions() as $key => $definition) {
+
+                        $params['definition'] = $definition;
+
+                        $this->render($template, $destination, $block, $params, $minify);
+                    }
+                    break;
                 case 'method':
                     foreach ($this->spec->getServices() as $key => $service) {
                         $methods = $this->spec->getMethods($key);
                         $params['service'] = [
                             'name' => $key,
                             'methods' => $methods,
+                            'globalParams' => $service['globalParams'] ?? [],
                             'features' => [
                                 'upload' => $this->hasUploads($methods),
                                 'location' => $this->hasLocation($methods),
@@ -685,8 +694,11 @@ class SDK
      * @param string $str
      * @return string
      */
-    protected function helperCamelCase($str)
+    protected function helperCamelCase($str): string
     {
+        if ($str == null) {
+            return '';
+        }
         $str = preg_replace('/[^a-z0-9' . implode("", []) . ']+/i', ' ', $str);
         $str = trim($str);
         $str = ucwords($str);

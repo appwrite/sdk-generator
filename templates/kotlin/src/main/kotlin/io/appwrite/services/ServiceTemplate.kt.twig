@@ -1,13 +1,16 @@
-package {{ sdk.namespace | caseDot }}.services
-
 {% macro parameter(parameter) %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{% if not parameter.required %}? = null{% endif %}{% endmacro %}
-{% macro method_parameters(parameters) %}
-{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% endif %}
+{% macro method_parameters(parameters, consumes) %}
+{% if parameters.all|length > 0 %}{% for parameter in parameters.all | filter((param) => not param.isGlobal) %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, onProgress: ((UploadProgress) -> Unit)? = null{% endif %}{% endif %}
 {% endmacro %}
 {% macro methodNeedsSecurityParameters(method) %}
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
+{% macro resultType(namespace, method) %}
+{% if method.type == "webAuth" %}Bool{% elseif method.type == "location" %}ByteArray{% elseif not method.responseModel or method.responseModel == 'any' %}Any{% else %}{{ namespace | caseDot}}.models.{{method.responseModel | caseUcfirst}}{% endif %}
+{% endmacro %}
+package {{ sdk.namespace | caseDot }}.services
 import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.models.*
 {% if service.features.webAuth %}
 import {{ sdk.namespace | caseDot }}.WebAuthComponent
 import androidx.activity.ComponentActivity
@@ -21,7 +24,22 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 {% endif %}
 import java.io.File
 
-class {{ service.name | caseUcfirst }}(private val client: Client) : BaseService(client) {
+class {{ service.name | caseUcfirst }} : Service {
+
+{% if service.globalParams | length %}
+{% for parameter in service.globalParams %}
+    val {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | overrideIdentifier }}{% if not parameter.required %}?{% endif %}
+
+{% endfor %}
+
+    public constructor(client: Client,{% for parameter in service.globalParams %} {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | overrideIdentifier }}{% if not parameter.required %}? = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) : super(client) {
+{% for parameter in service.globalParams %}
+        this.{{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }}
+{% endfor %}
+    }
+{% else %}
+    public constructor (client: Client) : super(client) { }
+{% endif %}
 
 {% for method in service.methods %}
     /**
@@ -31,18 +49,18 @@ class {{ service.name | caseUcfirst }}(private val client: Client) : BaseService
 {{ method.description|comment1 }}
      *
 {% endif %}
-{% for parameter in method.parameters.all %}
-     * @param {{ parameter.name | caseCamel }}
+{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
+     * @param {{ parameter.name | caseCamel }} {{ parameter.description }}
 {% endfor %}
-     * {% if method.type != "webAuth" %}@return [Response]{% endif %}
+     * {% if method.type != "webAuth" %}@return [{{ _self.resultType(sdk.namespace, method) }}]{% endif %}
      
      */
     @JvmOverloads
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ _self.method_parameters(method.parameters) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: Response{% endif %} {
+    suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ _self.method_parameters(method.parameters, method.consumes) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: {{ _self.resultType(sdk.namespace, method) }}{% endif %} {
         val path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %}
 
-        val params = mapOf<String, Any?>(
+        val params = mutableMapOf<String, Any?>(
 {% for parameter in method.parameters.query | merge(method.parameters.body) %}
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
 
@@ -54,7 +72,6 @@ class {{ service.name | caseUcfirst }}(private val client: Client) : BaseService
 
 {% endfor %}{% endfor %}{% endif %}
         )
-
 {% if method.type == 'webAuth' %}
         val query = mutableListOf<String>()
         params.forEach {
@@ -92,21 +109,64 @@ class {{ service.name | caseUcfirst }}(private val client: Client) : BaseService
                 .domain(Uri.parse(client.endPoint).host!!)
                 .httpOnly()
                 .build()
-                
-            client.cookieJar.saveFromResponse(
+            
+            client.http.cookieJar.saveFromResponse(
                 client.endPoint.toHttpUrl(),
                 listOf(cookie)
             )
         }
-
 {% elseif method.type == 'location' %}
-        return client.call("{{ method.method | caseUpper }}", path, params = params)
+        return client.call(
+            "{{ method.method | caseUpper }}",
+            path,
+            params = params,
+            responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java
+        )
 {% else %}
-        val headers = mapOf(
+        val headers = mutableMapOf(
 {{ method.headers|map((header, key) => "            \"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
         )
+{% if method.responseModel %}
+        val converter: (Map<String, Any>) -> {{ _self.resultType(sdk.namespace, method) }} = {
+{% if method.responseModel == 'any' %}
+            it
+{% else %}
+            {{ _self.resultType(sdk.namespace, method) }}.from(map = it)
+{% endif %}
+        }
+{% endif %}
+{% if 'multipart/form-data' in method.consumes %}
+        val idParamName: String? = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}null{% endif %}
 
-        return client.call("{{ method.method | caseUpper }}", path, headers, params)
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+        val paramName = "{{ parameter.name }}"
+{% endif %}
+{% endfor %}
+        return client.chunkedUpload(
+            path,
+            headers,
+            params,
+            responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java,
+{% if method.responseModel %}
+            converter,
+{% endif %}
+            paramName,
+            idParamName,
+            onProgress,
+        )
+{% else %}
+        return client.call(
+            "{{ method.method | caseUpper }}",
+            path,
+            headers,
+            params,
+            responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java,
+{% if method.responseModel %}
+            converter,
+{% endif %}
+        )
+{% endif %}
 {% endif %}
     }
     

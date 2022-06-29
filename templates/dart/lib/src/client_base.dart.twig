@@ -1,0 +1,31 @@
+import 'response.dart';
+import 'client.dart';
+import 'enums.dart';
+
+abstract class ClientBase implements Client {  
+{% for header in spec.global.headers %}
+{% if header.description %}
+  /// {{header.description}}
+{% endif %}
+  @override
+  ClientBase set{{header.key | caseUcfirst}}(value);
+{% endfor %}
+
+  @override
+  ClientBase setSelfSigned({bool status = true});
+
+  @override
+  ClientBase setEndpoint(String endPoint);
+
+  @override
+  ClientBase addHeader(String key, String value);
+
+  @override
+  Future<Response> call(
+    HttpMethod method, {
+    String path = '',
+    Map<String, String> headers = const {},
+    Map<String, dynamic> params = const {},
+    ResponseType? responseType,
+  });
+}

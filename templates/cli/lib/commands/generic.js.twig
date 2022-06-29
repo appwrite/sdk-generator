@@ -1,0 +1,117 @@
+const inquirer = require("inquirer");
+const { Command } = require("commander");
+const Client = require("../client");
+const { sdkForConsole } = require("../sdks");
+const { globalConfig, localConfig } = require("../config");
+const { actionRunner, success, parseBool, commandDescriptions, log, parse } = require("../parser");
+{% if sdk.test != "true" %}
+const { questionsLogin } = require("../questions");
+const { accountCreateSession, accountDeleteSession } = require("./account");
+
+const login = new Command("login")
+    .description(commandDescriptions['login'])
+    .action(actionRunner(async () => {
+        const answers = await inquirer.prompt(questionsLogin)
+
+        let client = await sdkForConsole(false);
+
+        await accountCreateSession({
+            email: answers.email,
+            password: answers.password,
+            parseOutput: false,
+            sdk: client
+        })
+
+        success()
+    }));
+
+const logout = new Command("logout")
+    .description(commandDescriptions['logout'])
+    .action(actionRunner(async () => {
+        let client = await sdkForConsole();
+
+        await accountDeleteSession({
+            sessionId: 'current',
+            parseOutput: false,
+            sdk: client
+        })
+
+        globalConfig.setCookie("");
+        success()
+    }));
+{% endif %}
+
+const client = new Command("client")
+    .description(commandDescriptions['client'])
+    .option("--selfSigned <value>", "Configure the CLI to use a self-signed certificate ( true or false )", parseBool)
+    .option("--endpoint <endpoint>", "Set your Apwrite server endpoint")
+    .option("--projectId <projectId>", "Set your Apwrite project ID")
+    .option("--key <key>", "Set your Apwrite server's API key")
+    .option("--debug", "Print CLI debug information")
+    .option("--reset", "Reset the CLI configuration")
+    .action(actionRunner(async ({ selfSigned, endpoint, projectId, key, debug, reset }, command) => {
+        if (selfSigned == undefined && endpoint == undefined && projectId == undefined && key == undefined && debug == undefined && reset == undefined) {
+            command.help()
+        }
+
+        if (debug) {
+            let config = {
+                endpoint: globalConfig.getEndpoint(),
+                key: globalConfig.getKey(),
+                cookie: globalConfig.getCookie(),
+                selfSigned: globalConfig.getSelfSigned(),
+                project: localConfig.getProject()
+            }
+            parse(config)
+        }
+
+        if (endpoint !== undefined) {
+            try {
+                let url = new URL(endpoint);
+                if (url.protocol !== "http:" && url.protocol !== "https:") {
+                    throw new Error();
+                }
+                
+                let client = new Client().setEndpoint(endpoint);
+                let response = await client.call('GET', '/health/version');
+                if(!response.version) {
+                    throw new Error();
+                }
+                
+                globalConfig.setEndpoint(endpoint);
+            } catch (_) {
+                throw new Error("Invalid endpoint or your Appwrite server is not running as expected.");
+            }
+        }
+
+        if (key !== undefined) {
+            globalConfig.setKey(key)
+        }
+
+        if (projectId !== undefined) {
+            localConfig.setProject(projectId, '');
+        }
+
+        if (selfSigned == true || selfSigned == false) {
+            globalConfig.setSelfSigned(selfSigned);
+        }
+
+        if (reset !== undefined) {
+            globalConfig.setEndpoint("");
+            globalConfig.setKey("");
+            globalConfig.setCookie("");
+            globalConfig.setSelfSigned("");
+            localConfig.setProject("", "");
+        }
+
+        success()
+    }));
+
+
+module.exports = {
+{% if sdk.test != "true" %}
+    login,
+    logout,
+{% endif %}
+    client
+};

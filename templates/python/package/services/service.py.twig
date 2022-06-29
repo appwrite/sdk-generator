@@ -3,43 +3,78 @@ from ..exception import AppwriteException
 
 class {{ service.name | caseUcfirst }}(Service):
 
+{% if service.globalParams | length %}
+    def __init__(self, client,{% for parameter in service.globalParams %} {{ parameter.name | caseSnake | escapeKeyword }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %},{% endif %}{% endfor %}):
+        super({{ service.name | caseUcfirst }}, self).__init__(client)
+{% for parameter in service.globalParams %}
+        self.{{ parameter.name | caseSnake | escapeKeyword }} = {{ parameter.name | caseSnake | escapeKeyword }}
+{% endfor %}
+{% else %}
     def __init__(self, client):
         super({{ service.name | caseUcfirst }}, self).__init__(client)
+{% endif %}
 {% for method in service.methods %}
 
-    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}):
+    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}{{ parameter.name | escapeKeyword | caseSnake }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}):
 {% if method.title %}
         """{{ method.title }}"""
 
 {% endif %}
-{% for parameter in method.parameters.all %}
+{% for parameter in method.parameters.all  %}
 {% if parameter.required %}
-        if {{ parameter.name | escapeKeyword | caseSnake }} is None: 
-            raise {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseSnake }}"')
+        if {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }} is None:
+            raise {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | escapeKeyword | caseSnake }}"')
 
 {% endif %}
 {% endfor %}
         params = {}
         path = '{{ method.path }}'
 {% for parameter in method.parameters.path %}
-        path = path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | escapeKeyword | caseSnake }})                
+        path = path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }})
 {% endfor %}
 
 {% for parameter in method.parameters.query %}
-        if {{ parameter.name | escapeKeyword | caseSnake }} is not None: 
-            params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
-
+        params['{{ parameter.name }}'] = {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }}
 {% endfor %}
 {% for parameter in method.parameters.body %}
-        if {{ parameter.name | escapeKeyword | caseSnake }} is not None: 
-            params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
-
+{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
+        params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
+{% else %}
+        params['{{ parameter.name }}'] = {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
 {% endfor %}
 {% for parameter in method.parameters.formData %}
-        if {{ parameter.name | escapeKeyword | caseSnake }} is not None: 
-            params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
-
+{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
+        params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
+{% else %}
+        params['{{ parameter.name }}'] = {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
 {% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+        param_name = '{{ parameter.name }}'
+
+{% endif %}
+{% endfor %}
+
+        upload_id = ''
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+        upload_id = {{ parameter.name | escapeKeyword | caseSnake }}
+{% endif %}
+{% endfor %}
+
+        return self.client.chunked_upload(path, {
+{% for parameter in method.parameters.header %}
+            '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
+{% endfor %}
+{% for key, header in method.headers %}
+            '{{ key }}': '{{ header }}',
+{% endfor %}
+        }, params, param_name, on_progress, upload_id)
+{% else %}
+
         return self.client.call('{{ method.method | caseLower }}', path, {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
@@ -48,4 +83,5 @@ class {{ service.name | caseUcfirst }}(Service):
             '{{ key }}': '{{ header }}',
 {% endfor %}
         }, params)
+{% endif %}
 {% endfor %}

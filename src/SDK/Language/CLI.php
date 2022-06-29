@@ -2,16 +2,17 @@
 
 namespace Appwrite\SDK\Language;
 
-class CLI extends PHP {
+class CLI extends Node
+{
 
     /**
      * @var array
      */
     protected $params = [
-        'composerVendor' => 'vendor-name',
-        'composerPackage' => 'package-name',
+        'npmPackage' => 'packageName',
         'executableName' => 'executable',
-        'logo' => ''
+        'logo' => '',
+        'logoUnescaped' => '',
     ];
 
     /**
@@ -36,67 +37,23 @@ class CLI extends PHP {
         return $this;
     }
 
+    /**
+     * @param string $logo
+     * @return $this
+     */
+    public function setLogoUnescaped($logo)
+    {
+        $this->setParam('logoUnescaped', $logo);
+
+        return $this;
+    }
 
     /**
      * @return string
      */
     public function getName()
     {
-        return 'CLI';
-    }
-
-    /**
-     * @param array $param
-     * @return string
-     */
-    public function getParamDefault(array $param)
-    {
-        $type       = $param['type'] ?? '';
-        $default    = $param['default'] ?? '';
-        $required   = $param['required'] ?? '';
-
-        if($required) {
-            return "''";
-        }
-
-        $output = '';
-
-        if(empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'null';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= '[]';
-                    break;
-            }
-        }
-        else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                    $output .= $default;
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= $this->jsonToAssoc(json_decode($default, true));
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($default) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'{$default}'";
-                    break;
-            }
-        }
-
-        return $output;
+        return 'cli';
     }
 
     /**
@@ -110,24 +67,35 @@ class CLI extends PHP {
                 'destination'   => 'README.md',
                 'template'      => 'cli/README.md.twig',
                 'minify'        => false,
-                //'block'         => 'default',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'CHANGELOG.md',
-                'template'      => 'cli/CHANGELOG.md.twig',
+                'destination'   => 'package.json',
+                'template'      => 'cli/package.json.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'LICENSE',
+                'destination'   => 'LICENSE.md',
                 'template'      => 'cli/LICENSE.md.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'composer.json',
-                'template'      => 'cli/composer.json.twig',
+                'destination'   => 'install.sh',
+                'template'      => 'cli/install.sh.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'install.ps1',
+                'template'      => 'cli/install.ps1.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'index.js',
+                'template'      => 'cli/index.js.twig',
                 'minify'        => false,
             ],
             [
@@ -138,101 +106,153 @@ class CLI extends PHP {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'Dockerfile',
-                'template'      => 'cli/Dockerfile.twig',
+                'destination'   => '.gitignore',
+                'template'      => 'cli/.gitignore',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'method',
+                'destination'   => 'Formula/{{ language.params.executableName }}.rb',
+                'template'      => 'cli/Formula/formula.rb.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '.github/workflows/npm-publish.yml',
+                'template'      => 'cli/.github/workflows/npm-publish.yml',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/Client.php',
-                'template'      => 'cli/src/Client.php.twig',
+                'destination'   => 'lib/sdks.js',
+                'template'      => 'cli/lib/sdks.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/Parser.php',
-                'template'      => 'cli/src/Parser.php.twig',
+                'destination'   => 'lib/questions.js',
+                'template'      => 'cli/lib/questions.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/Manipulators.php',
-                'template'      => 'cli/src/Manipulators.php.twig',
+                'destination'   => 'lib/parser.js',
+                'template'      => 'cli/lib/parser.js.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/exception.js',
+                'template'      => 'cli/lib/exception.js.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/config.js',
+                'template'      => 'cli/lib/config.js.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/client.js',
+                'template'      => 'cli/lib/client.js.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/utils.js',
+                'template'      => 'cli/lib/utils.js.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/commands/init.js',
+                'template'      => 'cli/lib/commands/init.js.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/commands/deploy.js',
+                'template'      => 'cli/lib/commands/deploy.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/bin/{{service.name}}',
-                'template'      => 'cli/bin/service.twig',
+                'destination'   => '/lib/commands/{{service.name | caseDash}}.js',
+                'template'      => 'cli/lib/commands/command.js.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/bin/client',
-                'template'      => 'cli/bin/client.twig',
+                'destination'   => 'lib/commands/generic.js',
+                'template'      => 'cli/lib/commands/generic.js.twig',
                 'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/bin/help',
-                'template'      => 'cli/bin/help.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/bin/version',
-                'template'      => 'cli/bin/version.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/bin/init',
-                'template'      => 'cli/bin/init.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'service',
-                'destination'   => '/app/{{ spec.title | caseUcfirst}}/services/{{service.name | caseDash}}.php',
-                'template'      => 'cli/app/services/service.php.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'app/{{ spec.title | caseUcfirst}}/services/client.php',
-                'template'      => 'cli/app/services/client.php.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'app/{{ spec.title | caseUcfirst}}/services/help.php',
-                'template'      => 'cli/app/services/help.php.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'app/{{ spec.title | caseUcfirst}}/services/init.php',
-                'template'      => 'cli/app/services/init.php.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '.travis.yml',
-                'template'      => 'cli/.travis.yml.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/install.sh',
-                'template'      => 'cli/install.sh.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/install.ps1',
-                'template'      => 'cli/install.ps1.twig',
-                'minify'        => false,
-            ],
+            ]
         ];
     }
 
+    /**
+     * @param array $param
+     * @return string
+     */
+    public function getParamExample(array $param)
+    {
+        $type       = $param['type'] ?? '';
+        $example    = $param['example'] ?? '';
+
+        $output = '';
+
+        if(empty($example) && $example !== 0 && $example !== false) {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                case self::TYPE_BOOLEAN:
+                    $output .= 'null';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "''";
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= 'one two three';
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= '\'{ "key": "value" }\'';
+                    break;
+                case self::TYPE_FILE:
+                    $output .= "'path/to/file.png'";
+                    break;
+            }
+        }
+        else {
+            switch ($type) {
+                case self::TYPE_ARRAY:
+                    if(strpos($example, '[') !== false && strpos($example, ']') !== false) {
+                        $trimmed = substr($example, 1, -1);
+                        $split = explode(',', $trimmed);
+                        $output .= implode(' ', $split);
+                    } else {
+                        $output .= $example;
+                    }
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= '\'{ "key": "value" }\'';
+                    break;
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                    $output .= $example;
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= ($example) ? 'true' : 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "{$example}";
+                    break;
+                case self::TYPE_FILE:
+                    $output .= "'path/to/file.png'";
+                    break;
+            }
+        }
+
+        return $output;
+    }
 }

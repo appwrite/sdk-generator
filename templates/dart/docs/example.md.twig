@@ -5,7 +5,7 @@ import 'package:{{ language.params.packageName }}/{{ language.params.packageName
 
 void main() { // Init SDK
   Client client = Client();
-  {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = {{service.name | caseUcfirst}}(client);
+  {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = {{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample }}{% endfor %}{% endif %});
 
 {% if method.security|length > 0 %}
   client
@@ -17,14 +17,14 @@ void main() { // Init SDK
 {% endfor %}  ;
 
 {% endif %}
-  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
 {% if loop.first %}
 
 {% endif %}
 {% if parameter.required %}
-    {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
+    {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }},
 {% endif %}
-{% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %});
+{% endfor %}{% if method.parameters.all | filter((param) => not param.isGlobal) | length > 0 %}  {% endif %});
 
   result
     .then((response) {

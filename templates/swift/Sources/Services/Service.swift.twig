@@ -1,57 +1,193 @@
+{% macro methodNeedsSecurityParameters(method) %}
+{% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
+{% endmacro %}
+{% macro resultType(spec, method) %}
+{% if method.type == "webAuth" %}Bool{% elseif method.type == "location" %}ByteBuffer{% elseif not method.responseModel or method.responseModel == 'any' %}Any{% else %}{{spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}{% endif %}
+{% endmacro %}
+import AsyncHTTPClient
+import Foundation
+import NIO
+import {{spec.title | caseUcfirst}}Models
+
+open class {{ service.name | caseUcfirst }}: Service {
+{% if service.globalParams | length %}
+{% for parameter in service.globalParams %}
+    var {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}{% if not parameter.required %}?{% endif %}
+{% endfor %}
 
 
-class {{ service.name | caseUcfirst }}: Service
-{
+    public init(_ client: Client, {% for parameter in service.globalParams %}_ {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
+    {
+{% for parameter in service.globalParams %}
+        self.{{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }}
+{% endfor %}
+        super.init(client)
+    }
+
+{% endif %}
 {% for method in service.methods %}
-    /**
-     * {{ method.title }}
-     *
+    ///
+    /// {{ method.title }}
+    ///
 {% if method.description %}
-{{ method.description|comment1 }}
-     *
+{{ method.description | swiftComment }}
+    ///
 {% endif %}
 {% for parameter in method.parameters.all %}
-     * @param {{ parameter.type | typeName | raw}} _{{ parameter.name | caseCamel }}
+    /// @param {{ parameter.type | typeName | raw}} {{ parameter.name | caseCamel }}
 {% endfor %}
-     * @throws Exception
-     * @return array
-     */
+    /// @throws Exception
+    /// @return array
+    ///
+{% if method.type == "webAuth" %}
+    @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+{% endif %}
+    open func {{ method.name | caseCamel }}(
+{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
+        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
 
-    func {{ method.name | caseCamel }}({% for parameter in method.parameters.all %}_{{ parameter.name | caseCamel }}: {{ parameter.type | typeName | raw }}{{ parameter | paramDefault }}{% if not loop.last %}, {% endif %}{% endfor %}) -> Array<Any> {
-        {% if method.parameters.path %}var{% else %}let{% endif %} path: String = "{{ method.path }}"
-
+{% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+        onProgress: ((UploadProgress) -> Void)? = nil
+{% endif %}
+    ) async throws -> {{ _self.resultType(spec, method) }} {
+{% if method.parameters.path %}        var{% else %}        let{% endif %} path: String = "{{ method.path }}"
 {% for parameter in method.parameters.path %}
         path = path.replacingOccurrences(
           of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}",
-          with: {% if method.parameters.path %}_{{ parameter.name | caseCamel }}{% else %}""{% endif %}
+          with: {% if method.parameters.path %}{% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}{% else %}""{% endif %}
 
         )
 {% endfor %}
+{% if method.parameters.query or method.parameters.body or method.parameters.formData or _self.methodNeedsSecurityParameters(method) %}
+        {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} params: [String: Any?] = [
+{% else %}
+        let params: [String: Any?] = [:]
+{% endif %}
+{% for parameter in method.parameters.query | merge(method.parameters.body) %}
+            "{{ parameter.name }}": {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
 
-        {% if method.parameters.query or method.parameters.body or method.parameters.formData %}
-        var params: [String: Any] = [:]
-        {% else %}
-        let params: [String: Any] = [:]
-        {% endif %}
+{% endfor %}
+{% if _self.methodNeedsSecurityParameters(method) %}
+{% for node in method.security %}
+{% for key,header in node|keys %}
+            "{{header|caseLower}}": client.config["{{header|caseLower}}"]{% if not loop.last %},{% endif %}
 
-{% for parameter in method.parameters.query %}
-        params["{{ parameter.name }}"] = _{{ parameter.name | caseCamel }}
 {% endfor %}
-{% for parameter in method.parameters.body %}
-        params["{{ parameter.name }}"] = _{{ parameter.name | caseCamel }}
 {% endfor %}
-{% for parameter in method.parameters.formData %}
-        params["{{ parameter.name }}"] = _{{ parameter.name | caseCamel }}
+{% endif %}
+{% if method.parameters.query or method.parameters.body or method.parameters.formData or _self.methodNeedsSecurityParameters(method) %}
+        ]
+{% endif %}
+{% if method.type == 'webAuth' %}
+        let query = "?\(client.parametersToQueryString(params: params))"
+        let url = URL(string: client.endPoint + path + query)!
+        let callbackScheme = "appwrite-callback-\(client.config["project"] ?? "")"
+        let group = DispatchGroup()
+
+        group.enter()
+        WebAuthComponent.authenticate(url: url, callbackScheme: callbackScheme) { result in
+            group.leave()
+        }
+        group.wait()
+        
+        return true
+{% elseif method.type == 'location' %}
+        return try await client.call(
+            method: "{{ method.method | caseUpper }}",
+            path: path,
+            params: params
+        )
+{% else %}
+        {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} headers: [String: String] = [
+{{ method.headers|map((header, key) => "            \"#{key}\": \"#{header}\"")|join(',\n')|raw }}
+        ]
+{% if method.responseModel %}
+        let converter: ([String: Any]) -> {{ _self.resultType(spec, method) }} = { dict in
+{% if method.responseModel == 'any' %}
+            return dict
+{% else %}
+            return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: dict)
+{% endif %}
+        }
+{% endif %}
+{% if 'multipart/form-data' in method.consumes %}
+        let idParamName: String? = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}nil{% endif %}
+
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+        let paramName = "{{ parameter.name }}"
+{% endif %}
+{% endfor %}
+        return try await client.chunkedUpload(
+            path: path,
+            headers: &headers,
+            params: &params,
+            paramName: paramName,
+            idParamName: idParamName,
+{% if method.responseModel %}
+            converter: converter,
+{% endif %}
+            onProgress: onProgress
+        )
+{% else %}
+        return try await client.call(
+            method: "{{ method.method | caseUpper }}",
+            path: path,
+            headers: headers,
+            params: params{% if method.responseModel %},
+            converter: converter
+{% endif %}
+        )
+{% endif %}
+{% endif %}
+    }
+
 {% endfor %}
 
-        return [self.client.call(method: Client.HTTPMethod.{{ method.method }}.rawValue, path: path, headers: [
-{% for parameter in method.parameters.header %}
-            "{{ parameter.name }}": {{ parameter.name | caseCamel }},
+{% for method in service.methods %}
+    ///
+    /// {{ method.title }}
+    ///
+{% if method.description %}
+{{ method.description | swiftComment }}
+    ///
+{% endif %}
+{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
+    /// @param {{ parameter.type | typeName | raw}} {{ parameter.name | caseCamel }}
 {% endfor %}
-{% for key, header in method.headers %}
-            "{{ key }}": "{{ header }}",
+    /// @throws Exception
+    /// @return array
+    ///
+    @available(*, deprecated, message: "Use the async overload instead")
+{% if method.type == "webAuth" %}
+    @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+{% endif %}
+    open func {{ method.name | caseCamel }}(
+{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
+        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %},
 {% endfor %}
-        ], params: params)];
+{% if 'multipart/form-data' in method.consumes %}
+        onProgress: ((UploadProgress) -> Void)? = nil,
+{% endif %}
+        completion: ((Result<{{ _self.resultType(spec, method) }}, {{ spec.title | caseUcfirst}}Error>) -> Void)? = nil
+    ) {
+        Task {
+            do {
+                let result = try await {{ method.name | caseCamel }}(
+{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
+                    {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
+
+{% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+                    onProgress: onProgress
+{% endif %}
+                )
+                completion?(.success(result))
+            } catch {
+                completion?(.failure(error as! {{ spec.title | caseUcfirst}}Error))
+            }
+        }
     }
 
 {% endfor %}

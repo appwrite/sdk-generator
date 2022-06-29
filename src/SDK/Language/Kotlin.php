@@ -36,7 +36,6 @@ class Kotlin extends Language {
             "constructor",
             "continue",
             "crossinline",
-            "data",
             "delegate",
             "do",
             "dynamic",
@@ -91,6 +90,14 @@ class Kotlin extends Language {
     }
 
     /**
+     * @return array
+     */
+    public function getIdentifierOverrides()
+    {
+        return [];
+    }
+
+    /**
      * @param $type
      * @return string
      */
@@ -98,13 +105,13 @@ class Kotlin extends Language {
     {
         switch ($type) {
             case self::TYPE_INTEGER:
-                return 'Int';
+                return 'Long';
             case self::TYPE_NUMBER:
                 return 'Double';
             case self::TYPE_STRING:
                 return 'String';
             case self::TYPE_FILE:
-                return 'File';
+                return 'InputFile';
             case self::TYPE_BOOLEAN:
                 return 'Boolean';
             case self::TYPE_ARRAY:
@@ -190,7 +197,7 @@ class Kotlin extends Language {
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'File("./path-to-files/image.jpg")';
+                    $output .= 'InputFile.fromPath("file.png")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -271,6 +278,12 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'scripts/configure.gradle',
+                'template'      => '/kotlin/scripts/configure.gradle',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'scripts/publish.gradle',
                 'template'      => '/kotlin/scripts/publish.gradle',
                 'minify'        => false,
@@ -343,6 +356,12 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Query.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Query.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.title | caseUcfirst}}Exception.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/exceptions/Exception.kt.twig',
                 'minify'        => false,
@@ -355,13 +374,13 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/Error.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Error.kt.twig',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/json/PreciseNumberAdapter.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/json/PreciseNumberAdapter.kt.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/BaseService.kt',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/Service.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/Service.kt.twig',
                 'minify'        => false,
             ],
@@ -370,7 +389,25 @@ class Kotlin extends Language {
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/ServiceTemplate.kt.twig',
                 'minify'        => false,
-            ]
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/InputFile.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/InputFile.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/UploadProgress.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/UploadProgress.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ definition.name | caseUcfirst }}.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Model.kt.twig',
+                'minify'        => false,
+            ],
         ];
     }
 }

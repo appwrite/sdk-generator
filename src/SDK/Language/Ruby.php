@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 class Ruby extends Language {
 
@@ -79,6 +80,14 @@ class Ruby extends Language {
     /**
      * @return array
      */
+    public function getIdentifierOverrides()
+    {
+        return [];
+    }
+
+    /**
+     * @return array
+     */
     public function getFiles()
     {
         return [
@@ -126,14 +135,20 @@ class Ruby extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/query.rb',
+                'template'      => 'ruby/lib/container/query.rb.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}/service.rb',
                 'template'      => 'ruby/lib/container/service.rb.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/{{ spec.title | caseDash }}/file.rb',
-                'template'      => 'ruby/lib/container/file.rb.twig',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/input_file.rb',
+                'template'      => 'ruby/lib/container/input_file.rb.twig',
                 'minify'        => false,
             ],
             [
@@ -160,6 +175,12 @@ class Ruby extends Language {
                 'template'      => 'ruby/.travis.yml.twig',
                 'minify'        => false,
             ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/lib/{{ spec.title | caseDash }}/models/{{ definition.name | caseSnake }}.rb',
+                'template'      => 'ruby/lib/container/models/model.rb.twig',
+                'minify'        => false,
+            ],
         ];
     }
 
@@ -173,10 +194,6 @@ class Ruby extends Language {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
                 return 'number';
-            break;
-            case self::TYPE_FILE:
-                return 'File';
-            break;
         }
 
         return $type;
@@ -264,7 +281,7 @@ class Ruby extends Language {
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "File.new()";
+                    $output .= "InputFile.fromPath('dir/file.png')";
                     break;
             }
         }
@@ -285,7 +302,7 @@ class Ruby extends Language {
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "File.new()";
+                    $output .= "InputFile.fromPath('dir/file.png')";
                     break;
             }
         }
@@ -310,5 +327,18 @@ class Ruby extends Language {
         $output .= '}';
 
         return $output;
+    }
+
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('rubyComment', function ($value) {
+                $value = explode("\n", $value);
+                foreach ($value as $key => $line) {
+                    $value[$key] = "        # " . wordwrap($line, 75, "\n        # ");
+                }
+                return implode("\n", $value);
+            }, ['is_safe' => ['html']])
+        ];
     }
 }

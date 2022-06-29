@@ -1,17 +1,23 @@
 library {{ language.params.packageName }};
 
-import 'dart:io';
-import 'dart:convert';
-import 'package:dio/dio.dart';
-import 'package:dio/adapter.dart';
+import 'dart:async';
+import 'dart:typed_data';
+import 'package:http/http.dart' show MultipartFile;
+import 'src/enums.dart';
+import 'src/client.dart';
+import 'src/service.dart';
+import 'src/input_file.dart';
+import 'src/upload_progress.dart';
+import 'models.dart' as models;
+import 'src/exception.dart';
 
+export 'src/response.dart';
+export 'src/client.dart';
+export 'src/exception.dart';
+export 'src/input_file.dart';
+export 'src/upload_progress.dart';
 
-export 'package:dio/dio.dart' show Response, MultipartFile;
-
-part 'client.dart';
-part 'enums.dart';
-part 'service.dart';
-part 'exception.dart';
+part 'query.dart';
 {% for service in spec.services %}
 part 'services/{{service.name | caseDash}}.dart';
 {% endfor %}

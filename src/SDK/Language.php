@@ -30,6 +30,11 @@ abstract class Language {
     /**
      * @return array
      */
+    abstract public function getIdentifierOverrides();
+
+    /**
+     * @return array
+     */
     abstract public function getFiles();
 
     /**
@@ -68,5 +73,14 @@ abstract class Language {
     public function getParams()
     {
         return $this->params;
+    }
+
+    /**
+     * Language specific filters.
+     * @return array 
+     */
+    public function getFilters(): array
+    {
+        return [];
     }
 }

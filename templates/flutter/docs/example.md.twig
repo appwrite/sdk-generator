@@ -5,7 +5,7 @@ import 'package:{{ language.params.packageName }}/{{ language.params.packageName
 
 void main() { // Init SDK
   Client client = Client();
-  {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = {{service.name | caseUcfirst}}(client);
+  {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = {{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample }}{% endfor %}{% endif %});
 
 {% if method.security|length > 0 %}
   client
@@ -17,36 +17,50 @@ void main() { // Init SDK
 {% endfor %}  ;
 {% endif %}
 {% if method.type == 'location' %}
-}
-
-//displaying image
-FutureBuilder(
-  future: {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+  // downloading file
+  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
 {% if loop.first %}
 
 {% endif %}
 {% if parameter.required %}
     {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
 {% endif %}
-{% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %}
+{% endfor %}{% if method.parameters.all | filter((param) => not param.isGlobal) | length > 0 %}  {% endif %}).then((bytes) {
+    final file = File('path_to_file/filename.ext');
+    file.writeAsBytesSync(bytes)
+  }).catchError((error) {
+      print(error.response);
+  })
+}
+
+//displaying image preview
+FutureBuilder(
+  future: {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
+{% if loop.first %}
+
+{% endif %}
+{% if parameter.required %}
+    {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample }},
+{% endif %}
+{% endfor %}{% if method.parameters.all | filter((param) => not param.isGlobal) | length > 0 %}  {% endif %}
 ), //works for both public file and private file, for private files you need to be logged in
   builder: (context, snapshot) {
     return snapshot.hasData && snapshot.data != null
       ? Image.memory(
-          snapshot.data.data,
+          snapshot.data,
         )
       : CircularProgressIndicator();
   },
 );
 {% else %}
-  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
 {% if loop.first %}
 
 {% endif %}
 {% if parameter.required %}
     {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
 {% endif %}
-{% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %});
+{% endfor %}{% if method.parameters.all | filter((param) => not param.isGlobal) | length > 0 %}  {% endif %});
 
   result
     .then((response) {

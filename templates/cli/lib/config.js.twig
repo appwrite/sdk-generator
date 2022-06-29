@@ -1,0 +1,266 @@
+const os = require('os');
+const fs = require("fs");
+const _path = require("path");
+const process = require("process");
+const JSONbig = require("json-bigint")({ storeAsString: false });
+
+class Config {
+    constructor(path) {
+        this.path = path;
+        this.read();
+    }
+
+    read() {
+        try {
+            const file = fs.readFileSync(this.path).toString();
+            this.data = JSONbig.parse(file);
+        } catch (e) {
+            // console.log(`${this.path} not found. Empty data`);
+            this.data = {};
+        }
+    }
+
+    write() {
+        let dir = _path.dirname(this.path)
+        if (!fs.existsSync(dir)){
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(this.path, JSONbig.stringify(this.data, null, 4));
+    }
+
+    get(key) {
+        return this.data[key];
+    }
+
+    set(key, value) {
+        this.data[key] = value;
+        this.write();
+    }
+
+    delete(key) {
+        delete this.data[key];
+        this.write();
+    }
+
+    clear() {
+        this.data = {};
+        this.write();
+    }
+
+    has(key) {
+        return this.data[key] !== undefined;
+    }
+
+    keys() {
+        return Object.keys(this.data);
+    }
+
+    values() {
+        return Object.values(this.data);
+    }
+
+    toString() {
+        return JSONbig.stringify(this.data, null, 4);
+    }
+}
+
+class Local extends Config {
+    static CONFIG_FILE_PATH = "{{ spec.title|caseLower }}.json";
+
+    constructor(path = Local.CONFIG_FILE_PATH) {
+        let absolutePath = `${process.cwd()}/${path}`;
+        super(absolutePath);
+    }
+
+    getFunctions() {
+        if (!this.has("functions")) {
+            return [];
+        }
+        return this.get("functions");
+    }
+
+    getFunction($id) {
+        if (!this.has("functions")) {
+            return {};
+        }
+
+        let functions = this.get("functions");
+        for (let i = 0; i < functions.length; i++) {
+            if (functions[i]['$id'] == $id) {
+                return functions[i];
+            }
+        }
+
+        return {};
+    }
+
+    addFunction(props) {
+        if (!this.has("functions")) {
+            this.set("functions", []);
+        }
+
+        let functions = this.get("functions");
+        for (let i = 0; i < functions.length; i++) {
+            if (functions[i]['$id'] == props['$id']) {
+                return;
+            }
+        }
+        functions.push(props);
+        this.set("functions", functions);
+    }
+
+    updateFunction(id, props) {
+        if (!this.has("functions")) {
+            return;
+        }
+
+        let functions = this.get("functions");
+        for (let i = 0; i < functions.length; i++) {
+            if (functions[i]['$id'] == id) {
+                functions[i] = {
+                    ...functions[i],
+                    ...props
+                };
+                this.set("functions", functions);
+                return;
+            }
+        }
+    }
+
+    getCollections() {
+        if (!this.has("collections")) {
+            return [];
+        }
+        return this.get("collections");
+    }
+
+    getCollection($id) {
+        if (!this.has("collection")) {
+            return {};
+        }
+
+        let collections = this.get("collections");
+        for (let i = 0; i < collections.length; i++) {
+            if (collections[i]['$id'] == $id) {
+                return collections[i];
+            }
+        }
+
+        return {};
+    }
+
+    addCollection(props) {
+        if (!this.has("collections")) {
+            this.set("collections", []);
+        }
+
+        let collections = this.get("collections");
+        for (let i = 0; i < collections.length; i++) {
+            if (collections[i]['$id'] == props['$id']) {
+                collections[i] = props;
+                this.set("collections", collections);
+                return;
+            }
+        }
+        collections.push(props);
+        this.set("collections", collections);
+    }
+
+    getProject() {
+        if (!this.has("projectId") || !this.has("projectName")) {
+            return {};
+        }
+
+        return {
+            projectId: this.get("projectId"),
+            projectName: this.get("projectName"),
+        };
+    }
+
+    setProject(projectId, projectName) {
+        this.set("projectId", projectId);
+        this.set("projectName", projectName);
+    }
+}
+
+class Global extends Config {
+    static CONFIG_FILE_PATH = ".{{ spec.title|caseLower }}/prefs.json";
+
+    static PREFERENCE_ENDPOINT = "endpoint";
+    static PREFERENCE_SELF_SIGNED = "selfSigned";
+    static PREFERENCE_COOKIE = "cookie";
+    static PREFERENCE_PROJECT = "project";
+    static PREFERENCE_KEY = "key";
+    static PREFERENCE_LOCALE = "locale";
+    static PREFERENCE_MODE = "mode";
+
+    static MODE_ADMIN = "admin";
+    static MODE_DEFAULT = "default";
+
+    static PROJECT_CONSOLE = "console";
+
+    constructor(path = Global.CONFIG_FILE_PATH) {
+        const homeDir = os.homedir();
+        super(`${homeDir}/${path}`);
+    }
+
+    getEndpoint() {
+        if (!this.has(Global.PREFERENCE_ENDPOINT)) {
+            return "";
+        }
+        return this.get(Global.PREFERENCE_ENDPOINT);
+    }
+
+    setEndpoint(endpoint) {
+        this.set(Global.PREFERENCE_ENDPOINT, endpoint);
+    }
+
+    getSelfSigned() {
+        if (!this.has(Global.PREFERENCE_SELF_SIGNED)) {
+            return false;
+        }
+        return this.get(Global.PREFERENCE_SELF_SIGNED);
+    }
+
+    setSelfSigned(selfSigned) {
+        this.set(Global.PREFERENCE_SELF_SIGNED, selfSigned);
+    }
+
+    getCookie() {
+        if (!this.has(Global.PREFERENCE_COOKIE)) {
+            return "";
+        }
+        return this.get(Global.PREFERENCE_COOKIE);
+    }
+
+    setCookie(cookie) {
+        this.set(Global.PREFERENCE_COOKIE, cookie);
+    }
+
+    getProject() {
+        if (!this.has(Global.PREFERENCE_PROJECT)) {
+            return "";
+        }
+        return this.get(Global.PREFERENCE_PROJECT);
+    }
+
+    setProject(project) {
+        this.set(Global.PREFERENCE_PROJECT, project);
+    }
+
+    getKey() {
+        if (!this.has(Global.PREFERENCE_KEY)) {
+            return "";
+        }
+        return this.get(Global.PREFERENCE_KEY);
+    }
+
+    setKey(key) {
+        this.set(Global.PREFERENCE_KEY, key);
+    }
+}
+
+module.exports = {
+    localConfig : new Local(),
+    globalConfig : new Global(),
+};

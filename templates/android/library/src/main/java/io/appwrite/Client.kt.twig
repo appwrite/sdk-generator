@@ -2,24 +2,29 @@ package {{ sdk.namespace | caseDot }}
 
 import android.content.Context
 import android.content.pm.PackageManager
-import com.google.gson.Gson
-import io.appwrite.appwrite.BuildConfig
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
+import {{ sdk.namespace | caseDot }}.{{ spec.title | caseLower }}.BuildConfig
+import {{ sdk.namespace | caseDot }}.cookies.stores.SharedPreferencesCookieStore
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
-import {{ sdk.namespace | caseDot }}.extensions.JsonExtensions.fromJson
-import {{ sdk.namespace | caseDot }}.models.Error
+import {{ sdk.namespace | caseDot }}.extensions.fromJson
+import {{ sdk.namespace | caseDot }}.json.PreciseNumberAdapter
+import {{ sdk.namespace | caseDot }}.models.InputFile
+import {{ sdk.namespace | caseDot }}.models.UploadProgress
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.suspendCancellableCoroutine
-import net.gotev.cookiestore.SharedPreferencesCookieStore
 import okhttp3.*
 import okhttp3.Headers.Companion.toHeaders
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.BufferedInputStream
 import java.io.BufferedReader
 import java.io.File
+import java.io.RandomAccessFile
 import java.io.IOException
 import java.net.CookieManager
 import java.net.CookiePolicy
@@ -36,13 +41,23 @@ import kotlin.coroutines.resume
 class Client @JvmOverloads constructor(
     context: Context,
     var endPoint: String = "https://appwrite.io/v1",
+    var endPointRealtime: String? = null,
     private var selfSigned: Boolean = false
 ) : CoroutineScope {
+
+    companion object {
+        const val CHUNK_SIZE = 5*1024*1024; // 5MB
+    }
 
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Main + job
 
     private val job = Job()
+
+    private val gson = GsonBuilder().registerTypeAdapter(
+        object : TypeToken<Map<String, Any>>(){}.type,
+        PreciseNumberAdapter()
+    ).create()
 
     lateinit var http: OkHttpClient
 
@@ -68,7 +83,7 @@ class Client @JvmOverloads constructor(
     init {
         headers = mutableMapOf(
             "content-type" to "application/json",
-            "origin" to "appwrite-android://${context.packageName}",
+            "origin" to "{{ spec.title | caseLower }}-android://${context.packageName}",
             "user-agent" to "${context.packageName}/${appVersion}, ${System.getProperty("http.agent")}",
             "x-sdk-version" to "{{spec.title | caseDash}}:{{ language.name | caseLower }}:${BuildConfig.SDK_VERSION}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
             
@@ -123,9 +138,12 @@ class Client @JvmOverloads constructor(
         try {
             // Create a trust manager that does not validate certificate chains
             val trustAllCerts = arrayOf<TrustManager>(
+                @Suppress("CustomX509TrustManager")
                 object : X509TrustManager {
+                    @Suppress("TrustAllX509TrustManager")
                     override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {
                     }
+                    @Suppress("TrustAllX509TrustManager")
                     override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {
                     }
                     override fun getAcceptedIssuers(): Array<X509Certificate> {
@@ -151,7 +169,7 @@ class Client @JvmOverloads constructor(
     }
 
     /**
-     * Set endpoint
+     * Set endpoint and realtime endpoint.
      * 
      * @param endpoint
      *
@@ -159,6 +177,23 @@ class Client @JvmOverloads constructor(
      */
     fun setEndpoint(endPoint: String): Client {
         this.endPoint = endPoint
+
+        if (this.endPointRealtime == null && endPoint.startsWith("http")) {
+            this.endPointRealtime = endPoint.replaceFirst("http", "ws")
+        }
+
+        return this
+    }
+
+    /**
+    * Set realtime endpoint
+    *
+    * @param endpoint
+    *
+    * @return this
+    */
+    fun setEndpointRealtime(endPoint: String): Client {
+        this.endPointRealtime = endPoint
         return this
     }
 
@@ -183,16 +218,17 @@ class Client @JvmOverloads constructor(
      * @param headers
      * @param params
      *
-     * @return [Response]    
+     * @return [T]    
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    suspend fun call(
+    suspend fun <T> call(
         method: String, 
         path: String, 
         headers:  Map<String, String> = mapOf(), 
-        params: Map<String, Any?> = mapOf()
-    ): Response {
-
+        params: Map<String, Any?> = mapOf(),
+        responseType: Class<T>,
+        converter: ((Map<String, Any,>) -> T)? = null
+    ): T {
         val filteredParams = params.filterValues { it != null }
 
         val requestHeaders = this.headers.toHeaders().newBuilder()
@@ -227,7 +263,7 @@ class Client @JvmOverloads constructor(
                 .get()
                 .build()
 
-            return awaitResponse(request)
+            return awaitResponse(request, responseType, converter)
         }
 
         val body = if (MultipartBody.FORM.toString() == headers["content-type"]) {
@@ -236,8 +272,7 @@ class Client @JvmOverloads constructor(
             filteredParams.forEach {
                 when {
                     it.key == "file" -> {
-                        val file = it.value as File
-                        builder.addFormDataPart(it.key, file.name, file.asRequestBody())
+                        builder.addPart(it.value as MultipartBody.Part)
                     }
                     it.value is List<*> -> {
                         val list = it.value as List<*>
@@ -255,7 +290,7 @@ class Client @JvmOverloads constructor(
             }
             builder.build()
         } else {
-            Gson().toJson(filteredParams)
+            gson.toJson(filteredParams)
                 .toRequestBody("application/json".toMediaType())
         }
 
@@ -265,21 +300,149 @@ class Client @JvmOverloads constructor(
             .method(method, body)
             .build()
 
-        return awaitResponse(request)
+        return awaitResponse(request, responseType, converter)
     }
 
     /**
-     * Await Response
-     * 
-     * @param method
+     * Upload a file in chunks
+     *
      * @param path
      * @param headers
      * @param params
      *
-     * @return [Response]    
+     * @return [T]
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    private suspend fun awaitResponse(request: Request) = suspendCancellableCoroutine<Response> {
+    suspend fun <T> chunkedUpload(
+        path: String,
+        headers:  MutableMap<String, String>,
+        params: MutableMap<String, Any?>,
+        responseType: Class<T>,
+        converter: ((Map<String, Any,>) -> T),
+        paramName: String,
+        idParamName: String? = null,
+        onProgress: ((UploadProgress) -> Unit)? = null,
+    ): T {
+        var file: RandomAccessFile? = null
+        val input = params[paramName] as InputFile
+        val size: Long = when(input.sourceType) {
+            "path", "file" -> {
+                file = RandomAccessFile(input.path, "r")
+                file.length()
+            }
+            "bytes" -> {
+                (input.data as ByteArray).size.toLong()
+            }
+            else -> throw UnsupportedOperationException()
+        }
+
+        if (size < CHUNK_SIZE) {
+            val data = when(input.sourceType) {
+                "file", "path" -> File(input.path).asRequestBody()
+                "bytes" -> (input.data as ByteArray).toRequestBody(input.mimeType.toMediaType())
+                else -> throw UnsupportedOperationException()
+            }
+            params[paramName] = MultipartBody.Part.createFormData(
+                paramName,
+                input.filename,
+                data
+            )
+            return call(
+                method = "POST",
+                path,
+                headers,
+                params,
+                responseType,
+                converter
+            )
+        }
+
+        val buffer = ByteArray(CHUNK_SIZE)
+        var offset = 0L
+        var result: Map<*, *>? = null
+
+        if (idParamName?.isNotEmpty() == true && params[idParamName] != "unique()") {
+            // Make a request to check if a file already exists
+            val current = call(
+                method = "GET",
+                path = "$path/${params[idParamName]}",
+                headers = headers,
+                params = emptyMap(),
+                responseType = Map::class.java,
+            )
+            val chunksUploaded = current["chunksUploaded"] as Long
+            offset = (chunksUploaded * CHUNK_SIZE).coerceAtMost(size)
+        }
+
+        while (offset < size) {
+            when(input.sourceType) {
+                "file", "path" -> {
+                    file!!.seek(offset)
+                    file!!.read(buffer)
+                }
+                "bytes" -> {
+                    val end = if (offset + CHUNK_SIZE < size) {
+                        offset + CHUNK_SIZE
+                    } else {
+                        size - 1
+                    }
+                    (input.data as ByteArray).copyInto(
+                        buffer,
+                        startIndex = offset.toInt(),
+                        endIndex = end.toInt()
+                    )
+                }
+                else -> throw UnsupportedOperationException()
+            }
+
+            params[paramName] = MultipartBody.Part.createFormData(
+                paramName,
+                input.filename,
+                buffer.toRequestBody()
+            )
+
+            headers["Content-Range"] =
+                "bytes $offset-${((offset + CHUNK_SIZE) - 1).coerceAtMost(size)}/$size"
+
+            result = call(
+                method = "POST",
+                path,
+                headers,
+                params,
+                responseType = Map::class.java
+            )
+
+            offset += CHUNK_SIZE
+            headers["x-{{ spec.title | caseLower }}-id"] = result!!["\$id"].toString()
+            onProgress?.invoke(
+                UploadProgress(
+                    id = result!!["\$id"].toString(),
+                    progress = offset.coerceAtMost(size).toDouble() / size * 100,
+                    sizeUploaded = offset.coerceAtMost(size),
+                    chunksTotal = result!!["chunksTotal"].toString().toInt(),
+                    chunksUploaded = result!!["chunksUploaded"].toString().toInt(),
+                )
+            )
+        }
+
+        return converter(result as Map<String, Any>)
+    }
+
+    /**
+     * Await Response
+     *
+     * @param request
+     * @param responseType
+     * @param converter
+     *
+     * @return [T]
+     */
+    @Throws({{ spec.title | caseUcfirst }}Exception::class)
+    private suspend fun <T> awaitResponse(
+        request: Request,
+        responseType: Class<T>,
+        converter: ((Map<String, Any,>) -> T)? = null
+    ) = suspendCancellableCoroutine<T> {
         http.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 if (it.isCancelled) {
@@ -288,27 +451,64 @@ class Client @JvmOverloads constructor(
                 it.cancel(e)
             }
 
+            @Suppress("UNCHECKED_CAST")
             override fun onResponse(call: Call, response: Response) {
-                if (response.code >= 400) {
-                    val bodyString = response.body
-                        ?.charStream()
-                        ?.buffered()
-                        ?.use(BufferedReader::readText) ?: ""
-
-                    val contentType: String = response.headers["content-type"] ?: ""
-                    val error = if (contentType.contains("application/json", ignoreCase = true)) {
-                        bodyString.fromJson(Error::class.java)
+                if (!response.isSuccessful) {
+                    val body = response.body!!
+                        .charStream()
+                        .buffered()
+                        .use(BufferedReader::readText)
+                        
+                    val error = if (response.headers["content-type"]?.contains("application/json") == true) {
+                        val map = gson.fromJson<Map<String, Any>>(
+                            body,
+                            object : TypeToken<Map<String, Any>>(){}.type
+                        )
+                        {{ spec.title | caseUcfirst }}Exception(
+                            map["message"] as? String ?: "", 
+                            (map["code"] as Number).toInt(),
+                            map["type"] as? String ?: "", 
+                            body
+                        )
                     } else {
-                        Error(bodyString, response.code)
+                        {{ spec.title | caseUcfirst }}Exception(body, response.code)
                     }
-
-                    it.cancel(AppwriteException(
-                        error.message,
-                        error.code,
-                        bodyString
-                    ))
+                    it.cancel(error)
+                    return
                 }
-                it.resume(response)
+                when {
+                    responseType == Boolean::class.java -> {
+                        it.resume(true as T)
+                        return
+                    }
+                    responseType == ByteArray::class.java -> {
+                        it.resume(response.body!!
+                            .byteStream()
+                            .buffered()
+                            .use(BufferedInputStream::readBytes) as T
+                        )
+                        return
+                    }
+                    response.body == null -> {
+                        it.resume(true as T)
+                        return
+                    }
+                }
+                val body = response.body!!
+                    .charStream()
+                    .buffered()
+                    .use(BufferedReader::readText)
+                if (body.isEmpty()) {
+                    it.resume(true as T)
+                    return
+                }
+                val map = gson.fromJson<Map<String, Any>>(
+                    body,
+                    object : TypeToken<Map<String, Any>>(){}.type
+                )
+                it.resume(
+                    converter?.invoke(map) ?: map as T
+                )
             }
         })
     }

@@ -48,6 +48,9 @@ SDK Language name (JS, PHP…)
 **getKeywords**
 An array with language keywords to avoid using as param or function names, template engine will solve conflicts
 
+**getIdentifierOverrides**
+Returns an associative array that can be used to override keywords with pre-defined word using `overrideIdentifier` filter.
+
 **getFiles**
 An array with a list of language template files in [twig format](https://twig.symfony.com/). 
 Each file scope determines what template parameters will be available.
@@ -176,33 +179,159 @@ The test algorithm will generate your SDK from a small demo SDK JSON spec file a
 
 To get started, create a language file in this location:
 
-`./tests/languages/tests-for-[MY-LANGUAGE].[MY-LANGUAGE-FILE-EXT]`
+`./tests/languages/<language>/test.[MY-LANGUAGE-FILE-EXT]`
 
 In your new language file, init your SDK from a relative path which will be generated here: `./tests/sdks/` from this spec file: `./tests/resources/spec.json`.
 
 After you finish initializing, make a series of HTTP calls using your new generated SDKs method just like in one of these examples:
 
-1. tests/languages/tests-for-php.js
-2. tests/languages/tests-for-node.js
+1. tests/languages/php/test.php
+2. tests/languages/node/test.js
 
 > Note: In your test files, make sure that you begin the test with the following string "\nTest Started\n". We use this string to filter output from the build tool you're using.
 
-Once done, add a Docker command that can execute your test file to the SDK test algorithm `$containers` array in this location: `./tests/SDKTest.php:17`. Make sure to add one command for each language version you wish to support.
-
-A good example is the PHP test for 5 different PHP versions:
+Once done, create a new test file `tests/[Language]Test.php` and update as the following.
 
 ```php
-protected $containers = [
-    'php-5.6' => 'docker run --rm -v $(pwd):/app -w /app php:5.6-cli php tests/languages/tests-for-php.php',
-    'php-7.0' => 'docker run --rm -v $(pwd):/app -w /app php:7.0-cli php tests/languages/tests-for-php.php',
-    'php-7.1' => 'docker run --rm -v $(pwd):/app -w /app php:7.1-cli php tests/languages/tests-for-php.php',
-    'php-7.2' => 'docker run --rm -v $(pwd):/app -w /app php:7.2-cli php tests/languages/tests-for-php.php',
-    'php-7.3' => 'docker run --rm -v $(pwd):/app -w /app php:7.3-cli php tests/languages/tests-for-php.php',
-    'php-7.4' => 'docker run --rm -v $(pwd):/app -w /app php:7.4-cli php tests/languages/tests-for-php.php',
-];
+<?php
+
+namespace Tests;
+
+class [Language]Test extends Base
+{
+    protected string $language = '[language]';
+    protected string $class = 'Appwrite\SDK\Language\[Language]';
+    protected array $build = [
+        //commands required before executing the test
+    ];
+    protected array $envs = [
+        // docker commands that can execute test file to the sdk test. Make sure to add
+        // one command for each lanuage version you wish to support
+    ];
+
+    // list of expected outputs from test based on features supported
+    protected array $expectedOutput = [
+        ...Base::FOO_RESPONSES,
+        ...Base::BAR_RESPONSES,
+        ...Base::GENERAL_RESPONSES,
+        ...Base::EXCEPTION_RESPONSES,
+        ...Base::REALTIME_RESPONSES
+    ];
+}
 ```
 
-Finally, you can run the tests using
-```sh
-docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/docker.sock  php:7.4-cli-alpine sh -c "apk add docker-cli && vendor/bin/phpunit tests/SDKTest.php"
+A good example is the Dart test:
+
+```php
+<?php
+
+namespace Tests;
+
+class DartTest extends Base
+{
+    protected string $language = 'dart';
+    protected string $class = 'Appwrite\SDK\Language\Dart';
+    protected array $build = [
+        'mkdir -p tests/sdks/dart/tests',
+        'cp tests/languages/dart/tests.dart tests/sdks/dart/tests/tests.dart',
+    ];
+    protected array $envs = [
+        'dart-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart dart:stable sh -c "dart pub get && dart pub run tests/tests.dart"',
+        'dart-beta' => 'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dart dart:beta sh -c "dart pub get && dart pub run tests/tests.dart"',
+    ];
+    protected array $expectedOutput = [
+        ...Base::FOO_RESPONSES,
+        ...Base::BAR_RESPONSES,
+        ...Base::GENERAL_RESPONSES,
+        ...Base::EXCEPTION_RESPONSES,
+    ];
+}
 ```
+
+Also in `.travis.yml` add new env `SDK=[Language]` so that travis will run test for this language as well.
+
+Finally, you can run tests using
+```sh
+docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/docker.sock  php:7.4-cli-alpine sh -c "apk add docker-cli && vendor/bin/phpunit"
+```
+
+## SDK Generator Interface
+
+* **spec** -- This object is derived from the appwrite swagger spec
+  * **title** -> The title of the SDK you are generating (normally used as package name.)
+  * **description** -> Description of Appwrite SDK
+  * **namespace** -> SDK Namespace
+  * **version** -> SDK Version
+  * **endpoint** -> Default Endpoint (example: "https://appwrite.io/v1")
+  * **host** -> Default Host (example: "appwrite.io")
+  * **basePath** -> Default Path to API (example: "/v1")
+  * **licenseName** -> Name of licence for SDK
+  * **licenseURL** -> URL to SDK Licence
+  * **contactName** -> Name of Person/Team that created the SDK
+  * **contactURL** -> URL to contact for help with the SDK
+  * **contactEmail** -> Email Address to Contact for help with the SDK
+  * **services** -> Array of Services. Each service contains the following:
+    *  **name** -> The name of the service
+    *  **methods** -> Array of Methods that can be used with the service
+       * **method**  ->  HTTP Method to call
+       * **path** -> Path to API without a basePath
+       * **fullPath** -> Path to API with basePath
+       * **name** -> Name of API Method
+       * **packaging** -> A flag to indicate if the files at a path need to be packaged as a tar file  
+       * **title** -> Title of API Method
+       * **description** -> Description of API Method
+       * **security** -> Array of security methods for this API Call. Primarily used for code examples.
+       * **consumes** -> Array of Content-Type headers the API Route accepts.
+       * **cookies** -> Are cookies required? Bool
+       * **type** -> Response Type. Tells us whether the endpoint returns a JSON Payload, A URL or redirect to an auth mechanism.
+       * **headers** -> Array of headers for API
+       * **parameters** -> Parameters for API
+           * **all** -> Array containing all Parameters
+           * **headers** -> Array containing parameters that go in the header
+           * **path** -> Array containing parameters that go into the path of the API URL
+           * **query** -> Array containing parameters that go into the query of the API URL
+           * **body** -> Array containing parameters that go in the body
+
+              All Parameters will have a structure like so:
+              * **name** -> Name of parameter
+              * **type** -> Parameter Type
+              * **description** -> Parameter Description
+              * **required** -> Is parameter required
+              * **default** -> Parameter Defaults
+              * **example** -> Parameter Example
+              * **array**
+                * **type** -> Array Type (only used if param type is "array")
+  * **global**
+    * **headers** -> A object containing all global headers
+    * **defaultHeaders** -> A object containing all default headers
+
+* **language** -- Information on the current language SDK
+  * **name** -> Name of language
+  * **params** -> Custom language specific parameters
+
+* **sdk** -- Various Metadata used for packaging and categorising
+  * **namespace** -> SDK Namespace
+  * **name** -> SDK Name
+  * **description** -> SDK Desc
+  * **shortDescription** -> SDK Short Desc
+  * **version** -> SDK Version
+  * **license** -> SDK Licence
+  * **licenseContent** -> SDK Licence content
+  * **gitURL** -> GIT URL for SDK
+  * **gitRepo** -> GIT Repo for SDK
+  * **gitRepoName** -> Git Repo Name
+  * **gitUserName** -> Git username of creator
+  * **logo** -> SDK Logo
+  * **url** -> SDK URL
+  * **shareText** -> Social Media Metadata
+  * **shareURL** -> Social Media Metadata
+  * **shareVia** -> Social Media Metadata
+  * **shareTags** -> Social Media Metadata
+  * **warning** -> Used for warnings usually communicated within the Readme.md
+  * **gettingStarted** -> Raw Markdown for Getting Started
+  * **readme** -> Stores the raw markdown used to generate the readme.md file. [here](https://github.com/appwrite/sdk-for-flutter/blob/master/README.md)
+  * **changelog** -> Stores the raw markdown used to generate the changelog.md file. [here](https://github.com/appwrite/sdk-for-flutter/blob/master/CHANGELOG.md)
+  * **examples** -> Stores the raw markdown used to generate examples for your SDK. An example can be found [here](https://github.com/appwrite/sdk-for-flutter/tree/master/example)
+  * **twitterHandle** -> Twitter handle of creator
+  * **discordChannel** -> Discord Channel ID for SDK
+  * **discordUrl** -> Discord Server Invite for SDK

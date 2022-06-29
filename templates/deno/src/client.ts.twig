@@ -5,6 +5,9 @@ export interface Payload {
 }
 
 export class Client {
+    static CHUNK_SIZE = 5*1024*1024; // 5MB
+    static DENO_READ_CHUNK_SIZE = 16384; // 16kb; refference: https://github.com/denoland/deno/discussions/9906
+    
     endpoint: string = 'https://appwrite.io/v1';
     headers: Payload = {
         'content-type': '',
@@ -13,7 +16,7 @@ export class Client {
         '{{key}}':'{{header}}',
 {% endfor %}
     };
-    
+
 {% for header in spec.global.headers %}
     /**
      * Set {{header.key | caseUcfirst}}
@@ -50,7 +53,7 @@ export class Client {
      */
     addHeader(key: string, value: string): this {
         this.headers[key.toLowerCase()] = value;
-        
+
         return this;
     }
 
@@ -63,7 +66,7 @@ export class Client {
     }
 
     async call(method: string, path: string = '', headers: Payload = {}, params: Payload = {}) {
-        headers = { ...this.headers, ...headers };
+        headers = Object.assign({}, this.headers, headers);
 
         let body;
         const url = new URL(this.endpoint + path);
@@ -75,13 +78,19 @@ export class Client {
             const formData = new FormData();
             const flatParams = this.flatten(params);
             for (const key in flatParams) {
-                formData.append(key, flatParams[key]);
+                const value = flatParams[key];
+
+                if(value && value.type && value.type === 'file') {
+                    formData.append(key, value.file, value.filename);
+                } else {
+                    formData.append(key, flatParams[key]);
+                }
             }
             body = formData;
         } else {
             body = JSON.stringify(params);
         }
-        
+
         const options = {
             method: method.toUpperCase(),
             headers: headers,
@@ -93,21 +102,21 @@ export class Client {
             const contentType = response.headers.get('content-type');
 
             if (contentType && contentType.includes('application/json')) {
-                if(response.status >= 400) {
+                if (response.status >= 400) {
                     let res = await response.json();
-                    throw new {{ spec.title | caseUcfirst}}Exception(res.message, res.status, res);
+                    throw new {{ spec.title | caseUcfirst}}Exception(res.message, res.status, res.type ?? "", res);
                 }
 
                 return response.json();
             } else {
-                if(response.status >= 400) {
+                if (response.status >= 400) {
                     let res = await response.text();
-                    throw new {{ spec.title | caseUcfirst}}Exception(res, response.status, null);
+                    throw new {{ spec.title | caseUcfirst}}Exception(res, response.status, "", null);
                 }
                 return response;
             }
         } catch(error) {
-            throw new {{ spec.title | caseUcfirst}}Exception(error?.response?.message || error.message, error?.response?.code, error.response);
+            throw new {{ spec.title | caseUcfirst}}Exception(error?.response?.message || error.message, error?.response?.code, error?.response?.type, error.response);
         }
     }
 

@@ -1,201 +1,567 @@
-//
-// Client.swift
-//
-// Created by Armino <devel@boioiong.com>
-// GitHub: https://github.com/armino-dev/sdk-generator
-//
-
+import NIO
+import NIOCore
+import NIOFoundationCompat
+import NIOSSL
 import Foundation
+import AsyncHTTPClient
+@_exported import {{spec.title | caseUcfirst}}Models
+
+let DASHDASH = "--"
+let CRLF = "\r\n"
 
 open class Client {
 
     // MARK: Properties
+    public static var chunkSize = 5 * 1024 * 1024 // 5MB
 
-    open var selfSigned = false
+    open var endPoint = "{{spec.endpoint}}"
 
-    open var endpoint = "{{spec.endpoint}}"
+    open var endPointRealtime: String? = nil
 
     open var headers: [String: String] = [
-      "content-type": "",
-      "x-sdk-version": "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+        "content-type": "",
+        "x-sdk-version": "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
 
 {% for key,header in spec.global.defaultHeaders %}
-      "{{key}}" : "{{header}}"{% if not loop.last %},{% endif %}
+        "{{key}}": "{{header}}"{% if not loop.last %},{% endif %}
+
 {% endfor %}
-    
     ]
 
+    open var config: [String: String] = [:]
+
+    open var selfSigned: Bool = false
+
+    open var http: HTTPClient
+
+    private static let boundaryChars =
+        "abcdefghijklmnopqrstuvwxyz1234567890"
+
+    private static let boundary = randomBoundary()
+
+    private static var eventLoopGroupProvider =
+        HTTPClient.EventLoopGroupProvider.createNew
 
     // MARK: Methods
 
-    // default constructor
     public init() {
+        http = Client.createHTTP()
+        addUserAgentHeader()
+        addOriginHeader()
+    }
+
+    private static func createHTTP(
+        selfSigned: Bool = false,
+        maxRedirects: Int = 5,
+        alloweRedirectCycles: Bool = false,
+        connectTimeout: TimeAmount = .seconds(30),
+        readTimeout: TimeAmount = .seconds(30)
+    ) -> HTTPClient {
+        let timeout = HTTPClient.Configuration.Timeout(
+            connect: connectTimeout,
+            read: readTimeout
+        )
+        let redirect = HTTPClient.Configuration.RedirectConfiguration.follow(
+            max: 5,
+            allowCycles: false
+        )
+        var tls = TLSConfiguration
+            .makeClientConfiguration()
+
+        if selfSigned {
+            tls.certificateVerification = .none
+        }
+
+        return HTTPClient(
+            eventLoopGroupProvider: eventLoopGroupProvider,
+            configuration: HTTPClient.Configuration(
+                tlsConfiguration: tls,
+                redirectConfiguration: redirect,
+                timeout: timeout,
+                decompression: .enabled(limit: .none)
+            )
+        )
 
     }
 
-    {% for header in spec.global.headers %}
+    deinit {
+        do {
+            try http.syncShutdown()
+        } catch {
+            print(error)
+        }
+    }
+
+{% for header in spec.global.headers %}
     ///
     /// Set {{header.key | caseUcfirst}}
     ///
-    {% if header.description %}
+{% if header.description %}
     /// {{header.description}}
     ///
-    {% endif %}
+{% endif %}
     /// @param String value
     ///
     /// @return Client
     ///
-    open func set{{header.key | caseUcfirst}}(value: String) -> Client {
-
-        self.addHeader(key: "{{header.name}}", value: value)
+    open func set{{ header.key | caseUcfirst }}(_ value: String) -> Client {
+        config["{{ header.key | caseLower }}"] = value
+        _ = addHeader(key: "{{header.name}}", value: value)
         return self
     }
 
-    {% endfor %}
+{% endfor %}
 
+    ///
+    /// Set self signed
     ///
     /// @param Bool status
+    ///
     /// @return Client
     ///
-    open func setSelfSigned(status: Bool = true) -> Client {
-
+    open func setSelfSigned(_ status: Bool = true) -> Client {
         self.selfSigned = status
+        try! http.syncShutdown()
+        http = Client.createHTTP(selfSigned: status)
         return self
     }
 
     ///
-    /// @param String endpoint
+    /// Set endpoint
+    ///
+    /// @param String endPoint
+    ///
     /// @return Client
     ///
-    open func setEndpoint(endpoint: String) -> Client {
+    open func setEndpoint(_ endPoint: String) -> Client {
+        self.endPoint = endPoint
 
-        self.endpoint = endpoint
+        if (self.endPointRealtime == nil && endPoint.starts(with: "http")) {
+            self.endPointRealtime = endPoint
+                .replacingOccurrences(of: "http://", with: "ws://")
+                .replacingOccurrences(of: "https://", with: "wss://")
+        }
+
         return self
     }
 
+    ///
+    /// Set realtime endpoint.
+    ///
+    /// @param String endPoint
+    ///
+    /// @return Client
+    ///
+    open func setEndpointRealtime(_ endPoint: String) -> Client {
+        self.endPointRealtime = endPoint
+
+        return self
+    }
+
+    ///
+    /// Add header
     ///
     /// @param String key
     /// @param String value
     ///
+    /// @return Client
+    ///
     open func addHeader(key: String, value: String) -> Client {
-
-        self.headers[key.lowercased()] = value
-
+        self.headers[key] = value
         return self
     }
 
-    ///
-    open func httpBuildQuery(params: [String: Any], prefix: String = "") -> String {
-        var output: String = ""
-        for (key, value) in params {
-            let finalKey: String = prefix.isEmpty ? key : (prefix + "[" + key + "]")
-            if (value is AnyCollection<Any>) {
-                output += self.httpBuildQuery(params: value as! [String : Any], prefix: finalKey)
-            } else {
-                output += "\(value)"
-            }
-            output += "&"
-        }
-        return output
-    }
+   ///
+   /// Builds a query string from parameters
+   ///
+   /// @param Dictionary<String, Any?> params
+   /// @param String prefix
+   ///
+   /// @return String
+   ///
+   open func parametersToQueryString(params: [String: Any?]) -> String {
+       var output: String = ""
+
+       func appendWhenNotLast(_ index: Int, ofTotal count: Int, outerIndex: Int? = nil, outerCount: Int? = nil) {
+           if (index != count - 1 || (outerIndex != nil
+               && outerCount != nil
+               && index == count - 1
+               && outerIndex! != outerCount! - 1)) {
+               output += "&"
+           }
+       }
+
+       for (parameterIndex, element) in params.enumerated() {
+           switch element.value {
+           case nil:
+               break
+           case is Array<Any?>:
+               let list = element.value as! Array<Any?>
+               for (nestedIndex, item) in list.enumerated() {
+                   output += "\(element.key)[]=\(item!)"
+                   appendWhenNotLast(nestedIndex, ofTotal: list.count, outerIndex: parameterIndex, outerCount: params.count)
+               }
+               appendWhenNotLast(parameterIndex, ofTotal: params.count)
+           default:
+               output += "\(element.key)=\(element.value!)"
+               appendWhenNotLast(parameterIndex, ofTotal: params.count)
+           }
+       }
+
+       return output.addingPercentEncoding(
+           withAllowedCharacters: .urlHostAllowed
+       ) ?? ""
+   }
 
     ///
     /// Make an API call
     ///
     /// @param String method
     /// @param String path
-    /// @param Array params
-    /// @param Array headers
-    /// @return Array|String
+    /// @param Dictionary<String, Any?> params
+    /// @param Dictionary<String, String> headers
+    /// @return Response
     /// @throws Exception
     ///
-    func call(method:String, path:String = "", headers:[String: String] = [:], params:[String: Any] = [:]) -> Any {
+    open func call<T>(
+        method: String,
+        path: String = "",
+        headers: [String: String] = [:],
+        params: [String: Any?] = [:],
+        sink: ((ByteBuffer) -> Void)? = nil,
+        converter: (([String: Any]) -> T)? = nil
+    ) async throws -> T {
+        let validParams = params.filter { $0.value != nil }
 
-        self.headers.merge(headers){(_, new) in new}
-        let targetURL:URL = URL(string: self.endpoint + path + (( method == HTTPMethod.get.rawValue && !params.isEmpty ) ? "?" + httpBuildQuery(params: params) : ""))!
+        let queryParameters = method == "GET" && !validParams.isEmpty
+            ? "?" + parametersToQueryString(params: validParams)
+            : ""
 
-        var query: String = ""
+        var request = HTTPClientRequest(url: endPoint + path + queryParameters)
+        request.method = .RAW(value: method)
 
-        var responseStatus: Int = HTTPStatus.unknown.rawValue
-        var responseType: String = ""
-        var responseBody: Any = ""
 
-        switch (self.headers["content-type"]) {
-            case "application/json":
-              do {
-                let json = try JSONSerialization.data(withJSONObject:params, options: [])
-                query = String( data: json, encoding: String.Encoding.utf8)!
-              } catch {
-                print("Failed to parse json: \(error.localizedDescription)")
-              }
-              break
-            default:
-              query = self.httpBuildQuery(params: params)
-              break
+        for (key, value) in self.headers.merging(headers, uniquingKeysWith: { $1 }) {
+            request.headers.add(name: key, value: value)
         }
 
-        var request = URLRequest(url: targetURL)
-        let session = URLSession.shared
+        request.addDomainCookies()
 
-        for (key, value) in self.headers {
-            request.setValue(value, forHTTPHeaderField: key)
+        if "GET" == method {
+            return try await execute(request, converter: converter)
         }
 
-        request.httpMethod = method
-        if (method.uppercased() == "POST") {
-            request.httpBody = query.data(using: .utf8)
-        }
+        try buildBody(for: &request, with: validParams)
 
-        let semaphore = DispatchSemaphore(value: 0)
-
-        session.dataTask(with: request) { data, response, error in
-            if (error != nil) {
-                print(error!)
-                return
-            }
-            do {
-                let httpResponse = response as! HTTPURLResponse
-                responseStatus = httpResponse.statusCode
-
-                if (responseStatus == HTTPStatus.internalServerError.rawValue) {
-                    print(responseStatus)
-                    return
-                }
-
-                responseType = httpResponse.mimeType ?? ""
-
-                if (responseType == "application/json") {
-                    let json = try JSONSerialization.jsonObject(with: data!, options: [])
-                    responseBody = json
-              } else {
-                    responseBody = String(data: data!, encoding: String.Encoding.utf8)!
-              }
-            } catch {
-                print(error)
-            }
-
-            semaphore.signal()
-        }.resume()
-
-        _ = semaphore.wait(wallTimeout: .distantFuture)
-
-        return responseBody
+        return try await execute(request, withSink: sink, converter: converter)
     }
 
+    private func buildBody(
+        for request: inout HTTPClientRequest,
+        with params: [String: Any?]
+    ) throws {
+        if request.headers["content-type"][0] == "multipart/form-data" {
+            buildMultipart(&request, with: params, chunked: !request.headers["content-range"].isEmpty)
+        } else {
+            try buildJSON(&request, with: params)
+        }
+    }
+
+    private func execute<T>(
+        _ request: HTTPClientRequest,
+        withSink bufferSink: ((ByteBuffer) -> Void)? = nil,
+        converter: (([String: Any]) -> T)? = nil
+    ) async throws -> T {
+        func complete(with response: HTTPClientResponse) async throws -> T {
+            switch response.status.code {
+            case 0..<400:
+                if response.headers["Set-Cookie"].count > 0 {
+                    UserDefaults.standard.set(
+                        response.headers["Set-Cookie"],
+                        forKey: URL(string: request.url)!.host! + "-cookies"
+                    )
+                }
+                switch T.self {
+                case is Bool.Type:
+                    return true as! T
+                case is ByteBuffer.Type:
+                    return try await response.body.collect(upTo: Int.max) as! T
+                default:
+                    let data = try await response.body.collect(upTo: Int.max)
+                    if data.readableBytes == 0 {
+                        return true as! T
+                    }
+                    let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+
+                    return converter?(dict!) ?? dict! as! T
+                }
+            default:
+                var message = ""
+                var data = try await response.body.collect(upTo: Int.max)
+                
+                do {
+                    let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+
+                    message = dict?["message"] as? String ?? response.status.reasonPhrase
+                } catch {
+                    message =  data.readString(length: data.readableBytes)!
+                }
+
+                throw {{ spec.title | caseUcfirst }}Error(
+                    message: message,
+                    code: Int(response.status.code)
+                )
+            }
+        }
+
+        if bufferSink == nil {
+            let response = try await http.execute(
+                request, 
+                timeout: .seconds(30)
+            )
+            return try await complete(with: response)
+        }
+
+        let response = try await http.execute(
+            request,
+            timeout: .seconds(30)
+        )
+        return try await complete(with: response)
+    }
+
+    func chunkedUpload<T>(
+        path: String,
+        headers: inout [String: String],
+        params: inout [String: Any?],
+        paramName: String,
+        idParamName: String? = nil,
+        converter: (([String: Any]) -> T)? = nil,
+        onProgress: ((UploadProgress) -> Void)? = nil
+    ) async throws -> T {
+        let input = params[paramName] as! InputFile
+
+        switch(input.sourceType) {
+        case "path":
+            input.data = ByteBuffer(data: try! Data(contentsOf: URL(fileURLWithPath: input.path)))
+        case "data":
+            input.data = ByteBuffer(data: input.data as! Data)
+        default:
+            break
+        }
+
+        let size = (input.data as! ByteBuffer).readableBytes
+
+        if size < Client.chunkSize {
+            params[paramName] = input
+            return try await call(
+                method: "POST",
+                path: path,
+                headers: headers,
+                params: params,
+                converter: converter
+            )
+        }
+
+        var offset = 0
+        var result = [String:Any]()
+
+        if idParamName != nil && params[idParamName!] as! String != "unique()" {
+            // Make a request to check if a file already exists
+            let map = try! await call(
+                method: "GET",
+                path: path + "/" + (params[idParamName!] as! String),
+                headers: headers,
+                params: [:],
+                converter: { return $0 }
+            )
+            let chunksUploaded = map["chunksUploaded"] as! Int
+            offset = min(size, (chunksUploaded * Client.chunkSize))
+        }
+
+        while offset < size {
+            let slice = (input.data as! ByteBuffer).getSlice(at: offset, length: Client.chunkSize)
+                ?? (input.data as! ByteBuffer).getSlice(at: offset, length: Int(size - offset))
+            
+            params[paramName] = InputFile.fromBuffer(slice!, filename: input.filename, mimeType: input.mimeType)
+            headers["content-range"] = "bytes \(offset)-\(min((offset + Client.chunkSize) - 1, size))/\(size)"
+
+            result = try await call(
+                method: "POST",
+                path: path,
+                headers: headers,
+                params: params,
+                converter: { return $0 }
+            )
+
+            offset += Client.chunkSize
+            headers["x-{{ spec.title | caseLower }}-id"] = result["$id"] as? String
+            onProgress?(UploadProgress(
+                id: result["$id"] as? String ?? "",
+                progress: Double(min(offset, size))/Double(size) * 100.0,
+                sizeUploaded: min(offset, size),
+                chunksTotal: result["chunksTotal"] as? Int ?? -1,
+                chunksUploaded: result["chunksUploaded"] as? Int ?? -1
+            ))
+        }
+
+        return converter!(result)
+    }
+
+    private static func randomBoundary() -> String {
+        var string = ""
+        for _ in 0..<16 {
+            string.append(Client.boundaryChars.randomElement()!)
+        }
+        return string
+    }
+
+    private func buildJSON(
+        _ request: inout HTTPClientRequest,
+        with params: [String: Any?] = [:]
+    ) throws {
+        let json = try JSONSerialization.data(withJSONObject: params, options: [])
+
+        request.body = .bytes(json)
+    }
+
+    private func buildMultipart(
+        _ request: inout HTTPClientRequest,
+        with params: [String: Any?] = [:],
+        chunked: Bool = false
+    ) {
+        func addPart(name: String, value: Any) {
+            bodyBuffer.writeString(DASHDASH)
+            bodyBuffer.writeString(Client.boundary)
+            bodyBuffer.writeString(CRLF)
+            bodyBuffer.writeString("Content-Disposition: form-data; name=\"\(name)\"")
+
+            if let file = value as? InputFile {
+                bodyBuffer.writeString("; filename=\"\(file.filename)\"")
+                bodyBuffer.writeString(CRLF)
+                bodyBuffer.writeString("Content-Length: \(bodyBuffer.readableBytes)")
+                bodyBuffer.writeString(CRLF+CRLF)
+
+                var buffer = file.data! as! ByteBuffer
+
+                bodyBuffer.writeBuffer(&buffer)
+                bodyBuffer.writeString(CRLF)
+                return
+            }
+
+            let string = String(describing: value)
+            bodyBuffer.writeString(CRLF)
+            bodyBuffer.writeString("Content-Length: \(string.count)")
+            bodyBuffer.writeString(CRLF+CRLF)
+            bodyBuffer.writeString(string)
+            bodyBuffer.writeString(CRLF)
+        }
+
+        var bodyBuffer = ByteBuffer()
+
+        for (key, value) in params {
+            switch key {
+            case "file":
+                addPart(name: key, value: value!)
+            default:
+                if let list = value as? [Any] {
+                    for listValue in list {
+                        addPart(name: "\(key)[]", value: listValue)
+                    }
+                    continue
+                }
+                addPart(name: key, value: value!)
+            }
+        }
+
+        bodyBuffer.writeString(DASHDASH)
+        bodyBuffer.writeString(Client.boundary)
+        bodyBuffer.writeString(DASHDASH)
+        bodyBuffer.writeString(CRLF)
+
+        request.headers.remove(name: "content-type")
+        if !chunked {
+            request.headers.add(name: "Content-Length", value: bodyBuffer.readableBytes.description)
+        }
+        request.headers.add(name: "Content-Type", value: "multipart/form-data;boundary=\"\(Client.boundary)\"")
+        request.body = .bytes(bodyBuffer)
+    }
+
+    private func addUserAgentHeader() {
+        let packageInfo = OSPackageInfo.get()
+        let device = Client.getDevice()
+
+        #if !os(Linux) && !os(Windows)
+        _ = addHeader(
+            key: "user-agent",
+            value: "\(packageInfo.packageName)/\(packageInfo.version) \(device)"
+        )
+        #endif
+    }
+
+    private func addOriginHeader() {
+        let packageInfo = OSPackageInfo.get()
+        let operatingSystem = Client.getOperatingSystem()
+        _ = addHeader(
+            key: "origin",
+            value: "{{ spec.title | caseLower }}-\(operatingSystem)://\(packageInfo.packageName)"
+        )
+    }
+}
+
+extension Client {
+    private static func getOperatingSystem() -> String {
+        #if os(iOS)
+        return "ios"
+        #elseif os(watchOS)
+        return "watchos"
+        #elseif os(tvOS)
+        return "tvos"
+        #elseif os(macOS)
+        return "macos"
+        #elseif os(Linux)
+        return "linux"
+        #elseif os(Windows)
+        return "windows"
+        #endif
+    }
+
+    private static func getDevice() -> String {
+        let deviceInfo = OSDeviceInfo()
+        var device = ""
+
+        #if os(iOS)
+        let info = deviceInfo.iOSInfo
+        device = "\(info!.modelIdentifier) iOS/\(info!.systemVersion)"
+        #elseif os(watchOS)
+        let info = deviceInfo.watchOSInfo
+        device = "\(info!.systemInfo.machine) watchOS/\(info!.systemVersion)"
+        #elseif os(tvOS)
+        let info = deviceInfo.tvOSInfo
+        device = "\(info!.systemInfo.machine) tvOS/\(info!.systemVersion)"
+        #elseif os(macOS)
+        let info = deviceInfo.macOSInfo
+        device = "(Macintosh; \(info!.model))"
+        #elseif os(Linux)
+        let info = deviceInfo.linuxInfo
+        device = "(Linux; U; \(info!.id) \(info!.version))"
+        #elseif os(Windows)
+        let info = deviceInfo.windowsInfo
+        device = "(Windows NT; \(info!.computerName))"
+        #endif
+
+        return device
+    }
 }
 
 extension Client {
 
     public enum HTTPStatus: Int {
       case unknown = -1
-
       case ok = 200
       case created = 201
       case accepted = 202
-
       case movedPermanently = 301
       case found = 302
-
       case badRequest = 400
       case notAuthorized = 401
       case paymentRequired = 402
@@ -203,25 +569,7 @@ extension Client {
       case notFound = 404
       case methodNotAllowed = 405
       case notAcceptable = 406
-
       case internalServerError = 500
       case notImplemented = 501
     }
-
-    public enum HTTPMethod: String {
-      case get
-
-      case post
-      case put
-      case patch
-
-      case delete
-
-      case head
-      case options
-      case connect
-      case trace
-    }
-
-
 }

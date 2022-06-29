@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 class DotNet extends Language {
 
@@ -129,6 +130,16 @@ class DotNet extends Language {
             'where',
             'while',
             'yield'
+        ];
+    }
+
+    /**
+     * @return array
+     */
+    public function getIdentifierOverrides()
+    {
+        return [
+            'Jwt' => 'JWT'
         ];
     }
 
@@ -364,6 +375,19 @@ class DotNet extends Language {
                 'template'      => 'dotnet/src/Appwrite/Services/ServiceTemplate.cs.twig',
                 'minify'        => false,
             ]
+        ];
+    }
+
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('dotnetComment', function ($value) {
+                $value = explode("\n", $value);
+                foreach ($value as $key => $line) {
+                    $value[$key] = "        /// " . wordwrap($value[$key], 75, "\n        /// ");
+                }
+                return implode("\n", $value);
+            }, ['is_safe' => ['html']])
         ];
     }
 }

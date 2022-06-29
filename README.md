@@ -2,7 +2,7 @@
 
 [![Discord](https://img.shields.io/discord/564160730845151244?label=discord&style=flat-square)](https://appwrite.io/discord)
 [![Build Status](https://img.shields.io/travis/com/appwrite/sdk-generator?style=flat-square)](https://travis-ci.com/appwrite/sdk-generator)
-[![Twitter Account](https://img.shields.io/twitter/follow/appwrite_io?color=00acee&label=twitter&style=flat-square)](https://twitter.com/appwrite_io)
+[![Twitter Account](https://img.shields.io/twitter/follow/appwrite?color=00acee&label=twitter&style=flat-square)](https://twitter.com/appwrite)
 [![Follow Appwrite on StackShare](https://img.shields.io/badge/follow%20on-stackshare-blue?style=flat-square)](https://stackshare.io/appwrite)
 [![appwrite.io](https://img.shields.io/badge/appwrite-.io-f02e65?style=flat-square)](https://appwrite.io)
 
@@ -10,9 +10,9 @@
 
 [Appwrite](https://appwrite.io) SDK generator is a PHP library for auto generating SDK libraries for multiple languages and platforms.
 
-The SDK Generator uses a predefined language settings as [Twig templates](https://twig.symfony.com/) to generate codebases based on different API specs.
+The SDK Generator uses predefined language settings as [Twig templates](https://twig.symfony.com/) to generate codebases based on different API specs.
 
-Currently the only spec supported is Swagger 2.0, but we intend to add support for more specification in the near future. This generator is still lacking support for any definition/models specs.
+Currently, the only spec supported is Swagger 2.0, but we intend to add support for more specifications in the near future. This generator is still lacking support for any definition/models specs.
 
 ## Getting Started
 
@@ -26,13 +26,13 @@ composer update --ignore-platform-reqs --optimize-autoloader
 **Docker (UNIX)**
 
 ```bash
-docker run --rm --interactive --tty --volume "$(pwd)":/app composer install
+docker run --rm --interactive --tty --volume "$(pwd)":/app composer install --ignore-platform-reqs
 ```
 
 **Docker (Windows)**
 
 ```bash
-docker run --rm --interactive --tty --volume "%cd%":/app composer install
+docker run --rm --interactive --tty --volume "%cd%":/app composer install --ignore-platform-reqs
 ```
 
 Create language and SDK instances and generate code to target directory.
@@ -82,29 +82,30 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 
 ## Supported Client / Platform SDKs
 
-| Language              | Supported Versions  |  Coding Standards      |  Package Manager   |   Maintainer   |
-|-----------------------|---------------------|------------------------|--------------------|----------------|
-| Web                   | ES5+                | [NPM Coding Style]     | NPM, Yarn,         | [@eldadfux]    |
-| Flutter               |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim] [@lohanidamodar]   |
-| Android (Kotlin)      |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
-| iOS (Swift)           |                     |                        | Swift Pkg Manager  | [@armino-dev] |
-| Unity (Csharp)        |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
+| Language               | Supported Versions  |  Coding Standards      |  Package Manager   |   Maintainer   |
+|------------------------|---------------------|------------------------|--------------------|----------------|
+| Web                    | ES5+                | [NPM Coding Style]     | NPM, Yarn,         | [@eldadfux]    |
+| Flutter                |                     | [Effective Dart]       | pub tool           | [@bartektartanus] [@Almoullim] [@lohanidamodar]   |
+| Android (Kotlin, Java) | 5.0+                | [Android style guide]  | Gradle, Maven      | [@abnegate]    |
+| iOS, macOS (Swift)     | iOS 15+, macOS 11+  | [Swift Style Guide]    | Swift Pkg Manager  | [@abnegate]    |
+| Unity (Csharp)         |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 
 ## Supported Server SDKs
 
 | Language   | Supported Versions  |  Coding Standards      |  Package Manager   | Contributors   |
 |------------|---------------------|------------------------|--------------------|----------------|
-| TypeScript |                     | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]               |
+| TypeScript |                     | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
 | NodeJS     | 8, 10, 12           | [NPM Coding Style]     | NPM, Yarn          | [@eldadfux]    |
 | PHP        | 7.0+                | [PHP FIG]              | Composer           | [@eldadfux]    |
-| Ruby       | 2.4+                | [Ruby Style Guide]     | GEM                | [@eldadfux]    |
-| Python     | 3.5+                | [PEP8]                 | PIP                | [@eldadfux]    |
+| Ruby       | 2.4+                | [Ruby Style Guide]     | GEM                | [@eldadfux] [@abnegate] |
+| Python     | 3.5+                | [PEP8]                 | PIP                | [@eldadfux] [@abnegate] |
 | Dart       | 2.7+                | [Effective Dart]       | pub                | [@lohanidamodar] |
-| Go         |                     | [Effective Go]         | go get             | [@panz3r]      |
+| Go         |                     | [Effective Go]         | go get             | [@panz3r] [@phaus]      |
 | .NET       | .NET core 3.1       | [C# Coding Conventions]| NuGet              | [@komemi] [@TorstenDittmann]     |
 | D          |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
-| Kotlin     |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
-| Swift      |                     |                        | Swift Pkg Manager  | [@armino-dev]  |
+| Kotlin     | 1.4.31+             | [Kotlin style guide]   | Gradle, Maven      | [@abnegate]    |
+| Java       | 8+                  | [Google style guide]   | Gradle, Maven      | [@abnegate]    |
+| Swift      | 5.5+                | [Swift Style Guide]    | Swift Pkg Manager  | [@abnegate]    |
 | Docker CLI |                     |                        | Docker Hub         | [@christyjacob4]  |
 
 [@Almoullim]:           https://github.com/Almoullim
@@ -116,6 +117,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 [@TorstenDittmann]:     https://github.com/TorstenDittmann
 [@lohanidamodar]:       https://github.com/lohanidamodar
 [@christyjacob4]:       https://github.com/christyjacob4
+[@abnegate]:            https://github.com/abnegate
 
 [PHP FIG]:              https://www.php-fig.org/
 [NPM Coding Style]:     https://docs.npmjs.com/misc/coding-style
@@ -126,6 +128,9 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 [Effective Go]:         https://golang.org/doc/effective_go.html
 [Swift Style Guide]:    https://google.github.io/swift/
 [C# Coding Conventions]:https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/inside-a-program/coding-conventions
+[Kotlin style guide]:   https://kotlinlang.org/docs/coding-conventions.html#apply-the-style-guide
+[Android style guide]:  https://developer.android.com/kotlin/style-guide
+[Google style guide]:   https://google.github.io/styleguide/javaguide.html
 
 ## Contributing
 

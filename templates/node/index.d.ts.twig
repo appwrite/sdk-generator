@@ -1,4 +1,85 @@
+{% macro sub_schema(property, definition, spec) %}
+{% apply spaceless %}
+    {% if property.sub_schema %}
+        {% if _self.get_generics_sub(definition, spec) %}
+            {{property.sub_schema | caseUcfirst}}<{{ _self.get_generics_sub(definition, spec) }}>{% if property.type == 'array' %}[]{% endif %}
+        {% else %}
+            {{property.sub_schema | caseUcfirst}}{% if property.type == 'array' %}[]{% endif %}
+        {% endif %}
+    {% else %}
+        {{property.type | typeName}}
+    {% endif %}
+{% endapply %}
+{% endmacro %}
+{% macro get_generics(definition, spec) %}
+{% apply spaceless %}
+    {% for property in definition.properties %}
+        {% if spec.definitions[property.sub_schema].additionalProperties %}
+            {{property.sub_schema | caseUcfirst}} extends Models.{{property.sub_schema | caseUcfirst}}
+        {% endif %}
+        {% if spec.definitions[property.sub_schema] %}
+            {{_self.get_generics(spec.definitions[property.sub_schema], spec)}}
+        {% endif %}
+    {% endfor %}
+{% endapply %}
+{% endmacro %}
+{% macro get_generics_sub(definition, spec, output = false) %}
+{% apply spaceless %}
+    {% for property in definition.properties %}
+        {% if spec.definitions[property.sub_schema].additionalProperties and output %}
+            {{property.sub_schema | caseUcfirst}}
+        {% endif %}
+        {% if spec.definitions[property.sub_schema] %}
+            {{_self.get_generics_sub(spec.definitions[property.sub_schema], spec, true)}}
+        {% endif %}
+    {% endfor %}
+{% endapply %}
+{% endmacro %}
+{% macro get_generics_method(definition, spec, output = false, first = false) %}
+{% apply spaceless %}
+    {% if first and definition.additionalProperties %}
+        {{definition.name | caseUcfirst}} extends Models.{{definition.name | caseUcfirst}}
+    {% endif %}
+    {% for property in definition.properties %}
+        {% if spec.definitions[property.sub_schema].additionalProperties and output %}
+            {{property.sub_schema | caseUcfirst}} extends Models.{{property.sub_schema | caseUcfirst}}
+        {% endif %}
+        {% if spec.definitions[property.sub_schema] %}
+            {{_self.get_generics_method(spec.definitions[property.sub_schema], spec, true)}}
+        {% endif %}
+    {% endfor %}
+{% endapply %}
+{% endmacro %}
+{% macro get_generics_method_return(definition, spec) %}
+{% apply spaceless %}
+    {% for property in definition.properties %}
+        {% if spec.definitions[property.sub_schema].additionalProperties %}
+            {{property.sub_schema | caseUcfirst}}
+        {% endif %}
+        {% if spec.definitions[property.sub_schema] %}
+            {{_self.get_generics_method_return(spec.definitions[property.sub_schema], spec)}}
+        {% endif %}
+    {% endfor %}
+{% endapply %}
+{% endmacro %}
 declare module "{{ language.params.npmPackage|caseDash }}" {
+  export namespace Models {
+{% for definition in spec.definitions %}
+{% set generics = _self.get_generics(definition, spec) %}
+      /**
+      * {{ definition.description }}
+      */
+      export type {{ definition.name | caseUcfirst }}{% if generics %}<{{generics}}>{% endif %} = {
+{% for property in definition.properties %}
+{% set sub_schema = _self.sub_schema(property, definition, spec)%}
+          /**
+          * {{ property.description }}
+          */
+          {{ property.name | escapeKeyword }}{% if not property.required %}?{% endif %}: {{sub_schema}};
+{% endfor %}
+      }
+{% endfor %}
+  }
   export class Client {
     /**
      * Set endpoint.
@@ -45,10 +126,68 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
     constructor(client: Client);
   }
 
+  export class InputFile {
+    static fromPath(filePath: string, filename: string): InputFile;
+
+    static fromBuffer(buffer: Buffer, filename: string): InputFile;
+
+    static fromBlob(blob: Blob, filename: string): InputFile;
+
+    static fromStream(stream: any, filename: string, size: number): InputFile;
+
+    static fromPlainText(content: string, filename: string): InputFile;
+  }
+
+  type QueryTypesSingle = string | number | boolean;
+  type QueryTypesList = string[] | number[] | boolean[];
+  type QueryTypes = QueryTypesSingle | QueryTypesList;
+
+  export class Query {
+    static equal(attribute: string, value: QueryTypes): string;
+
+    static notEqual(attribute: string, value: QueryTypes): string;
+
+    static lesser(attribute: string, value: QueryTypes): string;
+
+    static lesserEqual(attribute: string, value: QueryTypes): string;
+
+    static greater(attribute: string, value: QueryTypes): string;
+
+    static greaterEqual(attribute: string, value: QueryTypes): string;
+
+    static search(attribute: string, value: string): string;
+
+    private static addQuery(attribute: string, oper: string, value: QueryTypes): string;
+
+    private static parseValues(value: QueryTypes): string;
+  }
+
 {% for service in spec.services %}
   export class {{ service.name | caseUcfirst }} extends Service {
-{% for method in service.methods %}
+    constructor(client: Client{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}{% if not parameter.required %}|null{% endif %}{% endfor %});
+    
+{% if service.globalParams | length %}
+{% for parameter in service.globalParams %}
+    /**
+     * Get {{ parameter.name }}.
+     *
+     * @returns {{ '{' }}{{ parameter.type | typeName }}{{ '}' }}
+     */
+    get{{ parameter.name | caseUcfirst | escapeKeyword }}(): {{ parameter.type | typeName }};
 
+    /**
+     * Set {{ parameter.name }}.
+     *
+     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
+     * @returns {void}
+     */
+    set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}): void;
+
+{% endfor %}
+{% endif %}
+{% for method in service.methods %}
+{% set generics = _self.get_generics_method(spec.definitions[method.responseModel], spec, true, true) %}
+{% set generics_return = _self.get_generics_method_return(spec.definitions[method.responseModel], spec) %}
     /**
      * {{ method.title }}
      *
@@ -56,13 +195,13 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 {{ method.description|comment1 }}
      *
 {% endif %}
-{% for parameter in method.parameters.all %}
+{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
      * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {Promise}
      */
-    {{ method.name | caseCamel }}{% if method.type != 'location' %}<T extends unknown>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel }}{% if not parameter.required %}?{% endif %}: {% if parameter.type == 'array' %}{{attribute(parameter, 'array').type}}[]{% else %}{{ parameter.type | typeName }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Buffer{% else %}T{% endif %}>;
+    {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Buffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}>;
 {% endfor %}
   }
 {% endfor %}

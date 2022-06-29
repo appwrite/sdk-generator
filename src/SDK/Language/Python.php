@@ -71,7 +71,16 @@ class Python extends Language {
             'except',
             'in',
             'raise',
+            'async'
         ];
+    }
+
+    /**
+     * @return array
+     */
+    public function getIdentifierOverrides()
+    {
+        return [];
     }
 
     /**
@@ -148,8 +157,20 @@ class Python extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/query.py',
+                'template'      => 'python/package/query.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/exception.py',
                 'template'      => 'python/package/exception.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/input_file.py',
+                'template'      => 'python/package/input_file.py.twig',
                 'minify'        => false,
             ],
             [
@@ -281,7 +302,7 @@ class Python extends Language {
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "open('/path/to/file.png', 'rb')"; //TODO add file class
+                    $output .= "InputFile.from_path('file.png')";
                     break;
             }
         }
@@ -300,7 +321,7 @@ class Python extends Language {
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "open('/path/to/file.png', 'rb')"; //TODO add file class
+                    $output .= "InputFile.from_path('file.png')";
                     break;
             }
         }
