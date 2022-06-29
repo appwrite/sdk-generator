@@ -1,0 +1,8 @@
+{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
+{% if parameter.required %}
+        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
+            throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
+        }
+
+{% endif %}
+{% endfor %}
