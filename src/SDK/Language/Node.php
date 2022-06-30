@@ -154,7 +154,7 @@ class Node extends JS
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "'file.png'";
+                    $output .= "InputFile.fromPath('/path/to/file.png', 'file.png')";
                     break;
             }
         }
@@ -173,7 +173,7 @@ class Node extends JS
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "'file.png'";
+                    $output .= "InputFile.fromPath('/path/to/file.png', 'file.png')";
                     break;
             }
         }
