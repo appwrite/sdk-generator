@@ -133,18 +133,8 @@ const awaitPools = {
 
 const deploy = new Command("deploy")
     .description(commandDescriptions['deploy'])
-    .option("--all", "Flag to deploy collections and functions")
-    .action(actionRunner(async ({ all }, command) => {
-        if (all == undefined) {
-            command.help()
-        }
-
-        try {
-            await deployFunction();
-        } catch (e) {
-            error(e.message);
-        }
-        await deployCollection()
+    .action(actionRunner(async (_options, command) => {
+        command.help()
     }));
 
 const deployFunction = async ({ functionId, all } = {}) => {

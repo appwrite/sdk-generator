@@ -14,14 +14,8 @@ const { success, log, actionRunner, commandDescriptions } = require("../parser")
 
 const init = new Command("init")
   .description(commandDescriptions['init'])
-  .option("--all", "Flag to initialize projects and collection")
-  .action(actionRunner(async ({ all }, command) => {
-    if (all == undefined) {
-      command.help()
-    }
-
-    await initProject();
-    await initCollection()
+  .action(actionRunner(async (_options, command) => {
+    command.help();
   }));
 
 const initProject = async () => {
@@ -114,16 +108,14 @@ const initFunction = async () => {
 const initCollection = async ({ all, databaseId } = {}) => {
   const databaseIds = [];
 
-  console.log(all);
-
   if(databaseId) {
     databaseIds.push(databaseId);
   } else if(all) {
       let allDatabases = await databasesList({
         parseOutput: false
       })
-      console.log(allDatabases);
-      databaseIds.push(...allDatabases.databases);
+
+      databaseIds.push(...allDatabases.databases.map((d) => d.$id));
   }
 
   if(databaseIds.length <= 0) {
