@@ -59,7 +59,7 @@ class {{ service.name | caseUcfirst }} extends Service {
         let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
 {{ include ('node/base/params.twig')}}
 {% if 'multipart/form-data' in method.consumes %}
-{{ include ('node/base/requests/file.twig)}}
+{{ include ('node/base/requests/file.twig')}}
 {% else %}
 {{ include('node/base/requests/api.twig') }}
 {% endif %}
