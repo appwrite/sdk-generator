@@ -61,7 +61,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% if 'multipart/form-data' in method.consumes %}
 {{ include ('node/base/requests/file.twig)}}
 {% else %}
-{{ include('php/base/requests/api.twig') }}
+{{ include('node/base/requests/api.twig') }}
 {% endif %}
   }
 {% endfor %}
