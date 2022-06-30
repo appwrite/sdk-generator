@@ -6,22 +6,24 @@ const { questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollect
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment } = require('./functions');
 const {
-    databaseCreateBooleanAttribute,
-    databaseGetCollection,
-    databaseCreateCollection,
-    databaseCreateStringAttribute,
-    databaseCreateIntegerAttribute,
-    databaseCreateFloatAttribute,
-    databaseCreateEmailAttribute,
-    databaseCreateIndex,
-    databaseCreateUrlAttribute,
-    databaseCreateIpAttribute,
-    databaseCreateEnumAttribute,
-    databaseDeleteAttribute,
-    databaseListAttributes,
-    databaseListIndexes,
-    databaseDeleteIndex
-} = require("./database");
+    databasesCreateBooleanAttribute,
+    databasesGetCollection,
+    databasesCreateCollection,
+    databasesCreateStringAttribute,
+    databasesCreateIntegerAttribute,
+    databasesCreateFloatAttribute,
+    databasesCreateEmailAttribute,
+    databasesCreateIndex,
+    databasesCreateUrlAttribute,
+    databasesCreateIpAttribute,
+    databasesCreateEnumAttribute,
+    databasesDeleteAttribute,
+    databasesListAttributes,
+    databasesListIndexes,
+    databasesDeleteIndex
+} = require("./databases");
+
+// TODO: Add databaseId everywhere
 
 const POOL_DEBOUNCE = 2000; // in milliseconds
 const POOL_MAX_DEBOUNCES = 30;
@@ -145,12 +147,34 @@ const deploy = new Command("deploy")
         await deployCollection()
     }));
 
-const deployFunction = async () => {
+const deployFunction = async ({ functionId, all } = {}) => {
     let response = {};
 
-    let answers = await inquirer.prompt(questionsDeployFunctions)
-    let functions = answers.functions.map((func) => JSONbig.parse(func))
+    const functionIds = [];
 
+    if(functionId) {
+        functionIds.push(functionId);
+    } else if(all) {
+        const functions = localConfig.getFunctions();
+        if (functions.length === 0) {
+            throw new Error("No functions found in the current directory.");
+        }
+        functionIds.push(...functions.map((func, idx) => {
+            return func.$id;
+        }));
+    }
+
+    if(functionIds.length <= 0) {
+        const answers = await inquirer.prompt(questionsDeployFunctions);
+        functionIds.push(...answers.functions);
+    }
+
+    let functions = functionIds.map((id) => {
+      const functions = localConfig.getFunctions();
+      const func = functions.find((f) => f.$id === id);
+      return JSONbig.stringify(func);
+    });
+    
     for (let func of functions) {
         log(`Deploying function ${func.name} ( ${func['$id']} )`)
 
@@ -466,6 +490,8 @@ const deployCollection = async () => {
 deploy
     .command("function")
     .description("Deploy functions in the current directory.")
+    .option(`--functionId <functionId>`, `Function ID`)
+    .option(`--all`, `Flag to deploy all functions`)
     .action(actionRunner(deployFunction));
 
 deploy
