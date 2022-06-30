@@ -56,15 +56,15 @@ class {{ service.name | caseUcfirst }} extends Service {
      * @returns {Promise}
      */
     async {{ method.name | caseCamel }}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = () => {}{% endif %}) {
-{# modified params section #}
         let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-{# modified params #}
-
+{{ include ('node/base/params.twig')}}
 {% if 'multipart/form-data' in method.consumes %}
-{# file section #}
-{# api section #}
+{{ include ('node/base/requests/file.twig)}}
+{% else %}
+{{ include('php/base/requests/api.twig') }}
 {% endif %}
   }
+{% endfor %}
 }
 
 module.exports = {{ service.name | caseUcfirst }};

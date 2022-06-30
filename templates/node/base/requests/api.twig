@@ -5,4 +5,5 @@ return await this.client.call('{{ method.method | caseLower }}', path, {
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
-        }, payload{# location check #});
+        }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %}
+);
