@@ -63,7 +63,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% else %}
 {{ include('node/base/requests/api.twig') }}
 {% endif %}
-  }
+    }
 {% endfor %}
 }
 
