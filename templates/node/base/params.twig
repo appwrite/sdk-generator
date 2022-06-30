@@ -1,4 +1,4 @@
-let payload = {};
+        let payload = {};
 {% if method.parameters.all | length %}
 {% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
 {% if parameter.required %}
