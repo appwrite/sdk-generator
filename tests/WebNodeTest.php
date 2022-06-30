@@ -21,7 +21,7 @@ class WebNodeTest extends Base
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
-        ...Base::DOWNLOAD_RESPONSES,
+        "https://appwrite.io/v1/mock/tests/general/download?project=",
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
     ];
