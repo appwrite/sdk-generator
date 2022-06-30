@@ -48,7 +48,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
      {
         this.{{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }};
      }
-     public get{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}): {{ parameter.type | typeName }}
+     public get{{ parameter.name | caseUcfirst | escapeKeyword }}(): {{ parameter.type | typeName }}
      {
         return this.{{ parameter.name | caseCamel | escapeKeyword }};
      }
