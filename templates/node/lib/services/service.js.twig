@@ -58,19 +58,7 @@ class {{ service.name | caseUcfirst }} extends Service {
     async {{ method.name | caseCamel }}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = () => {}{% endif %}) {
 {# modified params section #}
         let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-        let payload = {};
-{% for parameter in method.parameters.query %}
-
-        if (typeof {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" and parameter.type != "file" ) %}.toString(){% endif %};
-        }
-{% endfor %}
-{% for parameter in method.parameters.body %}
-
-        if (typeof {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword}}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" and parameter.type != "file" ) %}.toString(){% endif %};
-        }
-{% endfor %}
+{# modified params #}
 
 {% if 'multipart/form-data' in method.consumes %}
 {# file section #}
