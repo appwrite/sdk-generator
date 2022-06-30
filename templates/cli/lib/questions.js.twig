@@ -267,7 +267,7 @@ const questionsDeployCollections = [
       let choices = collections.map((collection, idx) => {
         return {
           name: `${collection.name} (${collection['$id']})`,
-          value: JSONbig.stringify(collection)
+          value: collection.$id
         }
       })
       return choices;
