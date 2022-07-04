@@ -1,0 +1,28 @@
+{% if method.parameters.all | length %}
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+            if {% if parameter.isGlobal %}@{% endif %}{{ parameter.name | caseSnake | escapeKeyword }}.nil?
+                raise {{spec.title | caseUcfirst}}::Exception.new('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"')
+            end
+
+{% endif %}
+{% endfor %}
+{% for parameter in method.parameters.path %}
+                .gsub('{{ '{' }}{{ parameter.name }}{{ '}' }}', {% if parameter.isGlobal %}@{% endif %}{{ parameter.name | caseSnake | escapeKeyword }})
+{% endfor %}
+
+            params = {
+{% for parameter in method.parameters.query | merge(method.parameters.body)  %}
+                {{ parameter.name }}: {% if parameter.isGlobal %}@{% endif %}{{ parameter.name | caseSnake | escapeKeyword }},
+{% endfor %}
+            }
+
+            headers = {
+{% for parameter in method.parameters.header %}
+                "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+                "{{ key }}": '{{ header }}',
+{% endfor %}
+            }
+{% endif %}
