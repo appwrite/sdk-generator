@@ -3,6 +3,9 @@ import android.os.Bundle
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import {{ sdk.namespace | caseDot }}.Client
+{% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
+import {{ sdk.namespace | caseDot }}.models.InputFile
+{% endif %}
 import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }}
 
 class MainActivity : AppCompatActivity() {
