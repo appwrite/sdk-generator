@@ -169,7 +169,7 @@ try {
 
     $sdk
         ->setName('NAME')
-        ->setVersion('0.0.19')
+        ->setVersion('0.16.0')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://appwrite.io')
@@ -183,7 +183,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.12.0',
+            'X-Appwrite-Response-Format' => '0.15.0',
         ])
     ;
 
@@ -299,8 +299,9 @@ try {
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
+        ->setVersion('0.0.1')
         ->setGitUserName('appwrite')
-        ->setGitRepoName('go-sdk')
+        ->setGitRepoName('sdk-for-go')
         ->setLogo('https://appwrite.io/v1/images/console.png')
         ->setLicenseContent('test test test')
         ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')

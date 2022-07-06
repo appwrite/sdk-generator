@@ -12,7 +12,7 @@
 
 The SDK Generator uses predefined language settings as [Twig templates](https://twig.symfony.com/) to generate codebases based on different API specs.
 
-Currently, the only spec supported is Swagger 2.0, but we intend to add support for more specification in the near future. This generator is still lacking support for any definition/models specs.
+Currently, the only spec supported is Swagger 2.0, but we intend to add support for more specifications in the near future. This generator is still lacking support for any definition/models specs.
 
 ## Getting Started
 
@@ -100,7 +100,7 @@ $sdk->generate(__DIR__ . '/examples/php'); // Generate source code
 | Ruby       | 2.4+                | [Ruby Style Guide]     | GEM                | [@eldadfux] [@abnegate] |
 | Python     | 3.5+                | [PEP8]                 | PIP                | [@eldadfux] [@abnegate] |
 | Dart       | 2.7+                | [Effective Dart]       | pub                | [@lohanidamodar] |
-| Go         |                     | [Effective Go]         | go get             | [@panz3r]      |
+| Go         |                     | [Effective Go]         | go get             | [@panz3r] [@phaus]      |
 | .NET       | .NET core 3.1       | [C# Coding Conventions]| NuGet              | [@komemi] [@TorstenDittmann]     |
 | D          |                     |                        | ?                  | [You?](https://github.com/appwrite/sdk-generator/issues/20) |
 | Kotlin     | 1.4.31+             | [Kotlin style guide]   | Gradle, Maven      | [@abnegate]    |

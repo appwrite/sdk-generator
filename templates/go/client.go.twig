@@ -1,19 +1,104 @@
 package {{ spec.title | caseLower }}
 
 import (
+	"bytes"
+	"crypto/tls"
 	"encoding/json"
-  	"io/ioutil"
+	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strconv"
 	"strings"
+	"time"
 )
 
-// Client is the client struct to access {{ spec.title }} services
+const (
+	fileNameKey = "file"
+	defaultTimeout = 10 * time.Second
+)
+
+// {{ spec.title | caseUcfirst }}Error represents an error of a client request
+type {{ spec.title | caseUcfirst }}Error struct {
+	statusCode int
+	message    string
+}
+
+// ClientResponse - represents the client response
+type ClientResponse struct {
+	Status     string
+	StatusCode int
+	Header     http.Header
+	Result     string
+}
+
+func (ce *{{ spec.title | caseUcfirst }}Error) Error() string {
+	return ce.message
+}
+
+func (ce *{{ spec.title | caseUcfirst }}Error) GetMessage() string {
+	return ce.message
+}
+
+func (ce *{{ spec.title | caseUcfirst }}Error) GetStatusCode() int {
+	return ce.statusCode
+}
+
+// Client is the client struct to access {{ spec.title | caseUcfirst }}  services
 type Client struct {
 	client     *http.Client
-	endpoint   string
 	headers    map[string]string
+	endpoint   string
+	timeout    time.Duration
 	selfSigned bool
+}
+
+// NewClient initializes a new {{ spec.title | caseUcfirst }} client with a given timeout
+func NewClient() Client {
+	headers := map[string]string{
+{% for key,header in spec.global.defaultHeaders %}
+		"{{key}}" : "{{header}}",
+		"x-sdk-version": "{{ sdk.gitUserName|url_encode }}:go:{{sdk.version}}",
+{% endfor %}
+	}
+	httpClient, err := getDefaultClient(defaultTimeout)
+	if err != nil { panic(err) }
+	return Client {
+		endpoint: "https://{{ sdk.gitUserName|url_encode }}.io/v1",
+		client: httpClient,
+		timeout: defaultTimeout,
+		headers: headers,
+	}
+}
+
+func (clt *Client) String() string {
+	return fmt.Sprintf("%s\n%s\n%v", clt.endpoint, clt.headers, clt.timeout)
+}
+
+func getDefaultClient(timeout time.Duration) (*http.Client, error) {
+	jar, err := cookiejar.New(nil)
+	if err != nil { 
+		return nil, err 
+	}
+	return &http.Client {
+		Jar: jar,
+		Timeout: timeout,
+	}, nil
+}
+
+func (clt *Client) SetTimeout(timeout time.Duration) error {
+	clt.timeout = timeout
+	httpClient, err := getDefaultClient(timeout)
+	if err != nil { return err }
+	clt.client = httpClient
+	return nil
 }
 
 // SetEndpoint sets the default endpoint to which the Client connects to
@@ -40,74 +125,263 @@ func (clt *Client) Set{{header.key | caseUcfirst}}(value string) {
 }
 {% endfor %}
 
-// Call an API using Client
-func (clt *Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (map[string]interface{}, error) {
-	if clt.client == nil {
-		// Create HTTP client
-		clt.client = &http.Client{}
+func isFileUpload(headers map[string]interface{}) bool {
+	contentType, ok := headers["content-type"].(string)
+	if ok {
+		return strings.Contains(strings.ToLower(contentType), "multipart/form-data")
 	}
+	return false
+}
 
-	if clt.selfSigned {
-		// Allow self signed requests
+func (clt *Client) newfileUploadRequest(uri string, params map[string]interface{}, paramName string) (*http.Request, error) {
+	path, ok := params[paramName].(string)
+	if !ok {
+		return nil, os.ErrNotExist
 	}
-
-	urlPath := clt.endpoint + path
-	isGet := strings.ToUpper(method) == "GET"
-
-	var reqBody *strings.Reader
-	if !isGet {
-		frm := url.Values{}
-		for key, val := range params {
-			frm.Add(key, ToString(val))
-		}
-		reqBody = strings.NewReader(frm.Encode())
+	if _, err := os.Stat(path); err != nil {
+		return nil, err
 	}
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
 
-	// Create and modify HTTP request before sending
-	req, err := http.NewRequest(method, urlPath, reqBody)
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile(paramName, filepath.Base(path))
+	if err != nil {
+		return nil, err
+	}
+	_, err = io.Copy(part, file)
 	if err != nil {
 		return nil, err
 	}
 
-	// Set Client headers
-	for key, val := range clt.headers {
-		req.Header.Set(key, ToString(val))
+	for key, val := range params {
+		rt := reflect.TypeOf(val)
+		switch rt.Kind() {
+		case reflect.Array:
+		case reflect.Slice:
+			arr := reflect.ValueOf(val)
+			for i := 0; i < arr.Len(); i++ {
+				err = writer.WriteField(fmt.Sprintf("%s[]", key), toString(arr.Index(i)))
+				if err != nil {
+					return nil, err
+				}
+			}
+		default:
+			err = writer.WriteField(key, toString(val))
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
-	//Set default headers
-{% for key,header in spec.global.defaultHeaders %}
-	req.Header.Set("{{key}}", "{{header}}")
-{% endfor %}
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", uri, body)
+	clt.AddHeader("content-type", writer.FormDataContentType())
+	return req, err
+}
+
+// Call an API using Client
+func (clt *Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (*ClientResponse, error) {
+	if clt.client == nil {
+		// Create HTTP client
+		httpClient, err := getDefaultClient(clt.timeout)
+		if err != nil {
+			panic(err)
+		}
+		clt.client = httpClient
+	}
+
+	if clt.selfSigned {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
+	urlPath := clt.endpoint + path
+	isGet := strings.ToUpper(method) == "GET"
+	isPost := strings.ToUpper(method) == "POST"
+	isJsonRequest := headers["content-type"] == "application/json"
+	isFileUpload := isFileUpload(headers)
+
+	var req *http.Request
+	var err error
+	if isFileUpload {
+		if !isPost {
+			return nil, errors.New("fileupload needs POST Request")
+		}
+		req, err = clt.newfileUploadRequest(urlPath, params, fileNameKey)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if !isGet {
+			var reqBody *strings.Reader
+			if isJsonRequest {
+				json, err := json.Marshal(params)
+				if err != nil {
+					return nil, err
+				}
+				reqBody = strings.NewReader(string(json))
+			} else {
+				frm := url.Values{}
+				for key, val := range params {
+					frm.Add(key, toString(val))
+				}
+				reqBody = strings.NewReader(frm.Encode())
+			}
+			// Create and modify HTTP request before sending
+			req, err = http.NewRequest(method, urlPath, reqBody)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			req, err = http.NewRequest(method, urlPath, nil)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if isGet {
+			q := req.URL.Query()
+			for key, val := range params {
+				rt := reflect.TypeOf(val)
+				switch rt.Kind() {
+				case reflect.Array:
+				case reflect.Slice:
+					arr := reflect.ValueOf(val)
+					for i := 0; i < arr.Len(); i++ {
+						q.Add(fmt.Sprintf("%s[]", key), toString(arr.Index(i)))
+					}
+				default:
+					q.Add(key, toString(val))
+				}
+			}
+			rawQuery := q.Encode()
+			req.URL.RawQuery = rawQuery
+		}
+	}
 
 	// Set Custom headers
 	for key, val := range headers {
-		req.Header.Set(key, ToString(val))
+		req.Header.Set(key, toString(val))
 	}
 
-	if isGet {
-		q := req.URL.Query()
-		for key, val := range params {
-			q.Add(key, ToString(val))
-		}
-		req.URL.RawQuery = q.Encode()
+	// Set Client headers
+	for key, val := range clt.headers {
+		req.Header.Set(key, toString(val))
 	}
 
 	// Make request
-	response, err := clt.client.Do(req)
+	resp, err := clt.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
 	// Handle response
-	defer response.Body.Close()
- 
-	responseData, err := ioutil.ReadAll(response.Body)
+	defer resp.Body.Close()
+
+	responseData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	var jsonResponse map[string]interface{}
-	json.Unmarshal(responseData, &jsonResponse)
+	var isJson = strings.HasPrefix(resp.Header.Get("content-type"), "application/json")
+	if isJson {
+		var jsonResponse map[string]interface{}
+		json.Unmarshal(responseData, &jsonResponse)
+		if resp.StatusCode < 200 || resp.StatusCode > 399 {
+			message, ok := jsonResponse["message"].(string)
+			if !ok {
+				message = "N/A"
+			}
+			return nil, &{{ spec.title | caseUcfirst }}Error{
+				statusCode: resp.StatusCode,
+				message:    message,
+			}
+		}
+		output,  ok := jsonResponse["result"].(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid response type %v", jsonResponse)
+		}
+		return &ClientResponse{
+			Status:     resp.Status,
+			StatusCode: resp.StatusCode,
+			Header:     resp.Header,
+			Result:     string(output),
+		}, nil
+	}
+	output, err := getOutput(params, fileNameKey, responseData, resp.Header.Get("content-type"))
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 399 {
+		return nil, &{{ spec.title | caseUcfirst }}Error{
+			statusCode: resp.StatusCode,
+			message:    output,
+		}
+	}
+	return &ClientResponse{
+		Status:     resp.Status,
+		StatusCode: resp.StatusCode,
+		Header:     resp.Header,
+		Result:     output,
+	}, nil
+}
 
-	return jsonResponse, nil
+func getOutput(params map[string]interface{}, paramName string, responseData []byte, contentType string) (string, error) {
+	if strings.HasPrefix(contentType, "text") || strings.HasSuffix(contentType, "json") {
+		return string(responseData), nil
+	}
+	path, ok := params[paramName].(string)
+	if !ok {
+		return "", os.ErrNotExist
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+
+	if _, err = file.Write(responseData); err != nil {
+		return "", err
+	}
+
+	if err := file.Close(); err != nil {
+		return "", err
+	}
+	return file.Name(), nil
+}
+
+// toString changes arg to string
+func toString(arg interface{}) string {
+	var tmp = reflect.Indirect(reflect.ValueOf(arg)).Interface()
+	switch v := tmp.(type) {
+	case int:
+		return strconv.Itoa(v)
+	case int8:
+		return strconv.FormatInt(int64(v), 10)
+	case int16:
+		return strconv.FormatInt(int64(v), 10)
+	case int32:
+		return strconv.FormatInt(int64(v), 10)
+	case int64:
+		return strconv.FormatInt(v, 10)
+	case string:
+		return v
+	case float32:
+		return strconv.FormatFloat(float64(v), 'f', -1, 32)
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	case reflect.Value:
+		return toString(v.Interface())
+	case fmt.Stringer:
+		return v.String()
+	default:
+		return fmt.Sprintf("%s", v)
+	}
 }

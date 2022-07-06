@@ -1,6 +1,40 @@
 const { localConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { functionsListRuntimes } = require('./commands/functions');
+const { databasesList } = require('./commands/databases');
+const JSONbig = require("json-bigint")({ storeAsString: false });
+
+const getIgnores = (runtime) => {
+  const languge = runtime.split('-')[0];
+
+  switch (languge) {
+    case 'cpp':
+        return ['build', 'CMakeFiles', 'CMakeCaches.txt'];
+    case 'dart':
+      return ['.packages', '.dart_tool'];
+    case 'deno':
+      return [];
+    case 'dotnet':
+        return ['bin', 'obj', '.nuget'];
+    case 'java':
+    case 'kotlin':
+        return ['build'];
+    case 'node':
+      return ['node_modules', '.npm'];
+    case 'php':
+      return ['vendor'];
+    case 'python':
+      return ['__pypackages__'];
+    case 'ruby':
+      return ['vendor'];
+    case 'rust':
+      return ['target', 'debug', '*.rs.bk', '*.pdb'];
+    case 'swift':
+      return ['.build', '.swiftpm'];
+  }
+
+  return undefined;
+};
 
 const getEntrypoint = (runtime) => {
   const languge = runtime.split('-')[0];
@@ -22,6 +56,14 @@ const getEntrypoint = (runtime) => {
       return 'main.rs';
     case 'swift':
       return 'Sources/swift-5.5/main.swift';
+    case 'cpp':
+      return 'src/index.cc';
+    case 'dotnet':
+      return 'src/Index.cs';
+    case 'java':
+      return 'src/Index.java';
+    case 'kotlin':
+      return 'src/Index.kt';
   }
 
   return undefined;
@@ -68,6 +110,15 @@ const questionsInitProject = [
     },
   },
   {
+    type: "input",
+    name: "id",
+    message: "What ID would you like to have for your project?",
+    default: "myAwesomeProject",
+    when(answers) {
+      return answers.start == "new";
+    },
+  },
+  {
     type: "list",
     name: "project",
     message: "Choose your {{ spec.title|caseUcfirst }} project.",
@@ -106,6 +157,12 @@ const questionsInitFunction = [
     default: "My Awesome Function"
   },
   {
+    type: "input",
+    name: "id",
+    message: "What ID would you like to have for your function?",
+    default: "myAwesomeFunction"
+  },
+  {
     type: "list",
     name: "runtime",
     message: "What runtime would you like to use?",
@@ -117,7 +174,32 @@ const questionsInitFunction = [
       let choices = runtimes.map((runtime, idx) => {
         return {
           name: `${runtime.name} (${runtime['$id']})`,
-          value: { id: runtime['$id'], entrypoint: getEntrypoint(runtime['$id'])}
+          value: { id: runtime['$id'], entrypoint: getEntrypoint(runtime['$id']), ignore: getIgnores(runtime['$id'])},
+        }
+      })
+      return choices;
+    }
+  }
+];
+
+const questionsInitCollection = [
+  {
+    type: "checkbox",
+    name: "databases",
+    message: "From which database would you like to init collections?",
+    choices: async () => {
+      let response = await databasesList({
+        parseOutput: false
+      })
+      let databases = response["databases"]
+
+      if(databases.length <= 0) {
+        throw new Error("No databases found. Please create one in project console.")
+      }
+      let choices = databases.map((database, idx) => {
+        return {
+          name: `${database.name} (${database.$id})`,
+          value: database.$id
         }
       })
       return choices;
@@ -163,8 +245,8 @@ const questionsDeployFunctions = [
       }
       let choices = functions.map((func, idx) => {
         return {
-          name: `${func.name} (${func['$id']})`,
-          value: func
+          name: `${func.name} (${func.$id})`,
+          value: func.$id
         }
       })
       return choices;
@@ -185,7 +267,7 @@ const questionsDeployCollections = [
       let choices = collections.map((collection, idx) => {
         return {
           name: `${collection.name} (${collection['$id']})`,
-          value: collection
+          value: collection.$id
         }
       })
       return choices;
@@ -217,6 +299,7 @@ module.exports = {
   questionsInitProject,
   questionsLogin,
   questionsInitFunction,
+  questionsInitCollection,
   questionsDeployFunctions,
   questionsDeployCollections,
   questionsGetEntrypoint

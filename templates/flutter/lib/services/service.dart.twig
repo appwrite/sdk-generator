@@ -1,12 +1,22 @@
 part of {{ language.params.packageName }};
-
-{% macro parameter(parameter) %}{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{% endmacro %}
+{% macro parameter(parameter) %}{% if parameter.required %}required {{ parameter.type | typeName }}{% else %}{{ parameter.type | typeName }}?{% endif %} {{ parameter.name | caseCamel | overrideIdentifier }}{% endmacro %}
 {% macro method_parameters(parameters, consumes) %}
-{% if parameters.all|length > 0 %}{{ '{' }}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, Function(UploadProgress)? onProgress{% endif %}{{ '}' }}{% endif %}
+{% if parameters|length > 0 %}{{ '{' }}{% for parameter in parameters %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, Function(UploadProgress)? onProgress{% endif %}{{ '}' }}{% endif %}
 {% endmacro %}
-{% macro map_parameter(parameter) %}'{{ parameter.name }}': {{ parameter.name | caseCamel | escapeKeyword }},{% endmacro %}
+{% macro service_params(parameters) %}
+{% if parameters|length > 0 %}{{ ', {' }}{% for parameter in parameters %}{% if parameter.required %}required {% endif %}this.{{ parameter.name | caseCamel | overrideIdentifier }}{% if not loop.last %}, {% endif %}{% endfor %}{{ '}' }}{% endif %}
+{% endmacro %}
+
+{%if service.description %}
+{{ service.description|dartComment}}
+{% endif %}
 class {{ service.name | caseUcfirst }} extends Service {
-    {{ service.name | caseUcfirst }}(Client client): super(client);
+    {{ service.name | caseUcfirst }}(Client client{{ _self.service_params(service.globalParams) }}): super(client);
+{% if service.globalParams | length %}
+{% for parameter in service.globalParams %}
+    {{ parameter.type | typeName }}{% if not parameter.required %}?{% endif %} {{ parameter.name | caseCamel | overrideIdentifier }};
+{% endfor %}
+{% endif %}
 {% for method in service.methods %}
 
      /// {{ method.title }}
@@ -15,95 +25,19 @@ class {{ service.name | caseUcfirst }} extends Service {
 {{ method.description|dartComment }}
      ///
 {% endif %}
-    {% if method.type == 'webAuth' %}Future{% elseif method.type == 'location' %} Future<Uint8List> {% else %} {% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters, method.consumes) }}) async {
-        {% if method.parameters.path | length > 0 %}final{% else %}const{% endif %} String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-
-        final Map<String, dynamic> params = {
-{% for parameter in method.parameters.query %}
-            {{ _self.map_parameter(parameter) }}
-{% endfor %}
-{% for parameter in method.parameters.body %}
-            {{ _self.map_parameter(parameter) }}
-{% endfor %}
-{% if method.type == 'webAuth' or method.type == 'location' %}
-{% if method.security|length > 0 %}
-{% for node in method.security %}
-{% for key,header in node|keys %}
-            '{{header|caseLower}}': client.config['{{header|caseLower}}'],
-{% endfor %}
-{% endfor %}
-{% endif %}
-{% endif %}
-        };
-
-{% if method.type == 'webAuth' %}
-
-        final List query = [];
-
-        params.forEach((key, value) {
-          if (value is List) { 
-            for (var item in value) {
-              query.add(Uri.encodeComponent(key + '[]') + '=' + Uri.encodeComponent(item));
-            }
-          } else if(value != null) {
-              query.add(Uri.encodeComponent(key) + '=' + Uri.encodeComponent(value));
-          }
-        });
-
-        Uri endpoint = Uri.parse(client.endPoint);
-        Uri url = Uri(scheme: endpoint.scheme,
-          host: endpoint.host,
-          port: endpoint.port,
-          path: endpoint.path + path,
-          query: query.join('&')
-        );
-
-      return client.webAuth(url);
-
-{% elseif method.type == 'location' %}
-        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, responseType: ResponseType.bytes);
-        return res.data;
-{% else %}
-        final Map<String, String> headers = {
-{% for key, header in method.headers %}
-            '{{ key }}': '{{ header }}',
-{% endfor %}
-        };
+    {% if method.type == 'webAuth' %}Future{% elseif method.type == 'location' %} Future<Uint8List> {% else %} {% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters.all | filter((param) => not param.isGlobal), method.consumes) }}) async {
+        {% if method.parameters.path | length > 0 %}final{% else %}const{% endif %} String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | overrideIdentifier }}){% endfor %};
 
 {% if 'multipart/form-data' in method.consumes %}
-        dynamic res;
-        if(kIsWeb) {
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
-          params['{{ parameter.name }}'] = {{ parameter.name }}.file;
-{% endif %}
-{% endfor %}
-          res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
-        } else {
-          String idParamName = '';
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
-          final paramName = '{{ parameter.name }}';
-{% endif %}
-{% if parameter.isUploadID %}
-          idParamName = '{{ parameter.name }}';
-{% endif %}
-{% endfor %}
-          res = await chunkedUpload(
-            client: client,
-            path: path,
-            params: params,
-            paramName: paramName,
-            idParamName: idParamName,
-            headers: headers,
-            onProgress: onProgress,
-          );
-        }
+{{ include('flutter/base/requests/file.twig') }}
+{% elseif method.type == 'webAuth' %}
+{{ include('flutter/base/requests/oauth.twig') }}
+{% elseif method.type == 'location' %}
+{{ include('flutter/base/requests/location.twig') }}
 {% else %}
-        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
+{{ include('flutter/base/requests/api.twig') }}
 {% endif %}
-        return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst}}.fromMap(res.data){% else %} res.data{% endif %};
-{% endif %}
+
     }
 {% endfor %}
 }

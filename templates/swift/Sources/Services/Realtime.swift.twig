@@ -192,6 +192,9 @@ extension Realtime: WebSocketClientDelegate {
         guard let channels = data["channels"] as? Array<String> else {
             return
         }
+        guard let events = data["events"] as? Array<String> else {
+            return
+        }
         guard let payload = data["payload"] as? [String: Any] else {
             return
         }
@@ -204,7 +207,7 @@ extension Realtime: WebSocketClientDelegate {
         for subscription in activeSubscriptions {
             if channels.contains(where: { subscription.value.channels.contains($0) }) {
                 let response = RealtimeResponseEvent(
-                    event: data["event"] as! String,
+                    events: events,
                     channels: channels,
                     timestamp: data["timestamp"] as! Int64,
                     payload: payload

@@ -11,190 +11,136 @@ class Tests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        print( "Test Started")
+        print("Test Started")
     }
 
     override func tearDown() {
         super.tearDown()
     }
 
-    func test() throws {
-        let group = DispatchGroup()
+    func test() async throws {
         let client = Client()
             .setEndpointRealtime("ws://demo.appwrite.io/v1")
             .setProject("console")
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
 
-        let foo = Foo(client)
+        let foo = Foo(client, "string")
         let bar = Bar(client)
         let general = General(client)
         let realtime = Realtime(client)
         var realtimeResponse = "Realtime failed!"
 
         let expectation = XCTestExpectation(description: "realtime server")    
-        _ = realtime.subscribe(channels: ["tests"]) { message in
+        
+        realtime.subscribe(channels: ["tests"]) { message in
             realtimeResponse = message.payload!["response"] as! String
             expectation.fulfill()
         }
         
+        var mock: Mock
+
         // Foo Tests
-        group.enter()
-        foo.get(x: "string", y: 123, z: ["string in array"]) { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let mock): print(mock.result)
-            }
-            group.leave()
-        }
-        group.wait()
-        group.enter()
-        foo.post(x: "string", y: 123, z: ["string in array"]) { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let mock): print(mock.result)
-            }
-            group.leave()
-        }
-        group.wait()
-        group.enter()
-        foo.put(x: "string", y: 123, z: ["string in array"]) { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let mock): print(mock.result)
-            }
-            group.leave()
-        }
-        group.wait()
-        group.enter()
-        foo.patch(x: "string", y: 123, z: ["string in array"]) { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let mock): print(mock.result)
-            }
-            group.leave()
-        }
-        group.wait()
-        group.enter()
-        foo.delete(x: "string", y: 123, z: ["string in array"]) { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let mock): print(mock.result)
-            }
-            group.leave()
-        }
-        group.wait()
+        mock = try await foo.get(y: 123, z: ["string in array"])
+        print(mock.result)
+
+        mock = try await foo.post(y: 123, z: ["string in array"])
+        print(mock.result)
+
+        mock = try await foo.put(y: 123, z: ["string in array"])
+        print(mock.result)
+
+        mock = try await foo.patch(y: 123, z: ["string in array"])
+        print(mock.result)
+
+        mock = try await foo.delete(y: 123, z: ["string in array"])
+        print(mock.result)
+
 
         // Bar Tests
-        group.enter()
-        bar.get(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let mock): print(mock.result)
-            }
-            group.leave()
-        }
-        group.wait()
-        group.enter()
-        bar.post(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let mock): print(mock.result)
-            }
-            group.leave()
-        }
-        group.wait()
-        group.enter()
-        bar.put(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let mock): print(mock.result)
-            }
-            group.leave()
-        }
-        group.wait()
-        group.enter()
-        bar.patch(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let mock): print(mock.result)
-            }
-            group.leave()
-        }
-        group.wait()
-        group.enter()
-        bar.delete(xrequired: "string", xdefault: 123, z: ["string in array"]) { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let mock): print(mock.result)
-            }
-            group.leave()
-        }
-        group.wait()
+        mock = try await bar.get(xrequired: "string", xdefault: 123, z: ["string in array"])
+        print(mock.result)
+
+        mock = try await bar.post(xrequired: "string", xdefault: 123, z: ["string in array"])
+        print(mock.result)
+
+        mock = try await bar.put(xrequired: "string", xdefault: 123, z: ["string in array"])
+        print(mock.result)
+
+        mock = try await bar.patch(xrequired: "string", xdefault: 123, z: ["string in array"])
+        print(mock.result)
+
+        mock = try await bar.delete(xrequired: "string", xdefault: 123, z: ["string in array"])
+        print(mock.result)
+
 
         // General Tests
-        group.enter()
-        general.redirect() { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let mock): print((mock as! [String: Any])["result"] as! String)
-            }
-            group.leave()
+        let result = try await general.redirect()
+        print((result as! [String: Any])["result"] as! String)
+
+        do {
+            var file = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
+            mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
+            print(mock.result)
+        } catch let error as AppwriteError {
+            print(error.message)
         }
-        group.wait()
-        group.enter()
-        var url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
-        var buffer = ByteBuffer(data: try! Data(contentsOf: url))
-        var file = File(name: "file.png", buffer: buffer)
-        general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil) { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let mock): print(mock.result)
-            }
-            group.leave()
+
+        do {
+            var file = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
+            mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
+            print(mock.result)
+        } catch let error as AppwriteError {
+            print(error.message)
         }
-        group.wait()
-        group.enter()
-        url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
-        buffer = ByteBuffer(data: try! Data(contentsOf: url))
-        file = File(name: "large_file.mp4", buffer: buffer)
-        general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil) { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let mock): print(mock.result)
-            }
-            group.leave()
+
+        do {
+            var url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
+            var buffer = ByteBuffer(data: try! Data(contentsOf: url))
+            var file = InputFile.fromBuffer(buffer, filename: "file.png", mimeType: "image/png")
+            mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
+            print(mock.result)
+        } catch let error as AppwriteError {
+            print(error.message)
         }
-        group.wait()
-        group.enter()
-        general.error400() { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let error): print(error.message)
-            }
-            group.leave()
+
+        do {
+            var url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
+            var buffer = ByteBuffer(data: try! Data(contentsOf: url))
+            var file = InputFile.fromBuffer(buffer, filename: "large_file.mp4", mimeType: "video/mp4")
+            mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
+            print(mock.result)
+        } catch let error as AppwriteError {
+            print(error.message)
         }
-        group.wait()
-        group.enter()
-        general.error500() { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let error): print(error.message)
-            }
-            group.leave()
+
+        do {
+            try await general.error400()
+        } catch let error as AppwriteError {
+            print(error.message)
         }
-        group.wait()
-        group.enter()
-        general.error502() { result in
-            switch result {
-            case .failure(let error): print(error.message)
-            case .success(let error): print((error as! Error).message)
-            }
-            group.leave()
+
+        do {
+            try await general.error500()
+        } catch {
+            print(error.localizedDescription)
         }
-        group.wait()
+
+        do {
+            try await general.error502()
+        } catch {
+            print(String(describing: error))
+        }
 
         wait(for: [expectation], timeout: 10.0)
-        print( realtimeResponse)
+        print(realtimeResponse)
+
+        mock = try await general.setCookie()
+        print(mock.result)
+
+        mock = try await general.getCookie()
+        print(mock.result)
+
+        try! await general.empty()
     }
 }
