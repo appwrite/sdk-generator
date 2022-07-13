@@ -8,7 +8,6 @@
 
 {% endif %}
 {% endfor %}
-        let payload: Payload = {};
 {% for parameter in method.parameters.query %}
         if (typeof {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
             payload['{{ parameter.name }}'] = {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" and parameter.type != "file" ) %}.toString(){% endif %};
