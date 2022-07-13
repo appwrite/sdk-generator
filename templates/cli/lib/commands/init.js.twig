@@ -50,14 +50,15 @@ const initProject = async () => {
 const initFunction = async () => {
   // TODO: Add CI/CD support (ID, name, runtime)
   let answers = await inquirer.prompt(questionsInitFunction)
+  let functionFolder = path.join(process.cwd(), 'functions');
 
-  if (!fs.existsSync(path.join(process.cwd(), 'functions'))) {
-    fs.mkdirSync(path.join(process.cwd(), 'functions'), {
+  if (!fs.existsSync(functionFolder)) {
+    fs.mkdirSync(functionFolder, {
       recursive: true
     });
   }
 
-  const functionDir = path.join(process.cwd(), 'functions', answers.name);
+  const functionDir = path.join(functionFolder, answers.name);
 
   if (fs.existsSync(functionDir)) {
     throw new Error(`( ${answers.name} ) already exists in the current directory. Please choose another name.`);
@@ -80,19 +81,19 @@ const initFunction = async () => {
 
   let gitPullCommands = `git sparse-checkout add ${answers.runtime.id}`;
 
-  // Force use CMD as powershell does not support &&
+  /* Force use CMD as powershell does not support && */
   if (process.platform == 'win32') {
     gitInitCommands = 'cmd /c "' + gitInitCommands + '"';
     gitPullCommands = 'cmd /c "' + gitPullCommands + '"';
   }
 
-  // Execute the child process but do not print any std output
+  /*  Execute the child process but do not print any std output */
   try {
     childProcess.execSync(gitInitCommands, { stdio: 'pipe', cwd: functionDir });
 
     childProcess.execSync(gitPullCommands, { stdio: 'pipe', cwd: functionDir });
   } catch (error) {
-    // Specialised errors with recommended actions to take
+    /* Specialised errors with recommended actions to take */
     if (error.message.includes('error: unknown option')) {
       throw new Error(`${error.message} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`)
     } else if (error.message.includes('is not recognized as an internal or external command,') || error.message.includes('command not found')) {
