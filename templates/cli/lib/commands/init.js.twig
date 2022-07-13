@@ -90,7 +90,6 @@ const initFunction = async () => {
   /*  Execute the child process but do not print any std output */
   try {
     childProcess.execSync(gitInitCommands, { stdio: 'pipe', cwd: functionDir });
-
     childProcess.execSync(gitPullCommands, { stdio: 'pipe', cwd: functionDir });
   } catch (error) {
     /* Specialised errors with recommended actions to take */
