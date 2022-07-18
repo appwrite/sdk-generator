@@ -50,8 +50,17 @@ const initProject = async () => {
 const initFunction = async () => {
   // TODO: Add CI/CD support (ID, name, runtime)
   let answers = await inquirer.prompt(questionsInitFunction)
+  let functionFolder = path.join(process.cwd(), 'functions');
 
-  if (fs.existsSync(path.join(process.cwd(), 'functions', answers.name))) {
+  if (!fs.existsSync(functionFolder)) {
+    fs.mkdirSync(functionFolder, {
+      recursive: true
+    });
+  }
+
+  const functionDir = path.join(functionFolder, answers.name);
+
+  if (fs.existsSync(functionDir)) {
     throw new Error(`( ${answers.name} ) already exists in the current directory. Please choose another name.`);
   }
 
@@ -66,20 +75,53 @@ const initFunction = async () => {
     parseOutput: false
   })
 
-  let command = `
-    mkdir -m 777 -p 'functions/${answers.name}' && \
-    cd 'functions/${answers.name}' && \
-    git init && \
-    git remote add -f origin https://github.com/{{ sdk.gitUserName }}/functions-starter && \
-    git config core.sparseCheckout true && \
-    echo '${answers.runtime.id}' >> .git/info/sparse-checkout && \ 
-    git pull origin main && \
-    rm -rf .git && \
-    mv ${answers.runtime.id}/* . && \
-    rm -rf ${answers.runtime.id}`;
+  fs.mkdirSync(functionDir, "777");
 
-  // Execute the child process but do not print any std output
-  childProcess.execSync(command, { stdio: 'pipe' });
+  let gitInitCommands = "git clone --depth 1 --sparse https://github.com/{{ sdk.gitUserName }}/functions-starter ."; // depth prevents fetching older commits reducing the amount fetched
+
+  let gitPullCommands = `git sparse-checkout add ${answers.runtime.id}`;
+
+  /* Force use CMD as powershell does not support && */
+  if (process.platform == 'win32') {
+    gitInitCommands = 'cmd /c "' + gitInitCommands + '"';
+    gitPullCommands = 'cmd /c "' + gitPullCommands + '"';
+  }
+
+  /*  Execute the child process but do not print any std output */
+  try {
+    childProcess.execSync(gitInitCommands, { stdio: 'pipe', cwd: functionDir });
+    childProcess.execSync(gitPullCommands, { stdio: 'pipe', cwd: functionDir });
+  } catch (error) {
+    /* Specialised errors with recommended actions to take */
+    if (error.message.includes('error: unknown option')) {
+      throw new Error(`${error.message} \n\nSuggestion: Try updating your git to the latest version, then trying to run this command again.`)
+    } else if (error.message.includes('is not recognized as an internal or external command,') || error.message.includes('command not found')) {
+      throw new Error(`${error.message} \n\nSuggestion: It appears that git is not installed, try installing git then trying to run this command again.`)
+    } else {
+      throw error;
+    }
+  }
+
+  fs.rmSync(path.join(functionDir, ".git"), { recursive: true });
+  const copyRecursiveSync = (src, dest) => {
+    let exists = fs.existsSync(src);
+    let stats = exists && fs.statSync(src);
+    let isDirectory = exists && stats.isDirectory();
+    if (isDirectory) {
+      if (!fs.existsSync(dest)) {
+        fs.mkdirSync(dest);
+      }
+
+      fs.readdirSync(src).forEach(function(childItemName) {
+        copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName));
+      });
+    } else {
+      fs.copyFileSync(src, dest);
+    }
+  };
+  copyRecursiveSync(path.join(functionDir, answers.runtime.id), functionDir);
+
+  fs.rmSync(`${functionDir}/${answers.runtime.id}`, { recursive: true, force: true });
 
   const readmePath = path.join(process.cwd(), 'functions', answers.name, 'README.md');
   const readmeFile = fs.readFileSync(readmePath).toString();
