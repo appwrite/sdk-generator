@@ -1,0 +1,79 @@
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+
+            if(!({{ parameter.name | caseCamel | escapeKeyword }} instanceof File)) {
+                throw new {{spec.title | caseUcfirst}}Exception('Parameter "{{ parameter.name | caseCamel | escapeKeyword }}" has to be a File.');
+            }
+
+            const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
+
+            if (size <= Service.CHUNK_SIZE) {
+                return await this.client.call('{{ method.method | caseLower }}', uri, {
+
+{% for parameter in method.parameters.header %}
+                    '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+                    '{{ key }}': '{{ header }}',
+{% endfor %}
+                }, payload);
+            }
+            let id = undefined;
+            let response = undefined;
+
+            const headers: { [header: string]: string } = {
+{% for parameter in method.parameters.header %}
+                '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+                '{{ key }}': '{{ header }}',
+{% endfor %}
+            }
+
+            let counter = 0;
+            const totalCounters = Math.ceil(size / Service.CHUNK_SIZE);
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+            if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
+                try {
+                    response = await this.client.call('GET', new URL(this.client.config.endpoint + path + '/' + {{ parameter.name }}), headers);
+                    counter = response.chunksUploaded;
+                } catch(e) {
+                }
+            }
+{% endif %}
+{% endfor %}
+
+            for (counter; counter < totalCounters; counter++) {
+                const start = (counter * Service.CHUNK_SIZE);
+                const end = Math.min((((counter * Service.CHUNK_SIZE) + Service.CHUNK_SIZE) - 1), size);
+
+                headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size
+
+                if (id) {
+                    headers['x-{{spec.title | caseLower }}-id'] = id;
+                }
+
+                const stream = {{ parameter.name | caseCamel | escapeKeyword }}.slice(start, end + 1);
+                payload['{{ parameter.name }}'] = new File([stream], {{ parameter.name | caseCamel | escapeKeyword }}.name);
+
+                response = await this.client.call('{{ method.method | caseLower }}', uri, headers, payload);
+
+                if (!id) {
+                    id = response['$id'];
+                }
+
+                if (onProgress) {
+                    onProgress({
+                        $id: response.$id,
+                        progress: Math.min((counter + 1) * Service.CHUNK_SIZE - 1, size) / size * 100,
+                        sizeUploaded: end,
+                        chunksTotal: response.chunksTotal,
+                        chunksUploaded: response.chunksUploaded
+                    });
+                }
+            }
+
+            return response;
+{% endif %}
+{% endfor %}

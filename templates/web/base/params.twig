@@ -1,0 +1,25 @@
+            let payload: Payload = {};
+{% if method.parameters.all | length %}
+{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
+{% if parameter.required %}
+            if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
+                throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
+            }
+
+{% endif %}
+{% endfor %}
+
+
+{% for parameter in method.parameters.query %}
+            if (typeof {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+                payload['{{ parameter.name }}'] = {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }};
+            }
+
+{% endfor %}
+{% for parameter in method.parameters.body %}
+            if (typeof {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+                payload['{{ parameter.name }}'] = {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }};
+            }
+
+{% endfor %}
+{% endif %}
