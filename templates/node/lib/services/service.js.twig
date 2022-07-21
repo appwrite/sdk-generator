@@ -91,6 +91,9 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
+{% if method.type == 'grahpql' %}
+            'x-{{ spec.title }}-graphql-packed': 'true',
+{% endif %}
         };
 
         let id = undefined;

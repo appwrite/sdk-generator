@@ -32,10 +32,12 @@ class {{ service.name | caseUcfirst }} extends Service {
 {{ include('dart/base/requests/file.twig') }}
 {% elseif method.type == 'location' %}
 {{ include('dart/base/requests/location.twig') }}
+{% elseif method.type == 'graphql' %}
+{{ include('dart/base/requests/graphql.twig') }}
 {% else %}
 {{ include('dart/base/requests/api.twig') }}
 {% endif %}
 
-    }
+    }}
 {% endfor %}
 }

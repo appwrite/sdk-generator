@@ -51,6 +51,9 @@ module {{spec.title | caseUcfirst}}
 {% for key, header in method.headers %}
                 "{{ key }}": '{{ header }}',
 {% endfor %}
+{% if method.type == 'grahpql' %}
+                "x-{{ spec.title }}-graphql-packed": "true",
+{% endif %}
             }
 
 {% if 'multipart/form-data' in method.consumes %}
