@@ -114,7 +114,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
-{% if method.type == 'grahpql' %}
+{% if method.type == 'graphql' %}
             'x-{{ spec.title }}-graphql-packed': 'true',
 {% endif %}
         };
