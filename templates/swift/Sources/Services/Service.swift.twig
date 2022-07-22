@@ -101,7 +101,7 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% else %}
         {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} headers: [String: String] = [
 {{ method.headers|map((header, key) => "            \"#{key}\": \"#{header}\"")|join(',\n')|raw }}{% if method.type == "graphql" %},
-            "x-{{ spec.title | caseLower }}-graphql-packed": "true"
+            "x-sdk-graphql": "true"
 {% endif %}
         ]
 {% if method.responseModel %}

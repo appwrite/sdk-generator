@@ -128,7 +128,7 @@ class {{ service.name | caseUcfirst }} : Service {
         val headers = mutableMapOf(
 {{ method.headers|map((header, key) => "            \"#{key}\" to \"#{header}\"")|join(',\n')|raw }},
 {% if method.type == "graphql" %}
-            "x-{{ spec.title | caseLower }}-graphql-packed" to true
+            "x-sdk-graphql" to true
 {% endif %}
         )
 {% if method.responseModel %}

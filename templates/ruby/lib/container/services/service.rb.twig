@@ -52,7 +52,7 @@ module {{spec.title | caseUcfirst}}
                 "{{ key }}": '{{ header }}',
 {% endfor %}
 {% if method.type == 'graphql' %}
-                "x-{{ spec.title | caseLower }}-graphql-packed": "true",
+                "x-sdk-graphql": "true",
 {% endif %}
             }
 

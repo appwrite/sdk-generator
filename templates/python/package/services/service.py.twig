@@ -73,7 +73,7 @@ class {{ service.name | caseUcfirst }}(Service):
             '{{ key }}': '{{ header }}',
 {% endfor %}
 {% if method.type == 'graphql' %}
-            'x-{{ spec.title | caseLower }}-graphql-packed': 'true',
+            'x-sdk-graphql': 'true',
 {% endif %}
         }, params, param_name, on_progress, upload_id)
 {% else %}
@@ -86,7 +86,7 @@ class {{ service.name | caseUcfirst }}(Service):
             '{{ key }}': '{{ header }}',
 {% endfor %}
 {% if method.type == 'graphql' %}
-            'x-{{ spec.title | caseLower }}-graphql-packed': 'true',
+            'x-sdk-graphql': 'true',
 {% endif %}
         }, params)
 {% endif %}
