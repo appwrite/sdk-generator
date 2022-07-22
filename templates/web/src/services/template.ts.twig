@@ -59,13 +59,13 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% for parameter in method.parameters.query %}
             if (typeof {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-                payload['{{ parameter.name }}'] = {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }};
-            }
+                payload['{{ parameter.name }}'] = {% if method.type == 'graphql' %}JSON.stringify({% endif %}{% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}{% if method.type == 'graphql' %}){% endif %};
+            %}
 
 {% endfor %}
 {% for parameter in method.parameters.body %}
             if (typeof {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-                payload['{{ parameter.name }}'] = {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }};
+                payload['{{ parameter.name }}'] = {% if method.type == 'graphql' %}JSON.stringify({% endif %}{% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}{% if method.type == 'graphql' %}){% endif %};
             }
 
 {% endfor %}
