@@ -6,6 +6,6 @@
             '{{ key }}' => '{{ header }}',
 {% endfor %}
 {% if method.type == 'graphql' %}
-            'x-{{ spec.title }}-graphql-packed': 'true',
+            'x-{{ spec.title | caseLower }}-graphql-packed': 'true',
 {% endif %}
         ], $params);

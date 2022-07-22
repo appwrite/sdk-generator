@@ -125,7 +125,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 '{{ key }}': '{{ header }}',
 {% endfor %}
 {% if method.type == 'graphql' %}
-                'x-{{ spec.title }}-graphql-packed': 'true',
+                'x-{{ spec.title | caseLower }}-graphql-packed': 'true',
 {% endif %}
             }
 
@@ -185,7 +185,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 '{{ key }}': '{{ header }}',
 {% endfor %}
 {% if method.type == 'graphql' %}
-                'x-{{ spec.title }}-graphql-packed': 'true',
+                'x-{{ spec.title | caseLower }}-graphql-packed': 'true',
 {% endif %}
             }, payload);
 {% endif %}
