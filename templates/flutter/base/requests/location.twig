@@ -1,6 +1,6 @@
 {% import 'flutter/base/utils.twig' as utils %}
         final Map<String, dynamic> params = {
-            {{ utils.map_parameter(method.parameters.query) }}
+            {{- utils.map_parameter(method.parameters.query) -}}
             {{ utils.map_parameter(method.parameters.body) }}
 {% if method.security|length > 0 %}{% for node in method.security %}
 {% for key,header in node|keys %}
@@ -9,6 +9,19 @@
 {% endfor %}
 {% endif %}
         };
+        final uri = Uri.parse(client.endpoint + path).replace(queryParameters: params);
 
-        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, responseType: ResponseType.bytes);
+        return uri;
+    }
+
+    Future<Uint8List> {{ method.name | caseCamel }}Bytes({{ utils.method_parameters(method.parameters.all | filter((param) => not param.isGlobal), method.consumes) }}) async {
+        final uri = {{ method.name | caseCamel }}(
+        {%- for parameter in method.parameters.all | filter((param) => not param.isGlobal) ~%}
+            {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter.name | caseCamel | overrideIdentifier }},
+        {%- endfor ~%}
+        );
+
+        final path = "/" + uri.pathSegments.sublist(1).join("/");
+
+        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: uri.queryParameters, responseType: ResponseType.bytes);
         return res.data;
