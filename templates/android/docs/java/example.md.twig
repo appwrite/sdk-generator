@@ -4,6 +4,9 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }}
+{% if method.type == "upload" %}
+import {{ sdk.namespace | caseDot }}.models.InputFile
+{% endif %}
 
 public class MainActivity extends AppCompatActivity {
 
