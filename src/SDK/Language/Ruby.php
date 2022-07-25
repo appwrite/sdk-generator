@@ -281,7 +281,7 @@ class Ruby extends Language {
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.fromPath('dir/file.png')";
+                    $output .= "InputFile.from_path('dir/file.png')";
                     break;
             }
         }
@@ -302,7 +302,7 @@ class Ruby extends Language {
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.fromPath('dir/file.png')";
+                    $output .= "InputFile.from_path('dir/file.png')";
                     break;
             }
         }

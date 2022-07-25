@@ -1,5 +1,8 @@
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }}
+{% if method.type == "upload" %}
+import {{ sdk.namespace | caseDot }}.models.InputFile
+{% endif %}
 
 public void main() {
     Client client = Client(context)

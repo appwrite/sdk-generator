@@ -1,5 +1,8 @@
 from {{ spec.title | caseSnake }}.client import Client
 from {{ spec.title | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
+{% if method.type == "upload" %}
+from {{ spec.title | caseSnake }}.input_file import InputFile
+{% endif %}
 
 client = Client()
 
