@@ -131,14 +131,7 @@ open class {{ service.name | caseUcfirst }}: Service {
             onProgress: onProgress
         )
 {% else %}
-        return try await client.call(
-            method: "{{ method.method | caseUpper }}",
-            path: path,
-            headers: headers,
-            params: params{% if method.responseModel %},
-            converter: converter
-{% endif %}
-        )
+{{include('swift/base/requests/api.twig')}}
 {% endif %}
 {% endif %}
     }
