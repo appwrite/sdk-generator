@@ -8,7 +8,7 @@ class KotlinJava8Test extends Base
     protected string $class = 'Appwrite\SDK\Language\Kotlin';
     protected array $build = [
         'mkdir -p tests/sdks/kotlin/src/test/kotlin',
-        'cp tests/languages/kotlin/ServiceTest.kt tests/sdks/kotlin/src/test/kotlin/ServiceTest.kt',
+        'cp tests/languages/kotlin/Tests.kt tests/sdks/kotlin/src/test/kotlin/Tests.kt',
         'chmod +x tests/sdks/kotlin/gradlew',
     ];
     protected string $command =

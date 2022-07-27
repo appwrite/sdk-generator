@@ -1,6 +1,9 @@
 <?php
 
 use {{ spec.title | caseUcfirst }}\Client;
+{% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
+use {{ spec.title | caseUcfirst }}\InputFile;
+{% endif %}
 use {{ spec.title | caseUcfirst }}\Services\{{ service.name | caseUcfirst }};
 
 $client = new Client();
