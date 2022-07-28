@@ -19,69 +19,12 @@ class {{ service.name | caseUcfirst }}(Service):
 {% if method.title %}
         """{{ method.title }}"""
 
-{% endif %}
-{% for parameter in method.parameters.all  %}
-{% if parameter.required %}
-        if {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }} is None:
-            raise {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | escapeKeyword | caseSnake }}"')
-
-{% endif %}
-{% endfor %}
-        params = {}
+{% endif %}        
         path = '{{ method.path }}'
-{% for parameter in method.parameters.path %}
-        path = path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }})
-{% endfor %}
-
-{% for parameter in method.parameters.query %}
-        params['{{ parameter.name }}'] = {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }}
-{% endfor %}
-{% for parameter in method.parameters.body %}
-{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
-        params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
-{% else %}
-        params['{{ parameter.name }}'] = {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }}
-{% endif %}
-{% endfor %}
-{% for parameter in method.parameters.formData %}
-{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
-        params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
-{% else %}
-        params['{{ parameter.name }}'] = {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }}
-{% endif %}
-{% endfor %}
+{{ include('python/base/params.twig') }}
 {% if 'multipart/form-data' in method.consumes %}
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
-        param_name = '{{ parameter.name }}'
-
-{% endif %}
-{% endfor %}
-
-        upload_id = ''
-{% for parameter in method.parameters.all %}
-{% if parameter.isUploadID %}
-        upload_id = {{ parameter.name | escapeKeyword | caseSnake }}
-{% endif %}
-{% endfor %}
-
-        return self.client.chunked_upload(path, {
-{% for parameter in method.parameters.header %}
-            '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
-{% endfor %}
-{% for key, header in method.headers %}
-            '{{ key }}': '{{ header }}',
-{% endfor %}
-        }, params, param_name, on_progress, upload_id)
+{{ include('python/base/requests/file.twig') }}
 {% else %}
-
-        return self.client.call('{{ method.method | caseLower }}', path, {
-{% for parameter in method.parameters.header %}
-            '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
-{% endfor %}
-{% for key, header in method.headers %}
-            '{{ key }}': '{{ header }}',
-{% endfor %}
-        }, params)
+{{ include('python/base/requests/api.twig') }}
 {% endif %}
 {% endfor %}

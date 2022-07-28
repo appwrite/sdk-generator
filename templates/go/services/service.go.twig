@@ -30,24 +30,12 @@ func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({% 
 {% if method.parameters.path|length > 0 %}
 	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
 	path := r.Replace("{{ method.path }}")
+
 {% else %}
 	path := "{{ method.path }}"
+	
 {% endif %}
-
-	params := map[string]interface{}{
-{% for parameter in method.parameters.query %}
-		"{{ parameter.name }}": {{ parameter.name | caseUcfirst }},
-{% endfor %}
-{% for parameter in method.parameters.body %}
-		"{{ parameter.name }}": {{ parameter.name | caseUcfirst }},
-{% endfor %}
-	}
-
-	headers := map[string]interface{}{
-{% for key, header in method.headers %}
-		"{{ key }}": "{{ header }}",
-{% endfor %}
-	}
-	return srv.client.Call("{{ method.method | caseUpper }}", path, headers, params)
+{{include('go/base/params.twig')}}
+{{include('go/base/requests/api.twig')}}
 }
 {% endfor %}
