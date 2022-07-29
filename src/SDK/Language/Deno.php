@@ -131,6 +131,7 @@ class Deno extends JS
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
+        $name       = $param['name'] ?? '';
 
         $output = '';
 
@@ -151,7 +152,10 @@ class Deno extends JS
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.fromPath('/path/to/file.png', 'file.png')";
+                    $output .= match($name){
+                        'code' => "InputFile.fromPath('dir/code.tar.gz', 'code.tar.gz')",
+                        default => "InputFile.fromPath('dir/file.png', 'file.png')"
+                    };
                     break;
             }
         }
@@ -170,7 +174,10 @@ class Deno extends JS
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.fromPath('/path/to/file.png', 'file.png')";
+                    $output .= match($name){
+                        'code' => "InputFile.fromPath('dir/code.tar.gz', 'code.tar.gz')",
+                        default => "InputFile.fromPath('dir/file.png', 'file.png')"
+                    };
                     break;
             }
         }

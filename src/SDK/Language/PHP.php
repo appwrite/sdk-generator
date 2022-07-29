@@ -298,6 +298,7 @@ class PHP extends Language {
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
+        $name       = $param['name'] ?? '';
 
         $output = '';
 
@@ -316,7 +317,10 @@ class PHP extends Language {
                     $output .= '[]';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile::withPath('file.png')";
+                    $output .= match($name){
+                        'code' => "InputFile::withPath('dir/code.tar.gz')",
+                        default => "InputFile::withPath('dir/file.png')"
+                    };
                     break;
             }
         }
@@ -337,7 +341,10 @@ class PHP extends Language {
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile::withPath('file.png')";
+                    $output .= match($name){
+                        'code' => "InputFile::withPath('dir/code.tar.gz')",
+                        default => "InputFile::withPath('dir/file.png')"
+                    };
                     break;
             }
         }

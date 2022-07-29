@@ -282,6 +282,7 @@ class Python extends Language {
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
+        $name       = $param['name'] ?? '';
 
         $output = '';
 
@@ -302,7 +303,10 @@ class Python extends Language {
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.from_path('file.png')";
+                    $output .= match($name){
+                        'code' => "InputFile.from_path('dir/code.tar.gz')",
+                        default => "InputFile.from_path('dir/file.png')"
+                    };
                     break;
             }
         }
@@ -321,7 +325,10 @@ class Python extends Language {
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.from_path('file.png')";
+                    $output .= match($name){
+                        'code' => "InputFile.from_path('dir/code.tar.gz')",
+                        default => "InputFile.from_path('dir/file.png')"
+                    };
                     break;
             }
         }

@@ -390,13 +390,17 @@ class Swift extends Language {
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
+        $name       = $param['name'] ?? '';
 
         $output = '';
 
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'InputFile.fromPath("file.png")';
+                    $output .= match($name){
+                        'code' => "InputFile.fromPath('dir/code.tar.gz')",
+                        default => "InputFile.fromPath('dir/file.png')"
+                    };
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:

@@ -212,13 +212,17 @@ class Dart extends Language {
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
+        $name       = $param['name'] ?? '';
 
         $output = '';
 
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')';
+                    $output .= match($name){
+                        'code' => "InputFile(path: 'dir/code.tar.gz', filename: 'code.tar.gz')",
+                        default => "InputFile(path: 'dir/file.png', filename: 'file.png')"
+                    };
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:

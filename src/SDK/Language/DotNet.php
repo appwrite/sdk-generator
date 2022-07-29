@@ -231,13 +231,17 @@ class DotNet extends Language {
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
+        $name       = $param['name'] ?? '';
 
         $output = '';
 
         if(empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'new File("./path-to-files/image.jpg")';
+                    $output .= match($name){
+                        'code' => 'new File("dir/code.tar.gz")',
+                        default => 'new File("dir/file.png")'
+                    };
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
