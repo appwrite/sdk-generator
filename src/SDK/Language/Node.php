@@ -156,8 +156,8 @@ class Node extends JS
                     break;
                 case self::TYPE_FILE:
                     $output .= match($name){
-                        'code' => "InputFile.fromPath('dir/code.tar.gz', 'code.tar.gz')",
-                        default => "InputFile.fromPath('dir/file.png', 'file.png')"
+                        'code' => "sdk.InputFile.fromPath('dir/code.tar.gz', 'code.tar.gz')",
+                        default => "sdk.InputFile.fromPath('dir/file.png', 'file.png')"
                     };
                     break;
             }
@@ -178,8 +178,8 @@ class Node extends JS
                     break;
                 case self::TYPE_FILE:
                     $output .= match($name){
-                        'code' => "InputFile.fromPath('dir/code.tar.gz', 'code.tar.gz')",
-                        default => "InputFile.fromPath('dir/file.png', 'file.png')"
+                        'code' => "sdk.InputFile.fromPath('dir/code.tar.gz', 'code.tar.gz')",
+                        default => "sdk.InputFile.fromPath('dir/file.png', 'file.png')"
                     };
                     break;
             }
