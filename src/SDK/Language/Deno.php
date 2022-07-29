@@ -153,8 +153,8 @@ class Deno extends JS
                     break;
                 case self::TYPE_FILE:
                     $output .= match($name){
-                        'code' => "InputFile.fromPath('dir/code.tar.gz', 'code.tar.gz')",
-                        default => "InputFile.fromPath('dir/file.png', 'file.png')"
+                        'code' => "'dir/code.tar.gz'",
+                        default => "'dir/file.png'"
                     };
                     break;
             }
@@ -175,8 +175,8 @@ class Deno extends JS
                     break;
                 case self::TYPE_FILE:
                     $output .= match($name){
-                        'code' => "InputFile.fromPath('dir/code.tar.gz', 'code.tar.gz')",
-                        default => "InputFile.fromPath('dir/file.png', 'file.png')"
+                        'code' => "'dir/code.tar.gz'",
+                        default => "'dir/file.png'"
                     };
                     break;
             }
