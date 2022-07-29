@@ -398,8 +398,8 @@ class Swift extends Language {
             switch ($type) {
                 case self::TYPE_FILE:
                     $output .= match($name){
-                        'code' => "InputFile.fromPath('dir/code.tar.gz')",
-                        default => "InputFile.fromPath('dir/file.png')"
+                        'code' => 'InputFile.fromPath("dir/code.tar.gz")',
+                        default => 'InputFile.fromPath("dir/file.png")'
                     };
                     break;
                 case self::TYPE_NUMBER:

@@ -1,7 +1,7 @@
 require 'appwrite'
 
 client = Appwrite::Client.new
-{% if method.type == "upload" %}
+{% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
 InputFile = Appwrite::InputFile
 {% endif %}
 
