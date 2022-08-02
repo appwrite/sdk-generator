@@ -8,7 +8,7 @@ export namespace Models {
         /**
          * {{ property.description }}
          */
-        {{ property.name | escapeKeyword }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec) | raw }};
+        {{ property.name }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec) | raw }};
 {% endfor %}
 {% if definition.additionalProperties %}        [key: string]: any;
 {% endif %}
