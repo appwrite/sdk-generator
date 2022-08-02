@@ -1,3 +1,0 @@
-{% macro resultType(namespace, method) %}
-{% if method.type == "webAuth" %}Bool{% elseif method.type == "location" %}ByteArray{% elseif not method.responseModel or method.responseModel == 'any' %}Any{% else %}{{ namespace | caseDot}}.models.{{method.responseModel | caseUcfirst}}{% endif %}
-{% endmacro %}

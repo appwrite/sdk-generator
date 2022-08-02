@@ -1,3 +1,0 @@
-{% macro methodNeedsSecurityParameters(method) %}
-{% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
-{% endmacro %}

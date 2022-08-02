@@ -1,10 +1,10 @@
-{% import 'kotlin/base/macros/resultType.twig' as result%}
+{% import 'kotlin/base/utils.twig' as utils%}
         return client.call(
             "{{ method.method | caseUpper }}",
             path,
             headers,
             params,
-            responseType = {{ result.resultType(sdk.namespace, method) }}::class.java,
+            responseType = {{ utils.resultType(sdk.namespace, method) }}::class.java,
 {% if method.responseModel %}
             converter,
 {% endif %}

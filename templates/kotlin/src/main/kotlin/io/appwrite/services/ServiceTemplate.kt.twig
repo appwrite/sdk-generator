@@ -1,6 +1,4 @@
-{% import 'kotlin/base/macros/parameter.twig' as parameters %}
-{% import 'kotlin/base/macros/methodNeedsSecurityParameters.twig' as securityParameters %}
-{% import 'kotlin/base/macros/resultType.twig' as result %}
+{% import 'kotlin/base/utils.twig' as utils %}
 package {{ sdk.namespace | caseDot }}.services
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.models.*
@@ -55,10 +53,10 @@ class {{ service.name | caseUcfirst }} : Service {
 
         val params = mutableMapOf<String, Any?>(
 {% for parameter in method.parameters.query | merge(method.parameters.body) %}
-            "{{ parameter.name }}" to {{ parameter.name | caseCamel }}{% if not loop.last or securityParameters.methodNeedsSecurityParameters(method) %},{% endif %}
+            "{{ parameter.name }}" to {{ parameter.name | caseCamel }}{% if not loop.last or utils.methodNeedsSecurityParameters(method) %},{% endif %}
 
 {% endfor %}
-{% if securityParameters.methodNeedsSecurityParameters(method) %}
+{% if utils.methodNeedsSecurityParameters(method) %}
 {% for node in method.security %}
 {% for key,header in node|keys %}
             "{{header|caseLower}}" to client.config["{{header|caseLower}}"]{% if not loop.last %},{% endif %}
@@ -115,11 +113,11 @@ class {{ service.name | caseUcfirst }} : Service {
 {{ method.headers|map((header, key) => "            \"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
         )
 {% if method.responseModel %}
-        val converter: (Map<String, Any>) -> {{ result.resultType(sdk.namespace, method) }} = {
+        val converter: (Map<String, Any>) -> {{ utils.resultType(sdk.namespace, method) }} = {
 {% if method.responseModel == 'any' %}
             it
 {% else %}
-            {{ result.resultType(sdk.namespace, method) }}.from(map = it)
+            {{ utils.resultType(sdk.namespace, method) }}.from(map = it)
 {% endif %}
         }
 {% endif %}
