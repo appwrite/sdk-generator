@@ -9,7 +9,7 @@ class Swagger2 extends Spec
     /**
      * @var array
      */
-    private array $serviceParams = [];
+    // private array $serviceParams = [];
 
     /**
      * @return string
@@ -138,7 +138,7 @@ class Swagger2 extends Spec
     public function getMethods($service)
     {
         $list = [];
-        $serviceParams= [];
+        // $serviceParams= [];
         $security = $this->getAttribute('securityDefinitions', []);
         $paths = $this->getAttribute('paths', []);
 
@@ -222,9 +222,9 @@ class Swagger2 extends Spec
 
                         $param['default'] = (is_array($param['default'])) ? json_encode($param['default']) : $param['default'];
 
-                        if(($parameter['x-global'] ?? false)) {
-                            $serviceParams[$param['name']] = $param;
-                        }
+                        // if(($parameter['x-global'] ?? false)) {
+                        //     $serviceParams[$param['name']] = $param;
+                        // }
 
                         switch ($parameter['in']) {
                             case 'header':
@@ -282,7 +282,7 @@ class Swagger2 extends Spec
             }
         }
 
-        $this->serviceParams[$service] = $serviceParams;
+        // $this->serviceParams[$service] = $serviceParams;
 
         return $list;
     }
