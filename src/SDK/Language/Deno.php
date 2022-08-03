@@ -93,34 +93,31 @@ class Deno extends JS
         ];
     }
 
-   /**
-     * @param $type
+    /**
+     * @param array $parameter
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'number';
-            break;
             case self::TYPE_STRING:
                 return 'string';
-            break;
             case self::TYPE_FILE:
                 return 'InputFile';
-            break;
             case self::TYPE_BOOLEAN:
                 return 'boolean';
-            break;
             case self::TYPE_ARRAY:
+                if (!empty($parameter['array']['type'])) {
+                    return $this->getTypeName($parameter['array']) . '[]';
+                }
                 return 'string[]';
-            break;
             case self::TYPE_OBJECT:
                 return 'object';
-            break;
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     /**

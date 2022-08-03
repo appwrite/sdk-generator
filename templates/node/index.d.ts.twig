@@ -7,7 +7,7 @@
             {{property.sub_schema | caseUcfirst}}{% if property.type == 'array' %}[]{% endif %}
         {% endif %}
     {% else %}
-        {{property.type | typeName}}
+        {{property | typeName}}
     {% endif %}
 {% endapply %}
 {% endmacro %}
@@ -164,24 +164,24 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 
 {% for service in spec.services %}
   export class {{ service.name | caseUcfirst }} extends Service {
-    constructor(client: Client{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}{% if not parameter.required %}|null{% endif %}{% endfor %});
+    constructor(client: Client{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName }}{% if not parameter.required %}|null{% endif %}{% endfor %});
     
 {% if service.globalParams | length %}
 {% for parameter in service.globalParams %}
     /**
      * Get {{ parameter.name }}.
      *
-     * @returns {{ '{' }}{{ parameter.type | typeName }}{{ '}' }}
+     * @returns {{ '{' }}{{ parameter | typeName }}{{ '}' }}
      */
-    get{{ parameter.name | caseUcfirst | escapeKeyword }}(): {{ parameter.type | typeName }};
+    get{{ parameter.name | caseUcfirst | escapeKeyword }}(): {{ parameter | typeName }};
 
     /**
      * Set {{ parameter.name }}.
      *
-     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
+     * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
      * @returns {void}
      */
-    set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}): void;
+    set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName }}): void;
 
 {% endfor %}
 {% endif %}
@@ -196,12 +196,12 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
      *
 {% endif %}
 {% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
-     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
+     * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {Promise}
      */
-    {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Buffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}>;
+    {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Buffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}>;
 {% endfor %}
   }
 {% endfor %}
