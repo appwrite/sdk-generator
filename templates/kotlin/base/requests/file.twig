@@ -1,3 +1,4 @@
+{% import 'kotlin/base/utils.twig' as utils %}
         val idParamName: String? = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}null{% endif %}
 
 {% for parameter in method.parameters.all %}
@@ -9,7 +10,7 @@
             path,
             headers,
             params,
-            responseType = {{ result.resultType(sdk.namespace, method) }}::class.java,
+            responseType = {{ utils.resultType(sdk.namespace, method) }}::class.java,
 {% if method.responseModel %}
             converter,
 {% endif %}

@@ -43,12 +43,12 @@ class {{ service.name | caseUcfirst }} : Service {
 {% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description }}
 {% endfor %}
-     * {% if method.type != "webAuth" %}@return [{{ result.resultType(sdk.namespace, method) }}]{% endif %}
+     * {% if method.type != "webAuth" %}@return [{{ utils.resultType(sdk.namespace, method) }}]{% endif %}
      
      */
     @JvmOverloads
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ parameters.method_parameters(method.parameters, method.consumes) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: {{ result.resultType(sdk.namespace, method) }}{% endif %} {
+    suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ utils.method_parameters(method.parameters, method.consumes) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: {{ utils.resultType(sdk.namespace, method) }}{% endif %} {
         val path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %}
 
         val params = mutableMapOf<String, Any?>(
