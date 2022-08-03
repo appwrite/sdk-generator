@@ -7,39 +7,12 @@ const { promisify } = require('util');
 const fs = require('fs');
 
 class {{ service.name | caseUcfirst }} extends Service {
-{% if service.globalParams | length %}
-{% for parameter in service.globalParams %}
-    {{ parameter.name | caseCamel | escapeKeyword }};
-    /**
-     * Set {{ parameter.name }}.
-     *
-     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
-     *
-     * @return void
-     */
-     set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }})
-     {
-        this.{{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }};
-     }
-    /**
-     * Get {{ parameter.name }}.
-     *
-     * @return {{ parameter.type | typeName }}
-     */
-     get{{ parameter.name | caseUcfirst | escapeKeyword }}()
-     {
-        return this.{{ parameter.name | caseCamel | escapeKeyword }};
-     }
-{% endfor %}
-     constructor(client, {% for parameter in service.globalParams %} {{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
+
+     constructor(client)
      {
         super(client);
-
-{% for parameter in service.globalParams %}
-        this.{{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }};
-{% endfor %}
      }
-{% endif %}
+
 {% for method in service.methods %}
 
     /**

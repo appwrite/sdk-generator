@@ -9,30 +9,11 @@ use {{ spec.title | caseUcfirst }}\InputFile;
 
 class {{ service.name | caseUcfirst }} extends Service
 {
-{% if service.globalParams | length %}
-{% for parameter in service.globalParams %}
-     protected {{ parameter.type | typeName }} ${{ parameter.name | caseCamel | escapeKeyword }};
-
-     public function set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}): void
-     {
-          $this->{{ parameter.name | caseCamel | escapeKeyword }} = ${{ parameter.name | caseCamel | escapeKeyword }};
-     }
-
-     public function get{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}): {{ parameter.type | typeName }}
-     {
-          return $this->{{ parameter.name | caseCamel | escapeKeyword }};
-     }
-{% endfor %}
-
-     public function __construct(Client $client, {% for parameter in service.globalParams %} {{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
+     public function __construct(Client $client)
      {
           $this->client = $client;
-{% for parameter in service.globalParams %}
-          $this->{{ parameter.name | caseCamel | escapeKeyword }} = ${{ parameter.name | caseCamel | escapeKeyword }};
-{% endfor %}
      }
 
-{% endif %}
 {% for method in service.methods %}
     /**
      * {{ method.title }}

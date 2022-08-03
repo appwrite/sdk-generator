@@ -10,21 +10,12 @@ import NIO
 import {{spec.title | caseUcfirst}}Models
 
 open class {{ service.name | caseUcfirst }}: Service {
-{% if service.globalParams | length %}
-{% for parameter in service.globalParams %}
-    var {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}{% if not parameter.required %}?{% endif %}
-{% endfor %}
 
-
-    public init(_ client: Client, {% for parameter in service.globalParams %}_ {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
+    public init(_ client: client)
     {
-{% for parameter in service.globalParams %}
-        self.{{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }}
-{% endfor %}
         super.init(client)
     }
 
-{% endif %}
 {% for method in service.methods %}
     ///
     /// {{ method.title }}
