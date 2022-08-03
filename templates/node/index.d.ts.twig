@@ -195,13 +195,13 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 {{ method.description|comment1 }}
      *
 {% endif %}
-{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
+{% for parameter in method.parameters.all %}
      * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel }}
 {% endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {Promise}
      */
-    {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Buffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}>;
+    {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Buffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}>;
 {% endfor %}
   }
 {% endfor %}
