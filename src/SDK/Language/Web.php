@@ -54,6 +54,12 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/permissions.ts',
+                'template'      => 'web/src/permissions.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/query.ts',
                 'template'      => 'web/src/query.ts.twig',
                 'minify'        => false,

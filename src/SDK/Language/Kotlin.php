@@ -356,6 +356,12 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Permissions.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Permissions.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Query.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/Query.kt.twig',
                 'minify'        => false,

@@ -1,0 +1,59 @@
+module {{spec.title | caseUcfirst}}
+    class Permissions
+        class << Permissions
+
+            def from(read = [], write = [], create = [], update = [], delete = [], admin = [])
+                permissions = []
+                permissions << Permissions.read(read) unless read.empty?
+                permissions << Permissions.write(write) unless write.empty?
+                permissions << Permissions.create(create) unless create.empty?
+                permissions << Permissions.update(update) unless update.empty?
+                permissions << Permissions.delete(delete) unless delete.empty?
+                permissions << Permissions.admin(admin) unless admin.empty?
+                permissions
+            end
+
+            def read(*permissions)
+                if permissions.empty?
+                    raise {{ spec.title | caseUcfirst }}::Exception.new('At least one permission must be provided')
+                end
+                return "read(#{permissions.join(",")})"
+            end
+
+            def write(*permissions)
+                if permissions.empty?
+                    raise {{ spec.title | caseUcfirst }}::Exception.new('At least one permission must be provided')
+                end
+                return "write(#{permissions.join(",")})"
+            end
+
+            def create(*permissions)
+                if permissions.empty?
+                    raise {{ spec.title | caseUcfirst }}::Exception.new('At least one permission must be provided')
+                end
+                return "create(#{permissions.join(",")})"
+            end
+
+            def update(*permissions)
+                if permissions.empty?
+                    raise {{ spec.title | caseUcfirst }}::Exception.new('At least one permission must be provided')
+                end
+                return "update(#{permissions.join(",")})"
+            end
+
+            def delete(*permissions)
+                if permissions.empty?
+                    raise {{ spec.title | caseUcfirst }}::Exception.new('At least one permission must be provided')
+                end
+                return "delete(#{permissions.join(",")})"
+            end
+
+            def admin(*permissions)
+                if permissions.empty?
+                    raise {{ spec.title | caseUcfirst }}::Exception.new('At least one permission must be provided')
+                end
+                return "admin(#{permissions.join(",")})"
+            end
+        end
+    end
+end

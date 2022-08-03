@@ -59,6 +59,12 @@ class Node extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/permissions.js',
+                'template'      => 'node/lib/permissions.js.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/query.js',
                 'template'      => 'node/lib/query.js.twig',
                 'minify'        => false,

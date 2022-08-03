@@ -154,14 +154,20 @@ class Swift extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/File.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/InputFile.swift',
                 'template'      => 'swift/Sources/Models/InputFile.swift.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/Query.swift',
-                'template'      => 'swift/Sources/Models/Query.swift.twig',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Permissions.swift',
+                'template'      => 'swift/Sources/Permissions.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Query.swift',
+                'template'      => 'swift/Sources/Query.swift.twig',
                 'minify'        => false,
             ],
             [

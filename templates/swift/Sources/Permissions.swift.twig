@@ -1,0 +1,100 @@
+public class Permissions {
+
+    public static func from(
+        read: [String] = [],
+        write: [String] = [],
+        create: [String] = [],
+        update: [String] = [],
+        delete: [String] = [],
+        admin: [String] = [],
+    ) -> [String] {
+        let permissions = []
+
+        if read.count > 0 {
+            permissions.append(Permissions.read(read))
+        }
+        if write.count > 0 {
+            permissions.append(Permissions.write(write))
+        }
+        if create.count > 0 {
+            permissions.append(Permissions.create(create))
+        }
+        if update.count > 0 {
+            permissions.append(Permissions.update(update))
+        }
+        if delete.count > 0 {
+            permissions.append(Permissions.delete(delete))
+        }
+        if admin.count > 0 {
+            permissions.append(Permissions.admin(admin))
+        }
+
+        return permissions
+    }
+
+    public static func read(_ permissions: [String]) -> String {
+        if permissions.count == 0 {
+            throw {{ spec.title | caseUcfirst }}Error(message: "At least one permission must be provided.")
+        }
+        return "read(\(permissions.joined(separator: ","))"
+    }
+
+    public static func read(_ permissions: String...) -> String {
+        return Permissions.read(permissions)
+    }
+
+    public static func write(_ permissions: [String]) -> String {
+        if permissions.count == 0 {
+            throw {{ spec.title | caseUcfirst }}Error(message: "At least one permission must be provided.")
+        }
+        return "write(\(permissions.joined(separator: ","))"
+    }
+
+    public static func write(_ permissions: String...) -> String {
+        return Permissions.write(permissions)
+    }
+
+    public static func create(_ permissions: [String]) -> String {
+        if permissions.count == 0 {
+            throw {{ spec.title | caseUcfirst }}Error(message: "At least one permission must be provided.")
+        }
+        return "create(\(permissions.joined(separator: ","))"
+    }
+
+    public static func create(_ permissions: String...) -> String {
+        return Permissions.create(permissions)
+    }
+
+    public static func update(_ permissions: [String]) -> String {
+        if permissions.count == 0 {
+            throw {{ spec.title | caseUcfirst }}Error(message: "At least one permission must be provided.")
+        }
+        return "update(\(permissions.joined(separator: ","))"
+    }
+
+    public static func update(_ permissions: String...) -> String {
+        return Permissions.update(permissions)
+    }
+
+    public static func delete(_ permissions: [String]) -> String {
+        if permissions.count == 0 {
+            throw {{ spec.title | caseUcfirst }}Error(message: "At least one permission must be provided.")
+        }
+        return "delete(\(permissions.joined(separator: ","))"
+    }
+
+    public static func delete(_ permissions: String...) -> String {
+        return Permissions.delete(permissions)
+    }
+
+    public static func admin(_ permissions: [String]) -> String {
+        if permissions.count == 0 {
+            throw {{ spec.title | caseUcfirst }}Error(message: "At least one permission must be provided.")
+        }
+        return "admin(\(permissions.joined(separator: ","))"
+    }
+
+    public static func admin(_ permissions: String...) -> String {
+        return Permissions.admin(permissions)
+    }
+}

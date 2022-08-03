@@ -32,6 +32,12 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/permissions.ts',
+                'template'      => 'deno/src/permissions.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/query.ts',
                 'template'      => 'deno/src/query.ts.twig',
                 'minify'        => false,

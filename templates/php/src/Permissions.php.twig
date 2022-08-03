@@ -1,0 +1,105 @@
+<?php
+
+namespace {{ spec.title | caseUcfirst }};
+
+class Permissions
+{
+    public static function from(
+        array $read = [],
+        array $write = [],
+        array $create = [],
+        array $update = [],
+        array $delete = [],
+        array $admin = []
+    ): array
+    {
+        $permissions = [];
+
+        if (!empty($read)) {
+            $permissions[] = self::read(...$read);
+        }
+        if (!empty($write)) {
+            $permissions[] = self::write(...$write);
+        }
+        if (!empty($create)) {
+            $permissions[] = self::create(...$create);
+        }
+        if (!empty($update)) {
+            $permissions[] = self::update(...$update);
+        }
+        if (!empty($delete)) {
+            $permissions[] = self::delete(...$delete);
+        }
+        if (!empty($admin)) {
+            $permissions[] = self::admin(...$admin);
+        }
+
+        return $permissions;
+    }
+
+    /**
+     * @throws {{ spec.title | caseUcfirst Exception
+     */
+    public static function read(string ...$permissions): string
+    {
+        if (empty($permissions)) {
+            throw new {{ spec.title | caseUcfirst Exception('At least one permission must be provided.');
+        }
+        return 'read(' . implode(',', $permissions) . ')';
+    }
+
+    /**
+     * @throws {{ spec.title | caseUcfirst Exception
+     */
+    public static function write(string ...$permissions): string
+    {
+        if (empty($permissions)) {
+            throw new {{ spec.title | caseUcfirst Exception('At least one permission must be provided.');
+        }
+        return 'write(' . implode(',', $permissions) . ')';
+    }
+
+    /**
+     * @throws {{ spec.title | caseUcfirst Exception
+     */
+    public static function create(string ...$permissions): string
+    {
+        if (empty($permissions)) {
+            throw new {{ spec.title | caseUcfirst Exception('At least one permission must be provided.');
+        }
+        return 'create(' . implode(',', $permissions) . ')';
+    }
+
+    /**
+     * @throws {{ spec.title | caseUcfirst Exception
+     */
+    public static function update(string ...$permissions): string
+    {
+        if (empty($permissions)) {
+            throw new {{ spec.title | caseUcfirst Exception('At least one permission must be provided.');
+        }
+        return 'update(' . implode(',', $permissions) . ')';
+    }
+
+    /**
+     * @throws {{ spec.title | caseUcfirst Exception
+     */
+    public static function delete(string ...$permissions): string
+    {
+        if (empty($permissions)) {
+            throw new {{ spec.title | caseUcfirst Exception('At least one permission must be provided.');
+        }
+        return 'delete(' . implode(',', $permissions) . ')';
+    }
+
+    /**
+     * @throws {{ spec.title | caseUcfirst Exception
+     */
+    public static function admin(string ...$permissions): string
+    {
+        if (empty($permissions)) {
+            throw new {{ spec.title | caseUcfirst Exception('At least one permission must be provided.');
+        }
+        return 'admin(' . implode(',', $permissions) . ')';
+    }
+}

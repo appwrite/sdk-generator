@@ -345,6 +345,12 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/permissions.dart',
+                'template'      => 'dart/lib/permissions.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/query.dart',
                 'template'      => 'dart/lib/query.dart.twig',
                 'minify'        => false,

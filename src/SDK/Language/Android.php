@@ -108,6 +108,11 @@ class Android extends Kotlin {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Permissions.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/Permissions.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Query.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/Query.kt.twig',
             ],
