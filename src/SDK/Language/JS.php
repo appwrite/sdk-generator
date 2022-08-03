@@ -4,8 +4,8 @@ namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
 
-abstract class JS extends Language {
-
+abstract class JS extends Language
+{
     protected $params = [
         'npmPackage' => 'packageName',
         'bowerPackage' => 'packageName',
@@ -15,7 +15,7 @@ abstract class JS extends Language {
      * @param string $name
      * @return $this
      */
-    public function setNPMPackage($name)
+    public function setNPMPackage(string $name): JS
     {
         $this->setParam('npmPackage', $name);
 
@@ -26,7 +26,7 @@ abstract class JS extends Language {
      * @param string $name
      * @return $this
      */
-    public function setBowerPackage($name)
+    public function setBowerPackage(string $name): JS
     {
         $this->setParam('bowerPackage', $name);
 
@@ -38,80 +38,80 @@ abstract class JS extends Language {
      *
      * @return array
      */
-    public function getKeywords()
+    public function getKeywords(): array
     {
         return [
             'abstract',
-			'arguments',
-			'await', // new in ECMAScript 5 and 6.
-			'boolean',
-			'break',
-			'byte',
-			'case',
-			'catch',
-			'char',
-			'class', // new in ECMAScript 5 and 6.
-			'const',
-			'continue',
-			'debugger',
-			'default',
-			'delete',
-			'do',
-			'double',
-			'else',
-			'enum', // new in ECMAScript 5 and 6.
-			'eval',
-			'export', // new in ECMAScript 5 and 6.
-			'extends', // new in ECMAScript 5 and 6.
-			'false',
-			'final',
-			'finally',
-			'float',
-			'for',
-			'function',
-			'goto',
-			'if',
-			'implements',
-			'import', // new in ECMAScript 5 and 6.
-			'in',
-			'instanceof',
-			'int',
-			'interface',
-			'let', // new in ECMAScript 5 and 6.
-			'long',
-			'native',
-			'new',
-			'null',
-			'package',
-			'private',
-			'protected',
-			'public',
-			'return',
-			'short',
-			'static',
-			'super', // new in ECMAScript 5 and 6.
-			'switch',
-			'synchronized',
-			'this',
-			'throw',
-			'throws',
-			'transient',
-			'true',
-			'try',
-			'typeof',
-			'var',
-			'void',
-			'volatile',
-			'while',
-			'with',
-			'yield',
+            'arguments',
+            'await', // new in ECMAScript 5 and 6.
+            'boolean',
+            'break',
+            'byte',
+            'case',
+            'catch',
+            'char',
+            'class', // new in ECMAScript 5 and 6.
+            'const',
+            'continue',
+            'debugger',
+            'default',
+            'delete',
+            'do',
+            'double',
+            'else',
+            'enum', // new in ECMAScript 5 and 6.
+            'eval',
+            'export', // new in ECMAScript 5 and 6.
+            'extends', // new in ECMAScript 5 and 6.
+            'false',
+            'final',
+            'finally',
+            'float',
+            'for',
+            'function',
+            'goto',
+            'if',
+            'implements',
+            'import', // new in ECMAScript 5 and 6.
+            'in',
+            'instanceof',
+            'int',
+            'interface',
+            'let', // new in ECMAScript 5 and 6.
+            'long',
+            'native',
+            'new',
+            'null',
+            'package',
+            'private',
+            'protected',
+            'public',
+            'return',
+            'short',
+            'static',
+            'super', // new in ECMAScript 5 and 6.
+            'switch',
+            'synchronized',
+            'this',
+            'throw',
+            'throws',
+            'transient',
+            'true',
+            'try',
+            'typeof',
+            'var',
+            'void',
+            'volatile',
+            'while',
+            'with',
+            'yield',
         ];
     }
 
     /**
      * @return array
      */
-    public function getIdentifierOverrides()
+    public function getIdentifierOverrides(): array
     {
         return [];
     }
@@ -141,19 +141,19 @@ abstract class JS extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamDefault(array $param)
+    public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
         $default    = $param['default'] ?? '';
         $required   = $param['required'] ?? '';
 
-        if($required) {
+        if ($required) {
             return '';
         }
 
         $output = ' = ';
 
-        if(empty($default) && $default !== 0 && $default !== false) {
+        if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -170,8 +170,7 @@ abstract class JS extends Language {
                     $output .= '{}';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:

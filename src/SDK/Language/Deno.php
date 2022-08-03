@@ -7,7 +7,7 @@ class Deno extends JS
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'Deno';
     }
@@ -15,7 +15,7 @@ class Deno extends JS
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
             [
@@ -127,14 +127,14 @@ class Deno extends JS
      * @param array $param
      * @return string
      */
-    public function getParamExample(array $param)
+    public function getParamExample(array $param): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
         $output = '';
 
-        if(empty($example) && $example !== 0 && $example !== false) {
+        if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -154,8 +154,7 @@ class Deno extends JS
                     $output .= "InputFile.fromPath('/path/to/file.png', 'file.png')";
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:

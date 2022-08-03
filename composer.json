@@ -24,7 +24,7 @@
         "psr-4": {"Tests\\": "tests"}
     },
     "require": {
-        "php": ">=7.0.0",
+        "php": ">=8.0",
         "ext-curl": "*",
         "ext-mbstring": "*",
         "ext-json": "*",

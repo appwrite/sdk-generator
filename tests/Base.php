@@ -6,6 +6,9 @@ use Appwrite\SDK\Language;
 use Appwrite\SDK\SDK;
 use Appwrite\Spec\Swagger2;
 use PHPUnit\Framework\TestCase;
+use Twig\Error\LoaderError;
+use Twig\Error\RuntimeError;
+use Twig\Error\SyntaxError;
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -13,7 +16,6 @@ error_reporting(E_ALL);
 
 abstract class Base extends TestCase
 {
-
     const FOO_RESPONSES = [
         'GET:/v1/mock/tests/foo:passed',
         'POST:/v1/mock/tests/foo:passed',
@@ -72,6 +74,12 @@ abstract class Base extends TestCase
     {
     }
 
+    /**
+     * @throws SyntaxError
+     * @throws \Throwable
+     * @throws RuntimeError
+     * @throws LoaderError
+     */
     public function testHTTPSuccess(): void
     {
         $spec = file_get_contents(realpath(__DIR__ . '/resources/spec.json'));
@@ -151,19 +159,25 @@ abstract class Base extends TestCase
         }
     }
 
-    private function rmdir_recursive($dir) {
+    private function rmdir_recursive($dir)
+    {
         if (!\is_dir($dir)) {
             return;
         }
-        foreach(\scandir($dir) as $file) {
-            if ('.' === $file || '..' === $file) continue;
-            if (\is_dir("$dir/$file")) $this->rmdir_recursive("$dir/$file");
-            else \unlink("$dir/$file");
+        foreach (\scandir($dir) as $file) {
+            if ('.' === $file || '..' === $file) {
+                continue;
+            }
+            if (\is_dir("$dir/$file")) {
+                $this->rmdir_recursive("$dir/$file");
+            } else {
+                \unlink("$dir/$file");
+            }
         }
         rmdir($dir);
     }
 
-    public function getLanguage(): Language 
+    public function getLanguage(): Language
     {
         return new $this->class();
     }

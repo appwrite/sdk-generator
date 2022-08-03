@@ -2,8 +2,8 @@
 
 namespace Appwrite\SDK;
 
-abstract class Language {
-
+abstract class Language
+{
     const TYPE_INTEGER = 'integer';
     const TYPE_NUMBER = 'number';
     const TYPE_STRING = 'string';
@@ -20,22 +20,22 @@ abstract class Language {
     /**
      * @return string
      */
-    abstract public function getName();
+    abstract public function getName(): string;
 
     /**
-     * @return array
+     * @return array<string>
      */
-    abstract public function getKeywords();
+    abstract public function getKeywords(): array;
 
     /**
-     * @return array
+     * @return array<string>
      */
-    abstract public function getIdentifierOverrides();
+    abstract public function getIdentifierOverrides(): array;
 
     /**
-     * @return array
+     * @return array<array>
      */
-    abstract public function getFiles();
+    abstract public function getFiles(): array;
 
     /**
      * @param $type
@@ -47,20 +47,20 @@ abstract class Language {
      * @param array $param
      * @return string
      */
-    abstract public function getParamDefault(array $param);
+    abstract public function getParamDefault(array $param): string;
 
     /**
      * @param array $param
      * @return string
      */
-    abstract public function getParamExample(array $param);
+    abstract public function getParamExample(array $param): string;
 
     /**
      * @param string $key
      * @param string $value
      * @return Language
      */
-    public function setParam($key, $value)
+    public function setParam(string $key, string $value): Language
     {
         $this->params[$key] = $value;
 
@@ -70,14 +70,14 @@ abstract class Language {
     /**
      * @return array
      */
-    public function getParams()
+    public function getParams(): array
     {
         return $this->params;
     }
 
     /**
      * Language specific filters.
-     * @return array 
+     * @return array
      */
     public function getFilters(): array
     {
