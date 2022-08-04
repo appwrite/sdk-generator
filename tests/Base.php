@@ -16,7 +16,7 @@ error_reporting(E_ALL);
 
 abstract class Base extends TestCase
 {
-    const FOO_RESPONSES = [
+    protected const FOO_RESPONSES = [
         'GET:/v1/mock/tests/foo:passed',
         'POST:/v1/mock/tests/foo:passed',
         'PUT:/v1/mock/tests/foo:passed',
@@ -24,7 +24,7 @@ abstract class Base extends TestCase
         'DELETE:/v1/mock/tests/foo:passed',
     ];
 
-    const BAR_RESPONSES = [
+    protected const BAR_RESPONSES = [
         'GET:/v1/mock/tests/bar:passed',
         'POST:/v1/mock/tests/bar:passed',
         'PUT:/v1/mock/tests/bar:passed',
@@ -32,31 +32,31 @@ abstract class Base extends TestCase
         'DELETE:/v1/mock/tests/bar:passed',
     ];
 
-    const GENERAL_RESPONSES = [
+    protected const GENERAL_RESPONSES = [
         'GET:/v1/mock/tests/general/redirect/done:passed',
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
-    const EXTENDED_GENERAL_RESPONSES = [
+    protected const EXTENDED_GENERAL_RESPONSES = [
         'Download test passed.',
     ];
 
-    const COOKIE_RESPONSES = [
+    protected const COOKIE_RESPONSES = [
         'GET:/v1/mock/tests/general/set-cookie:passed',
         'GET:/v1/mock/tests/general/get-cookie:passed',
     ];
 
-    const LARGE_FILE_RESPONSES = [
+    protected const LARGE_FILE_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
-    const EXCEPTION_RESPONSES = [
+    protected const EXCEPTION_RESPONSES = [
         'Mock 400 error',
         'Server Error',
         'This is a text error',
     ];
 
-    const REALTIME_RESPONSES = [
+    protected const REALTIME_RESPONSES = [
         'WS:/v1/realtime:passed',
     ];
 
@@ -110,7 +110,7 @@ abstract class Base extends TestCase
 
         $dir = __DIR__ . '/sdks/' . $this->language;
 
-        $this->rmdir_recursive($dir);
+        $this->rmdirRecursive($dir);
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
 
@@ -159,7 +159,7 @@ abstract class Base extends TestCase
         }
     }
 
-    private function rmdir_recursive($dir)
+    private function rmdirRecursive($dir)
     {
         if (!\is_dir($dir)) {
             return;
@@ -169,7 +169,7 @@ abstract class Base extends TestCase
                 continue;
             }
             if (\is_dir("$dir/$file")) {
-                $this->rmdir_recursive("$dir/$file");
+                $this->rmdirRecursive("$dir/$file");
             } else {
                 \unlink("$dir/$file");
             }

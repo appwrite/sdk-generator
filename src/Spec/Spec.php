@@ -7,12 +7,9 @@ use ArrayObject;
 
 abstract class Spec extends ArrayObject
 {
-    const FORMAT_OPEN_API_3 = 'Open API 3';
-    const FORMAT_SWAGGER_2  = 'Swagger 2';
-
-    const SET_TYPE_ASSIGN   = 'assign';
-    const SET_TYPE_PREPEND  = 'prepend';
-    const SET_TYPE_APPEND   = 'append';
+    private const SET_TYPE_ASSIGN   = 'assign';
+    private const SET_TYPE_PREPEND  = 'prepend';
+    private const SET_TYPE_APPEND   = 'append';
 
     /**
      * Spec constructor.

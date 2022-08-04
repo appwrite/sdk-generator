@@ -4,13 +4,13 @@ namespace Appwrite\SDK;
 
 abstract class Language
 {
-    const TYPE_INTEGER = 'integer';
-    const TYPE_NUMBER = 'number';
-    const TYPE_STRING = 'string';
-    const TYPE_BOOLEAN = 'boolean';
-    const TYPE_ARRAY = 'array';
-    const TYPE_OBJECT = 'object';
-    const TYPE_FILE = 'file';
+    public const TYPE_INTEGER = 'integer';
+    public const TYPE_NUMBER = 'number';
+    public const TYPE_STRING = 'string';
+    public const TYPE_BOOLEAN = 'boolean';
+    public const TYPE_ARRAY = 'array';
+    public const TYPE_OBJECT = 'object';
+    public const TYPE_FILE = 'file';
 
     /**
      * @var array
