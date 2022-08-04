@@ -60,10 +60,7 @@ before_install:
 install:
   - docker --version
   - composer install
+  - composer lint
 
-jobs:
-  include:
-    - stage: lint
-      script: composer lint
-    - stage: test
-      script: composer test tests/${SDK}Test.php
+script:
+  - composer test tests/${SDK}Test.php
