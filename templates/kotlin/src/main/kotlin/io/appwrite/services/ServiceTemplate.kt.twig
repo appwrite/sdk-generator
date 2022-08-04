@@ -1,13 +1,4 @@
-{% macro parameter(parameter) %}{{ parameter.name | caseCamel }}: {{ parameter | typeName }}{% if not parameter.required %}? = null{% endif %}{% endmacro %}
-{% macro method_parameters(parameters, consumes) %}
-{% if parameters.all|length > 0 %}{% for parameter in parameters.all | filter((param) => not param.isGlobal) %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, onProgress: ((UploadProgress) -> Unit)? = null{% endif %}{% endif %}
-{% endmacro %}
-{% macro methodNeedsSecurityParameters(method) %}
-{% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
-{% endmacro %}
-{% macro resultType(namespace, method) %}
-{% if method.type == "webAuth" %}Bool{% elseif method.type == "location" %}ByteArray{% elseif not method.responseModel or method.responseModel == 'any' %}Any{% else %}{{ namespace | caseDot}}.models.{{method.responseModel | caseUcfirst}}{% endif %}
-{% endmacro %}
+{% import 'kotlin/base/utils.twig' as utils %}
 package {{ sdk.namespace | caseDot }}.services
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.models.*
@@ -52,20 +43,20 @@ class {{ service.name | caseUcfirst }} : Service {
 {% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description }}
 {% endfor %}
-     * {% if method.type != "webAuth" %}@return [{{ _self.resultType(sdk.namespace, method) }}]{% endif %}
+     * {% if method.type != "webAuth" %}@return [{{ utils.resultType(sdk.namespace, method) }}]{% endif %}
      
      */
     @JvmOverloads
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ _self.method_parameters(method.parameters, method.consumes) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: {{ _self.resultType(sdk.namespace, method) }}{% endif %} {
+    suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ utils.method_parameters(method.parameters, method.consumes) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: {{ utils.resultType(sdk.namespace, method) }}{% endif %} {
         val path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %}
 
         val params = mutableMapOf<String, Any?>(
 {% for parameter in method.parameters.query | merge(method.parameters.body) %}
-            "{{ parameter.name }}" to {{ parameter.name | caseCamel }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
+            "{{ parameter.name }}" to {{ parameter.name | caseCamel }}{% if not loop.last or utils.methodNeedsSecurityParameters(method) %},{% endif %}
 
 {% endfor %}
-{% if _self.methodNeedsSecurityParameters(method) %}
+{% if utils.methodNeedsSecurityParameters(method) %}
 {% for node in method.security %}
 {% for key,header in node|keys %}
             "{{header|caseLower}}" to client.config["{{header|caseLower}}"]{% if not loop.last %},{% endif %}
@@ -116,56 +107,24 @@ class {{ service.name | caseUcfirst }} : Service {
             )
         }
 {% elseif method.type == 'location' %}
-        return client.call(
-            "{{ method.method | caseUpper }}",
-            path,
-            params = params,
-            responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java
-        )
+{{ include('kotlin/base/requests/location.twig') }}
 {% else %}
         val headers = mutableMapOf(
 {{ method.headers|map((header, key) => "            \"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
         )
 {% if method.responseModel %}
-        val converter: (Map<String, Any>) -> {{ _self.resultType(sdk.namespace, method) }} = {
+        val converter: (Map<String, Any>) -> {{ utils.resultType(sdk.namespace, method) }} = {
 {% if method.responseModel == 'any' %}
             it
 {% else %}
-            {{ _self.resultType(sdk.namespace, method) }}.from(map = it)
+            {{ utils.resultType(sdk.namespace, method) }}.from(map = it)
 {% endif %}
         }
 {% endif %}
 {% if 'multipart/form-data' in method.consumes %}
-        val idParamName: String? = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}null{% endif %}
-
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
-        val paramName = "{{ parameter.name }}"
-{% endif %}
-{% endfor %}
-        return client.chunkedUpload(
-            path,
-            headers,
-            params,
-            responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java,
-{% if method.responseModel %}
-            converter,
-{% endif %}
-            paramName,
-            idParamName,
-            onProgress,
-        )
+{{include('kotlin/base/requests/file.twig')}}
 {% else %}
-        return client.call(
-            "{{ method.method | caseUpper }}",
-            path,
-            headers,
-            params,
-            responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java,
-{% if method.responseModel %}
-            converter,
-{% endif %}
-        )
+{{include('kotlin/base/requests/api.twig')}}
 {% endif %}
 {% endif %}
     }
