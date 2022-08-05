@@ -13,7 +13,7 @@ module {{ spec.title | caseUcfirst }}
             @headers = {
                 'user-agent' => RUBY_PLATFORM + ':{{ language.name | caseLower }}-' + RUBY_VERSION,
                 'x-sdk-version' => '{{ spec.title | caseDash }}:{{ language.name | caseLower }}:{{ sdk.version }}',
-                'User-Agent' : '{{spec.title | caseUcfirst}}Ruby/{{ sdk.version }} (${os.type()} ${os.version()}; ${os.arch()})',
+                'User-Agent' => '{{spec.title | caseUcfirst}}Ruby/{{ sdk.version }} (${os.type()} ${os.version()}; ${os.arch()})',
                 
 {% for key,header in spec.global.defaultHeaders %}
                 '{{key}}' => '{{header}}'{% if not loop.last %},{% endif %}
