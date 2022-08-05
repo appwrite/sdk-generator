@@ -1,0 +1,26 @@
+{% import 'dotnet/base/utils.twig' as utils %}
+{% for parameter in method.parameters.path %}
+                .Replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }}){% if loop.last %};{% endif %}
+
+{% endfor %}
+
+            var parameters = new Dictionary<string, object?>()
+            {
+{% for parameter in method.parameters.query | merge(method.parameters.body) %}
+                { "{{ parameter.name }}", {{ utils.map_parameter(parameter) }} }{% if not loop.last or utils.methodNeedsSecurityParameters(method) %},{% endif %}
+
+{% endfor %}
+{% if utils.methodNeedsSecurityParameters(method) %}
+{% for node in method.security %}
+{% for key,header in node|keys %}
+                { "{{header|caseLower}}", _client.Config["{{header|caseLower}}"] }{% if not loop.last or (loop.last and method.headers | length > 0) %},{% endif %}
+
+{% endfor %}
+{% endfor %}
+{% endif %}
+            };
+
+            var headers = new Dictionary<string, string>()
+            {
+{{ method.headers|map((header, key) => "                { \"#{key}\", \"#{header}\" }")|join(',\n')|raw }}
+            };
