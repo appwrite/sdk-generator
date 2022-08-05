@@ -38,6 +38,7 @@ class Client
     protected $headers = [
         'content-type' => '',
         'x-sdk-version' => '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
+        'User-Agent' => '{{spec.title | caseUcfirst}}PHP/{{ sdk.version }} (${os.type()} ${os.version()}; ${os.arch()})',
     ];
 
     /**
