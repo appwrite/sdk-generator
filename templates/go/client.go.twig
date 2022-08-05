@@ -67,6 +67,7 @@ func NewClient() Client {
 		"{{key}}" : "{{header}}",
 		"x-sdk-version": "{{ sdk.gitUserName|url_encode }}:go:{{sdk.version}}",
 		"User-Agent" : "{{spec.title | caseUcfirst}}Go/{{ sdk.version }} (${os.type()} ${os.version()}; ${os.arch()})",
+		
 {% endfor %}
 	}
 	httpClient, err := getDefaultClient(defaultTimeout)

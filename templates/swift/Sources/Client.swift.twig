@@ -20,7 +20,8 @@ open class Client {
 
     open var headers: [String: String] = [
         "content-type": "",
-        "x-sdk-version": "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+        "x-sdk-version": "{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}",
+        "User-Agent" : "{{spec.title | caseUcfirst}}Swift/{{ sdk.version }} (${os.type()} ${os.version()}; ${os.arch()})",
 
 {% for key,header in spec.global.defaultHeaders %}
         "{{key}}": "{{header}}"{% if not loop.last %},{% endif %}
