@@ -59,6 +59,8 @@ jobs:
   include:
     - stage: lint
       name: Lint
+      install:
+        - composer install
       script:
         - composer lint
     - stage: test
