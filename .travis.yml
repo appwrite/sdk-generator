@@ -63,14 +63,14 @@ jobs:
         - composer install
       script:
         - composer lint
-    - stage: test
-      before_install:
-        - >
-          if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
-            echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
-          fi
-      install:
-        - docker --version
-        - composer install
-      script:
-        - composer test tests/${SDK}Test.php
+
+before_install:
+  - >
+    if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
+      echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
+    fi
+install:
+  - docker --version
+  - composer install
+script:
+  - composer test tests/${SDK}Test.php
