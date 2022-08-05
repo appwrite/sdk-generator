@@ -110,20 +110,20 @@ class Go extends Language {
     }
 
     /**
-     * @param $type
+     * @param array $parameter
+     * @param array $nestedTypes
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'int';
             case self::TYPE_NUMBER:
                 return 'float64';
+            case self::TYPE_FILE:
             case self::TYPE_STRING:
                 return 'string';
-            case self::TYPE_FILE:
-                return 'string'; // '*os.File';
             case self::TYPE_BOOLEAN:
                 return 'bool';
             case self::TYPE_OBJECT:
@@ -132,7 +132,7 @@ class Go extends Language {
                 return '[]interface{}';
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     /**
