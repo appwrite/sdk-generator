@@ -20,7 +20,7 @@ module {{spec.title | caseUcfirst}}
 {{ method.description | rubyComment }}
         #
 {% for parameter in method.parameters.all %}
-        # @param [{{ parameter.type | typeName }}] {{ parameter.name | caseSnake | escapeKeyword }} {{ parameter.description }}
+        # @param [{{ parameter | typeName }}] {{ parameter.name | caseSnake | escapeKeyword }} {{ parameter.description }}
 {% endfor %}
         #
         # @return [{{ method.responseModel | caseUcfirst }}]
