@@ -11,6 +11,7 @@ class Client {
         this.headers = {
             'content-type': '',
             'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
+            'User-Agent' : '{{spec.title | caseUcfirst}}Node/{{ sdk.version }} (${os.type()} ${os.version()}; ${os.arch()})',
 {% for key,header in spec.global.defaultHeaders %}
             '{{key}}' : '{{header}}',
 {% endfor %}
