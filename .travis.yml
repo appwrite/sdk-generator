@@ -64,7 +64,6 @@ jobs:
       script:
         - composer lint
     - stage: test
-      name: Test
       before_install:
         - >
           if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
