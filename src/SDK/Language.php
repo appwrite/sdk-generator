@@ -38,10 +38,10 @@ abstract class Language
     abstract public function getFiles(): array;
 
     /**
-     * @param $type
+     * @param array $parameter
      * @return string
      */
-    abstract public function getTypeName($type);
+    abstract public function getTypeName(array $parameter): string;
 
     /**
      * @param array $param

@@ -19,11 +19,11 @@ class {{ service.name | caseUcfirst }} : Service {
 
 {% if service.globalParams | length %}
 {% for parameter in service.globalParams %}
-    val {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | overrideIdentifier }}{% if not parameter.required %}?{% endif %}
+    val {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | overrideIdentifier }}{% if not parameter.required %}?{% endif %}
 
 {% endfor %}
 
-    public constructor(client: Client,{% for parameter in service.globalParams %} {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | overrideIdentifier }}{% if not parameter.required %}? = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) : super(client) {
+    public constructor(client: Client,{% for parameter in service.globalParams %} {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | overrideIdentifier }}{% if not parameter.required %}? = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) : super(client) {
 {% for parameter in service.globalParams %}
         this.{{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}

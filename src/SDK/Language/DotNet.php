@@ -147,30 +147,27 @@ class DotNet extends Language
      * @param $type
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'int';
-                break;
             case self::TYPE_STRING:
                 return 'string';
-                break;
             case self::TYPE_FILE:
                 return 'FileInfo';
-                break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
-                break;
             case self::TYPE_ARRAY:
+                if (!empty($parameter['array']['type'])) {
+                    return 'List<' . $this->getTypeName($parameter['array']) . '>';
+                }
                 return 'List<object>';
-                break;
             case self::TYPE_OBJECT:
                 return 'object';
-                break;
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     /**

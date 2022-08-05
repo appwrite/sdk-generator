@@ -13,24 +13,26 @@ class Node extends JS
     }
 
     /**
-     * @param $type
+     * @param array $parameter
+     * @param array $nestedTypes
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
                 return 'number';
-            break;
             case self::TYPE_ARRAY:
+                if (!empty($parameter['array']['type'])) {
+                    return $this->getTypeName($parameter['array']) . '[]';
+                }
                 return 'string[]';
             case self::TYPE_FILE:
                 return 'InputFile';
-            break;
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     /**

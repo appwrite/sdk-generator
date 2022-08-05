@@ -263,12 +263,12 @@ class Swift extends Language
     }
 
     /**
-     * @param $type
+     * @param array $parameter
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'Int';
             case self::TYPE_NUMBER:
@@ -280,12 +280,15 @@ class Swift extends Language
             case self::TYPE_BOOLEAN:
                 return 'Bool';
             case self::TYPE_ARRAY:
+                if (!empty($parameter['array']['type'])) {
+                    return '[' . $this->getTypeName($parameter['array']) . ']';
+                }
                 return '[Any]';
             case self::TYPE_OBJECT:
                 return 'Any';
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     /**

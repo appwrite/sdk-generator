@@ -9,11 +9,11 @@ import {{spec.title | caseUcfirst}}Models
 open class {{ service.name | caseUcfirst }}: Service {
 {% if service.globalParams | length %}
 {% for parameter in service.globalParams %}
-    var {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}{% if not parameter.required %}?{% endif %}
+    var {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName }}{% if not parameter.required %}?{% endif %}
 {% endfor %}
 
 
-    public init(_ client: Client, {% for parameter in service.globalParams %}_ {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
+    public init(_ client: Client, {% for parameter in service.globalParams %}_ {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
     {
 {% for parameter in service.globalParams %}
         self.{{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }}
@@ -31,7 +31,7 @@ open class {{ service.name | caseUcfirst }}: Service {
     ///
 {% endif %}
 {% for parameter in method.parameters.all %}
-    /// @param {{ parameter.type | typeName | raw}} {{ parameter.name | caseCamel }}
+    /// @param {{ parameter | typeName | raw}} {{ parameter.name | caseCamel }}
 {% endfor %}
     /// @throws Exception
     /// @return array
@@ -41,7 +41,7 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% endif %}
     open func {{ method.name | caseCamel }}(
 {% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
-        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
+        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
 
 {% endfor %}
 {% if 'multipart/form-data' in method.consumes %}
@@ -85,7 +85,7 @@ open class {{ service.name | caseUcfirst }}: Service {
     ///
 {% endif %}
 {% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
-    /// @param {{ parameter.type | typeName | raw}} {{ parameter.name | caseCamel }}
+    /// @param {{ parameter | typeName | raw}} {{ parameter.name | caseCamel }}
 {% endfor %}
     /// @throws Exception
     /// @return array
@@ -96,7 +96,7 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% endif %}
     open func {{ method.name | caseCamel }}(
 {% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
-        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %},
+        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required %}? = nil{% endif %},
 {% endfor %}
 {% if 'multipart/form-data' in method.consumes %}
         onProgress: ((UploadProgress) -> Void)? = nil,

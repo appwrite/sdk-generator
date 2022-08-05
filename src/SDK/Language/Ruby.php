@@ -170,18 +170,28 @@ class Ruby extends Language
     }
 
     /**
-     * @param $type
+     * @param array $parameter
+     * @param array $nestedTypes
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
+                return 'Integer';
             case self::TYPE_NUMBER:
-                return 'number';
+                return 'Float';
+            case self::TYPE_STRING:
+                return 'String';
+            case self::TYPE_ARRAY:
+                return 'Array';
+            case self::TYPE_OBJECT:
+                return 'Hash';
+            case self::TYPE_BOOLEAN:
+                return '';
+            default:
+                return $parameter['type'];
         }
-
-        return $type;
     }
 
     /**
