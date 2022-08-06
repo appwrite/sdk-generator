@@ -1,11 +1,11 @@
 {% import 'flutter/base/utils.twig' as utils %}
         final Map<String, dynamic> params = {
-            {{ utils.map_parameter(method.parameters.query) }}
-            {{ utils.map_parameter(method.parameters.body) }}
+            {{- utils.map_parameter(method.parameters.query) -}}
+            {{~ utils.map_parameter(method.parameters.body) }}
         };
 
         final Map<String, String> headers = {
-            {{ utils.map_headers(method.headers) }}
+            {{~ utils.map_headers(method.headers) }}
         };
 
         final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
