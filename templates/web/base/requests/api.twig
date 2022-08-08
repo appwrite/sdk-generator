@@ -1,0 +1,8 @@
+            return await this.client.call('{{ method.method | caseLower }}', uri, {
+{% for parameter in method.parameters.header %}
+                '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+                '{{ key }}': '{{ header }}',
+{% endfor %}
+            }, payload);
