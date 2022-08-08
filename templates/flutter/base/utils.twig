@@ -1,11 +1,11 @@
-{% macro map_parameter(parameters) %}
-{% for parameter in parameters %}
-'{{ parameter.name }}': {{ parameter.name | caseCamel | overrideIdentifier }},
-{% endfor %}
-{% endmacro %}
+{%- macro map_parameter(parameters) -%}
+{%- for parameter in parameters ~%}
+            '{{ parameter.name }}': {{ parameter.name | caseCamel | overrideIdentifier }},
+{%- endfor ~%}
+{%- endmacro ~%}
 
-{% macro map_headers(headers) %}
-{% for key, header in headers %}
+{% macro map_headers(headers) -%}
+{%- for key, header in headers %}
             '{{ key }}': '{{ header }}',
-{% endfor %}
-{% endmacro %}
+{%- endfor -%}
+{%- endmacro -%}
