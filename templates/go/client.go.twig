@@ -65,7 +65,10 @@ func NewClient() Client {
 	headers := map[string]string{
 {% for key,header in spec.global.defaultHeaders %}
 		"{{key}}" : "{{header}}",
-		"x-sdk-version": "{{ sdk.gitUserName|url_encode }}:go:{{sdk.version}}",
+		"x-sdk-name": "{{spec.title}}",
+        "x-sdk-platform": "{{sdk.platform}}",
+		"x-sdk-language": "{{language.name}}",
+		"x-sdk-version": "{{ sdk.version }}",
 {% endfor %}
 	}
 	httpClient, err := getDefaultClient(defaultTimeout)
