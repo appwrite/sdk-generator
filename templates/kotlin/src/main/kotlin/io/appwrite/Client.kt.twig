@@ -62,7 +62,10 @@ class Client @JvmOverloads constructor(
     init {
         headers = mutableMapOf(
             "content-type" to "application/json",
-            "x-sdk-version" to "{{spec.title | caseDash}}:{{ language.name | caseLower }}:${BuildConfig.SDK_VERSION}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+            "x-sdk-name" to "{{spec.title}}",
+            "x-sdk-platform" to "{{sdk.platform}}",
+            "x-sdk-language" to "{{language.name}}",
+            "x-sdk-version" to "{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
             
 {% for key,header in spec.global.defaultHeaders %}
             "{{ key | caseLower }}" to "{{ header }}"{% if not loop.last %},{% endif %}
