@@ -41,6 +41,7 @@ class SDK
         'description' => '',
         'shortDescription' => '',
         'version' => '',
+        'platform'=>'',
         'license' => '',
         'licenseContent' => '',
         'gitURL' => '',
@@ -242,6 +243,17 @@ class SDK
     public function setVersion($text)
     {
         $this->setParam('version', $text);
+
+        return $this;
+    }
+
+    /**
+     * @param string $text
+     * @return $this
+     */
+    public function setPlatform($text)
+    {
+        $this->setParam('platform', $text);
 
         return $this;
     }
