@@ -193,23 +193,23 @@ class SDK
     }
 
     /**
-     * @param string $text
+     * @param string $namespace
      * @return $this
      */
-    public function setNamespace($text)
+    public function setNamespace($namespace)
     {
-        $this->setParam('namespace', $text);
+        $this->setParam('namespace', $namespace);
 
         return $this;
     }
 
     /**
-     * @param string $text
+     * @param string $name
      * @return $this
      */
-    public function setName($text)
+    public function setName($name)
     {
-        $this->setParam('name', $text);
+        $this->setParam('name', $name);
 
         return $this;
     }
@@ -226,7 +226,7 @@ class SDK
     }
 
     /**
-     * @param string $name
+     * @param string $text
      * @return $this
      */
     public function setShortDescription($text)
@@ -237,34 +237,34 @@ class SDK
     }
 
     /**
-     * @param string $text
+     * @param string $version
      * @return $this
      */
-    public function setVersion($text)
+    public function setVersion($version)
     {
-        $this->setParam('version', $text);
+        $this->setParam('version', $version);
 
         return $this;
     }
 
     /**
-     * @param string $text
+     * @param string $platform
      * @return $this
      */
-    public function setPlatform($text)
+    public function setPlatform($platform)
     {
-        $this->setParam('platform', $text);
+        $this->setParam('platform', $platform);
 
         return $this;
     }
 
     /**
-     * @param string $text
+     * @param string $license
      * @return $this
      */
-    public function setLicense($text)
+    public function setLicense($license)
     {
-        $this->setParam('license', $text);
+        $this->setParam('license', $license);
 
         return $this;
     }
