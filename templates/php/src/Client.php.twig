@@ -37,9 +37,9 @@ class Client
      */
     protected $headers = [
         'content-type' => '',
-        'x-sdk-name'=> '{{spec.title}}',
-        'x-sdk-platform'=> '{{sdk.platform}}',
-        'x-sdk-language'=> '{{language.name}}',
+        'x-sdk-name'=> '{{ sdk.name }}',
+        'x-sdk-platform'=> '{{ sdk.platform }}',
+        'x-sdk-language'=> '{{ language.name }}',
         'x-sdk-version'=> '{{ sdk.version }}',
     ];
 
