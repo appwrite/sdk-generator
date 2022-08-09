@@ -3,6 +3,8 @@ package {{ sdk.namespace | caseDot }}
 import android.content.Context
 import android.content.pm.PackageManager
 import com.google.gson.GsonBuilder
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import com.google.gson.reflect.TypeToken
 import {{ sdk.namespace | caseDot }}.{{ spec.title | caseLower }}.BuildConfig
 import {{ sdk.namespace | caseDot }}.cookies.stores.SharedPreferencesCookieStore
@@ -43,7 +45,7 @@ class Client @JvmOverloads constructor(
     var endPoint: String = "https://appwrite.io/v1",
     var endPointRealtime: String? = null,
     private var selfSigned: Boolean = false
-) : CoroutineScope {
+) : CoroutineScope,DefaultLifecycleObserver  {
 
     companion object {
         const val CHUNK_SIZE = 5*1024*1024; // 5MB
@@ -512,4 +514,9 @@ class Client @JvmOverloads constructor(
             }
         })
     }
+       override fun onStop(owner: LifecycleOwner) {
+            super.onStop(owner)
+            job.cancel()
+            job.cancelChildren()
+        }
 }
