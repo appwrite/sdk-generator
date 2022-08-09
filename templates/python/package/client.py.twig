@@ -11,7 +11,10 @@ class Client:
         self._endpoint = '{{spec.endpoint}}'
         self._global_headers = {
             'content-type': '',
-            'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
+            'x-sdk-name': '{{spec.title}}',
+            'x-sdk-platform': '{{sdk.platform}}',
+            'x-sdk-language': '{{language.name}}',
+            'x-sdk-version': '{{ sdk.version }}',
 {% for key,header in spec.global.defaultHeaders %}
             '{{key}}' : '{{header}}',
 {% endfor %}

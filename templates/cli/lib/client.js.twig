@@ -13,9 +13,9 @@ class Client {
     this.headers = {
       'content-type': '',
       'x-sdk-name': '{{spec.title}}',
-      'x-sdk-platform':'{{sdk.platform}}',
-      'x-sdk-language':'{{language.name}}',
-      'x-sdk-version':'{{ sdk.version }}',
+      'x-sdk-platform': '{{sdk.platform}}',
+      'x-sdk-language': '{{language.name}}',
+      'x-sdk-version': '{{ sdk.version }}',
       'User-Agent' : `{{spec.title | caseUcfirst}}CLI/{{ sdk.version }} (${os.type()} ${os.version()}; ${os.arch()})`,
 {% for key,header in spec.global.defaultHeaders %}
       '{{key}}' : '{{header}}',
