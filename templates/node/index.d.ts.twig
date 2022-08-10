@@ -7,7 +7,7 @@
             {{property.sub_schema | caseUcfirst}}{% if property.type == 'array' %}[]{% endif %}
         {% endif %}
     {% else %}
-        {{property.type | typeName}}
+        {{property | typeName}}
     {% endif %}
 {% endapply %}
 {% endmacro %}
@@ -164,24 +164,24 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 
 {% for service in spec.services %}
   export class {{ service.name | caseUcfirst }} extends Service {
-    constructor(client: Client{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}{% if not parameter.required %}|null{% endif %}{% endfor %});
+    constructor(client: Client{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName }}{% if not parameter.required %}|null{% endif %}{% endfor %});
     
 {% if service.globalParams | length %}
 {% for parameter in service.globalParams %}
     /**
      * Get {{ parameter.name }}.
      *
-     * @returns {{ '{' }}{{ parameter.type | typeName }}{{ '}' }}
+     * @returns {{ '{' }}{{ parameter | typeName }}{{ '}' }}
      */
-    get{{ parameter.name | caseUcfirst | escapeKeyword }}(): {{ parameter.type | typeName }};
+    get{{ parameter.name | caseUcfirst | escapeKeyword }}(): {{ parameter | typeName }};
 
     /**
      * Set {{ parameter.name }}.
      *
-     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
+     * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
      * @returns {void}
      */
-    set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}): void;
+    set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName }}): void;
 
 {% endfor %}
 {% endif %}

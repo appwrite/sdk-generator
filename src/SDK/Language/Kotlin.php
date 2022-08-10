@@ -101,9 +101,9 @@ class Kotlin extends Language {
      * @param $type
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'Long';
             case self::TYPE_NUMBER:
@@ -115,12 +115,15 @@ class Kotlin extends Language {
             case self::TYPE_BOOLEAN:
                 return 'Boolean';
             case self::TYPE_ARRAY:
-            	return 'List<Any>';
-			case self::TYPE_OBJECT:
-				return 'Any';
+                if (!empty($parameter['array']['type'])) {
+                    return 'List<' . $this->getTypeName($parameter['array']) . '>';
+                }
+                return 'List<Any>';
+            case self::TYPE_OBJECT:
+                return 'Any';
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     /**
