@@ -43,17 +43,17 @@ export type UploadProgress = {
 export class {{ service.name | caseUcfirst }} extends Service {
 {% if service.globalParams | length %}
 {% for parameter in service.globalParams %}
-     protected {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }};
-     public set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}): void
+     protected {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName }};
+     public set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName }}): void
      {
         this.{{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }};
      }
-     public get{{ parameter.name | caseUcfirst | escapeKeyword }}(): {{ parameter.type | typeName }}
+     public get{{ parameter.name | caseUcfirst | escapeKeyword }}(): {{ parameter | typeName }}
      {
         return this.{{ parameter.name | caseCamel | escapeKeyword }};
      }
 {% endfor %}
-     constructor(client: Client, {% for parameter in service.globalParams %} {{ parameter.name | caseCamel | escapeKeyword }}:{{ parameter.type | typeName }}{% if not parameter.required %}|null = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
+     constructor(client: Client, {% for parameter in service.globalParams %} {{ parameter.name | caseCamel | escapeKeyword }}:{{ parameter | typeName }}{% if not parameter.required %}|null = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
      {
         super(client);
 
@@ -73,12 +73,12 @@ export class {{ service.name | caseUcfirst }} extends Service {
      *
 {% endif %}
 {% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
-     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
+     * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
      * @throws {AppwriteException}
      * @returns {Promise}
      */
-    async {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): Promise<{% if method.type == 'webAuth' %}Response{% elseif method.type == 'location' %}Response{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}> {
+    async {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): Promise<{% if method.type == 'webAuth' %}Response{% elseif method.type == 'location' %}Response{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}> {
 {% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
 {% if parameter.required %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {

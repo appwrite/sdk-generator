@@ -13,7 +13,7 @@ class {{ service.name | caseUcfirst }} extends Service {
     /**
      * Set {{ parameter.name }}.
      *
-     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
+     * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
      *
      * @return void
      */
@@ -24,7 +24,7 @@ class {{ service.name | caseUcfirst }} extends Service {
     /**
      * Get {{ parameter.name }}.
      *
-     * @return {{ parameter.type | typeName }}
+     * @return {{ parameter | typeName }}
      */
      get{{ parameter.name | caseUcfirst | escapeKeyword }}()
      {
@@ -50,7 +50,7 @@ class {{ service.name | caseUcfirst }} extends Service {
      *
 {% endif %}
 {% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
-     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
+     * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {Promise}

@@ -213,10 +213,11 @@ class Python extends Language {
     }
 
     /**
-     * @param $type
+     * @param array $parameter
      * @return string
+     * @throws Exception
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
         throw new Exception('Method not supported for Python SDKs');
     }

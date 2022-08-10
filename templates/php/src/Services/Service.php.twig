@@ -11,20 +11,20 @@ class {{ service.name | caseUcfirst }} extends Service
 {
 {% if service.globalParams | length %}
 {% for parameter in service.globalParams %}
-     protected {{ parameter.type | typeName }} ${{ parameter.name | caseCamel | escapeKeyword }};
+     protected {{ parameter | typeName }} ${{ parameter.name | caseCamel | escapeKeyword }};
 
-     public function set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}): void
+     public function set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}): void
      {
           $this->{{ parameter.name | caseCamel | escapeKeyword }} = ${{ parameter.name | caseCamel | escapeKeyword }};
      }
 
-     public function get{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}): {{ parameter.type | typeName }}
+     public function get{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}): {{ parameter | typeName }}
      {
           return $this->{{ parameter.name | caseCamel | escapeKeyword }};
      }
 {% endfor %}
 
-     public function __construct(Client $client, {% for parameter in service.globalParams %} {{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
+     public function __construct(Client $client, {% for parameter in service.globalParams %} {{ parameter | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
      {
           $this->client = $client;
 {% for parameter in service.globalParams %}
@@ -42,13 +42,13 @@ class {{ service.name | caseUcfirst }} extends Service
      *
 {% endif %}
 {% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
-     * @param {{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}
+     * @param {{ parameter | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
      * @throws {{spec.title | caseUcfirst}}Exception
      * @return {{ method | getReturn }}
 
      */
-    public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal ) %}{{ parameter.type | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, callable $onProgress = null{% endif %}): {{ method | getReturn }}
+    public function {{ method.name | caseCamel }}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal ) %}{{ parameter | typeName }}${{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, callable $onProgress = null{% endif %}): {{ method | getReturn }}
     {
         $path   = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${% if parameter.isGlobal %}this->{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
 

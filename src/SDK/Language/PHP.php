@@ -218,12 +218,15 @@ class PHP extends Language {
     }
 
     /**
-     * @param $type
+     * @param array $parameter
+     * @param array $nestedTypes
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
+            case self::TYPE_STRING:
+                return 'string';
             case self::TYPE_BOOLEAN:
                 $type = 'bool';
                 break;
@@ -231,6 +234,7 @@ class PHP extends Language {
             case self::TYPE_INTEGER:
                 $type = 'int';
                 break;
+            case self::TYPE_ARRAY:
             case self::TYPE_OBJECT:
                 $type = 'array';
                 break;
