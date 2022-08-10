@@ -9,7 +9,7 @@ async function start() {
     // Init SDK
     let client = new appwrite.Client();
 
-    let foo = new appwrite.Foo(client, 'string');
+    let foo = new appwrite.Foo(client);
     let bar = new appwrite.Bar(client);
     let general = new appwrite.General(client);
 
@@ -18,19 +18,20 @@ async function start() {
     console.log('\nTest Started');
 
     // Foo
-    response = await foo.get(123, ['string in array']);
+
+    response = await foo.get('string', 123, ['string in array']);
     console.log(response.result);
 
-    response = await foo.post(123, ['string in array']);
+    response = await foo.post('string', 123, ['string in array']);
     console.log(response.result);
 
-    response = await foo.put(123, ['string in array']);
+    response = await foo.put('string', 123, ['string in array']);
     console.log(response.result);
 
-    response = await foo.patch(123, ['string in array']);
+    response = await foo.patch('string', 123, ['string in array']);
     console.log(response.result);
 
-    response = await foo.delete(123, ['string in array']);
+    response = await foo.delete('string', 123, ['string in array']);
     console.log(response.result);
 
     // Bar
