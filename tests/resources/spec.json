@@ -857,7 +857,10 @@
         "tags": ["general"],
         "description": "",
         "responses": {
-          "200": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
         },
         "x-appwrite": {
           "method": "headers",
