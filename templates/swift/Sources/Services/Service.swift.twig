@@ -7,12 +7,6 @@ import NIO
 import {{spec.title | caseUcfirst}}Models
 
 open class {{ service.name | caseUcfirst }}: Service {
-
-    public init(_ client: client)
-    {
-        super.init(client)
-    }
-
 {% for method in service.methods %}
     ///
     /// {{ method.title }}
@@ -32,7 +26,7 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% endif %}
     open func {{ method.name | caseCamel }}(
 {% for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
+        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
 
 {% endfor %}
 {% if 'multipart/form-data' in method.consumes %}
@@ -76,7 +70,7 @@ open class {{ service.name | caseUcfirst }}: Service {
     ///
 {% endif %}
 {% for parameter in method.parameters.all %}
-    /// @param {{ parameter.type | typeName | raw}} {{ parameter.name | caseCamel }}
+    /// @param {{ parameter | typeName | raw}} {{ parameter.name | caseCamel }}
 {% endfor %}
     /// @throws Exception
     /// @return array
@@ -87,7 +81,7 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% endif %}
     open func {{ method.name | caseCamel }}(
 {% for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName | raw }}{% if not parameter.required %}? = nil{% endif %},
+        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required %}? = nil{% endif %},
 {% endfor %}
 {% if 'multipart/form-data' in method.consumes %}
         onProgress: ((UploadProgress) -> Void)? = nil,
