@@ -49,7 +49,7 @@ class ClientIO extends ClientBase with ClientMixin {
   String? get endPointRealtime => _endPointRealtime;
 
   ClientIO({
-    String endPoint = 'https://appwrite.io/v1',
+    String endPoint = '{{spec.endpoint}}',
     this.selfSigned = false,
   }) : _endPoint = endPoint {
     _nativeClient = HttpClient()
