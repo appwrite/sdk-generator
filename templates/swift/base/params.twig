@@ -5,7 +5,7 @@
 {% for parameter in method.parameters.path %}
         path = path.replacingOccurrences(
           of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}",
-          with: {% if method.parameters.path %}{% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}{% else %}""{% endif %}
+          with: {% if method.parameters.path %}{{ parameter.name | caseCamel | escapeKeyword }}{% else %}""{% endif %}
         )
 {% endfor %}
 {% if method.parameters.query or method.parameters.body or method.parameters.formData or _self.methodNeedsSecurityParameters(method) %}
@@ -14,7 +14,7 @@
         let params: [String: Any?] = [:]
 {% endif %}
 {% for parameter in method.parameters.query | merge(method.parameters.body) %}
-            "{{ parameter.name }}": {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
+            "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
 
 {% endfor %}
 {% if _self.methodNeedsSecurityParameters(method) %}

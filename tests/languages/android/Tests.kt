@@ -60,7 +60,7 @@ class ServiceTest {
             .setProject("console")
             .addHeader("Origin", "http://localhost")
             .setSelfSigned(true)
-        val foo = Foo(client, "string")
+        val foo = Foo(client)
         val bar = Bar(client)
         val general = General(client)
         val realtime = Realtime(client)
@@ -73,15 +73,15 @@ class ServiceTest {
         runBlocking {
             var mock: Mock
             // Foo Tests
-            mock = foo.get(123, listOf("string in array"))
+            mock = foo.get("string", 123, listOf("string in array"))
             writeToFile(mock.result)
-            mock = foo.post(123, listOf("string in array"))
+            mock = foo.post("string", 123, listOf("string in array"))
             writeToFile(mock.result)
-            mock = foo.put(123, listOf("string in array"))
+            mock = foo.put("string", 123, listOf("string in array"))
             writeToFile(mock.result)
-            mock = foo.patch(123, listOf("string in array"))
+            mock = foo.patch("string", 123, listOf("string in array"))
             writeToFile(mock.result)
-            mock = foo.delete(123, listOf("string in array"))
+            mock = foo.delete("string", 123, listOf("string in array"))
             writeToFile(mock.result)
 
             // Bar Tests

@@ -7,11 +7,6 @@ use stdClass;
 class Swagger2 extends Spec
 {
     /**
-     * @var array
-     */
-    private array $serviceParams = [];
-
-    /**
      * @return string
      */
     public function getTitle()
@@ -112,7 +107,6 @@ class Swagger2 extends Spec
                             $list[$tag] = [
                                 'name' => $tag,
                                 'methods' => $methods,
-                                'globalParams' => $this->serviceParams[$tag] ?? [],
                             ];
                         }
                     }
@@ -138,7 +132,6 @@ class Swagger2 extends Spec
     public function getMethods($service)
     {
         $list = [];
-        $serviceParams= [];
         $security = $this->getAttribute('securityDefinitions', []);
         $paths = $this->getAttribute('paths', []);
 
@@ -210,7 +203,6 @@ class Swagger2 extends Spec
                             'default' => $parameter['default'] ?? null,
                             'example' => $parameter['x-example'] ?? null,
                             'isUploadID' => $parameter['x-upload-id'] ?? false,
-                            'isGlobal' => $parameter['x-global'] ?? false,
                             'array' => [
                                 'type' => $parameter['items']['type'] ?? '',
                             ],
@@ -221,10 +213,6 @@ class Swagger2 extends Spec
                         }
 
                         $param['default'] = (is_array($param['default'])) ? json_encode($param['default']) : $param['default'];
-
-                        if(($parameter['x-global'] ?? false)) {
-                            $serviceParams[$param['name']] = $param;
-                        }
 
                         switch ($parameter['in']) {
                             case 'header':
@@ -250,7 +238,6 @@ class Swagger2 extends Spec
                                     $param['required'] = (in_array($key, $bodyRequired));
                                     $param['default'] = $value['default'] ?? null;
                                     $param['example'] = $value['x-example'] ?? null;
-                                    $param['isGlobal'] = $value['x-global'] ?? false;
                                     $param['isUploadID'] = $value['x-upload-id'] ?? false;
                                     $param['array'] = [
                                         'type' => $value['items']['type'] ?? '',
@@ -281,8 +268,6 @@ class Swagger2 extends Spec
                 }
             }
         }
-
-        $this->serviceParams[$service] = $serviceParams;
 
         return $list;
     }

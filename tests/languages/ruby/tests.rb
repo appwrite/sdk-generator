@@ -3,7 +3,7 @@ require_relative '../../sdks/ruby/lib/appwrite'
 client = Appwrite::Client.new
 client.add_header('Origin', 'http://localhost')
 
-foo = Appwrite::Foo.new(client, x: 'string')  
+foo = Appwrite::Foo.new(client)  
 bar = Appwrite::Bar.new(client)  
 general = Appwrite::General.new(client)  
 
@@ -12,19 +12,19 @@ puts 'Test Started'
 
 # Foo
 
-response = foo.get(y: 123, z: ['string in array'])
+response = foo.get(x: 'string', y: 123, z: ['string in array'])
 puts response.result
 
-response = foo.post(y: 123, z: ['string in array'])
+response = foo.post(x: 'string', y: 123, z: ['string in array'])
 puts response.result
 
-response = foo.put(y: 123, z: ['string in array'])
+response = foo.put(x: 'string', y: 123, z: ['string in array'])
 puts response.result
 
-response = foo.patch(y: 123, z: ['string in array'])
+response = foo.patch(x: 'string', y: 123, z: ['string in array'])
 puts response.result
 
-response = foo.delete(y: 123, z: ['string in array'])
+response = foo.delete(x: 'string', y: 123, z: ['string in array'])
 puts response.result
 
 # Bar
