@@ -115,6 +115,12 @@ class ServiceTest {
             }
 
             general.empty()
+
+            // Header Tests
+            writeToFile(client.headers['x-sdk-name']);
+            writeToFile(client.headers['x-sdk-platform']);
+            writeToFile(client.headers['x-sdk-language']);
+            writeToFile(client.headers['x-sdk-version']);
         }
     }
 

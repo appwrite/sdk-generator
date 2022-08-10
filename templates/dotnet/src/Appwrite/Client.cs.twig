@@ -32,7 +32,7 @@ namespace {{ spec.title | caseUcfirst }}
                 { "content-type", "application/json" },
                 { "x-sdk-name", "{{ sdk.name }}" },
                 { "x-sdk-platform", "{{ sdk.platform }}" },
-                { "x-sdk-language", "{{ language.name }}" },
+                { "x-sdk-language", "{{ language.name | caseLower }}" },
                 { "x-sdk-version", "{{ sdk.version }}"}{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
 
 {% for key,header in spec.global.defaultHeaders %}

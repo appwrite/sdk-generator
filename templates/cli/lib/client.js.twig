@@ -14,7 +14,7 @@ class Client {
       'content-type': '',
       'x-sdk-name': '{{ sdk.name }}',
       'x-sdk-platform': '{{ sdk.platform }}',
-      'x-sdk-language': '{{ language.name }}',
+      'x-sdk-language': '{{ language.name | caseLower }}',
       'x-sdk-version': '{{ sdk.version }}',
       'user-agent' : `{{spec.title | caseUcfirst}}CLI/{{ sdk.version }} (${os.type()} ${os.version()}; ${os.arch()})`,
 {% for key,header in spec.global.defaultHeaders %}

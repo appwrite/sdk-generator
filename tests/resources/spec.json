@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "version": "0.10.4",
+    "version": "0.15.3",
     "title": "Appwrite",
     "description": "Appwrite backend as a service cuts up to 70% of the time and costs required for building a modern application. We abstract and simplify common development tasks behind a REST APIs, to help you develop your app in a fast and secure way. For full API documentation and tutorials go to [https://appwrite.io/docs](https://appwrite.io/docs)",
     "termsOfService": "https://appwrite.io/policy/terms",
@@ -15,7 +15,7 @@
       "url": "https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE"
     }
   },
-  "host": "appwrite.io",
+  "host": "HOSTNAME",
   "basePath": "/v1",
   "schemes": ["https"],
   "consumes": ["application/json", "multipart/form-data"],
@@ -27,6 +27,13 @@
       "description": "Your project ID",
       "in": "header",
       "x-appwrite": { "demo": "5df5acd0d48c2" }
+    },
+    "Key": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Key",
+      "description": "Your secret API key",
+      "in": "header",
+      "x-appwrite": { "demo": "919c2d18fb5d4...a2ae413da83346ad2" }
     },
     "JWT": {
       "type": "apiKey",
@@ -60,7 +67,7 @@
         },
         "x-appwrite": {
           "method": "get",
-          "weight": 187,
+          "weight": 232,
           "cookies": false,
           "type": "",
           "demo": "bar/get.md",
@@ -71,9 +78,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "required",
@@ -117,7 +124,7 @@
         },
         "x-appwrite": {
           "method": "post",
-          "weight": 188,
+          "weight": 233,
           "cookies": false,
           "type": "",
           "demo": "bar/post.md",
@@ -128,9 +135,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -178,7 +185,7 @@
         },
         "x-appwrite": {
           "method": "put",
-          "weight": 190,
+          "weight": 235,
           "cookies": false,
           "type": "",
           "demo": "bar/put.md",
@@ -189,9 +196,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -239,7 +246,7 @@
         },
         "x-appwrite": {
           "method": "patch",
-          "weight": 189,
+          "weight": 234,
           "cookies": false,
           "type": "",
           "demo": "bar/patch.md",
@@ -250,9 +257,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -300,7 +307,7 @@
         },
         "x-appwrite": {
           "method": "delete",
-          "weight": 191,
+          "weight": 236,
           "cookies": false,
           "type": "",
           "demo": "bar/delete.md",
@@ -311,9 +318,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -363,7 +370,7 @@
         },
         "x-appwrite": {
           "method": "get",
-          "weight": 182,
+          "weight": 227,
           "cookies": false,
           "type": "",
           "demo": "foo/get.md",
@@ -374,16 +381,15 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "x",
             "description": "Sample string param",
             "required": true,
             "type": "string",
-            "x-global": true,
             "x-example": "[]",
             "in": "query"
           },
@@ -421,7 +427,7 @@
         },
         "x-appwrite": {
           "method": "post",
-          "weight": 183,
+          "weight": 228,
           "cookies": false,
           "type": "",
           "demo": "foo/post.md",
@@ -432,9 +438,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -446,7 +452,6 @@
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
-                  "x-global": true,
                   "x-example": "[]"
                 },
                 "y": {
@@ -483,7 +488,7 @@
         },
         "x-appwrite": {
           "method": "put",
-          "weight": 185,
+          "weight": 230,
           "cookies": false,
           "type": "",
           "demo": "foo/put.md",
@@ -494,9 +499,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -508,7 +513,6 @@
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
-                  "x-global": true,
                   "x-example": "[]"
                 },
                 "y": {
@@ -545,7 +549,7 @@
         },
         "x-appwrite": {
           "method": "patch",
-          "weight": 184,
+          "weight": 229,
           "cookies": false,
           "type": "",
           "demo": "foo/patch.md",
@@ -556,9 +560,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -570,7 +574,6 @@
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
-                  "x-global": true,
                   "x-example": "[]"
                 },
                 "y": {
@@ -607,7 +610,7 @@
         },
         "x-appwrite": {
           "method": "delete",
-          "weight": 186,
+          "weight": 231,
           "cookies": false,
           "type": "",
           "demo": "foo/delete.md",
@@ -618,9 +621,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "payload",
@@ -632,7 +635,6 @@
                   "type": "string",
                   "description": "Sample string param",
                   "default": null,
-                  "x-global": true,
                   "x-example": "[]"
                 },
                 "y": {
@@ -671,7 +673,7 @@
         },
         "x-appwrite": {
           "method": "error400",
-          "weight": 199,
+          "weight": 245,
           "cookies": false,
           "type": "",
           "demo": "general/error400.md",
@@ -682,9 +684,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/500-error": {
@@ -703,7 +705,7 @@
         },
         "x-appwrite": {
           "method": "error500",
-          "weight": 200,
+          "weight": 246,
           "cookies": false,
           "type": "",
           "demo": "general/error500.md",
@@ -714,41 +716,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
-      }
-    },
-    "/mock/tests/general/502-error": {
-      "get": {
-        "summary": "502 Error",
-        "operationId": "generalError502",
-        "consumes": ["application/json"],
-        "produces": ["text/plain"],
-        "tags": ["general"],
-        "description": "",
-        "responses": {
-          "502": {
-            "description": "Any",
-            "schema": { "$ref": "#/definitions/any" }
-          }
-        },
-        "x-appwrite": {
-          "method": "error502",
-          "weight": 201,
-          "cookies": false,
-          "type": "",
-          "demo": "general/error502.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a 502 bad gateway.",
-          "rate-limit": 0,
-          "rate-time": 3600,
-          "rate-key": "url:{url},ip:{ip}",
-          "scope": "public",
-          "platforms": ["client"],
-          "packaging": false,
-          "auth": { "Project": [] }
-        },
-        "security": [{ "Project": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/download": {
@@ -764,7 +734,7 @@
         },
         "x-appwrite": {
           "method": "download",
-          "weight": 192,
+          "weight": 237,
           "cookies": false,
           "type": "location",
           "demo": "general/download.md",
@@ -775,9 +745,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/empty": {
@@ -791,7 +761,7 @@
         "responses": { "204": { "description": "No content" } },
         "x-appwrite": {
           "method": "empty",
-          "weight": 198,
+          "weight": 243,
           "cookies": false,
           "type": "",
           "demo": "general/empty.md",
@@ -802,9 +772,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/get-cookie": {
@@ -823,7 +793,7 @@
         },
         "x-appwrite": {
           "method": "getCookie",
-          "weight": 197,
+          "weight": 242,
           "cookies": false,
           "type": "",
           "demo": "general/get-cookie.md",
@@ -834,9 +804,41 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
+      }
+    },
+    "/mock/tests/general/headers": {
+      "get": {
+        "summary": "Get headers",
+        "operationId": "generalHeaders",
+        "consumes": ["application/json"],
+        "produces": [],
+        "tags": ["general"],
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "schema": { "$ref": "#/definitions/mock" }
+          }
+        },
+        "x-appwrite": {
+          "method": "headers",
+          "weight": 244,
+          "cookies": false,
+          "type": "",
+          "demo": "general/headers.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterReturn headers from the request",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": ["client", "server", "server"],
+          "packaging": false,
+          "auth": { "Project": [], "Key": [] }
+        },
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/redirect": {
@@ -850,7 +852,7 @@
         "responses": { "301": { "description": "No content" } },
         "x-appwrite": {
           "method": "redirect",
-          "weight": 194,
+          "weight": 239,
           "cookies": false,
           "type": "",
           "demo": "general/redirect.md",
@@ -861,9 +863,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/redirect/done": {
@@ -882,7 +884,7 @@
         },
         "x-appwrite": {
           "method": "redirected",
-          "weight": 195,
+          "weight": 240,
           "cookies": false,
           "type": "",
           "demo": "general/redirected.md",
@@ -893,9 +895,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/set-cookie": {
@@ -914,7 +916,7 @@
         },
         "x-appwrite": {
           "method": "setCookie",
-          "weight": 196,
+          "weight": 241,
           "cookies": false,
           "type": "",
           "demo": "general/set-cookie.md",
@@ -925,9 +927,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }]
+        "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
     },
     "/mock/tests/general/upload": {
@@ -946,7 +948,7 @@
         },
         "x-appwrite": {
           "method": "upload",
-          "weight": 193,
+          "weight": 238,
           "cookies": false,
           "type": "",
           "demo": "general/upload.md",
@@ -957,9 +959,9 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [] }
+          "auth": { "Project": [], "Key": [] }
         },
-        "security": [{ "Project": [], "JWT": [] }],
+        "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
           {
             "name": "x",
@@ -1000,51 +1002,56 @@
   "tags": [
     {
       "name": "account",
-      "description": "The Account service allows you to authenticate and manage a user account."
+      "description": "The Account service allows you to authenticate and manage a user account.",
+      "x-globalAttributes": []
     },
     {
       "name": "avatars",
-      "description": "The Avatars service aims to help you complete everyday tasks related to your app image, icons, and avatars."
+      "description": "The Avatars service aims to help you complete everyday tasks related to your app image, icons, and avatars.",
+      "x-globalAttributes": []
     },
     {
-      "name": "database",
-      "description": "The Database service allows you to create structured collections of documents, query and filter lists of documents"
+      "name": "databases",
+      "description": "The Databases service allows you to create structured collections of documents, query and filter lists of documents",
+      "x-globalAttributes": ["databaseId"]
     },
     {
       "name": "locale",
-      "description": "The Locale service allows you to customize your app based on your users' location."
+      "description": "The Locale service allows you to customize your app based on your users' location.",
+      "x-globalAttributes": []
     },
     {
       "name": "health",
-      "description": "The Health service allows you to both validate and monitor your Appwrite server's health."
+      "description": "The Health service allows you to both validate and monitor your Appwrite server's health.",
+      "x-globalAttributes": []
     },
     {
       "name": "projects",
-      "description": "The Project service allows you to manage all the projects in your Appwrite server."
+      "description": "The Project service allows you to manage all the projects in your Appwrite server.",
+      "x-globalAttributes": []
     },
     {
       "name": "storage",
-      "description": "The Storage service allows you to manage your project files."
+      "description": "The Storage service allows you to manage your project files.",
+      "x-globalAttributes": []
     },
     {
       "name": "teams",
-      "description": "The Teams service allows you to group users of your project and to enable them to share read and write access to your project resources"
+      "description": "The Teams service allows you to group users of your project and to enable them to share read and write access to your project resources",
+      "x-globalAttributes": []
     },
     {
       "name": "users",
-      "description": "The Users service allows you to manage your project users."
+      "description": "The Users service allows you to manage your project users.",
+      "x-globalAttributes": []
     },
     {
       "name": "functions",
-      "description": "The Functions Service allows you view, create and manage your Cloud Functions."
+      "description": "The Functions Service allows you view, create and manage your Cloud Functions.",
+      "x-globalAttributes": []
     }
   ],
   "definitions": {
-    "any": {
-      "description": "Any",
-      "type": "object",
-      "additionalProperties": true
-    },
     "error": {
       "description": "Error",
       "type": "object",
@@ -1059,13 +1066,18 @@
           "description": "Error code.",
           "x-example": "404"
         },
+        "type": {
+          "type": "string",
+          "description": "Error type. You can learn more about all the error types at https://appwrite.io/docs/error-codes#errorTypes",
+          "x-example": "not_found"
+        },
         "version": {
           "type": "string",
           "description": "Server version number.",
           "x-example": "1.0"
         }
       },
-      "required": ["message", "code", "version"]
+      "required": ["message", "code", "type", "version"]
     },
     "mock": {
       "description": "Mock",

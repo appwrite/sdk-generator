@@ -4,6 +4,11 @@ namespace Tests;
 
 class PHP74Test extends Base
 {
+    protected string $sdkName = 'php';
+    protected string $sdkPlatform = 'server';
+    protected string $sdkLanguage = 'php';
+    protected string $version = '0.0.1';
+
     protected string $language = 'php';
     protected string $class = 'Appwrite\SDK\Language\PHP';
     protected array $build = [];

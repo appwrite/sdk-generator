@@ -67,7 +67,7 @@ func NewClient() Client {
 		"{{key}}" : "{{header}}",
 		"x-sdk-name": "{{ sdk.name }}",
 		"x-sdk-platform": "{{ sdk.platform }}",
-		"x-sdk-language": "{{ language.name }}",
+		"x-sdk-language": "{{ language.name | caseLower }}",
 		"x-sdk-version": "{{ sdk.version }}",
 {% endfor %}
 	}
