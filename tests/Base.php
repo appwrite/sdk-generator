@@ -36,7 +36,7 @@ abstract class Base extends TestCase
     ];
 
     const EXTENDED_GENERAL_RESPONSES = [
-        'Download test passed.',
+        'GET:/v1/mock/tests/general/download:passed',
     ];
 
     const COOKIE_RESPONSES = [

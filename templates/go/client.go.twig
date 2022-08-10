@@ -74,7 +74,7 @@ func NewClient() Client {
 	httpClient, err := getDefaultClient(defaultTimeout)
 	if err != nil { panic(err) }
 	return Client {
-		endpoint: "https://{{ sdk.gitUserName|url_encode }}.io/v1",
+		endpoint: "{{spec.endpoint}}",
 		client: httpClient,
 		timeout: defaultTimeout,
 		headers: headers,

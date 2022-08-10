@@ -16,7 +16,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	client.SetEndpoint("https://appwrite.io/v1")
 	client.AddHeader("Origin", "http://localhost")
 	fmt.Print("\n\nTest Started\n")
 	testFooService(client, stringInArray)
