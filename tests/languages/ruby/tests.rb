@@ -98,3 +98,6 @@ rescue Appwrite::Exception => error
 end
 
 general.empty()
+
+response = general.headers()
+puts response.result

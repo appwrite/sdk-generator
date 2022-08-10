@@ -48,3 +48,6 @@ output = execSync("node index general upload --x string  --y 123 --z string in a
 console.log(output.split('\n')[0].split(" : ")[1]);
 
 execSync("node index general empty", { stdio: 'pipe'});
+
+output = execSync("node index general headers", { stdio: 'pipe'}).toString();
+console.log(output.split('\n')[0].split(" : ")[1]);

@@ -4,6 +4,11 @@ namespace Tests;
 
 class SwiftClient55Test extends Base
 {
+    protected string $sdkName = 'swift';
+    protected string $sdkPlatform = 'client';
+    protected string $sdkLanguage = 'swift';
+    protected string $version = '0.0.1';
+
     protected string $language = 'swift-client';
     protected string $class = 'Appwrite\SDK\Language\SwiftClient';
     protected array $build = [

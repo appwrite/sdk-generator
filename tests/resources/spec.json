@@ -15,9 +15,9 @@
       "url": "https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE"
     }
   },
-  "host": "HOSTNAME",
+  "host": "192.168.1.47",
   "basePath": "/v1",
-  "schemes": ["https"],
+  "schemes": ["http"],
   "consumes": ["application/json", "multipart/form-data"],
   "produces": ["application/json"],
   "securityDefinitions": {
@@ -48,6 +48,13 @@
       "description": "",
       "in": "header",
       "x-appwrite": { "demo": "en" }
+    },
+    "Mode": {
+      "type": "apiKey",
+      "name": "X-Appwrite-Mode",
+      "description": "",
+      "in": "header",
+      "x-appwrite": { "demo": "" }
     }
   },
   "paths": {
@@ -78,7 +85,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
@@ -135,7 +142,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
@@ -196,7 +203,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
@@ -257,7 +264,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
@@ -318,7 +325,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
@@ -381,7 +388,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
@@ -438,7 +445,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
@@ -499,7 +506,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
@@ -560,7 +567,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
@@ -621,7 +628,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
@@ -684,7 +691,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
@@ -716,9 +723,41 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }]
+      }
+    },
+    "/mock/tests/general/502-error": {
+      "get": {
+        "summary": "502 Error",
+        "operationId": "generalError502",
+        "consumes": ["application/json"],
+        "produces": ["text/plain"],
+        "tags": ["general"],
+        "description": "",
+        "responses": {
+          "502": {
+            "description": "Any",
+            "schema": { "$ref": "#/definitions/any" }
+          }
+        },
+        "x-appwrite": {
+          "method": "error502",
+          "weight": 247,
+          "cookies": false,
+          "type": "",
+          "demo": "general/error502.md",
+          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a 502 bad gateway.",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": ["client"],
+          "packaging": false,
+          "auth": { "Project": [] }
+        },
+        "security": [{ "Project": [] }]
       }
     },
     "/mock/tests/general/download": {
@@ -745,7 +784,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
@@ -772,7 +811,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
@@ -804,7 +843,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
@@ -818,10 +857,7 @@
         "tags": ["general"],
         "description": "",
         "responses": {
-          "200": {
-            "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
-          }
+          "200": { "description": "File", "schema": { "type": "file" } }
         },
         "x-appwrite": {
           "method": "headers",
@@ -836,7 +872,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
@@ -863,7 +899,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
@@ -895,7 +931,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
@@ -927,7 +963,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }]
       }
@@ -959,7 +995,7 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
-          "auth": { "Project": [], "Key": [] }
+          "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }],
         "parameters": [
@@ -1052,6 +1088,11 @@
     }
   ],
   "definitions": {
+    "any": {
+      "description": "Any",
+      "type": "object",
+      "additionalProperties": true
+    },
     "error": {
       "description": "Error",
       "type": "object",

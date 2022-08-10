@@ -87,4 +87,7 @@ void main() async {
   // print(response.result);
 
   await general.empty();
+
+  response = await general.headers();
+  print(response.result);
 }

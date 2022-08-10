@@ -82,12 +82,6 @@ async function start() {
 
     response = await general.headers();
     console.log(response.result);
-
-    // Header Tests
-    console.log(`x-sdk-name : ${client.headers['x-sdk-name']}`)
-    console.log(`x-sdk-platform : ${client.headers['x-sdk-platform']}`)
-    console.log(`x-sdk-language : ${client.headers['x-sdk-language']}`)
-    console.log(`x-sdk-version : ${client.headers['x-sdk-version']}`)
 }
 
 start().catch((err) => {

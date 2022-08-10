@@ -4,6 +4,11 @@ namespace Tests;
 
 class Python39Test extends Base
 {
+    protected string $sdkName = 'python';
+    protected string $sdkPlatform = 'server';
+    protected string $sdkLanguage = 'python';
+    protected string $version = '0.0.1';
+
     protected string $language = 'python';
     protected string $class = 'Appwrite\SDK\Language\Python';
     protected array $build = [

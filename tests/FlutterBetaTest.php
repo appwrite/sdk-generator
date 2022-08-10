@@ -4,6 +4,11 @@ namespace Tests;
 
 class FlutterBetaTest extends Base
 {
+    protected string $sdkName = 'flutter';
+    protected string $sdkPlatform = 'client';
+    protected string $sdkLanguage = 'dart';
+    protected string $version = '0.0.1';
+
     protected string $language = 'flutter';
     protected string $class = 'Appwrite\SDK\Language\Flutter';
     protected array $build = [

@@ -66,14 +66,8 @@ abstract class Base extends TestCase
 
     public function setUp(): void
     {
-        $headers = [
-            "x-sdk-name : {$this->sdkName}",
-            "x-sdk-platform : {$this->sdkPlatform}",
-            "x-sdk-language : {$this->sdkLanguage}",
-            "x-sdk-version : {$this->version}",
-        ];
-        
-        $this->expectedOutput = array_merge($this->expectedOutput, $headers);
+        $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
+        array_push($this->expectedOutput, $headers);
     }
 
     public function tearDown(): void

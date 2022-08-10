@@ -4,6 +4,11 @@ namespace Tests;
 
 class Deno1171Test extends Base
 {
+    protected string $sdkName = 'deno';
+    protected string $sdkPlatform = 'server';
+    protected string $sdkLanguage = 'deno';
+    protected string $version = '0.0.1';
+
     protected string $language = 'deno';
     protected string $class = 'Appwrite\SDK\Language\Deno';
     protected array $build = [];

@@ -120,6 +120,12 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 	}
 
 	general.Empty()
+
+	response, err = general.Headers()
+	if err != nil {
+		fmt.Printf("general.Headers => error %v", err)
+	}
+	fmt.Printf("%s\n", response.Result)
 }
 
 func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {

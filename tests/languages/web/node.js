@@ -69,6 +69,9 @@ async function start() {
     }
 
     console.log('WS:/v1/realtime:passed'); // Skip realtime test on Node.js
+
+    response = await general.headers();
+    console.log(response.result);
 }
 
 start();

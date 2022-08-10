@@ -155,6 +155,9 @@ class ServiceTest {
             writeToFile(mock.result)
 
             general.empty()
+
+            mock = general.headers()
+            writeToFile(mock.result)
         }
     }
 

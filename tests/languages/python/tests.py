@@ -86,3 +86,6 @@ except AppwriteException as e:
     print(e.message)
 
 general.empty()
+
+response = general.headers()
+print(response['result'])

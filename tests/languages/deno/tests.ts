@@ -91,6 +91,10 @@ async function start() {
   }
 
   await general.empty();
+
+  response = await general.headers()
+  // @ts-ignore
+  console.log(response.result)
 }
 
 start().catch((err) => {

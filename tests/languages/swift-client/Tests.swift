@@ -142,5 +142,8 @@ class Tests: XCTestCase {
         print(mock.result)
 
         try! await general.empty()
+
+        mock = try await general.headers()
+        print(mock.result)
     }
 }
