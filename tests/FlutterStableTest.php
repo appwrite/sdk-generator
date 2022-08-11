@@ -6,7 +6,7 @@ class FlutterStableTest extends Base
 {
     protected string $sdkName = 'flutter';
     protected string $sdkPlatform = 'client';
-    protected string $sdkLanguage = 'dart';
+    protected string $sdkLanguage = 'flutter';
     protected string $version = '0.0.1';
 
     protected string $language = 'flutter';
