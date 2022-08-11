@@ -109,6 +109,9 @@
                 console.log(error.message);
             }
 
+            response = await general.headers();
+            console.log(response.result);
+
             await Promise.resolve(resolve=>setTimeout(() => resolve, 5000));
             console.log(responseRealtime)
 
