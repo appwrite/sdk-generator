@@ -6,7 +6,7 @@ class SwiftClient55Test extends Base
 {
     protected string $sdkName = 'swift';
     protected string $sdkPlatform = 'client';
-    protected string $sdkLanguage = 'swift';
+    protected string $sdkLanguage = 'swiftclient';
     protected string $version = '0.0.1';
 
     protected string $language = 'swift-client';
