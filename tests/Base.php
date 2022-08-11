@@ -148,7 +148,7 @@ abstract class Base extends TestCase
             $removed = array_shift($output);
         } while ($removed != 'Test Started' && sizeof($output) != 0);
 
-        $this->assertEquals(count($this->expectedOutput), count($output));
+        $this->assertGreaterThanOrEqual(count($this->expectedOutput), count($output));
 
         foreach ($this->expectedOutput as $i => $row) {
             $this->assertEquals($output[$i], $row);
