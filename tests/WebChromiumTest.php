@@ -26,7 +26,12 @@ class WebChromiumTest extends Base
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
-        ...Base::EXCEPTION_RESPONSES,
-        ...Base::REALTIME_RESPONSES,
+        ...Base::EXCEPTION_RESPONSES
     ];
+
+    public function setUp(): void
+    {
+        $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
+        array_push($this->expectedOutput, $headers, ...Base::REALTIME_RESPONSES);
+    }
 }
