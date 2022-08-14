@@ -24,26 +24,26 @@ class Tests: XCTestCase {
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
 
-        let foo = Foo(client, "string")
+        let foo = Foo(client)
         let bar = Bar(client)
         let general = General(client)
 
         var mock: Mock
 
         // Foo Tests
-        mock = try await foo.get(y: 123, z: ["string in array"])
+        mock = try await foo.get(x: "string", y: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await foo.post(y: 123, z: ["string in array"])
+        mock = try await foo.post(x: "string", y: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await foo.put(y: 123, z: ["string in array"])
+        mock = try await foo.put(x: "string", y: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await foo.patch(y: 123, z: ["string in array"])
+        mock = try await foo.patch(x: "string", y: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await foo.delete(y: 123, z: ["string in array"])
+        mock = try await foo.delete(x: "string", y: 123, z: ["string in array"])
         print(mock.result)
 
 
