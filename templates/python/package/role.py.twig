@@ -5,7 +5,7 @@ class Role:
 
     @staticmethod
     def user(id):
-        return 'user:\(id)'
+        return f'user:{id}'
 
     @staticmethod
     def users():
@@ -17,10 +17,10 @@ class Role:
 
     @staticmethod
     def team(id, role = ""):
-        if(role == ""):
-            return 'team:\(id)'
-        return 'team:\(id)/\(role)'
+        if role:
+            return f'team:{id}'
+        return f'team:{id}/{role}'
 
     @staticmethod
     def status(status):
-        return 'status:\(status)'
+        return f'status:{status}'

@@ -16,7 +16,7 @@ public class Role {
     }
 
     public static func team(_ id: String, _ role: String = "") -> String {
-        if(role == "") {
+        if(role.isEmpty) {
             return 'team:\(id)'
         }
         return 'team:\(id)/\(role)'

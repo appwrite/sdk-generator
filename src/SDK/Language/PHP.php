@@ -180,8 +180,8 @@ class PHP extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Permissions.php',
-                'template'      => 'php/src/Permissions.php.twig',
+                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Permission.php',
+                'template'      => 'php/src/Permission.php.twig',
                 'minify'        => false,
             ],
             [

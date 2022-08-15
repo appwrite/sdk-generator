@@ -243,8 +243,8 @@ class Flutter extends Dart {
 			],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/permissions.dart',
-                'template'      => 'flutter/lib/permissions.dart.twig',
+                'destination'   => '/lib/permission.dart',
+                'template'      => 'flutter/lib/permission.dart.twig',
                 'minify'        => false,
             ],
             [

@@ -160,8 +160,8 @@ class Swift extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Permissions.swift',
-                'template'      => 'swift/Sources/Permissions.swift.twig',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Permission.swift',
+                'template'      => 'swift/Sources/Permission.swift.twig',
                 'minify'        => false,
             ],
             [

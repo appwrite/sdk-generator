@@ -1,4 +1,4 @@
-class Permissions {
+class Permission {
 
     static read = (role) => {
          return `read("${role}")`
@@ -19,7 +19,6 @@ class Permissions {
     static delete = (role) => {
          return `delete("${role}")`
     }
-
 }
 
-module.exports = Permissions;
+module.exports = Permission;

@@ -61,8 +61,8 @@ class Node extends JS
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/permissions.js',
-                'template'      => 'node/lib/permissions.js.twig',
+                'destination'   => 'lib/permission.js',
+                'template'      => 'node/lib/permission.js.twig',
                 'minify'        => false,
             ],
             [

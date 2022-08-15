@@ -11,7 +11,7 @@ class Role {
         fun guests(): String
             = "guests"
         fun team(id: String, role: String = ""): String
-            = if(role == "") {
+            = if(role.isEmpty()) {
                 "team:$id"
             } else {
                 "team:$id/$role"

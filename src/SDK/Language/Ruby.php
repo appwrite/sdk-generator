@@ -135,8 +135,8 @@ class Ruby extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/{{ spec.title | caseDash }}/permissions.rb',
-                'template'      => 'ruby/lib/container/permissions.rb.twig',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/permission.rb',
+                'template'      => 'ruby/lib/container/permission.rb.twig',
                 'minify'        => false,
             ],
             [

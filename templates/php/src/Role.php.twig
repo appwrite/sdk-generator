@@ -10,7 +10,7 @@ class Role
     }
     public static function user(string $id): string
     {
-        return 'read("' $role . '")';
+        return "user:$id";
     }
     public static function users(): string
     {
@@ -22,13 +22,13 @@ class Role
     }
     public static function team(string $id, string $role = ""): string
     {
-        if($role == "") {
-            return 'team:' . $id;
+        if(empty($role)) {
+            return "team:$id";
         }
-        return 'team:' . $id . '/' . $role;
+        return "team:$id/$role";
     }
     public static function status(string $status): string
     {
-        return 'status:' . $status;
+        return "status:$status";
     }
 }
