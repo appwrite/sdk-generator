@@ -22,7 +22,7 @@ class Role
     }
     public static function team(string $id, string $role = ""): string
     {
-        if($role == "") {
+        if(empty($role)) {
             return 'team:' . $id;
         }
         return 'team:' . $id . '/' . $role;
