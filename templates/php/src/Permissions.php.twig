@@ -14,7 +14,7 @@ class Permissions
     }
     public static function create(string $role): string
     {
-        return 'create("' $role . '")';
+        return "create('$role')";
     }
     public static function update(string $role): string
     {
