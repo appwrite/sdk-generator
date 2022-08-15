@@ -23,12 +23,12 @@ class Role
     public static function team(string $id, string $role = ""): string
     {
         if(empty($role)) {
-            return 'team:' . $id;
+            return "team:$id";
         }
-        return 'team:' . $id . '/' . $role;
+        return "team:$id/$role";
     }
     public static function status(string $status): string
     {
-        return 'status:' . $status;
+        return "status:$status";
     }
 }
