@@ -23,5 +23,8 @@ class WebChromiumTest extends Base
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
+        ...Base::QUERY_HELPER_RESPONSES,
+        ...BASE::PERMISSIONS_HELPER_RESPONSES,
+        ...BASE::ID_HELPER_RESPONSES
     ];
 }

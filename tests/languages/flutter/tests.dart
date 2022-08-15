@@ -123,4 +123,5 @@ void main() async {
   print(Permissions.delete(Role.team('teamId', 'owner')));
   print(Permissions.delete(Role.team('teamId')));
   print(ID.unique());
+  print(ID.custom('custom_id'));
 }

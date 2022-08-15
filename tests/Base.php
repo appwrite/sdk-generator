@@ -72,8 +72,12 @@ abstract class Base extends TestCase
         'create("users")',
         'update("guests")',
         'delete("team:teamId/owner")',
-        'delete("team:teamId")',
+        'delete("team:teamId")'
+    ];
+
+    const ID_HELPER_RESPONSES = [
         'unique()',
+        'custom_id'
     ];
 
     protected string $class = '';

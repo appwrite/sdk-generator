@@ -18,5 +18,8 @@ class Node14Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
+        ...Base::QUERY_HELPER_RESPONSES,
+        ...BASE::PERMISSIONS_HELPER_RESPONSES,
+        ...BASE::ID_HELPER_RESPONSES
     ];
 }
