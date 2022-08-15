@@ -20,7 +20,7 @@
             let response;
             let responseRealtime = 'Realtime failed!';
             // Init SDK
-            const { Client, Foo, Bar, General } = Appwrite;
+            const { Client, Foo, Bar, General, Query, Permission, Role, ID } = Appwrite;
             const client = new Client();
             const foo = new Foo(client);
             const bar = new Bar(client);
@@ -111,6 +111,25 @@
 
             await Promise.resolve(resolve=>setTimeout(() => resolve, 5000));
             console.log(responseRealtime)
+
+            // Query helper tests
+            console.log(Query.equal('title', ['Spiderman', 'Dr. Strange']));
+            console.log(Query.notEqual('title', 'Spiderman'));
+            console.log(Query.lesser('releasedYear', 1990));
+            console.log(Query.greater('releasedYear', [1990, 1999]));
+            console.log(Query.search('name', "john"));
+
+            // Permission & Role helper tests
+            console.log(Permission.read(Role.any()));
+            console.log(Permission.write(Role.user(ID.custom('userid'))));
+            console.log(Permission.create(Role.users()));
+            console.log(Permission.gitupdate(Role.guests()));
+            console.log(Permission.delete(Role.team('teamId', 'owner')));
+            console.log(Permission.delete(Role.team('teamId')));
+
+            // ID helper tests
+            console.log(ID.unique());
+            console.log(ID.custom('custom_id'));
 
         });
     </script>
