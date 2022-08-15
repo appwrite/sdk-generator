@@ -1,5 +1,10 @@
 require_relative '../../sdks/ruby/lib/appwrite'
 
+query = Appwrite::Query
+permission = Appwrite::Permission
+role = Appwrite::Role
+id = Appwrite::ID
+
 client = Appwrite::Client.new
 client.add_header('Origin', 'http://localhost')
 
@@ -98,3 +103,22 @@ rescue Appwrite::Exception => error
 end
 
 general.empty()
+
+# Query helper tests
+puts query.equal('title', ['Spiderman', 'Dr. Strange'])
+puts query.notEqual('title', 'Spiderman')
+puts query.lesser('releasedYear', 1990)
+puts query.greater('releasedYear', [1990, 1999])
+puts query.search('name', 'john')
+
+# Permission & Role helper tests
+puts permission.read(role.any())
+puts permission.write(role.user(id.custom('userid')))
+puts permission.create(role.users())
+puts permission.update(role.guests())
+puts permission.delete(role.team('teamId', 'owner'))
+puts permission.delete(role.team('teamId'))
+
+# ID helper tests
+puts id.unique()
+puts id.custom('custom_id')
