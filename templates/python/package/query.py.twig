@@ -39,4 +39,4 @@ class Query:
         if type(value) == str:
             return '"{}"'.format(value)
         else:
-            return value
+            return str(value)
