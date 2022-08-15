@@ -18,7 +18,7 @@ class Role:
     @staticmethod
     def team(id, role = ""):
         if role:
-            return 'team:\(id)'
+            return f'team:{id}'
         return 'team:\(id)/\(role)'
 
     @staticmethod
