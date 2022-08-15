@@ -1,0 +1,34 @@
+<?php
+
+namespace {{ spec.title | caseUcfirst }};
+
+class Role
+{
+    public static function any(): string
+    {
+        return 'any';
+    }
+    public static function user(string $id): string
+    {
+        return 'read("' $role . '")';
+    }
+    public static function users(): string
+    {
+        return 'users';
+    }
+    public static function guest(): string
+    {
+        return 'guests';
+    }
+    public static function team(string $id, string $role = ""): string
+    {
+        if($role == "") {
+            return 'team:' . $id;
+        }
+        return 'team:' . $id . '/' . $role;
+    }
+    public static function status(string $status): string
+    {
+        return 'status:' . $status;
+    }
+}
