@@ -28,9 +28,9 @@ module {{spec.title | caseUcfirst}}
 
             def addQuery(attribute, oper, value)
                 if value.is_a?(Array)
-                    "#{attribute}.#{oper}.(#{value.map {|item| parseValues(item)}.join(',')})"
+                    "#{attribute}.#{oper}(#{value.map {|item| parseValues(item)}.join(',')})"
                 else
-                   return "#{attribute}.#{oper}.(#{parseValues(value)})"
+                   return "#{attribute}.#{oper}(#{parseValues(value)})"
 				end
             end
 
