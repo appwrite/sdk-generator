@@ -5,6 +5,11 @@ import * as appwrite from '../../sdks/deno/mod.ts'
 async function start() {
   var response
 
+  let Permission = appwrite.Permission
+  let Role = appwrite.Role
+  let ID = appwrite.ID
+  let Query = appwrite.Query
+
   // Init SDK
   let client = new appwrite.Client()
 
@@ -93,7 +98,7 @@ async function start() {
   await general.empty();
   
   // Query helper tests
-  console.log(appwrite.Query.equal('title', ['Spiderman', 'Dr. Strange']));
+  console.log(Query.equal('title', ['Spiderman', 'Dr. Strange']));
   console.log(Query.notEqual('title', 'Spiderman'));
   console.log(Query.lesser('releasedYear', 1990));
   console.log(Query.greater('releasedYear', [1990, 1999]));
