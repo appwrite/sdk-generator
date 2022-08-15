@@ -4,6 +4,11 @@ from appwrite.services.bar import Bar
 from appwrite.services.general import General
 from appwrite.exception import AppwriteException
 from appwrite.input_file import InputFile
+from appwrite.query import Query
+from appwrite.permission import Permission
+from appwrite.role import Role
+from appwrite.id import ID
+
 import os.path
 
 
@@ -86,3 +91,22 @@ except AppwriteException as e:
     print(e.message)
 
 general.empty()
+
+# Query helper tests
+print(Query.equal('title', ['Spiderman', 'Dr. Strange']));
+print(Query.notEqual('title', 'Spiderman'));
+print(Query.lesser('releasedYear', 1990));
+print(Query.greater('releasedYear', [1990, 1999]));
+print(Query.search('name', 'john'));
+
+# Permission & Role helper tests
+print(Permission.read(Role.any()));
+print(Permission.write(Role.user(ID.custom('userid'))));
+print(Permission.create(Role.users()));
+print(Permission.update(Role.guests()));
+print(Permission.delete(Role.team('teamId', 'owner')));
+print(Permission.delete(Role.team('teamId')));
+
+# ID helper tests
+print(ID.unique());
+print(ID.custom('custom_id'));

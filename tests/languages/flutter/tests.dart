@@ -113,7 +113,7 @@ void main() async {
   print(Query.notEqual('title', 'Spiderman'));
   print(Query.lesser('releasedYear', 1990));
   print(Query.greater('releasedYear', [1990, 1999]));
-  print(Query.search('name', "john"));
+  print(Query.search('name', 'john'));
 
   // Permission & Role helper tests
   print(Permission.read(Role.any()));
