@@ -2,79 +2,20 @@ package {{ sdk.namespace | caseDot }}
 
 class Permissions {
     companion object {
-
-        fun from(
-            read: List<String> = listOf(),
-            write: List<String> = listOf(),
-            create: List<String> = listOf(),
-            update: List<String> = listOf(),
-            delete: List<String> = listOf(),
-            admin: List<String> = listOf(),
-        ): List<String> {
-            val permissions = mutableListOf<String>()
-
-            if (read.isNotEmpty()) {
-                permissions.add(read(*read.toTypedArray()))
-            }
-            if (write.isNotEmpty()) {
-                permissions.add(write(*write.toTypedArray()))
-            }
-            if (create.isNotEmpty()) {
-                permissions.add(create(*create.toTypedArray()))
-            }
-            if (update.isNotEmpty()) {
-                permissions.add(update(*update.toTypedArray()))
-            }
-            if (delete.isNotEmpty()) {
-                permissions.add(delete(*delete.toTypedArray()))
-            }
-            if (admin.isNotEmpty()) {
-                permissions.add(admin(*admin.toTypedArray()))
-            }
-
-            return permissions
-        }
-
-        fun read(vararg permissions: String): String {
-            if (permissions.isEmpty()) {
-                throw IllegalArgumentException("At least one permission must be provided.")
-            }
-            return "read(${permissions.joinToString(",")})"
-        }
-
-        fun write(vararg permissions: String): String {
-            if (permissions.isEmpty()) {
-                throw IllegalArgumentException("At least one permission must be provided.")
-            }
-            return "write(${permissions.joinToString(",")})"
-        }
-
-        fun create(vararg permissions: String): String {
-            if (permissions.isEmpty()) {
-                throw IllegalArgumentException("At least one permission must be provided.")
-            }
-            return "create(${permissions.joinToString(",")})"
-        }
-
-        fun update(vararg permissions: String): String {
-            if (permissions.isEmpty()) {
-                throw IllegalArgumentException("At least one permission must be provided.")
-            }
-            return "update(${permissions.joinToString(",")})"
-        }
-
-        fun delete(vararg permissions: String): String {
-            if (permissions.isEmpty()) {
-                throw IllegalArgumentException("At least one permission must be provided.")
-            }
-            return "delete(${permissions.joinToString(",")})"
-        }
-
-        fun admin(vararg permissions: String): String {
-            if (permissions.isEmpty()) {
-                throw IllegalArgumentException("At least one permission must be provided.")
-            }
-            return "admin(${permissions.joinToString(",")})"
-        }
+        fun read(var role: String): String {
+            return "read(\"${role}\")"
+        }        
+        fun write(var role: String): String {
+            return "write(\"${role}\")"
+        }        
+        fun create(var role: String): String {
+            return "create(\"${role}\")"
+        }        
+        fun update(var role: String): String {
+            return "update(\"${role}\")"
+        }        
+        fun delete(var role: String): String {
+            return "delete(\"${role}\")"
+        }        
     }
 }

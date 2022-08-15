@@ -1,102 +1,19 @@
 part of {{ language.params.packageName }};
 
 class Permissions {
-
-    static List<String> from(
-        List<String> read = [],
-        List<String> write = [],
-        List<String> create = [],
-        List<String> update = [],
-        List<String> delete = [],
-        List<String> admin = [],
-    ) {
-        final permissions = [];
-
-        if (read.isNotEmpty) {
-            permissions.add(Permissions.read(read));
-        }
-        if (write.isNotEmpty) {
-            permissions.add(Permissions.write(write));
-        }
-        if (create.isNotEmpty) {
-            permissions.add(Permissions.create(create));
-        }
-        if (update.isNotEmpty) {
-            permissions.add(Permissions.update(update));
-        }
-        if (delete.isNotEmpty) {
-            permissions.add(Permissions.delete(delete));
-        }
-        if (admin.isNotEmpty) {
-            permissions.add(Permissions.admin(admin));
-        }
-
-        return permissions;
+    static String read(String role) {
+        return 'read("$role")';
     }
-
-    static String read(List<String> permissions) {
-        if (read.isEmpty) {
-            throw {{ spec.title | caseUcfirst }}Exception('At least one permission is required.');
-        }
-        return "read(${permissions.join(",")})";
+    static String write(String role) {
+        return 'write("$role")';
     }
-
-    static String read(String permission) {
-        return Permissions.read([permission]);
+    static String create(String role) {
+        return 'create("$role")';
     }
-
-    static String write(List<String> permissions) {
-        if (write.isEmpty) {
-            throw {{ spec.title | caseUcfirst }}Exception('At least one permission is required.');
-        }
-        return "write(${permissions.join(",")})";
+    static String update(String role) {
+        return 'update("$role")';
     }
-
-    static String write(String permission) {
-        return Permissions.write([permission]);
-    }
-
-    static String create(List<String> permissions) {
-        if (create.isEmpty) {
-            throw {{ spec.title | caseUcfirst }}Exception('At least one permission is required.');
-        }
-        return "create(${permissions.join(",")})";
-    }
-
-    static String create(String permission) {
-        return Permissions.create([permission]);
-    }
-
-    static String update(List<String> permissions) {
-        if (update.isEmpty) {
-            throw {{ spec.title | caseUcfirst }}Exception('At least one permission is required.');
-        }
-        return "update(${permissions.join(",")})";
-    }
-
-    static String update(String permission) {
-        return Permissions.update([permission]);
-    }
-
-    static String delete(List<String> permissions) {
-        if (delete.isEmpty) {
-            throw {{ spec.title | caseUcfirst }}Exception('At least one permission is required.');
-        }
-        return "delete(${permissions.join(",")})";
-    }
-
-    static String delete(String permission) {
-        return Permissions.delete([permission]);
-    }
-
-    static String admin(List<String> permissions) {
-        if (admin.isEmpty) {
-            throw {{ spec.title | caseUcfirst }}Exception('At least one permission is required.');
-        }
-        return "admin(${permissions.join(",")})";
-    }
-
-    static String admin(String permission) {
-        return Permissions.admin([permission]);
+    static String delete(String role) {
+        return 'delete("$role")';
     }
 }

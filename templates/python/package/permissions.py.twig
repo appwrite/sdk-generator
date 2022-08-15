@@ -1,54 +1,21 @@
 class Permissions:
 
     @staticmethod
-    def from(read = [], write = [], create = [], update = [], delete = [], admin = []):
-        permissions = []
-        if read:
-            permissions.append(Permissions.read(read))
-        if write:
-            permissions.append(Permissions.write(write))
-        if create:
-            permissions.append(Permissions.create(create))
-        if update:
-            permissions.append(Permissions.update(update))
-        if delete:
-            permissions.append(Permissions.delete(delete))
-        if admin:
-            permissions.append(Permissions.admin(admin))
-        return permissions
+    def read(role):
+        return f'read("{role}")'
 
     @staticmethod
-    def read(*permissions):
-        if !permissions:
-            raise {{ spec.title | caseUcfirst }}Exception('At least one permission must be provided')
-        return f'read({",".join(permissions)})'
+    def write(role):
+        return f'write("{role}")'
 
     @staticmethod
-    def write(*permissions):
-        if !permissions:
-            raise {{ spec.title | caseUcfirst }}Exception('At least one permission must be provided')
-        return f'write({",".join(permissions)})'
+    def create(role):
+        return f'create("{role}")'
 
     @staticmethod
-    def create(*permissions):
-        if !permissions:
-            raise {{ spec.title | caseUcfirst }}Exception('At least one permission must be provided')
-        return f'create({",".join(permissions)})'
+    def update(role):
+        return f'update("{role}")'
 
     @staticmethod
-    def update(*permissions):
-        if !permissions:
-            raise {{ spec.title | caseUcfirst }}Exception('At least one permission must be provided')
-        return f'update({",".join(permissions)})'
-
-    @staticmethod
-    def delete(*permissions):
-        if !permissions:
-            raise {{ spec.title | caseUcfirst }}Exception('At least one permission must be provided')
-        return f'delete({",".join(permissions)})'
-
-    @staticmethod
-    def admin(*permissions):
-        if !permissions:
-            raise {{ spec.title | caseUcfirst }}Exception('At least one permission must be provided')
-        return f'admin({",".join(permissions)})'
+    def delete(role):
+        return f'delete("{role}")'
