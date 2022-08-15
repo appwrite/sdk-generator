@@ -19,7 +19,7 @@ class Role {
 
     static String team(String id, [String role = '']) {
         if(role.isEmpty) {
-          return 'team:$id';
+            return 'team:$id';
         }
         return 'team:$id/$role';
     }

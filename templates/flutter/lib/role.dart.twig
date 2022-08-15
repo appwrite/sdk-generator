@@ -17,10 +17,10 @@ class Role {
         return 'guests';
     }
 
-    static String team(String id, [String? role]) {
-        if(role != null) {
-            return 'team:$id/$role';
+    static String team(String id, [String role = '']) {
+        if(role.isEmpty) {
+            return 'team:$id';
         }
-        return 'team:$id';
+        return 'team:$id/$role';
     }
 }
