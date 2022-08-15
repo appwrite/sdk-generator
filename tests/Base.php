@@ -66,7 +66,7 @@ abstract class Base extends TestCase
         'name.search("john")',
     ];
 
-    const PERMISSIONS_HELPER_RESPONSES = [
+    const PERMISSION_HELPER_RESPONSES = [
         'read("any")',
         'write("user:userid")',
         'create("users")',

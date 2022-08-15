@@ -161,11 +161,23 @@ class ServiceTest {
             general.empty()
 
             // Query helper tests
-            writeToFile(Query.equal("title", ['Spiderman', 'Dr. Strange']));
-            writeToFile(Query.notEqual("title', 'Spiderman'));
-            writeToFile(Query.lesser("releasedYear', 1990));
-            writeToFile(Query.greater("releasedYear", [1990, 1999]));
+            writeToFile(Query.equal("title", listOf("Spiderman", "Dr. Strange")));
+            writeToFile(Query.notEqual("title", "Spiderman"));
+            writeToFile(Query.lesser("releasedYear", 1990));
+            writeToFile(Query.greater("releasedYear", listOf(1990, 1999)));
             writeToFile(Query.search("name", "john"));
+
+            // Permission & Roles helper tests
+            writeToFile(Permission.read(Role.any()));
+            writeToFile(Permission.write(Role.user(ID.custom("userid"))));
+            writeToFile(Permission.create(Role.users()));
+            writeToFile(Permission.update(Role.guests()));
+            writeToFile(Permission.delete(Role.team("teamId", "owner")));
+            writeToFile(Permission.delete(Role.team("teamId")));
+
+            // ID helper tests
+            writeToFile(ID.unique());
+            writeToFile(ID.custom("custom_id"));
         }
     }
 

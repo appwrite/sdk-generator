@@ -96,12 +96,12 @@ void main() async {
   print(Query.search('name', "john"));
 
   // Permission & Role helper tests
-  print(Permissions.read(Role.any()));
-  print(Permissions.write(Role.user(ID.custom('userid'))));
-  print(Permissions.create(Role.users()));
-  print(Permissions.update(Role.guests()));
-  print(Permissions.delete(Role.team('teamId', 'owner')));
-  print(Permissions.delete(Role.team('teamId')));
+  print(Permission.read(Role.any()));
+  print(Permission.write(Role.user(ID.custom('userid'))));
+  print(Permission.create(Role.users()));
+  print(Permission.update(Role.guests()));
+  print(Permission.delete(Role.team('teamId', 'owner')));
+  print(Permission.delete(Role.team('teamId')));
 
   // ID helper tests
   print(ID.unique());
