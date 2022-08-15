@@ -19,5 +19,7 @@ class DartStableTest extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
+        ...Base::QUERY_HELPER_RESPONSES,
+        ...BASE::PERMISSIONS_HELPER_RESPONSES,
     ];
 }

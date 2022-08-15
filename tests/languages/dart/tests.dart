@@ -87,4 +87,8 @@ void main() async {
   // print(response.result);
 
   await general.empty();
+
+  print(Query.equal('movie', ['Spiderman', 'Dr. Strange']));
+  print(Permissions.read(Role.user(ID.custom('userid'))));
+
 }

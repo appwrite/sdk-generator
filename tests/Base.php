@@ -58,6 +58,14 @@ abstract class Base extends TestCase
         'WS:/v1/realtime:passed',
     ];
 
+    const QUERY_HELPER_RESPONSES = [
+        'movie.equal("Spiderman","Dr. Strange")'
+    ];
+
+    const PERMISSIONS_HELPER_RESPONSES = [
+        'read("user:userid")'
+    ];
+
     protected string $class = '';
     protected string $language = '';
     protected array $build = [];
