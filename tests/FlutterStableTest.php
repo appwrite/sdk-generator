@@ -21,5 +21,7 @@ class FlutterStableTest extends Base
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         ...Base::COOKIE_RESPONSES,
+        ...Base::QUERY_HELPER_RESPONSES,
+        ...BASE::PERMISSIONS_HELPER_RESPONSES,
     ];
 }
