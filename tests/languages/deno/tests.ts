@@ -91,6 +91,25 @@ async function start() {
   }
 
   await general.empty();
+  
+  // Query helper tests
+  console.log(appwrite.Query.equal('title', ['Spiderman', 'Dr. Strange']));
+  console.log(Query.notEqual('title', 'Spiderman'));
+  console.log(Query.lesser('releasedYear', 1990));
+  console.log(Query.greater('releasedYear', [1990, 1999]));
+  console.log(Query.search('name', "john"));
+
+  // Permission & Role helper tests
+  console.log(Permission.read(Role.any()));
+  console.log(Permission.write(Role.user(ID.custom('userid'))));
+  console.log(Permission.create(Role.users()));
+  console.log(Permission.update(Role.guests()));
+  console.log(Permission.delete(Role.team('teamId', 'owner')));
+  console.log(Permission.delete(Role.team('teamId')));
+
+  // ID helper tests
+  console.log(ID.unique());
+  console.log(ID.custom('custom_id'));
 }
 
 start().catch((err) => {
