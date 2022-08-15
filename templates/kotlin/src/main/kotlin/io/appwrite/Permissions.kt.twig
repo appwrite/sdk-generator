@@ -2,19 +2,19 @@ package {{ sdk.namespace | caseDot }}
 
 class Permissions {
     companion object {
-        fun read(var role: String): String {
+        fun read(role: String): String {
             return "read(\"${role}\")"
         }        
-        fun write(var role: String): String {
+        fun write(role: String): String {
             return "write(\"${role}\")"
         }        
-        fun create(var role: String): String {
+        fun create(role: String): String {
             return "create(\"${role}\")"
         }        
-        fun update(var role: String): String {
+        fun update(role: String): String {
             return "update(\"${role}\")"
         }        
-        fun delete(var role: String): String {
+        fun delete(role: String): String {
             return "delete(\"${role}\")"
         }        
     }
