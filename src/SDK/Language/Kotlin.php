@@ -359,8 +359,8 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Permissions.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Permissions.kt.twig',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Permission.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Permission.kt.twig',
                 'minify'        => false,
             ],
             [

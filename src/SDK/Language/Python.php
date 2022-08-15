@@ -157,8 +157,8 @@ class Python extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseSnake}}/permissions.py',
-                'template'      => 'python/package/permissions.py.twig',
+                'destination'   => '{{ spec.title | caseSnake}}/permission.py',
+                'template'      => 'python/package/permission.py.twig',
                 'minify'        => false,
             ],
             [

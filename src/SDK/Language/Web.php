@@ -54,8 +54,8 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/permissions.ts',
-                'template'      => 'web/src/permissions.ts.twig',
+                'destination'   => 'src/permission.ts',
+                'template'      => 'web/src/permission.ts.twig',
                 'minify'        => false,
             ],
             [

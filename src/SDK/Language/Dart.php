@@ -343,8 +343,8 @@ class Dart extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/permissions.dart',
-                'template'      => 'dart/lib/permissions.dart.twig',
+                'destination'   => '/lib/permission.dart',
+                'template'      => 'dart/lib/permission.dart.twig',
                 'minify'        => false,
             ],
             [
