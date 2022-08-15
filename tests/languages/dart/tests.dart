@@ -88,7 +88,20 @@ void main() async {
 
   await general.empty();
 
-  print(Query.equal('movie', ['Spiderman', 'Dr. Strange']));
-  print(Permissions.read(Role.user(ID.custom('userid'))));
+  // Query helper tests
+  print(Query.equal('title', ['Spiderman', 'Dr. Strange']));
+  print(Query.notEqual('title', 'Spiderman'));
+  print(Query.lesser('releasedYear', 1990));
+  print(Query.greater('releasedYear', [1990, 1999]));
+  print(Query.search('name', "john"));
+
+  // Permissions, Role and ID helper tests
+  print(Permissions.read(Role.any()));
+  print(Permissions.write(Role.user(ID.custom('userid'))));
+  print(Permissions.create(Role.users()));
+  print(Permissions.update(Role.guests()));
+  print(Permissions.delete(Role.team('teamId', 'owner')));
+  print(Permissions.delete(Role.team('teamId')));
+  print(ID.unique());
 
 }

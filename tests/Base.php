@@ -59,11 +59,21 @@ abstract class Base extends TestCase
     ];
 
     const QUERY_HELPER_RESPONSES = [
-        'movie.equal("Spiderman","Dr. Strange")'
+        'title.equal("Spiderman","Dr. Strange")',
+        'title.notEqual("Spiderman")',
+        'releasedYear.lesser(1990)',
+        'releasedYear.greater(1990,1999)',
+        'name.search("john")',
     ];
 
     const PERMISSIONS_HELPER_RESPONSES = [
-        'read("user:userid")'
+        'read("any")',
+        'write("user:userid")',
+        'create("users")',
+        'update("guests")',
+        'delete("team:teamId/owner")',
+        'delete("team:teamId")',
+        'unique()',
     ];
 
     protected string $class = '';
