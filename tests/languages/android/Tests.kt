@@ -4,6 +4,10 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.gson.Gson
 import io.appwrite.exceptions.AppwriteException
+import io.appwrite.Permission
+import io.appwrite.Role
+import io.appwrite.ID
+import io.appwrite.Query
 import io.appwrite.extensions.fromJson
 import io.appwrite.extensions.toJson
 import io.appwrite.models.Error
@@ -155,6 +159,13 @@ class ServiceTest {
             writeToFile(mock.result)
 
             general.empty()
+
+            // Query helper tests
+            writeToFile(Query.equal("title", ['Spiderman', 'Dr. Strange']));
+            writeToFile(Query.notEqual("title', 'Spiderman'));
+            writeToFile(Query.lesser("releasedYear', 1990));
+            writeToFile(Query.greater("releasedYear", [1990, 1999]));
+            writeToFile(Query.search("name", "john"));
         }
     }
 
