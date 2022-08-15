@@ -16,7 +16,7 @@ export class Role {
     }
     
     public static team(id: string, role: string = ''): string {
-        if(role == '') {
+        if(role === '') {
             return 'team:\(id)'
         }
         return 'team:\(id)/\(role)'
