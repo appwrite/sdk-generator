@@ -17,7 +17,7 @@ module {{spec.title | caseUcfirst}}
         end
         
         def self.team(id, role = "")
-            if(role == "")
+            if(role.empty?)
                 "team:#{id}"
             else
                 "team:#{id}/#{role}"

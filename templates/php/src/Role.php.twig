@@ -10,7 +10,7 @@ class Role
     }
     public static function user(string $id): string
     {
-        return 'read("' $role . '")';
+        return 'user:' . $id;
     }
     public static function users(): string
     {
