@@ -166,6 +166,18 @@ class Swift extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Role.swift',
+                'template'      => 'swift/Sources/Role.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/ID.swift',
+                'template'      => 'swift/Sources/ID.swift.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Query.swift',
                 'template'      => 'swift/Sources/Query.swift.twig',
                 'minify'        => false,
