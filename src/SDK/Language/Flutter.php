@@ -248,6 +248,18 @@ class Flutter extends Dart {
                 'minify'        => false,
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '/lib/role.dart',
+                'template'      => 'flutter/lib/role.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/id.dart',
+                'template'      => 'flutter/lib/id.dart.twig',
+                'minify'        => false,
+            ],
+            [
 				'scope'         => 'default',
 				'destination'   => '/lib/query.dart',
 				'template'      => 'flutter/lib/query.dart.twig',

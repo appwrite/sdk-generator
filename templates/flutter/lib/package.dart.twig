@@ -19,6 +19,9 @@ export 'src/realtime_message.dart';
 export 'src/input_file.dart';
 
 part 'query.dart';
+part 'permissions.dart';
+part 'role.dart';
+part 'id.dart';
 {% for service in spec.services %}
 part 'services/{{service.name | caseDash}}.dart';
 {% endfor %}
