@@ -7,21 +7,6 @@ import NIO
 import {{spec.title | caseUcfirst}}Models
 
 open class {{ service.name | caseUcfirst }}: Service {
-{% if service.globalParams | length %}
-{% for parameter in service.globalParams %}
-    var {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName }}{% if not parameter.required %}?{% endif %}
-{% endfor %}
-
-
-    public init(_ client: Client, {% for parameter in service.globalParams %}_ {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
-    {
-{% for parameter in service.globalParams %}
-        self.{{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }}
-{% endfor %}
-        super.init(client)
-    }
-
-{% endif %}
 {% for method in service.methods %}
     ///
     /// {{ method.title }}
@@ -40,7 +25,7 @@ open class {{ service.name | caseUcfirst }}: Service {
     @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 {% endif %}
     open func {{ method.name | caseCamel }}(
-{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
+{% for parameter in method.parameters.all %}
         {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
 
 {% endfor %}
@@ -84,7 +69,7 @@ open class {{ service.name | caseUcfirst }}: Service {
 {{ method.description | swiftComment }}
     ///
 {% endif %}
-{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
+{% for parameter in method.parameters.all %}
     /// @param {{ parameter | typeName | raw}} {{ parameter.name | caseCamel }}
 {% endfor %}
     /// @throws Exception
@@ -95,7 +80,7 @@ open class {{ service.name | caseUcfirst }}: Service {
     @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
 {% endif %}
     open func {{ method.name | caseCamel }}(
-{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
+{% for parameter in method.parameters.all %}
         {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required %}? = nil{% endif %},
 {% endfor %}
 {% if 'multipart/form-data' in method.consumes %}
@@ -106,7 +91,7 @@ open class {{ service.name | caseUcfirst }}: Service {
         Task {
             do {
                 let result = try await {{ method.name | caseCamel }}(
-{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
+{% for parameter in method.parameters.all %}
                     {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
 
 {% endfor %}

@@ -2,30 +2,30 @@
 {% if method.parameters.all | length %}
 {% for parameter in method.parameters.all  %}
 {% if parameter.required %}
-        if {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }} is None:
+        if {{ parameter.name | escapeKeyword | caseSnake }} is None:
             raise {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | escapeKeyword | caseSnake }}"')
 
 {% endif %}
 {% endfor %}
 {% for parameter in method.parameters.path %}
-        path = path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }})
+        path = path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | escapeKeyword | caseSnake }})
 {% endfor %}
 
 {% for parameter in method.parameters.query %}
-        params['{{ parameter.name }}'] = {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }}
+        params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 {% endfor %}
 {% for parameter in method.parameters.body %}
 {% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
         params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
 {% else %}
-        params['{{ parameter.name }}'] = {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }}
+        params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 {% endif %}
 {% endfor %}
 {% for parameter in method.parameters.formData %}
 {% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
         params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
 {% else %}
-        params['{{ parameter.name }}'] = {% if parameter.isGlobal %}self.{% endif %}{{ parameter.name | escapeKeyword | caseSnake }}
+        params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 {% endif %}
 {% endfor %}
 {% endif %}

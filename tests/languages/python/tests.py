@@ -8,7 +8,7 @@ import os.path
 
 
 client = Client()
-foo = Foo(client, 'string')
+foo = Foo(client)
 bar = Bar(client)
 general = General(client)
 
@@ -19,19 +19,19 @@ print("\nTest Started")
 
 # Foo Tests
 
-response = foo.get(123, ['string in array'])
+response = foo.get('string', 123, ['string in array'])
 print(response['result'])
 
-response = foo.post( 123, ['string in array'])
+response = foo.post('string', 123, ['string in array'])
 print(response['result'])
 
-response = foo.put( 123, ['string in array'])
+response = foo.put('string', 123, ['string in array'])
 print(response['result'])
 
-response = foo.patch( 123, ['string in array'])
+response = foo.patch('string', 123, ['string in array'])
 print(response['result'])
 
-response = foo.delete( 123, ['string in array'])
+response = foo.delete('string', 123, ['string in array'])
 print(response['result'])
 
 # Bar Tests
