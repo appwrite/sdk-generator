@@ -147,7 +147,7 @@ class Tests: XCTestCase {
         print(Query.equal("title", value: ["Spiderman", "Dr. Strange"]));
         print(Query.notEqual("title", value: "Spiderman"));
         print(Query.lessThan("releasedYear", value: 1990));
-        print(Query.greaterThan("releasedYear", value: [1990, 1999]));
+        print(Query.greaterThan("releasedYear", value: 1990));
         print(Query.search("name", value: "john"));
         print(Query.orderAsc("title"));
         print(Query.orderDesc("title"));

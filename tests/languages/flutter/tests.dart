@@ -112,7 +112,7 @@ void main() async {
   print(Query.equal('title', ['Spiderman', 'Dr. Strange']));
   print(Query.notEqual('title', 'Spiderman'));
   print(Query.lessThan('releasedYear', 1990));
-  print(Query.greaterThan('releasedYear', [1990, 1999]));
+  print(Query.greaterThan('releasedYear', 1990));
   print(Query.search('name', 'john'));
   print(Query.orderAsc("title"));
   print(Query.orderDesc("title"));

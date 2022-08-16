@@ -62,7 +62,7 @@ abstract class Base extends TestCase
         'equal("title", ["Spiderman","Dr. Strange"])',
         'notEqual("title", ["Spiderman"])',
         'lessThan("releasedYear", [1990])',
-        'greaterThan("releasedYear", [1990,1999])',
+        'greaterThan("releasedYear", [1990])',
         'search("name", ["john"])',
         'orderAsc("title")',
         'orderDesc("title")',

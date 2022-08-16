@@ -107,7 +107,7 @@ $general->empty();
 echo Query::equal('title', ['Spiderman', 'Dr. Strange']) . "\n";
 echo Query::notEqual('title', 'Spiderman') . "\n";
 echo Query::lessThan('releasedYear', 1990) . "\n";
-echo Query::greaterThan('releasedYear', [1990, 1999]) . "\n";
+echo Query::greaterThan('releasedYear', 1990) . "\n";
 echo Query::search('name', "john") . "\n";
 echo Query::orderAsc("title") . "\n";
 echo Query::orderDesc("title") . "\n";
