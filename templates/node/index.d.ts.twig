@@ -147,13 +147,13 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 
     static notEqual(attribute: string, value: QueryTypes): string;
 
-    static lesser(attribute: string, value: QueryTypes): string;
+    static lessThan(attribute: string, value: QueryTypes): string;
 
-    static lesserEqual(attribute: string, value: QueryTypes): string;
+    static lessThanEqual(attribute: string, value: QueryTypes): string;
 
-    static greater(attribute: string, value: QueryTypes): string;
+    static greaterThan(attribute: string, value: QueryTypes): string;
 
-    static greaterEqual(attribute: string, value: QueryTypes): string;
+    static greaterThanEqual(attribute: string, value: QueryTypes): string;
 
     static search(attribute: string, value: string): string;
 
