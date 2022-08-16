@@ -24,13 +24,37 @@ module {{spec.title | caseUcfirst}}
                 return addQuery(attribute, "search", value)
             end
 
+            def orderAsc(attribute)
+                return "orderAsc(\"#{attribute}\")"
+            end
+
+            def orderDesc(attribute)
+                return "orderDesc(\"#{attribute}\")"
+            end
+
+            def cursorBefore(id)
+                return "cursorBefore(\"#{id}\")"
+            end
+
+            def cursorAfter(id)
+                return "cursorAfter(\"#{id}\")"
+            end
+
+            def limit(limit)
+                return "limit(#{limit})"
+            end
+
+            def offset(offset)
+                return "offset(#{offset})"
+            end
+
             private
 
             def addQuery(attribute, oper, value)
                 if value.is_a?(Array)
                     "#{oper}(\"#{attribute}\", [#{value.map {|item| parseValues(item)}.join(',')}])"
                 else
-                   return "#{oper}(\"#{attribute}\",[#{parseValues(value)}])"
+                   return "#{oper}(\"#{attribute}\", [#{parseValues(value)}])"
 				end
             end
 
