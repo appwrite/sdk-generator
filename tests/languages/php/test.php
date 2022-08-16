@@ -109,6 +109,12 @@ echo Query::notEqual('title', 'Spiderman') . "\n";
 echo Query::lesser('releasedYear', 1990) . "\n";
 echo Query::greater('releasedYear', [1990, 1999]) . "\n";
 echo Query::search('name', "john") . "\n";
+echo Query::orderAsc("title") . "\n";
+echo Query::orderDesc("title") . "\n";
+echo Query::cursorAfter("my_movie_id") . "\n";
+echo Query::cursorBefore("my_movie_id") . "\n";
+echo Query::limit(50) . "\n";
+echo Query::offset(20) . "\n";
 
 // Permission & Role helper tests
 echo Permission::read(Role::any()) . "\n";

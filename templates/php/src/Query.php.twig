@@ -89,6 +89,66 @@ class Query
     }
 
     /**
+     * Cursor After
+     *
+     * @param String $attribute
+     * @return string
+     */
+    public static function cursorAfter(String $attribute): string {
+        return 'cursorAfter("' . $attribute . '")';
+    }
+
+    /**
+     * Cursor Before
+     *
+     * @param String $attribute
+     * @return string
+     */
+    public static function cursorBefore(String $attribute): string {
+        return 'cursorBefore("' . $attribute . '")';
+    }
+
+    /**
+     * Order Asc
+     *
+     * @param String $id
+     * @return string
+     */
+    public static function orderAsc(String $id): string {
+        return 'orderAsc("' . $id . '")';
+    }
+
+    /**
+     * Order Desc
+     *
+     * @param String $id
+     * @return string
+     */
+    public static function orderDesc(String $id): string {
+        return 'orderDesc("' . $id . '")';
+    }
+
+    /**
+     * Limit
+     *
+     * @param int $limit
+     * @return string
+     */
+    public static function limit(int $limit): string {
+        return 'limit(' . $limit . ')';
+    }
+
+    /**
+     * Offset
+     *
+     * @param int $offset
+     * @return string
+     */
+    public static function offset(int $offset): string {
+        return 'offset(' . $offset . ')';
+    }
+
+    /**
      * Add Query
      *
      * @param string $attribute
@@ -98,7 +158,7 @@ class Query
      */
     private static function addQuery(string $attribute, string $oper, $value)
     {
-        return is_array($value) ? $attribute . '.' . $oper . '(' . implode(",", array_map(function ($item) {return self::parseValues($item);}, $value)) . ')' : $attribute . '.' . $oper . '(' . self::parseValues($value) . ')';
+        return is_array($value) ?  $oper . '("' . $attribute . '", [' . implode(",", array_map(function ($item) {return self::parseValues($item);}, $value)) . '])' : $oper . '("' . $attribute . '", [' .  self::parseValues($value) . '])';
     }
 
     /**
