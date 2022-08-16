@@ -8,20 +8,20 @@ class Query:
         return Query.addQuery(attribute, "notEqual", value)
     
     @staticmethod
-    def lesser(attribute, value):
-        return Query.addQuery(attribute, "lesser", value)
+    def lessThan(attribute, value):
+        return Query.addQuery(attribute, "lessThan", value)
     
     @staticmethod
-    def lesserEqual(attribute, value):
-        return Query.addQuery(attribute, "lesserEqual", value)
+    def lessThanEqual(attribute, value):
+        return Query.addQuery(attribute, "lessThanEqual", value)
     
     @staticmethod
-    def greater(attribute, value):
-        return Query.addQuery(attribute, "greater", value)
+    def greaterThan(attribute, value):
+        return Query.addQuery(attribute, "greaterThan", value)
     
     @staticmethod
-    def greaterEqual(attribute, value):
-        return Query.addQuery(attribute, "greaterEqual", value)
+    def greaterThanEqual(attribute, value):
+        return Query.addQuery(attribute, "greaterThanEqual", value)
 
     @staticmethod
     def search(attribute, value):
