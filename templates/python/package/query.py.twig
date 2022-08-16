@@ -33,34 +33,34 @@ class Query:
 
     @staticmethod
     def orderDesc(attribute):
-        return 'orderDesc("{}")'.format(attribute)
+        return f'orderDesc("{attribute}")'
 
     @staticmethod
     def cursorBefore(id):
-        return 'cursorBefore("{}")'.format(id)
+        return f'cursorBefore("{id}")'
 
     @staticmethod
     def cursorAfter(id):
-        return 'cursorAfter("{}")'.format(id)
+        return f'cursorAfter("{id}")'
 
     @staticmethod
     def limit(limit):
-        return 'limit({})'.format(limit)
+        return f'limit({limit})'
 
     @staticmethod
     def offset(offset):
-        return 'offset({})'.format(offset)
+        return f'offset({offset})'
 
     @staticmethod
     def addQuery(attribute, method, value):
         if type(value) == list:
-            return '{}("{}", [{}])'.format(method, attribute, ','.join(map(Query.parseValues, value)))
+            return f'{method}("{attribute}", [{",".join(map(Query.parseValues, value))}])'
         else:
-            return '{}("{}", [{}])'.format(method, attribute, Query.parseValues(value))
+            return f'{method}("{attribute}", [{Query.parseValues(value)}])'
 
     @staticmethod
     def parseValues(value):
         if type(value) == str:
-            return '"{}"'.format(value)
+            return f'"{value}"'
         else:
             return str(value)
