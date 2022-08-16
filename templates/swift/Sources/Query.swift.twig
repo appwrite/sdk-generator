@@ -8,20 +8,20 @@ public class Query {
         buildQueryWhere(attribute, is: "notEqual", to: value)
     }
 
-    public static func lesser(_ attribute: String, value: Any) -> String {
-        buildQueryWhere(attribute, is: "lesser", to: value)
+    public static func lessThan(_ attribute: String, value: Any) -> String {
+        buildQueryWhere(attribute, is: "lessThan", to: value)
     }
 
-    public static func lesserEqual(attribute: String, value: Any) -> String {
-        buildQueryWhere(attribute, is: "lesserEqual", to: value)
+    public static func lessThanEqual(attribute: String, value: Any) -> String {
+        buildQueryWhere(attribute, is: "lessThanEqual", to: value)
     }
 
-    public static func greater(_ attribute: String, value: Any) -> String {
-        buildQueryWhere(attribute, is: "greater", to: value)
+    public static func greaterThan(_ attribute: String, value: Any) -> String {
+        buildQueryWhere(attribute, is: "greaterThan", to: value)
     }
 
-    public static func greaterEqual(_ attribute: String, value: Any) -> String {
-        buildQueryWhere(attribute, is: "greaterEqual", to: value)
+    public static func greaterThanEqual(_ attribute: String, value: Any) -> String {
+        buildQueryWhere(attribute, is: "greaterThanEqual", to: value)
     }
 
     public static func search(_ attribute: String, value: String) -> String {
