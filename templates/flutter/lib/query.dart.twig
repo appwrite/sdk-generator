@@ -24,8 +24,32 @@ class Query {
 
   static String _addQuery(String attribute, String oper, dynamic value) => (value
           is List)
-      ? '$attribute.$oper(${value.map((item) => parseValues(item)).join(",")})'
-      : '$attribute.$oper(${parseValues(value)})';
+      ? '$oper("$attribute", [${value.map((item) => parseValues(item)).join(",")}])'
+      : '$oper("$attribute", [${parseValues(value)}])';
+
+    static String orderAsc(String attribute) {
+        return 'orderAsc("$attribute")';
+    }
+
+    static String orderDesc(String attribute) {
+        return 'orderDesc("$attribute")';
+    }
+
+    static String cursorBefore(String id) {
+        return 'cursorBefore("$id")';
+    }
+
+    static String cursorAfter(String id) {
+        return 'cursorAfter("$id")';
+    }
+
+    static String limit(int limit) {
+        return 'limit($limit)';
+    }
+
+    static String offset(int offset) {
+        return 'offset($offset)';
+    }
 
   static String parseValues(dynamic value) =>
       (value is String) ? '"$value"' : '$value';
