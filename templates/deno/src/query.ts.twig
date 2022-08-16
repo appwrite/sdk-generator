@@ -3,65 +3,65 @@ export type QueryTypesList = string[] | number[] | boolean[];
 export type QueryTypes = QueryTypesSingle | QueryTypesList;
 
 export class Query {
-    static equal = (attribute: string, value: QueryTypes): string =>
-        Query.addQuery("equal", attribute, value);
+  static equal = (attribute: string, value: QueryTypes): string =>
+    Query.addQuery("equal", attribute, value);
 
-    static notEqual = (attribute: string, value: QueryTypes): string =>
-        Query.addQuery("notEqual", attribute, value);
+  static notEqual = (attribute: string, value: QueryTypes): string =>
+    Query.addQuery("notEqual", attribute, value);
 
-    static lesser = (attribute: string, value: QueryTypes): string =>
-        Query.addQuery("lesser", attribute, value);
+  static lesser = (attribute: string, value: QueryTypes): string =>
+    Query.addQuery("lesser", attribute, value);
 
-    static lesserEqual = (attribute: string, value: QueryTypes): string =>
-        Query.addQuery("lesserEqual", attribute, value);
+  static lesserEqual = (attribute: string, value: QueryTypes): string =>
+    Query.addQuery("lesserEqual", attribute, value);
 
-    static greater = (attribute: string, value: QueryTypes): string =>
-        Query.addQuery("greater", attribute, value);
+  static greater = (attribute: string, value: QueryTypes): string =>
+    Query.addQuery("greater", attribute, value);
 
-    static greaterEqual = (attribute: string, value: QueryTypes): string =>
-        Query.addQuery("greaterEqual", attribute, value);
+  static greaterEqual = (attribute: string, value: QueryTypes): string =>
+    Query.addQuery("greaterEqual", attribute, value);
 
-    static search = (attribute: string, value: string): string =>
-        Query.addQuery("search", attribute, value);
+  static search = (attribute: string, value: string): string =>
+    Query.addQuery("search", attribute, value);
 
-    static orderDesc = (attribute: string): string =>
-        Query.addQuery("orderDesc", attribute, undefined);
+  static orderDesc = (attribute: string): string =>
+    Query.addQuery("orderDesc", attribute, undefined);
 
-    static orderAsc = (attribute: string): string =>
-        Query.addQuery("orderAsc", attribute, undefined);
+  static orderAsc = (attribute: string): string =>
+    Query.addQuery("orderAsc", attribute, undefined);
 
-    static cursorAfter = (documentId: string): string =>
-        Query.addQuery("cursorAfter", undefined, documentId);
+  static cursorAfter = (documentId: string): string =>
+    Query.addQuery("cursorAfter", undefined, documentId);
 
-    static cursorBefore = (documentId: string): string =>
-        Query.addQuery("cursorBefore", undefined, documentId);
+  static cursorBefore = (documentId: string): string =>
+    Query.addQuery("cursorBefore", undefined, documentId);
 
-    static limit = (value: number): string =>
-        Query.addQuery("limit", undefined, value);
+  static limit = (value: number): string =>
+    Query.addQuery("limit", undefined, value);
 
-    static offset = (value: number): string =>
-        Query.addQuery("offset", undefined, value);
+  static offset = (value: number): string =>
+    Query.addQuery("offset", undefined, value);
 
-    private static addQuery = (oper: string, attribute: string | undefined, value: QueryTypes | undefined): string => {
-        const params: string[] = [];
+  private static addQuery = (oper: string, attribute: string | undefined, value: QueryTypes | undefined): string => {
+    const params: string[] = [];
 
-        if (attribute) {
-            params.push(`"${attribute}"`);
-        }
-
-        if (value) {
-            params.push(
-                `[${(value instanceof Array ? value : [value])
-                    .map((v: QueryTypesSingle) => Query.parseValues(v))
-                    .join(", ")}]`
-            );
-        }
-
-        return `${oper}(${params.join(", ")})`;
+    if (attribute) {
+      params.push(`"${attribute}"`);
     }
 
-    private static parseValues = (value: QueryTypes): string =>
-        typeof value === "string" || value instanceof String
-            ? `"${value}"`
-            : `${value}`;
+    if (value) {
+      params.push(
+        `[${(value instanceof Array ? value : [value])
+          .map((v: QueryTypesSingle) => Query.parseValues(v))
+          .join(", ")}]`
+      );
+    }
+
+    return `${oper}(${params.join(", ")})`;
+  }
+
+  private static parseValues = (value: QueryTypes): string =>
+    typeof value === "string" || value instanceof String
+      ? `"${value}"`
+      : `${value}`;
 }
