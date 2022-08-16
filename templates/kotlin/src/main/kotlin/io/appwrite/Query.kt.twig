@@ -13,13 +13,25 @@ class Query {
     fun greater(attribute: String, value: Any) = Query.addQuery(attribute, "greater", value)
 
     fun greaterEqual(attribute: String, value: Any) = Query.addQuery(attribute, "greaterEqual", value)
-
+    
     fun search(attribute: String, value: String) = Query.addQuery(attribute, "search", value)
+
+    fun orderAsc(attribute: String) = "orderAsc(\"${attribute}\")"
+
+    fun orderDesc(attribute: String) = "orderDesc(\"${attribute}\")"
+
+    fun cursorBefore(attribute: String) = "cursorBefore(\"${attribute}\")"
+
+    fun cursorAfter(attribute: String) = "cursorAfter(\"${attribute}\")"
+
+    fun limit(limit: Int) = "cursorAfter(${limit})"
+
+    fun offset(offset: Int) = "cursorAfter(${offset})"
 
     private fun addQuery(attribute: String, oper: String, value: Any): String {
       return when (value) {
-        is List<*> -> "${attribute}.${oper}(${value.map{it -> parseValues(it!!)}.joinToString(",")})"
-    	  else -> "${attribute}.${oper}(${Query.parseValues(value)})"
+        is List<*> -> "${oper}(\"${attribute}\", [${value.map{it -> parseValues(it!!)}.joinToString(",")}])"
+    	  else -> "${oper}(\"${attribute}\", [${Query.parseValues(value)}])"
       }
     }
     private fun parseValues(value: Any): String {

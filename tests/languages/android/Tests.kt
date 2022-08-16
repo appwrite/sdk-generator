@@ -166,6 +166,12 @@ class ServiceTest {
             writeToFile(Query.lesser("releasedYear", 1990));
             writeToFile(Query.greater("releasedYear", listOf(1990, 1999)));
             writeToFile(Query.search("name", "john"));
+            writeToFile(Query.orderAsc("title"));
+            writeToFile(Query.orderDesc("title"));
+            writeToFile(Query.cursorAfter("my_movie_id"));
+            writeToFile(Query.cursorBefore("my_movie_id"));
+            writeToFile(Query.limit(50));
+            writeToFile(Query.offset(20));
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()));
