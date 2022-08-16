@@ -8,18 +8,23 @@ module {{spec.title | caseUcfirst}}
             def notEqual(attribute, value)
                 return addQuery(attribute, "notEqual", value)
             end
-            def lesser(attribute, value)
-                return addQuery(attribute, "lesser", value)
+
+            def lessThan(attribute, value)
+                return addQuery(attribute, "lessThan", value)
             end
-            def lesserEqual(attribute, value)
-                return addQuery(attribute, "lesserEqual", value)
+            
+            def lessThanEqual(attribute, value)
+                return addQuery(attribute, "lessThanEqual", value)
             end
-            def greater(attribute, value)
-                return addQuery(attribute, "greater", value)
+            
+            def greaterThan(attribute, value)
+                return addQuery(attribute, "greaterThan", value)
             end
-            def greaterEqual(attribute, value)
-                return addQuery(attribute, "equal", value)
+            
+            def greaterThanEqual(attribute, value)
+                return addQuery(attribute, "greaterThanEqual", value)
             end
+            
             def search(attribute, value)
                 return addQuery(attribute, "search", value)
             end
