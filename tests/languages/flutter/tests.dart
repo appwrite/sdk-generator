@@ -107,4 +107,29 @@ void main() async {
   print(response.result);
 
   await general.empty();
+
+  // Query helper tests
+  print(Query.equal('title', ['Spiderman', 'Dr. Strange']));
+  print(Query.notEqual('title', 'Spiderman'));
+  print(Query.lessThan('releasedYear', 1990));
+  print(Query.greaterThan('releasedYear', 1990));
+  print(Query.search('name', 'john'));
+  print(Query.orderAsc("title"));
+  print(Query.orderDesc("title"));
+  print(Query.cursorAfter("my_movie_id"));
+  print(Query.cursorBefore("my_movie_id"));
+  print(Query.limit(50));
+  print(Query.offset(20));
+
+  // Permission & Role helper tests
+  print(Permission.read(Role.any()));
+  print(Permission.write(Role.user(ID.custom('userid'))));
+  print(Permission.create(Role.users()));
+  print(Permission.update(Role.guests()));
+  print(Permission.delete(Role.team('teamId', 'owner')));
+  print(Permission.delete(Role.team('teamId')));
+
+  // ID helper tests
+  print(ID.unique());
+  print(ID.custom('custom_id'));
 }

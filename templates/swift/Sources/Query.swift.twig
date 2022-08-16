@@ -8,33 +8,57 @@ public class Query {
         buildQueryWhere(attribute, is: "notEqual", to: value)
     }
 
-    public static func lesser(_ attribute: String, value: Any) -> String {
-        buildQueryWhere(attribute, is: "lesser", to: value)
+    public static func lessThan(_ attribute: String, value: Any) -> String {
+        buildQueryWhere(attribute, is: "lessThan", to: value)
     }
 
-    public static func lesserEqual(attribute: String, value: Any) -> String {
-        buildQueryWhere(attribute, is: "lesserEqual", to: value)
+    public static func lessThanEqual(attribute: String, value: Any) -> String {
+        buildQueryWhere(attribute, is: "lessThanEqual", to: value)
     }
 
-    public static func greater(_ attribute: String, value: Any) -> String {
-        buildQueryWhere(attribute, is: "greater", to: value)
+    public static func greaterThan(_ attribute: String, value: Any) -> String {
+        buildQueryWhere(attribute, is: "greaterThan", to: value)
     }
 
-    public static func greaterEqual(_ attribute: String, value: Any) -> String {
-        buildQueryWhere(attribute, is: "greaterEqual", to: value)
+    public static func greaterThanEqual(_ attribute: String, value: Any) -> String {
+        buildQueryWhere(attribute, is: "greaterThanEqual", to: value)
     }
 
     public static func search(_ attribute: String, value: String) -> String {
         buildQueryWhere(attribute, is: "search", to: value)
     }
 
-    public static func buildQueryWhere(_ attribute: String, is oper: String, to value: Any) -> String {
+    public static func buildQueryWhere(_ attribute: String, is method: String, to value: Any) -> String {
         switch value {
         case let value as Array<Any>:
-            return "\(attribute).\(oper)(\(value.map { parseValues($0) }.joined(separator: ",") ))"
+            return "\(method)(\"\(attribute)\", [\(value.map { parseValues($0) }.joined(separator: ",") )])"
         default:
-            return "\(attribute).\(oper)(\(parseValues(value)))"
+            return "\(method)(\"\(attribute)\", [\(parseValues(value))])"
         }
+    }
+
+    public static func orderAsc(_ attribute: String) -> String {
+        "orderAsc(\"\(attribute)\")"
+    }
+
+    public static func orderDesc(_ attribute: String) -> String {
+        "orderDesc(\"\(attribute)\")"
+    }
+
+    public static func cursorBefore(_ id: String) -> String {
+        "cursorBefore(\"\(id)\")"
+    }
+
+    public static func cursorAfter(_ id: String) -> String {
+        "cursorAfter(\"\(id)\")"
+    }
+
+    public static func limit(_ limit: Int) -> String {
+        "limit(\(limit))"
+    }
+
+    public static func offset(_ offset: Int) -> String {
+        "offset(\(offset))"
     }
 
     private static func parseValues(_ value: Any) -> String {
