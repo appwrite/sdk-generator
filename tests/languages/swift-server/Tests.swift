@@ -127,9 +127,15 @@ class Tests: XCTestCase {
         // Query helper tests
         print(Query.equal("title", value: ["Spiderman", "Dr. Strange"]));
         print(Query.notEqual("title", value: "Spiderman"));
-        print(Query.lesser("releasedYear", value: 1990));
-        print(Query.greater("releasedYear", value: [1990, 1999]));
+        print(Query.lessThan("releasedYear", value: 1990));
+        print(Query.greaterThan("releasedYear", value: 1990));
         print(Query.search("name", value: "john"));
+        print(Query.orderAsc("title"));
+        print(Query.orderDesc("title"));
+        print(Query.cursorAfter("my_movie_id"));
+        print(Query.cursorBefore("my_movie_id"));
+        print(Query.limit(50));
+        print(Query.offset(20));
 
         // Permission & Role helper tests
         print(Permission.read(Role.any()));

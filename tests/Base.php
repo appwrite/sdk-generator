@@ -59,11 +59,17 @@ abstract class Base extends TestCase
     ];
 
     const QUERY_HELPER_RESPONSES = [
-        'title.equal("Spiderman","Dr. Strange")',
-        'title.notEqual("Spiderman")',
-        'releasedYear.lesser(1990)',
-        'releasedYear.greater(1990,1999)',
-        'name.search("john")',
+        'equal("title", ["Spiderman","Dr. Strange"])',
+        'notEqual("title", ["Spiderman"])',
+        'lessThan("releasedYear", [1990])',
+        'greaterThan("releasedYear", [1990])',
+        'search("name", ["john"])',
+        'orderAsc("title")',
+        'orderDesc("title")',
+        'cursorAfter("my_movie_id")',
+        'cursorBefore("my_movie_id")',
+        'limit(50)',
+        'offset(20)',
     ];
 
     const PERMISSION_HELPER_RESPONSES = [

@@ -29,51 +29,51 @@ class Query
     }
 
     /**
-     * Lesser
+     * Less Than
      *
      * @param string $attribute
      * @param mixed $value
      * @return string
      */
-    public static function lesser(string $attribute, $value): string
+    public static function lessThan(string $attribute, $value): string
     {
-        return self::addQuery($attribute, 'lesser', $value);
+        return self::addQuery($attribute, 'lessThan', $value);
     }
 
     /**
-     * Lesser or Equal
+     * Lesser Than or Equal
      *
      * @param string $attribute
      * @param mixed $value
      * @return string
      */
-    public static function lesserEqual(string $attribute, $value): string
+    public static function lessThanEqual(string $attribute, $value): string
     {
-        return self::addQuery($attribute, 'lesserEqual', $value);
+        return self::addQuery($attribute, 'lessThanEqual', $value);
     }
 
     /**
-     * Greater
+     * Greater Than
      *
      * @param string $attribute
      * @param mixed $value
      * @return string
      */
-    public static function greater(string $attribute, $value): string
+    public static function greaterThan(string $attribute, $value): string
     {
-        return self::addQuery($attribute, 'greater', $value);
+        return self::addQuery($attribute, 'greaterThan', $value);
     }
 
     /**
-     * Greater or Equal
+     * Greater Than or Equal
      *
      * @param string $attribute
      * @param mixed $value
      * @return string
      */
-    public static function greaterEqual(string $attribute, $value): string
+    public static function greaterThanEqual(string $attribute, $value): string
     {
-        return self::addQuery($attribute, 'greaterEqual', $value);
+        return self::addQuery($attribute, 'greaterThanEqual', $value);
     }
 
     /**
@@ -89,16 +89,76 @@ class Query
     }
 
     /**
+     * Cursor After
+     *
+     * @param string $documentId
+     * @return string
+     */
+    public static function cursorAfter(string $documentId): string {
+        return 'cursorAfter("' . $documentId . '")';
+    }
+
+    /**
+     * Cursor Before
+     *
+     * @param string $documentId
+     * @return string
+     */
+    public static function cursorBefore(string $documentId): string {
+        return 'cursorBefore("' . $documentId . '")';
+    }
+
+    /**
+     * Order Asc
+     *
+     * @param string $attribute
+     * @return string
+     */
+    public static function orderAsc(string $attribute): string {
+        return 'orderAsc("' . $attribute . '")';
+    }
+
+    /**
+     * Order Desc
+     *
+     * @param string $attribute
+     * @return string
+     */
+    public static function orderDesc(string $attribute): string {
+        return 'orderDesc("' . $attribute . '")';
+    }
+
+    /**
+     * Limit
+     *
+     * @param int $limit
+     * @return string
+     */
+    public static function limit(int $limit): string {
+        return 'limit(' . $limit . ')';
+    }
+
+    /**
+     * Offset
+     *
+     * @param int $offset
+     * @return string
+     */
+    public static function offset(int $offset): string {
+        return 'offset(' . $offset . ')';
+    }
+
+    /**
      * Add Query
      *
      * @param string $attribute
-     * @param string $operator
+     * @param string $method
      * @param mixed $value
      * @return string
      */
-    private static function addQuery(string $attribute, string $oper, $value)
+    private static function addQuery(string $attribute, string $method, $value)
     {
-        return is_array($value) ? $attribute . '.' . $oper . '(' . implode(",", array_map(function ($item) {return self::parseValues($item);}, $value)) . ')' : $attribute . '.' . $oper . '(' . self::parseValues($value) . ')';
+        return is_array($value) ?  $method . '("' . $attribute . '", [' . implode(",", array_map(function ($item) {return self::parseValues($item);}, $value)) . '])' : $method . '("' . $attribute . '", [' .  self::parseValues($value) . '])';
     }
 
     /**

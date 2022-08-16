@@ -100,9 +100,15 @@ async function start() {
   // Query helper tests
   console.log(Query.equal('title', ['Spiderman', 'Dr. Strange']));
   console.log(Query.notEqual('title', 'Spiderman'));
-  console.log(Query.lesser('releasedYear', 1990));
-  console.log(Query.greater('releasedYear', [1990, 1999]));
+  console.log(Query.lessThan('releasedYear', 1990));
+  console.log(Query.greaterThan('releasedYear', 1990));
   console.log(Query.search('name', "john"));
+  console.log(Query.orderAsc("title"));
+  console.log(Query.orderDesc("title"));
+  console.log(Query.cursorAfter("my_movie_id"));
+  console.log(Query.cursorBefore("my_movie_id"));
+  console.log(Query.limit(50));
+  console.log(Query.offset(20));
 
   // Permission & Role helper tests
   console.log(Permission.read(Role.any()));

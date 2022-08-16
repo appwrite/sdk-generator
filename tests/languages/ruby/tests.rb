@@ -107,9 +107,15 @@ general.empty()
 # Query helper tests
 puts query.equal('title', ['Spiderman', 'Dr. Strange'])
 puts query.notEqual('title', 'Spiderman')
-puts query.lesser('releasedYear', 1990)
-puts query.greater('releasedYear', [1990, 1999])
+puts query.lessThan('releasedYear', 1990)
+puts query.greaterThan('releasedYear', 1990)
 puts query.search('name', 'john')
+puts query.orderAsc("title")
+puts query.orderDesc("title")
+puts query.cursorAfter("my_movie_id")
+puts query.cursorBefore("my_movie_id")
+puts query.limit(50)
+puts query.offset(20)
 
 # Permission & Role helper tests
 puts permission.read(role.any())
