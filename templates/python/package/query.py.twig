@@ -29,7 +29,7 @@ class Query:
 
     @staticmethod
     def orderAsc(attribute):
-        return 'orderAsc("{}")'.format(attribute)
+        return f'orderAsc("{attribute}")'
 
     @staticmethod
     def orderDesc(attribute):
