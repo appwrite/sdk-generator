@@ -31,10 +31,34 @@ public class Query {
     public static func buildQueryWhere(_ attribute: String, is oper: String, to value: Any) -> String {
         switch value {
         case let value as Array<Any>:
-            return "\(attribute).\(oper)(\(value.map { parseValues($0) }.joined(separator: ",") ))"
+            return "\(oper)(\"\(attribute)\", [\(value.map { parseValues($0) }.joined(separator: ",") )])"
         default:
-            return "\(attribute).\(oper)(\(parseValues(value)))"
+            return "\(oper)(\"\(attribute)\", [\(parseValues(value))])"
         }
+    }
+
+    public static func orderAsc(_ attribute: String) -> String {
+        "orderAsc(\"\(attribute)\")"
+    }
+
+    public static func orderDesc(_ attribute: String) -> String {
+        "orderDesc(\"\(attribute)\")"
+    }
+
+    public static func cursorBefore(_ id: String) -> String {
+        "cursorBefore(\"\(id)\")"
+    }
+
+    public static func cursorAfter(_ id: String) -> String {
+        "cursorAfter(\"\(id)\")"
+    }
+
+    public static func limit(_ limit: Int) -> String {
+        "limit(\(limit))"
+    }
+
+    public static func offset(_ offset: Int) -> String {
+        "offset(\(offset))"
     }
 
     private static func parseValues(_ value: Any) -> String {
