@@ -93,20 +93,26 @@ except AppwriteException as e:
 general.empty()
 
 # Query helper tests
-print(Query.equal('title', ['Spiderman', 'Dr. Strange']));
-print(Query.notEqual('title', 'Spiderman'));
-print(Query.lesser('releasedYear', 1990));
-print(Query.greater('releasedYear', [1990, 1999]));
-print(Query.search('name', 'john'));
+print(Query.equal('title', ['Spiderman', 'Dr. Strange']))
+print(Query.notEqual('title', 'Spiderman'))
+print(Query.lesser('releasedYear', 1990))
+print(Query.greater('releasedYear', [1990, 1999]))
+print(Query.search('name', 'john'))
+print(Query.orderAsc("title"))
+print(Query.orderDesc("title"))
+print(Query.cursorAfter("my_movie_id"))
+print(Query.cursorBefore("my_movie_id"))
+print(Query.limit(50))
+print(Query.offset(20))
 
 # Permission & Role helper tests
-print(Permission.read(Role.any()));
-print(Permission.write(Role.user(ID.custom('userid'))));
-print(Permission.create(Role.users()));
-print(Permission.update(Role.guests()));
-print(Permission.delete(Role.team('teamId', 'owner')));
-print(Permission.delete(Role.team('teamId')));
+print(Permission.read(Role.any()))
+print(Permission.write(Role.user(ID.custom('userid'))))
+print(Permission.create(Role.users()))
+print(Permission.update(Role.guests()))
+print(Permission.delete(Role.team('teamId', 'owner')))
+print(Permission.delete(Role.team('teamId')))
 
 # ID helper tests
-print(ID.unique());
-print(ID.custom('custom_id'));
+print(ID.unique())
+print(ID.custom('custom_id'))

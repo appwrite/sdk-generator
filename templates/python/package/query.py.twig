@@ -28,11 +28,35 @@ class Query:
         return Query.addQuery(attribute, "search", value)
 
     @staticmethod
+    def orderAsc(attribute):
+        return 'orderAsc("{}")'.format(attribute)
+
+    @staticmethod
+    def orderDesc(attribute):
+        return 'orderDesc("{}")'.format(attribute)
+
+    @staticmethod
+    def cursorBefore(id):
+        return 'cursorBefore("{}")'.format(id)
+
+    @staticmethod
+    def cursorAfter(id):
+        return 'cursorAfter("{}")'.format(id)
+
+    @staticmethod
+    def limit(limit):
+        return 'limit({})'.format(limit)
+
+    @staticmethod
+    def offset(offset):
+        return 'offset({})'.format(offset)
+
+    @staticmethod
     def addQuery(attribute, oper, value):
         if type(value) == list:
-            return '{}.{}({})'.format(attribute,oper, ','.join(map(Query.parseValues, value)))
+            return '{}("{}", [{}])'.format(oper, attribute, ','.join(map(Query.parseValues, value)))
         else:
-            return '{}.{}({})'.format(attribute,oper, Query.parseValues(value))
+            return '{}("{}", [{}])'.format(oper, attribute, Query.parseValues(value))
 
     @staticmethod
     def parseValues(value):
