@@ -9,17 +9,17 @@ export class Query {
   static notEqual = (attribute: string, value: QueryTypes): string =>
     Query.addQuery(attribute, "notEqual", value);
 
-  static lesser = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "lesser", value);
+  static lessThan = (attribute: string, value: QueryTypes): string =>
+    Query.addQuery(attribute, "lessThan", value);
 
-  static lesserEqual = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "lesserEqual", value);
+  static lessThanEqual = (attribute: string, value: QueryTypes): string =>
+    Query.addQuery(attribute, "lessThanEqual", value);
 
-  static greater = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "greater", value);
+  static greaterThan = (attribute: string, value: QueryTypes): string =>
+    Query.addQuery(attribute, "greaterThan", value);
 
-  static greaterEqual = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "greaterEqual", value);
+  static greaterThanEqual = (attribute: string, value: QueryTypes): string =>
+    Query.addQuery(attribute, "greaterThanEqual", value);
 
   static search = (attribute: string, value: string): string =>
     Query.addQuery(attribute, "search", value);
