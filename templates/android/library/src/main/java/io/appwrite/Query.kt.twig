@@ -24,9 +24,9 @@ class Query {
 
     fun cursorAfter(attribute: String) = "cursorAfter(\"${attribute}\")"
 
-    fun limit(limit: Int) = "cursorAfter(${limit})"
+    fun limit(limit: Int) = "limit(${limit})"
 
-    fun offset(offset: Int) = "cursorAfter(${offset})"
+    fun offset(offset: Int) = "offset(${offset})"
 
     private fun addQuery(attribute: String, oper: String, value: Any): String {
       return when (value) {
