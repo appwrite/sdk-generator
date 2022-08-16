@@ -5,17 +5,17 @@ class Query {
   static notEqual = (attribute, value) =>
     Query.addQuery(attribute, "notEqual", value);
 
-  static lesser = (attribute, value) =>
-    Query.addQuery(attribute, "lesser", value);
+  static lessThan = (attribute, value) =>
+    Query.addQuery(attribute, "lessThan", value);
 
-  static lesserEqual = (attribute, value) =>
-    Query.addQuery(attribute, "lesserEqual", value);
+  static lessThanEqual = (attribute, value) =>
+    Query.addQuery(attribute, "lessThanEqual", value);
 
-  static greater = (attribute, value) =>
-    Query.addQuery(attribute, "greater", value);
+  static greaterThan = (attribute, value) =>
+    Query.addQuery(attribute, "greaterThan", value);
 
-  static greaterEqual = (attribute, value) =>
-    Query.addQuery(attribute, "greaterEqual", value);
+  static greaterThanEqual = (attribute, value) =>
+    Query.addQuery(attribute, "greaterThanEqual", value);
 
   static search = (attribute, value) =>
     Query.addQuery(attribute, "search", value);
