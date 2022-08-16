@@ -91,40 +91,40 @@ class Query
     /**
      * Cursor After
      *
-     * @param String $documentId
+     * @param string $documentId
      * @return string
      */
-    public static function cursorAfter(String $documentId): string {
+    public static function cursorAfter(string $documentId): string {
         return 'cursorAfter("' . $documentId . '")';
     }
 
     /**
      * Cursor Before
      *
-     * @param String $documentId
+     * @param string $documentId
      * @return string
      */
-    public static function cursorBefore(String $documentId): string {
+    public static function cursorBefore(string $documentId): string {
         return 'cursorBefore("' . $documentId . '")';
     }
 
     /**
      * Order Asc
      *
-     * @param String $attribute
+     * @param string $attribute
      * @return string
      */
-    public static function orderAsc(String $attribute): string {
+    public static function orderAsc(string $attribute): string {
         return 'orderAsc("' . $attribute . '")';
     }
 
     /**
      * Order Desc
      *
-     * @param String $attribute
+     * @param string $attribute
      * @return string
      */
-    public static function orderDesc(String $attribute): string {
+    public static function orderDesc(string $attribute): string {
         return 'orderDesc("' . $attribute . '")';
     }
 
