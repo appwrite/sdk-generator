@@ -25,7 +25,7 @@ class Android11Java8Test extends Base
         ...Base::REALTIME_RESPONSES,
         ...Base::COOKIE_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
-        ...BASE::PERMISSION_HELPER_RESPONSES,
-        ...BASE::ID_HELPER_RESPONSES
+        ...Base::PERMISSION_HELPER_RESPONSES,
+        ...Base::ID_HELPER_RESPONSES
     ];
 }
