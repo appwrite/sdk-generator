@@ -61,8 +61,8 @@ abstract class Base extends TestCase
     const QUERY_HELPER_RESPONSES = [
         'equal("title", ["Spiderman","Dr. Strange"])',
         'notEqual("title", ["Spiderman"])',
-        'lesser("releasedYear", [1990])',
-        'greater("releasedYear", [1990,1999])',
+        'lessThan("releasedYear", [1990])',
+        'greaterThan("releasedYear", [1990,1999])',
         'search("name", ["john"])',
         'orderAsc("title")',
         'orderDesc("title")',

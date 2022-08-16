@@ -157,7 +157,19 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 
     static search(attribute: string, value: string): string;
 
-    private static addQuery(attribute: string, oper: string, value: QueryTypes): string;
+    static orderDesc(attribute: string): string;
+    
+    static orderAsc(attribute: string): string;
+    
+    static cursorAfter(documentId: string): string;
+    
+    static cursorBefore(documentId: string): string;
+    
+    static limit(value: number): string;
+    
+    static offset = (value: number): string;
+
+    private static addQuery(attribute: string, method: string, value: QueryTypes): string;
 
     private static parseValues(value: QueryTypes): string;
   }

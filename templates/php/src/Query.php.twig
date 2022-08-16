@@ -91,41 +91,41 @@ class Query
     /**
      * Cursor After
      *
-     * @param String $attribute
+     * @param String $documentId
      * @return string
      */
-    public static function cursorAfter(String $attribute): string {
-        return 'cursorAfter("' . $attribute . '")';
+    public static function cursorAfter(String $documentId): string {
+        return 'cursorAfter("' . $documentId . '")';
     }
 
     /**
      * Cursor Before
      *
-     * @param String $attribute
+     * @param String $documentId
      * @return string
      */
-    public static function cursorBefore(String $attribute): string {
-        return 'cursorBefore("' . $attribute . '")';
+    public static function cursorBefore(String $documentId): string {
+        return 'cursorBefore("' . $documentId . '")';
     }
 
     /**
      * Order Asc
      *
-     * @param String $id
+     * @param String $attribute
      * @return string
      */
-    public static function orderAsc(String $id): string {
-        return 'orderAsc("' . $id . '")';
+    public static function orderAsc(String $attribute): string {
+        return 'orderAsc("' . $attribute . '")';
     }
 
     /**
      * Order Desc
      *
-     * @param String $id
+     * @param String $attribute
      * @return string
      */
-    public static function orderDesc(String $id): string {
-        return 'orderDesc("' . $id . '")';
+    public static function orderDesc(String $attribute): string {
+        return 'orderDesc("' . $attribute . '")';
     }
 
     /**

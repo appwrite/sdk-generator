@@ -20,9 +20,9 @@ class Query {
 
     fun orderDesc(attribute: String) = "orderDesc(\"${attribute}\")"
 
-    fun cursorBefore(attribute: String) = "cursorBefore(\"${attribute}\")"
+    fun cursorBefore(documentId: String) = "cursorBefore(\"${documentId}\")"
 
-    fun cursorAfter(attribute: String) = "cursorAfter(\"${attribute}\")"
+    fun cursorAfter(documentId: String) = "cursorAfter(\"${documentId}\")"
 
     fun limit(limit: Int) = "limit(${limit})"
 
