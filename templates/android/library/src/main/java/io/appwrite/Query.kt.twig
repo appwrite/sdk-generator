@@ -28,10 +28,10 @@ class Query {
 
     fun offset(offset: Int) = "offset(${offset})"
 
-    private fun addQuery(attribute: String, oper: String, value: Any): String {
+    private fun addQuery(attribute: String, method: String, value: Any): String {
       return when (value) {
-        is List<*> -> "${oper}(\"${attribute}\", [${value.map{it -> parseValues(it!!)}.joinToString(",")}])"
-    	  else -> "${oper}(\"${attribute}\", [${Query.parseValues(value)}])"
+        is List<*> -> "${method}(\"${attribute}\", [${value.map{it -> parseValues(it!!)}.joinToString(",")}])"
+    	  else -> "${method}(\"${attribute}\", [${Query.parseValues(value)}])"
       }
     }
     private fun parseValues(value: Any): String {

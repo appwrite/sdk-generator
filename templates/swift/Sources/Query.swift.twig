@@ -28,12 +28,12 @@ public class Query {
         buildQueryWhere(attribute, is: "search", to: value)
     }
 
-    public static func buildQueryWhere(_ attribute: String, is oper: String, to value: Any) -> String {
+    public static func buildQueryWhere(_ attribute: String, is method: String, to value: Any) -> String {
         switch value {
         case let value as Array<Any>:
-            return "\(oper)(\"\(attribute)\", [\(value.map { parseValues($0) }.joined(separator: ",") )])"
+            return "\(method)(\"\(attribute)\", [\(value.map { parseValues($0) }.joined(separator: ",") )])"
         default:
-            return "\(oper)(\"\(attribute)\", [\(parseValues(value))])"
+            return "\(method)(\"\(attribute)\", [\(parseValues(value))])"
         }
     }
 

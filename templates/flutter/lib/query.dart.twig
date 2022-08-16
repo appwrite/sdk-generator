@@ -22,10 +22,10 @@ class Query {
   static search(String attribute, String value) =>
       _addQuery(attribute, 'search', value);
 
-  static String _addQuery(String attribute, String oper, dynamic value) => (value
+  static String _addQuery(String attribute, String method, dynamic value) => (value
           is List)
-      ? '$oper("$attribute", [${value.map((item) => parseValues(item)).join(",")}])'
-      : '$oper("$attribute", [${parseValues(value)}])';
+      ? '$method("$attribute", [${value.map((item) => parseValues(item)).join(",")}])'
+      : '$method("$attribute", [${parseValues(value)}])';
 
     static String orderAsc(String attribute) {
         return 'orderAsc("$attribute")';

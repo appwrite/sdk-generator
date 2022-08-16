@@ -50,11 +50,11 @@ module {{spec.title | caseUcfirst}}
 
             private
 
-            def addQuery(attribute, oper, value)
+            def addQuery(attribute, method, value)
                 if value.is_a?(Array)
-                    "#{oper}(\"#{attribute}\", [#{value.map {|item| parseValues(item)}.join(',')}])"
+                    "#{method}(\"#{attribute}\", [#{value.map {|item| parseValues(item)}.join(',')}])"
                 else
-                   return "#{oper}(\"#{attribute}\", [#{parseValues(value)}])"
+                   return "#{method}(\"#{attribute}\", [#{parseValues(value)}])"
 				end
             end
 

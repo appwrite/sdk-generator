@@ -52,11 +52,11 @@ class Query:
         return 'offset({})'.format(offset)
 
     @staticmethod
-    def addQuery(attribute, oper, value):
+    def addQuery(attribute, method, value):
         if type(value) == list:
-            return '{}("{}", [{}])'.format(oper, attribute, ','.join(map(Query.parseValues, value)))
+            return '{}("{}", [{}])'.format(method, attribute, ','.join(map(Query.parseValues, value)))
         else:
-            return '{}("{}", [{}])'.format(oper, attribute, Query.parseValues(value))
+            return '{}("{}", [{}])'.format(method, attribute, Query.parseValues(value))
 
     @staticmethod
     def parseValues(value):

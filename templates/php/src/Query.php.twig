@@ -152,13 +152,13 @@ class Query
      * Add Query
      *
      * @param string $attribute
-     * @param string $operator
+     * @param string $method
      * @param mixed $value
      * @return string
      */
-    private static function addQuery(string $attribute, string $oper, $value)
+    private static function addQuery(string $attribute, string $method, $value)
     {
-        return is_array($value) ?  $oper . '("' . $attribute . '", [' . implode(",", array_map(function ($item) {return self::parseValues($item);}, $value)) . '])' : $oper . '("' . $attribute . '", [' .  self::parseValues($value) . '])';
+        return is_array($value) ?  $method . '("' . $attribute . '", [' . implode(",", array_map(function ($item) {return self::parseValues($item);}, $value)) . '])' : $method . '("' . $attribute . '", [' .  self::parseValues($value) . '])';
     }
 
     /**
