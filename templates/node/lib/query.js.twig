@@ -32,11 +32,11 @@ class Query {
   static cursorBefore = (documentId) =>
     `cursorBefore("${documentId}")`;
 
-  static limit = (value) =>
-    `limit(${value})`;
+  static limit = (limit) =>
+    `limit(${limit})`;
 
-  static offset = (value) =>
-    `offset(${value})`;
+  static offset = (offset) =>
+    `offset(${offset})`;
 
   static addQuery = (attribute, method, value) =>
     value instanceof Array
