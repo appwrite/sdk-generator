@@ -22,34 +22,22 @@ class Query {
   static search(String attribute, String value) =>
       _addQuery(attribute, 'search', value);
 
+    static String orderAsc(String attribute) => 'orderAsc("$attribute")';
+
+    static String orderDesc(String attribute) => 'orderDesc("$attribute")';
+
+    static String cursorBefore(String id) => 'cursorBefore("$id")';
+
+    static String cursorAfter(String id) => 'cursorAfter("$id")';
+
+    static String limit(int limit) => 'limit($limit)';
+
+    static String offset(int offset) => 'offset($offset)';
+
   static String _addQuery(String attribute, String method, dynamic value) => (value
           is List)
       ? '$method("$attribute", [${value.map((item) => parseValues(item)).join(",")}])'
       : '$method("$attribute", [${parseValues(value)}])';
-
-    static String orderAsc(String attribute) {
-        return 'orderAsc("$attribute")';
-    }
-
-    static String orderDesc(String attribute) {
-        return 'orderDesc("$attribute")';
-    }
-
-    static String cursorBefore(String id) {
-        return 'cursorBefore("$id")';
-    }
-
-    static String cursorAfter(String id) {
-        return 'cursorAfter("$id")';
-    }
-
-    static String limit(int limit) {
-        return 'limit($limit)';
-    }
-
-    static String offset(int offset) {
-        return 'offset($offset)';
-    }
 
   static String parseValues(dynamic value) =>
       (value is String) ? '"$value"' : '$value';
