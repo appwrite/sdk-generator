@@ -28,15 +28,6 @@ public class Query {
         buildQueryWhere(attribute, is: "search", to: value)
     }
 
-    public static func buildQueryWhere(_ attribute: String, is method: String, to value: Any) -> String {
-        switch value {
-        case let value as Array<Any>:
-            return "\(method)(\"\(attribute)\", [\(value.map { parseValues($0) }.joined(separator: ",") )])"
-        default:
-            return "\(method)(\"\(attribute)\", [\(parseValues(value))])"
-        }
-    }
-
     public static func orderAsc(_ attribute: String) -> String {
         "orderAsc(\"\(attribute)\")"
     }
@@ -59,6 +50,15 @@ public class Query {
 
     public static func offset(_ offset: Int) -> String {
         "offset(\(offset))"
+    }
+
+    public static func buildQueryWhere(_ attribute: String, is method: String, to value: Any) -> String {
+        switch value {
+        case let value as Array<Any>:
+            return "\(method)(\"\(attribute)\", [\(value.map { parseValues($0) }.joined(separator: ",") )])"
+        default:
+            return "\(method)(\"\(attribute)\", [\(parseValues(value))])"
+        }
     }
 
     private static func parseValues(_ value: Any) -> String {
