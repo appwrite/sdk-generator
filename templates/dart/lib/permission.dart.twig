@@ -29,8 +29,8 @@ class Permission {
 
     static Permission parse(String permission) {
         final parts = permission.split('("');
-        final permission = parts[0];
-        final fullRole = parts[1].replaceAll('")');
+        permission = parts[0];
+        final fullRole = parts[1].replaceAll('")', '');
         final role = Role.parse(fullRole);
 
         return Permission(permission, role);

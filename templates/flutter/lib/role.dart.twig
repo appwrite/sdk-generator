@@ -11,10 +11,10 @@ class Role {
   String toString() {
       String str = role;
       if(identifier != null) {
-          str += ':' + identifier;
+          str += ':' + identifier!;
       }
       if(dimension != null) {
-          str += '/' + dimension;
+          str += '/' + dimension!;
       }
       return str;
   }    
