@@ -1,30 +1,68 @@
 part of {{ language.params.packageName }};
 
 class Role {
-    static String any() {
-        return 'any';
+  final String role;
+  final String? identifier;
+  final String? dimension;
+
+  Role(this.role, [this.identifier, this.dimension]);
+
+  @override
+  String toString() {
+      String str = role;
+      if(identifier != null) {
+          str += ':' + identifier;
+      }
+      if(dimension != null) {
+          str += '/' + dimension;
+      }
+      return str;
+  }    
+
+  static String any() {
+      return 'any';
+  }
+
+  static String user(String id) {
+      return 'user:$id';
+  }
+
+  static String users() {
+      return 'users';
+  }
+
+  static String guests() {
+      return 'guests';
+  }
+
+  static String team(String id, [String role = '']) {
+      if(role.isEmpty) {
+          return 'team:$id';
+      }
+      return 'team:$id/$role';
+  }
+  
+  static String status(String status) {
+      return 'status:$status';
+  }
+
+  static Role parse(String role) {
+    List parts = role.split(':');
+
+    if(parts.length == 1) {
+      return Role(role);
     }
 
-    static String user(String id) {
-        return 'user:$id';
+    role = parts[0];
+    final fullIdentifier = parts[1];
+    parts = fullIdentifier.split('/');
+    if(parts.length == 1) {
+      return Role(role, fullIdentifier);
     }
+    final identifier = parts[0];
+    final dimension = parts[1];
 
-    static String users() {
-        return 'users';
-    }
-
-    static String guests() {
-        return 'guests';
-    }
-
-    static String team(String id, [String role = '']) {
-        if(role.isEmpty) {
-            return 'team:$id';
-        }
-        return 'team:$id/$role';
-    }
+    return Role(role, identifier, dimension);
     
-    static String status(String status) {
-        return 'status:$status';
-    }
+  }
 }

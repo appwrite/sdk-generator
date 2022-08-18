@@ -1,6 +1,16 @@
 part of {{ language.params.packageName }};
 
 class Permission {
+    final String permission;
+    final Role role;
+
+    Permission(this.permission, this.role);
+
+    @override
+    String toString() {
+        return permission + '(' + role.toString() + ')';
+    }
+
     static String read(String role) {
         return 'read("$role")';
     }
@@ -15,5 +25,14 @@ class Permission {
     }
     static String delete(String role) {
         return 'delete("$role")';
+    }
+
+    static Permission parse(String permission) {
+        final parts = permission.split('("');
+        final permission = parts[0];
+        final fullRole = parts[1].replaceAll('")');
+        final role = Role.parse(fullRole);
+
+        return Permission(permission, role);
     }
 }
