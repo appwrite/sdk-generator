@@ -81,6 +81,13 @@ abstract class Base extends TestCase
         'delete("team:teamId")'
     ];
 
+    const PERMISSION_PARSER_RESPONSES = [
+        'read',
+        'user',
+        'myuserId',
+        'no identifier'
+    ];
+
     const ID_HELPER_RESPONSES = [
         'unique()',
         'custom_id'

@@ -128,6 +128,11 @@ void main() async {
   print(Permission.update(Role.guests()));
   print(Permission.delete(Role.team('teamId', 'owner')));
   print(Permission.delete(Role.team('teamId')));
+  final permission = Permission.parse('read("user:myuserId")');
+  print(permission.permission);
+  print(permission.role.role);
+  print(permission.role.identifier);
+  print(permission.role.dimension ?? 'no identifier');
 
   // ID helper tests
   print(ID.unique());
