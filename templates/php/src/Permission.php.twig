@@ -4,24 +4,109 @@ namespace {{ spec.title | caseUcfirst }};
 
 class Permission
 {
+    public function __construct(
+        private string $permission,
+        private Role $role,
+    )
+    {
+    }
+
+     /**
+     * Create a permission string from this Permission instance
+     *
+     * @return string
+     */
+    public function toString(): string
+    {
+        return $this->permission . '("' . $this->role->toString() . '")';
+    }
+
+    /**
+     *
+     * @return string
+     */
+    public function getPermission(): string
+    {
+        return $this->permission;
+    }
+
+    /**
+     * @return Role
+     */
+    public function getRole(): Role
+    {
+        return $this->role;
+    }
+
+    /**
+     * Read Permission
+     *
+     * @param string $role
+     * @return string
+     */
     public static function read(string $role): string
     {
         return "read(\"$role\")";
     }
+
+    /**
+     * Write Permission
+     *
+     * @param string $role
+     * @return string
+     */
     public static function write(string $role): string
     {
         return "write(\"$role\")";
     }
+
+    /**
+     * Create Permission
+     *
+     * @param string $role
+     * @return string
+     */
     public static function create(string $role): string
     {
         return "create(\"$role\")";
     }
+
+    /**
+     * Update Permission
+     *
+     * @param string $role
+     * @return string
+     */
     public static function update(string $role): string
     {
         return "update(\"$role\")";
     }
+
+    /**
+     * Delete Permission
+     *
+     * @param string $role
+     * @return string
+     */
     public static function delete(string $role): string
     {
         return "delete(\"$role\")";
+    }
+
+    /**
+     * Parse a permission string into a Permission object
+     *
+     * @param string $permission
+     * @return Permission
+     */
+    public static function parse(string $permission): Permission
+    {
+        $parts = \explode('("', $permission);
+        $permission = $parts[0];
+        $fullRole = \str_replace('")', '', $parts[1]);
+        $parts = \explode(':', $fullRole);
+        $role = Role::parse(fullRole);
+
+        return new Permission($permission, $role);
     }
 }

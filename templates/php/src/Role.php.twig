@@ -4,6 +4,55 @@ namespace {{ spec.title | caseUcfirst }};
 
 class Role
 {
+    public function __construct(
+        private string $role,
+        private string $identifier = '',
+        private string $dimension = '',
+    )
+    {
+    }
+
+    /**
+     * Create a role string from this Role instance
+     *
+     * @return string
+     */
+    public function toString(): string
+    {
+        $str = $this->role;
+        if ($this->identifier) {
+            $str .= ':' . $this->identifier;
+        }
+        if ($this->dimension) {
+            $str .= '/' . $this->dimension;
+        }
+        return $str;
+    }
+
+    /**
+     * @return string
+     */
+    public function getRole(): string
+    {
+        return $this->role;
+    }
+
+    /**
+     * @return string
+     */
+    public function getIdentifier(): string
+    {
+        return $this->identifier;
+    }
+
+    /**
+     * @return string
+     */
+    public function getDimension(): string
+    {
+        return $this->dimension;
+    }
+
     public static function any(): string
     {
         return 'any';
@@ -30,5 +79,35 @@ class Role
     public static function status(string $status): string
     {
         return "status:$status";
+    }
+
+    /**
+     * Parse a role string into a Role object
+     *
+     * @param string $role
+     * @return Role
+     */
+    public static function parse(string $role): Role
+    {
+        $parts = \explode(':', $role);
+
+        if (\count($parts) === 1) {
+            return new Role($role);
+        }
+        $role = $parts[0];
+        $fullIdentifier = $parts[1];
+        $parts = \explode('/', $fullIdentifier);
+
+        if (\count($parts) === 1) {
+            return new Role($role, $fullIdentifier);
+        }
+        $identifier = $parts[0];
+        $dimension = $parts[1];
+
+        return new Role(
+            $role,
+            $identifier,
+            $dimension,
+        );
     }
 }
