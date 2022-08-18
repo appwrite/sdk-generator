@@ -104,8 +104,7 @@ class Permission
         $parts = \explode('("', $permission);
         $permission = $parts[0];
         $fullRole = \str_replace('")', '', $parts[1]);
-        $parts = \explode(':', $fullRole);
-        $role = Role::parse(fullRole);
+        $role = Role::parse($fullRole);
 
         return new Permission($permission, $role);
     }
