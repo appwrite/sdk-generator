@@ -450,6 +450,16 @@ class Dart extends Language {
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),
+            new TwigFilter('exampleMethod', function($service, $method) {
+                $out = '' . $service . '.' . $method['name'] . '(';
+                foreach ($method['parameters']['all'] as $param) {
+                    if($param['required']) {
+                        $out .= $param['name'] . ':' . $this->getParamExample($param) . ',';
+                    }
+                }
+                $out .= ')';
+                return $out;
+            }, ['is_safe' => ['html']])
         ];
     }
 }
