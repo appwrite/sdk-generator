@@ -47,6 +47,21 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/permission.ts',
+                'template'      => 'web/src/permission.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/role.ts',
+                'template'      => 'web/src/role.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/id.ts',
+                'template'      => 'web/src/id.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/query.ts',
                 'template'      => 'web/src/query.ts.twig',
             ],

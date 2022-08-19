@@ -189,13 +189,11 @@ class Flutter extends Dart
                 'scope'         => 'default',
                 'destination'   => '/lib/src/enums.dart',
                 'template'      => 'flutter/lib/src/enums.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/exception.dart',
                 'template'      => 'flutter/lib/src/exception.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
@@ -206,14 +204,32 @@ class Flutter extends Dart
                 'scope'         => 'default',
                 'destination'   => '/lib/models.dart',
                 'template'      => 'flutter/lib/models.dart.twig',
-                'minify'        => false,
+            ],
+            [
+				'scope'         => 'default',
+				'destination'   => '/lib/models.dart',
+				'template'      => 'flutter/lib/models.dart.twig',
+			],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/permission.dart',
+                'template'      => 'flutter/lib/permission.dart.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/query.dart',
-                'template'      => 'flutter/lib/query.dart.twig',
-                'minify'        => false,
+                'destination'   => '/lib/role.dart',
+                'template'      => 'flutter/lib/role.dart.twig',
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/id.dart',
+                'template'      => 'flutter/lib/id.dart.twig',
+            ],
+            [
+				'scope'         => 'default',
+				'destination'   => '/lib/query.dart',
+				'template'      => 'flutter/lib/query.dart.twig',
+			],
             [
                 'scope'         => 'service',
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',

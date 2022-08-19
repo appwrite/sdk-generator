@@ -58,6 +58,21 @@ class Node extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/permission.js',
+                'template'      => 'node/lib/permission.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/role.js',
+                'template'      => 'node/lib/role.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/id.js',
+                'template'      => 'node/lib/id.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/query.js',
                 'template'      => 'node/lib/query.js.twig',
             ],

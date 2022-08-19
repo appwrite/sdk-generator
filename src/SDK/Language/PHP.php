@@ -173,6 +173,21 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Permission.php',
+                'template'      => 'php/src/Permission.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Role.php',
+                'template'      => 'php/src/Role.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/{{ spec.title | caseUcfirst}}/ID.php',
+                'template'      => 'php/src/ID.php.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/Query.php',
                 'template'      => 'php/src/Query.php.twig',
             ],

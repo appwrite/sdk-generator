@@ -25,7 +25,7 @@ class Tests: XCTestCase {
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
 
-        let foo = Foo(client, "string")
+        let foo = Foo(client)
         let bar = Bar(client)
         let general = General(client)
         let realtime = Realtime(client)
@@ -41,19 +41,19 @@ class Tests: XCTestCase {
         var mock: Mock
 
         // Foo Tests
-        mock = try await foo.get(y: 123, z: ["string in array"])
+        mock = try await foo.get(x: "string", y: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await foo.post(y: 123, z: ["string in array"])
+        mock = try await foo.post(x: "string", y: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await foo.put(y: 123, z: ["string in array"])
+        mock = try await foo.put(x: "string", y: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await foo.patch(y: 123, z: ["string in array"])
+        mock = try await foo.patch(x: "string", y: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await foo.delete(y: 123, z: ["string in array"])
+        mock = try await foo.delete(x: "string", y: 123, z: ["string in array"])
         print(mock.result)
 
 
@@ -142,5 +142,30 @@ class Tests: XCTestCase {
         print(mock.result)
 
         try! await general.empty()
+
+        // Query helper tests
+        print(Query.equal("title", value: ["Spiderman", "Dr. Strange"]));
+        print(Query.notEqual("title", value: "Spiderman"));
+        print(Query.lessThan("releasedYear", value: 1990));
+        print(Query.greaterThan("releasedYear", value: 1990));
+        print(Query.search("name", value: "john"));
+        print(Query.orderAsc("title"));
+        print(Query.orderDesc("title"));
+        print(Query.cursorAfter("my_movie_id"));
+        print(Query.cursorBefore("my_movie_id"));
+        print(Query.limit(50));
+        print(Query.offset(20));
+
+        // Permission & Role helper tests
+        print(Permission.read(Role.any()));
+        print(Permission.write(Role.user(ID.custom("userid"))));
+        print(Permission.create(Role.users()));
+        print(Permission.update(Role.guests()));
+        print(Permission.delete(Role.team("teamId", "owner")));
+        print(Permission.delete(Role.team("teamId")));
+
+        // ID helper tests
+        print(ID.unique());
+        print(ID.custom("custom_id"));
     }
 }

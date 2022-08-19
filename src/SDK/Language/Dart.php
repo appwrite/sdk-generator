@@ -328,6 +328,21 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/permission.dart',
+                'template'      => 'dart/lib/permission.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/role.dart',
+                'template'      => 'flutter/lib/role.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/id.dart',
+                'template'      => 'flutter/lib/id.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/query.dart',
                 'template'      => 'dart/lib/query.dart.twig',
             ],

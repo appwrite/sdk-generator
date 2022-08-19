@@ -8,35 +8,59 @@ class Query:
         return Query.addQuery(attribute, "notEqual", value)
     
     @staticmethod
-    def lesser(attribute, value):
-        return Query.addQuery(attribute, "lesser", value)
+    def lessThan(attribute, value):
+        return Query.addQuery(attribute, "lessThan", value)
     
     @staticmethod
-    def lesserEqual(attribute, value):
-        return Query.addQuery(attribute, "lesserEqual", value)
+    def lessThanEqual(attribute, value):
+        return Query.addQuery(attribute, "lessThanEqual", value)
     
     @staticmethod
-    def greater(attribute, value):
-        return Query.addQuery(attribute, "greater", value)
+    def greaterThan(attribute, value):
+        return Query.addQuery(attribute, "greaterThan", value)
     
     @staticmethod
-    def greaterEqual(attribute, value):
-        return Query.addQuery(attribute, "greaterEqual", value)
+    def greaterThanEqual(attribute, value):
+        return Query.addQuery(attribute, "greaterThanEqual", value)
 
     @staticmethod
     def search(attribute, value):
         return Query.addQuery(attribute, "search", value)
 
     @staticmethod
-    def addQuery(attribute, oper, value):
+    def orderAsc(attribute):
+        return f'orderAsc("{attribute}")'
+
+    @staticmethod
+    def orderDesc(attribute):
+        return f'orderDesc("{attribute}")'
+
+    @staticmethod
+    def cursorBefore(id):
+        return f'cursorBefore("{id}")'
+
+    @staticmethod
+    def cursorAfter(id):
+        return f'cursorAfter("{id}")'
+
+    @staticmethod
+    def limit(limit):
+        return f'limit({limit})'
+
+    @staticmethod
+    def offset(offset):
+        return f'offset({offset})'
+
+    @staticmethod
+    def addQuery(attribute, method, value):
         if type(value) == list:
-            return '{}.{}({})'.format(attribute,oper, ','.join(map(Query.parseValues, value)))
+            return f'{method}("{attribute}", [{",".join(map(Query.parseValues, value))}])'
         else:
-            return '{}.{}({})'.format(attribute,oper, Query.parseValues(value))
+            return f'{method}("{attribute}", [{Query.parseValues(value)}])'
 
     @staticmethod
     def parseValues(value):
         if type(value) == str:
-            return '"{}"'.format(value)
+            return f'"{value}"'
         else:
-            return value
+            return str(value)
