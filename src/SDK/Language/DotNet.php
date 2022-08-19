@@ -148,9 +148,9 @@ class DotNet extends Language {
      * @param $type
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'long';
             case self::TYPE_NUMBER:
@@ -162,12 +162,15 @@ class DotNet extends Language {
             case self::TYPE_BOOLEAN:
                 return 'bool';
             case self::TYPE_ARRAY:
+                if (!empty($parameter['array']['type'])) {
+                    return 'List<' . $this->getTypeName($parameter['array']) . '>';
+                }
                 return 'List<object>';
             case self::TYPE_OBJECT:
                 return 'object';
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     /**

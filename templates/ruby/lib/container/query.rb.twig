@@ -6,31 +6,60 @@ module {{spec.title | caseUcfirst}}
             end
 
             def notEqual(attribute, value)
-                return Query.addQuery(attribute, "notEqual", value)
+                return addQuery(attribute, "notEqual", value)
             end
-            def lesser(attribute, value)
-                return Query.addQuery(attribute, "lesser", value)
+
+            def lessThan(attribute, value)
+                return addQuery(attribute, "lessThan", value)
             end
-            def lesserEqual(attribute, value)
-                return Query.addQuery(attribute, "lesserEqual", value)
+            
+            def lessThanEqual(attribute, value)
+                return addQuery(attribute, "lessThanEqual", value)
             end
-            def greater(attribute, value)
-                return Query.addQuery(attribute, "greater", value)
+            
+            def greaterThan(attribute, value)
+                return addQuery(attribute, "greaterThan", value)
             end
-            def greaterEqual(attribute, value)
-                return Query.addQuery(attribute, "equal", value)
+            
+            def greaterThanEqual(attribute, value)
+                return addQuery(attribute, "greaterThanEqual", value)
             end
+            
             def search(attribute, value)
-                return Query.addQuery(attribute, "search", value)
+                return addQuery(attribute, "search", value)
+            end
+
+            def orderAsc(attribute)
+                return "orderAsc(\"#{attribute}\")"
+            end
+
+            def orderDesc(attribute)
+                return "orderDesc(\"#{attribute}\")"
+            end
+
+            def cursorBefore(id)
+                return "cursorBefore(\"#{id}\")"
+            end
+
+            def cursorAfter(id)
+                return "cursorAfter(\"#{id}\")"
+            end
+
+            def limit(limit)
+                return "limit(#{limit})"
+            end
+
+            def offset(offset)
+                return "offset(#{offset})"
             end
 
             private
 
-            def addQuery(attribute, oper, value)
+            def addQuery(attribute, method, value)
                 if value.is_a?(Array)
-                    "#{attribute}.#{oper}.(#{value.map {|item| parseValues(item)}.join(',')})"
+                    "#{method}(\"#{attribute}\", [#{value.map {|item| parseValues(item)}.join(',')}])"
                 else
-                   return "#{attribute}.#{oper}.(#{parseValues(value)})"
+                   return "#{method}(\"#{attribute}\", [#{parseValues(value)}])"
 				end
             end
 

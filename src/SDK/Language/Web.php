@@ -54,6 +54,24 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/permission.ts',
+                'template'      => 'web/src/permission.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/role.ts',
+                'template'      => 'web/src/role.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/id.ts',
+                'template'      => 'web/src/id.ts.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/query.ts',
                 'template'      => 'web/src/query.ts.twig',
                 'minify'        => false,
@@ -175,26 +193,26 @@ class Web extends JS
         return $output;
     }
 
-    public function getTypeName($type, $method = []): string
+    public function getTypeName(array $parameter, array $method = []): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
                 return 'number';
-                break;
             case self::TYPE_ARRAY:
+                if (!empty($parameter['array']['type'])) {
+                    return $this->getTypeName($parameter['array']) . '[]';
+                }
                 return 'string[]';
             case self::TYPE_FILE:
                 return 'File';
             case self::TYPE_OBJECT:
                 if (empty($method)) {
-                    return $type;
+                    return $parameter['type'];
                 }
-
                 switch ($method['responseModel']) {
                     case 'user':
                         return "Partial<Preferences>";
-                        break;
                     case 'document':
                         if ($method['method'] === 'post') {
                             return "Omit<Document, keyof Models.Document>";
@@ -203,10 +221,9 @@ class Web extends JS
                             return "Partial<Omit<Document, keyof Models.Document>>";
                         }
                 }
-                break;
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     protected function populateGenerics(string $model, array $spec, array &$generics, bool $skipFirst = false)
@@ -320,7 +337,7 @@ class Web extends JS
             return $ret;
         }
 
-        return $this->getTypeName($property['type']);
+        return $this->getTypeName($property);
     }
 
     public function getFilters(): array
