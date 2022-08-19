@@ -4,6 +4,10 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.gson.Gson
 import io.appwrite.exceptions.AppwriteException
+import io.appwrite.Permission
+import io.appwrite.Role
+import io.appwrite.ID
+import io.appwrite.Query
 import io.appwrite.extensions.fromJson
 import io.appwrite.extensions.toJson
 import io.appwrite.models.Error
@@ -60,7 +64,7 @@ class ServiceTest {
             .setProject("console")
             .addHeader("Origin", "http://localhost")
             .setSelfSigned(true)
-        val foo = Foo(client, "string")
+        val foo = Foo(client)
         val bar = Bar(client)
         val general = General(client)
         val realtime = Realtime(client)
@@ -73,15 +77,15 @@ class ServiceTest {
         runBlocking {
             var mock: Mock
             // Foo Tests
-            mock = foo.get(123, listOf("string in array"))
+            mock = foo.get("string", 123, listOf("string in array"))
             writeToFile(mock.result)
-            mock = foo.post(123, listOf("string in array"))
+            mock = foo.post("string", 123, listOf("string in array"))
             writeToFile(mock.result)
-            mock = foo.put(123, listOf("string in array"))
+            mock = foo.put("string", 123, listOf("string in array"))
             writeToFile(mock.result)
-            mock = foo.patch(123, listOf("string in array"))
+            mock = foo.patch("string", 123, listOf("string in array"))
             writeToFile(mock.result)
-            mock = foo.delete(123, listOf("string in array"))
+            mock = foo.delete("string", 123, listOf("string in array"))
             writeToFile(mock.result)
 
             // Bar Tests
@@ -158,6 +162,31 @@ class ServiceTest {
             writeToFile(mock.result)
 
             general.empty()
+
+            // Query helper tests
+            writeToFile(Query.equal("title", listOf("Spiderman", "Dr. Strange")))
+            writeToFile(Query.notEqual("title", "Spiderman"))
+            writeToFile(Query.lessThan("releasedYear", 1990))
+            writeToFile(Query.greaterThan("releasedYear", 1990))
+            writeToFile(Query.search("name", "john"))
+            writeToFile(Query.orderAsc("title"))
+            writeToFile(Query.orderDesc("title"))
+            writeToFile(Query.cursorAfter("my_movie_id"))
+            writeToFile(Query.cursorBefore("my_movie_id"))
+            writeToFile(Query.limit(50))
+            writeToFile(Query.offset(20))
+
+            // Permission & Roles helper tests
+            writeToFile(Permission.read(Role.any()))
+            writeToFile(Permission.write(Role.user(ID.custom("userid"))))
+            writeToFile(Permission.create(Role.users()))
+            writeToFile(Permission.update(Role.guests()))
+            writeToFile(Permission.delete(Role.team("teamId", "owner")))
+            writeToFile(Permission.delete(Role.team("teamId")))
+
+            // ID helper tests
+            writeToFile(ID.unique())
+            writeToFile(ID.custom("custom_id"))
         }
     }
 

@@ -18,4 +18,4 @@ client = Client()
 {% endif %}
 {{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %})
 
-result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %})
+result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %})

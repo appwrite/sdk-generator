@@ -1,6 +1,6 @@
 {% macro parameter(parameter) %}
 {% if parameter.name == 'orderType' %}{{ 'OrderType orderType = OrderType.ASC' }}{% else %}
-{{ parameter.type | typeName }}{% if not parameter.required and (parameter.type == 'boolean' or parameter.type == 'integer') %}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{{ parameter | paramDefault }}{% endif %}
+{{ parameter | typeName }}{% if not parameter.required and (parameter.type == 'boolean' or parameter.type == 'integer') %}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{{ parameter | paramDefault }}{% endif %}
 {% endmacro %}
 {% macro method_parameters(parameters) %}
 {% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ', ' }}{% endif %}{% endfor %}{% endif %}

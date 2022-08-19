@@ -1,6 +1,9 @@
 require 'appwrite'
 
 client = Appwrite::Client.new
+{% if method.type == "upload" %}
+InputFile = Appwrite::InputFile
+{% endif %}
 
 client
     .set_endpoint('https://[HOSTNAME_OR_IP]/v1') # Your API Endpoint
@@ -12,6 +15,6 @@ client
 
 {{ service.name | caseSnake }} = {{spec.title | caseUcfirst}}::{{ service.name | caseUcfirst }}.new(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{parameter.name | caseSnake}}:{{ parameter | paramExample }}{% endfor %}{% endif %})
 
-response = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{parameter.name|caseSnake}}: {% if parameter.type == 'file' %}{{spec.title | caseUcfirst}}::{{ parameter | paramExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% endif %}{% endfor %})
+response = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{parameter.name|caseSnake}}: {% if parameter.type == 'file' %}{{spec.title | caseUcfirst}}::{{ parameter | paramExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% endif %}{% endfor %})
 
 puts response.inspect

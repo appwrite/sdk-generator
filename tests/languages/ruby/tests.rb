@@ -1,9 +1,14 @@
 require_relative '../../sdks/ruby/lib/appwrite'
 
+query = Appwrite::Query
+permission = Appwrite::Permission
+role = Appwrite::Role
+id = Appwrite::ID
+
 client = Appwrite::Client.new
 client.add_header('Origin', 'http://localhost')
 
-foo = Appwrite::Foo.new(client, x: 'string')  
+foo = Appwrite::Foo.new(client)  
 bar = Appwrite::Bar.new(client)  
 general = Appwrite::General.new(client)  
 
@@ -12,19 +17,19 @@ puts 'Test Started'
 
 # Foo
 
-response = foo.get(y: 123, z: ['string in array'])
+response = foo.get(x: 'string', y: 123, z: ['string in array'])
 puts response.result
 
-response = foo.post(y: 123, z: ['string in array'])
+response = foo.post(x: 'string', y: 123, z: ['string in array'])
 puts response.result
 
-response = foo.put(y: 123, z: ['string in array'])
+response = foo.put(x: 'string', y: 123, z: ['string in array'])
 puts response.result
 
-response = foo.patch(y: 123, z: ['string in array'])
+response = foo.patch(x: 'string', y: 123, z: ['string in array'])
 puts response.result
 
-response = foo.delete(y: 123, z: ['string in array'])
+response = foo.delete(x: 'string', y: 123, z: ['string in array'])
 puts response.result
 
 # Bar
@@ -101,3 +106,28 @@ rescue Appwrite::Exception => error
 end
 
 general.empty()
+
+# Query helper tests
+puts query.equal('title', ['Spiderman', 'Dr. Strange'])
+puts query.notEqual('title', 'Spiderman')
+puts query.lessThan('releasedYear', 1990)
+puts query.greaterThan('releasedYear', 1990)
+puts query.search('name', 'john')
+puts query.orderAsc("title")
+puts query.orderDesc("title")
+puts query.cursorAfter("my_movie_id")
+puts query.cursorBefore("my_movie_id")
+puts query.limit(50)
+puts query.offset(20)
+
+# Permission & Role helper tests
+puts permission.read(role.any())
+puts permission.write(role.user(id.custom('userid')))
+puts permission.create(role.users())
+puts permission.update(role.guests())
+puts permission.delete(role.team('teamId', 'owner'))
+puts permission.delete(role.team('teamId'))
+
+# ID helper tests
+puts id.unique()
+puts id.custom('custom_id')

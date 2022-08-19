@@ -1,11 +1,11 @@
-      {% import 'flutter/base/utils.twig' as utils %}
+{% import 'flutter/base/utils.twig' as utils %}
         final Map<String, dynamic> params = {
-            {{ utils.map_parameter(method.parameters.query) }}
-            {{ utils.map_parameter(method.parameters.body) }}
+            {{~ utils.map_parameter(method.parameters.query) }}
+            {{~ utils.map_parameter(method.parameters.body) }}
         };
 
         final Map<String, String> headers = {
-            {{ utils.map_headers(method.headers) }}
+            {{~ utils.map_headers(method.headers) }}
         };
 
 {% if 'multipart/form-data' in method.consumes %}
