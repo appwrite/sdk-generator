@@ -1,5 +1,8 @@
 import { Client } from "./src/client.ts";
 import { Query } from "./src/query.ts";
+import { Permission } from "./src/permission.ts";
+import { Role } from "./src/role.ts";
+import { ID } from "./src/id.ts";
 import { InputFile } from "./src/inputFile.ts";
 import { {{spec.title | caseUcfirst}}Exception } from "./src/exception.ts";
 {% for service in spec.services %}
@@ -9,6 +12,9 @@ import { {{service.name | caseUcfirst}} } from "./src/services/{{service.name | 
 export {
     Client,
     Query,
+    Permission,
+    Role,
+    ID,
     InputFile,
     {{spec.title | caseUcfirst}}Exception,
 {% for service in spec.services %}

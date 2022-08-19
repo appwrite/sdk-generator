@@ -135,6 +135,24 @@ class Ruby extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/permission.rb',
+                'template'      => 'ruby/lib/container/permission.rb.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/role.rb',
+                'template'      => 'ruby/lib/container/role.rb.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/id.rb',
+                'template'      => 'ruby/lib/container/id.rb.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}/query.rb',
                 'template'      => 'ruby/lib/container/query.rb.twig',
                 'minify'        => false,
