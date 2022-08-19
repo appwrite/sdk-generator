@@ -206,10 +206,10 @@ class Flutter extends Dart
                 'template'      => 'flutter/lib/models.dart.twig',
             ],
             [
-				'scope'         => 'default',
-				'destination'   => '/lib/models.dart',
-				'template'      => 'flutter/lib/models.dart.twig',
-			],
+                'scope'         => 'default',
+                'destination'   => '/lib/models.dart',
+                'template'      => 'flutter/lib/models.dart.twig',
+            ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/permission.dart',
@@ -226,10 +226,10 @@ class Flutter extends Dart
                 'template'      => 'flutter/lib/id.dart.twig',
             ],
             [
-				'scope'         => 'default',
-				'destination'   => '/lib/query.dart',
-				'template'      => 'flutter/lib/query.dart.twig',
-			],
+                'scope'         => 'default',
+                'destination'   => '/lib/query.dart',
+                'template'      => 'flutter/lib/query.dart.twig',
+            ],
             [
                 'scope'         => 'service',
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
