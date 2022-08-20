@@ -15,7 +15,7 @@
       "url": "https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE"
     }
   },
-  "host": "8080-appwrite-appwrite-wp0ocjvurgi.ws-us62.gitpod.io",
+  "host": "8080-appwrite-appwrite-38xdl9d8529.ws-us62.gitpod.io",
   "basePath": "/v1",
   "schemes": ["https"],
   "consumes": ["application/json", "multipart/form-data"],
