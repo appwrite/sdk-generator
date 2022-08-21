@@ -67,12 +67,15 @@ class SDK
      * @param Language $language
      * @param Spec $spec
      */
-    public function __construct(Language $language, Spec $spec)
+    public function __construct(Language $language, Spec $spec, string $extraDirectory = '')
     {
         $this->language = $language;
         $this->spec     = $spec;
-
-        $this->twig = new Environment(new FilesystemLoader(__DIR__ . '/../../templates'), [
+        $directories = [__DIR__ . '/../../templates'];
+        if(!empty($extraDirectory)) {
+            $directories[] = $extraDirectory;
+        }
+        $this->twig = new Environment(new FilesystemLoader($directories), [
             'debug' => true
         ] );
 
