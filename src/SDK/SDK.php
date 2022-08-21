@@ -28,6 +28,11 @@ class SDK
     protected $twig = null;
 
     /**
+     * @var FileSystemLoader
+     */
+    protected $loader = null;
+
+    /**
      * @var array
      */
     protected $defaultHeaders = [];
@@ -67,15 +72,12 @@ class SDK
      * @param Language $language
      * @param Spec $spec
      */
-    public function __construct(Language $language, Spec $spec, string $extraDirectory = '')
+    public function __construct(Language $language, Spec $spec)
     {
         $this->language = $language;
         $this->spec     = $spec;
-        $directories = [__DIR__ . '/../../templates'];
-        if(!empty($extraDirectory)) {
-            $directories[] = $extraDirectory;
-        }
-        $this->twig = new Environment(new FilesystemLoader($directories), [
+        $this->loader = new FileSystemLoader(__DIR__ . '/../../templates');
+        $this->twig = new Environment($this->loader, [
             'debug' => true
         ] );
 
