@@ -6,7 +6,7 @@ const fs = require('fs');
 // Init SDK
 let client = new sdk.Client();
 
-let {{ service.name | caseCamel }} = new sdk.{{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %});
+let {{ service.name | caseCamel }} = new sdk.{{service.name | caseUcfirst}}(client);
 
 {% if method.security|length > 0 %}
 client

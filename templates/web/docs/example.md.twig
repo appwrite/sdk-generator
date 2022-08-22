@@ -2,7 +2,7 @@ import {{ '{' }} Client, {{service.name | caseUcfirst}} {{ '}' }} from "{{ langu
 
 const client = new Client();
 
-const {{ service.name | caseCamel }} = new {{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %});
+const {{ service.name | caseCamel }} = new {{service.name | caseUcfirst}}(client);
 
 {% if method.security|length > 0 %}
 client

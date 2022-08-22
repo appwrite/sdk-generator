@@ -18,6 +18,6 @@ $client
 {% endfor %};
 
 {% endif %}
-${{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}($client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %});
+${{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}($client);
 
 $result = ${{ service.name | caseCamel }}->{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
