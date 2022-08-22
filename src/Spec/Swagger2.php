@@ -203,6 +203,7 @@ class Swagger2 extends Spec
                             'required' => $parameter['required'] ?? false,
                             'default' => $parameter['default'] ?? null,
                             'example' => $parameter['x-example'] ?? null,
+                            'exampleFilter' => $parameter['x-example-filter'] ?? null,
                             'isUploadID' => $parameter['x-upload-id'] ?? false,
                             'array' => [
                                 'type' => $parameter['items']['type'] ?? '',
@@ -240,6 +241,7 @@ class Swagger2 extends Spec
                                     $param['default'] = $value['default'] ?? null;
                                     $param['example'] = $value['x-example'] ?? null;
                                     $param['isUploadID'] = $value['x-upload-id'] ?? false;
+                                    $param['exampleFilter'] = $parameter['x-example-filter'] ?? null;
                                     $param['array'] = [
                                         'type' => $value['items']['type'] ?? '',
                                     ];
@@ -251,10 +253,7 @@ class Swagger2 extends Spec
 
                                     $output['parameters']['body'][] = $param;
                                     $output['parameters']['all'][] = $param;
-                                    if($param['required'] || isset($exampleParams[$param['name']])) {
-                                        if(isset($exampleParams[$param['name']])) {
-                                            $param['filter'] = $exampleParams[$param['name']];
-                                        }
+                                    if($param['required'] || in_array($exampleParams, $param['name'])) {
                                         $output['parameters']['example'][] = $param;
                                     }
                                 }
@@ -265,10 +264,7 @@ class Swagger2 extends Spec
                         }
 
                         $output['parameters']['all'][] = $param;
-                        if($param['required'] || isset($exampleParams[$param['name']])) {
-                            if(isset($exampleParams[$param['name']])) {
-                                $param['filter'] = $exampleParams[$param['name']];
-                            }
+                        if($param['required'] || in_array($exampleParams, $param['name'])) {
                             $output['parameters']['example'][] = $param;
                         }
                     }

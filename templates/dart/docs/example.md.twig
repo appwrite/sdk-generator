@@ -21,7 +21,7 @@ void main() { // Init SDK
 {% if loop.first %}
 
 {% endif %}
-    {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | parameter.filter ? customLanguageFilter(parameter.filter) : paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }},
+    {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | parameter.exampleFilter ? customLanguageFilter(parameter.filter) : paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }},
 {% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %});
 
   result
