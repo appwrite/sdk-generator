@@ -440,8 +440,20 @@ class Dart extends Language {
         ];
     }
 
-    public function permissionHelperExample(array $param) {
+    public function permissionHelperExample() {
         return '[Permission.read(Role.users()), Permission.update(Role.any())]';
+    }
+
+    public function queriesHelperExample() {
+        return '[Query.greater("year", 2000), Query.orderAsc("title"),  Query.limit(5), Query.offset(10)]';
+    }
+
+    public function rolesHelperExample() {
+        return '[Role.any(), Roles.users()]';
+    }
+
+    public function uniqueIDExample() {
+        return 'ID.unique()';
     }
 
     public function getFilters(): array
