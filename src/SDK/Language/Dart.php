@@ -440,6 +440,10 @@ class Dart extends Language {
         ];
     }
 
+    public function permissionHelperExample(array $param) {
+        return '[Permission.read(Role.users()), Permission.update(Role.any())]';
+    }
+
     public function getFilters(): array
     {
         return [
@@ -449,7 +453,7 @@ class Dart extends Language {
                     $value[$key] = "    /// " . wordwrap($value[$key], 75, "\n    /// ");
                 }
                 return implode("\n", $value);
-            }, ['is_safe' => ['html']]),
+            }, ['is_safe' => ['html']])
         ];
     }
 }

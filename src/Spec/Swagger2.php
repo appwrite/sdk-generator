@@ -241,7 +241,7 @@ class Swagger2 extends Spec
                                     $param['default'] = $value['default'] ?? null;
                                     $param['example'] = $value['x-example'] ?? null;
                                     $param['isUploadID'] = $value['x-upload-id'] ?? false;
-                                    $param['exampleFilter'] = $parameter['x-example-filter'] ?? null;
+                                    $param['exampleFilter'] = $value['x-example-filter'] ?? null;
                                     $param['array'] = [
                                         'type' => $value['items']['type'] ?? '',
                                     ];
