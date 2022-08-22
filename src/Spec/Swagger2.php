@@ -253,7 +253,7 @@ class Swagger2 extends Spec
 
                                     $output['parameters']['body'][] = $param;
                                     $output['parameters']['all'][] = $param;
-                                    if($param['required'] || in_array($exampleParams, $param['name'])) {
+                                    if($param['required'] || in_array($param['name'], $exampleParams)) {
                                         $output['parameters']['example'][] = $param;
                                     }
                                 }
@@ -264,7 +264,7 @@ class Swagger2 extends Spec
                         }
 
                         $output['parameters']['all'][] = $param;
-                        if($param['required'] || in_array($exampleParams, $param['name'])) {
+                        if($param['required'] || in_array($param['name'], $exampleParams)) {
                             $output['parameters']['example'][] = $param;
                         }
                     }
