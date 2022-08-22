@@ -560,7 +560,6 @@ class SDK
                     foreach ($this->spec->getServices() as $key => $service) {
                         $methods = $this->spec->getMethods($key);
                         $params['service'] = [
-                            'globalParams' => $service['globalParams'] ?? [],
                             'description' => $service['description'] ?? '',
                             'name' => $key,
                             'features' => [
@@ -588,7 +587,6 @@ class SDK
                         $params['service'] = [
                             'name' => $key,
                             'methods' => $methods,
-                            'globalParams' => $service['globalParams'] ?? [],
                             'features' => [
                                 'upload' => $this->hasUploads($methods),
                                 'location' => $this->hasLocation($methods),

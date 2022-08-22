@@ -13,7 +13,7 @@ client
 {% endfor %}
 {% endfor %}
 
-{{ service.name | caseSnake }} = {{spec.title | caseUcfirst}}::{{ service.name | caseUcfirst }}.new(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{parameter.name | caseSnake}}:{{ parameter | paramExample }}{% endfor %}{% endif %})
+{{ service.name | caseSnake }} = {{spec.title | caseUcfirst}}::{{ service.name | caseUcfirst }}.new(client)
 
 response = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{parameter.name|caseSnake}}: {% if parameter.type == 'file' %}{{spec.title | caseUcfirst}}::{{ parameter | paramExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% endif %}{% endfor %})
 

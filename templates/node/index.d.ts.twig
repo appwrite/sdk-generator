@@ -176,27 +176,8 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 
 {% for service in spec.services %}
   export class {{ service.name | caseUcfirst }} extends Service {
-    constructor(client: Client{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName }}{% if not parameter.required %}|null{% endif %}{% endfor %});
-    
-{% if service.globalParams | length %}
-{% for parameter in service.globalParams %}
-    /**
-     * Get {{ parameter.name }}.
-     *
-     * @returns {{ '{' }}{{ parameter | typeName }}{{ '}' }}
-     */
-    get{{ parameter.name | caseUcfirst | escapeKeyword }}(): {{ parameter | typeName }};
+    constructor(client: Client);
 
-    /**
-     * Set {{ parameter.name }}.
-     *
-     * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
-     * @returns {void}
-     */
-    set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName }}): void;
-
-{% endfor %}
-{% endif %}
 {% for method in service.methods %}
 {% set generics = _self.get_generics_method(spec.definitions[method.responseModel], spec, true, true) %}
 {% set generics_return = _self.get_generics_method_return(spec.definitions[method.responseModel], spec) %}
