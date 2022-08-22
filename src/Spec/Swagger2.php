@@ -180,6 +180,7 @@ class Swagger2 extends Spec
                             'path' => [],
                             'query' => [],
                             'body' => [],
+                            'example' => [],
                         ],
                         'emptyResponse' => $emptyResponse,
                         'responseModel' => $responseModel,
@@ -192,7 +193,7 @@ class Swagger2 extends Spec
                     }
 
                     $method['parameters'] = (isset($method['parameters']) && is_array($method['parameters'])) ? $method['parameters'] : [];
-
+                    $exampleParams = $method['x-example-params'] ?? [];
                     foreach ($method['parameters'] as $parameter) {
                         $param = [
                             'name' => $parameter['name'] ?? null,
@@ -250,6 +251,12 @@ class Swagger2 extends Spec
 
                                     $output['parameters']['body'][] = $param;
                                     $output['parameters']['all'][] = $param;
+                                    if($param['required'] || isset($exampleParams[$param['name']])) {
+                                        if(isset($exampleParams[$param['name']])) {
+                                            $param['filter'] = $exampleParams[$param['name']];
+                                        }
+                                        $output['parameters']['example'][] = $param;
+                                    }
                                 }
 
                                 continue 2;
@@ -258,6 +265,12 @@ class Swagger2 extends Spec
                         }
 
                         $output['parameters']['all'][] = $param;
+                        if($param['required'] || isset($exampleParams[$param['name']])) {
+                            if(isset($exampleParams[$param['name']])) {
+                                $param['filter'] = $exampleParams[$param['name']];
+                            }
+                            $output['parameters']['example'][] = $param;
+                        }
                     }
 
                     usort($output['parameters']['all'], function ($a, $b) {

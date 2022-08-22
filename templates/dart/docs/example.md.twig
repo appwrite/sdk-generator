@@ -17,13 +17,11 @@ void main() { // Init SDK
 {% endfor %}  ;
 
 {% endif %}
-  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.example %}
 {% if loop.first %}
 
 {% endif %}
-{% if parameter.required %}
-    {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }},
-{% endif %}
+    {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | parameter.filter ? customLanguageFilter(parameter.filter) : paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }},
 {% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %});
 
   result

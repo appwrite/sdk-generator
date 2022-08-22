@@ -82,8 +82,12 @@ class SDK
         foreach ($this->language->getFilters() as $filter) {
             $this->twig->addFilter($filter);
         }
-
+        
         $this->twig->addExtension(new \Twig\Extension\DebugExtension());
+
+        $this->twig->addFilter(new TwigFilter('customLanguageFilter', function($value, $filter) use ($language) {
+            return call_user_func([$language, $filter], $value);
+        }));
 
         $this->twig->addFilter(new TwigFilter('caseLower', function ($value) {
             return strtolower((string)$value);
