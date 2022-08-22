@@ -5,7 +5,7 @@ import 'package:{{ language.params.packageName }}/{{ language.params.packageName
 
 void main() { // Init SDK
   Client client = Client();
-  {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = {{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample }}{% endfor %}{% endif %});
+  {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = {{service.name | caseUcfirst}}(client);
 
 {% if method.security|length > 0 %}
   client
@@ -18,14 +18,12 @@ void main() { // Init SDK
 {% endif %}
 {% if method.type == 'location' %}
   // downloading file
-  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.example %}
 {% if loop.first %}
 
 {% endif %}
-{% if parameter.required %}
-    {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
-{% endif %}
-{% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %}).then((bytes) {
+    {{ parameter.name | caseCamel | overrideIdentifier }}: {% if parameter.exampleFilter %}{{ parameter | customLanguageFilter(parameter.exampleFilter) }}{% else %}{{ parameter | paramExample }}{% endif %},
+{% endfor %}{% if method.parameters.example | length > 0 %}  {% endif %}).then((bytes) {
     final file = File('path_to_file/filename.ext');
     file.writeAsBytesSync(bytes)
   }).catchError((error) {
@@ -35,14 +33,12 @@ void main() { // Init SDK
 
 //displaying image preview
 FutureBuilder(
-  future: {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+  future: {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.example %}
 {% if loop.first %}
 
 {% endif %}
-{% if parameter.required %}
-    {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample }},
-{% endif %}
-{% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %}
+    {{ parameter.name | caseCamel | overrideIdentifier }}: {% if parameter.exampleFilter %}{{ parameter | customLanguageFilter(parameter.exampleFilter) }}{% else %}{{ parameter | paramExample }}{% endif %},
+{% endfor %}{% if method.parameters.example | length > 0 %}  {% endif %}
 ), //works for both public file and private file, for private files you need to be logged in
   builder: (context, snapshot) {
     return snapshot.hasData && snapshot.data != null
@@ -53,14 +49,12 @@ FutureBuilder(
   },
 );
 {% else %}
-  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.example %}
 {% if loop.first %}
 
 {% endif %}
-{% if parameter.required %}
-    {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
-{% endif %}
-{% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %});
+    {{ parameter.name | caseCamel | overrideIdentifier }}: {% if parameter.exampleFilter %}{{ parameter | customLanguageFilter(parameter.exampleFilter) }}{% else %}{{ parameter | paramExample }}{% endif %},
+{% endfor %}{% if method.parameters.example | length > 0 %}  {% endif %});
 
   result
     .then((response) {
