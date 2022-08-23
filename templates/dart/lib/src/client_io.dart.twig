@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:http/io_client.dart';
 import 'client_mixin.dart';
 import 'client_base.dart';
@@ -42,6 +43,8 @@ class ClientIO extends ClientBase with ClientMixin {
       'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
 {% for key,header in spec.global.defaultHeaders %}
       '{{key}}' : '{{header}}',
+      'user-agent' : '${packageInfo.packageName}/${packageInfo.version}'
+
 {% endfor %}
     };
 
