@@ -16,7 +16,13 @@ client
 {% endif %}
 {% if method.type == 'webAuth' %}// Go to OAuth provider login page
 {% endif %}
-{% if method.type == 'webAuth' %}{% elseif method.type == 'location' %}const result = {% else %}const promise = {% endif %}{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
+{% if method.type == 'webAuth' %}{% elseif method.type == 'location' %}const result = {% else %}const promise = {% endif %}{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.example | length > 0 %}
+
+{% endif %}
+{% for parameter in method.parameters.example %}
+    {% if parameter.exampleFilter %}{{ parameter | customLanguageFilter(parameter.exampleFilter) }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %}, {% endif %}
+
+{% endfor %});
 
 {% if method.type == 'webAuth' %}{% elseif method.type == 'location' %}console.log(result); // Resource URL{% else %}promise.then(function (response) {
     console.log(response); // Success
