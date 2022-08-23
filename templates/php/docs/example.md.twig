@@ -20,4 +20,4 @@ $client
 {% endif %}
 ${{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}($client);
 
-$result = ${{ service.name | caseCamel }}->{{ method.name | caseCamel }}({% for parameter in method.parameters.example %}{% if not loop.first %}, {% endif %}{% if parameter.exampleFilter %}{{ parameter | customLanguageFilter(parameter.exampleFilter) }}{% else %}{{ parameter | paramExample }}{% endif %},{% endfor %});
+$result = ${{ service.name | caseCamel }}->{{ method.name | caseCamel }}({% for parameter in method.parameters.example %}{% if not loop.first %}, {% endif %}{% if parameter.exampleFilter %}{{ parameter | customLanguageFilter(parameter.exampleFilter) }}{% else %}{{ parameter | paramExample }}{% endif %}{% endfor %});

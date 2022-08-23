@@ -87,7 +87,7 @@ class SDK
 
         $this->twig->addFilter(new TwigFilter('customLanguageFilter', function($value, $filter) use ($language) {
             return call_user_func([$language, $filter], $value);
-        }));
+        }, ['is_safe' => ['html']]));
 
         $this->twig->addFilter(new TwigFilter('caseLower', function ($value) {
             return strtolower((string)$value);
