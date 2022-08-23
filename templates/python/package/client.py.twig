@@ -12,7 +12,7 @@ class Client:
         self._global_headers = {
             'content-type': '',
             'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
-            'User-Agent' : '{{spec.title | caseUcfirst}}Python/{{ sdk.version }} (${os.type()} ${os.version()}; ${os.arch()})',
+            'user-agent' : '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${os.uname().sysname}; ${os.uname().version}; ${os.uname().machine})',
 {% for key,header in spec.global.defaultHeaders %}
             '{{key}}' : '{{header}}',
 {% endfor %}
