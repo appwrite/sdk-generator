@@ -441,15 +441,28 @@ class Dart extends Language {
     }
 
     public function permissionHelperExample() {
-        return '[Permission.read(Role.users()), Permission.update(Role.any())]';
+        return '[
+      Permission.read(Role.any()),
+      Permission.create(Role.user(ID.custom("6abdzeeq23dfds")),
+      Permission.delete(Role.team(ID.custom("editors"), "owner")),
+    ]';
     }
 
     public function queriesHelperExample() {
-        return '[Query.greater("year", 2000), Query.orderAsc("title"),  Query.limit(5), Query.offset(10)]';
+        return '[
+      Query.equal("title", ["Spiderman", "Dr Strange"]),
+      Query.greaterThan("year", 2000),
+      Query.orderAsc("title"),
+      Query.limit(5),
+      Query.offset(10)
+    ]';
     }
 
     public function rolesHelperExample() {
-        return '[Role.any(), Roles.users()]';
+        return '[
+      Role.any(),
+      Roles.user(ID.custom("6abdzeeq23dfds"))
+    ]';
     }
 
     public function uniqueIDExample() {
