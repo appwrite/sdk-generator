@@ -8,7 +8,7 @@ part of {{ language.params.packageName }};
 {% endmacro %}
 
 {%if service.description %}
-{{ service.description|dartComment}}
+{{- service.description|dartComment}}
 {% endif %}
 class {{ service.name | caseUcfirst }} extends Service {
     {{ service.name | caseUcfirst }}(Client client{{ _self.service_params(service.globalParams) }}): super(client);
@@ -20,7 +20,7 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% for method in service.methods %}
 
      /// {{ method.title }}
-{% if method.description %}
+{%~ if method.description %}
      ///
 {{ method.description | dartComment }}
      ///
