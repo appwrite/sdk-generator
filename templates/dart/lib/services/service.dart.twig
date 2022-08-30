@@ -19,13 +19,13 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% endif %}
 {% for method in service.methods %}
 
-     /// {{ method.title }}
+    /// {{ method.title }}
 {%~ if method.description %}
-     ///
+    ///
 {{ method.description | dartComment }}
-     ///
+    ///
 {% endif %}
-    {% if method.type == 'location' %} Future<Uint8List> {% else %} {% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters.all | filter((param) => not param.isGlobal), method.consumes) }}) async {
+    {% if method.type == 'location' %}Future<Uint8List>{% else %}{% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters.all | filter((param) => not param.isGlobal), method.consumes) }}) async {
         final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | overrideIdentifier }}){% endfor %};
 
 {% if 'multipart/form-data' in method.consumes %}
