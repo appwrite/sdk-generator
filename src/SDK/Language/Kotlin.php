@@ -192,8 +192,9 @@ class Kotlin extends Language {
      */
     public function getParamExample(array $param)
     {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
+        $type        = $param['type'] ?? '';
+        $example     = $param['example'] ?? '';
+        $itemExample = $param['itemExample'] ?? '';
 
         $output = '';
 
@@ -216,7 +217,11 @@ class Kotlin extends Language {
                     $output .= 'mapOf( "a" to "b" )';
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= 'listOf()';
+                    if (!empty($itemExample)) {
+                        $output .= 'listOf( ' . $itemExample . ' )';
+                    } else {
+                        $output .= 'listOf()';
+                    }
                     break;
             }
         }
@@ -229,7 +234,11 @@ class Kotlin extends Language {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                 case self::TYPE_ARRAY:
-                    $output .= $example;
+                    if (!empty($itemExample)) {
+                        $output .= 'listOf( ' . $itemExample . ' )';
+                    } else {
+                        $output .= $example;
+                    }
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';

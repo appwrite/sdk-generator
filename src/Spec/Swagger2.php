@@ -202,6 +202,7 @@ class Swagger2 extends Spec
                             'required' => $parameter['required'] ?? false,
                             'default' => $parameter['default'] ?? null,
                             'example' => $parameter['x-example'] ?? null,
+                            'itemExample' => $parameter['x-item-example'] ?? null,
                             'isUploadID' => $parameter['x-upload-id'] ?? false,
                             'array' => [
                                 'type' => $parameter['items']['type'] ?? '',
