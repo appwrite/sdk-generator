@@ -235,7 +235,7 @@ class Kotlin extends Language {
                 case self::TYPE_INTEGER:
                 case self::TYPE_ARRAY:
                     if (!empty($itemExample)) {
-                        $output .= 'listOf( ' . $itemExample . ' )';
+                        $output .= 'listOf(' . $itemExample . ')';
                     } else {
                         $output .= $example;
                     }
