@@ -239,6 +239,7 @@ class Swagger2 extends Spec
                                     $param['required'] = (in_array($key, $bodyRequired));
                                     $param['default'] = $value['default'] ?? null;
                                     $param['example'] = $value['x-example'] ?? null;
+                                    $param['itemExample'] = $value['x-item-example'] ?? null;
                                     $param['isUploadID'] = $value['x-upload-id'] ?? false;
                                     $param['array'] = [
                                         'type' => $value['items']['type'] ?? '',
