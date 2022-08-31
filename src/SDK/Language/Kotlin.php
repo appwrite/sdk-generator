@@ -218,7 +218,7 @@ class Kotlin extends Language {
                     break;
                 case self::TYPE_ARRAY:
                     if (!empty($itemExample)) {
-                        $output .= 'listOf( ' . $itemExample . ' )';
+                        $output .= 'listOf(' . $itemExample . ')';
                     } else {
                         $output .= 'listOf()';
                     }
