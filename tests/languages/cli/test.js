@@ -1,6 +1,6 @@
 const { exec, execSync } = require('child_process');
 
-execSync("node index client --endpoint 'https://8080-appwrite-appwrite-38xdl9d8529.ws-us62.gitpod.io/v1' --projectId console --key=35y3h5h345 --selfSigned true", { stdio: 'inherit' });
+execSync("node index client --endpoint 'https://8080-appwrite-appwrite-7nqnl9rodfw.ws-eu63.gitpod.io/v1' --projectId console --key=35y3h5h345 --selfSigned true", { stdio: 'inherit' });
 
 var output;
 console.log('\nTest Started');
