@@ -23,7 +23,7 @@ public class WebAuthComponent {
     ///
     /// Authenticate Session with OAuth2
     ///
-    /// Launches a chrome custom tab from the given activity and directs to the given url,
+    /// Launches a browser window from your app and directs to the given url,
     /// suspending until the user returns to the app, at which point the given [onComplete] callback
     /// will run, passing the callback url from the intent used to launch the [CallbackActivity],
     /// or an [IllegalStateException] in the case the user closed the window or returned to the
@@ -62,12 +62,37 @@ public class WebAuthComponent {
         var domain = cookieParts["domain"]!
         domain.remove(at: domain.startIndex)
 
-        let cookie = HTTPClient.Cookie(
-            name: cookieParts["key"]!,
-            value: cookieParts["secret"]!
-        )
-        let cookieJson = try! cookie.toJson()
-        UserDefaults.standard.set(cookieJson, forKey: "\(domain)-cookies")
+        let key: String = cookieParts["key"]!
+        let secret: String = cookieParts["secret"]!
+        let path: String? = cookieParts["path"]
+        let expires: String? = cookieParts["expires"]
+        let maxAge: String? = cookieParts["maxAge"]
+        let sameSite: String? = cookieParts["sameSite"]
+        let httpOnly: Bool? = cookieParts.keys.contains("httpOnly")
+        let secure: Bool? = cookieParts.keys.contains("secure")
+
+        var cookie = "\(key)=\(secret)"
+
+        if let path = path {
+            cookie += "; path=\(path)"
+        }
+        if let expires = expires {
+            cookie += "; expires=\(expires)"
+        }
+        if let maxAge = maxAge {
+            cookie += "; max-age=\(maxAge)"
+        }
+        if let sameSite = sameSite {
+            cookie += "; sameSite=\(sameSite)"
+        }
+        if let httpOnly = httpOnly, httpOnly {
+            cookie += "; httpOnly"
+        }
+        if let secure = secure, secure {
+            cookie += "; secure"
+        }
+
+        UserDefaults.standard.set([cookie], forKey: "\(domain)-cookies")
 
         WebAuthComponent.onCallback(
             scheme: components.scheme!,

@@ -160,7 +160,7 @@ const questionsInitFunction = [
     type: "input",
     name: "id",
     message: "What ID would you like to have for your function?",
-    default: "myAwesomeFunction"
+    default: "unique()"
   },
   {
     type: "list",
