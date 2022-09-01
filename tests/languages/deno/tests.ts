@@ -121,6 +121,10 @@ async function start() {
   // ID helper tests
   console.log(ID.unique());
   console.log(ID.custom('custom_id'));
+
+  response = await general.headers()
+  // @ts-ignore
+  console.log(response.result)
 }
 
 start().catch((err) => {

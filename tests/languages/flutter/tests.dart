@@ -132,4 +132,7 @@ void main() async {
   // ID helper tests
   print(ID.unique());
   print(ID.custom('custom_id'));
+
+  response = await general.headers();
+  print(response.result);
 }

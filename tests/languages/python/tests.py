@@ -116,3 +116,6 @@ print(Permission.delete(Role.team('teamId')))
 # ID helper tests
 print(ID.unique())
 print(ID.custom('custom_id'))
+
+response = general.headers()
+print(response['result'])

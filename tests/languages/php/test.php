@@ -127,3 +127,6 @@ echo Permission::delete(Role::team('teamId')) . "\n";
 // ID helper tests
 echo ID::unique() . "\n";
 echo ID::custom('custom_id') . "\n";
+
+$response = $general->headers();
+echo "{$response['result']}\n";

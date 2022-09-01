@@ -7,6 +7,11 @@ use Appwrite\SDK\Language\CLI;
 
 class CLINode16Test extends Base
 {
+    protected string $sdkName = 'cli';
+    protected string $sdkPlatform = 'server';
+    protected string $sdkLanguage = 'cli';
+    protected string $version = '0.0.1';
+
     protected string $language = 'cli';
     protected string $class = 'Appwrite\SDK\Language\CLI';
     protected array $build = [

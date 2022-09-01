@@ -49,7 +49,7 @@ class ClientIO extends ClientBase with ClientMixin {
   String? get endPointRealtime => _endPointRealtime;
 
   ClientIO({
-    String endPoint = 'https://appwrite.io/v1',
+    String endPoint = '{{spec.endpoint}}',
     this.selfSigned = false,
   }) : _endPoint = endPoint {
     _nativeClient = HttpClient()
@@ -61,7 +61,10 @@ class ClientIO extends ClientBase with ClientMixin {
         .replaceFirst('http://', 'ws://');
     _headers = {
       'content-type': 'application/json',
-      'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
+      'x-sdk-name': '{{ sdk.name }}',
+      'x-sdk-platform': '{{ sdk.platform }}',
+      'x-sdk-language': '{{ language.name | caseLower }}',
+      'x-sdk-version': '{{ sdk.version }}',
 {% for key,header in spec.global.defaultHeaders %}
       '{{key}}' : '{{header}}',
 {% endfor %}

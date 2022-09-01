@@ -4,6 +4,11 @@ namespace Tests;
 
 class DartBetaTest extends Base
 {
+    protected string $sdkName = 'dart';
+    protected string $sdkPlatform = 'server';
+    protected string $sdkLanguage = 'dart';
+    protected string $version = '0.0.1';
+
     protected string $language = 'dart';
     protected string $class = 'Appwrite\SDK\Language\Dart';
     protected array $build = [

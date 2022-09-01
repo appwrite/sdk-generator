@@ -144,6 +144,9 @@ class ServiceTest {
             // ID helper tests
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
+
+            mock = general.headers()
+            writeToFile(mock.result)
         }
     }
 

@@ -128,3 +128,6 @@ puts permission.delete(role.team('teamId'))
 # ID helper tests
 puts id.unique()
 puts id.custom('custom_id')
+
+response = general.headers()
+puts response.result

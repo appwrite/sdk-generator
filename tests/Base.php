@@ -36,7 +36,7 @@ abstract class Base extends TestCase
     ];
 
     const EXTENDED_GENERAL_RESPONSES = [
-        'Download test passed.',
+        'GET:/v1/mock/tests/general/download:passed',
     ];
 
     const COOKIE_RESPONSES = [
@@ -94,6 +94,8 @@ abstract class Base extends TestCase
 
     public function setUp(): void
     {
+        $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
+        array_push($this->expectedOutput, $headers);
     }
 
     public function tearDown(): void
@@ -111,11 +113,13 @@ abstract class Base extends TestCase
         $sdk = new SDK($this->getLanguage(), new Swagger2($spec));
 
         $sdk
+            ->setName($this->sdkName)
+            ->setVersion($this->version)
+            ->setPlatform($this->sdkPlatform)
             ->setDescription('Repo description goes here')
             ->setShortDescription('Repo short description goes here')
             ->setLogo('https://appwrite.io/v1/images/console.png')
             ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
-            ->setVersion('0.0.1')
             ->setExamples('**EXAMPLES** <HTML>')
             ->setNamespace("io appwrite")
             ->setGitUserName('repoowner')

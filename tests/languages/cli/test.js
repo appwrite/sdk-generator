@@ -1,6 +1,6 @@
 const { exec, execSync } = require('child_process');
 
-execSync("node index client --endpoint 'https://appwrite.io/v1' --projectId 6013fbefdfa41 --key=35y3h5h345 --selfSigned true", { stdio: 'inherit' });
+execSync("node index client --endpoint 'https://appwrite.io/v1' --projectId console --key=35y3h5h345 --selfSigned true", { stdio: 'inherit' });
 
 var output;
 console.log('\nTest Started');
@@ -48,3 +48,6 @@ output = execSync("node index general upload --x string  --y 123 --z string in a
 console.log(output.split('\n')[0].split(" : ")[1]);
 
 execSync("node index general empty", { stdio: 'pipe'});
+
+output = execSync("node index general headers", { stdio: 'pipe'}).toString();
+console.log(output.split('\n')[0].split(" : ")[1]);

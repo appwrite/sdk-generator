@@ -148,5 +148,8 @@ class Tests: XCTestCase {
         // ID helper tests
         print(ID.unique());
         print(ID.custom("custom_id"));
+
+        mock = try await general.headers()
+        print(mock.result)
     }
 }

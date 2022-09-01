@@ -109,7 +109,8 @@
                 console.log(error.message);
             }
 
-            await Promise.resolve(resolve=>setTimeout(() => resolve, 5000));
+            const delay = ms => new Promise(res => setTimeout(res, ms));
+            await delay(5000);
             console.log(responseRealtime)
 
             // Query helper tests
@@ -136,6 +137,9 @@
             // ID helper tests
             console.log(ID.unique());
             console.log(ID.custom('custom_id'));
+
+            response = await general.headers();
+            console.log(response.result);
 
         });
     </script>
