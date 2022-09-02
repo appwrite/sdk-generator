@@ -350,13 +350,13 @@ class Dart extends Language {
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/role.dart',
-                'template'      => 'flutter/lib/role.dart.twig',
+                'template'      => 'dart/lib/role.dart.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/id.dart',
-                'template'      => 'flutter/lib/id.dart.twig',
+                'template'      => 'dart/lib/id.dart.twig',
                 'minify'        => false,
             ],
             [
