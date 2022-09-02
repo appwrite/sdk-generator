@@ -11,14 +11,14 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
     final Map<String, dynamic> data;
 {% endif %}
 
-    {{ definition.name | caseUcfirst | overrideIdentifier}}({% definition.properties | length %}{{% endif %}
+    {{ definition.name | caseUcfirst | overrideIdentifier}}({% if definition.properties | length %}{{ '{' }}{% endif %}
 {% for property in definition.properties %}{% if property.required %}
         required {% endif %}this.{{ property.name | escapeKeyword }},
 {% endfor %}
 {% if definition.additionalProperties %}
         required this.data,
 {% endif %}
-    {% definition.properties | length %}}{% endif %});
+    {% if definition.properties | length %}{{ '}' }}{% endif %});
 
     factory {{ definition.name | caseUcfirst | overrideIdentifier}}.fromMap(Map<String, dynamic> map) {
         return {{ definition.name | caseUcfirst | overrideIdentifier }}(
