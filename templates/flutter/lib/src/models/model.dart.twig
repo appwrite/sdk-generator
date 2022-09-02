@@ -1,8 +1,8 @@
-{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}>{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>{% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier }}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
 part of {{ language.params.packageName }}.models;
 
 /// {{ definition.description }}
-class {{ definition.name | caseUcfirst }} implements Model {
+class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model {
 {% for property in definition.properties %}
     /// {{ property.description }}
     final {% if not property.required %}{{_self.sub_schema(property)}}? {{ property.name | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ property.name | escapeKeyword }}{% endif %};
@@ -11,19 +11,19 @@ class {{ definition.name | caseUcfirst }} implements Model {
     final Map<String, dynamic> data;
 {% endif %}
 
-    {{ definition.name | caseUcfirst}}({
+    {{ definition.name | caseUcfirst | overrideIdentifier}}({% definition.properties | length %}{{% endif %}
 {% for property in definition.properties %}{% if property.required %}
         required {% endif %}this.{{ property.name | escapeKeyword }},
 {% endfor %}
 {% if definition.additionalProperties %}
         required this.data,
 {% endif %}
-    });
+    {% definition.properties | length %}}{% endif %});
 
-    factory {{ definition.name | caseUcfirst}}.fromMap(Map<String, dynamic> map) {
-        return {{ definition.name | caseUcfirst }}(
+    factory {{ definition.name | caseUcfirst | overrideIdentifier}}.fromMap(Map<String, dynamic> map) {
+        return {{ definition.name | caseUcfirst | overrideIdentifier }}(
 {% for property in definition.properties %}
-            {{ property.name | escapeKeyword }}: {% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst}}>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | caseUcfirst}}.fromMap(p))){% else %}{{property.sub_schema | caseUcfirst}}.fromMap(map['{{property.name | escapeDollarSign }}']){% endif %}{% else %}map['{{property.name | escapeDollarSign }}']{% if property.type == "number" %}{% if not property.required %}?{% endif %}.toDouble(){% endif %}{% if property.type == "string" %}{% if not property.required %}?{% endif %}.toString(){% endif %}{% endif %},
+            {{ property.name | escapeKeyword }}: {% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(p))){% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(map['{{property.name | escapeDollarSign }}']){% endif %}{% else %}map['{{property.name | escapeDollarSign }}']{% if property.type == "number" %}{% if not property.required %}?{% endif %}.toDouble(){% endif %}{% if property.type == "string" %}{% if not property.required %}?{% endif %}.toString(){% endif %}{% endif %},
 {% endfor %}
 {% if definition.additionalProperties %}
             data: map,

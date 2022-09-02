@@ -2,7 +2,7 @@
 part of {{ language.params.packageName }}.models;
 
 /// {{ definition.description }}
-class {{ definition.name | caseUcfirst | overrideIdentifier }} {
+class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model {
 {% for property in definition.properties %}
     /// {{ property.description }}
     final {% if not property.required %}{{_self.sub_schema(property)}}? {{ property.name | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ property.name | escapeKeyword }}{% endif %};
@@ -11,14 +11,14 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} {
     final Map<String, dynamic> data;
 {% endif %}
 
-    {{ definition.name | caseUcfirst | overrideIdentifier}}({
+    {{ definition.name | caseUcfirst | overrideIdentifier}}({% definition.properties | length %}{{% endif %}
 {% for property in definition.properties %}{% if property.required %}
         required {% endif %}this.{{ property.name | escapeKeyword }},
 {% endfor %}
 {% if definition.additionalProperties %}
         required this.data,
 {% endif %}
-    });
+    {% definition.properties | length %}}{% endif %});
 
     factory {{ definition.name | caseUcfirst | overrideIdentifier}}.fromMap(Map<String, dynamic> map) {
         return {{ definition.name | caseUcfirst | overrideIdentifier }}(
