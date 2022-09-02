@@ -19,8 +19,7 @@ dependencies:
   path_provider: ^2.0.11
   web_socket_channel: ^2.2.0
 
-# cause device_info_plus depends on 2.7.0 and flutter_web_auth_2 depends on 3.0.0, 
-# you may get version conflict error. And flutter_web_auth_2 latest version supports windows implementation
+# TODO: Remove this when device_info_plus bumps their dependency of win32 to 3.0.0
 dependency_overrides:
   win32: '2.7.0' 
 
