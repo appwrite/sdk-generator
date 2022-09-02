@@ -403,6 +403,12 @@ class Dart extends Language {
 			],
             [
 				'scope'         => 'default',
+				'destination'   => '/lib/src/models/model.dart',
+				'template'      => 'dart/lib/src/models/model_base.dart.twig',
+				'minify'        => false,
+			],
+            [
+				'scope'         => 'default',
 				'destination'   => '/lib/models.dart',
 				'template'      => 'dart/lib/models.dart.twig',
 				'minify'        => false,
