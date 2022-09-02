@@ -18,7 +18,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
 {% if definition.additionalProperties %}
         required this.data,
 {% endif %}
-    {% if definition.properties | length %}{{ '}' }}{% endif %});
+    {% if definition.properties | length or definition.additionalProperties %}{{ '}' }}{% endif %});
 
     factory {{ definition.name | caseUcfirst | overrideIdentifier}}.fromMap(Map<String, dynamic> map) {
         return {{ definition.name | caseUcfirst | overrideIdentifier }}(
