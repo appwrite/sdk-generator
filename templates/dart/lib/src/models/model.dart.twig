@@ -11,7 +11,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
     final Map<String, dynamic> data;
 {% endif %}
 
-    {{ definition.name | caseUcfirst | overrideIdentifier}}({% if definition.properties | length %}{{ '{' }}{% endif %}
+    {{ definition.name | caseUcfirst | overrideIdentifier}}({% if definition.properties | length or definition.additionalProperties %}{{ '{' }}{% endif %}
 {% for property in definition.properties %}{% if property.required %}
         required {% endif %}this.{{ property.name | escapeKeyword }},
 {% endfor %}
