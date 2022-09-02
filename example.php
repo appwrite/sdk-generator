@@ -41,7 +41,7 @@ try {
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
     // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1&platform=console'); // Enable only with Appwrite local server running on port 80
     // $spec = file_get_contents('https://appwrite.io/specs/swagger2?platform=client');
-    $spec = file_get_contents('./specs/swagger2-latest-console.json');
+    $spec = file_get_contents('https://raw.githubusercontent.com/appwrite/appwrite/master/app/config/specs/swagger2-0.14.x-server.json');
 
     if (empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -182,8 +182,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.13.0',
-        ])
-    ;
+        ]);
 
     $sdk->generate(__DIR__ . '/examples/cli');
 

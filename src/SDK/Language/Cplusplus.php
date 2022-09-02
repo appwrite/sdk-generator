@@ -290,6 +290,8 @@ class Cplusplus extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_ARRAY:
+                    $output .= "{\"$default\"}";
+                    break;
 
                 case self::TYPE_INTEGER:
                     $output .= $default;

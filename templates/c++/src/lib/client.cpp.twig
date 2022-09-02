@@ -98,35 +98,35 @@ json Client::call(string method, cpr::Header headers, cpr::Payload params, strin
             responseHeaders = cpr::Get(url,
                                        params,
                                        this->headers,
-                                       cpr::VerifySsl{!this->selfSigned});
+                                       cpr::VerifySsl{this->selfSigned});
         }
         else if (method == "METHOD_POST")
         {
             responseHeaders = cpr::Post(url,
                                         params,
                                         this->headers,
-                                        cpr::VerifySsl{!this->selfSigned});
+                                        cpr::VerifySsl{this->selfSigned});
         }
         else if (method == "METHOD_PUT")
         {
             responseHeaders = cpr::Put(url,
                                       params,
                                       this->headers,
-                                       cpr::VerifySsl{!this->selfSigned});
+                                       cpr::VerifySsl{this->selfSigned});
         }
         else if (method == "METHOD_DELETE")
         {
             responseHeaders = cpr::Delete(url,
                                           params,
                                          this->headers,
-                                          cpr::VerifySsl{!this->selfSigned});
+                                          cpr::VerifySsl{this->selfSigned});
         }
          else if (method == "METHOD_PATCH")
         {
             responseHeaders = cpr::Patch(url,
                                          params,
                                          this->headers,
-                                         cpr::VerifySsl{!this->selfSigned});
+                                         cpr::VerifySsl{this->selfSigned});
         }
         else
         {
