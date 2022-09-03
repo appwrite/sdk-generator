@@ -238,7 +238,8 @@ class PHP extends Language {
     {
         switch ($parameter['type']) {
             case self::TYPE_STRING:
-                return 'string';
+                $type = 'string';
+                break;
             case self::TYPE_BOOLEAN:
                 $type = 'bool';
                 break;
