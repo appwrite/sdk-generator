@@ -350,13 +350,13 @@ class Dart extends Language {
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/role.dart',
-                'template'      => 'flutter/lib/role.dart.twig',
+                'template'      => 'dart/lib/role.dart.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/id.dart',
-                'template'      => 'flutter/lib/id.dart.twig',
+                'template'      => 'dart/lib/id.dart.twig',
                 'minify'        => false,
             ],
             [
@@ -399,6 +399,12 @@ class Dart extends Language {
 				'scope'         => 'default',
 				'destination'   => '/lib/src/enums.dart',
 				'template'      => 'dart/lib/src/enums.dart.twig',
+				'minify'        => false,
+			],
+            [
+				'scope'         => 'default',
+				'destination'   => '/lib/src/models/model.dart',
+				'template'      => 'dart/lib/src/models/model_base.dart.twig',
 				'minify'        => false,
 			],
             [
