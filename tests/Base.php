@@ -50,7 +50,7 @@ abstract class Base extends TestCase
 
     const EXCEPTION_RESPONSES = [
         'Mock 400 error',
-        'Server Error',
+        'Mock 500 error',
         'This is a text error',
     ];
 
