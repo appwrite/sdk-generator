@@ -12,8 +12,9 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
 {% endif %}
 
     {{ definition.name | caseUcfirst | overrideIdentifier}}({% if definition.properties | length or definition.additionalProperties %}{{ '{' }}{% endif %}
-{% for property in definition.properties %}{% if property.required %}
-        required {% endif %}this.{{ property.name | escapeKeyword }},
+
+{% for property in definition.properties %}
+        {% if property.required %}required {% endif %}this.{{ property.name | escapeKeyword }},
 {% endfor %}
 {% if definition.additionalProperties %}
         required this.data,
