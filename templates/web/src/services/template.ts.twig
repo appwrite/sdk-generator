@@ -34,7 +34,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% endif %}
 {% endfor %}
-            let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+            let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}{% if parameter.type != 'string' %}.toString(){% endif %}){% endfor %};
             let payload: Payload = {};
 
 {% for parameter in method.parameters.query %}
