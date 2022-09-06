@@ -35,7 +35,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
     Map<String, dynamic> toMap() {
         return {
 {% for property in definition.properties %}
-            "{{ property.name | escapeDollarSign }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword}}.map((p) => p.toMap()){% else %}{{property.name | escapeKeyword}}.toMap(){% endif %}{% else %}{{property.name | escapeKeyword }}{% endif %},
+            "{{ property.name | escapeDollarSign }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword}}.map((p) => p.toMap()).toList(){% else %}{{property.name | escapeKeyword}}.toMap(){% endif %}{% else %}{{property.name | escapeKeyword }}{% endif %},
 {% endfor %}
 {% if definition.additionalProperties %}
             "data": data,
