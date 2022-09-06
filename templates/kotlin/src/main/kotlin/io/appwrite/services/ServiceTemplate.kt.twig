@@ -28,7 +28,7 @@ class {{ service.name | caseUcfirst }} : Service {
      *
 {% endif %}
 {% for parameter in method.parameters.all %}
-     * @param {{ parameter.name | caseCamel }} {{ parameter.description }}
+     * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
 {% endfor %}
      * {% if method.type != "webAuth" %}@return [{{ utils.resultType(sdk.namespace, method) }}]{% endif %}
      
