@@ -446,6 +446,35 @@ class Dart extends Language {
         ];
     }
 
+    public function permissionHelperExample() {
+        return '[
+      Permission.read(Role.any()),
+      Permission.create(Role.user(ID.custom("6abdzeeq23dfds")),
+      Permission.delete(Role.team(ID.custom("editors"), "owner")),
+    ]';
+    }
+
+    public function queriesHelperExample() {
+        return '[
+      Query.equal("title", ["Spiderman", "Dr Strange"]),
+      Query.greaterThan("year", 2000),
+      Query.orderAsc("title"),
+      Query.limit(5),
+      Query.offset(10)
+    ]';
+    }
+
+    public function rolesHelperExample() {
+        return '[
+      Role.any(),
+      Roles.user(ID.custom("6abdzeeq23dfds"))
+    ]';
+    }
+
+    public function uniqueIDExample() {
+        return 'ID.unique()';
+    }
+
     public function getFilters(): array
     {
         return [
@@ -455,7 +484,7 @@ class Dart extends Language {
                     $value[$key] = "    /// " . wordwrap($value[$key], 75, "\n    /// ");
                 }
                 return implode("\n", $value);
-            }, ['is_safe' => ['html']]),
+            }, ['is_safe' => ['html']])
         ];
     }
 }

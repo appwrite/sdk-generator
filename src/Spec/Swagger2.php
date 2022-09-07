@@ -180,6 +180,7 @@ class Swagger2 extends Spec
                             'path' => [],
                             'query' => [],
                             'body' => [],
+                            'example' => [],
                         ],
                         'emptyResponse' => $emptyResponse,
                         'responseModel' => $responseModel,
@@ -192,7 +193,7 @@ class Swagger2 extends Spec
                     }
 
                     $method['parameters'] = (isset($method['parameters']) && is_array($method['parameters'])) ? $method['parameters'] : [];
-
+                    $exampleParams = $method['x-example-params'] ?? [];
                     foreach ($method['parameters'] as $parameter) {
                         $param = [
                             'name' => $parameter['name'] ?? null,
@@ -202,6 +203,7 @@ class Swagger2 extends Spec
                             'required' => $parameter['required'] ?? false,
                             'default' => $parameter['default'] ?? null,
                             'example' => $parameter['x-example'] ?? null,
+                            'exampleFilter' => $parameter['x-example-filter'] ?? null,
                             'isUploadID' => $parameter['x-upload-id'] ?? false,
                             'array' => [
                                 'type' => $parameter['items']['type'] ?? '',
@@ -239,6 +241,7 @@ class Swagger2 extends Spec
                                     $param['default'] = $value['default'] ?? null;
                                     $param['example'] = $value['x-example'] ?? null;
                                     $param['isUploadID'] = $value['x-upload-id'] ?? false;
+                                    $param['exampleFilter'] = $value['x-example-filter'] ?? null;
                                     $param['array'] = [
                                         'type' => $value['items']['type'] ?? '',
                                     ];
@@ -250,6 +253,9 @@ class Swagger2 extends Spec
 
                                     $output['parameters']['body'][] = $param;
                                     $output['parameters']['all'][] = $param;
+                                    if($param['required'] || in_array($param['name'], $exampleParams)) {
+                                        $output['parameters']['example'][] = $param;
+                                    }
                                 }
 
                                 continue 2;
@@ -258,6 +264,9 @@ class Swagger2 extends Spec
                         }
 
                         $output['parameters']['all'][] = $param;
+                        if($param['required'] || in_array($param['name'], $exampleParams)) {
+                            $output['parameters']['example'][] = $param;
+                        }
                     }
 
                     usort($output['parameters']['all'], function ($a, $b) {

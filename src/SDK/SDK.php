@@ -83,8 +83,12 @@ class SDK
         foreach ($this->language->getFilters() as $filter) {
             $this->twig->addFilter($filter);
         }
-
+        
         $this->twig->addExtension(new \Twig\Extension\DebugExtension());
+
+        $this->twig->addFilter(new TwigFilter('customLanguageFilter', function($value, $filter) use ($language) {
+            return call_user_func([$language, $filter], $value);
+        }, ['is_safe' => ['html']]));
 
         $this->twig->addFilter(new TwigFilter('caseLower', function ($value) {
             return strtolower((string)$value);
@@ -568,7 +572,6 @@ class SDK
                     foreach ($this->spec->getServices() as $key => $service) {
                         $methods = $this->spec->getMethods($key);
                         $params['service'] = [
-                            'globalParams' => $service['globalParams'] ?? [],
                             'description' => $service['description'] ?? '',
                             'name' => $key,
                             'features' => [
@@ -596,7 +599,6 @@ class SDK
                         $params['service'] = [
                             'name' => $key,
                             'methods' => $methods,
-                            'globalParams' => $service['globalParams'] ?? [],
                             'features' => [
                                 'upload' => $this->hasUploads($methods),
                                 'location' => $this->hasLocation($methods),
