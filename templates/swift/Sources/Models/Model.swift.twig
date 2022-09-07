@@ -1,6 +1,9 @@
 {% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}[{{property.sub_schema | caseUcfirst}}]{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}[String : Any]{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
 
 /// {{ definition.description }}
+{% if definition.properties | length == 0 and not definition.additionalProperties %}
+public class {{ definition.name | caseUcfirst }} {}
+{% else %}
 public class {{ definition.name | caseUcfirst }} {
 
 {% for property in definition.properties %}
@@ -73,3 +76,4 @@ public class {{ definition.name | caseUcfirst }} {
 {% endfor %}
 
 }
+{% endif %}
