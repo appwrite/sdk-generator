@@ -1,3 +1,7 @@
+{% for parameter in method.parameters.path %}
+    .gsub('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseSnake | escapeKeyword }})
+{% endfor %}
+
             params = {
 {% for parameter in method.parameters.query | merge(method.parameters.body)  %}
                 {{ parameter.name }}: {{ parameter.name | caseSnake | escapeKeyword }},
@@ -20,8 +24,5 @@
             end
 
 {% endif %}
-{% endfor %}
-{% for parameter in method.parameters.path %}
-                .gsub('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseSnake | escapeKeyword }})
 {% endfor %}
 {% endif %}
