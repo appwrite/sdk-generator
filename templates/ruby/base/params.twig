@@ -1,13 +1,13 @@
-          path = '{{ method.path }}'
+            path = '{{ method.path }}'
 {% for parameter in method.parameters.path %}
-            .gsub('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseSnake | escapeKeyword }})
+                .gsub('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseSnake | escapeKeyword }})
 {% endfor %}
 
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
-        if {{ parameter.name | caseSnake | escapeKeyword }}.nil?
-          raise {{spec.title | caseUcfirst}}::Exception.new('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"')
-        end
+            if {{ parameter.name | caseSnake | escapeKeyword }}.nil?
+              raise {{spec.title | caseUcfirst}}::Exception.new('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"')
+            end
 
 {% endif %}
 {% endfor %}
