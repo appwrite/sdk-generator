@@ -6,7 +6,7 @@ import com.google.gson.annotations.SerializedName
 /**
  * {{ definition.description }}
  */
-{% if definition.properties | length == 0 %}
+{% if definition.properties | length == 0 and not definition.additionalProperties %}
 class {{ definition.name | caseUcfirst }} {}
 {% else %}
 data class {{ definition.name | caseUcfirst }}(
