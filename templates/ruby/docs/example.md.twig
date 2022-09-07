@@ -1,6 +1,6 @@
-require 'appwrite'
+require '{{ spec.title }}'
 
-include Appwrite
+include {{ spec.title | caseUcfirst }}
 
 client = Client.new
     .set_endpoint('https://[HOSTNAME_OR_IP]/v1') # Your API Endpoint
