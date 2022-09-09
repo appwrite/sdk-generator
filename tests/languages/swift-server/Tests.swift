@@ -144,7 +144,7 @@ class Tests: XCTestCase {
         print(Permission.update(Role.guests()))
         print(Permission.delete(Role.team("teamId", "owner")))
         print(Permission.delete(Role.team("teamId")))
-        print(Permission.create(Role.team("memberId")))
+        print(Permission.create(Role.member("memberId")))
 
         // ID helper tests
         print(ID.unique())
