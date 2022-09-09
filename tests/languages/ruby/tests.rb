@@ -116,7 +116,7 @@ puts Query.offset(20)
 
 # Permission & Role helper tests
 puts Permission.read(Role.any())
-puts Permission.write(Role.user(id.custom('userid')))
+puts Permission.write(Role.user(ID.custom('userid')))
 puts Permission.create(Role.users())
 puts Permission.update(Role.guests())
 puts Permission.delete(Role.team('teamId', 'owner'))
