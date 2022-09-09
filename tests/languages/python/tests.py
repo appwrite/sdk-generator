@@ -112,6 +112,7 @@ print(Permission.create(Role.users()))
 print(Permission.update(Role.guests()))
 print(Permission.delete(Role.team('teamId', 'owner')))
 print(Permission.delete(Role.team('teamId')))
+print(Permission.create(Role.member('memberId')))
 
 # ID helper tests
 print(ID.unique())

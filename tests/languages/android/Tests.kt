@@ -180,6 +180,7 @@ class ServiceTest {
             writeToFile(Permission.update(Role.guests()))
             writeToFile(Permission.delete(Role.team("teamId", "owner")))
             writeToFile(Permission.delete(Role.team("teamId")))
+            writeToFile(Permission.create(Role.member("memberId")))
 
             // ID helper tests
             writeToFile(ID.unique())
