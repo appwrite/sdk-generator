@@ -93,10 +93,10 @@ void main() async {
     print(e.message);
   }
 
-  rtsub.stream.listen((message) {
-    print(message.payload["response"]);
-    rtsub.close();
-  });
+  // rtsub.stream.listen((message) {
+  //   print(message.payload["response"]);
+  //   rtsub.close();
+  // });
 
   await Future.delayed(Duration(seconds: 5));
 
