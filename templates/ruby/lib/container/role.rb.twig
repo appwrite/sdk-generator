@@ -23,6 +23,10 @@ module {{spec.title | caseUcfirst}}
                 "team:#{id}/#{role}"
             end
         end
+
+        def self.member(id)
+            "member:#{id}"
+        end
         
         def self.status(status)
             "status:#{status}"

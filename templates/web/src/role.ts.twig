@@ -21,6 +21,10 @@ export class Role {
         }
         return `team:${id}/${role}`
     }
+
+    public static member(id: string): string {
+        return `member:${id}`
+    }
     
     public static status(status: string): string {
         return `status:${status}`

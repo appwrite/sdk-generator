@@ -27,6 +27,10 @@ class Role
         }
         return "team:$id/$role";
     }
+    public static function member(string $id): string
+    {
+        return "member:$id";
+    }
     public static function status(string $status): string
     {
         return "status:$status";
