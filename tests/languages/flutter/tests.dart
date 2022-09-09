@@ -15,7 +15,7 @@ void main() async {
       "wss://demo.appwrite.io/v1"); // change this later to appwrite.io
 
   Realtime realtime = Realtime(client);
-  final rtsub = realtime.subscribe(["tests"]);
+  // final rtsub = realtime.subscribe(["tests"]);
 
   await Future.delayed(Duration(seconds: 5));
   client.addHeader('Origin', 'http://localhost');
