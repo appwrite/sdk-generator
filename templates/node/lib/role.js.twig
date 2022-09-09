@@ -17,6 +17,9 @@ class Role {
         }
         return 'team:' + id + '/' + role
     }
+    static member = (id) => {
+        return 'member:' + id
+    }
     static status = (status) => {
         return 'status:' + status
     }

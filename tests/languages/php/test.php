@@ -123,7 +123,7 @@ echo Permission::create(Role::users()) . "\n";
 echo Permission::update(Role::guests()) . "\n";
 echo Permission::delete(Role::team('teamId', 'owner')) . "\n";
 echo Permission::delete(Role::team('teamId')) . "\n";
-
+echo Permission::create(Role::member('memberId')) . "\n";
 // ID helper tests
 echo ID::unique() . "\n";
 echo ID::custom('custom_id') . "\n";

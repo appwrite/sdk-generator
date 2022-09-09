@@ -2,21 +2,22 @@ package {{ sdk.namespace | caseDot }}
 
 class Role {
     companion object {
-        fun any(): String
-            = "any"
-        fun user(id: String): String
-            = "user:$id"
-        fun users(): String
-            = "users"
-        fun guests(): String
-            = "guests"
-        fun team(id: String, role: String = ""): String
-            = if(role.isEmpty()) {
-                "team:$id"
-            } else {
-                "team:$id/$role"
-            }
-        fun status(status: String): String
-            = "status:$status"
+        fun any(): String = "any"
+
+        fun user(id: String): String = "user:$id"
+
+        fun users(): String = "users"
+
+        fun guests(): String= "guests"
+
+        fun team(id: String, role: String = ""): String = if(role.isEmpty()) {
+            "team:$id"
+        } else {
+            "team:$id/$role"
+        }
+
+        fun member(id: String): String = "member:$id"
+
+        fun status(status: String): String = "status:$status"
     }
 }

@@ -15,7 +15,7 @@ void main() async {
       "wss://demo.appwrite.io/v1"); // change this later to appwrite.io
 
   Realtime realtime = Realtime(client);
-  final rtsub = realtime.subscribe(["tests"]);
+  // final rtsub = realtime.subscribe(["tests"]);
 
   await Future.delayed(Duration(seconds: 5));
   client.addHeader('Origin', 'http://localhost');
@@ -93,10 +93,10 @@ void main() async {
     print(e.message);
   }
 
-  rtsub.stream.listen((message) {
-    print(message.payload["response"]);
-    rtsub.close();
-  });
+  // rtsub.stream.listen((message) {
+  //   print(message.payload["response"]);
+  //   rtsub.close();
+  // });
 
   await Future.delayed(Duration(seconds: 5));
 
@@ -128,6 +128,7 @@ void main() async {
   print(Permission.update(Role.guests()));
   print(Permission.delete(Role.team('teamId', 'owner')));
   print(Permission.delete(Role.team('teamId')));
+  print(Permission.create(Role.member("memberId")));
 
   // ID helper tests
   print(ID.unique());
