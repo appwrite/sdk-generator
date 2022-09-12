@@ -144,6 +144,7 @@ class Tests: XCTestCase {
         try! await general.empty()
 
         // Query helper tests
+        print(Query.equal("released", value: [true]))
         print(Query.equal("title", value: ["Spiderman", "Dr. Strange"]))
         print(Query.notEqual("title", value: "Spiderman"))
         print(Query.lessThan("releasedYear", value: 1990))

@@ -104,6 +104,7 @@ try {
 $general->empty();
 
 // Query helper tests
+echo Query::equal('released', [true]) . "\n";
 echo Query::equal('title', ['Spiderman', 'Dr. Strange']) . "\n";
 echo Query::notEqual('title', 'Spiderman') . "\n";
 echo Query::lessThan('releasedYear', 1990) . "\n";

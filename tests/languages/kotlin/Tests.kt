@@ -121,6 +121,7 @@ class ServiceTest {
             general.empty()
 
             // Query helper tests
+            writeToFile(Query.equal("released", listOf(true)))
             writeToFile(Query.equal("title", listOf("Spiderman", "Dr. Strange")))
             writeToFile(Query.notEqual("title", "Spiderman"))
             writeToFile(Query.lessThan("releasedYear", 1990))

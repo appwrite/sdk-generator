@@ -89,6 +89,7 @@ void main() async {
   await general.empty();
 
   // Query helper tests
+  print(Query.equal('released', [true]));
   print(Query.equal('title', ['Spiderman', 'Dr. Strange']));
   print(Query.notEqual('title', 'Spiderman'));
   print(Query.lessThan('releasedYear', 1990));

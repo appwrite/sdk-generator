@@ -86,6 +86,7 @@ async function start() {
     await general.empty();
 
     // Query helper tests
+    console.log(Query.equal('released', [true]));
     console.log(Query.equal('title', ['Spiderman', 'Dr. Strange']));
     console.log(Query.notEqual('title', 'Spiderman'));
     console.log(Query.lessThan('releasedYear', 1990));
