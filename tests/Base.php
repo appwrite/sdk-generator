@@ -59,6 +59,7 @@ abstract class Base extends TestCase
     ];
 
     const QUERY_HELPER_RESPONSES = [
+        'equal("released", ["true"])',
         'equal("title", ["Spiderman","Dr. Strange"])',
         'notEqual("title", ["Spiderman"])',
         'lessThan("releasedYear", [1990])',

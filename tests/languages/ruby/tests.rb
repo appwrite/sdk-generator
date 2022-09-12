@@ -102,6 +102,7 @@ end
 general.empty()
 
 # Query helper tests
+puts Query.equal('released', [true])
 puts Query.equal('title', ['Spiderman', 'Dr. Strange'])
 puts Query.notEqual('title', 'Spiderman')
 puts Query.lessThan('releasedYear', 1990)
