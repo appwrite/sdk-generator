@@ -137,6 +137,7 @@ class Client {
         method.toUpperCase() === "GET" || contentType.startsWith("multipart/form-data") ? formData : params,
       json: contentType.startsWith("application/json"),
       transformRequest: method.toUpperCase() === "GET" || contentType.startsWith("multipart/form-data") ? undefined : (data) =>  JSONbig.stringify(data),
+      transformResponse: [ (data) =>  data ? JSONbig.parse(data) : data ],
       responseType: responseType,
     };
     try {

@@ -15,6 +15,7 @@ const {
     databasesCreateIntegerAttribute,
     databasesCreateFloatAttribute,
     databasesCreateEmailAttribute,
+    databasesCreateDatetimeAttribute,
     databasesCreateIndex,
     databasesCreateUrlAttribute,
     databasesCreateIpAttribute,
@@ -338,6 +339,15 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
         case 'boolean':
             return databasesCreateBooleanAttribute({
                 databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'datetime':
+            return databasesCreateDatetimeAttribute({
                 databaseId,
                 collectionId,
                 key: attribute.key,
@@ -494,9 +504,8 @@ const deployCollection = async ({ all } = {}) => {
                     databaseId,
                     collectionId: collection['$id'],
                     name: collection.name,
-                    permission: collection.permission,
-                    read: collection['$read'],
-                    write: collection['$write'],
+                    documentSecurity: collection.documentSecurity,
+                    '$permissions': collection['$permissions'],
                     parseOutput: false
                 })
 
