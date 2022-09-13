@@ -119,6 +119,8 @@ async function start() {
   console.log(Permission.delete(Role.team('teamId', 'owner')));
   console.log(Permission.delete(Role.team('teamId')));
   console.log(Permission.create(Role.member("memberId")));
+  console.log(Permission.update(Role.users("verified")));
+  console.log(Permission.update(Role.user("userid", "unverified")));
 
   // ID helper tests
   console.log(ID.unique());

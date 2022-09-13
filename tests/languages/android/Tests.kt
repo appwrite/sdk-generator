@@ -182,6 +182,8 @@ class ServiceTest {
             writeToFile(Permission.delete(Role.team("teamId", "owner")))
             writeToFile(Permission.delete(Role.team("teamId")))
             writeToFile(Permission.create(Role.member("memberId")))
+            writeToFile(Permission.update(Role.users("verified")))
+            writeToFile(Permission.update(Role.user("userid", "unverified")))
 
             // ID helper tests
             writeToFile(ID.unique())
