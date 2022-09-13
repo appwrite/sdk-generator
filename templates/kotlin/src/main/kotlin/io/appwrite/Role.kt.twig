@@ -4,13 +4,13 @@ class Role {
     companion object {
         fun any(): String = "any"
 
-        fun user(id: String, status: String): String = if(status.isEmpty()) {
+        fun user(id: String, status: String = ""): String = if(status.isEmpty()) {
             "user:$id"
         } else {
             "user:$id/$status"
         }
 
-        fun users(status: String): String = if(status.isEmpty()) {
+        fun users(status: String = ""): String = if(status.isEmpty()) {
             "users"
         } else {
             "users/$status"
