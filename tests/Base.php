@@ -81,6 +81,8 @@ abstract class Base extends TestCase
         'delete("team:teamId/owner")',
         'delete("team:teamId")',
         'create("member:memberId")',
+        'update("users/verified")',
+        'update("user:userid/unverified")',
     ];
 
     const ID_HELPER_RESPONSES = [

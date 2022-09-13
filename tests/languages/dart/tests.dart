@@ -109,7 +109,9 @@ void main() async {
   print(Permission.update(Role.guests()));
   print(Permission.delete(Role.team('teamId', 'owner')));
   print(Permission.delete(Role.team('teamId')));
-  print(Permission.create(Role.member("memberId")));
+  print(Permission.create(Role.member('memberId')));
+  print(Permission.update(Role.users('verified')));
+  print(Permission.update(Role.user(ID.custom('userid'), 'unverified')));
 
   // ID helper tests
   print(ID.unique());
