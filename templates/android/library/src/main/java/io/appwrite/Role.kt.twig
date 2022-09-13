@@ -16,7 +16,7 @@ class Role {
             "users/$status"
         }
 
-        fun guests(): String= "guests"
+        fun guests(): String = "guests"
 
         fun team(id: String, role: String = ""): String = if(role.isEmpty()) {
             "team:$id"
