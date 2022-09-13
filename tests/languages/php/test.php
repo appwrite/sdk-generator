@@ -126,7 +126,7 @@ echo Permission::delete(Role::team('teamId', 'owner')) . "\n";
 echo Permission::delete(Role::team('teamId')) . "\n";
 echo Permission::create(Role::member('memberId')) . "\n";
 echo Permission::update(Role::users('verified')) . "\n";
-echo Permission::update(Role::user('userid', 'unverified')) . "\n";
+echo Permission::update(Role::user(ID::custom('userid'), 'unverified')) . "\n";
 
 // ID helper tests
 echo ID::unique() . "\n";

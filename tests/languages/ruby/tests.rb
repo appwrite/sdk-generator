@@ -124,7 +124,7 @@ puts Permission.delete(Role.team('teamId', 'owner'))
 puts Permission.delete(Role.team('teamId'))
 puts Permission.create(Role.member('memberId'))
 puts Permission.update(Role.users('verified'))
-puts Permission.update(Role.user('userid', 'unverified'))
+puts Permission.update(Role.user(ID.custom('userid'), 'unverified'))
 
 # ID helper tests
 puts ID.unique()
