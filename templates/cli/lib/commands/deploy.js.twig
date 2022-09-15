@@ -505,7 +505,7 @@ const deployCollection = async ({ all } = {}) => {
                     collectionId: collection['$id'],
                     name: collection.name,
                     documentSecurity: collection.documentSecurity,
-                    '$permissions': collection['$permissions'],
+                    permissions: collection['$permissions'],
                     parseOutput: false
                 })
 
