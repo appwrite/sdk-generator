@@ -115,10 +115,19 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 {% endfor %}
   }
 
-  export class AppwriteException extends Error {
-    public code: number | null;
-    public response: string | null;
-    constructor(message: string, code?: number, response?: string);
+  export type {{spec.title | caseUcfirst}}ExceptionResponse = {
+        message: string;
+        code: number;
+        type: string;
+        version: string;
+  };
+
+  export class {{spec.title | caseUcfirst}}Exception extends Error {
+    public code: number;
+    public type: string;
+    public response: {{spec.title | caseUcfirst}}ExceptionResponse;
+
+    constructor(message: string, code?: number, type?: string, response?: {{spec.title | caseUcfirst}}ExceptionResponse);
   }
 
   export class Service {
