@@ -167,7 +167,7 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
     
     static limit(value: number): string;
     
-    static offset = (value: number): string;
+    static offset(value: number): string;
 
     private static addQuery(attribute: string, method: string, value: QueryTypes): string;
 
@@ -175,26 +175,26 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
   }
 
   export class ID {
-    static unique = (): string;
-    static custom = (id: string): string;
+    static unique(): string;
+    static custom(id: string): string;
   }
 
   export class Permission {
-    static read = (role: string): string;
-    static write = (role: string): string;
-    static create = (role: string): string;
-    static update = (role: string): string;
-    static delete = (role: string): string;
+    static read(role: string): string;
+    static write(role: string): string;
+    static create(role: string): string;
+    static update(role: string): string;
+    static delete(role: string): string;
   }
 
   export class Role {
-    static any = (): string;
-    static user = (id: string, status?: string): string;
-    static users = (status?: string): string;
-    static guests = (): string;
-    static team = (id: string, role?: string): string;
-    static member = (id: string): string;
-    static status = (status: string): string;
+    static any(): string;
+    static user(id: string, status?: string): string;
+    static users(status?: string): string;
+    static guests(): string;
+    static team(id: string, role?: string): string;
+    static member(id: string): string;
+    static status(status: string): string;
   }
 
 {% for service in spec.services %}
