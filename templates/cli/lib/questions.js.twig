@@ -113,7 +113,7 @@ const questionsInitProject = [
     type: "input",
     name: "id",
     message: "What ID would you like to have for your project?",
-    default: "myAwesomeProject",
+    default: "unique()",
     when(answers) {
       return answers.start == "new";
     },
@@ -251,7 +251,12 @@ const questionsDeployFunctions = [
       })
       return choices;
     }
-  }
+  },
+  {
+    type: "input",
+    name: "override",
+    message: 'Are you sure you want to override this function variables? This can lead to loss of secrets! Type "YES" to confirm.'
+  },
 ]
 
 const questionsDeployCollections = [
