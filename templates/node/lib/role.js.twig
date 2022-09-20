@@ -26,9 +26,6 @@ class Role {
     static member = (id) => {
         return 'member:' + id
     }
-    static status = (status) => {
-        return 'status:' + status
-    }
 }
 
 module.exports = Role;

@@ -31,8 +31,4 @@ public class Role {
     public static func member(_ id: String) -> String {
         return "member:\(id)"
     }
-
-    public static func status(_ status: String) -> String {
-        return "status:\(status)"
-    }
 }

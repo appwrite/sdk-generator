@@ -28,7 +28,3 @@ class Role:
     @staticmethod
     def member(id):
         return f'member:{id}'
-
-    @staticmethod
-    def status(status):
-        return f'status:{status}'
