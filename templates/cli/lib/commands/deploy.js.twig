@@ -39,7 +39,7 @@ const awaitPools = {
         const { attributes: remoteAttributes } = await databasesListAttributes({
             databaseId,
             collectionId,
-            limit: 100,
+            queries: [ 'limit(100)' ],
             parseOutput: false
         });
 
@@ -59,7 +59,7 @@ const awaitPools = {
         const { indexes: remoteIndexes } = await databasesListIndexes({
             databaseId,
             collectionId,
-            limit: 100,
+            queries: [ 'limit(100)' ],
             parseOutput: false
         });
 
@@ -79,7 +79,7 @@ const awaitPools = {
         const { attributes: remoteAttributes } = await databasesListAttributes({
             databaseId,
             collectionId,
-            limit: 100,
+            queries: [ 'limit(100)' ],
             parseOutput: false
         });
 
@@ -111,7 +111,7 @@ const awaitPools = {
         const { indexes: remoteIndexes } = await databasesListIndexes({
             databaseId,
             collectionId,
-            limit: 100,
+            queries: [ 'limit(100)' ],
             parseOutput: false
         });
 
@@ -194,7 +194,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 // TODO: Pagination?
                 const { variables: remoteVariables } = await functionsListVariables({
                     functionId: func['$id'],
-                    limit: 100,
+                    queries: [ 'limit(100)' ],
                     parseOutput: false
                 });
 
@@ -468,7 +468,7 @@ const deployCollection = async ({ all, yes } = {}) => {
             const { indexes: remoteIndexes } = await databasesListIndexes({
                 databaseId,
                 collectionId: collection['$id'],
-                limit: 100,
+                queries: [ 'limit(100)' ],
                 parseOutput: false
             });
 
@@ -490,7 +490,7 @@ const deployCollection = async ({ all, yes } = {}) => {
             const { attributes: remoteAttributes } = await databasesListAttributes({
                 databaseId,
                 collectionId: collection['$id'],
-                limit: 100,
+                queries: [ 'limit(100)' ],
                 parseOutput: false
             });
             
