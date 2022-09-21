@@ -134,7 +134,7 @@ class Client {
                         throw new {{spec.title | caseUcfirst}}Exception(error.response.data.message, error.response.status, error.response.data.type, error.response.data);
                     }
                 } else {
-                    throw new {{spec.title | caseUcfirst}}Exception(error.response.statusText, error.response.status, error.response.data);
+                    throw new {{spec.title | caseUcfirst}}Exception(error.response.statusText, error.response.status, '', error.response.data);
                 }
             } else {
                 throw new {{spec.title | caseUcfirst}}Exception(error.message);
