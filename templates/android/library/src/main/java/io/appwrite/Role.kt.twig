@@ -25,7 +25,5 @@ class Role {
         }
 
         fun member(id: String): String = "member:$id"
-
-        fun status(status: String): String = "status:$status"
     }
 }

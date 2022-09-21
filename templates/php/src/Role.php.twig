@@ -37,8 +37,4 @@ class Role
     {
         return "member:$id";
     }
-    public static function status(string $status): string
-    {
-        return "status:$status";
-    }
 }
