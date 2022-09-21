@@ -218,7 +218,6 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 }
 
                 // Deploy local variables
-
                 await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
                     await functionsCreateVariable({
                         functionId: func['$id'],
