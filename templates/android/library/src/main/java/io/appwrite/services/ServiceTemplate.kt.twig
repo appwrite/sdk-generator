@@ -165,4 +165,49 @@ class {{ service.name | caseUcfirst }} : Service {
         {%~ endif %}
         {%~ endif %}
     }
+
+    {%~ if method.responseModel | hasGenericType(spec) %}
+    /**
+     * {{ method.title }}
+     *
+     * {{ method.description | raw | replace({"\n": "", "\r": ""}) }}
+     *
+    {%~ for parameter in method.parameters.all %}
+     * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
+    {%~ endfor %}
+    {%~ if method.type != "webAuth" %}
+     * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
+    {%~ endif %}
+     */
+    {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
+    @JvmOverloads
+    {%~ endif %}
+    @Throws({{ spec.title | caseUcfirst }}Exception::class)
+    suspend fun {{ method.name | caseCamel }}(
+        {%~ if method.type == "webAuth" %}
+        activity: ComponentActivity,
+        {%~ endif %}
+        {%~ for parameter in method.parameters.all %}
+        {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required %}? = null{% endif %},
+        {%~ endfor %}
+        {%~ if 'multipart/form-data' in method.consumes %}
+        onProgress: ((UploadProgress) -> Unit)? = null
+        {%~ endif %}
+    ) = {{ method.name | caseCamel }}(
+        {%~ if method.type == "webAuth" %}
+        activity,
+        {%~ endif %}
+        {%~ for parameter in method.parameters.all %}
+        {{ parameter.name | caseCamel }},
+        {%~ endfor %}
+        {%~ if method.responseModel | hasGenericType(spec) %}
+        nestedType = (typeOf<Map<String, Any>>().classifier!! as KClass<Map<String, Any>>).java,
+        {%~ endif %}
+        {%~ if 'multipart/form-data' in method.consumes %}
+        onProgress = onProgress
+        {%~ endif %}
+    )
+    {%~ endif %}
+
+    {%~ endfor %}
 }
