@@ -301,22 +301,6 @@ class Web extends JS
         return "";
     }
 
-    public function toUpperCase(string $value): string
-    {
-        return ucfirst((string)$this->helperCamelCase($value));
-    }
-
-    protected function helperCamelCase($str)
-    {
-        $str = preg_replace('/[^a-z0-9' . implode("", []) . ']+/i', ' ', $str);
-        $str = trim($str);
-        $str = ucwords($str);
-        $str = str_replace(" ", "", $str);
-        $str = lcfirst($str);
-
-        return $str;
-    }
-
     public function getSubSchema(array $property, array $spec): string
     {
         if (array_key_exists('sub_schema', $property)) {
