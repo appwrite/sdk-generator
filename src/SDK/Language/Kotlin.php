@@ -444,10 +444,37 @@ class Kotlin extends Language {
     public function getFilters(): array
     {
         return [
+            new TwigFilter('returnType', function (array $method, array $spec, string $namespace, string $generic = 'T') {
+                return $this->getReturnType($method, $spec, $namespace, $generic);
+            }),
             new TwigFilter('hasGenericType', function (string $model, array $spec) {
                 return $this->hasGenericType($model, $spec);
             }),
         ];
+    }
+
+    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
+    {
+        if ($method['type'] === 'webAuth') {
+            return 'Bool';
+        }
+        if ($method['type'] === 'location') {
+            return 'ByteArray';
+        }
+
+        if (!\array_key_exists('responseModel', $method)
+            || empty($method['responseModel'])
+            || $method['responseModel'] === 'any') {
+            return 'Any';
+        }
+
+        $ret = $this->toUpperCase($method['responseModel']);
+
+        if ($this->hasGenericType($method['responseModel'], $spec)) {
+            $ret .= '<' . $generic . '>';
+        }
+
+        return $namespace . '.models.' . $ret;
     }
 
     protected function hasGenericType(?string $model, array $spec): string
