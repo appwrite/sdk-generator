@@ -447,6 +447,12 @@ class Kotlin extends Language {
             new TwigFilter('returnType', function (array $method, array $spec, string $namespace, string $generic = 'T') {
                 return $this->getReturnType($method, $spec, $namespace, $generic);
             }),
+            new TwigFilter('modelType', function (array $property, array $spec, string $generic = 'T') {
+                return $this->getModelType($property, $spec, $generic);
+            }),
+            new TwigFilter('propertyType', function (array $property, array $spec, string $generic = 'T') {
+                return $this->getPropertyType($property, $spec, $generic);
+            }),
             new TwigFilter('hasGenericType', function (string $model, array $spec) {
                 return $this->hasGenericType($model, $spec);
             }),
@@ -475,6 +481,37 @@ class Kotlin extends Language {
         }
 
         return $namespace . '.models.' . $ret;
+    }
+
+    protected function getModelType(array $definition, array $spec, string $generic = 'T'): string
+    {
+        if ($this->hasGenericType($definition['name'], $spec)) {
+            return $this->toUpperCase($definition['name']) . '<' . $generic . '>';
+        }
+        return $this->toUpperCase($definition['name']);
+    }
+
+    protected function getPropertyType(array $property, array $spec, string $generic = 'T'): string
+    {
+        if (\array_key_exists('sub_schema', $property)) {
+            $type = $this->toUpperCase($property['sub_schema']);
+
+            if ($this->hasGenericType($property['sub_schema'], $spec)) {
+                $type .= '<' . $generic . '>';
+            }
+
+            if ($property['type'] === 'array') {
+                $type = 'List<' . $type . '>';
+            }
+        } else {
+            $type = $this->getTypeName($property);
+        }
+
+        if (!$property['required']) {
+            $type .= '?';
+        }
+
+        return $type;
     }
 
     protected function hasGenericType(?string $model, array $spec): string
