@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 class Kotlin extends Language {
 
@@ -438,6 +439,38 @@ class Kotlin extends Language {
                 'minify'        => false,
             ],
         ];
+    }
+
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('hasGenericType', function (string $model, array $spec) {
+                return $this->hasGenericType($model, $spec);
+            }),
+        ];
+    }
+
+    protected function hasGenericType(?string $model, array $spec): string
+    {
+        if (empty($model)) {
+            return false;
+        }
+
+        $model = $spec['definitions'][$model];
+
+        if ($model['additionalProperties']) {
+            return true;
+        }
+
+        foreach ($model['properties'] as $property) {
+            if (!\array_key_exists('sub_schema', $property) || !$property['sub_schema']) {
+                continue;
+            }
+
+            return $this->hasGenericType($property['sub_schema'], $spec);
+        }
+
+        return false;
     }
 }
 
