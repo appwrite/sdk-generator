@@ -516,7 +516,7 @@ class Kotlin extends Language {
 
     protected function hasGenericType(?string $model, array $spec): string
     {
-        if (empty($model)) {
+        if (empty($model) || $model === 'any') {
             return false;
         }
 
