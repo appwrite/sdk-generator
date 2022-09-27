@@ -2,9 +2,9 @@ const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
-const { questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections } = require("../questions");
+const { questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
-const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment } = require('./functions');
+const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
     databasesCreate,
@@ -15,6 +15,7 @@ const {
     databasesCreateIntegerAttribute,
     databasesCreateFloatAttribute,
     databasesCreateEmailAttribute,
+    databasesCreateDatetimeAttribute,
     databasesCreateIndex,
     databasesCreateUrlAttribute,
     databasesCreateIpAttribute,
@@ -38,7 +39,7 @@ const awaitPools = {
         const { attributes: remoteAttributes } = await databasesListAttributes({
             databaseId,
             collectionId,
-            limit: 100,
+            queries: [ 'limit(100)' ],
             parseOutput: false
         });
 
@@ -58,7 +59,7 @@ const awaitPools = {
         const { indexes: remoteIndexes } = await databasesListIndexes({
             databaseId,
             collectionId,
-            limit: 100,
+            queries: [ 'limit(100)' ],
             parseOutput: false
         });
 
@@ -78,7 +79,7 @@ const awaitPools = {
         const { attributes: remoteAttributes } = await databasesListAttributes({
             databaseId,
             collectionId,
-            limit: 100,
+            queries: [ 'limit(100)' ],
             parseOutput: false
         });
 
@@ -110,7 +111,7 @@ const awaitPools = {
         const { indexes: remoteIndexes } = await databasesListIndexes({
             databaseId,
             collectionId,
-            limit: 100,
+            queries: [ 'limit(100)' ],
             parseOutput: false
         });
 
@@ -141,7 +142,7 @@ const deploy = new Command("deploy")
         command.help()
     }));
 
-const deployFunction = async ({ functionId, all } = {}) => {
+const deployFunction = async ({ functionId, all, yes } = {}) => {
     let response = {};
 
     const functionIds = [];
@@ -159,7 +160,7 @@ const deployFunction = async ({ functionId, all } = {}) => {
     }
 
     if(functionIds.length <= 0) {
-        const answers = await inquirer.prompt(questionsDeployFunctions);
+        const answers = await inquirer.prompt(questionsDeployFunctions[0]);
         functionIds.push(...answers.functions);
     }
 
@@ -185,6 +186,46 @@ const deployFunction = async ({ functionId, all } = {}) => {
 
             if(response.runtime !== func.runtime) {
                 throw new Error(`Runtime missmatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.json`);
+            }
+
+            if(func.variables) {
+                // Delete existing variables
+
+                // TODO: Pagination?
+                const { variables: remoteVariables } = await functionsListVariables({
+                    functionId: func['$id'],
+                    queries: [ 'limit(100)' ],
+                    parseOutput: false
+                });
+
+                if(remoteVariables.length > 0) {
+                    if(!yes) {
+                        const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
+
+                        if (variableAnswers.override !== "YES") {
+                            log(`Received "${variableAnswers.override}". Skipping ${func.name} ( ${func['$id']} )`);
+                            continue;
+                        }
+                    }
+
+                    await Promise.all(remoteVariables.map(async remoteVariable => {
+                        await functionsDeleteVariable({
+                            functionId: func['$id'],
+                            variableId: remoteVariable['$id'],
+                            parseOutput: false
+                        });
+                    }));
+                }
+
+                // Deploy local variables
+                await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
+                    await functionsCreateVariable({
+                        functionId: func['$id'],
+                        key: localVariableKey,
+                        value: func.variables[localVariableKey],
+                        parseOutput: false
+                    });
+                }));
             }
 
             response = await functionsUpdate({
@@ -338,6 +379,15 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
         case 'boolean':
             return databasesCreateBooleanAttribute({
                 databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'datetime':
+            return databasesCreateDatetimeAttribute({
                 databaseId,
                 collectionId,
                 key: attribute.key,
@@ -349,7 +399,7 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
     }
 }
 
-const deployCollection = async ({ all } = {}) => {
+const deployCollection = async ({ all, yes } = {}) => {
     let response = {};
 
     let collectionIds = [];
@@ -403,10 +453,12 @@ const deployCollection = async ({ all } = {}) => {
             })
             log(`Collection ${collection.name} ( ${collection['$id']} ) already exists.`);
 
-            answers = await inquirer.prompt(questionsDeployCollections[1])
-            if (answers.override !== "YES") {
-                log(`Received "${answers.override}". Skipping ${collection.name} ( ${collection['$id']} )`);
-                continue;
+            if(!yes) {
+                answers = await inquirer.prompt(questionsDeployCollections[1])
+                if (answers.override !== "YES") {
+                    log(`Received "${answers.override}". Skipping ${collection.name} ( ${collection['$id']} )`);
+                    continue;
+                }
             }
 
             log(`Updating attributes ... `);
@@ -415,7 +467,7 @@ const deployCollection = async ({ all } = {}) => {
             const { indexes: remoteIndexes } = await databasesListIndexes({
                 databaseId,
                 collectionId: collection['$id'],
-                limit: 100,
+                queries: [ 'limit(100)' ],
                 parseOutput: false
             });
 
@@ -437,7 +489,7 @@ const deployCollection = async ({ all } = {}) => {
             const { attributes: remoteAttributes } = await databasesListAttributes({
                 databaseId,
                 collectionId: collection['$id'],
-                limit: 100,
+                queries: [ 'limit(100)' ],
                 parseOutput: false
             });
             
@@ -494,9 +546,8 @@ const deployCollection = async ({ all } = {}) => {
                     databaseId,
                     collectionId: collection['$id'],
                     name: collection.name,
-                    permission: collection.permission,
-                    read: collection['$read'],
-                    write: collection['$write'],
+                    documentSecurity: collection.documentSecurity,
+                    permissions: collection['$permissions'],
                     parseOutput: false
                 })
 
@@ -547,12 +598,14 @@ deploy
     .description("Deploy functions in the current directory.")
     .option(`--functionId <functionId>`, `Function ID`)
     .option(`--all`, `Flag to deploy all functions`)
+    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(deployFunction));
 
 deploy
     .command("collection")
     .description("Deploy collections in the current project.")
     .option(`--all`, `Flag to deploy all functions`)
+    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(deployCollection));
 
 module.exports = {

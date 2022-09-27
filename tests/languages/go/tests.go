@@ -16,7 +16,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	client.SetEndpoint("https://appwrite.io/v1")
 	client.AddHeader("Origin", "http://localhost")
 	fmt.Print("\n\nTest Started\n")
 	testFooService(client, stringInArray)
@@ -120,6 +119,12 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 	}
 
 	general.Empty()
+
+	response, err = general.Headers()
+	if err != nil {
+		fmt.Printf("general.Headers => error %v", err)
+	}
+	fmt.Printf("%s\n", response.Result)
 }
 
 func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {

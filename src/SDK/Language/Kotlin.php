@@ -101,9 +101,9 @@ class Kotlin extends Language {
      * @param $type
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'Long';
             case self::TYPE_NUMBER:
@@ -115,12 +115,15 @@ class Kotlin extends Language {
             case self::TYPE_BOOLEAN:
                 return 'Boolean';
             case self::TYPE_ARRAY:
-            	return 'List<Any>';
-			case self::TYPE_OBJECT:
-				return 'Any';
+                if (!empty($parameter['array']['type'])) {
+                    return 'List<' . $this->getTypeName($parameter['array']) . '>';
+                }
+                return 'List<Any>';
+            case self::TYPE_OBJECT:
+                return 'Any';
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     /**
@@ -229,8 +232,16 @@ class Kotlin extends Language {
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    if (\str_starts_with($example, '[')) {
+                        $example = \substr($example, 1);
+                    }
+                    if (\str_ends_with($example, ']')) {
+                        $example = \substr($example, 0, -1);
+                    }
+                    $output .= 'listOf(' . $example . ')';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -356,6 +367,24 @@ class Kotlin extends Language {
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Client.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/Client.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Permission.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Permission.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Role.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Role.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/ID.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/ID.kt.twig',
                 'minify'        => false,
             ],
             [

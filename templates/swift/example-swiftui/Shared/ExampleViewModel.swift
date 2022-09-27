@@ -31,79 +31,76 @@ extension ExampleView {
         
         func register() async {
             do {
-                let response = try await account.create(
+                let user = try await account.create(
                     userId: userId,
                     email: username,
                     password: password
                 )
-                self.userId = response.id
-                self.response = String(describing: response.toMap())
+                self.userId = user.id
+                self.response = String(describing: user.toMap())
             } catch {
-                self.response = String(describing: error)
+                self.response = error.localizedDescription
             }
         }
         
         func login() async {
             do {
-                let response = try await account.createSession(
+                let session = try await account.createEmailSession(
                     email: username,
                     password: password
                 )
-                self.response = String(describing: response.toMap())
+                self.response = String(describing: session.toMap())
             } catch {
-                self.response = String(describing: error)
+                self.response = error.localizedDescription
             }
         }
         
         func loginWithFacebook() async {
             do {
-                let response = try await account.createOAuth2Session(
-                    provider: "facebook",
-                    success: "\(host)/auth/oauth2/success",
-                    failure: "\(host)/auth/oauth2/failure"
-                )
-                self.response = String(describing: response)
+                _ = try await account.createOAuth2Session(provider: "facebook")
+
+                self.response = "Success!"
             } catch {
-                self.response = String(describing: error)
+                self.response = error.localizedDescription
             }
         }
         
         func download() async {
             do {
-                let response = try await storage.getFileDownload(
+                let data = try await storage.getFileDownload(
                     bucketId: bucketId,
                     fileId: fileId
                 )
-                self.downloadedImage = Image(data: Data(buffer: response))
+                self.downloadedImage = Image(data: Data(buffer: data))
             } catch {
-                self.response = String(describing: error)
+                self.response = error.localizedDescription
             }
         }
         
         func upload(image: OSImage) async {
-            let imageBuffer = ByteBufferAllocator()
-                .buffer(data: image.data)
-                
             #if os(macOS)
             let fileName = "file.tiff"
+            let mime = "image/tiff"
             #else
             let fileName = "file.png"
+            let mime = "image/png"
             #endif
             
-            let file = File(
-                name: fileName,
-                buffer: imageBuffer
+            let file = InputFile.fromData(
+                image.data,
+                filename: fileName,
+                mimeType: mime
             )
             
             do {
-                let response = try await storage.createFile(
+                let file = try await storage.createFile(
                     bucketId: bucketId,
                     fileId: fileId,
                     file: file
                 )
-                self.response = String(describing: response.toMap())
+                self.response = String(describing: file.toMap())
             } catch {
-                self.response = String(describing: error)
+                self.response = error.localizedDescription
             }
         }
         

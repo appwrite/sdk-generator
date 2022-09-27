@@ -7,6 +7,10 @@ require_relative '{{ spec.title | caseSnake }}/client'
 require_relative '{{ spec.title | caseSnake }}/service'
 require_relative '{{ spec.title | caseSnake }}/exception'
 require_relative '{{ spec.title | caseSnake }}/input_file'
+require_relative '{{ spec.title | caseSnake }}/query'
+require_relative '{{ spec.title | caseSnake }}/permission'
+require_relative '{{ spec.title | caseSnake }}/role'
+require_relative '{{ spec.title | caseSnake }}/id'
 
 {% for defintion in spec.definitions %}
 require_relative '{{ spec.title | caseSnake }}/models/{{ defintion.name | caseSnake }}'
