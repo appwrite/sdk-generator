@@ -26,7 +26,7 @@ class Android5Java8Test extends Base
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
-        ...Base::DOWNLOAD_RESPONSES,
+        ...Base::EXTENDED_GENERAL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         ...Base::COOKIE_RESPONSES,

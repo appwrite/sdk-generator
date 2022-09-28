@@ -26,7 +26,7 @@ class KotlinJava11Test extends Base
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
-        ...Base::DOWNLOAD_RESPONSES,
+        ...Base::EXTENDED_GENERAL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
