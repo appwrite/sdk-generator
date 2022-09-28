@@ -49,7 +49,7 @@ class SDK
         'description' => '',
         'shortDescription' => '',
         'version' => '',
-        'platform'=>'',
+        'platform' => '',
         'license' => '',
         'licenseContent' => '',
         'gitURL' => '',
