@@ -6,7 +6,7 @@ import io.appwrite.extensions.jsonCast
 /**
  * {{ definition.description }}
  */
-data class {{ definition | modelType(spec) | raw }}(
+{% if definition.properties | length != 0 or definition.additionalProperties %}data {% endif %}class {{ definition | modelType(spec) | raw }}(
     {%~ for property in definition.properties %}
     /**
      * {{ property.description }}

@@ -3,20 +3,22 @@ package {{ sdk.namespace | caseDot }}.services
 import android.net.Uri
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.models.*
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
+import {{ sdk.namespace | caseDot }}.extensions.classOf
 {% if service.features.webAuth %}
 import {{ sdk.namespace | caseDot }}.WebAuthComponent
 import androidx.activity.ComponentActivity
 {% endif %}
-import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import okhttp3.Cookie
 {% if (service.features.webAuth or service.features.location) %}
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 {% endif %}
 import java.io.File
-import kotlin.reflect.KClass
-import kotlin.reflect.typeOf
 
+/**
+ * {{ service.description | raw | replace({"\n": "", "\r": ""}) }}
+**/
 class {{ service.name | caseUcfirst }} : Service {
 
     public constructor (client: Client) : super(client) { }
