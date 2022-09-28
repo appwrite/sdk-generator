@@ -62,5 +62,7 @@ class Query:
     def parseValues(value):
         if type(value) == str:
             return f'"{value}"'
+        elif type(value) == bool:
+            return str(value).lower()
         else:
             return str(value)

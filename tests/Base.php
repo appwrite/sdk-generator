@@ -37,8 +37,8 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
-    protected const EXTENDED_GENERAL_RESPONSES = [
-        'Download test passed.',
+    const EXTENDED_GENERAL_RESPONSES = [
+        'GET:/v1/mock/tests/general/download:passed',
     ];
 
     protected const COOKIE_RESPONSES = [
@@ -52,7 +52,7 @@ abstract class Base extends TestCase
 
     protected const EXCEPTION_RESPONSES = [
         'Mock 400 error',
-        'Server Error',
+        'Mock 500 error',
         'This is a text error',
     ];
 
@@ -61,6 +61,7 @@ abstract class Base extends TestCase
     ];
 
     protected const QUERY_HELPER_RESPONSES = [
+        'equal("released", [true])',
         'equal("title", ["Spiderman","Dr. Strange"])',
         'notEqual("title", ["Spiderman"])',
         'lessThan("releasedYear", [1990])',
@@ -80,7 +81,10 @@ abstract class Base extends TestCase
         'create("users")',
         'update("guests")',
         'delete("team:teamId/owner")',
-        'delete("team:teamId")'
+        'delete("team:teamId")',
+        'create("member:memberId")',
+        'update("users/verified")',
+        'update("user:userid/unverified")',
     ];
 
     protected const ID_HELPER_RESPONSES = [
@@ -96,6 +100,8 @@ abstract class Base extends TestCase
 
     public function setUp(): void
     {
+        $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
+        array_push($this->expectedOutput, $headers);
     }
 
     public function tearDown(): void
@@ -119,11 +125,13 @@ abstract class Base extends TestCase
         $sdk = new SDK($this->getLanguage(), new Swagger2($spec));
 
         $sdk
+            ->setName($this->sdkName)
+            ->setVersion($this->version)
+            ->setPlatform($this->sdkPlatform)
             ->setDescription('Repo description goes here')
             ->setShortDescription('Repo short description goes here')
             ->setLogo('https://appwrite.io/v1/images/console.png')
             ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
-            ->setVersion('0.0.1')
             ->setExamples('**EXAMPLES** <HTML>')
             ->setNamespace("io appwrite")
             ->setGitUserName('repoowner')

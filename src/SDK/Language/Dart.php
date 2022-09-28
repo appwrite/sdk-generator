@@ -334,12 +334,12 @@ class Dart extends Language
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/role.dart',
-                'template'      => 'flutter/lib/role.dart.twig',
+                'template'      => 'dart/lib/role.dart.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/id.dart',
-                'template'      => 'flutter/lib/id.dart.twig',
+                'template'      => 'dart/lib/id.dart.twig',
             ],
             [
                 'scope'         => 'default',
@@ -372,17 +372,20 @@ class Dart extends Language
                 'template'      => 'dart/lib/src/service.dart.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/lib/src/enums.dart',
-                'template'      => 'dart/lib/src/enums.dart.twig',
-                'minify'        => false,
-            ],
+				'scope'         => 'default',
+				'destination'   => '/lib/src/enums.dart',
+				'template'      => 'dart/lib/src/enums.dart.twig',
+			],
             [
-                'scope'         => 'default',
-                'destination'   => '/lib/models.dart',
-                'template'      => 'dart/lib/models.dart.twig',
-                'minify'        => false,
-            ],
+				'scope'         => 'default',
+				'destination'   => '/lib/src/models/model.dart',
+				'template'      => 'dart/lib/src/models/model_base.dart.twig',
+			],
+            [
+				'scope'         => 'default',
+				'destination'   => '/lib/models.dart',
+				'template'      => 'dart/lib/models.dart.twig',
+			],
             [
                 'scope'         => 'service',
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',

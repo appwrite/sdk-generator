@@ -170,7 +170,7 @@ const initCollection = async ({ all, databaseId } = {}) => {
     // TODO: Pagination?
     let response = await databasesListCollections({
       databaseId,
-      limit: 100,
+      queries: [ 'limit(100)' ],
       parseOutput: false
     })
 

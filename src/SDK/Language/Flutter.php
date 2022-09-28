@@ -27,6 +27,84 @@ class Flutter extends Dart
         return [
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/src/response.dart',
+                'template'      => 'dart/lib/src/response.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/service.dart',
+                'template'      => 'dart/lib/src/service.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/models/model.dart',
+                'template'      => 'dart/lib/src/models/model_base.dart.twig',
+                'minify'        => false,
+            ],
+            [
+				'scope'         => 'default',
+				'destination'   => '/lib/src/enums.dart',
+				'template'      => 'dart/lib/src/enums.dart.twig',
+				'minify'        => false,
+			],
+            [
+				'scope'         => 'default',
+				'destination'   => '/lib/src/exception.dart',
+				'template'      => 'dart/lib/src/exception.dart.twig',
+				'minify'        => false,
+			],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/upload_progress.dart',
+                'template'      => 'dart/lib/src/upload_progress.dart.twig',
+                'minify'        => false,
+            ],
+            [
+				'scope'         => 'default',
+				'destination'   => '/lib/models.dart',
+				'template'      => 'dart/lib/models.dart.twig',
+				'minify'        => false,
+			],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/permission.dart',
+                'template'      => 'dart/lib/permission.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/role.dart',
+                'template'      => 'dart/lib/role.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/id.dart',
+                'template'      => 'dart/lib/id.dart.twig',
+                'minify'        => false,
+            ],
+            [
+				'scope'         => 'default',
+				'destination'   => '/lib/query.dart',
+				'template'      => 'dart/lib/query.dart.twig',
+				'minify'        => false,
+			],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/lib/src/models/{{definition.name | caseSnake }}.dart',
+                'template'      => 'dart/lib/src/models/model.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/src/input_file.dart',
+                'template'      => 'dart/lib/src/input_file.dart.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'flutter/README.md.twig',
             ],
@@ -142,11 +220,6 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/src/response.dart',
-                'template'      => 'flutter/lib/src/response.dart.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/lib/{{ language.params.packageName }}.dart',
                 'template'      => 'flutter/lib/package.dart.twig',
             ],
@@ -176,69 +249,9 @@ class Flutter extends Dart
                 'template'      => 'flutter/pubspec.yaml.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/lib/src/service.dart',
-                'template'      => 'flutter/lib/src/service.dart.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/lib/src/models/model.dart',
-                'template'      => 'flutter/lib/src/models/model_base.dart.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/lib/src/enums.dart',
-                'template'      => 'flutter/lib/src/enums.dart.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/lib/src/exception.dart',
-                'template'      => 'flutter/lib/src/exception.dart.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/lib/src/upload_progress.dart',
-                'template'      => 'dart/lib/src/upload_progress.dart.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/lib/models.dart',
-                'template'      => 'flutter/lib/models.dart.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/lib/models.dart',
-                'template'      => 'flutter/lib/models.dart.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/lib/permission.dart',
-                'template'      => 'flutter/lib/permission.dart.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/lib/role.dart',
-                'template'      => 'flutter/lib/role.dart.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/lib/id.dart',
-                'template'      => 'flutter/lib/id.dart.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/lib/query.dart',
-                'template'      => 'flutter/lib/query.dart.twig',
-            ],
-            [
                 'scope'         => 'service',
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
                 'template'      => 'flutter/lib/services/service.dart.twig',
-            ],
-            [
-                'scope'         => 'definition',
-                'destination'   => '/lib/src/models/{{definition.name | caseSnake }}.dart',
-                'template'      => '/flutter/lib/src/models/model.dart.twig',
             ],
             [
                 'scope'         => 'method',
@@ -249,11 +262,6 @@ class Flutter extends Dart
                 'scope'         => 'default',
                 'destination'   => '.travis.yml',
                 'template'      => 'flutter/.travis.yml.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'lib/src/input_file.dart',
-                'template'      => 'flutter/lib/src/input_file.dart.twig',
             ],
         ];
     }

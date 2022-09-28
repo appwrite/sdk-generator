@@ -2,7 +2,7 @@
 part of {{ language.params.packageName }}.models;
 
 /// {{ definition.description }}
-class {{ definition.name | caseUcfirst | overrideIdentifier }} {
+class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model {
 {% for property in definition.properties %}
     /// {{ property.description }}
     final {% if not property.required %}{{_self.sub_schema(property)}}? {{ property.name | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ property.name | escapeKeyword }}{% endif %};
@@ -11,14 +11,15 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} {
     final Map<String, dynamic> data;
 {% endif %}
 
-    {{ definition.name | caseUcfirst | overrideIdentifier}}({
-{% for property in definition.properties %}{% if property.required %}
-        required {% endif %}this.{{ property.name | escapeKeyword }},
+    {{ definition.name | caseUcfirst | overrideIdentifier}}({% if definition.properties | length or definition.additionalProperties %}{{ '{' }}{% endif %}
+
+{% for property in definition.properties %}
+        {% if property.required %}required {% endif %}this.{{ property.name | escapeKeyword }},
 {% endfor %}
 {% if definition.additionalProperties %}
         required this.data,
 {% endif %}
-    });
+    {% if definition.properties | length or definition.additionalProperties %}{{ '}' }}{% endif %});
 
     factory {{ definition.name | caseUcfirst | overrideIdentifier}}.fromMap(Map<String, dynamic> map) {
         return {{ definition.name | caseUcfirst | overrideIdentifier }}(
@@ -34,7 +35,7 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} {
     Map<String, dynamic> toMap() {
         return {
 {% for property in definition.properties %}
-            "{{ property.name | escapeDollarSign }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword}}.map((p) => p.toMap()){% else %}{{property.name | escapeKeyword}}.toMap(){% endif %}{% else %}{{property.name | escapeKeyword }}{% endif %},
+            "{{ property.name | escapeDollarSign }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword}}.map((p) => p.toMap()).toList(){% else %}{{property.name | escapeKeyword}}.toMap(){% endif %}{% else %}{{property.name | escapeKeyword }}{% endif %},
 {% endfor %}
 {% if definition.additionalProperties %}
             "data": data,

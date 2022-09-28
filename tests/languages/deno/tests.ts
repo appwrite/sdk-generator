@@ -98,6 +98,7 @@ async function start() {
   await general.empty();
   
   // Query helper tests
+  console.log(Query.equal('released', [true]));
   console.log(Query.equal('title', ['Spiderman', 'Dr. Strange']));
   console.log(Query.notEqual('title', 'Spiderman'));
   console.log(Query.lessThan('releasedYear', 1990));
@@ -117,10 +118,17 @@ async function start() {
   console.log(Permission.update(Role.guests()));
   console.log(Permission.delete(Role.team('teamId', 'owner')));
   console.log(Permission.delete(Role.team('teamId')));
+  console.log(Permission.create(Role.member('memberId')));
+  console.log(Permission.update(Role.users('verified')));
+  console.log(Permission.update(Role.user(ID.custom('userid'), 'unverified')));
 
   // ID helper tests
   console.log(ID.unique());
   console.log(ID.custom('custom_id'));
+
+  response = await general.headers()
+  // @ts-ignore
+  console.log(response.result)
 }
 
 start().catch((err) => {

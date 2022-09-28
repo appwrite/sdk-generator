@@ -49,6 +49,7 @@ class SDK
         'description' => '',
         'shortDescription' => '',
         'version' => '',
+        'platform'=>'',
         'license' => '',
         'licenseContent' => '',
         'gitURL' => '',
@@ -201,23 +202,23 @@ class SDK
     }
 
     /**
-     * @param string $text
+     * @param string $namespace
      * @return $this
      */
-    public function setNamespace(string $text): SDK
+    public function setNamespace(string $namespace): SDK
     {
-        $this->setParam('namespace', $text);
+        $this->setParam('namespace', $namespace);
 
         return $this;
     }
 
     /**
-     * @param string $text
+     * @param string $name
      * @return $this
      */
-    public function setName(string $text): SDK
+    public function setName(string $name): SDK
     {
-        $this->setParam('name', $text);
+        $this->setParam('name', $name);
 
         return $this;
     }
@@ -245,23 +246,34 @@ class SDK
     }
 
     /**
-     * @param string $text
+     * @param string $version
      * @return $this
      */
-    public function setVersion(string $text): SDK
+    public function setVersion(string $version): SDK
     {
-        $this->setParam('version', $text);
+        $this->setParam('version', $version);
 
         return $this;
     }
 
     /**
-     * @param string $text
+     * @param string $platform
      * @return $this
      */
-    public function setLicense(string $text): SDK
+    public function setPlatform(string $platform): SDK
     {
-        $this->setParam('license', $text);
+        $this->setParam('platform', $platform);
+
+        return $this;
+    }
+
+    /**
+     * @param string $license
+     * @return $this
+     */
+    public function setLicense(string $license): SDK
+    {
+        $this->setParam('license', $license);
 
         return $this;
     }

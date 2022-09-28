@@ -4,6 +4,11 @@ namespace Tests;
 
 class KotlinJava17Test extends Base
 {
+    protected string $sdkName = 'kotlin';
+    protected string $sdkPlatform = 'server';
+    protected string $sdkLanguage = 'kotlin';
+    protected string $version = '0.0.1';
+
     protected string $language = 'kotlin';
     protected string $class = 'Appwrite\SDK\Language\Kotlin';
     protected array $build = [

@@ -31,12 +31,12 @@ class Tests: XCTestCase {
         let realtime = Realtime(client)
         var realtimeResponse = "Realtime failed!"
 
-        let expectation = XCTestExpectation(description: "realtime server")    
-        
-        realtime.subscribe(channels: ["tests"]) { message in
-            realtimeResponse = message.payload!["response"] as! String
-            expectation.fulfill()
-        }
+//         let expectation = XCTestExpectation(description: "realtime server")
+//
+//         realtime.subscribe(channels: ["tests"]) { message in
+//             realtimeResponse = message.payload!["response"] as! String
+//             expectation.fulfill()
+//         }
         
         var mock: Mock
 
@@ -82,16 +82,16 @@ class Tests: XCTestCase {
             var file = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
             mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
             print(mock.result)
-        } catch let error as AppwriteError {
-            print(error.message)
+        } catch {
+            print(error.localizedDescription)
         }
 
         do {
             var file = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
             mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
             print(mock.result)
-        } catch let error as AppwriteError {
-            print(error.message)
+        } catch {
+            print(error.localizedDescription)
         }
 
         do {
@@ -100,8 +100,8 @@ class Tests: XCTestCase {
             var file = InputFile.fromBuffer(buffer, filename: "file.png", mimeType: "image/png")
             mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
             print(mock.result)
-        } catch let error as AppwriteError {
-            print(error.message)
+        } catch {
+            print(error.localizedDescription)
         }
 
         do {
@@ -110,14 +110,14 @@ class Tests: XCTestCase {
             var file = InputFile.fromBuffer(buffer, filename: "large_file.mp4", mimeType: "video/mp4")
             mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
             print(mock.result)
-        } catch let error as AppwriteError {
-            print(error.message)
+        } catch {
+            print(error.localizedDescription)
         }
 
         do {
             try await general.error400()
-        } catch let error as AppwriteError {
-            print(error.message)
+        } catch {
+            print(error.localizedDescription)
         }
 
         do {
@@ -129,11 +129,11 @@ class Tests: XCTestCase {
         do {
             try await general.error502()
         } catch {
-            print(String(describing: error))
+            print(error.localizedDescription)
         }
 
-        wait(for: [expectation], timeout: 10.0)
-        print(realtimeResponse)
+//         wait(for: [expectation], timeout: 10.0)
+//         print(realtimeResponse)
 
         mock = try await general.setCookie()
         print(mock.result)
@@ -144,28 +144,35 @@ class Tests: XCTestCase {
         try! await general.empty()
 
         // Query helper tests
-        print(Query.equal("title", value: ["Spiderman", "Dr. Strange"]));
-        print(Query.notEqual("title", value: "Spiderman"));
-        print(Query.lessThan("releasedYear", value: 1990));
-        print(Query.greaterThan("releasedYear", value: 1990));
-        print(Query.search("name", value: "john"));
-        print(Query.orderAsc("title"));
-        print(Query.orderDesc("title"));
-        print(Query.cursorAfter("my_movie_id"));
-        print(Query.cursorBefore("my_movie_id"));
-        print(Query.limit(50));
-        print(Query.offset(20));
+        print(Query.equal("released", value: [true]))
+        print(Query.equal("title", value: ["Spiderman", "Dr. Strange"]))
+        print(Query.notEqual("title", value: "Spiderman"))
+        print(Query.lessThan("releasedYear", value: 1990))
+        print(Query.greaterThan("releasedYear", value: 1990))
+        print(Query.search("name", value: "john"))
+        print(Query.orderAsc("title"))
+        print(Query.orderDesc("title"))
+        print(Query.cursorAfter("my_movie_id"))
+        print(Query.cursorBefore("my_movie_id"))
+        print(Query.limit(50))
+        print(Query.offset(20))
 
         // Permission & Role helper tests
-        print(Permission.read(Role.any()));
-        print(Permission.write(Role.user(ID.custom("userid"))));
-        print(Permission.create(Role.users()));
-        print(Permission.update(Role.guests()));
-        print(Permission.delete(Role.team("teamId", "owner")));
-        print(Permission.delete(Role.team("teamId")));
+        print(Permission.read(Role.any()))
+        print(Permission.write(Role.user(ID.custom("userid"))))
+        print(Permission.create(Role.users()))
+        print(Permission.update(Role.guests()))
+        print(Permission.delete(Role.team("teamId", "owner")))
+        print(Permission.delete(Role.team("teamId")))
+        print(Permission.create(Role.member("memberId")))
+        print(Permission.update(Role.users("verified")))
+        print(Permission.update(Role.user(ID.custom("userid"), "unverified")))
 
         // ID helper tests
-        print(ID.unique());
-        print(ID.custom("custom_id"));
+        print(ID.unique())
+        print(ID.custom("custom_id"))
+
+        mock = try await general.headers()
+        print(mock.result)
     }
 }
