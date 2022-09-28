@@ -404,6 +404,12 @@ class Kotlin extends Language {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/TypeExtensions.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/extensions/TypeExtensions.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/json/PreciseNumberAdapter.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/json/PreciseNumberAdapter.kt.twig',
                 'minify'        => false,
