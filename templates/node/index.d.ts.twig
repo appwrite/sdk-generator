@@ -115,6 +115,22 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 {% endfor %}
   }
 
+  interface FunctionRequest {
+    payload: string
+    headers: { [name: string]: string }
+    variables: { [name: string]: string }
+  }
+
+  interface FunctionResponse {
+    send: (text: string, status?: number) => void
+    json: (body: object, status?: number) => void
+  }
+
+  /**
+   * Type for "main" function
+   */
+  export type AppwriteFunction = (req: FunctionRequest, res: FunctionResponse) => void
+
   export class AppwriteException extends Error {
     public code: number | null;
     public response: string | null;
