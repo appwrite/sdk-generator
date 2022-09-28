@@ -4,6 +4,11 @@ namespace Tests;
 
 class FlutterStableTest extends Base
 {
+    protected string $sdkName = 'flutter';
+    protected string $sdkPlatform = 'client';
+    protected string $sdkLanguage = 'flutter';
+    protected string $version = '0.0.1';
+
     protected string $language = 'flutter';
     protected string $class = 'Appwrite\SDK\Language\Flutter';
     protected array $build = [
@@ -20,7 +25,7 @@ class FlutterStableTest extends Base
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
-        ...Base::REALTIME_RESPONSES,
+        //...Base::REALTIME_RESPONSES,
         ...Base::COOKIE_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,

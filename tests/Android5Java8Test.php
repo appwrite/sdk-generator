@@ -4,6 +4,11 @@ namespace Tests;
 
 class Android5Java8Test extends Base
 {
+    protected string $sdkName = 'android';
+    protected string $sdkPlatform = 'client';
+    protected string $sdkLanguage = 'android';
+    protected string $version = '0.0.1';
+
     protected string $language = 'android';
     protected string $class = 'Appwrite\SDK\Language\Android';
     protected array $build = [

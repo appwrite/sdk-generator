@@ -96,6 +96,7 @@ except AppwriteException as e:
 general.empty()
 
 # Query helper tests
+print(Query.equal('released', [True]))
 print(Query.equal('title', ['Spiderman', 'Dr. Strange']))
 print(Query.notEqual('title', 'Spiderman'))
 print(Query.lessThan('releasedYear', 1990))
@@ -115,7 +116,13 @@ print(Permission.create(Role.users()))
 print(Permission.update(Role.guests()))
 print(Permission.delete(Role.team('teamId', 'owner')))
 print(Permission.delete(Role.team('teamId')))
+print(Permission.create(Role.member('memberId')))
+print(Permission.update(Role.users('verified')))
+print(Permission.update(Role.user(ID.custom('userid'), 'unverified')))
 
 # ID helper tests
 print(ID.unique())
 print(ID.custom('custom_id'))
+
+response = general.headers()
+print(response['result'])

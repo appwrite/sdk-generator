@@ -23,7 +23,7 @@ open class RealtimeResponse(
 data class RealtimeResponseEvent<T>(
     val events: Collection<String>,
     val channels: Collection<String>,
-    val timestamp: Long,
+    val timestamp: String,
     var payload: T
 )
 

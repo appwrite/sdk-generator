@@ -99,7 +99,10 @@ class Client {
 {% endfor %}
     };
     headers: Headers = {
-        'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
+        'x-sdk-name': '{{ sdk.name }}',
+        'x-sdk-platform': '{{ sdk.platform }}',
+        'x-sdk-language': '{{ language.name | caseLower }}',
+        'x-sdk-version': '{{ sdk.version }}',
 {% for key,header in spec.global.defaultHeaders %}
         '{{key}}': '{{header}}',
 {% endfor %}

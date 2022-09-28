@@ -167,6 +167,12 @@ class Query
      */
     private static function parseValues($value): string
     {
-        return is_string($value) ? '"' . $value . '"' : $value;
+        if (is_string($value)) {
+            return '"' . $value . '"';
+        }
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+        return $value;
     }
 }

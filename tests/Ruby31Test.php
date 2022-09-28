@@ -4,6 +4,11 @@ namespace Tests;
 
 class Ruby31Test extends Base
 {
+    protected string $sdkName = 'ruby';
+    protected string $sdkPlatform = 'server';
+    protected string $sdkLanguage = 'ruby';
+    protected string $version = '0.0.1';
+    
     protected string $language = 'ruby';
     protected string $class = 'Appwrite\SDK\Language\Ruby';
     protected array $build = [

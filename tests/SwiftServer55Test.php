@@ -4,6 +4,11 @@ namespace Tests;
 
 class SwiftServer55Test extends Base
 {
+    protected string $sdkName = 'swift';
+    protected string $sdkPlatform = 'server';
+    protected string $sdkLanguage = 'swift';
+    protected string $version = '0.0.1';
+
     protected string $language = 'swift-server';
     protected string $class = 'Appwrite\SDK\Language\Swift';
     protected array $build = [
