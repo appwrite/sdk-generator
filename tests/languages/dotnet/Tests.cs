@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 using Appwrite;
 using Appwrite.Models;
+using Appwrite.Services;
 using NUnit.Framework;
 
 namespace AppwriteTests
@@ -21,59 +22,59 @@ namespace AppwriteTests
         public async Task Test1()
         {
             var client = new Client();
-            var foo = new Foo(client, "string");
+            var foo = new Foo(client);
             var bar = new Bar(client);
             var general = new General(client);
 
             Mock mock;
             // Foo Tests
-            mock = await foo.Get(123, new List<object>() { "string in array" });
+            mock = await foo.Get("string", 123, new List<string>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await foo.Post(123, new List<object>() { "string in array" });
+            mock = await foo.Post("string", 123, new List<string>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await foo.Put(123, new List<object>() { "string in array" });
+            mock = await foo.Put("string", 123, new List<string>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await foo.Patch(123, new List<object>() { "string in array" });
+            mock = await foo.Patch("string", 123, new List<string>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await foo.Delete(123, new List<object>() { "string in array" });
+            mock = await foo.Delete("string", 123, new List<string>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
             // Bar Tests
-            mock = await bar.Get("string", 123, new List<object>() { "string in array" });
+            mock = await bar.Get("string", 123, new List<string>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await bar.Post("string", 123, new List<object>() { "string in array" });
+            mock = await bar.Post("string", 123, new List<string>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await bar.Put("string", 123, new List<object>() { "string in array" });
+            mock = await bar.Put("string", 123, new List<string>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await bar.Patch("string", 123, new List<object>() { "string in array" });
+            mock = await bar.Patch("string", 123, new List<string>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
-            mock = await bar.Delete("string", 123, new List<object>() { "string in array" });
+            mock = await bar.Delete("string", 123, new List<string>() { "string in array" });
             TestContext.WriteLine(mock.Result);
 
             // General Tests
             var result = await general.Redirect();
             TestContext.WriteLine((result as Dictionary<string, object>)["result"]);
 
-            mock = await general.Upload("string", 123, new List<object>() { "string in array" }, InputFile.FromPath("../../../../../../../resources/file.png"));
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromPath("../../../../../../../resources/file.png"));
             TestContext.WriteLine(mock.Result);
 
-            mock = await general.Upload("string", 123, new List<object>() { "string in array" }, InputFile.FromPath("../../../../../../../resources/large_file.mp4"));
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromPath("../../../../../../../resources/large_file.mp4"));
             TestContext.WriteLine(mock.Result);
 
             var info = new FileInfo("../../../../../../../resources/file.png");
-            mock = await general.Upload("string", 123, new List<object>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "file.png", "image/png"));
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "file.png", "image/png"));
             TestContext.WriteLine(mock.Result);
 
             info = new FileInfo("../../../../../../../resources/large_file.mp4");
-            mock = await general.Upload("string", 123, new List<object>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
             TestContext.WriteLine(mock.Result);
 
             try
@@ -103,11 +104,36 @@ namespace AppwriteTests
                 TestContext.WriteLine(e.Message);
             }
 
-//            mock = await general.SetCookie();
-//            TestContext.WriteLine(mock.Result);
-//
-//            mock = await general.GetCookie();
-//            TestContext.WriteLine(mock.Result);
+            await general.Empty();
+
+            // Query helper tests
+            TestContext.WriteLine(Query.Equal("released", new List<bool> { true }));
+            TestContext.WriteLine(Query.Equal("title", new List<string> { "Spiderman", "Dr. Strange" }));
+            TestContext.WriteLine(Query.NotEqual("title", "Spiderman"));
+            TestContext.WriteLine(Query.LessThan("releasedYear", 1990));
+            TestContext.WriteLine(Query.GreaterThan("releasedYear", 1990));
+            TestContext.WriteLine(Query.Search("name", "john"));
+            TestContext.WriteLine(Query.OrderAsc("title"));
+            TestContext.WriteLine(Query.OrderDesc("title"));
+            TestContext.WriteLine(Query.CursorAfter("my_movie_id"));
+            TestContext.WriteLine(Query.CursorBefore("my_movie_id"));
+            TestContext.WriteLine(Query.Limit(50));
+            TestContext.WriteLine(Query.Offset(20));
+
+            // Permission & Roles helper tests
+            TestContext.WriteLine(Permission.Read(Role.Any()));
+            TestContext.WriteLine(Permission.Write(Role.User(ID.Custom("userid"))));
+            TestContext.WriteLine(Permission.Create(Role.Users()));
+            TestContext.WriteLine(Permission.Update(Role.Guests()));
+            TestContext.WriteLine(Permission.Delete(Role.Team("teamId", "owner")));
+            TestContext.WriteLine(Permission.Delete(Role.Team("teamId")));
+            TestContext.WriteLine(Permission.Create(Role.Member("memberId")));
+            TestContext.WriteLine(Permission.Update(Role.Users("verified")));;
+            TestContext.WriteLine(Permission.Update(Role.User(ID.Custom("userid"), "unverified")));;
+
+            // ID helper tests
+            TestContext.WriteLine(ID.Unique());
+            TestContext.WriteLine(ID.Custom("custom_id"));
         }
     }
 }

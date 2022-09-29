@@ -4,6 +4,11 @@ namespace Tests;
 
 class DotNet50Test extends Base
 {
+    protected string $sdkName = 'dotnet';
+    protected string $sdkPlatform = 'server';
+    protected string $sdkLanguage = 'dotnet';
+    protected string $version = '0.0.1';
+
     protected string $language = 'dotnet';
     protected string $class = 'Appwrite\SDK\Language\DotNet';
     protected array $build = [
@@ -22,5 +27,8 @@ class DotNet50Test extends Base
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
+        ...Base::QUERY_HELPER_RESPONSES,
+        ...Base::PERMISSION_HELPER_RESPONSES,
+        ...Base::ID_HELPER_RESPONSES
     ];
 }

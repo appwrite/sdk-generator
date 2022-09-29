@@ -27,11 +27,13 @@ namespace {{ spec.title | caseUcfirst }}
 
         private static readonly int ChunkSize = 5 * 1024 * 1024;
 
-        public static JsonSerializerSettings DeserializerSettings { get; set; } = new JsonSerializerSettings {
+        public static JsonSerializerSettings DeserializerSettings { get; set; } = new JsonSerializerSettings
+        {
             MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
             NullValueHandling = NullValueHandling.Ignore,
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
-            Converters = new List<JsonConverter> {
+            Converters = new List<JsonConverter>
+            {
                 new StringEnumConverter()
             }
         };
@@ -40,7 +42,8 @@ namespace {{ spec.title | caseUcfirst }}
         {
             NullValueHandling = NullValueHandling.Ignore,
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
-            Converters = new List<JsonConverter> {
+            Converters = new List<JsonConverter>
+            {
                 new StringEnumConverter()
             }
         };
@@ -59,7 +62,6 @@ namespace {{ spec.title | caseUcfirst }}
                 { "x-sdk-platform", "{{ sdk.platform }}" },
                 { "x-sdk-language", "{{ language.name | caseLower }}" },
                 { "x-sdk-version", "{{ sdk.version }}"}{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
-
                 {%~ for key,header in spec.global.defaultHeaders %}
                 { "{{key}}", "{{header}}" }{% if not loop.last %},{% endif %}
                 {%~ endfor %}

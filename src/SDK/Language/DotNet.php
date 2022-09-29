@@ -253,7 +253,13 @@ class DotNet extends Language {
                     $output .= '[object]';
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= '[List<object>]';
+                    if (\str_starts_with($example, '[')) {
+                        $example = \substr($example, 1);
+                    }
+                    if (\str_ends_with($example, ']')) {
+                        $example = \substr($example, 0, -1);
+                    }
+                    $output .= 'new List<'. $this->getTypeName($param['array']) . '> {' . $example . '}';
                     break;
             }
         }
