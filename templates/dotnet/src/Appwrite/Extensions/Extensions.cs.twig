@@ -1,13 +1,11 @@
 ﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Serialization;
 using System;
-using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 
-namespace {{ spec.title | caseUcfirst }}
+namespace {{ spec.title | caseUcfirst }}.Extensions
 {
-    public static class ExtensionMethods
+    public static class Extensions
     {
         public static string ToJson(this Dictionary<string, object?> dict)
         {
@@ -20,20 +18,18 @@ namespace {{ spec.title | caseUcfirst }}
 
             foreach (var kvp in parameters)
             {
-                if (kvp.Value == null)
+                switch (kvp.Value)
                 {
-                    continue;
-                }
-                if (kvp.Value is List<object> list)
-                {
-                    foreach(object entry in list)
-                    {
-                        query.Add($"{kvp.Key}[]={Uri.EscapeUriString(entry.ToString()!)}");
-                    }
-                }
-                else
-                {
-                    query.Add($"{kvp.Key}={Uri.EscapeUriString(kvp.Value.ToString()!)}");
+                    case null:
+                        continue;
+                    case List<object> list:
+                        query.AddRange(list.Select(entry =>
+                            $"{kvp.Key}[]={Uri.EscapeUriString(entry.ToString())}"
+                        ));
+                        break;
+                    default:
+                        query.Add($"{kvp.Key}={Uri.EscapeUriString(kvp.Value.ToString())}");
+                        break;
                 }
             }
             return string.Join("&", query);
@@ -41,7 +37,7 @@ namespace {{ spec.title | caseUcfirst }}
 
         private static IDictionary<string, string> _mappings = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) {
 
-                #region Big freaking list of mime type
+                #region Mime Types
                 {".323", "text/h323"},
                 {".3g2", "video/3gpp2"},
                 {".3gp", "video/3gpp"},
@@ -604,7 +600,7 @@ namespace {{ spec.title | caseUcfirst }}
                 {".zip", "application/x-zip-compressed"},
                 #endregion
 
-                };
+        };
 
         public static string GetMimeTypeFromExtension(string extension)
         {
@@ -618,9 +614,7 @@ namespace {{ spec.title | caseUcfirst }}
                 extension = "." + extension;
             }
 
-            string mime;
-
-            return _mappings.TryGetValue(extension, out mime) ? mime : "application/octet-stream";
+            return _mappings.TryGetValue(extension, out var mime) ? mime : "application/octet-stream";
         }
 
         public static string GetMimeType(this string path)

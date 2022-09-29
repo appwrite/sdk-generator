@@ -145,7 +145,7 @@ class DotNet extends Language {
     }
 
     /**
-     * @param $type
+     * @param array $parameter
      * @return string
      */
     public function getTypeName(array $parameter): string
@@ -288,13 +288,18 @@ class DotNet extends Language {
         return [
             [
                 'scope'         => 'default',
-                'destination'   => 'README.md',
-                'template'      => 'dotnet/README.md.twig',
+                'destination'   => '.travis.yml',
+                'template'      => 'dotnet/.travis.yml.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => 'dotnet/CHANGELOG.md.twig',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/icon.png',
+                'template'      => 'dotnet/icon.png',
             ],
             [
                 'scope'         => 'default',
@@ -303,8 +308,8 @@ class DotNet extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '.travis.yml',
-                'template'      => 'dotnet/.travis.yml.twig',
+                'destination'   => 'README.md',
+                'template'      => 'dotnet/README.md.twig',
             ],
             [
                 'scope'         => 'method',
@@ -315,11 +320,6 @@ class DotNet extends Language {
                 'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}.sln',
                 'template'      => 'dotnet/src/Appwrite.sln',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/icon.png',
-                'template'      => 'dotnet/icon.png',
             ],
             [
                 'scope'         => 'default',
@@ -333,8 +333,33 @@ class DotNet extends Language {
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Helpers/ExtensionMethods.cs',
-                'template'      => 'dotnet/src/Appwrite/Helpers/ExtensionMethods.cs',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}/{{ spec.title | caseUcfirst }}Exception.cs',
+                'template'      => 'dotnet/src/Appwrite/Exception.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}/ID.cs',
+                'template'      => 'dotnet/src/Appwrite/ID.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Permission.cs',
+                'template'      => 'dotnet/src/Appwrite/Permission.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Query.cs',
+                'template'      => 'dotnet/src/Appwrite/Query.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Role.cs',
+                'template'      => 'dotnet/src/Appwrite/Role.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Extensions/Extensions.cs',
+                'template'      => 'dotnet/src/Appwrite/Extensions/Extensions.cs.twig',
             ],
             [
                 'scope'         => 'default',
@@ -345,11 +370,6 @@ class DotNet extends Language {
                 'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/UploadProgress.cs',
                 'template'      => 'dotnet/src/Appwrite/Models/UploadProgress.cs.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/Exception.cs',
-                'template'      => 'dotnet/src/Appwrite/Models/Exception.cs.twig',
             ],
             [
                 'scope'         => 'default',
