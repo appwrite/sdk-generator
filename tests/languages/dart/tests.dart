@@ -89,6 +89,7 @@ void main() async {
   await general.empty();
 
   // Query helper tests
+  print(Query.equal('released', [true]));
   print(Query.equal('title', ['Spiderman', 'Dr. Strange']));
   print(Query.notEqual('title', 'Spiderman'));
   print(Query.lessThan('releasedYear', 1990));
@@ -108,9 +109,14 @@ void main() async {
   print(Permission.update(Role.guests()));
   print(Permission.delete(Role.team('teamId', 'owner')));
   print(Permission.delete(Role.team('teamId')));
+  print(Permission.create(Role.member('memberId')));
+  print(Permission.update(Role.users('verified')));
+  print(Permission.update(Role.user(ID.custom('userid'), 'unverified')));
 
   // ID helper tests
   print(ID.unique());
   print(ID.custom('custom_id'));
 
+  response = await general.headers();
+  print(response.result);
 }

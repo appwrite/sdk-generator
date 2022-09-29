@@ -2,11 +2,17 @@ class Role {
     static any = () => {
         return 'any'
     }
-    static user = (id) => {
-        return 'user:' + id
+    static user = (id, status = '') => {
+        if(status === '') {
+            return `user:${id}`
+        }
+        return `user:${id}/${status}`
     }
-    static users = () => {
-        return 'users'
+    static users = (status = '') => {
+        if(status === '') {
+            return 'users'
+        }
+        return `users/${status}`
     }
     static guests = () => {
         return 'guests'
@@ -17,8 +23,8 @@ class Role {
         }
         return 'team:' + id + '/' + role
     }
-    static status = (status) => {
-        return 'status:' + status
+    static member = (id) => {
+        return 'member:' + id
     }
 }
 
