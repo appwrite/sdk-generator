@@ -606,7 +606,7 @@ const deployBucket = async ({ all, yes } = {}) => {
         if (configBuckets.length === 0) {
             throw new Error("No buckets found in the current directory. Run `appwrite init bucket` to fetch all your buckets.");
         }
-        bucketIds.push(...configBuckets.map((c) => c.$id));
+        bucketIds.push(...configBuckets.map((b) => b.$id));
     }
 
     if(bucketIds.length <= 0) {
