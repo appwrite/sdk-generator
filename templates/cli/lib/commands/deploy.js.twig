@@ -2,7 +2,7 @@ const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
-const { questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
+const { questionsDeploySettings, questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
@@ -25,6 +25,12 @@ const {
     databasesListIndexes,
     databasesDeleteIndex
 } = require("./databases");
+const {
+    projectsUpdateAuthLimit,
+    projectsUpdateServiceStatus,
+    projectsUpdateAuthStatus
+} = require("./projects");
+
 
 const POOL_DEBOUNCE = 2000; // in milliseconds
 const POOL_MAX_DEBOUNCES = 30;
@@ -593,6 +599,80 @@ const deployCollection = async ({ all, yes } = {}) => {
     }
 }
 
+const deploySettings = async ({ yes } = {}) => {
+    const project = localConfig.getProject();
+  
+    if(!project.projectId) {
+      throw new Error("Project is not set. Please run `appwrite init project` to initialize the current directory with an Appwrite project.");
+    }
+
+    const settings = localConfig.getSettings();
+
+    if(Object.keys(settings).length <= 0) {
+        error(`Settings not found in the current directory. Skipping ...`);
+    }
+
+    if(!yes) {
+        answers = await inquirer.prompt(questionsDeploySettings[0])
+        if (answers.override !== "YES") {
+            log(`Received "${answers.override}". Skipping ...`);
+            return;
+        }
+    }
+
+    log(`Deploying settings ...`)
+
+    await projectsUpdateAuthLimit({
+        projectId: project.projectId,
+        limit: settings.authLimit,
+        parseOutput: false,
+    });
+
+    for(const key in settings) {
+        if(!key.startsWith('service')) {
+            continue;
+        }
+
+        const service = key.slice(7 + 6 + 3).toLowerCase(); // 7+6+3 chars = Remove 'serviceStatusFor' prefix
+        const status = settings[key];
+
+        await projectsUpdateServiceStatus({
+            projectId: project.projectId,
+            service,
+            status,
+            parseOutput: false,
+        })
+    }
+
+    // From appwrite/appwrite, app/config/auth.php
+    const methods = {
+        EmailPassword: 'email-password',
+        UsersAuthMagicURL: 'magic-url',
+        Anonymous: 'anonymous',
+        Invites: 'invites',
+        JWT: 'jwt',
+        Phone: 'phone'
+    }
+
+    for(const key in settings) {
+        if(!key.startsWith('auth') || key === 'authLimit') {
+            continue;
+        }
+
+        const method = methods[key.slice(4)]; // 4 chars = Remove 'auth' prefix
+        const status = settings[key];
+
+        await projectsUpdateAuthStatus({
+            projectId: project.projectId,
+            method,
+            status,
+            parseOutput: false,
+        })
+    }
+
+    success(`Deployed settings`);
+}
+
 deploy
     .command("function")
     .description("Deploy functions in the current directory.")
@@ -607,6 +687,12 @@ deploy
     .option(`--all`, `Flag to deploy all functions`)
     .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(deployCollection));
+
+deploy
+    .command("settings")
+    .description("Deploy settings of the current project.")
+    .option(`--yes`, `Flag to confirm all warnings`)
+    .action(actionRunner(deploySettings));
 
 module.exports = {
     deploy
