@@ -141,6 +141,21 @@ class Local extends Config {
         return this.get("buckets");
     }
 
+    getBucket($id) {
+        if (!this.has("buckets")) {
+            return {};
+        }
+
+        let buckets = this.get("buckets");
+        for (let i = 0; i < buckets.length; i++) {
+            if (buckets[i]['$id'] == $id) {
+                return buckets[i];
+            }
+        }
+
+        return {};
+    }
+
     getCollection($id) {
         if (!this.has("collection")) {
             return {};
