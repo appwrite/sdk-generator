@@ -430,17 +430,27 @@ const deployCollection = async ({ all, yes } = {}) => {
 
         let databaseId;
 
+        const localDatabase = localConfig.getDatabase(collection.databaseId);
+
         try {
             const database = await databasesGet({
                 databaseId: collection.databaseId,
                 parseOutput: false,
             });
             databaseId = database.$id;
+
+            await databasesUpdate({
+                databaseId: collection.databaseId,
+                name: localDatabase.name ?? collection.databaseId,
+                parseOutput: false
+            })
+
+            success(`Updated ${localDatabase.name} ( ${collection.databaseId} )`);
         } catch(err) {
             log(`Database ${collection.databaseId} not found. Creating it now...`);
             const database = await databasesCreate({
                 databaseId: collection.databaseId,
-                name: collection.databaseId,
+                name: localDatabase.name ?? collection.databaseId,
                 parseOutput: false,
             });
             databaseId = database.$id;
