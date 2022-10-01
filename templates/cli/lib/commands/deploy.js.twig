@@ -2,7 +2,7 @@ const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
-const { questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
+const { questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
@@ -23,7 +23,8 @@ const {
     databasesDeleteAttribute,
     databasesListAttributes,
     databasesListIndexes,
-    databasesDeleteIndex
+    databasesDeleteIndex,
+    databasesUpdateCollection
 } = require("./databases");
 
 const POOL_DEBOUNCE = 2000; // in milliseconds
@@ -539,6 +540,18 @@ const deployCollection = async ({ all, yes } = {}) => {
             }
 
             success(`Created ${collection.indexes.length} indexes`);
+
+            await databasesUpdateCollection({
+                databaseId,
+                collectionId: collection['$id'],
+                name: collection.name,
+                documentSecurity: collection.documentSecurity,
+                permissions: collection['$permissions'],
+                enabled: collection.enabled,
+                parseOutput: false
+            })
+
+            success(`Deployed ${collection.name} ( ${collection['$id']} )`);
         } catch (e) {
             if (e.code == 404) {
                 log(`Collection ${collection.name} does not exist in the project. Creating ... `);
