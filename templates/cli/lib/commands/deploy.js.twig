@@ -188,46 +188,6 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 throw new Error(`Runtime missmatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.json`);
             }
 
-            if(func.variables) {
-                // Delete existing variables
-
-                // TODO: Pagination?
-                const { variables: remoteVariables } = await functionsListVariables({
-                    functionId: func['$id'],
-                    queries: [ 'limit(100)' ],
-                    parseOutput: false
-                });
-
-                if(remoteVariables.length > 0) {
-                    if(!yes) {
-                        const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
-
-                        if (variableAnswers.override !== "YES") {
-                            log(`Received "${variableAnswers.override}". Skipping ${func.name} ( ${func['$id']} )`);
-                            continue;
-                        }
-                    }
-
-                    await Promise.all(remoteVariables.map(async remoteVariable => {
-                        await functionsDeleteVariable({
-                            functionId: func['$id'],
-                            variableId: remoteVariable['$id'],
-                            parseOutput: false
-                        });
-                    }));
-                }
-
-                // Deploy local variables
-                await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
-                    await functionsCreateVariable({
-                        functionId: func['$id'],
-                        key: localVariableKey,
-                        value: func.variables[localVariableKey],
-                        parseOutput: false
-                    });
-                }));
-            }
-
             response = await functionsUpdate({
                 functionId: func['$id'],
                 name: func.name,
@@ -262,6 +222,47 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             } else {
                 throw e;
             }
+        }
+
+        // Create function variables
+        if(func.variables) {
+            // Delete existing variables
+
+            // TODO: Pagination?
+            const { variables: remoteVariables } = await functionsListVariables({
+                functionId: func['$id'],
+                queries: [ 'limit(100)' ],
+                parseOutput: false
+            });
+
+            if(remoteVariables.length > 0) {
+                if(!yes) {
+                    const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
+
+                    if (variableAnswers.override !== "YES") {
+                        log(`Received "${variableAnswers.override}". Skipping ${func.name} ( ${func['$id']} )`);
+                        continue;
+                    }
+                }
+
+                await Promise.all(remoteVariables.map(async remoteVariable => {
+                    await functionsDeleteVariable({
+                        functionId: func['$id'],
+                        variableId: remoteVariable['$id'],
+                        parseOutput: false
+                    });
+                }));
+            }
+
+            // Deploy local variables
+            await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
+                await functionsCreateVariable({
+                    functionId: func['$id'],
+                    key: localVariableKey,
+                    value: func.variables[localVariableKey],
+                    parseOutput: false
+                });
+            }));
         }
 
         // Create tag
