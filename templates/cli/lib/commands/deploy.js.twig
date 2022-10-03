@@ -188,6 +188,36 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 throw new Error(`Runtime missmatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.json`);
             }
 
+            if(func.variables) {
+                // Delete existing variables
+
+                // TODO: Pagination?
+                const { variables: remoteVariables } = await functionsListVariables({
+                    functionId: func['$id'],
+                    queries: [ 'limit(100)' ],
+                    parseOutput: false
+                });
+
+                if(remoteVariables.length > 0) {
+                    if(!yes) {
+                        const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
+
+                        if (variableAnswers.override !== "YES") {
+                            log(`Received "${variableAnswers.override}". Skipping ${func.name} ( ${func['$id']} )`);
+                            continue;
+                        }
+                    }
+
+                    await Promise.all(remoteVariables.map(async remoteVariable => {
+                        await functionsDeleteVariable({
+                            functionId: func['$id'],
+                            variableId: remoteVariable['$id'],
+                            parseOutput: false
+                        });
+                    }));
+                }   
+            }
+
             response = await functionsUpdate({
                 functionId: func['$id'],
                 name: func.name,
@@ -224,36 +254,8 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             }
         }
 
-        // Create function variables
-        if(func.variables) {
-            // Delete existing variables
-
-            // TODO: Pagination?
-            const { variables: remoteVariables } = await functionsListVariables({
-                functionId: func['$id'],
-                queries: [ 'limit(100)' ],
-                parseOutput: false
-            });
-
-            if(remoteVariables.length > 0) {
-                if(!yes) {
-                    const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
-
-                    if (variableAnswers.override !== "YES") {
-                        log(`Received "${variableAnswers.override}". Skipping ${func.name} ( ${func['$id']} )`);
-                        continue;
-                    }
-                }
-
-                await Promise.all(remoteVariables.map(async remoteVariable => {
-                    await functionsDeleteVariable({
-                        functionId: func['$id'],
-                        variableId: remoteVariable['$id'],
-                        parseOutput: false
-                    });
-                }));
-            }
-
+        // Create variables
+        if (func.variables) {
             // Deploy local variables
             await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
                 await functionsCreateVariable({
