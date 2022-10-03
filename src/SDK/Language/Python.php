@@ -112,13 +112,7 @@ class Python extends Language {
                 'destination'   => 'setup.py',
                 'template'      => 'python/setup.py.twig',
                 'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'setup.cfg',
-                'template'      => 'python/setup.cfg.twig',
-                'minify'        => false,
-            ],
+	    ],
             [
                 'scope'         => 'default',
                 'destination'   => 'requirements.txt',
