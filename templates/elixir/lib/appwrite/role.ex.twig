@@ -1,0 +1,33 @@
+defmodule Appwrite.Role do
+  @moduledoc false
+
+  def any(), do: "any"
+
+  def user(id, status = "") do
+    if status do
+      "user:#{id}/#{status}"
+    else
+      "user:#{id}"
+    end
+  end
+
+  def users(status = "") do
+    if status do
+      "users/#{status}"
+    else
+      "users"
+    end
+  end
+
+  def guests(), do: "guests"
+
+  def team(id, role = "") do
+    if role do
+      "team:#{id}/#{role}"
+    else
+      "team:#{id}"
+    end
+  end
+
+  def member(id), do: "member:#{id}"
+end

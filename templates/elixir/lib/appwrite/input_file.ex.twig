@@ -1,0 +1,13 @@
+defmodule Appwrite.InputFile do
+  @moduledoc false
+
+  defstruct [:file_path, :file_content, :file_name]
+
+  def from_binary(file_content, file_name) do
+    %__MODULE__{file_content: file_content, file_name: file_name}
+  end
+
+  def from_path(file_path, file_name \\ nil) do
+    %__MODULE__{file_path: file_path, file_name: file_name}
+  end
+end

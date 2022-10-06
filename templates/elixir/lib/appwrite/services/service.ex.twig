@@ -1,0 +1,21 @@
+defmodule {{spec.title | caseUcfirst}}.Services.{{ service.name | caseUcfirst }} do
+  @moduledoc false
+  
+  alias {{spec.title | caseUcfirst}}.Error
+  alias {{spec.title | caseUcfirst}}.Client
+{% for method in service.methods %}
+
+{% if method.title %}
+  @doc "{{ method.title }}"{% endif %}        
+  def {{ method.name | caseSnake }}(client{% if method.parameters.all|filter(p => p.required) |length > 0 %}, {% endif %}{% for parameter in method.parameters.all|filter(p => p.required) %}{{ parameter.name | escapeKeyword | caseSnake }}{% if not loop.last %}, {% endif %}{% endfor %}{% if (method.parameters.all|filter(p => not p.required) |length > 0) or 'multipart/form-data' in method.consumes %}, opts \\ []{% endif %}) do
+    path = "{{ method.path }}"
+
+{{ include('elixir/base/params.twig') }}
+{% if 'multipart/form-data' in method.consumes %}
+{{ include('elixir/base/requests/file.twig') }}
+{% else %}
+{{ include('elixir/base/requests/api.twig') }}
+{% endif %}
+  end
+{% endfor %}
+end

@@ -1,0 +1,18 @@
+defmodule {{spec.title | caseUcfirst}}.Error do
+  @moduledoc """
+  An Appwrite error.
+  """
+
+  @type t() :: %__MODULE__{message: binary, code: integer, response: any}
+  defexception [:message, :code, :response]
+
+  @impl true
+  def exception(message, opts \\ []) do
+    %__MODULE__{message: message, code: opts[:code], response: opts[:response]}
+  end
+
+  @impl true
+  def message(%__MODULE__{message: message, code: code, response: response}) do
+    "#{message}, code: #{code}, response: #{response}"
+  end
+end

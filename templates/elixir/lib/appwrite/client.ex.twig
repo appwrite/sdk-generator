@@ -1,0 +1,242 @@
+defmodule Appwrite.Client do
+  @moduledoc false
+
+  alias {{spec.title | caseUcfirst}}.Error
+  alias {{spec.title | caseUcfirst}}.InputFile
+  alias Tesla.Multipart
+
+  defstruct endpoint: "https://HOSTNAME/v1",
+            chunk_size: 5 * 1024 * 1024,
+            http_client: nil,
+            global_headers: %{
+              "x-sdk-name" => "elixir-sdk",
+              "x-sdk-platform" => "",
+              "x-sdk-language" => "elixir",
+{% for key,header in spec.global.defaultHeaders %}
+              "{{key}}" => "{{header}}",
+{% endfor %}
+            },
+            self_signed?: false
+
+  def get_client(endpoint, opts \\ []) do
+    self_signed? =
+      if is_nil(opts[:self_signed?]) do
+        false
+      else
+        opts[:self_signed?]
+      end
+
+    %__MODULE__{endpoint: endpoint, self_signed?: self_signed?}
+    |> setup_http_client
+  end
+
+  def update_params(%__MODULE__{} = client, opts) do
+    global_headers = Map.merge(client.global_headers, opts[:global_headers] or %{})
+
+    self_signed? =
+      if is_nil(opts[:self_signed?]) do
+        client.self_signed?
+      else
+        opts[:self_signed?]
+      end
+
+    %__MODULE__{
+      chunk_size: opts[:chunk_size] or client.chunk_size,
+      endpoint: opts[:endpoint] or client.endpoint,
+      global_headers: global_headers,
+      self_signed?: self_signed?
+    }
+  end
+
+  def add_headers(%__MODULE__{global_headers: headers} = client, %{} = new_headers) do
+    new_headers = Map.merge(headers, new_headers)
+    %{client | global_headers: new_headers}
+  end
+
+  def add_header(%__MODULE__{} = client, header, value) do
+    add_headers(client, %{header => value})
+  end
+
+  def remove_header(%__MODULE__{global_headers: headers} = client, header_name) do
+    {_, new_headers} = Map.pop(headers, header_name)
+    %{client | global_headers: new_headers}
+  end
+
+  def set_self_signed(client, status \\ true) do
+    %{client | self_signed?: status}
+  end
+
+  def set_endpoint(client, endpoint) do
+    %{client | endpoint: endpoint}
+    |> setup_http_client
+  end
+{% for header in spec.global.headers %}
+
+{% if header.description %}
+  @doc "{{header.description}}"
+{% endif %}
+  def set_{{header.key | caseSnake}}(client, value) do
+    %{client | "{{header.name|lower}}": value}
+  end
+{% endfor %}
+
+  defp setup_http_client(%__MODULE__{} = client) do
+    middleware = [
+      {Tesla.Middleware.BaseUrl, client.endpoint},
+      Tesla.Middleware.JSON
+    ]
+
+    r = Tesla.client(middleware)
+
+    %{client | http_client: r}
+  end
+
+  def call(client, method, path, request_headers, params \\ %{}) do
+    {params, body} =
+      if method != :get do
+        {% verbatim %}{%{}, params}{% endverbatim %}
+      else
+        {params, nil}
+      end
+
+    headers =
+      Map.merge(client.global_headers, request_headers)
+      |> Map.to_list()
+
+    Tesla.request(client.http_client,
+      method: method,
+      url: path,
+      headers: headers,
+      body: body,
+      query: params
+    )
+  end
+
+  def chunked_upload(client, path, _headers, params, param_name, on_progress, upload_id) do
+    input_file = params[param_name]
+
+    {size, stream, file_name} =
+      case input_file do
+        %InputFile{file_content: content, file_name: file_name, file_path: nil} ->
+          size = byte_size(content)
+          stream = Stream.chunk_every(content, client.chunk_size)
+          {size, stream, file_name}
+
+        %InputFile{file_content: nil, file_name: file_name, file_path: file_path} ->
+          file_name =
+            if is_nil(file_name) do
+              Path.basename(file_path)
+            else
+              file_name
+            end
+
+          size = File.stat!(file_path).size
+          stream = File.stream!(file_path, [], client.chunk_size)
+          {size, stream, file_name}
+
+        _ ->
+          throw(
+            Error.exception(
+              "Please provide an %Appwrite.InputFile{} struct with either file_content or file_path defined.\n" <>
+                "example: %InputFile{file_content: \"content\", file_path: nil}"
+            )
+          )
+      end
+
+    offset = get_offset(client, path, upload_id)
+
+    stream
+    |> Stream.drop(offset)
+    |> Enum.reduce(
+      %{
+        client: client,
+        path: path,
+        params: params,
+        on_progress: on_progress,
+        upload_id: upload_id,
+        size: size,
+        file_name: file_name,
+        offset: offset,
+        headers: %{}
+      },
+      fn x, acc -> upload_part(x, acc) end
+    )
+  end
+
+  defp get_offset(_client, _path, "unique()"), do: 0
+
+  defp get_offset(client, path, upload_id) do
+    {:ok, %{body: response}} =
+      call(client, :get, "#{path}/#{upload_id}", %{"content-type" => "text/json"})
+
+    case response["chunksUploaded"] do
+      nil -> 0
+      offset -> offset
+    end
+  end
+
+  defp upload_part(chunk, params) do
+    client = params.client
+
+    mp =
+      Multipart.new()
+      |> Multipart.add_content_type_param("charset=utf-8")
+      |> Multipart.add_field("fileId", params.upload_id)
+      |> Multipart.add_file_content(chunk, params.file_name)
+
+    request_headers =
+      client.global_headers
+      |> Map.merge(params.headers)
+      |> add_chunk_header(params.offset, client.chunk_size, params.size)
+      |> Map.to_list()
+
+    {:ok, response} =
+      Tesla.request(client.http_client,
+        method: :post,
+        url: params.path,
+        headers: request_headers,
+        body: mp
+      )
+
+    notify_progress(response, params)
+    headers = set_appwrite_id_header(params.headers, response.body["$id"])
+
+    %{params | offset: params.offset + 1, headers: headers}
+  end
+
+  defp add_chunk_header(headers, _offset, chunk_size, file_size) when chunk_size > file_size,
+    do: headers
+
+  defp add_chunk_header(headers, offset, chunk_size, file_size) do
+    sent_size = get_size(offset, chunk_size, file_size)
+    end_range = Enum.min([sent_size + chunk_size - 1, file_size])
+
+    Map.put(headers, "content-range", "bytes #{sent_size}-#{end_range}/#{file_size}")
+  end
+
+  defp notify_progress(_response, %{on_progress: nil}), do: :ok
+
+  defp notify_progress(response, params) do
+    chunk_size = params.client.chunk_size
+    new_offset = params.offset + 1
+    size_uploaded = Enum.min([new_offset * chunk_size + chunk_size, params.size])
+
+    params.on_progress(%{
+      id: response["$id"],
+      progress: get_size(new_offset, chunk_size, params.size),
+      size_uploaded: size_uploaded,
+      chunks_total: response["chunksTotal"],
+      chunks_uploaded: response["chunksUploaded"]
+    })
+  end
+
+  defp set_appwrite_id_header(headers, nil), do: headers
+  defp set_appwrite_id_header(headers, id), do: Map.put(headers, "x-appwrite-id", id)
+
+  defp get_size(offset, chunk_size, size) do
+    Enum.min([
+      offset * chunk_size,
+      size
+    ])
+  end
+end

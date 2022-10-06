@@ -1,0 +1,40 @@
+{% if method.parameters.all | length %}
+{% for parameter in method.parameters.all  %}
+{% if parameter.required %}
+    if is_nil({{ parameter.name | escapeKeyword | caseSnake }})do
+      throw(Error.exception("Missing required parameter: \"{{ parameter.name | escapeKeyword | caseSnake }}\""))
+    end
+
+{% else %}
+    {{ parameter.name | escapeKeyword | caseSnake }} = Keyword.get(opts, :{{ parameter.name | escapeKeyword | caseSnake }})
+{% endif %}
+{% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+    on_progress = Keyword.get(opts, :on_progress)
+{% endif %}
+{% for parameter in method.parameters.path %}
+    path = String.replace(path, "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | escapeKeyword | caseSnake }})
+{% endfor %}
+
+    params = %{
+{% for parameter in method.parameters.query %}
+      "{{ parameter.name }}" => {{ parameter.name | escapeKeyword | caseSnake }},
+{% endfor %}
+{% for parameter in method.parameters.body %}
+{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
+      "{{ parameter.name }}" => if {{ parameter.name | escapeKeyword | caseSnake }} in [true, false] do "#{{"{"}}{{ parameter.name | escapeKeyword | caseSnake }}{{"}"}}" else {{ parameter.name | escapeKeyword | caseSnake }} end,
+{% else %}
+      "{{ parameter.name }}" => {{ parameter.name | escapeKeyword | caseSnake }},
+{% endif %}
+{% endfor %}
+{% for parameter in method.parameters.formData %}
+{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
+      "{{ parameter.name }}" => if {{ parameter.name | escapeKeyword | caseSnake }} in [true, false] do "#{{"{"}}{{ parameter.name | escapeKeyword | caseSnake }}{{"}"}}" else {{ parameter.name | escapeKeyword | caseSnake }} end,
+{% else %}
+      "{{ parameter.name }}" => {{ parameter.name | escapeKeyword | caseSnake }},
+{% endif %}
+{% endfor %}
+    }
+{% else %}
+    params = %{}
+{% endif %}

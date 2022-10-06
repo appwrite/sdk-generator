@@ -9,6 +9,7 @@ use Appwrite\SDK\Language\Node;
 use Appwrite\SDK\Language\CLI;
 use Appwrite\SDK\Language\PHP;
 use Appwrite\SDK\Language\Python;
+use Appwrite\SDK\Language\Elixir;
 use Appwrite\SDK\Language\Ruby;
 use Appwrite\SDK\Language\Dart;
 use Appwrite\SDK\Language\Go;
@@ -234,6 +235,29 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/python');
+
+    // Elixir
+    $sdk  = new SDK(new Elixir(), new Swagger2($spec));
+
+    $sdk
+        ->setName('NAME')
+        ->setDescription('Repo description goes here')
+        ->setShortDescription('Repo short description goes here')
+        ->setURL('https://example.com')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**WORK IN PROGRESS - NOT READY FOR USAGE**')
+        ->setChangelog('**CHANGELOG**')
+        ->setGitUserName('repoowner')
+        ->setGitRepoName('reponame')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
+        ->setDefaultHeaders([
+            'X-Appwrite-Response-Format' => '0.7.0',
+        ])
+    ;
+
+    $sdk->generate(__DIR__ . '/examples/elixir');
 
     // Dart
     $dart = new Dart();
