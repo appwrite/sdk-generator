@@ -3,7 +3,7 @@ const path = require("path");
 const childProcess = require('child_process');
 const { Command } = require("commander");
 const inquirer = require("inquirer");
-const { teamsCreate } = require("./teams");
+const { teamsCreate, teamsList } = require("./teams");
 const { projectsCreate, projectsGet } = require("./projects");
 const { functionsCreate } = require("./functions");
 const { databasesListCollections, databasesList } = require("./databases");
@@ -213,6 +213,24 @@ const initSettings = async () => {
   success();
 }
 
+const initTeam = async () => {
+  // TODO: Pagination?
+  let response = await teamsList({
+    queries: [ 'limit(100)' ],
+    parseOutput: false
+  })
+
+  let teams = response.teams;
+  log(`Found ${teams.length} teams`);
+
+  teams.forEach(async team => {
+    log(`Fetching ${team.name} ...`);
+    localConfig.addTeam(team);
+  });
+
+  success();
+}
+
 init
   .command("project")
   .description("Initialise your {{ spec.title|caseUcfirst }} project")
@@ -234,6 +252,11 @@ init
   .command("settings")
   .description("Initialise your Appwrite project settings")
   .action(actionRunner(initSettings));
+
+init
+  .command("team")
+  .description("Initialise your Appwrite teams")
+  .action(actionRunner(initTeam))
 
 module.exports = {
   init,
