@@ -135,7 +135,7 @@ class Local extends Config {
     }
 
     getCollection($id) {
-        if (!this.has("collection")) {
+        if (!this.has("collections")) {
             return {};
         }
 
@@ -198,6 +198,28 @@ class Local extends Config {
 
         return {};
     }
+
+    getDatabases() {
+        if (!this.has("databases")) {
+            return [];
+        }
+        return this.get("databases");
+    }
+
+    getDatabase($id) {
+        if (!this.has("databases")) {
+            return {};
+        }
+
+        let databases = this.get("databases");
+        for (let i = 0; i < databases.length; i++) {
+            if (databases[i]['$id'] == $id) {
+                return databases[i];
+            }
+        }
+
+        return {};
+    }
     
     addTeam(props) {
         if (!this.has("teams")) {
@@ -214,6 +236,24 @@ class Local extends Config {
         }
         teams.push(props);
         this.set("teams", teams);
+    }
+    
+
+    addDatabase(props) {
+        if (!this.has("databases")) {
+            this.set("databases", []);
+        }
+
+        let databases = this.get("databases");
+        for (let i = 0; i < databases.length; i++) {
+            if (databases[i]['$id'] == props['$id']) {
+                databases[i] = props;
+                this.set("databases", databases);
+                return;
+            }
+        }
+        databases.push(props);
+        this.set("databases", databases);
     }
 
     getProject() {
