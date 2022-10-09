@@ -4,7 +4,7 @@ const childProcess = require('child_process');
 const { Command } = require("commander");
 const inquirer = require("inquirer");
 const { teamsCreate } = require("./teams");
-const { projectsCreate } = require("./projects");
+const { projectsCreate, projectsGet } = require("./projects");
 const { functionsCreate } = require("./functions");
 const { databasesListCollections, databasesList } = require("./databases");
 const { sdkForConsole } = require("../sdks");
@@ -186,6 +186,33 @@ const initCollection = async ({ all, databaseId } = {}) => {
   success();
 }
 
+const initSettings = async () => {
+  const project = localConfig.getProject();
+  
+  if(!project.projectId) {
+    throw new Error("Project is not set. Please run `appwrite init project` to initialize the current directory with an Appwrite project.");
+  }
+
+  log(`Fetching settings ...`);
+
+  let response = await projectsGet({
+    projectId: project.projectId,
+    parseOutput: false
+  })
+
+  const settings = {};
+
+  for(const key in response) {
+    if(key.startsWith('auth') || key.startsWith('service')) {
+      settings[key] = response[key];
+    }
+  }
+
+  localConfig.setSettings(settings);
+
+  success();
+}
+
 init
   .command("project")
   .description("Initialise your {{ spec.title|caseUcfirst }} project")
@@ -202,6 +229,11 @@ init
   .option(`--databaseId <databaseId>`, `Database ID`)
   .option(`--all`, `Flag to initialize all databases`)
   .action(actionRunner(initCollection))
+
+init
+  .command("settings")
+  .description("Initialise your Appwrite project settings")
+  .action(actionRunner(initSettings));
 
 module.exports = {
   init,

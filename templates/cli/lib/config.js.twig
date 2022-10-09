@@ -166,6 +166,17 @@ class Local extends Config {
         this.set("collections", collections);
     }
 
+    getSettings() {
+        if (!this.has("settings")) {
+            return {};
+        }
+        return this.get("settings");
+    }
+
+    setSettings(settings) {
+        this.set("settings", settings);
+    }
+
     getProject() {
         if (!this.has("projectId") || !this.has("projectName")) {
             return {};
