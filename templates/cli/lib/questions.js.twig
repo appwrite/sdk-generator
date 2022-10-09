@@ -285,6 +285,32 @@ const questionsDeployCollections = [
   },
 ]
 
+const questionsDeployBuckets = [
+  {
+    type: "checkbox",
+    name: "buckets",
+    message: "Which buckets would you like to deploy?",
+    choices: () => {
+      let buckets = localConfig.getBuckets();
+      if (buckets.length === 0) {
+        throw new Error("No buckets found in the current directory. Run `appwrite init bucket` to fetch all your buckets.");
+      }
+      let choices = buckets.map((bucket, idx) => {
+        return {
+          name: `${bucket.name} (${bucket['$id']})`,
+          value: bucket.$id
+        }
+      })
+      return choices;
+    }
+  },
+  {
+    type: "input",
+    name: "override",
+    message: 'Are you sure you want to override this bucket? This can lead to loss of data! Type "YES" to confirm.'
+  },
+]
+
 const questionsGetEntrypoint = [
   {
     type: "input",
@@ -343,5 +369,6 @@ module.exports = {
   questionsDeployCollections,
   questionsDeploySettings,
   questionsDeployTeams,
+  questionsDeployBuckets,
   questionsGetEntrypoint
 };

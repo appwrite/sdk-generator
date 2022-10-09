@@ -7,6 +7,7 @@ const { teamsCreate, teamsList } = require("./teams");
 const { projectsCreate, projectsGet } = require("./projects");
 const { functionsCreate } = require("./functions");
 const { databasesListCollections, databasesList } = require("./databases");
+const { storageListBuckets } = require("./storage");
 const { sdkForConsole } = require("../sdks");
 const { localConfig } = require("../config");
 const { questionsInitProject, questionsInitFunction, questionsInitCollection } = require("../questions");
@@ -234,6 +235,24 @@ const initTeam = async () => {
     log(`Fetching ${team.name} ...`);
     localConfig.addTeam(team);
   });
+  
+  success();
+}
+
+const initBucket = async () => {
+  // TODO: Pagination?
+  let response = await storageListBuckets({
+    queries: [ 'limit(100)' ],
+    parseOutput: false
+  })
+
+  let buckets = response.buckets;
+  log(`Found ${buckets.length} buckets`);
+
+  buckets.forEach(async bucket => {
+    log(`Fetching ${bucket.name} ...`);
+    localConfig.addBucket(bucket);
+  });
 
   success();
 }
@@ -258,12 +277,17 @@ init
 init
   .command("settings")
   .description("Initialise your Appwrite project settings")
-  .action(actionRunner(initSettings));
+  .action(actionRunner(initSettings))
 
 init
   .command("team")
   .description("Initialise your Appwrite teams")
   .action(actionRunner(initTeam))
+
+init
+  .command("bucket")
+  .description("Initialise your Appwrite buckets")
+  .action(actionRunner(initBucket))
 
 module.exports = {
   init,
