@@ -97,7 +97,7 @@ class {{ service.name | caseUcfirst }} : Service {
 {{ include('kotlin/base/requests/location.twig') }}
 {% else %}
         val headers = mutableMapOf(
-{{ method.headers|map((header, key) => "            \"#{key}\" to \"#{header}\"")|join(',\n')|raw }},
+{{ method.headers|map((header, key) => "            \"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
         )
 {% if method.responseModel %}
         val converter: (Map<String, Any>) -> {{ utils.resultType(sdk.namespace, method) }} = {
