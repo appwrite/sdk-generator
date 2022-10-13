@@ -4,11 +4,16 @@ namespace Tests;
 
 class Android12Java11Test extends Base
 {
+    protected string $sdkName = 'android';
+    protected string $sdkPlatform = 'client';
+    protected string $sdkLanguage = 'android';
+    protected string $version = '0.0.1';
+
     protected string $language = 'android';
     protected string $class = 'Appwrite\SDK\Language\Android';
     protected array $build = [
         'mkdir -p tests/sdks/android/library/src/test/java',
-        'cp tests/languages/android/ServiceTest.kt tests/sdks/android/library/src/test/java/ServiceTest.kt',
+        'cp tests/languages/android/Tests.kt tests/sdks/android/library/src/test/java/Tests.kt',
         'chmod +x tests/sdks/android/gradlew',
     ];
     protected string $command =
@@ -24,5 +29,8 @@ class Android12Java11Test extends Base
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         ...Base::COOKIE_RESPONSES,
+        ...Base::QUERY_HELPER_RESPONSES,
+        ...Base::PERMISSION_HELPER_RESPONSES,
+        ...Base::ID_HELPER_RESPONSES
     ];
 }

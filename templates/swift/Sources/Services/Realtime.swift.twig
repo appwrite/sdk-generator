@@ -209,7 +209,7 @@ extension Realtime: WebSocketClientDelegate {
                 let response = RealtimeResponseEvent(
                     events: events,
                     channels: channels,
-                    timestamp: data["timestamp"] as! Int64,
+                    timestamp: data["timestamp"] as! String,
                     payload: payload
                 )
                 subscription.value.callback(response)

@@ -36,29 +36,27 @@ class HTTP extends Language {
      * @param $type
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'int';
-            break;
             case self::TYPE_STRING:
                 return 'String';
-            break;
             case self::TYPE_FILE:
                 return 'MultipartFile';
-            break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
-            break;
             case self::TYPE_ARRAY:
-            	return 'List';
-			case self::TYPE_OBJECT:
-				return 'dynamic';
-            break;
+                if (!empty($parameter['array']['type'])) {
+                    return 'List<' . $this->getTypeName($parameter['array']) . '>';
+                }
+                return 'List';
+            case self::TYPE_OBJECT:
+                return 'dynamic';
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     /**

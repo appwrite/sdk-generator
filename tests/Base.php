@@ -36,7 +36,7 @@ abstract class Base extends TestCase
     ];
 
     const EXTENDED_GENERAL_RESPONSES = [
-        'Download test passed.',
+        'GET:/v1/mock/tests/general/download:passed',
     ];
 
     const COOKIE_RESPONSES = [
@@ -50,12 +50,44 @@ abstract class Base extends TestCase
 
     const EXCEPTION_RESPONSES = [
         'Mock 400 error',
-        'Server Error',
+        'Mock 500 error',
         'This is a text error',
     ];
 
     const REALTIME_RESPONSES = [
         'WS:/v1/realtime:passed',
+    ];
+
+    const QUERY_HELPER_RESPONSES = [
+        'equal("released", [true])',
+        'equal("title", ["Spiderman","Dr. Strange"])',
+        'notEqual("title", ["Spiderman"])',
+        'lessThan("releasedYear", [1990])',
+        'greaterThan("releasedYear", [1990])',
+        'search("name", ["john"])',
+        'orderAsc("title")',
+        'orderDesc("title")',
+        'cursorAfter("my_movie_id")',
+        'cursorBefore("my_movie_id")',
+        'limit(50)',
+        'offset(20)',
+    ];
+
+    const PERMISSION_HELPER_RESPONSES = [
+        'read("any")',
+        'write("user:userid")',
+        'create("users")',
+        'update("guests")',
+        'delete("team:teamId/owner")',
+        'delete("team:teamId")',
+        'create("member:memberId")',
+        'update("users/verified")',
+        'update("user:userid/unverified")',
+    ];
+
+    const ID_HELPER_RESPONSES = [
+        'unique()',
+        'custom_id'
     ];
 
     protected string $class = '';
@@ -66,6 +98,8 @@ abstract class Base extends TestCase
 
     public function setUp(): void
     {
+        $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
+        array_push($this->expectedOutput, $headers);
     }
 
     public function tearDown(): void
@@ -83,11 +117,13 @@ abstract class Base extends TestCase
         $sdk = new SDK($this->getLanguage(), new Swagger2($spec));
 
         $sdk
+            ->setName($this->sdkName)
+            ->setVersion($this->version)
+            ->setPlatform($this->sdkPlatform)
             ->setDescription('Repo description goes here')
             ->setShortDescription('Repo short description goes here')
             ->setLogo('https://appwrite.io/v1/images/console.png')
             ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
-            ->setVersion('0.0.1')
             ->setExamples('**EXAMPLES** <HTML>')
             ->setNamespace("io appwrite")
             ->setGitUserName('repoowner')

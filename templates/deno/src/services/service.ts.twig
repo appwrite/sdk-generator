@@ -41,27 +41,12 @@ export type UploadProgress = {
 }
 
 export class {{ service.name | caseUcfirst }} extends Service {
-{% if service.globalParams | length %}
-{% for parameter in service.globalParams %}
-     protected {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }};
-     public set{{ parameter.name | caseUcfirst | escapeKeyword }}({{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.type | typeName }}): void
-     {
-        this.{{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }};
-     }
-     public get{{ parameter.name | caseUcfirst | escapeKeyword }}(): {{ parameter.type | typeName }}
-     {
-        return this.{{ parameter.name | caseCamel | escapeKeyword }};
-     }
-{% endfor %}
-     constructor(client: Client, {% for parameter in service.globalParams %} {{ parameter.name | caseCamel | escapeKeyword }}:{{ parameter.type | typeName }}{% if not parameter.required %}|null = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %})
+
+     constructor(client: Client)
      {
         super(client);
-
-{% for parameter in service.globalParams %}
-        this.{{ parameter.name | caseCamel | escapeKeyword }} = {{ parameter.name | caseCamel | escapeKeyword }};
-{% endfor %}
      }
-{% endif %}
+
 {% for method in service.methods %}
 {% set generics = _self.get_generics(spec.definitions[method.responseModel], spec, true, true) %}
 {% set generics_return = _self.get_generics_return(spec.definitions[method.responseModel], spec) %}
@@ -72,14 +57,14 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {{ method.description|comment1 }}
      *
 {% endif %}
-{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
-     * @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
+{% for parameter in method.parameters.all%}
+     * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
      * @throws {AppwriteException}
      * @returns {Promise}
      */
-    async {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter.type | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): Promise<{% if method.type == 'webAuth' %}Response{% elseif method.type == 'location' %}Response{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}> {
-{% for parameter in method.parameters.all | filter((param) => not param.isGlobal) %}
+    async {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): Promise<{% if method.type == 'webAuth' %}Response{% elseif method.type == 'location' %}Response{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}> {
+{% for parameter in method.parameters.all %}
 {% if parameter.required %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
             throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
@@ -87,18 +72,18 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% endif %}
 {% endfor %}
-        let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+        let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
         let payload: Payload = {};
 
 {% for parameter in method.parameters.query %}
-        if (typeof {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" and parameter.type != "file" ) %}.toString(){% endif %};
+        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" and parameter.type != "file" ) %}.toString(){% endif %};
         }
 
 {% endfor %}
 {% for parameter in method.parameters.body %}
-        if (typeof {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {% if parameter.isGlobal %}this.{% endif %}{{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" and parameter.type != "file" ) %}.toString(){% endif %};
+        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" and parameter.type != "file" ) %}.toString(){% endif %};
         }
 {% endfor %}
 {% if 'multipart/form-data' in method.consumes %}

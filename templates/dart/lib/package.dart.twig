@@ -16,6 +16,9 @@ export 'src/input_file.dart';
 export 'src/upload_progress.dart';
 
 part 'query.dart';
+part 'permission.dart';
+part 'role.dart';
+part 'id.dart';
 {% for service in spec.services %}
 part 'services/{{service.name | caseDash}}.dart';
 {% endfor %}

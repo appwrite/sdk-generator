@@ -12,8 +12,11 @@ class Client {
     this.endpoint = '{{spec.endpoint}}';
     this.headers = {
       'content-type': '',
-      'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
-      'User-Agent' : `{{spec.title | caseUcfirst}}CLI/{{ sdk.version }} (${os.type()} ${os.version()}; ${os.arch()})`,
+      'x-sdk-name': '{{ sdk.name }}',
+      'x-sdk-platform': '{{ sdk.platform }}',
+      'x-sdk-language': '{{ language.name | caseLower }}',
+      'x-sdk-version': '{{ sdk.version }}',
+      'user-agent' : `{{spec.title | caseUcfirst}}CLI/{{ sdk.version }} (${os.type()} ${os.version()}; ${os.arch()})`,
 {% for key,header in spec.global.defaultHeaders %}
       '{{key}}' : '{{header}}',
 {% endfor %}
@@ -134,6 +137,7 @@ class Client {
         method.toUpperCase() === "GET" || contentType.startsWith("multipart/form-data") ? formData : params,
       json: contentType.startsWith("application/json"),
       transformRequest: method.toUpperCase() === "GET" || contentType.startsWith("multipart/form-data") ? undefined : (data) =>  JSONbig.stringify(data),
+      transformResponse: [ (data) =>  data ? JSONbig.parse(data) : data ],
       responseType: responseType,
     };
     try {
