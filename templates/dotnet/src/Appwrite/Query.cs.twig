@@ -1,5 +1,5 @@
+using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Appwrite
 {
@@ -67,9 +67,14 @@ namespace Appwrite
 
         private static string AddQuery(string attribute, string method, object value)
         {
-            if (value is List<object> list)
+            if (value is IList list)
             {
-                return $"{method}(\"{attribute}\", [{string.Join(",", list.Select(ParseValues))}])";
+                var parsed = new List<object>();
+                foreach (var item in list)
+                {
+                    parsed.Add(ParseValues(item));
+                }
+                return $"{method}(\"{attribute}\", [{string.Join(",", parsed)}])";
             }
             else
             {
