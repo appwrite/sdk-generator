@@ -84,9 +84,15 @@ namespace Appwrite
 
         private static string ParseValues(object value)
         {
-            return value is string
-                ? $"\"{value}\""
-                : value.ToString();
+            switch (value)
+            {
+                case string str:
+                    return $"\"{str}\"";
+                case bool boolean:
+                    return boolean.ToString().ToLower();
+                default:
+                    return value.ToString();
+            }
         }
     }
 }
