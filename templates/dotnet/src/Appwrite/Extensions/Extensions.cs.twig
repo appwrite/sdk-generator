@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace {{ spec.title | caseUcfirst }}.Extensions
 {
@@ -22,17 +22,19 @@ namespace {{ spec.title | caseUcfirst }}.Extensions
                 {
                     case null:
                         continue;
-                    case List<object> list:
-                        query.AddRange(list.Select(entry =>
-                            $"{kvp.Key}[]={Uri.EscapeUriString(entry.ToString())}"
-                        ));
+                    case IList list:
+                        foreach (var item in list)
+                        {
+                            query.Add($"{kvp.Key}[]={item}");
+                        }
                         break;
                     default:
-                        query.Add($"{kvp.Key}={Uri.EscapeUriString(kvp.Value.ToString())}");
+                        query.Add($"{kvp.Key}={kvp.Value.ToString()}");
                         break;
                 }
             }
-            return string.Join("&", query);
+
+            return Uri.EscapeUriString(string.Join("&", query));
         }
 
         private static IDictionary<string, string> _mappings = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) {
