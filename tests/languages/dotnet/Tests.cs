@@ -134,6 +134,9 @@ namespace AppwriteTests
             // ID helper tests
             TestContext.WriteLine(ID.Unique());
             TestContext.WriteLine(ID.Custom("custom_id"));
+
+            mock = await general.Headers();
+            TestContext.WriteLine(mock.Result);
         }
     }
 }
