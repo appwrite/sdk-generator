@@ -6,7 +6,6 @@
 
         final Map<String, String> headers = {
             {{ utils.map_headers(method.headers) }},
-            "x-sdk-graphql: true,
         }};
 
         final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);

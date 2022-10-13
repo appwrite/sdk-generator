@@ -99,9 +99,6 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
-{% if method.type == 'graphql' %}
-            'x-sdk-graphql': 'true',
-{% endif %}
         };
 
         let id: string | undefined = undefined;
