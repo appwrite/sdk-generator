@@ -40,7 +40,7 @@ open class {{ service.name | caseUcfirst }}: Service {
 {{include('swift/base/requests/location.twig')}}
 {% else %}
         {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} headers: [String: String] = [
-{{ method.headers|map((header, key) => "            \"#{key}\": \"#{header}\"")|join(',\n')|raw }}{% if method.type == "graphql" %}
+{{ method.headers|map((header, key) => "            \"#{key}\": \"#{header}\"")|join(',\n')|raw }}
         ]
 {% if method.responseModel %}
         let converter: ([String: Any]) -> {{ _self.resultType(spec, method) }} = { dict in
