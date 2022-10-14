@@ -35,11 +35,12 @@ try {
         return $result;
     }
 
-    //$spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
-    // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
-    // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1&platform=console'); // Enable only with Appwrite local server running on port 80
-    // $spec = file_get_contents('https://appwrite.io/specs/swagger2?platform=client');
-    $spec = file_get_contents('./specs/swagger2-latest-console.json');
+    // Leave the platform you want uncommented
+    $platform = 'client';
+    // $platform = 'console';
+    // $platform = 'server';
+
+    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/master/app/config/specs/swagger2-latest-${platform}.json");
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
