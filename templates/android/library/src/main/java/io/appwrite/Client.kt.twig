@@ -230,7 +230,7 @@ class Client @JvmOverloads constructor(
         headers:  Map<String, String> = mapOf(), 
         params: Map<String, Any?> = mapOf(),
         responseType: Class<T>,
-        converter: ((Any -> T)? = null
+        converter: ((Any) -> T)? = null
     ): T {
         val filteredParams = params.filterValues { it != null }
 
