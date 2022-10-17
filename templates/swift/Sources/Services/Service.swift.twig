@@ -43,11 +43,11 @@ open class {{ service.name | caseUcfirst }}: Service {
 {{ method.headers|map((header, key) => "            \"#{key}\": \"#{header}\"")|join(',\n')|raw }}
         ]
 {% if method.responseModel %}
-        let converter: ([String: Any]) -> {{ _self.resultType(spec, method) }} = { dict in
+        let converter: (Any) -> {{ _self.resultType(spec, method) }} = { response in
 {% if method.responseModel == 'any' %}
-            return dict
+            return response
 {% else %}
-            return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: dict)
+            return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: response as [String: Any])
 {% endif %}
         }
 {% endif %}

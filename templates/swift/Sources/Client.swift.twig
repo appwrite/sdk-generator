@@ -232,7 +232,7 @@ open class Client {
         headers: [String: String] = [:],
         params: [String: Any?] = [:],
         sink: ((ByteBuffer) -> Void)? = nil,
-        converter: (([String: Any]) -> T)? = nil
+        converter: ((Any) -> T)? = nil
     ) async throws -> T {
         let validParams = params.filter { $0.value != nil }
 
@@ -273,7 +273,7 @@ open class Client {
     private func execute<T>(
         _ request: HTTPClientRequest,
         withSink bufferSink: ((ByteBuffer) -> Void)? = nil,
-        converter: (([String: Any]) -> T)? = nil
+        converter: ((Any) -> T)? = nil
     ) async throws -> T {
         func complete(with response: HTTPClientResponse) async throws -> T {
             switch response.status.code {
@@ -338,7 +338,7 @@ open class Client {
         params: inout [String: Any?],
         paramName: String,
         idParamName: String? = nil,
-        converter: (([String: Any]) -> T)? = nil,
+        converter: ((Any) -> T)? = nil,
         onProgress: ((UploadProgress) -> Void)? = nil
     ) async throws -> T {
         let input = params[paramName] as! InputFile
