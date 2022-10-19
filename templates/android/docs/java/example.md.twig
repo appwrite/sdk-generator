@@ -55,8 +55,12 @@ Client client = Client(context)
                 return;
             }
 
+            {%~ if method.type != 'webAuth' %}
             {{ utils.resultTypeJava(sdk.namespace, method) }} response = ({{ utils.resultTypeJava(sdk.namespace, method) }}) o;
-        }
+            {%~ else %}
+            // Success
+            {%~ endif %}
+        }}
     }
 );
 {% endif %}
