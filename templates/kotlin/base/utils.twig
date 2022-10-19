@@ -6,8 +6,8 @@
 {% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
 {% macro resultTypeKt(namespace, method) %}
-{% if method.type == "webAuth" %}Bool{% elseif method.type == "location" %}ByteArray{% elseif not method.responseModel or method.responseModel == 'any' %}Any{% else %}{{ namespace | caseDot}}.models.{{method.responseModel | caseUcfirst}}{% endif %}
+{% if method.type == "webAuth" %}{% elseif method.type == "location" %}ByteArray{% elseif not method.responseModel or method.responseModel == 'any' %}Any{% else %}{{ namespace | caseDot}}.models.{{method.responseModel | caseUcfirst}}{% endif %}
 {% endmacro %}
 {% macro resultTypeJava(namespace, method) %}
-{% if method.type == "webAuth" %}boolean{% elseif method.type == "location" %}byte[]{% elseif not method.responseModel or method.responseModel == 'any' %}Object{% else %}{{ namespace | caseDot}}.models.{{method.responseModel | caseUcfirst}}{% endif %}
+{% if method.type == "webAuth" %}Void{% elseif method.type == "location" %}byte[]{% elseif not method.responseModel or method.responseModel == 'any' %}Object{% else %}{{ namespace | caseDot}}.models.{{method.responseModel | caseUcfirst}}{% endif %}
 {% endmacro %}
