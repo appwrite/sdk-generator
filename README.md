@@ -35,7 +35,7 @@ docker run --rm --interactive --tty --volume "$(pwd)":/app composer install --ig
 docker run --rm --interactive --tty --volume "%cd%":/app composer install --ignore-platform-reqs
 ```
 
-Create language and SDK instances and generate code to target directory.
+Create language SDK instances and then generate code to target directory.
 
 ```php
 <?php
