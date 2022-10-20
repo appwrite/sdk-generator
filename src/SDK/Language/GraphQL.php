@@ -195,7 +195,7 @@ class GraphQL extends Language {
         return [
             [
                 'scope'         => 'method',
-                'destination'   => 'docs/examples/graphql/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => '/graphql/docs/example.md.twig',
             ],
         ];
