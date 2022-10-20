@@ -17,7 +17,6 @@ mutation {
         {%~ if definition.name == method.responseModel %}
         {%~ for property in definition.properties | filter(p => p.required) %}
         {{ property.name | caseCamel }}
-
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         data
