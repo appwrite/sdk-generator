@@ -1,0 +1,29 @@
+{%~ if method.method == 'get' %}
+query {
+{%~ else %}
+mutation {
+{%~ endif %}
+    {{ service.name | caseCamel }}{{ method.name | caseCamel | caseUcfirst }}{% if method.parameters.all | filter(p => p.required) | length == 0 %} {{ '{' }}{% else %}(
+        {%~ for parameter in method.parameters.all | filter(p => p.required) %}
+        {{ parameter.name | caseCamel }}: {{ parameter | paramExample }}{% if not loop.last %},{% endif %}
+
+        {%~ endfor %}
+    ) {{ '{' }}{%~ endif %}
+
+        {%~ if method.responseModel == 'none' or method.responseModel == '' %}
+        status
+        {%~ else %}
+        {%~ for definition in spec.definitions %}
+        {%~ if definition.name == method.responseModel %}
+        {%~ for property in definition.properties | filter(p => p.required) %}
+        {{ property.name | caseCamel }}{% if not loop.last %},{% endif %}
+
+        {%~ endfor %}
+        {%~ if definition.additionalProperties %}
+        data
+        {%~ endif %}
+        {%~ endif %}
+        {%~ endfor %}
+        {%~ endif %}
+    }
+}
