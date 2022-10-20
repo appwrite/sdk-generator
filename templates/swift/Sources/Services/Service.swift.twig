@@ -47,7 +47,7 @@ open class {{ service.name | caseUcfirst }}: Service {
 {% if method.responseModel == 'any' %}
             return response
 {% else %}
-            return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: response as [String: Any])
+            return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: response as! [String: Any])
 {% endif %}
         }
 {% endif %}
