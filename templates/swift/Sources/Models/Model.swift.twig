@@ -14,7 +14,7 @@ public class {{ definition | modelType(spec) | raw }} {
     {%~ endfor %}
     {%~ if definition.additionalProperties %}
     /// Additional properties
-    let data: T
+    public let data: T
     {%~ endif %}
 
     init(

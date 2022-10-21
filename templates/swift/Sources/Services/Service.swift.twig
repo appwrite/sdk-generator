@@ -5,12 +5,13 @@ import {{spec.title | caseUcfirst}}Models
 
 /// {{ service.description }}
 open class {{ service.name | caseUcfirst }}: Service {
+
     {%~ for method in service.methods %}
     ///
     /// {{ method.title }}
     ///
     {%~ if method.description %}
-    {{ method.description | swiftComment }}
+    {{~ method.description | swiftComment }}
     ///
     {%~ endif %}
     {%~ for parameter in method.parameters.all %}
@@ -49,6 +50,7 @@ open class {{ service.name | caseUcfirst }}: Service {
         {%~ endfor %}
         ]
         {%~ endif %}
+
         {%~ if method.responseModel %}
         let converter: ([String: Any]) -> {{ method | returnType(spec) | raw }} = { dict in
             {%~ if method.responseModel == 'any' %}
@@ -57,6 +59,7 @@ open class {{ service.name | caseUcfirst }}: Service {
             return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: dict)
             {%~ endif %}
         }
+
         {%~ endif %}
         {%~ if 'multipart/form-data' in method.consumes %}
         {{~ include('swift/base/requests/file.twig') }}
@@ -65,53 +68,45 @@ open class {{ service.name | caseUcfirst }}: Service {
         {%~ endif %}
         {%~ endif %}
     }
+    {%~ if method.responseModel | hasGenericType(spec) %}
+
+    ///
+    /// {{ method.title }}
+    ///
+    {%~ if method.description %}
+    {{~ method.description | swiftComment }}
+    ///
+    {%~ endif %}
+    {%~ for parameter in method.parameters.all %}
+    /// @param {{ parameter | typeName | raw}} {{ parameter.name | caseCamel }}
+    {%~ endfor %}
+    /// @throws Exception
+    /// @return array
+    ///
+    {%~ if method.type == "webAuth" %}
+    @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+    {%~ endif %}
+    open func {{ method.name | caseCamel }}(
+        {%~ for parameter in method.parameters.all %}
+        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
+
+        {%~ endfor %}
+        {%~ if 'multipart/form-data' in method.consumes %}
+        onProgress: ((UploadProgress) -> Void)? = nil
+        {%~ endif %}
+    ) async throws -> {{ method | returnType(spec, '[String: AnyCodable]') | raw }} {
+        return try await {{ method.name | caseCamel }}(
+            {%~ for parameter in method.parameters.all %}
+            {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %},{% endif %}
+
+            {%~ endfor %}
+            {%~ if 'multipart/form-data' in method.consumes %}
+            onProgress: onProgress
+            {%~ endif %}
+        )
+    }
+    {%~ endif %}
 
 {% endfor %}
 
-{#{% for method in service.methods %}#}
-{#    ///#}
-{#    /// {{ method.title }}#}
-{#    ///#}
-{#{% if method.description %}#}
-{#{{ method.description | swiftComment }}#}
-{#    ///#}
-{#{% endif %}#}
-{#{% for parameter in method.parameters.all %}#}
-{#    /// @param {{ parameter | typeName | raw}} {{ parameter.name | caseCamel }}#}
-{#{% endfor %}#}
-{#    /// @throws Exception#}
-{#    /// @return array#}
-{#    ///#}
-{#    @available(*, deprecated, message: "Use the async overload instead")#}
-{#{% if method.type == "webAuth" %}#}
-{#    @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)#}
-{#{% endif %}#}
-{#    open func {{ method.name | caseCamel }}(#}
-{#{% for parameter in method.parameters.all %}#}
-{#        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required %}? = nil{% endif %},#}
-{#{% endfor %}#}
-{#{% if 'multipart/form-data' in method.consumes %}#}
-{#        onProgress: ((UploadProgress) -> Void)? = nil,#}
-{#{% endif %}#}
-{#        completion: ((Result<{{ _self.resultType(spec, method) }}, {{ spec.title | caseUcfirst}}Error>) -> Void)? = nil#}
-{#    ) {#}
-{#        Task {#}
-{#            do {#}
-{#                let result = try await {{ method.name | caseCamel }}(#}
-{#{% for parameter in method.parameters.all %}#}
-{#                    {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}#}
-
-{#{% endfor %}#}
-{#{% if 'multipart/form-data' in method.consumes %}#}
-{#                    onProgress: onProgress#}
-{#{% endif %}#}
-{#                )#}
-{#                completion?(.success(result))#}
-{#            } catch {#}
-{#                completion?(.failure(error as! {{ spec.title | caseUcfirst}}Error))#}
-{#            }#}
-{#        }#}
-{#    }#}
-
-{#{% endfor %}#}
 }

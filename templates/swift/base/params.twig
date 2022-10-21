@@ -1,12 +1,8 @@
-        {% if method.parameters.path -%} var
-        {%- else -%} let
-        {%- endif %} path: String = "{{ method.path }}"
+        let path: String = "{{ method.path }}"
         {%~ for parameter in method.parameters.path %}
-        path = path.replacingOccurrences(
-          of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}",
-          with: {{ parameter.name | caseCamel | escapeKeyword }}
-        )
+            .replacingOccurrences(of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", with: {{ parameter.name | caseCamel | escapeKeyword }})
         {%~ endfor %}
+
         {%~ if method.parameters.query | merge(method.parameters.body) | length <= 0 %}
         let params: [String: Any] = [:]
         {%~ else %}
@@ -18,4 +14,4 @@
 
         {%~ endfor %}
         ]
-        {%- endif %}
+        {%~ endif %}
