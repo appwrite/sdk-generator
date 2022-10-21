@@ -156,10 +156,10 @@ class GraphQL extends Language {
                     $output .= 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "";
+                    $output .= '""';
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= '{}';
+                    $output .= '"{}"';
                     break;
                 case self::TYPE_ARRAY:
                     $output .= '[]';
@@ -197,6 +197,10 @@ class GraphQL extends Language {
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => '/graphql/docs/example.md.twig',
+                'exclude'       => [
+                    'services'  => [['name' => 'graphql']],
+                    'methods'   => [['type' => 'webAuth']],
+                ],
             ],
         ];
     }
