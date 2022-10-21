@@ -1,93 +1,67 @@
-import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+{% import 'kotlin/base/utils.twig' as utils %}
 import {{ sdk.namespace | caseDot }}.Client
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
 import {{ sdk.namespace | caseDot }}.models.InputFile
 {% endif %}
 import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }}
 
-public class MainActivity extends AppCompatActivity {
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        Client client = new Client(getApplicationContext())
+Client client = Client(context)
 {% if method.security|length > 0 %}
-            .setEndpoint("https://[HOSTNAME_OR_IP]/v1") // Your API Endpoint
+    .setEndpoint("https://[HOSTNAME_OR_IP]/v1") // Your API Endpoint
 {% for node in method.security %}
 {% for key,header in node|keys %}
-            .set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo']}}"){% if loop.last %};{% endif %} // {{node[header].description}}
-{% endfor %}
-{% endfor %}
-{% endif %}
+    .set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo']}}"){% if loop.last %};{% endif %} // {{node[header].description}}
+{% endfor %}{% endfor %}{% endif %}
 
-        {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
+{{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
 
-        {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %}new Continuation<Object>() {
-            @NotNull
-            @Override
-            public CoroutineContext getContext() {
-                return EmptyCoroutineContext.INSTANCE;
-            }
+{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %}new Continuation<{{ utils.resultTypeJava(sdk.namespace, method) }}>() {
+    @NotNull
+    @Override
+    public CoroutineContext getContext() {
+        return EmptyCoroutineContext.INSTANCE;
+    }
 
-            @Override
-            public void resumeWith(@NotNull Object o) {
-                String json = "";
-                try {
-                    if (o instanceof Result.Failure) {
-                        Result.Failure failure = (Result.Failure) o;
-                        throw failure.exception;
-                    }{% if method.type != "webAuth" %} else {
-                            Response response = (Response) o;
-                            json = response.body().string();
-                        }{% endif %}
-                    
-                    }
-                } catch (Throwable th) {
-                    Log.e("ERROR", th.toString());
-                }
-            }
-        });{% endif %}
+    @Override
+    public void resumeWith(@NotNull Object o) {
+        if (o instanceof Result.Failure) {
+            Result.Failure failure = (Result.Failure) o;
+            failure.exception.printStackTrace();
+            return;
+        }
 
-{% if method.type == "webAuth" %}
-            this,
-{% endif %}
+        {{ utils.resultTypeJava(sdk.namespace, method) }} response = ({{ utils.resultTypeJava(sdk.namespace, method) }}) o;
+    }
+});{% endif %}
+
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
-            {{ parameter | paramExample }}{% if not loop.last %}, {% endif %}
+    {{ parameter | paramExample }}{% if not loop.last %},{% endif %}
 
 {% endif %}
 {% if loop.last %}
-            new Continuation<Object>() {
-                @NotNull
-                @Override
-                public CoroutineContext getContext() {
-                    return EmptyCoroutineContext.INSTANCE;
-                }
+    new Continuation<{{ utils.resultTypeJava(sdk.namespace, method) }}>() {
+        @NotNull
+        @Override
+        public CoroutineContext getContext() {
+            return EmptyCoroutineContext.INSTANCE;
+        }
 
-                @Override
-                public void resumeWith(@NotNull Object o) {
-                    String json = "";
-                    try {
-                        if (o instanceof Result.Failure) {
-                            Result.Failure failure = (Result.Failure) o;
-                            throw failure.exception;
-                        }{% if method.type != "webAuth" %} else {
-                            Response response = (Response) o;
-                            json = response.body().string();
-                        }{% endif %}
-                    
-                    } catch (Throwable th) {
-                        Log.e("ERROR", th.toString());
-                    }
-                }
+        @Override
+        public void resumeWith(@NotNull Object o) {
+            if (o instanceof Result.Failure) {
+                Result.Failure failure = (Result.Failure) o;
+                failure.exception.printStackTrace();
+                return;
             }
-        );
+
+            {%~ if method.type != 'webAuth' %}
+            {{ utils.resultTypeJava(sdk.namespace, method) }} response = ({{ utils.resultTypeJava(sdk.namespace, method) }}) o;
+            {%~ else %}
+            // Success
+            {%~ endif %}
+        }
+    }
+);
 {% endif %}
 {% endfor %}
-    }
-}
