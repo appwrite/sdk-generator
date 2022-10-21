@@ -22,13 +22,11 @@ class Deno extends JS
                 'scope'         => 'default',
                 'destination'   => 'mod.ts',
                 'template'      => 'deno/mod.ts.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'src/client.ts',
                 'template'      => 'deno/src/client.ts.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
@@ -49,61 +47,51 @@ class Deno extends JS
                 'scope'         => 'default',
                 'destination'   => 'src/query.ts',
                 'template'      => 'deno/src/query.ts.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'src/inputFile.ts',
                 'template'      => 'deno/src/inputFile.ts.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/service.ts',
                 'template'      => 'deno/src/service.ts.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/models.d.ts',
                 'template'      => 'deno/src/models.d.ts.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/exception.ts',
                 'template'      => 'deno/src/exception.ts.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'service',
                 'destination'   => '/src/services/{{service.name | caseDash}}.ts',
                 'template'      => 'deno/src/services/service.ts.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'deno/README.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => 'deno/CHANGELOG.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => 'deno/LICENSE.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'deno/docs/example.md.twig',
-                'minify'        => false,
             ],
         ];
     }
