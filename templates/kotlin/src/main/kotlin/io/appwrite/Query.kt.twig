@@ -1,38 +1,157 @@
 package {{ sdk.namespace | caseDot }}
 
+/**
+ * Helper class for queries.
+ *
+ * **IMPORTANT** You can only query indexed attributes!
+ */
 @Suppress("NOTHING_TO_INLINE")
 object Query {
+    /**
+     * Selects cases, where [attribute] is **equal** to [value]
+     *
+     * @param attribute indexed attribute name to check
+     * @param value value for the equality check
+     *
+     * @return a query, that will select cases where [attribute] == [value]
+     */
     fun equal(attribute: String, value: Any) = make(attribute, "equal", value)
 
+    /**
+     * Selects cases, where [attribute] is **not equal** to [value]
+     *
+     * @param attribute indexed attribute name to check
+     * @param value value for the equality check
+     *
+     * @return a query, that will select cases where [attribute] != [value]
+     */
     fun notEqual(attribute: String, value: Any) = make(attribute, "notEqual", value)
 
+    /**
+     * Selects cases, where [attribute] is **less than** the [value]
+     *
+     * @param attribute indexed attribute name to check
+     * @param value value for the check
+     *
+     * @return a query, that will select cases where [attribute] < [value]
+     */
     fun lessThan(attribute: String, value: Any) = make(attribute, "lessThan", value)
 
+    /**
+     * Selects cases, where [attribute] is **less than OR equal to** the [value]
+     *
+     * @param attribute indexed attribute name to check
+     * @param value value for the check
+     *
+     * @return a query, that will select cases where [attribute] <= [value]
+     */
     fun lessThanEqual(attribute: String, value: Any) = make(attribute, "lessThanEqual", value)
 
+    /**
+     * Selects cases, where [attribute] is **greater than** the [value]
+     *
+     * @param attribute indexed attribute name to check
+     * @param value value for the check
+     *
+     * @return a query, that will select cases where [attribute] > [value]
+     */
     fun greaterThan(attribute: String, value: Any) = make(attribute, "greaterThan", value)
 
+    /**
+     * Selects cases, where [attribute] is **greater than OR equal to** the [value]
+     *
+     * @param attribute indexed attribute name to check
+     * @param value value for the check
+     *
+     * @return a query, that will select cases where [attribute] >= [value]
+     */
     fun greaterThanEqual(attribute: String, value: Any) = make(attribute, "greaterThanEqual", value)
 
+    /**
+     * Searches a string attribute named [attribute] for keywords provided in [value] (separated by spaces)
+     *
+     * @param attribute (fulltext) indexed string attribute name to perform fulltext search on
+     * @param value keywords to search for, separated by spaces
+     */
     fun search(attribute: String, value: String) = make(attribute, "search", value)
 
+    /**
+     * Orders ascending by [attribute]
+     *
+     * @param attribute name of the indexed attribute to order by
+     *
+     * @return a query, that will order ascending by [attribute]
+     */
     fun orderAsc(attribute: String) = "orderAsc(\"$attribute\")"
 
+    /**
+     * Orders descending by [attribute]
+     *
+     * @param attribute name of the indexed attribute to order by
+     *
+     * @return a query, that will order descending by [attribute]
+     */
     fun orderDesc(attribute: String) = "orderDesc(\"$attribute\")"
 
+    /**
+     * Places the cursor before [documentId]
+     *
+     * **Useful** in [pagination](https://appwrite.io/docs/pagination#cursor-pagination)
+     *
+     * @param documentId document ID to place the cursor before
+     *
+     * @return a query, that will place the cursor before the document with [documentId]
+     */
     fun cursorBefore(documentId: String) = "cursorBefore(\"$documentId\")"
 
+    /**
+     * Places the cursor after [documentId]
+     *
+     * **Useful** in [pagination](https://appwrite.io/docs/pagination#cursor-pagination)
+     *
+     * @param documentId document ID to place the cursor after
+     *
+     * @return a query, that will place the cursor after the document with [documentId]
+     */
     fun cursorAfter(documentId: String) = "cursorAfter(\"$documentId\")"
 
+    /**
+     * Limits the number of results by the query
+     *
+     * **Useful** in [pagination](https://appwrite.io/docs/pagination#offset-pagination)
+     *
+     * @param limit number of results to limit the query to
+     *
+     * @return a query, that will limit the results to [limit]
+     */
     fun limit(limit: Int) = "limit($limit)"
 
+    /**
+     * Offsets the query results by [offset]
+     *
+     * **Useful** in [pagination](https://appwrite.io/docs/pagination#offset-pagination)
+     *
+     * @param offset number of results to skip
+     *
+     * @return a query that will skip [offset] results
+     */
     fun offset(offset: Int) = "offset($offset)"
 
+    /**
+     * Makes a query that accepts multiple arguments
+     *
+     * @param attribute attribute to use
+     * @param method query method to use
+     * @param value a list or a singular value to use
+     */
     private inline fun make(attribute: String, method: String, value: Any): String = "${method}(\"$attribute\", [${
         (value as? List<*> ?: listOf(value))
             .filterNotNull()
             .joinToString(",", transform = this::stringify)
     }])"
 
+    /**
+     * Stringifies a value, wrapping it in `"` if it's a string.
+     */
     private inline fun stringify(value: Any): String = value.toString().let { if (value is String) "\"$it\"" else it }
 }

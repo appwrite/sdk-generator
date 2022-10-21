@@ -1,22 +1,60 @@
 package {{ sdk.namespace | caseDot }}
 
+/**
+ * Helper class for constructing permissions
+ */
 object Permission {
+    /**
+     * Constructs a permission, that allows [role] to read X
+     *
+     * @param role role to grant the permission to
+     *
+     * @return a permission, that allows [role] to read X
+     */
     fun read(role: String): String {
         return "read(\"${role}\")"
     }
 
+    /**
+     * Constructs a permission, that allows [role] to write to X
+     *
+     * @param role role to grant the permission to
+     *
+     * @return a permission, that allows [role] to write to X
+     */
     fun write(role: String): String {
         return "write(\"${role}\")"
     }
 
+    /**
+     * Constructs a permission, that allows [role] to create X
+     *
+     * @param role role to grant the permission to
+     *
+     * @return a permission, that allows [role] to create X
+     */
     fun create(role: String): String {
         return "create(\"${role}\")"
     }
 
+    /**
+     * Constructs a permission, that allows [role] to update X
+     *
+     * @param role role to grant the permission to
+     *
+     * @return a permission, that allows [role] to update X
+     */
     fun update(role: String): String {
         return "update(\"${role}\")"
     }
 
+    /**
+     * Constructs a permission, that allows [role] to update X
+     *
+     * @param role role to grant the permission to
+     *
+     * @return a permission, that allows [role] to update X
+     */
     fun delete(role: String): String {
         return "delete(\"${role}\")"
     }
