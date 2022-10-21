@@ -19,7 +19,7 @@ class PHP extends Language
      * @param string $name
      * @return $this
      */
-    public function setComposerVendor(string $name): PHP
+    public function setComposerVendor(string $name): self
     {
         $this->setParam('composerVendor', $name);
 
@@ -30,7 +30,7 @@ class PHP extends Language
      * @param string $name
      * @return $this
      */
-    public function setComposerPackage(string $name): PHP
+    public function setComposerPackage(string $name): self
     {
         $this->setParam('composerPackage', $name);
 

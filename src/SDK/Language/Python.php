@@ -15,7 +15,7 @@ class Python extends Language
      * @param string $name
      * @return $this
      */
-    public function setPipPackage(string $name): Python
+    public function setPipPackage(string $name): self
     {
         $this->setParam('pipPackage', $name);
 

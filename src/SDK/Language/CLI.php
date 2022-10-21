@@ -18,7 +18,7 @@ class CLI extends Node
      * @param string $name
      * @return $this
      */
-    public function setExecutableName(string $name): CLI
+    public function setExecutableName(string $name): self
     {
         $this->setParam('executableName', $name);
 
@@ -29,7 +29,7 @@ class CLI extends Node
      * @param string $logo
      * @return $this
      */
-    public function setLogo(string $logo): CLI
+    public function setLogo(string $logo): self
     {
         $this->setParam('logo', $logo);
 
@@ -40,7 +40,7 @@ class CLI extends Node
      * @param string $logo
      * @return $this
      */
-    public function setLogoUnescaped(string $logo): CLI
+    public function setLogoUnescaped(string $logo): self
     {
         $this->setParam('logoUnescaped', $logo);
 

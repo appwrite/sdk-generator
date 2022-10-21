@@ -15,7 +15,7 @@ abstract class JS extends Language
      * @param string $name
      * @return $this
      */
-    public function setNPMPackage(string $name): JS
+    public function setNPMPackage(string $name): self
     {
         $this->setParam('npmPackage', $name);
 
@@ -26,7 +26,7 @@ abstract class JS extends Language
      * @param string $name
      * @return $this
      */
-    public function setBowerPackage(string $name): JS
+    public function setBowerPackage(string $name): self
     {
         $this->setParam('bowerPackage', $name);
 
