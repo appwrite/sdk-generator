@@ -1,29 +1,55 @@
 package {{ sdk.namespace | caseDot }}
 
-class Role {
-    companion object {
-        fun any(): String = "any"
+/**
+ * Helper class for role selectors
+ */
+object Role {
+    const val any = "any"
 
-        fun user(id: String, status: String = ""): String = if(status.isEmpty()) {
-            "user:$id"
-        } else {
-            "user:$id/$status"
-        }
+    const val guests = "guests"
 
-        fun users(status: String = ""): String = if(status.isEmpty()) {
-            "users"
-        } else {
-            "users/$status"
-        }
+    @Deprecated("Use const val", ReplaceWith("any"))
+    @JvmStatic
+    fun any() = any
 
-        fun guests(): String = "guests"
+    /**
+     * Single user with the [id] (and [status], if provided) is selected
+     * 
+     * @param id user ID to select
+     * @param status user status to select
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun user(id: String, status: String? = null) = "user:$id${status?.let { "/$it" } ?: ""}"
 
-        fun team(id: String, role: String = ""): String = if(role.isEmpty()) {
-            "team:$id"
-        } else {
-            "team:$id/$role"
-        }
+    /**
+     * Multiple users (filtering by [status], if provided) are selected
+     *
+     * @param status user status to filter
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun users(status: String? = null) = "users${status?.let { "/$it" } ?: ""}"
 
-        fun member(id: String): String = "member:$id"
-    }
+    @Deprecated("Use const val", ReplaceWith("guests"))
+    @JvmStatic
+    fun guests() = guests
+
+    /**
+     * Team with [id] (and [role], if provided) is selected
+     *
+     * @param id team ID to select
+     * @param role (optional) role ID to select
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun team(id: String, role: String? = null) = "team:$id${role?.let { "/$it" } ?: ""}"
+
+    /**
+     * Selects a member with [id]
+     *
+     * @param id member ID
+     */
+    @JvmStatic
+    fun member(id: String) = "member:$id"
 }

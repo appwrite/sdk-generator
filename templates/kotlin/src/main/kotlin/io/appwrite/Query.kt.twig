@@ -1,44 +1,38 @@
 package {{ sdk.namespace | caseDot }}
 
-class Query {
-  companion object {
-    fun equal(attribute: String, value: Any) = addQuery(attribute, "equal", value)
+@Suppress("NOTHING_TO_INLINE")
+object Query {
+    fun equal(attribute: String, value: Any) = make(attribute, "equal", value)
 
-    fun notEqual(attribute: String, value: Any) = Query.addQuery(attribute, "notEqual", value)
+    fun notEqual(attribute: String, value: Any) = make(attribute, "notEqual", value)
 
-    fun lessThan(attribute: String, value: Any) = Query.addQuery(attribute, "lessThan", value)
+    fun lessThan(attribute: String, value: Any) = make(attribute, "lessThan", value)
 
-    fun lessThanEqual(attribute: String, value: Any) = Query.addQuery(attribute, "lessThanEqual", value)
+    fun lessThanEqual(attribute: String, value: Any) = make(attribute, "lessThanEqual", value)
 
-    fun greaterThan(attribute: String, value: Any) = Query.addQuery(attribute, "greaterThan", value)
+    fun greaterThan(attribute: String, value: Any) = make(attribute, "greaterThan", value)
 
-    fun greaterThanEqual(attribute: String, value: Any) = Query.addQuery(attribute, "greaterThanEqual", value)
-    
-    fun search(attribute: String, value: String) = Query.addQuery(attribute, "search", value)
+    fun greaterThanEqual(attribute: String, value: Any) = make(attribute, "greaterThanEqual", value)
 
-    fun orderAsc(attribute: String) = "orderAsc(\"${attribute}\")"
+    fun search(attribute: String, value: String) = make(attribute, "search", value)
 
-    fun orderDesc(attribute: String) = "orderDesc(\"${attribute}\")"
+    fun orderAsc(attribute: String) = "orderAsc(\"$attribute\")"
 
-    fun cursorBefore(documentId: String) = "cursorBefore(\"${documentId}\")"
+    fun orderDesc(attribute: String) = "orderDesc(\"$attribute\")"
 
-    fun cursorAfter(documentId: String) = "cursorAfter(\"${documentId}\")"
+    fun cursorBefore(documentId: String) = "cursorBefore(\"$documentId\")"
 
-    fun limit(limit: Int) = "limit(${limit})"
+    fun cursorAfter(documentId: String) = "cursorAfter(\"$documentId\")"
 
-    fun offset(offset: Int) = "offset(${offset})"
+    fun limit(limit: Int) = "limit($limit)"
 
-    private fun addQuery(attribute: String, method: String, value: Any): String {
-      return when (value) {
-        is List<*> -> "${method}(\"${attribute}\", [${value.map{it -> parseValues(it!!)}.joinToString(",")}])"
-    	  else -> "${method}(\"${attribute}\", [${Query.parseValues(value)}])"
-      }
-    }
-    private fun parseValues(value: Any): String {
-      return when (value) {
-        is String -> "\"${value}\""
-    	  else -> "${value}"
-      }
-    }
-  }
+    fun offset(offset: Int) = "offset($offset)"
+
+    private inline fun make(attribute: String, method: String, value: Any): String = "${method}(\"$attribute\", [${
+        (value as? List<*> ?: listOf(value))
+            .filterNotNull()
+            .joinToString(",", transform = this::stringify)
+    }])"
+
+    private inline fun stringify(value: Any): String = value.toString().let { if (value is String) "\"$it\"" else it }
 }
