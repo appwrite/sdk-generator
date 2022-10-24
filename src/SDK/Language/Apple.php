@@ -2,8 +2,8 @@
 
 namespace Appwrite\SDK\Language;
 
-class Apple extends Swift {
-
+class Apple extends Swift
+{
     /**
      * @return string
      */

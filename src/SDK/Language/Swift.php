@@ -458,9 +458,11 @@ class Swift extends Language
             return 'ByteBuffer';
         }
 
-        if (!\array_key_exists('responseModel', $method)
+        if (
+            !\array_key_exists('responseModel', $method)
             || empty($method['responseModel'])
-            || $method['responseModel'] === 'any') {
+            || $method['responseModel'] === 'any'
+        ) {
             return 'Any';
         }
 
