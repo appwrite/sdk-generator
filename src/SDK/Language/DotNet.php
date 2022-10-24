@@ -5,12 +5,12 @@ namespace Appwrite\SDK\Language;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 
-class DotNet extends Language {
-
+class DotNet extends Language
+{
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'DotNet';
     }
@@ -20,7 +20,7 @@ class DotNet extends Language {
      *
      * @return array
      */
-    public function getKeywords()
+    public function getKeywords(): array
     {
         return [
             'abstract',
@@ -136,7 +136,7 @@ class DotNet extends Language {
     /**
      * @return array
      */
-    public function getIdentifierOverrides()
+    public function getIdentifierOverrides(): array
     {
         return [
             'Jwt' => 'JWT',
@@ -177,19 +177,19 @@ class DotNet extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamDefault(array $param)
+    public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
         $default    = $param['default'] ?? '';
         $required   = $param['required'] ?? '';
 
-        if($required) {
+        if ($required) {
             return '';
         }
 
         $output = ' = ';
 
-        if(empty($default) && $default !== 0 && $default !== false) {
+        if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_INTEGER:
                 case self::TYPE_ARRAY:
@@ -201,8 +201,7 @@ class DotNet extends Language {
                     $output .= '""';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_INTEGER:
                     $output .= $default;
@@ -227,14 +226,14 @@ class DotNet extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamExample(array $param)
+    public function getParamExample(array $param): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
         $output = '';
 
-        if(empty($example) && $example !== 0 && $example !== false) {
+        if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
                     $output .= 'new File("./path-to-files/image.jpg")';
@@ -242,7 +241,7 @@ class DotNet extends Language {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                     $output .= '0';
-                break;
+                    break;
                 case self::TYPE_BOOLEAN:
                     $output .= 'false';
                     break;
@@ -262,8 +261,7 @@ class DotNet extends Language {
                     $output .= 'new List<'. $this->getTypeName($param['array']) . '> {' . $example . '}';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
@@ -289,7 +287,7 @@ class DotNet extends Language {
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
             [
@@ -406,11 +404,10 @@ class DotNet extends Language {
             new TwigFilter('dotnetComment', function ($value) {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
-                    $value[$key] = "        /// " . wordwrap($value[$key], 75, "\n        /// ");
+                    $value[$key] = "        /// " . wordwrap($line, 75, "\n        /// ");
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']])
         ];
     }
 }
-

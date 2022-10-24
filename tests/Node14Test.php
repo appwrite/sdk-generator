@@ -8,7 +8,7 @@ class Node14Test extends Base
     protected string $sdkPlatform = 'server';
     protected string $sdkLanguage = 'nodejs';
     protected string $version = '0.0.1';
-    
+
     protected string $language = 'node';
     protected string $class = 'Appwrite\SDK\Language\Node';
     protected array $build = [
