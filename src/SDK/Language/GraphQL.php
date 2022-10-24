@@ -4,8 +4,8 @@ namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
 
-class GraphQL extends Language {
-
+class GraphQL extends Language
+{
     /**
      * @return string
      */
@@ -86,13 +86,13 @@ class GraphQL extends Language {
         $default    = $param['default'] ?? '';
         $required   = $param['required'] ?? '';
 
-        if($required) {
+        if ($required) {
             return '';
         }
 
         $output = '';
 
-        if(empty($default) && $default !== 0 && $default !== false) {
+        if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_OBJECT:
                     $output .= '{}';
@@ -111,8 +111,7 @@ class GraphQL extends Language {
                     $output .= '""';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_OBJECT:
                 case self::TYPE_NUMBER:
@@ -124,7 +123,7 @@ class GraphQL extends Language {
                     $output .= ($default) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= '"'.$default .'"';
+                    $output .= '"' . $default . '"';
                     break;
             }
         }
@@ -143,7 +142,7 @@ class GraphQL extends Language {
 
         $output = '';
 
-        if(empty($example) && $example !== 0 && $example !== false) {
+        if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
                     $output .= 'null';
@@ -165,8 +164,7 @@ class GraphQL extends Language {
                     $output .= '[]';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
@@ -205,4 +203,3 @@ class GraphQL extends Language {
         ];
     }
 }
-
