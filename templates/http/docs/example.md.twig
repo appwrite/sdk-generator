@@ -2,7 +2,7 @@
 {{ method.method | caseUpper }} {{spec.basePath}}{{ method.path }} HTTP/1.1
 Host: {{ spec.host }}
 {% for key, header in method.headers %}
-{{ key }}: {{ header }}{% if header == 'multipart/form-data' %}; boundary="{{boundary}}"{% endif ~%}
+{{ key | caseUcwords }}: {{ header }}{% if header == 'multipart/form-data' %}; boundary="{{boundary}}"{% endif ~%}
 {% endfor %}
 {% for key,header in spec.global.defaultHeaders %}
 {{ key }}: {{ header }}
