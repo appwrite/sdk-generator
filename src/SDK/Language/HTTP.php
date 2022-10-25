@@ -154,9 +154,22 @@ e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...';
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_STRING:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    // If array of strings, make sure any sub-strings are escaped
+                    if (\substr($example, 1, 1) === '"') {
+                        $start = \substr($example, 0, 2);
+                        $end = \substr($example, -2);
+                        $contents = \substr($example, 2, -2);
+                        $contents = \addslashes($contents);
+                        $output .= $start . $contents . $end;
+                    } else {
+                        $output .= $example;
+                    }
+                    break;
+                case self::TYPE_STRING:
+                    $output .= '"' . \addslashes($example) . '"';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
