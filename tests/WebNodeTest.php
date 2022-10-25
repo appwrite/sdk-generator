@@ -8,7 +8,7 @@ class WebNodeTest extends Base
     protected string $sdkPlatform = 'client';
     protected string $sdkLanguage = 'web';
     protected string $version = '0.0.1';
-    
+
     protected string $language = 'web';
     protected string $class = 'Appwrite\SDK\Language\Web';
     protected array $build = [
