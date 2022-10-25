@@ -18,8 +18,7 @@ Host: {{ spec.host }}
 {% if method.parameters.body %}
 {
 {% for parameter in method.parameters.body %}
-  "{{ parameter.name }}": "{{ parameter | paramExample }}"{% if not loop.last %},{% endif %}
-
+  "{{ parameter.name }}": {{ parameter | paramExample }}{% if not loop.last %},{% endif ~%}
 {% endfor %}
 }
 {% endif %}
