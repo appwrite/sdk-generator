@@ -3,7 +3,7 @@ defmodule Appwrite.Role do
 
   def any(), do: "any"
 
-  def user(id, status = "") do
+  def user(id, status \\ nil) do
     if status do
       "user:#{id}/#{status}"
     else
@@ -11,7 +11,7 @@ defmodule Appwrite.Role do
     end
   end
 
-  def users(status = "") do
+  def users(status \\ nil) do
     if status do
       "users/#{status}"
     else
@@ -21,7 +21,7 @@ defmodule Appwrite.Role do
 
   def guests(), do: "guests"
 
-  def team(id, role = "") do
+  def team(id, role \\ nil) do
     if role do
       "team:#{id}/#{role}"
     else
