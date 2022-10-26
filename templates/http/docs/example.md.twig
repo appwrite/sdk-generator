@@ -7,10 +7,10 @@ Host: {{ spec.host }}
 {% for key,header in spec.global.defaultHeaders %}
 {{ key }}: {{ header }}
 {% endfor %}
-{% for header in spec.global.headers %}
-{% if header.key != 'Mode' and header.key != 'Locale' %}
-{{ header.name }}: {% for node in method.security %}{% for key,x in node|keys %}{% if x == header.key %}{{node[x]['x-appwrite']['demo']}}{% endif %}{% endfor %}{% endfor ~%}
-{% endif %}
+{% for node in method.security %}
+{% for key,header in node | keys %}
+{{ node[header]['name'] }}: {{ node[header]['x-appwrite']['demo'] }}
+{% endfor %}
 {% endfor %}
 {% for key, header in method.headers %}
 {% if header == 'application/json' %}
