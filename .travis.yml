@@ -28,6 +28,7 @@ env:
   - SDK=DartBeta
   - SDK=DartStable
   - SDK=Deno1171
+  - SDK=Elixir114
   - SDK=FlutterStable
   - SDK=Go112
   - SDK=Go118
