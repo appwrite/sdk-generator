@@ -14,7 +14,7 @@ use Appwrite\SDK\Language\Ruby;
 use Appwrite\SDK\Language\Dart;
 use Appwrite\SDK\Language\Go;
 use Appwrite\SDK\Language\Deno;
-use Appwrite\SDK\Language\HTTP;
+use Appwrite\SDK\Language\REST;
 use Appwrite\SDK\Language\Swift;
 use Appwrite\SDK\Language\SwiftClient;
 use Appwrite\SDK\Language\DotNet;
@@ -389,8 +389,8 @@ try {
 
     $sdk->generate(__DIR__ . '/examples/dotnet');
 
-    // HTTP
-    $sdk  = new SDK(new HTTP(), new Swagger2($spec));
+    // REST
+    $sdk  = new SDK(new REST(), new Swagger2($spec));
 
     $sdk
         ->setName('NAME')

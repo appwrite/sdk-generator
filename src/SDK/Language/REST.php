@@ -2,58 +2,14 @@
 
 namespace Appwrite\SDK\Language;
 
-class GraphQL extends HTTP
+class REST extends HTTP
 {
     /**
      * @return string
      */
     public function getName(): string
     {
-        return 'GraphQL';
-    }
-
-    /**
-     * @param $type
-     * @return string
-     */
-    public function getTypeName(array $parameter): string
-    {
-        $type = '';
-
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-                $type = 'Int';
-                break;
-            case self::TYPE_STRING:
-                $type = 'String';
-                break;
-            case self::TYPE_FILE:
-                $type = 'InputFile';
-                break;
-            case self::TYPE_BOOLEAN:
-                $type = 'Bool';
-                break;
-            case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    $type = '[' . $this->getTypeName($parameter['array']) . ']';
-                    break;
-                }
-                $type = '[String]';
-                break;
-            case self::TYPE_OBJECT:
-                $type = 'JSON';
-                break;
-        }
-
-        if (empty($type)) {
-            $type = $parameter['type'];
-        }
-
-        if ($parameter['required'] ?? false) {
-            $type .= '!';
-        }
-
-        return $type;
+        return 'REST';
     }
 
     /**
@@ -125,7 +81,8 @@ class GraphQL extends HTTP
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'null';
+                    $output .= 'cf 94 84 24 8d c4 91 10 0f dc 54 26 6c 8e 4b bc 
+e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -135,10 +92,10 @@ class GraphQL extends HTTP
                     $output .= 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= '""';
+                    $output .= "";
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= '"{}"';
+                    $output .= '{}';
                     break;
                 case self::TYPE_ARRAY:
                     $output .= '[]';
@@ -146,15 +103,26 @@ class GraphQL extends HTTP
             }
         } else {
             switch ($type) {
+                case self::TYPE_OBJECT:
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
                     break;
+                case self::TYPE_ARRAY:
+                    // If array of strings, make sure any sub-strings are escaped
+                    if (\substr($example, 1, 1) === '"') {
+                        $start = \substr($example, 0, 2);
+                        $end = \substr($example, -2);
+                        $contents = \substr($example, 2, -2);
+                        $contents = \addslashes($contents);
+                        $output .= $start . $contents . $end;
+                    } else {
+                        $output .= $example;
+                    }
+                    break;
                 case self::TYPE_STRING:
-                case self::TYPE_OBJECT:
-                    $output .= '"' . $example . '"';
+                    $output .= '"' . \addslashes($example) . '"';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -171,15 +139,11 @@ class GraphQL extends HTTP
     public function getFiles(): array
     {
         return [
-            [
-                'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => '/graphql/docs/example.md.twig',
-                'exclude'       => [
-                    'services'  => [['name' => 'graphql']],
-                    'methods'   => [['type' => 'webAuth']],
-                ],
-            ],
+          [
+            'scope'         => 'method',
+            'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}',
+            'template'      => '/http/docs/example.md.twig',
+          ],
         ];
     }
 }
