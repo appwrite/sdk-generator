@@ -204,7 +204,7 @@ abstract class Base extends TestCase
             if ('.' === $file || '..' === $file) {
                 continue;
             }
-            if (\is_dir("$dir/$file")) {
+            if (\is_dir("$dir/$file") && !\is_link("$dir/$file")) {
                 $this->rmdirRecursive("$dir/$file");
             } else {
                 \unlink("$dir/$file");
