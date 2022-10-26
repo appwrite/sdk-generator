@@ -13,7 +13,7 @@ class Elixir114Test extends Base
     protected string $class = 'Appwrite\SDK\Language\Elixir';
     protected array $build = [];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/elixir elixir:1.14 /app/tests/languages/elixir/test.sh';
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/elixir elixir:1.14-alpine /app/tests/languages/elixir/test.sh';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
