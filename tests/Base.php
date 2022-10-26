@@ -191,7 +191,7 @@ abstract class Base extends TestCase
         $this->assertGreaterThanOrEqual(count($this->expectedOutput), count($output));
 
         foreach ($this->expectedOutput as $i => $row) {
-            $this->assertEquals($output[$i], $row);
+            $this->assertEquals($row, $output[$i]);
         }
     }
 
