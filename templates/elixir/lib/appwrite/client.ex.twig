@@ -9,8 +9,8 @@ defmodule Appwrite.Client do
             chunk_size: 5 * 1024 * 1024,
             http_client: nil,
             global_headers: %{
-              "x-sdk-name" => "elixir-sdk",
-              "x-sdk-platform" => "",
+              "x-sdk-name" => "elixir",
+              "x-sdk-platform" => "server",
               "x-sdk-language" => "elixir",
 {% for key,header in spec.global.defaultHeaders %}
               "{{key}}" => "{{header}}",
