@@ -104,13 +104,26 @@ defmodule Appwrite.Client do
       Map.merge(client.global_headers, request_headers)
       |> Map.to_list()
 
-    Tesla.request(client.http_client,
+    case Tesla.request(client.http_client,
       method: method,
       url: path,
       headers: headers,
       body: body,
       query: params
-    )
+    ) do
+      {:ok, response} ->
+        if response.status >= 400 do
+          case response do
+            %{body: %{"message" => message}} ->
+              {:error, {:{{spec.title | caseSnake}}_error, message, response.status, response}}
+            %{body: body} ->
+              {:error, {:{{spec.title | caseSnake}}_error, body, response.status, response}}
+          end
+        else
+          {:ok, response}
+        end
+      {:error, error} -> {:error, error}
+    end
   end
 
   def chunked_upload(client, path, _headers, params, param_name, on_progress, upload_id) do

@@ -1,10 +1,9 @@
 IO.puts("Test Started")
 
 print_result = fn
+  {:ok, %{status: 204}} -> :ok
   {:ok, %{body: %{"result" => result}}} -> IO.puts(result)
-  {:ok, %{body: %{"message" => message}}} -> IO.puts(message)
-  {:ok, %{body: ""}} -> :ok
-  {:ok, %{body: body}} -> IO.puts(body)
+  {:error, {:appwrite_error, message, _, _}} -> IO.puts(message)
 end
 
 alias Appwrite.Client
@@ -50,9 +49,10 @@ Bar.delete(client, "string", 123, ["string in array"]) |> print_result.()
 #   |> print_result.()
 
 General.empty(client) |> print_result.()
-General.error400(client) |> print_result.()
-General.error500(client) |> print_result.()
-General.error502(client) |> print_result.()
+
+({:error, {:appwrite_error, _, _, _}} = General.error400(client)) |> print_result.()
+({:error, {:appwrite_error, _, _, _}} = General.error500(client)) |> print_result.()
+({:error, {:appwrite_error, _, _, _}} = General.error502(client)) |> print_result.()
 
 Query.equal("released", true) |> IO.puts
 Query.equal("title", ["Spiderman", "Dr. Strange"]) |> IO.puts
