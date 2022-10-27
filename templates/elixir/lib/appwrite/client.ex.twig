@@ -83,7 +83,8 @@ defmodule Appwrite.Client do
   defp setup_http_client(%__MODULE__{} = client) do
     middleware = [
       {Tesla.Middleware.BaseUrl, client.endpoint},
-      Tesla.Middleware.JSON
+      Tesla.Middleware.JSON,
+      Tesla.Middleware.FollowRedirects
     ]
 
     r = Tesla.client(middleware)
