@@ -611,7 +611,7 @@ const deployTeam = async ({ all, yes } = {}) => {
         teamIds.push(...configTeams.map((t) => t.$id));
     }
 
-    if(teamIds.length <= 0) {
+    if(teamIds.length === 0) {
         let answers = await inquirer.prompt(questionsDeployTeams[0])
         teamIds.push(...answers.teams);
     }
