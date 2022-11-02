@@ -6,7 +6,6 @@ use stdClass;
 
 class Swagger2 extends Spec
 {
-
     /**
      * @return string
      */
@@ -104,9 +103,10 @@ class Swagger2 extends Spec
                 if (isset($method['tags'])) {
                     foreach ($method['tags'] as $tag) {
                         if (!array_key_exists($tag, $list)) {
+                            $methods = $this->getMethods($tag);
                             $list[$tag] = [
                                 'name' => $tag,
-                                'methods' => $this->getMethods($tag),
+                                'methods' => $methods,
                             ];
                         }
                     }
@@ -132,7 +132,6 @@ class Swagger2 extends Spec
     public function getMethods($service)
     {
         $list = [];
-
         $security = $this->getAttribute('securityDefinitions', []);
         $paths = $this->getAttribute('paths', []);
 
@@ -149,10 +148,14 @@ class Swagger2 extends Spec
 
                     $responses = $method['responses'];
                     $responseModel = '';
-                    foreach($responses as $code => $desc) {
-                        if(isset($desc['schema']) && isset($desc['schema']['$ref'])) {
+                    $emptyResponse = true;
+                    foreach ($responses as $code => $desc) {
+                        if ($code != '204') {
+                            $emptyResponse = false;
+                        }
+                        if (isset($desc['schema']) && isset($desc['schema']['$ref'])) {
                             $responseModel = $desc['schema']['$ref'];
-                            if(!empty($responseModel)) {
+                            if (!empty($responseModel)) {
                                 $responseModel = str_replace('#/definitions/', '', $responseModel);
                             }
                         }
@@ -178,6 +181,7 @@ class Swagger2 extends Spec
                             'query' => [],
                             'body' => [],
                         ],
+                        'emptyResponse' => $emptyResponse,
                         'responseModel' => $responseModel,
                     ];
 
@@ -232,7 +236,6 @@ class Swagger2 extends Spec
                                     $param['type'] = $value['type'] ?? null;
                                     $param['description'] = $value['description'] ?? '';
                                     $param['required'] = (in_array($key, $bodyRequired));
-                                    $param['default'] = $value['default'] ?? null;
                                     $param['example'] = $value['x-example'] ?? null;
                                     $param['isUploadID'] = $value['x-upload-id'] ?? false;
                                     $param['array'] = [
@@ -249,8 +252,6 @@ class Swagger2 extends Spec
                                 }
 
                                 continue 2;
-
-                                break;
                         }
 
                         $output['parameters']['all'][] = $param;
@@ -278,7 +279,6 @@ class Swagger2 extends Spec
         $security = $this->getAttribute('securityDefinitions', []);
 
         foreach ($security as $key => $definition) {
-
             if (isset($definition['in']) && $definition['in'] === 'header') {
                 $list[] = [
                     'key' => $key,
@@ -291,38 +291,41 @@ class Swagger2 extends Spec
         return $list;
     }
 
-    public function getDefinitions() {
+    public function getDefinitions()
+    {
         $list = [];
-        $definition = $this->getAttribute('definitions',[]);
+        $definition = $this->getAttribute('definitions', []);
         foreach ($definition as $key => $schema) {
-            if($key == 'any') continue;
+            if ($key == 'any') {
+                continue;
+            }
             $sch = [
                 "name" => $key,
-                "properties"=> $schema['properties'] ?? [],
-                "description"=> $schema['description'] ?? [],
+                "properties" => $schema['properties'] ?? [],
+                "description" => $schema['description'] ?? [],
                 "required" => $schema['required'] ?? [],
                 "additionalProperties" => $schema['additionalProperties'] ?? []
             ];
-            if(isset($sch['properties'])) {
-                foreach($sch['properties'] as $name => $def) {
+            if (isset($sch['properties'])) {
+                foreach ($sch['properties'] as $name => $def) {
                     $sch['properties'][$name]['name'] = $name;
                     $sch['properties'][$name]['description'] = $def['description'];
-                    $sch['properties'][$name]['required'] =  in_array($name,$sch['required']);
-                    if(isset($def['items']['$ref'])) {
+                    $sch['properties'][$name]['required'] =  in_array($name, $sch['required']);
+                    if (isset($def['items']['$ref'])) {
                         //nested model
                         $sch['properties'][$name]['sub_schema'] = str_replace('#/definitions/', '', $def['items']['$ref']);
                     }
 
-                    if(isset($def['items']['x-anyOf'])) {
+                    if (isset($def['items']['x-anyOf'])) {
                         //nested model
                         $sch['properties'][$name]['sub_schemas'] = \array_map(fn($schema) => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-anyOf']);
                     }
 
-                    if(isset($def['items']['x-oneOf'])) {
+                    if (isset($def['items']['x-oneOf'])) {
                         //nested model
                         $sch['properties'][$name]['sub_schemas'] = \array_map(fn($schema) => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-oneOf']);
                     }
-            }
+                }
             }
             $list[$key] = $sch;
         }

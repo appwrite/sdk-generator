@@ -33,7 +33,7 @@ npm install {{ language.params.npmPackage }} --save
 If you're using a bundler (like [Rollup](https://rollupjs.org/) or [webpack](https://webpack.js.org/)), you can import the {{ spec.title }} module when you need it:
 
 ```js
-import {{ '{' }} {{ language.params.npmPackage|caseUcfirst }} {{ '}' }} from "{{ language.params.npmPackage }}";
+import {{ '{' }} Client, Account {{ '}' }} from "{{ language.params.npmPackage }}";
 ```
 
 ### CDN

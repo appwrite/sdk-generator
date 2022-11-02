@@ -2,8 +2,6 @@ library {{ language.params.packageName }};
 
 import 'dart:async';
 import 'dart:typed_data';
-import 'src/chunked_upload_stub.dart'
-    if (dart.library.io) 'src/chunked_upload_io.dart';
 import 'src/enums.dart';
 import 'src/client.dart';
 import 'src/service.dart';
@@ -16,9 +14,11 @@ export 'src/client.dart';
 export 'src/exception.dart';
 export 'src/input_file.dart';
 export 'src/upload_progress.dart';
-export 'package:http/http.dart' show MultipartFile;
 
 part 'query.dart';
+part 'permission.dart';
+part 'role.dart';
+part 'id.dart';
 {% for service in spec.services %}
 part 'services/{{service.name | caseDash}}.dart';
 {% endfor %}

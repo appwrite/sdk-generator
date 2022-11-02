@@ -1,4 +1,4 @@
-{% macro parameter(parameter) %}{{ parameter.name | caseCamel }}: {{ parameter.type | typeName }}{% if not parameter.required %}? = null{% endif %}{% endmacro %}
+{% macro parameter(parameter) %}{{ parameter.name | caseCamel }}: {{ parameter | typeName }}{% if not parameter.required %}? = null{% endif %}{% endmacro %}
 {% macro method_parameters(parameters, consumes) %}
 {% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, onProgress: ((UploadProgress) -> Unit)? = null{% endif %}{% endif %}
 {% endmacro %}
@@ -26,7 +26,9 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 {% endif %}
 import java.io.File
 
-class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
+class {{ service.name | caseUcfirst }} : Service {
+
+    public constructor (client: Client) : super(client) { }
 
 {% for method in service.methods %}
     /**
@@ -37,7 +39,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
      *
 {% endif %}
 {% for parameter in method.parameters.all %}
-     * @param {{ parameter.name | caseCamel }} {{ parameter.description }}
+     * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
 {% endfor %}
      * {% if method.type != "webAuth" %}@return [{{ _self.resultType(sdk.namespace, method) }}]{% endif %}
      

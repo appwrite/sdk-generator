@@ -5,7 +5,7 @@ import 'package:{{ language.params.packageName }}/{{ language.params.packageName
 
 void main() { // Init SDK
   Client client = Client();
-  {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = {{service.name | caseUcfirst}}(client);
+  {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = {{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample }}{% endfor %}{% endif %});
 
 {% if method.security|length > 0 %}
   client
@@ -25,7 +25,7 @@ void main() { // Init SDK
 {% if parameter.required %}
     {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
 {% endif %}
-{% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %}).then((bytes) {
+{% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %}).then((bytes) {
     final file = File('path_to_file/filename.ext');
     file.writeAsBytesSync(bytes)
   }).catchError((error) {
@@ -40,9 +40,9 @@ FutureBuilder(
 
 {% endif %}
 {% if parameter.required %}
-    {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
+    {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample }},
 {% endif %}
-{% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %}
+{% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %}
 ), //works for both public file and private file, for private files you need to be logged in
   builder: (context, snapshot) {
     return snapshot.hasData && snapshot.data != null
@@ -60,7 +60,7 @@ FutureBuilder(
 {% if parameter.required %}
     {{ parameter.name | caseCamel }}: {{ parameter | paramExample }},
 {% endif %}
-{% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %});
+{% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %});
 
   result
     .then((response) {

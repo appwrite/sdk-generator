@@ -5,7 +5,7 @@ import 'package:{{ language.params.packageName }}/{{ language.params.packageName
 
 void main() { // Init SDK
   Client client = Client();
-  {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = {{service.name | caseUcfirst}}(client);
+  {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = {{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample }}{% endfor %}{% endif %});
 
 {% if method.security|length > 0 %}
   client
@@ -22,9 +22,9 @@ void main() { // Init SDK
 
 {% endif %}
 {% if parameter.required %}
-    {{ parameter.name | caseCamel }}: {{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }},
+    {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }},
 {% endif %}
-{% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %});
+{% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %});
 
   result
     .then((response) {

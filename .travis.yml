@@ -12,7 +12,11 @@ os: linux
 language: php
 
 php:
-  - 8.0
+  - 8.1
+
+stages:
+  - lint
+  - test
 
 env:
   - SDK=Android11Java8
@@ -27,7 +31,7 @@ env:
   - SDK=FlutterStable
   - SDK=Go112
   - SDK=Go118
-  - SDK=FlutterBeta
+#  - SDK=FlutterBeta
   - SDK=KotlinJava8
   - SDK=KotlinJava11
   - SDK=KotlinJava17
@@ -54,16 +58,22 @@ notifications:
   email:
     - team@appwrite.io
 
+jobs:
+  include:
+    - stage: lint
+      name: Lint
+      install:
+        - composer install
+      script:
+        - composer lint
+
 before_install:
   - >
     if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
       echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
     fi
-
-
 install:
   - docker --version
   - composer install
-
 script:
-  - vendor/bin/phpunit tests/${SDK}Test.php
+  - composer test tests/${SDK}Test.php

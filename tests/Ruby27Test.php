@@ -4,6 +4,11 @@ namespace Tests;
 
 class Ruby27Test extends Base
 {
+    protected string $sdkName = 'ruby';
+    protected string $sdkPlatform = 'server';
+    protected string $sdkLanguage = 'ruby';
+    protected string $version = '0.0.1';
+
     protected string $language = 'ruby';
     protected string $class = 'Appwrite\SDK\Language\Ruby';
     protected array $build = [
@@ -17,6 +22,11 @@ class Ruby27Test extends Base
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
-        ...Base::EXCEPTION_RESPONSES
+        ...Base::LARGE_FILE_RESPONSES,
+        ...Base::LARGE_FILE_RESPONSES,
+        ...Base::EXCEPTION_RESPONSES,
+        ...Base::QUERY_HELPER_RESPONSES,
+        ...Base::PERMISSION_HELPER_RESPONSES,
+        ...Base::ID_HELPER_RESPONSES
     ];
 }

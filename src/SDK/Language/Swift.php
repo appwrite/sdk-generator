@@ -3,13 +3,14 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
-class Swift extends Language {
-
+class Swift extends Language
+{
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'Swift';
     }
@@ -19,7 +20,7 @@ class Swift extends Language {
      *
      * @return array
      */
-    public function getKeywords()
+    public function getKeywords(): array
     {
         return [
             "class",
@@ -92,7 +93,7 @@ class Swift extends Language {
     /**
      * @return array
      */
-    public function getIdentifierOverrides()
+    public function getIdentifierOverrides(): array
     {
         return [];
     }
@@ -100,199 +101,189 @@ class Swift extends Language {
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'swift/README.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => 'swift/CHANGELOG.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => 'swift/LICENSE.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'Package.swift',
                 'template'      => 'swift/Package.swift.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'swift/docs/example.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Tests/{{ spec.title | caseUcfirst}}Tests/Tests.swift',
                 'template'      => 'swift/Tests/Tests.swift.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Client.swift',
                 'template'      => 'swift/Sources/Client.swift.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/{{ spec.title | caseUcfirst}}Error.swift',
                 'template'      => '/swift/Sources/Models/Error.swift.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/File.swift',
-                'template'      => 'swift/Sources/Models/File.swift.twig',
-                'minify'        => false,
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/InputFile.swift',
+                'template'      => 'swift/Sources/Models/InputFile.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/Query.swift',
-                'template'      => 'swift/Sources/Models/Query.swift.twig',
-                'minify'        => false,
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Permission.swift',
+                'template'      => 'swift/Sources/Permission.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Role.swift',
+                'template'      => 'swift/Sources/Role.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/ID.swift',
+                'template'      => 'swift/Sources/ID.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Query.swift',
+                'template'      => 'swift/Sources/Query.swift.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/UploadProgress.swift',
                 'template'      => 'swift/Sources/Models/UploadProgress.swift.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Codable+JSON.swift',
                 'template'      => 'swift/Sources/Extensions/Codable+JSON.swift.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Cookie+Codable.swift',
                 'template'      => 'swift/Sources/Extensions/Cookie+Codable.swift.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/HTTPClientRequest+Cookies.swift',
                 'template'      => 'swift/Sources/Extensions/HTTPClientRequest+Cookies.swift.twig',
-                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/String+MimeTypes.swift',
+                'template'      => 'swift/Sources/Extensions/String+MimeTypes.swift.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/StreamingDelegate.swift',
                 'template'      => 'swift/Sources/StreamingDelegate.swift.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Services/Service.swift',
                 'template'      => 'swift/Sources/Service.swift.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/iOS/iOSDeviceInfo.swift',
                 'template'      => 'swift/Sources/DeviceInfo/iOS/iOSDeviceInfo.swift',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/iOS/UIDevice+ModelName.swift',
                 'template'      => 'swift/Sources/DeviceInfo/iOS/UIDevice+ModelName.swift',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/Linux/LinuxDeviceInfo.swift',
                 'template'      => 'swift/Sources/DeviceInfo/Linux/LinuxDeviceInfo.swift',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/MacOS/MacOSDeviceInfo.swift',
                 'template'      => 'swift/Sources/DeviceInfo/MacOS/MacOSDeviceInfo.swift',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/MacOS/CwlSysCtl.swift',
                 'template'      => 'swift/Sources/DeviceInfo/MacOS/CwlSysCtl.swift',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/Windows/WindowsDeviceInfo.swift',
                 'template'      => 'swift/Sources/DeviceInfo/Windows/WindowsDeviceInfo.swift',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/OSDeviceInfo.swift',
                 'template'      => 'swift/Sources/DeviceInfo/OSDeviceInfo.swift',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/Apple/PackageInfo+Apple.swift',
                 'template'      => 'swift/Sources/PackageInfo/Apple/PackageInfo+Apple.swift',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/Linux/PackageInfo+Linux.swift',
                 'template'      => 'swift/Sources/PackageInfo/Linux/PackageInfo+Linux.swift',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/Windows/PackageInfo+Windows.swift',
                 'template'      => 'swift/Sources/PackageInfo/Windows/PackageInfo+Windows.swift',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/OSPackageInfo.swift',
                 'template'      => 'swift/Sources/PackageInfo/OSPackageInfo.swift',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/PackageInfo/PackageInfo.swift',
                 'template'      => 'swift/Sources/PackageInfo/PackageInfo.swift',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'service',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.swift',
                 'template'      => 'swift/Sources/Services/Service.swift.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'definition',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ definition.name | caseUcfirst }}.swift',
                 'template'      => '/swift/Sources/Models/Model.swift.twig',
-                'minify'        => false,
             ],
         ];
     }
 
     /**
-     * @param $type
+     * @param array $parameter
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'Int';
             case self::TYPE_NUMBER:
@@ -300,35 +291,38 @@ class Swift extends Language {
             case self::TYPE_STRING:
                 return 'String';
             case self::TYPE_FILE:
-                return 'File';
+                return 'InputFile';
             case self::TYPE_BOOLEAN:
                 return 'Bool';
             case self::TYPE_ARRAY:
-                 return '[Any]';
+                if (!empty($parameter['array']['type'])) {
+                    return '[' . $this->getTypeName($parameter['array']) . ']';
+                }
+                return '[Any]';
             case self::TYPE_OBJECT:
                 return 'Any';
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     /**
      * @param array $param
      * @return string
      */
-    public function getParamDefault(array $param)
+    public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
         $default    = $param['default'] ?? '';
         $required   = $param['required'] ?? '';
 
-        if($required) {
+        if ($required) {
             return '';
         }
 
         $output = ' = ';
 
-        if(empty($default) && $default !== 0 && $default !== false) {
+        if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_INTEGER:
                 case self::TYPE_NUMBER:
@@ -349,14 +343,13 @@ class Swift extends Language {
                 default:
                     echo $type;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_INTEGER:
                     $output .= $default;
                     break;
                 case self::TYPE_NUMBER:
-                    $output .= sprintf("%.1f",$default);
+                    $output .= sprintf("%.1f", $default);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
@@ -379,17 +372,17 @@ class Swift extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamExample(array $param)
+    public function getParamExample(array $param): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
         $output = '';
 
-        if(empty($example) && $example !== 0 && $example !== false) {
+        if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'File(name: "image.jpg", buffer: yourByteBuffer)';
+                    $output .= 'InputFile.fromPath("file.png")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -404,9 +397,11 @@ class Swift extends Language {
                 case self::TYPE_ARRAY:
                     $output .= '[]';
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= '[:]';
+                    break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
@@ -420,9 +415,25 @@ class Swift extends Language {
                 case self::TYPE_STRING:
                     $output .= "\"{$example}\"";
                     break;
+                case self::TYPE_OBJECT:
+                    $output .= '[:]';
+                    break;
             }
         }
 
         return $output;
+    }
+
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('swiftComment', function ($value) {
+                $value = explode("\n", $value);
+                foreach ($value as $key => $line) {
+                    $value[$key] = "    /// " . wordwrap($line, 75, "\n    /// ");
+                }
+                return implode("\n", $value);
+            }, ['is_safe' => ['html']])
+        ];
     }
 }
