@@ -466,7 +466,7 @@ class Swift extends Language
             return 'Any';
         }
 
-        $ret = $this->toUpperCase($method['responseModel']);
+        $ret = $this->toUpperCaseWords($method['responseModel']);
 
         if ($this->hasGenericType($method['responseModel'], $spec)) {
             $ret .= '<' . $generic . '>';
@@ -478,15 +478,15 @@ class Swift extends Language
     protected function getModelType(array $definition, array $spec, string $generic): string
     {
         if ($this->hasGenericType($definition['name'], $spec)) {
-            return $this->toUpperCase($definition['name']) . '<' . $generic . '>';
+            return $this->toUpperCaseWords($definition['name']) . '<' . $generic . '>';
         }
-        return $this->toUpperCase($definition['name']);
+        return $this->toUpperCaseWords($definition['name']);
     }
 
     protected function getPropertyType(array $property, array $spec, string $generic): string
     {
         if (\array_key_exists('sub_schema', $property)) {
-            $type = $this->toUpperCase($property['sub_schema']);
+            $type = $this->toUpperCaseWords($property['sub_schema']);
 
             if ($this->hasGenericType($property['sub_schema'], $spec)) {
                 $type .= '<' . $generic . '>';

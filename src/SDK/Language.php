@@ -84,12 +84,12 @@ abstract class Language
         return [];
     }
 
-    protected function toUpperCase(string $value): string
+    protected function toUpperCaseWords(string $value): string
     {
-        return ucfirst($this->helperCamelCase($value));
+        return ucfirst($this->toCamelCase($value));
     }
 
-    protected function helperCamelCase($str): string
+    protected function toCamelCase($str): string
     {
         $str = preg_replace('/[^a-z0-9' . implode("", []) . ']+/i', ' ', $str);
         $str = trim($str);
