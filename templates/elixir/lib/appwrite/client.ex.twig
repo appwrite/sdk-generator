@@ -92,6 +92,19 @@ defmodule Appwrite.Client do
     %{client | http_client: r}
   end
 
+  defp handle_response(response) do
+    if response.status >= 400 do
+      case response do
+        %{body: %{"message" => message}} ->
+          {:error, {:{{spec.title | caseSnake}}_error, message, response.status, response}}
+        %{body: body} ->
+          {:error, {:{{spec.title | caseSnake}}_error, body, response.status, response}}
+      end
+    else
+      {:ok, response}
+    end
+  end
+
   def call(client, method, path, request_headers, params \\ %{}) do
     {params, body} =
       if method != :get do
@@ -111,17 +124,7 @@ defmodule Appwrite.Client do
       body: body,
       query: params
     ) do
-      {:ok, response} ->
-        if response.status >= 400 do
-          case response do
-            %{body: %{"message" => message}} ->
-              {:error, {:{{spec.title | caseSnake}}_error, message, response.status, response}}
-            %{body: body} ->
-              {:error, {:{{spec.title | caseSnake}}_error, body, response.status, response}}
-          end
-        else
-          {:ok, response}
-        end
+      {:ok, response} -> handle_response(response)
       {:error, error} -> {:error, error}
     end
   end
