@@ -25,7 +25,7 @@ open class {{ service.name | caseUcfirst }}: Service {
     {%~ endif %}
     open func {{ method.name | caseCamel }}{% if method.responseModel | hasGenericType(spec) %}<T>{% endif %}(
         {%~ for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
+        {{ parameter.name | caseCamel | escapeKeyword }}: {% if parameter.type == "object" %}T{% else %}{{ parameter | typeName | raw }}{% endif %}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
 
         {%~ endfor %}
         {%~ if 'multipart/form-data' in method.consumes %}
