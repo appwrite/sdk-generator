@@ -15,7 +15,7 @@ class Elixir extends Language {
      * @param string $name
      * @return $this
      */
-    public function setPipPackage($name)
+    public function setPipPackage($name): self
     {
         $this->setParam('pipPackage', $name);
 
@@ -25,7 +25,7 @@ class Elixir extends Language {
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'Elixir';
     }
@@ -35,7 +35,7 @@ class Elixir extends Language {
      *
      * @return array
      */
-    public function getKeywords()
+    public function getKeywords(): array
     {
         return [
             'false',
@@ -66,7 +66,7 @@ class Elixir extends Language {
     /**
      * @return array
      */
-    public function getIdentifierOverrides()
+    public function getIdentifierOverrides(): array
     {
         return [];
     }
@@ -74,7 +74,7 @@ class Elixir extends Language {
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
             [
@@ -202,7 +202,7 @@ class Elixir extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamDefault(array $param)
+    public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
         $default    = $param['default'] ?? '';
@@ -261,7 +261,7 @@ class Elixir extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamExample(array $param)
+    public function getParamExample(array $param): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
