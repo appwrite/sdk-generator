@@ -18,9 +18,9 @@ alias Appwrite.Id
 
 Logger.configure(level: :error)
 
-client = Client.get_client("https://appwrite.io/v1")
-  |> Client.add_header("Origin", "http://localhost")
-  |> Client.set_self_signed(true)
+client = Client.get_client
+|> Client.add_header("Origin", "http://localhost")
+|> Client.set_self_signed(true)
 
 Foo.get(client, "string", 123, ["string in array"]) |> print_result.()
 Foo.post(client, "string", 123, ["string in array"]) |> print_result.()

@@ -19,7 +19,7 @@ defmodule Appwrite.Client do
             },
             self_signed?: false
 
-  def get_client(endpoint, opts \\ []) do
+  def get_client(endpoint \\ "{{spec.endpoint}}", opts \\ []) do
     self_signed? =
       if is_nil(opts[:self_signed?]) do
         false
