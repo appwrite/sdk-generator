@@ -5,13 +5,14 @@ defmodule Appwrite.Client do
   alias {{spec.title | caseUcfirst}}.InputFile
   alias Tesla.Multipart
 
-  defstruct endpoint: "https://HOSTNAME/v1",
+  defstruct endpoint: "{{spec.endpoint}}",
             chunk_size: 5 * 1024 * 1024,
             http_client: nil,
             global_headers: %{
-              "x-sdk-name" => "elixir",
-              "x-sdk-platform" => "server",
-              "x-sdk-language" => "elixir",
+              "x-sdk-name" => "{{sdk.name}}",
+              "x-sdk-platform" => "{{sdk.platform}}",
+              "x-sdk-language" => "{{language.name | caseLower}}",
+              "x-sdk-version" => "{{sdk.version}}",
 {% for key,header in spec.global.defaultHeaders %}
               "{{key}}" => "{{header}}",
 {% endfor %}
