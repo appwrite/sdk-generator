@@ -10,7 +10,7 @@ alias Appwrite.Client
 alias Appwrite.Services.Foo
 alias Appwrite.Services.Bar
 alias Appwrite.Services.General
-#alias Appwrite.InputFile
+alias Appwrite.InputFile
 alias Appwrite.Query
 alias Appwrite.Permission
 alias Appwrite.Role
@@ -34,19 +34,19 @@ Bar.put(client, "string", 123, ["string in array"]) |> print_result.()
 Bar.patch(client, "string", 123, ["string in array"]) |> print_result.()
 Bar.delete(client, "string", 123, ["string in array"]) |> print_result.()
 
-# General.redirect(client) |> print_result.()
+General.redirect(client) |> print_result.()
 
-# General.upload(client, "string", 123, ["string in array"], InputFile.from_path("../../resources/file.png"))
-#   |> print_result.()
+General.upload(client, "string", 123, ["string in array"], InputFile.from_path("../../resources/file.png"))
+|> print_result.()
 
-# General.upload(client, "string", 123, ["string in array"], InputFile.from_path("../../resources/large_file.mp4"))
-#   |> print_result.()
+General.upload(client, "string", 123, ["string in array"], InputFile.from_path("../../resources/large_file.mp4"))
+|> print_result.()
 
-# General.upload(client, "string", 123, ["string in array"], File.read!("../../resources/file.png") |> InputFile.from_binary("file.png"))
-#   |> print_result.()
+#General.upload(client, "string", 123, ["string in array"], File.read!("../../resources/file.png") |> InputFile.from_binary("file.png"))
+#|> print_result.()
 
-# General.upload(client, "string", 123, ["string in array"], File.read!("../../resources/large_file.mp4.png") |> InputFile.from_binary("/large_file.mp4"))
-#   |> print_result.()
+#General.upload(client, "string", 123, ["string in array"], File.read!("../../resources/large_file.mp4.png") |> InputFile.from_binary("/large_file.mp4"))
+#|> print_result.()
 
 General.empty(client) |> print_result.()
 
