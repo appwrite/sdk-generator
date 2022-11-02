@@ -131,7 +131,7 @@ defmodule Appwrite.Client do
   end
 
   def chunked_upload(client, path, _headers, params, param_name, on_progress, upload_id) do
-    input_file = params[param_name]
+    {input_file, params} = Map.pop!(params, param_name)
 
     {size, stream, file_name} =
       case input_file do
@@ -175,21 +175,25 @@ defmodule Appwrite.Client do
         size: size,
         file_name: file_name,
         offset: offset,
-        headers: %{}
+        headers: %{},
+        response: nil
       },
       fn x, acc -> upload_part(x, acc) end
     )
+    |> Map.get(:response)
+    |> handle_response
   end
 
   defp get_offset(_client, _path, "unique()"), do: 0
 
   defp get_offset(client, path, upload_id) do
-    {:ok, %{body: response}} =
-      call(client, :get, "#{path}/#{upload_id}", %{"content-type" => "text/json"})
-
-    case response["chunksUploaded"] do
-      nil -> 0
-      offset -> offset
+    case call(client, :get, "#{path}/#{upload_id}", %{"content-type" => "text/json"}) do
+      {:ok, %{body: response}} ->
+        case response["chunksUploaded"] do
+          nil -> 0
+          offset -> offset
+        end
+      {:error, _} -> 0
     end
   end
 
@@ -199,8 +203,12 @@ defmodule Appwrite.Client do
     mp =
       Multipart.new()
       |> Multipart.add_content_type_param("charset=utf-8")
-      |> Multipart.add_field("fileId", params.upload_id)
       |> Multipart.add_file_content(chunk, params.file_name)
+    
+    mp =
+      params.params
+      |> flatten
+      |> Enum.reduce(mp, fn {key, value}, acc -> Multipart.add_field(acc, key, "#{value}") end)
 
     request_headers =
       client.global_headers
@@ -219,7 +227,7 @@ defmodule Appwrite.Client do
     notify_progress(response, params)
     headers = set_appwrite_id_header(params.headers, response.body["$id"])
 
-    %{params | offset: params.offset + 1, headers: headers}
+    %{params | offset: params.offset + 1, headers: headers, response: response}
   end
 
   defp add_chunk_header(headers, _offset, chunk_size, file_size) when chunk_size > file_size,
@@ -256,5 +264,33 @@ defmodule Appwrite.Client do
       offset * chunk_size,
       size
     ])
+  end
+
+  defp flatten(data, options \\ [])
+
+  defp flatten(data, options) when is_map(data) do
+    data
+    |> Enum.flat_map(fn x -> flatten(x, options) end)
+  end
+
+  defp flatten(data, options) when is_list(data) do
+    data
+    |> Enum.with_index
+    |> Enum.flat_map(fn {x, i} -> flatten({i, x}, options) end)
+  end
+
+  defp flatten({key, value}, options) when is_list(value) or is_map(value) do
+    flatten(value, Keyword.get_and_update(options, :prefix, fn
+      nil -> {nil, "#{key}"}
+      prefix -> {prefix, "#{prefix}[#{key}]"}
+    end) |> elem(1))
+  end
+
+  defp flatten({key, value}, options) do
+    if prefix = Keyword.get(options, :prefix) do
+      [{"#{prefix}[#{key}]", value}]
+    else
+      [{"#{key}", value}]
+    end
   end
 end
