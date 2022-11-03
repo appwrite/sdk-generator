@@ -176,25 +176,31 @@ defmodule Appwrite.Client do
 
     offset = get_offset(client, path, upload_id)
 
-    stream
-    |> Stream.drop(offset)
-    |> Enum.reduce(
-      %{
-        client: client,
-        path: path,
-        params: params,
-        on_progress: on_progress,
-        upload_id: upload_id,
-        size: size,
-        file_name: file_name,
-        offset: offset,
-        headers: %{},
-        response: nil
-      },
-      fn x, acc -> upload_part(x, acc) end
-    )
-    |> Map.get(:response)
-    |> handle_response
+    result =
+      stream
+      |> Stream.drop(offset)
+      |> Enum.reduce_while(
+        %{
+          client: client,
+          path: path,
+          params: params,
+          on_progress: on_progress,
+          upload_id: upload_id,
+          size: size,
+          file_name: file_name,
+          offset: offset,
+          headers: %{},
+          response: nil
+        },
+        fn x, acc -> upload_part(x, acc) end
+      )
+    
+    case result do
+      %{response: response} ->
+        {:ok, response}
+      {:error, error} ->
+        {:error, error}
+    end
   end
 
   defp get_offset(_client, _path, "unique()"), do: 0
@@ -229,18 +235,25 @@ defmodule Appwrite.Client do
       |> add_chunk_header(params.offset, client.chunk_size, params.size)
       |> Map.to_list()
 
-    {:ok, response} =
-      Tesla.request(client.http_client,
-        method: :post,
-        url: params.path,
-        headers: request_headers,
-        body: mp
-      )
+    case Tesla.request(client.http_client,
+      method: :post,
+      url: params.path,
+      headers: request_headers,
+      body: mp
+    ) do
+      {:ok, response} ->
+        case handle_response(response) do
+          {:ok, response} ->
+            notify_progress(response, params)
+            headers = set_appwrite_id_header(params.headers, response.body["$id"])
 
-    notify_progress(response, params)
-    headers = set_appwrite_id_header(params.headers, response.body["$id"])
-
-    %{params | offset: params.offset + 1, headers: headers, response: response}
+            {:cont, %{params | offset: params.offset + 1, headers: headers, response: response}}
+          {:error, error} ->
+            {:halt, {:error, error}}
+        end
+      {:error, error} ->
+        {:halt, {:error, error}}
+    end
   end
 
   defp add_chunk_header(headers, _offset, chunk_size, file_size) when chunk_size > file_size,
