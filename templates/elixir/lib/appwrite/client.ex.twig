@@ -130,6 +130,19 @@ defmodule Appwrite.Client do
     end
   end
 
+  defp chunks(binary, n) do
+    do_chunks(binary, n, [])
+  end
+
+  defp do_chunks(binary, n, acc) when byte_size(binary) <= n do
+    Enum.reverse([binary | acc])
+  end
+
+  defp do_chunks(binary, n, acc) do
+    <<chunk::binary-size(n), rest::binary>> = binary
+    do_chunks(rest, n, [<<chunk::binary-size(n)>> | acc])
+  end
+
   def chunked_upload(client, path, _headers, params, param_name, on_progress, upload_id) do
     {input_file, params} = Map.pop!(params, param_name)
 
@@ -137,7 +150,7 @@ defmodule Appwrite.Client do
       case input_file do
         %InputFile{file_content: content, file_name: file_name, file_path: nil} ->
           size = byte_size(content)
-          stream = Stream.chunk_every(content, client.chunk_size)
+          stream = chunks(content, client.chunk_size)
           {size, stream, file_name}
 
         %InputFile{file_content: nil, file_name: file_name, file_path: file_path} ->
