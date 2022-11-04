@@ -137,13 +137,15 @@ class Swagger2 extends Spec
 
         foreach ($paths as $pathName => $path) {
             foreach ($path as $methodName => $method) {
-                $auth = $method['x-appwrite']['auth'] ?? [];
+                $methodAuth = $method['x-appwrite']['auth'] ?? [];
+                $methodSecurity = $method['security'][0] ?? [];
 
                 if (isset($method['tags']) && is_array($method['tags']) && in_array($service, $method['tags'])) {
-                    if (isset($auth) && is_array($auth)) {
-                        foreach ($auth as $i => $node) {
-                            $auth[$i] = (array_key_exists($i, $security)) ? $security[$i] : [];
-                        }
+                    foreach ($methodAuth as $i => $node) {
+                        $methodAuth[$i] = (array_key_exists($i, $security)) ? $security[$i] : [];
+                    }
+                    foreach ($methodSecurity as $i => $node) {
+                        $methodSecurity[$i] = (array_key_exists($i, $security)) ? $security[$i] : [];
                     }
 
                     $responses = $method['responses'];
@@ -169,7 +171,8 @@ class Swagger2 extends Spec
                         'packaging' => $method['x-appwrite']['packaging'] ?? false,
                         'title' => $method['summary'] ?? '',
                         'description' => $method['description'] ?? '',
-                        'security' => [$auth] ?? [],
+                        'auth' => [$methodAuth] ?? [],
+                        'security' => [$methodSecurity] ?? [],
                         'consumes' => $method['consumes'] ?? [],
                         'cookies' => $method['x-appwrite']['cookies'] ?? false,
                         'type' => $method['x-appwrite']['type'] ?? false,
