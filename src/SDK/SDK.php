@@ -103,6 +103,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseUcfirst', function ($value) {
             return ucfirst($this->helperCamelCase($value));
         }));
+        $this->twig->addFilter(new TwigFilter('caseUcwords', function ($value) {
+            return ucwords($value, " -_");
+        }));
         $this->twig->addFilter(new TwigFilter('caseLcfirst', function ($value) {
             return lcfirst((string)$value);
         }));
@@ -588,12 +591,20 @@ class SDK
                             'methods' => $methods,
                         ];
 
+                        if ($this->exclude($file, $params)) {
+                            continue;
+                        }
+
                         $this->render($template, $destination, $block, $params, $minify);
                     }
                     break;
                 case 'definition':
                     foreach ($this->spec->getDefinitions() as $key => $definition) {
                         $params['definition'] = $definition;
+
+                        if ($this->exclude($file, $params)) {
+                            continue;
+                        }
 
                         $this->render($template, $destination, $block, $params, $minify);
                     }
@@ -614,12 +625,87 @@ class SDK
 
                         foreach ($methods as $method) {
                             $params['method'] = $method;
+
+                            if ($this->exclude($file, $params)) {
+                                continue;
+                            }
+
                             $this->render($template, $destination, $block, $params, $minify);
                         }
                     }
                     break;
             }
         }
+    }
+
+    /**
+     * Determine if a file should be excluded from generation.
+     *
+     * Allows for files to be excluded based on:
+     *   - Service name or feature
+     *   - Method name or type
+     *   - Definition name
+     *
+     * @param $file
+     * @param $params
+     * @return bool
+     */
+    protected function exclude($file, $params): bool
+    {
+        $exclude = $file['exclude'] ?? [];
+
+        $services = [];
+        $features = [];
+        foreach ($exclude['services'] ?? [] as $service) {
+            if (isset($service['name'])) {
+                $services[] = $service['name'];
+            }
+            if (isset($service['feature'])) {
+                $features[] = $service['feature'];
+            }
+        }
+
+        $methods = [];
+        $types = [];
+        foreach ($exclude['methods'] ?? [] as $method) {
+            if (isset($method['name'])) {
+                $methods[] = $method['name'];
+            }
+            if (isset($method['type'])) {
+                $types[] = $method['type'];
+            }
+        }
+
+        $definitions = [];
+        foreach ($exclude['definitions'] ?? [] as $definition) {
+            if (isset($definition['name'])) {
+                $definitions[] = $definition['name'];
+            }
+        }
+
+        if (\in_array($params['service']['name'] ?? '', $services)) {
+            return true;
+        }
+
+        foreach ($features as $feature) {
+            if ($params['service']['features'][$feature] ?? false) {
+                return true;
+            }
+        }
+
+        if (\in_array($params['method']['name'] ?? '', $methods)) {
+            return true;
+        }
+
+        if (\in_array($params['method']['type'] ?? '', $types)) {
+            return true;
+        }
+
+        if (\in_array($params['definition']['name'] ?? '', $definitions)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
