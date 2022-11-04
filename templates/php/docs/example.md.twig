@@ -8,10 +8,10 @@ use {{ spec.title | caseUcfirst }}\Services\{{ service.name | caseUcfirst }};
 
 $client = new Client();
 
-{% if method.security|length > 0 %}
+{% if method.auth|length > 0 %}
 $client
     ->setEndpoint('https://[HOSTNAME_OR_IP]/v1') // Your API Endpoint
-{% for node in method.security %}
+{% for node in method.auth %}
 {% for key,header in node|keys %}
     ->set{{header}}('{{node[header]['x-appwrite']['demo']}}') // {{node[header].description}}
 {% endfor %}
