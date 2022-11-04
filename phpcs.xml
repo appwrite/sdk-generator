@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+
+    <ruleset name="Appwrite Standard" namespace="Appwrite">
+    <rule ref="PSR12"/>
+    <file>./src</file>
+    <file>./tests</file>
+    <ini name="memory_limit" value="4096M"/>
+
+    <!-- Exclude SDKs and resources for performance reasons -->
+    <exclude-pattern>./tests/sdks</exclude-pattern>
+    <exclude-pattern>./tests/languages</exclude-pattern>
+    <exclude-pattern>./tests/resources</exclude-pattern>
+
+    <!-- Ignore max line width -->
+    <rule ref="Generic.Files.LineLength">
+        <exclude-pattern>*</exclude-pattern>
+    </rule>
+    <!-- Allow Side Effects on root level of files -->
+    <rule ref="PSR1.Files.SideEffects.FoundWithSymbols">
+        <exclude-pattern>*</exclude-pattern>
+    </rule>
+</ruleset>
