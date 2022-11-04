@@ -4,7 +4,7 @@ include {{ spec.title | caseUcfirst }}
 
 client = Client.new
     .set_endpoint('https://[HOSTNAME_OR_IP]/v1') # Your API Endpoint
-{% for node in method.security %}
+{% for node in method.auth %}
 {% for key,header in node|keys %}
     .set_{{header|caseSnake}}('{{node[header]['x-appwrite']['demo']}}') # {{node[header].description}}
 {% endfor %}

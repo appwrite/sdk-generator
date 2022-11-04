@@ -2,8 +2,8 @@
         final Map<String, dynamic> params = {
             {{ utils.map_parameter(method.parameters.query) }}
             {{ utils.map_parameter(method.parameters.body) }}
-{% if method.security|length > 0 %}
-{% for node in method.security %}
+{% if method.auth|length > 0 %}
+{% for node in method.auth %}
 {% for key,header in node|keys %}
             '{{header|caseLower}}': client.config['{{header|caseLower}}'],
 {% endfor %}
