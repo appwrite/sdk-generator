@@ -12,5 +12,4 @@ client = Client.get_client('https://[HOSTNAME_OR_IP]/v1') # Your API Endpoint
 {% endfor %}
 {% endfor %})
 
-{% endif %}
 result = {{ service.name | caseUcfirst }}.{{ method.name | caseSnake }}(client{% for parameter in method.parameters.all %}, {% if parameter.required %}{{ parameter | paramExample }}{% endif %}{% endfor %})

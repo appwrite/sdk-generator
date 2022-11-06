@@ -191,7 +191,7 @@ abstract class Base extends TestCase
         $this->assertGreaterThanOrEqual(count($this->expectedOutput), count($output));
 
         foreach ($this->expectedOutput as $i => $row) {
-            $this->assertEquals($output[$i], $row);
+            $this->assertEquals($row, $output[$i]);
         }
     }
 
@@ -204,7 +204,7 @@ abstract class Base extends TestCase
             if ('.' === $file || '..' === $file) {
                 continue;
             }
-            if (\is_dir("$dir/$file")) {
+            if (\is_dir("$dir/$file") && !\is_link("$dir/$file")) {
                 $this->rmdirRecursive("$dir/$file");
             } else {
                 \unlink("$dir/$file");

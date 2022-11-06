@@ -11,7 +11,6 @@
 {% endif %}
 {% endfor %}
 
-        params = Map.put(params, "file_name", "unique()")
         Client.chunked_upload(client, path, %{
 {% for parameter in method.parameters.header %}
             "{{ parameter.name }}" => {{ parameter.name | escapeKeyword | caseSnake }},
