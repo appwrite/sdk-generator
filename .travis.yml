@@ -46,8 +46,8 @@ env:
   - SDK=Ruby27
   - SDK=Ruby30
   - SDK=Ruby31
-  - SDK=SwiftClient55
-  - SDK=SwiftServer55
+  - SDK=AppleSwift55
+  - SDK=Swift55
   - SDK=WebChromium
   - SDK=WebNode
 

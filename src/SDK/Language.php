@@ -83,4 +83,18 @@ abstract class Language
     {
         return [];
     }
+
+    protected function toUpperCaseWords(string $value): string
+    {
+        return ucfirst($this->toCamelCase($value));
+    }
+
+    protected function toCamelCase($str): string
+    {
+        $str = preg_replace('/[^a-z0-9' . implode("", []) . ']+/i', ' ', $str);
+        $str = trim($str);
+        $str = ucwords($str);
+        $str = str_replace(" ", "", $str);
+        return lcfirst($str);
+    }
 }

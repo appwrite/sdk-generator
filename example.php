@@ -15,7 +15,7 @@ use Appwrite\SDK\Language\Go;
 use Appwrite\SDK\Language\Deno;
 use Appwrite\SDK\Language\HTTP;
 use Appwrite\SDK\Language\Swift;
-use Appwrite\SDK\Language\SwiftClient;
+use Appwrite\SDK\Language\Apple;
 use Appwrite\SDK\Language\DotNet;
 use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Android;
@@ -342,7 +342,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/swift-server');
 
     // Swift (Client)
-    $sdk  = new SDK(new SwiftClient(), new Swagger2($spec));
+    $sdk  = new SDK(new Apple(), new Swagger2($spec));
 
     $sdk
         ->setName('NAME')
@@ -363,7 +363,7 @@ try {
         ])
     ;
 
-    $sdk->generate(__DIR__ . '/examples/swift-client');
+    $sdk->generate(__DIR__ . '/examples/apple');
     
     // DotNet
     $sdk  = new SDK(new DotNet(), new Swagger2($spec));
