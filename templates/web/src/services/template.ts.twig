@@ -43,12 +43,33 @@ export class {{ service.name | caseUcfirst }} extends Service {
             }
 
 {% endfor %}
+{% if method.parameters.query | length > 0 %}
+{% for parameter in method.parameters.all %}
+{% if parameter.name == 'projectId' %}
+            if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+                payload['project'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            }
+
+{% endif %}
+{% endfor %}
+{% endif %}
+
 {% for parameter in method.parameters.body %}
             if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
                 payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
             }
 
 {% endfor %}
+{% if method.parameters.body | length > 0 %}
+{% for parameter in method.parameters.all %}
+{% if parameter.name == 'projectId' %}
+            if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+                payload['project'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            }
+            
+{% endif %}
+{% endfor %}
+{% endif %}
             const uri = new URL(this.client.config.endpoint + path);
 {% if method.type == 'location' or method.type == 'webAuth' %}
 {% if method.auth|length > 0 %}
