@@ -47,7 +47,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% for parameter in method.parameters.all %}
 {% if parameter.name == 'projectId' %}
             if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-                payload['projectId'] = {{ parameter.name | caseCamel | escapeKeyword }};
+                payload['project'] = {{ parameter.name | caseCamel | escapeKeyword }};
             }
 
 {% endif %}
@@ -64,7 +64,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% for parameter in method.parameters.all %}
 {% if parameter.name == 'projectId' %}
             if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-                payload['projectId'] = {{ parameter.name | caseCamel | escapeKeyword }};
+                payload['project'] = {{ parameter.name | caseCamel | escapeKeyword }};
             }
             
 {% endif %}
