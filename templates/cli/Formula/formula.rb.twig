@@ -4,7 +4,7 @@ class {{ spec.title| caseUcfirst }} < Formula
   desc "CLI is a Node based command-line tool for {{ spec.title| caseUcfirst }} API"
   homepage "{{ sdk.url }}"
   license "{{ sdk.license }}"
-  head "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}.git", branch: "main"
+  head "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}.git", branch: "master"
 
   depends_on "node"
 
