@@ -208,7 +208,7 @@ class Web extends JS
     protected function populateGenerics(string $model, array $spec, array &$generics, bool $skipFirst = false)
     {
         if (!$skipFirst && $spec['definitions'][$model]['additionalProperties']) {
-            $generics[] = $this->toUpperCase($model);
+            $generics[] = $this->toUpperCaseWords($model);
         }
 
         $properties = $spec['definitions'][$model]['properties'];
@@ -257,14 +257,14 @@ class Web extends JS
                 $ret .= 'Models.';
             }
 
-            $ret .= $this->toUpperCase($method['responseModel']);
+            $ret .= $this->toUpperCaseWords($method['responseModel']);
 
             $models = [];
 
             $this->populateGenerics($method['responseModel'], $spec, $models);
 
             $models = array_unique($models);
-            $models = array_filter($models, fn ($model) => $model != $this->toUpperCase($method['responseModel']));
+            $models = array_filter($models, fn ($model) => $model != $this->toUpperCaseWords($method['responseModel']));
 
             if (!empty($models)) {
                 $ret .= '<' . implode(', ', $models) . '>';
@@ -277,22 +277,6 @@ class Web extends JS
         return 'Promise<{}>';
     }
 
-    public function toUpperCase(string $value): string
-    {
-        return ucfirst($this->helperCamelCase($value));
-    }
-
-    protected function helperCamelCase($str)
-    {
-        $str = preg_replace('/[^a-z0-9' . implode("", []) . ']+/i', ' ', $str);
-        $str = trim($str);
-        $str = ucwords($str);
-        $str = str_replace(" ", "", $str);
-        $str = lcfirst($str);
-
-        return $str;
-    }
-
     public function getSubSchema(array $property, array $spec): string
     {
         if (array_key_exists('sub_schema', $property)) {
@@ -300,9 +284,9 @@ class Web extends JS
             $generics = [];
             $this->populateGenerics($property['sub_schema'], $spec, $generics);
 
-            $generics = array_filter($generics, fn ($model) => $model != $this->toUpperCase($property['sub_schema']));
+            $generics = array_filter($generics, fn ($model) => $model != $this->toUpperCaseWords($property['sub_schema']));
 
-            $ret .= $this->toUpperCase($property['sub_schema']);
+            $ret .= $this->toUpperCaseWords($property['sub_schema']);
             if (!empty($generics)) {
                 $ret .= '<' . implode(', ', $generics) . '>';
             }
