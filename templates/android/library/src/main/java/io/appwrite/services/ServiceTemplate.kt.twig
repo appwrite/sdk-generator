@@ -39,7 +39,6 @@ class {{ service.name | caseUcfirst }} : Service {
     {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
     @JvmOverloads
     {%~ endif %}
-    @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun {% if method.responseModel | hasGenericType(spec) %}{{ '<T>' | raw }} {% endif %}{{ method.name | caseCamel }}(
         {%~ if method.type == "webAuth" %}
         activity: ComponentActivity,

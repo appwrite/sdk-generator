@@ -95,7 +95,6 @@ abstract class Language
         $str = trim($str);
         $str = ucwords($str);
         $str = str_replace(" ", "", $str);
-
         return lcfirst($str);
     }
 }
