@@ -111,11 +111,6 @@ class Python extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'setup.cfg',
-                'template'      => 'python/setup.cfg.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'requirements.txt',
                 'template'      => 'python/requirements.txt.twig',
             ],
