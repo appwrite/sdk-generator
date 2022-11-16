@@ -2,21 +2,21 @@
 
 namespace Tests;
 
-class SwiftClient55Test extends Base
+class AppleSwift55Test extends Base
 {
     protected string $sdkName = 'swift';
     protected string $sdkPlatform = 'client';
-    protected string $sdkLanguage = 'swiftclient';
+    protected string $sdkLanguage = 'apple';
     protected string $version = '0.0.1';
 
-    protected string $language = 'swift-client';
-    protected string $class = 'Appwrite\SDK\Language\SwiftClient';
+    protected string $language = 'apple';
+    protected string $class = 'Appwrite\SDK\Language\Apple';
     protected array $build = [
-        'mkdir -p tests/sdks/swift-client/Tests/AppwriteTests',
-        'cp tests/languages/swift-client/Tests.swift tests/sdks/swift-client/Tests/AppwriteTests/Tests.swift',
+        'mkdir -p tests/sdks/apple/Tests/AppwriteTests',
+        'cp tests/languages/apple/Tests.swift tests/sdks/apple/Tests/AppwriteTests/Tests.swift',
     ];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/swift-client swiftarm/swift:5.5.2-focal-multi-arch swift test';
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/apple swiftarm/swift:5.5.2-focal-multi-arch swift test';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

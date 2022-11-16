@@ -192,6 +192,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/coroutines/Callback.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/coroutines/Callback.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/cookies/stores/InMemoryCookieStore.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/cookies/stores/InMemoryCookieStore.kt.twig',
             ],

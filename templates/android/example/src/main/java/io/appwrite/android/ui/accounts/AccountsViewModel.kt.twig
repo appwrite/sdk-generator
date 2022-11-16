@@ -29,7 +29,7 @@ class AccountsViewModel : ViewModel() {
     fun onLogin(email: Editable, password: Editable) {
         viewModelScope.launch {
             try {
-                val session = accountService.createSession(email.toString(), password.toString())
+                val session = accountService.createEmailSession(email.toString(), password.toString())
                 _response.postValue(Event(session.toJson()))
             } catch (e: {{ spec.title | caseUcfirst }}Exception) {
                 _error.postValue(Event(e))

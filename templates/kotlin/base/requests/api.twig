@@ -4,7 +4,7 @@
             path,
             headers,
             params,
-            responseType = {{ utils.resultType(sdk.namespace, method) }}::class.java,
+            responseType = {{ utils.resultTypeKt(sdk.namespace, method) }}::class.java,
 {% if method.responseModel %}
             converter,
 {% endif %}
