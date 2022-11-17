@@ -31,7 +31,7 @@ open class {{ service.name | caseUcfirst }}: Service {
         {%~ if 'multipart/form-data' in method.consumes %}
         onProgress: ((UploadProgress) -> Void)? = nil
         {%~ endif %}
-    ) async throws -> {{ method | returnType(spec) | raw }} {
+    ){%~ if not method.type == "webAuth" %} async{% endif %} throws -> {{ method | returnType(spec) | raw }} {
         {{~ include('swift/base/params.twig') }}
         {%~ if method.type == 'webAuth' %}
         {{~ include('swift/base/requests/OAuth.twig') }}
@@ -109,4 +109,4 @@ open class {{ service.name | caseUcfirst }}: Service {
 
 {% endfor %}
 
-}
+%}

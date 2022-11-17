@@ -26,10 +26,10 @@ public class WebSocketClient {
     var channel: Channel? = nil
     var tlsEnabled: Bool = false
     var closeSent: Bool = false
-    
-    let upgradedSignalled = DispatchSemaphore(value: 0)
-    let locker = DispatchQueue(label: WEBSOCKET_LOCKER_QUEUE)
-    let threadGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+
+    let locker = DispatchQueue(label: WEBSOCKET_LOCKER_QUEUE, qos: .background)
+
+    var threadGroup: MultiThreadedEventLoopGroup? = nil
 
     weak var delegate: WebSocketClientDelegate? = nil
 
@@ -184,6 +184,10 @@ public class WebSocketClient {
         self.maxFrameSize = maxFrameSize
         self.tlsEnabled = tlsEnabled
         self.delegate = delegate
+
+        DispatchQueue.global(qos: .background).async {
+            self.threadGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        }
     }
 
     /// Create a new `WebSocketClient`.
@@ -207,10 +211,14 @@ public class WebSocketClient {
         self.maxFrameSize = 24
         self.tlsEnabled = tlsEnabled
         self.delegate = delegate
+
+        DispatchQueue.global(qos: .background).async {
+            self.threadGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        }
     }
     
     deinit {
-        try! threadGroup.syncShutdownGracefully()
+        try! threadGroup!.syncShutdownGracefully()
     }
 
     // MARK: - Open connection
@@ -221,16 +229,16 @@ public class WebSocketClient {
             SocketOptionLevel(SOL_SOCKET),
             SO_REUSEPORT
         )
+
+        while(threadGroup == nil) {}
         
-        let bootstrap = ClientBootstrap(group: threadGroup)
+        let bootstrap = ClientBootstrap(group: threadGroup!)
             .channelOption(socketOptions, value: 1)
             .channelInitializer(self.openChannel)
         
         _ = try bootstrap
             .connect(host: self.host, port: self.port)
             .wait()
-        
-        self.upgradedSignalled.wait()
     }
 
     private func openChannel(channel: Channel) -> EventLoopFuture<Void> {
@@ -260,13 +268,10 @@ public class WebSocketClient {
     }
 
     private func upgradePipelineHandler(channel: Channel, response: HTTPResponseHead) -> EventLoopFuture<Void> {
-        self.onOpen(channel)
-        
         let handler = MessageHandler(client: self)
         
         if response.status == .switchingProtocols {
             self.channel = channel
-            self.upgradedSignalled.signal()
         }
         
         return channel.pipeline.addHandler(handler)
