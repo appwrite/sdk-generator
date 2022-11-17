@@ -19,10 +19,10 @@ stages:
   - test
 
 env:
-  - SDK=Android11Java8
-  - SDK=Android11Java11
-  - SDK=Android12Java8
-  - SDK=Android12Java11
+  - SDK=Android5Java8
+  - SDK=Android5Java11
+  - SDK=Android13Java8
+  - SDK=Android13Java11
   - SDK=CLINode14
   - SDK=CLINode16
   - SDK=DartBeta
