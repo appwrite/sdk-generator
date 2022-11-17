@@ -440,7 +440,7 @@ open class Client {
                 || param is [String: Any]
                 || param is [Int: Any]
                 || param is [Float: Any]
-                || param is [Bool: Any]
+                || param is [Bool: Any] {
                 encodedParams[key] = param
             } else {
                 encodedParams[key] = try! (param as! Encodable).toJson()
