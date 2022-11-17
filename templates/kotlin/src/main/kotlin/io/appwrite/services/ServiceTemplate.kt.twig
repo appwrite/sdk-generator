@@ -99,11 +99,11 @@ class {{ service.name | caseUcfirst }} : Service {
 {{ method.headers|map((header, key) => "            \"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
         )
 {% if method.responseModel %}
-        val converter: (Map<String, Any>) -> {{ utils.resultTypeKt(sdk.namespace, method) }} = {
+        val converter: (Any) -> {{ utils.resultTypeKt(sdk.namespace, method) }} = {
 {% if method.responseModel == 'any' %}
             it
 {% else %}
-            {{ utils.resultTypeKt(sdk.namespace, method) }}.from(map = it)
+            {{ utils.resultTypeKt(sdk.namespace, method) }}.from(map = it as Map<String, Any>)
 {% endif %}
         }
 {% endif %}
