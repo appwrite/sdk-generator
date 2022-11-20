@@ -6,6 +6,9 @@ import com.google.gson.annotations.SerializedName
 /**
  * {{ definition.description }}
  */
+{% if definition.properties | length == 0 and not definition.additionalProperties %}
+class {{ definition.name | caseUcfirst }} {}
+{% else %}
 data class {{ definition.name | caseUcfirst }}(
 {% for property in definition.properties %}
     /**
@@ -60,3 +63,4 @@ data class {{ definition.name | caseUcfirst }}(
 {% endif %}
 {% endfor %}
 }
+{% endif %}

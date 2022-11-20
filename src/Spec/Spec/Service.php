@@ -1,5 +1,9 @@
 <?php
 
-class Service extends ArrayObject {
+namespace Appwrite\Spec\Spec;
 
+use ArrayObject;
+
+class Service extends ArrayObject
+{
 }

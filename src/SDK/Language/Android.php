@@ -2,13 +2,12 @@
 
 namespace Appwrite\SDK\Language;
 
-
-class Android extends Kotlin {
-
+class Android extends Kotlin
+{
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'Android';
     }
@@ -16,10 +15,10 @@ class Android extends Kotlin {
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
-            // Config for root project 
+            // Config for root project
             [
                 'scope'         => 'copy',
                 'destination'   => '.github/workflows/publish.yml',
@@ -100,7 +99,7 @@ class Android extends Kotlin {
                 'destination'   => 'settings.gradle',
                 'template'      => '/android/settings.gradle',
             ],
-            // Config for project :library 
+            // Config for project :library
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Client.kt',
@@ -190,6 +189,11 @@ class Android extends Kotlin {
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/cookies/Extensions.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/cookies/Extensions.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/coroutines/Callback.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/coroutines/Callback.kt.twig',
             ],
             [
                 'scope'         => 'default',

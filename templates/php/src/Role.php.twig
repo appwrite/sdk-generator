@@ -8,13 +8,19 @@ class Role
     {
         return 'any';
     }
-    public static function user(string $id): string
+    public static function user(string $id, string $status = ""): string
     {
-        return "user:$id";
+        if(empty($status)) {
+            return "user:$id";
+        }
+        return "user:$id/$status";
     }
-    public static function users(): string
+    public static function users(string $status = ""): string
     {
-        return 'users';
+        if(empty($status)) {
+            return 'users';
+        }
+        return "users/$status";
     }
     public static function guests(): string
     {
@@ -27,8 +33,8 @@ class Role
         }
         return "team:$id/$role";
     }
-    public static function status(string $status): string
+    public static function member(string $id): string
     {
-        return "status:$status";
+        return "member:$id";
     }
 }

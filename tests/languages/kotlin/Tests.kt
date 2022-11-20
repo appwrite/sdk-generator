@@ -121,6 +121,7 @@ class ServiceTest {
             general.empty()
 
             // Query helper tests
+            writeToFile(Query.equal("released", listOf(true)))
             writeToFile(Query.equal("title", listOf("Spiderman", "Dr. Strange")))
             writeToFile(Query.notEqual("title", "Spiderman"))
             writeToFile(Query.lessThan("releasedYear", 1990))
@@ -140,6 +141,9 @@ class ServiceTest {
             writeToFile(Permission.update(Role.guests()))
             writeToFile(Permission.delete(Role.team("teamId", "owner")))
             writeToFile(Permission.delete(Role.team("teamId")))
+            writeToFile(Permission.create(Role.member("memberId")))
+            writeToFile(Permission.update(Role.users("verified")));
+            writeToFile(Permission.update(Role.user(ID.custom("userid"), "unverified")));
 
             // ID helper tests
             writeToFile(ID.unique())

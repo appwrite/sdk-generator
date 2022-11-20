@@ -51,8 +51,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
             const uri = new URL(this.client.config.endpoint + path);
 {% if method.type == 'location' or method.type == 'webAuth' %}
-{% if method.security|length > 0 %}
-{% for node in method.security %}
+{% if method.auth|length > 0 %}
+{% for node in method.auth %}
 {% for key,header in node|keys %}
             payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
 

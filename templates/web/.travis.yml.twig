@@ -1,18 +1,28 @@
-  
 language: node_js
 node_js:
   - "14.16"
 
 jobs:
   include:
-    - stage: npm release
+    - stage: NPM RC Release
+      if: tag == *-RC*
       node_js: "14.16"
-      script: 
-        - echo "Installing dependencies ..."
-        - npm i
-        - echo "Building library ..."
+      script:
+        - npm install
         - npm run build
-        - echo "Deploying to npm ..."
+        - echo "Deploying RC to NPM..."
+      deploy:
+        provider: npm
+        email: $NPM_EMAIL
+        api_key: $NPM_API_KEY
+        tag: next
+    - stage: NPM Release
+      if: tag != *-RC*
+      node_js: "14.16"
+      script:
+        - npm install
+        - npm run build
+        - echo "Deploying to NPM..."
       deploy:
         provider: npm
         email: $NPM_EMAIL

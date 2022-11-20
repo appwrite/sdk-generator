@@ -4,12 +4,12 @@ namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
 
-class HTTP extends Language {
-
+class HTTP extends Language
+{
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'HTTP';
     }
@@ -19,7 +19,7 @@ class HTTP extends Language {
      *
      * @return array
      */
-    public function getKeywords()
+    public function getKeywords(): array
     {
         return [];
     }
@@ -27,7 +27,7 @@ class HTTP extends Language {
     /**
      * @return array
      */
-    public function getIdentifierOverrides()
+    public function getIdentifierOverrides(): array
     {
         return [];
     }
@@ -63,19 +63,19 @@ class HTTP extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamDefault(array $param)
+    public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
         $default    = $param['default'] ?? '';
         $required   = $param['required'] ?? '';
 
-        if($required) {
+        if ($required) {
             return '';
         }
 
         $output = '';
 
-        if(empty($default) && $default !== 0 && $default !== false) {
+        if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_OBJECT:
                     $output .= '{}';
@@ -94,22 +94,19 @@ class HTTP extends Language {
                     $output .= '""';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_OBJECT:
                 case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= $default;
-                    break;
                 case self::TYPE_ARRAY:
+                case self::TYPE_INTEGER:
                     $output .= $default;
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= '"'.$default .'"';
+                    $output .= '"' . $default . '"';
                     break;
             }
         }
@@ -121,14 +118,14 @@ class HTTP extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamExample(array $param)
+    public function getParamExample(array $param): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
         $output = '';
 
-        if(empty($example) && $example !== 0 && $example !== false) {
+        if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
                     $output .= 'cf 94 84 24 8d c4 91 10 0f dc 54 26 6c 8e 4b bc 
@@ -137,7 +134,7 @@ e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...';
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                     $output .= '0';
-                break;
+                    break;
                 case self::TYPE_BOOLEAN:
                     $output .= 'false';
                     break;
@@ -151,21 +148,31 @@ e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...';
                     $output .= '[]';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_OBJECT:
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    // If array of strings, make sure any sub-strings are escaped
+                    if (\substr($example, 1, 1) === '"') {
+                        $start = \substr($example, 0, 2);
+                        $end = \substr($example, -2);
+                        $contents = \substr($example, 2, -2);
+                        $contents = \addslashes($contents);
+                        $output .= $start . $contents . $end;
+                    } else {
+                        $output .= $example;
+                    }
+                    break;
+                case self::TYPE_STRING:
+                    $output .= '"' . \addslashes($example) . '"';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= $example;
                     break;
             }
         }
@@ -176,16 +183,14 @@ e8 ee 55 94 29 e7 94 89 19 26 28 01 26 29 3f 16...';
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
           [
             'scope'         => 'method',
-            'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}',
+            'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
             'template'      => '/http/docs/example.md.twig',
-            'minify'        => false,
           ],
         ];
     }
 }
-

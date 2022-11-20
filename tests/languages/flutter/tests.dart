@@ -15,7 +15,7 @@ void main() async {
       "wss://demo.appwrite.io/v1"); // change this later to appwrite.io
 
   Realtime realtime = Realtime(client);
-  final rtsub = realtime.subscribe(["tests"]);
+  // final rtsub = realtime.subscribe(["tests"]);
 
   await Future.delayed(Duration(seconds: 5));
   client.addHeader('Origin', 'http://localhost');
@@ -93,10 +93,10 @@ void main() async {
     print(e.message);
   }
 
-  rtsub.stream.listen((message) {
-    print(message.payload["response"]);
-    rtsub.close();
-  });
+  // rtsub.stream.listen((message) {
+  //   print(message.payload["response"]);
+  //   rtsub.close();
+  // });
 
   await Future.delayed(Duration(seconds: 5));
 
@@ -109,6 +109,7 @@ void main() async {
   await general.empty();
 
   // Query helper tests
+  print(Query.equal('released', [true]));
   print(Query.equal('title', ['Spiderman', 'Dr. Strange']));
   print(Query.notEqual('title', 'Spiderman'));
   print(Query.lessThan('releasedYear', 1990));
@@ -128,6 +129,9 @@ void main() async {
   print(Permission.update(Role.guests()));
   print(Permission.delete(Role.team('teamId', 'owner')));
   print(Permission.delete(Role.team('teamId')));
+  print(Permission.create(Role.member('memberId')));
+  print(Permission.update(Role.users('verified')));
+  print(Permission.update(Role.user(ID.custom('userid'), 'unverified')));
 
   // ID helper tests
   print(ID.unique());
