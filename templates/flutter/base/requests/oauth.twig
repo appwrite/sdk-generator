@@ -31,4 +31,4 @@
           query: query.join('&')
         );
 
-      return client.webAuth(url);
+      return client.webAuth(url, callbackUrlScheme: success);
