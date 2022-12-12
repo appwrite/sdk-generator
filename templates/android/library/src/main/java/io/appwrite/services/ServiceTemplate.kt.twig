@@ -3,7 +3,7 @@
 {% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, onProgress: ((UploadProgress) -> Unit)? = null{% endif %}{% endif %}
 {% endmacro %}
 {% macro methodNeedsSecurityParameters(method) %}
-{% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
+{% if (method.type == "webAuth" or method.type == "location") and method.auth|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
 {% macro resultType(namespace, method) %}
 {% if method.type == "webAuth" %}Bool{% elseif method.type == "location" %}ByteArray{% elseif not method.responseModel or method.responseModel == 'any' %}Any{% else %}{{ namespace | caseDot}}.models.{{method.responseModel | caseUcfirst}}{% endif %}
@@ -45,7 +45,6 @@ class {{ service.name | caseUcfirst }} : Service {
      
      */
     @JvmOverloads
-    @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ _self.method_parameters(method.parameters, method.consumes) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: {{ _self.resultType(sdk.namespace, method) }}{% endif %} {
         val path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %}
 
@@ -55,7 +54,7 @@ class {{ service.name | caseUcfirst }} : Service {
 
 {% endfor %}
 {% if _self.methodNeedsSecurityParameters(method) %}
-{% for node in method.security %}
+{% for node in method.auth %}
 {% for key,header in node|keys %}
             "{{header|caseLower}}" to client.config["{{header|caseLower}}"]{% if not loop.last %},{% endif %}
 

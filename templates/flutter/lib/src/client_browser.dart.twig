@@ -211,10 +211,10 @@ class ClientBrowser extends ClientBase with ClientMixin {
   }
 
   @override
-  Future webAuth(Uri url) {
+  Future webAuth(Uri url, {String? callbackUrlScheme}) {
   return FlutterWebAuth2.authenticate(
       url: url.toString(),
-      callbackUrlScheme: "appwrite-callback-" + config['project']!,
+      callbackUrlScheme: callbackUrlScheme ?? "appwrite-callback-" + config['project']!,
     );
   }
 }

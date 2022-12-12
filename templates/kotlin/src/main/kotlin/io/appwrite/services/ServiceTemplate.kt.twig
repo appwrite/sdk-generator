@@ -30,12 +30,11 @@ class {{ service.name | caseUcfirst }} : Service {
 {% for parameter in method.parameters.all %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
 {% endfor %}
-     * {% if method.type != "webAuth" %}@return [{{ utils.resultType(sdk.namespace, method) }}]{% endif %}
+     * {% if method.type != "webAuth" %}@return [{{ utils.resultTypeKt(sdk.namespace, method) }}]{% endif %}
      
      */
     @JvmOverloads
-    @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ utils.method_parameters(method.parameters, method.consumes) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: {{ utils.resultType(sdk.namespace, method) }}{% endif %} {
+    suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ utils.method_parameters(method.parameters, method.consumes) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: {{ utils.resultTypeKt(sdk.namespace, method) }}{% endif %} {
         val path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %}
 
         val params = mutableMapOf<String, Any?>(
@@ -44,7 +43,7 @@ class {{ service.name | caseUcfirst }} : Service {
 
 {% endfor %}
 {% if utils.methodNeedsSecurityParameters(method) %}
-{% for node in method.security %}
+{% for node in method.auth %}
 {% for key,header in node|keys %}
             "{{header|caseLower}}" to client.config["{{header|caseLower}}"]{% if not loop.last %},{% endif %}
 
@@ -100,11 +99,11 @@ class {{ service.name | caseUcfirst }} : Service {
 {{ method.headers|map((header, key) => "            \"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
         )
 {% if method.responseModel %}
-        val converter: (Map<String, Any>) -> {{ utils.resultType(sdk.namespace, method) }} = {
+        val converter: (Map<String, Any>) -> {{ utils.resultTypeKt(sdk.namespace, method) }} = {
 {% if method.responseModel == 'any' %}
             it
 {% else %}
-            {{ utils.resultType(sdk.namespace, method) }}.from(map = it)
+            {{ utils.resultTypeKt(sdk.namespace, method) }}.from(map = it)
 {% endif %}
         }
 {% endif %}

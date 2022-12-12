@@ -1,30 +1,17 @@
-{% macro methodNeedsSecurityParameters(method) %}
-{% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
-{% endmacro %}
-{% if method.parameters.path %}        var{% else %}        let{% endif %} path: String = "{{ method.path }}"
-{% for parameter in method.parameters.path %}
-        path = path.replacingOccurrences(
-          of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}",
-          with: {% if method.parameters.path %}{{ parameter.name | caseCamel | escapeKeyword }}{% else %}""{% endif %}
-        )
-{% endfor %}
-{% if method.parameters.query or method.parameters.body or method.parameters.formData or _self.methodNeedsSecurityParameters(method) %}
-        {% if 'multipart/form-data' in method.consumes %}var{% else %}let{% endif %} params: [String: Any?] = [
-{% else %}
-        let params: [String: Any?] = [:]
-{% endif %}
-{% for parameter in method.parameters.query | merge(method.parameters.body) %}
-            "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
+        let path: String = "{{ method.path }}"
+        {%~ for parameter in method.parameters.path %}
+            .replacingOccurrences(of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", with: {{ parameter.name | caseCamel | escapeKeyword }})
+        {%~ endfor %}
 
-{% endfor %}
-{% if _self.methodNeedsSecurityParameters(method) %}
-{% for node in method.security %}
-{% for key,header in node|keys %}
-            "{{header|caseLower}}": client.config["{{header|caseLower}}"]{% if not loop.last %},{% endif %}
+        {%~ if method.parameters.query | merge(method.parameters.body) | length <= 0 %}
+        let params: [String: Any] = [:]
+        {%~ else %}
+        {% if 'multipart/form-data' in method.consumes -%} var
+        {%- else -%} let
+        {%- endif %} params: [String: Any?] = [
+        {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
+            "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %},{% endif %}
 
-{% endfor %}
-{% endfor %}
-{% endif %}
-{% if method.parameters.query or method.parameters.body or method.parameters.formData or _self.methodNeedsSecurityParameters(method) %}
+        {%~ endfor %}
         ]
-{% endif %}
+        {%~ endif %}

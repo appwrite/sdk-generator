@@ -9,9 +9,9 @@ import (
 func main() {
     client := {{ spec.title | caseLower }}.NewClient()
 
-{% if method.security|length > 0 %}
+{% if method.auth|length > 0 %}
     client.SetEndpoint("https://[HOSTNAME_OR_IP]/v1") // Your API Endpoint
-{% for node in method.security %}
+{% for node in method.auth %}
 {% for key,header in node|keys %}
     client.Set{{header}}("{{node[header]['x-{{ spec.title | caseLower }}']['demo']}}") // {{node[header].description}}
 {% endfor %}
