@@ -1,0 +1,8 @@
+{% for definition in spec.definitions %}
+mod {{definition.name | caseSnake}};
+pub use self::{{definition.name | caseSnake}}::{{definition.name|caseUcfirst}};
+{% if definition.name == "attributeList" %}
+mod attribute;
+pub use self::attribute::Attribute;
+{% endif %}
+{% endfor %} 

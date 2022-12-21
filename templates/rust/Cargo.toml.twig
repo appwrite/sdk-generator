@@ -1,0 +1,19 @@
+[package]
+name = "{{ language.params.packageName }}"
+version = "{{ sdk.version }}"
+authors = ["Appwrite Team <team@appwrite.io>"]
+edition = "2018"
+description = "{{ sdk.shortDescription }}"
+license = "{{ spec.licenseName }}"
+repository = "{{ sdk.gitURL }}"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+url = "2.2.1"
+reqwest = { version = "0.11", features = ["json", "blocking", "multipart"] }
+
+# Serde
+serde = "1.0.124"
+serde_derive = "1.0.124"
+serde_json = "1.0.59"

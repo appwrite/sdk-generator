@@ -1,0 +1,31 @@
+use std::fmt;
+use std::error::Error;
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct {{spec.title | caseUcfirst}}Exception {
+    pub message: String,
+    pub code: i32,
+    pub version: String
+}
+
+impl fmt::Display for {{spec.title | caseUcfirst}}Exception {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f,"ERROR: '{}' CODE: {}", self.message, self.code)
+    }
+}
+
+impl Error for {{spec.title | caseUcfirst}}Exception {
+    fn description(&self) -> &str {
+        &self.message
+    }
+}
+
+impl {{spec.title | caseUcfirst}}Exception {
+    pub fn new(message: String, code: i32, version: String) -> Self {
+        Self {
+            message: message,
+            code: code,
+            version: version
+        }
+    }
+}

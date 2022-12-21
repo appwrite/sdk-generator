@@ -50,6 +50,9 @@ env:
   - SDK=Swift55
   - SDK=WebChromium
   - SDK=WebNode
+  - SDK=Rust
+  - SDK=RustBeta
+  - SDK=RustNightly
 
 notifications:
   email:

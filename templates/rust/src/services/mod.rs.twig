@@ -1,0 +1,10 @@
+{% for service in spec.services %}
+mod {{service.name}};
+{% endfor %}
+mod exception;
+
+{% for service in spec.services %}
+pub use self::{{service.name}}::{{service.name|caseUcfirst}};
+{% endfor %}
+
+pub use self::exception::{{spec.title | caseUcfirst}}Exception;

@@ -1,0 +1,118 @@
+#![allow(unused)]
+use serde::{Deserialize, Serialize, Deserializer};
+use std::collections::HashMap;
+use serde_json::value::Value;
+use std::fmt::Display;
+use super::*;
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(deny_unknown_fields)]
+#[serde(untagged)]
+pub enum EmptyOption<T> {
+    Some(T),
+    None {},
+}
+
+impl<T> Display for EmptyOption<T>
+where
+    T: Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            EmptyOption::Some(t) => write!(f, "{}", t),
+            EmptyOption::None {} => write!(f, ""),
+        }
+    }
+}
+
+impl<'de, T> Deserialize<'de> for EmptyOption<T>
+where
+    T: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Option::deserialize(deserializer).map(Into::into)
+    }
+}
+
+impl<T> From<EmptyOption<T>> for Option<T> {
+    fn from(empty_option: EmptyOption<T>) -> Option<T> {
+        match empty_option {
+            EmptyOption::Some(option) => Some(option),
+            EmptyOption::None {} => None,
+        }
+    }
+}
+
+impl<T> From<Option<T>> for EmptyOption<T> {
+    fn from(option: Option<T>) -> EmptyOption<T> {
+        match option {
+            Some(option) => EmptyOption::Some(option),
+            None {} => EmptyOption::None {},
+        }
+    }
+}
+
+impl<T> EmptyOption<T> {
+    fn into_option(self) -> Option<T> {
+        self.into()
+    }
+    fn as_option(&self) -> Option<&T> {
+        match self {
+            EmptyOption::Some(option) => Some(option),
+            EmptyOption::None {} => None,
+        }
+    }
+}
+
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}Vec<{{property.sub_schema | caseUcfirst}}>{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property.type | typeName}}{% endif %}{% endmacro %}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct {{ definition.name | caseUcfirst }} {
+{% for property in definition.properties %}
+    {% if property.name | escapeKeyword | removeDollarSign != property.name %}
+    #[serde(rename(serialize = "{{ property.name | escapeKeyword | removeDollarSign }}", deserialize = "{{ property.name }}"))]
+    {% endif %}
+    pub {{ property.name | escapeKeyword | removeDollarSign }}: {% if not property.required %}EmptyOption<{% endif %}{% if property.type == 'string' %}String{% elseif property.type == "array" and property.items['x-anyOf'] and 'attribute' in property.items['x-anyOf'][0]['$ref'] %}Vec<Attribute>{% elseif _self.sub_schema(property) == '&[&str]' %}Vec<String>{% else %}{{_self.sub_schema(property)}}{% endif %}{% if not property.required %}>{% endif %},
+{% endfor %}
+{% if definition.additionalProperties %}
+        #[serde(default)]
+        pub data: HashMap<String, Value>,
+{% endif %}
+}
+
+impl Display for {{ definition.name | caseUcfirst }} {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut formatBuffer = String::new();
+{% for property in definition.properties %}
+{% if property.type != 'array' %}
+        formatBuffer.push_str(&format!("{:?}", self.{{ property.name | escapeKeyword | removeDollarSign }}));
+{% else %}
+        for item in &self.{{ property.name | escapeKeyword | removeDollarSign }} {
+            formatBuffer.push_str(&format!("{:?}", item));
+        }
+{% endif %}
+{% endfor %}
+{% if definition.additionalProperties %}
+        for (key, value) in &self.data {
+            formatBuffer.push_str(&format!("{}", value));
+        }
+{% endif %}
+
+        write!(f, "{}", formatBuffer)
+    }
+}
+
+impl {{ definition.name | caseUcfirst }} {
+    pub fn new({% for property in definition.properties %}{{ property.name | escapeKeyword | removeDollarSign }}: {% if not property.required %}EmptyOption<{% endif %}{% if property.type == 'string' %}String{% elseif property.type == "array" and property.items['x-anyOf'] and 'attribute' in property.items['x-anyOf'][0]['$ref'] %}Vec<Attribute>{% elseif _self.sub_schema(property) == '&[&str]' %}Vec<String>{% else %}{{_self.sub_schema(property)}}{% endif %}{% if not property.required %}>{% endif %}, {%endfor%}) -> Self {
+        Self {
+            {% for property in definition.properties %}
+{{ property.name | escapeKeyword | removeDollarSign }}: {% if not property.required %}EmptyOption::from({{ property.name | escapeKeyword | removeDollarSign }}){% else %}{{ property.name | escapeKeyword | removeDollarSign }}{% endif %},
+            {% endfor %}
+{% if definition.additionalProperties %}
+data: HashMap::new(),
+{% endif %}
+}
+    }
+}
