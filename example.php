@@ -409,7 +409,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
     ;
 
-    $sdk->generate(__DIR__ . '/examples/HTTP');
+    $sdk->generate(__DIR__ . '/examples/REST');
 
     // Android
 
