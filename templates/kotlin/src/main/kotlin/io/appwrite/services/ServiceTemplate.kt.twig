@@ -72,7 +72,7 @@ class {{ service.name | caseUcfirst }} : Service {
         {% if method.responseModel == 'any' %}
             it
         {% else %}
-        {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}.from(map = it as Map<String, Any>{% if method.responseModel | hasGenericType(spec) %}, nestedType{% endif %})
+        {{sdk.namespace caseDot}}.models.{{ method.responseModel | caseUcfirst }}.from(map = it as Map<String, Any>{% if method.responseModel | hasGenericType(spec) %}, nestedType{% endif %})
         {% endif %}
         }
         {%~ endif %}
