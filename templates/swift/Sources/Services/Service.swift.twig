@@ -55,11 +55,11 @@ open class {{ service.name | caseUcfirst }}: Service {
         {%~ endif %}
 
         {%~ if method.responseModel %}
-        let converter: ([String: Any]) -> {{ method | returnType(spec) | raw }} = { dict in
+        let converter: (Any) -> {{ method | returnType(spec) | raw }} = { response in
             {%~ if method.responseModel == 'any' %}
-            return dict
+            return response
             {%~ else %}
-            return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: dict)
+            return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: response as! [String: Any])
             {%~ endif %}
         }
 

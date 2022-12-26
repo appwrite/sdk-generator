@@ -188,6 +188,10 @@ class Swagger2 extends Spec
                         'responseModel' => $responseModel,
                     ];
 
+                    if ($output['type'] == 'graphql') {
+                        $output['headers']['x-sdk-graphql'] = "true";
+                    }
+
                     if (isset($method['consumes']) && is_array($method['consumes'])) {
                         foreach ($method['consumes'] as $consume) {
                             $output['headers']['content-type'] = $consume;
