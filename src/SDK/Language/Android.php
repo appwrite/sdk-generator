@@ -137,6 +137,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/TypeExtensions.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/extensions/TypeExtensions.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/CollectionExtensions.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/extensions/CollectionExtensions.kt.twig',
             ],
