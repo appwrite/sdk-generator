@@ -58,7 +58,7 @@ mutation {
         {%~ for definition in spec.definitions %}
         {%~ if definition.name == method.responseModel %}
         {%~ for property in definition.properties | filter(p => p.required) %}
-        {{ property.name | caseCamel }}
+        {{ property.name | replace({'$': '_'}) }}
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         data
