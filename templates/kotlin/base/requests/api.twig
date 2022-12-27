@@ -1,11 +1,14 @@
-{% import 'kotlin/base/utils.twig' as utils%}
         return client.call(
             "{{ method.method | caseUpper }}",
             path,
             headers,
             params,
-            responseType = {{ utils.resultTypeKt(sdk.namespace, method) }}::class.java,
-{% if method.responseModel %}
+            {%~ if method.responseModel | hasGenericType(spec) %}
+            responseType = classOf(),
+            {%~ else %}
+            responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java,
+            {%~ endif %}
+            {%~ if method.responseModel %}
             converter,
-{% endif %}
+            {%~ endif %}
         )

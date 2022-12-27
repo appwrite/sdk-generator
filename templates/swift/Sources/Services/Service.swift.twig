@@ -28,6 +28,9 @@ open class {{ service.name | caseUcfirst }}: Service {
         {{ parameter.name | caseCamel | escapeKeyword }}: {% if parameter.type == "object" %}T{% else %}{{ parameter | typeName | raw }}{% endif %}{% if not parameter.required %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
 
         {%~ endfor %}
+        {%~ if method.responseModel | hasGenericType(spec) %}
+        nestedType: T.Type,
+        {%~ endif %}
         {%~ if 'multipart/form-data' in method.consumes %}
         onProgress: ((UploadProgress) -> Void)? = nil
         {%~ endif %}
@@ -52,11 +55,11 @@ open class {{ service.name | caseUcfirst }}: Service {
         {%~ endif %}
 
         {%~ if method.responseModel %}
-        let converter: ([String: Any]) -> {{ method | returnType(spec) | raw }} = { dict in
+        let converter: (Any) -> {{ method | returnType(spec) | raw }} = { response in
             {%~ if method.responseModel == 'any' %}
-            return dict
+            return response
             {%~ else %}
-            return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: dict)
+            return {{ spec.title | caseUcfirst}}Models.{{method.responseModel | caseUcfirst}}.from(map: response as! [String: Any])
             {%~ endif %}
         }
 
@@ -100,6 +103,7 @@ open class {{ service.name | caseUcfirst }}: Service {
             {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %},{% endif %}
 
             {%~ endfor %}
+            nestedType: [String: AnyCodable].self
             {%~ if 'multipart/form-data' in method.consumes %}
             onProgress: onProgress
             {%~ endif %}

@@ -1,11 +1,18 @@
 import setuptools
 
+long_description: str
+
+with open("README.md", "r", encoding="utf-8") as readme_file_desc:
+    long_description = readme_file_desc.read()
+    
 setuptools.setup(
   name = '{{spec.title | caseSnake}}',
   packages = ['{{spec.title | caseSnake}}', '{{spec.title | caseSnake}}/services'],
   version = '{{sdk.version}}',
   license='{{spec.licenseName}}',
   description = '{{sdk.shortDescription}}',
+  long_description = long_description,
+  long_description_content_type = 'text/markdown',
   author = '{{spec.contactName}}',
   author_email = '{{spec.contactEmail}}',
   maintainer = '{{spec.contactName}}',
