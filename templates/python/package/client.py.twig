@@ -42,7 +42,7 @@ class Client:
         return self
 {% endfor %}
 
-    def call(self, method, path='', headers=None, params=None):
+    def call(self, method, path='', headers=None, params=None, timeout=None):
         if headers is None:
             headers = {}
 
@@ -73,7 +73,7 @@ class Client:
                     del data[key]
         response = None
         try:
-            response = httpx.request(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
+            response = httpx.request(
                 method=method,
                 url=self._endpoint + path,
                 params=self.flatten(params, stringify=stringify),
@@ -82,7 +82,8 @@ class Client:
                 files=files,
                 headers=headers,
                 verify=(not self._self_signed),
-                follow_redirects=True
+                follow_redirects=True,
+                timeout=timeout
             )
 
             response.raise_for_status()

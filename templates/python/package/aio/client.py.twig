@@ -7,7 +7,7 @@ from ..client import Client
 
 class AsyncClient(Client):
 
-    async def call(self, method, path='', headers=None, params=None):
+    async def call(self, method, path='', headers=None, params=None, timeout=None):
         if headers is None:
             headers = {}
 
@@ -39,15 +39,15 @@ class AsyncClient(Client):
         response = None
         try:
             async with httpx.AsyncClient(verify=(not self._self_signed), follow_redirects=True) as client:
-                response = await client.request(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
+                response = await client.request( 
                     method=method,
                     url=self._endpoint + path,
                     params=self.flatten(params, stringify=stringify),
                     data=self.flatten(data),
                     json=json,
                     files=files,
-                    timeout=None,
                     headers=headers,
+                    timeout=timeout
                 )
 
                 response.raise_for_status()
@@ -75,7 +75,7 @@ class AsyncClient(Client):
         params = None,
         param_name = '',
         on_progress = None,
-        upload_id = ''
+        upload_id = '',
     ):
         file_path = str(params[param_name])
         file_name = os.path.basename(file_path)
