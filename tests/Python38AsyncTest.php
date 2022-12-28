@@ -1,6 +1,7 @@
 <?php
 
 namespace Tests;
+
 /**
  * @group asyncPython
  * Tests python

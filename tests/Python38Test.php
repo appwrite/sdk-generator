@@ -2,6 +2,10 @@
 
 namespace Tests;
 
+/**
+ * @group python
+ * Tests python
+ */
 class Python38Test extends Base
 {
     protected string $sdkName = 'python';
