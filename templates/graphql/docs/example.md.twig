@@ -1,3 +1,21 @@
+{% macro getProperty(definitions, responseModel, depth) %}
+        {%~ for definition in definitions %}
+        {%~ if definition.name == responseModel %}
+        {%~ for property in definition.properties | filter(p => p.required) %}
+        {{ ("% " ~ depth * 4 ~ "s") |format("") }}{{ property.name | replace({'$': '_'}) }}{%~ if property.sub_schema %} {{ '{' }}
+            {{- '\n' -}}
+                {{- _self.getProperty(definitions, property.sub_schema, depth + 1) -}}
+            {{ ("% " ~ depth * 4 ~ "s") |format("") }}{{ '        }' }}
+        {%~ else %}
+            {{- '\n' -}}
+        {%~ endif %}
+        {%~ endfor %}
+        {%~ if definition.additionalProperties %}
+        {{ ("% " ~ depth * 4 ~ "s") |format("") }}data
+        {%~ endif %}
+        {%~ endif %}
+        {%~ endfor %}
+{% endmacro %}
 {% for key,header in method.headers %}
 {% if header == 'multipart/form-data' %}
 {% set boundary = 'cec8e8123c05ba25' %}
@@ -55,16 +73,7 @@ mutation {
         {%~ if method.responseModel == 'none' or method.responseModel == '' %}
         status
         {%~ else %}
-        {%~ for definition in spec.definitions %}
-        {%~ if definition.name == method.responseModel %}
-        {%~ for property in definition.properties | filter(p => p.required) %}
-        {{ property.name | replace({'$': '_'}) }}
-        {%~ endfor %}
-        {%~ if definition.additionalProperties %}
-        data
-        {%~ endif %}
-        {%~ endif %}
-        {%~ endfor %}
+        {{- _self.getProperty(spec.definitions, method.responseModel, 0) -}}
         {%~ endif %}
     }
 }
