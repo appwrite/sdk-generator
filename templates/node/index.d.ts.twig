@@ -131,11 +131,13 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 
     static fromBuffer(buffer: Buffer, filename: string): InputFile;
 
-    static fromBlob(blob: Blob, filename: string): InputFile;
+    static fromBlob(blob: buffer.Blob, filename: string): Promise<InputFile>;
 
-    static fromStream(stream: any, filename: string, size: number): InputFile;
+    static fromStream(stream: NodeJS.ReadableStream, filename: string, size: number): InputFile;
 
     static fromPlainText(content: string, filename: string): InputFile;
+
+    constructor(stream: NodeJS.ReadableStream, filename: string, size: number);
   }
 
   type QueryTypesSingle = string | number | boolean;
