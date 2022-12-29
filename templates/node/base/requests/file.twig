@@ -81,7 +81,7 @@
                 const chunks = [];
 
                 for(let i = 0; i < chunksCount; i++) {
-                    const chunk = mainChunk.slice(i * client.CHUNK_SIZE, client.CHUNK_SIZE);
+                    const chunk = mainChunk.slice(i * client.CHUNK_SIZE, (i + 1) * client.CHUNK_SIZE);
                     chunks.push(chunk);
                 }
 
