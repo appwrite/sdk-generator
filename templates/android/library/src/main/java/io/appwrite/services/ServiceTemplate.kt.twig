@@ -1,31 +1,24 @@
-{% macro parameter(parameter) %}{{ parameter.name | caseCamel }}: {{ parameter | typeName }}{% if not parameter.required %}? = null{% endif %}{% endmacro %}
-{% macro method_parameters(parameters, consumes) %}
-{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ '\n\t\t' }}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ',' }}{% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, onProgress: ((UploadProgress) -> Unit)? = null{% endif %}{% endif %}
-{% endmacro %}
-{% macro methodNeedsSecurityParameters(method) %}
-{% if (method.type == "webAuth" or method.type == "location") and method.auth|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
-{% endmacro %}
-{% macro resultType(namespace, method) %}
-{% if method.type == "webAuth" %}Bool{% elseif method.type == "location" %}ByteArray{% elseif not method.responseModel or method.responseModel == 'any' %}Any{% else %}{{ namespace | caseDot}}.models.{{method.responseModel | caseUcfirst}}{% endif %}
-{% endmacro %}
 package {{ sdk.namespace | caseDot }}.services
 
 import android.net.Uri
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.models.*
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
+import {{ sdk.namespace | caseDot }}.extensions.classOf
 {% if service.features.webAuth %}
 import {{ sdk.namespace | caseDot }}.WebAuthComponent
 import androidx.activity.ComponentActivity
 {% endif %}
-import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import okhttp3.Cookie
-import okhttp3.Response
 {% if (service.features.webAuth or service.features.location) %}
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 {% endif %}
 import java.io.File
 
+/**
+ * {{ service.description | raw | replace({"\n": "", "\r": ""}) }}
+**/
 class {{ service.name | caseUcfirst }} : Service {
 
     public constructor (client: Client) : super(client) { }
@@ -34,33 +27,43 @@ class {{ service.name | caseUcfirst }} : Service {
     /**
      * {{ method.title }}
      *
-{% if method.description %}
-{{ method.description|comment1 }}
+     * {{ method.description | raw | replace({"\n": "", "\r": ""}) }}
      *
-{% endif %}
-{% for parameter in method.parameters.all %}
+    {%~ for parameter in method.parameters.all %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
-{% endfor %}
-     * {% if method.type != "webAuth" %}@return [{{ _self.resultType(sdk.namespace, method) }}]{% endif %}
-     
+    {%~ endfor %}
+    {%~ if method.type != "webAuth" %}
+     * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
+    {%~ endif %}
      */
+    {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
     @JvmOverloads
-    suspend fun {{ method.name | caseCamel }}({% if method.type == "webAuth" %}{{ '\n\t\t' }}activity: ComponentActivity{% if method.parameters.all | length > 0 %}, {% endif %}{% endif %}{{ _self.method_parameters(method.parameters, method.consumes) }}{% if method.parameters.all|length > 0 %}{{ '\n\t' }}{% endif %}){% if method.type != "webAuth" %}: {{ _self.resultType(sdk.namespace, method) }}{% endif %} {
-        val path = "{{ method.path }}"{% for parameter in method.parameters.path %}.replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}){% endfor %}
+    {%~ endif %}
+    suspend fun {% if method.responseModel | hasGenericType(spec) %}{{ '<T>' | raw }} {% endif %}{{ method.name | caseCamel }}(
+        {%~ if method.type == "webAuth" %}
+        activity: ComponentActivity,
+        {%~ endif %}
+        {%~ for parameter in method.parameters.all %}
+        {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required %}? = null{% endif %},
+        {%~ endfor %}
+        {%~ if method.responseModel | hasGenericType(spec) %}
+        nestedType: Class<T>,
+        {%~ endif %}
+        {%~ if 'multipart/form-data' in method.consumes %}
+        onProgress: ((UploadProgress) -> Unit)? = null
+        {%~ endif %}
+    ){% if method.type != "webAuth" %}: {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}{% endif %} {
+        val path = "{{ method.path }}"
+        {%~ for parameter in method.parameters.path %}
+            .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }})
+        {%~ endfor %}
 
         val params = mutableMapOf<String, Any?>(
-{% for parameter in method.parameters.query | merge(method.parameters.body) %}
-            "{{ parameter.name }}" to {{ parameter.name | caseCamel }}{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
-
-{% endfor %}
-{% if _self.methodNeedsSecurityParameters(method) %}
-{% for node in method.auth %}
-{% for key,header in node|keys %}
-            "{{header|caseLower}}" to client.config["{{header|caseLower}}"]{% if not loop.last %},{% endif %}
-
-{% endfor %}{% endfor %}{% endif %}
+        {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
+            "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
+        {%~ endfor %}
         )
-{% if method.type == 'webAuth' %}
+        {%~ if method.type == 'webAuth' %}
         val query = mutableListOf<String>()
         params.forEach {
             when (it.value) {
@@ -103,60 +106,109 @@ class {{ service.name | caseUcfirst }} : Service {
                 listOf(cookie)
             )
         }
-{% elseif method.type == 'location' %}
+        {%~ elseif method.type == 'location' %}
         return client.call(
             "{{ method.method | caseUpper }}",
             path,
             params = params,
-            responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java
+            responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java
         )
-{% else %}
+        {%~ else %}
         val headers = mutableMapOf(
-{{ method.headers|map((header, key) => "            \"#{key}\" to \"#{header}\"")|join(',\n')|raw }}
+        {%~ for key, header in method.headers %}
+            "{{ key }}" to "{{ header }}",
+        {%~ endfor %}
         )
-{% if method.responseModel %}
-        val converter: (Map<String, Any>) -> {{ _self.resultType(sdk.namespace, method) }} = {
-{% if method.responseModel == 'any' %}
+        {%~ if method.responseModel %}
+        val converter: (Any) -> {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} = {
+        {% if method.responseModel == 'any' %}
             it
-{% else %}
-            {{ _self.resultType(sdk.namespace, method) }}.from(map = it)
-{% endif %}
+        {% else %}
+        {{sdk.namespace | caseDot}}.models.{{ method.responseModel | caseUcfirst }}.from(map = it as Map<String, Any>{% if method.responseModel | hasGenericType(spec) %}, nestedType{% endif %})
+        {% endif %}
         }
-{% endif %}
-{% if 'multipart/form-data' in method.consumes %}
+        {%~ endif %}
+        {%~ if 'multipart/form-data' in method.consumes %}
         val idParamName: String? = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}null{% endif %}
     
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.type == 'file' %}
         val paramName = "{{ parameter.name }}"
-{% endif %}
-{% endfor %}
+        {%~ endif %}
+        {%~ endfor %}
         return client.chunkedUpload(
             path,
             headers,
             params,
-            responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java,
-{% if method.responseModel %}
+            responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java,
+            {%~ if method.responseModel %}
             converter,
-{% endif %}
+            {%~ endif %}
             paramName,
             idParamName,
             onProgress,
         )
-{% else %}
+        {%~ else %}
         return client.call(
             "{{ method.method | caseUpper }}",
             path,
             headers,
             params,
-            responseType = {{ _self.resultType(sdk.namespace, method) }}::class.java,
-{% if method.responseModel %}
+            {%~ if method.responseModel | hasGenericType(spec) %}
+            responseType = classOf(),
+            {%~ else %}
+            responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java,
+            {%~ endif %}
+            {%~ if method.responseModel %}
             converter,
-{% endif %}
+            {%~ endif %}
         )
-{% endif %}
-{% endif %}
+        {%~ endif %}
+        {%~ endif %}
     }
-    
-{% endfor %}
+
+    {%~ if method.responseModel | hasGenericType(spec) %}
+    /**
+     * {{ method.title }}
+     *
+     * {{ method.description | raw | replace({"\n": "", "\r": ""}) }}
+     *
+    {%~ for parameter in method.parameters.all %}
+     * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
+    {%~ endfor %}
+    {%~ if method.type != "webAuth" %}
+     * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
+    {%~ endif %}
+     */
+    {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
+    @JvmOverloads
+    {%~ endif %}
+    @Throws({{ spec.title | caseUcfirst }}Exception::class)
+    suspend fun {{ method.name | caseCamel }}(
+        {%~ if method.type == "webAuth" %}
+        activity: ComponentActivity,
+        {%~ endif %}
+        {%~ for parameter in method.parameters.all %}
+        {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required %}? = null{% endif %},
+        {%~ endfor %}
+        {%~ if 'multipart/form-data' in method.consumes %}
+        onProgress: ((UploadProgress) -> Unit)? = null
+        {%~ endif %}
+    ) = {{ method.name | caseCamel }}(
+        {%~ if method.type == "webAuth" %}
+        activity,
+        {%~ endif %}
+        {%~ for parameter in method.parameters.all %}
+        {{ parameter.name | caseCamel }},
+        {%~ endfor %}
+        {%~ if method.responseModel | hasGenericType(spec) %}
+        nestedType = classOf(),
+        {%~ endif %}
+        {%~ if 'multipart/form-data' in method.consumes %}
+        onProgress = onProgress
+        {%~ endif %}
+    )
+    {%~ endif %}
+
+    {%~ endfor %}
 }

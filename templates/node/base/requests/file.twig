@@ -74,48 +74,56 @@
 
         return await new Promise((resolve, reject) => {
             const writeStream = new Stream.Writable();
-            writeStream._write = async (mainChunk, encoding, next) => {
-                // Segment incoming chunk into up to 5MB chunks
-                const mainChunkSize = Buffer.byteLength(mainChunk);
-                const chunksCount = Math.ceil(mainChunkSize / client.CHUNK_SIZE);
-                const chunks = [];
+            writeStream._write = async (mainChunk, encoding, callback) => {
+                try {
+                    // Segment incoming chunk into up to 5MB chunks
+                    const mainChunkSize = Buffer.byteLength(mainChunk);
+                    const chunksCount = Math.ceil(mainChunkSize / client.CHUNK_SIZE);
+                    const chunks = [];
 
-                for(let i = 0; i < chunksCount; i++) {
-                    const chunk = mainChunk.slice(i * client.CHUNK_SIZE, client.CHUNK_SIZE);
-                    chunks.push(chunk);
-                }
-
-                for (const chunk of chunks) {
-                    const chunkSize = Buffer.byteLength(chunk);
-
-                    if(chunkSize + currentChunkSize == client.CHUNK_SIZE) {
-                        // Upload chunk
-                        currentChunk = Buffer.concat([currentChunk, chunk]);
-                        await uploadChunk();
-                        currentChunk = Buffer.from('');
-                        currentChunkSize = 0;
-                    } else if(chunkSize + currentChunkSize > client.CHUNK_SIZE) {
-                        // Upload chunk, put rest into next chunk
-                        const bytesToUpload = client.CHUNK_SIZE - currentChunkSize;
-                        const newChunkSection = chunk.slice(0, bytesToUpload);
-                        currentChunk = Buffer.concat([currentChunk, newChunkSection]);
-                        currentChunkSize = Buffer.byteLength(currentChunk);
-                        await uploadChunk();
-                        currentChunk = chunk.slice(bytesToUpload, undefined);
-                        currentChunkSize = chunkSize - bytesToUpload;
-                    } else {
-                        // Append into current chunk
-                        currentChunk = Buffer.concat([currentChunk, chunk]);
-                        currentChunkSize = chunkSize + currentChunkSize;
+                    for(let i = 0; i < chunksCount; i++) {
+                        const chunk = mainChunk.slice(i * client.CHUNK_SIZE, (i + 1) * client.CHUNK_SIZE);
+                        chunks.push(chunk);
                     }
-                }
 
-                next();
+                    for (const chunk of chunks) {
+                        const chunkSize = Buffer.byteLength(chunk);
+
+                        if(chunkSize + currentChunkSize == client.CHUNK_SIZE) {
+                            // Upload chunk
+                            currentChunk = Buffer.concat([currentChunk, chunk]);
+                            await uploadChunk();
+                            currentChunk = Buffer.from('');
+                            currentChunkSize = 0;
+                        } else if(chunkSize + currentChunkSize > client.CHUNK_SIZE) {
+                            // Upload chunk, put rest into next chunk
+                            const bytesToUpload = client.CHUNK_SIZE - currentChunkSize;
+                            const newChunkSection = chunk.slice(0, bytesToUpload);
+                            currentChunk = Buffer.concat([currentChunk, newChunkSection]);
+                            currentChunkSize = Buffer.byteLength(currentChunk);
+                            await uploadChunk();
+                            currentChunk = chunk.slice(bytesToUpload, undefined);
+                            currentChunkSize = chunkSize - bytesToUpload;
+                        } else {
+                            // Append into current chunk
+                            currentChunk = Buffer.concat([currentChunk, chunk]);
+                            currentChunkSize = chunkSize + currentChunkSize;
+                        }
+                    }
+
+                    callback();
+                } catch (e) {
+                    callback(e);
+                }
             }
 
             writeStream.on("finish", async () => {
                 if(currentChunkSize > 0) {
-                    await uploadChunk(true);
+                    try {
+                        await uploadChunk(true);
+                    } catch (e) {
+                        reject(e);
+                    }
                 }
                 
                 resolve(response);
