@@ -215,7 +215,17 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                             parseOutput: false
                         });
                     }));
-                }   
+                }
+
+                // Deploy local variables
+                await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
+                    await functionsCreateVariable({
+                        functionId: func['$id'],
+                        key: localVariableKey,
+                        value: func.variables[localVariableKey],
+                        parseOutput: false
+                    });
+                }));
             }
 
             response = await functionsUpdate({
