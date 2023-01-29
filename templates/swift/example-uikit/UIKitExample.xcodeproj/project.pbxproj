@@ -37,7 +37,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		1D53246626CA414A00D5382C /* swift-client */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "swift-client"; path = "../../../examples/swift-client"; sourceTree = "<group>"; };
+		1D53246626CA414A00D5382C /* apple */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "apple"; path = "../../../examples/apple"; sourceTree = "<group>"; };
 		1D8C054626E603A200646CFC /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
 		4B1151B0FC3E5D1AD1405D6D /* UIKitExampleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UIKitExampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B115317377938CDB4FF518B /* UIKitExampleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIKitExampleTests.swift; sourceTree = "<group>"; };
@@ -91,7 +91,7 @@
 		4B11584FFD11E0EC8AE1D05E = {
 			isa = PBXGroup;
 			children = (
-				1D53246626CA414A00D5382C /* swift-client */,
+				1D53246626CA414A00D5382C /* apple */,
 				4B115EA639EF1F575013EFA6 /* Products */,
 				4B115E17FC70E956925F85AF /* UIKitExample */,
 				4B115A1762CECE9495C57394 /* UIKitExampleTests */,

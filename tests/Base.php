@@ -6,6 +6,9 @@ use Appwrite\SDK\Language;
 use Appwrite\SDK\SDK;
 use Appwrite\Spec\Swagger2;
 use PHPUnit\Framework\TestCase;
+use Twig\Error\LoaderError;
+use Twig\Error\RuntimeError;
+use Twig\Error\SyntaxError;
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -13,8 +16,7 @@ error_reporting(E_ALL);
 
 abstract class Base extends TestCase
 {
-
-    const FOO_RESPONSES = [
+    protected const FOO_RESPONSES = [
         'GET:/v1/mock/tests/foo:passed',
         'POST:/v1/mock/tests/foo:passed',
         'PUT:/v1/mock/tests/foo:passed',
@@ -22,7 +24,7 @@ abstract class Base extends TestCase
         'DELETE:/v1/mock/tests/foo:passed',
     ];
 
-    const BAR_RESPONSES = [
+    protected const BAR_RESPONSES = [
         'GET:/v1/mock/tests/bar:passed',
         'POST:/v1/mock/tests/bar:passed',
         'PUT:/v1/mock/tests/bar:passed',
@@ -30,35 +32,35 @@ abstract class Base extends TestCase
         'DELETE:/v1/mock/tests/bar:passed',
     ];
 
-    const GENERAL_RESPONSES = [
+    protected const GENERAL_RESPONSES = [
         'GET:/v1/mock/tests/general/redirect/done:passed',
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
-    const EXTENDED_GENERAL_RESPONSES = [
+    protected const EXTENDED_GENERAL_RESPONSES = [
         'GET:/v1/mock/tests/general/download:passed',
     ];
 
-    const COOKIE_RESPONSES = [
+    protected const COOKIE_RESPONSES = [
         'GET:/v1/mock/tests/general/set-cookie:passed',
         'GET:/v1/mock/tests/general/get-cookie:passed',
     ];
 
-    const LARGE_FILE_RESPONSES = [
+    protected const LARGE_FILE_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
-    const EXCEPTION_RESPONSES = [
+    protected const EXCEPTION_RESPONSES = [
         'Mock 400 error',
         'Mock 500 error',
         'This is a text error',
     ];
 
-    const REALTIME_RESPONSES = [
+    protected const REALTIME_RESPONSES = [
         'WS:/v1/realtime:passed',
     ];
 
-    const QUERY_HELPER_RESPONSES = [
+    protected const QUERY_HELPER_RESPONSES = [
         'equal("released", [true])',
         'equal("title", ["Spiderman","Dr. Strange"])',
         'notEqual("title", ["Spiderman"])',
@@ -73,7 +75,7 @@ abstract class Base extends TestCase
         'offset(20)',
     ];
 
-    const PERMISSION_HELPER_RESPONSES = [
+    protected const PERMISSION_HELPER_RESPONSES = [
         'read("any")',
         'write("user:userid")',
         'create("users")',
@@ -85,7 +87,7 @@ abstract class Base extends TestCase
         'update("user:userid/unverified")',
     ];
 
-    const ID_HELPER_RESPONSES = [
+    protected const ID_HELPER_RESPONSES = [
         'unique()',
         'custom_id'
     ];
@@ -106,6 +108,12 @@ abstract class Base extends TestCase
     {
     }
 
+    /**
+     * @throws SyntaxError
+     * @throws \Throwable
+     * @throws RuntimeError
+     * @throws LoaderError
+     */
     public function testHTTPSuccess(): void
     {
         $spec = file_get_contents(realpath(__DIR__ . '/resources/spec.json'));
@@ -138,7 +146,7 @@ abstract class Base extends TestCase
 
         $dir = __DIR__ . '/sdks/' . $this->language;
 
-        $this->rmdir_recursive($dir);
+        $this->rmdirRecursive($dir);
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
 
@@ -187,19 +195,25 @@ abstract class Base extends TestCase
         }
     }
 
-    private function rmdir_recursive($dir) {
+    private function rmdirRecursive($dir)
+    {
         if (!\is_dir($dir)) {
             return;
         }
-        foreach(\scandir($dir) as $file) {
-            if ('.' === $file || '..' === $file) continue;
-            if (\is_dir("$dir/$file")) $this->rmdir_recursive("$dir/$file");
-            else \unlink("$dir/$file");
+        foreach (\scandir($dir) as $file) {
+            if ('.' === $file || '..' === $file) {
+                continue;
+            }
+            if (\is_dir("$dir/$file")) {
+                $this->rmdirRecursive("$dir/$file");
+            } else {
+                \unlink("$dir/$file");
+            }
         }
         rmdir($dir);
     }
 
-    public function getLanguage(): Language 
+    public function getLanguage(): Language
     {
         return new $this->class();
     }
