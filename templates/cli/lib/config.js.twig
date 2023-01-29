@@ -166,6 +166,45 @@ class Local extends Config {
         this.set("collections", collections);
     }
 
+    getTeams() {
+        if (!this.has("teams")) {
+            return [];
+        }
+        return this.get("teams");
+    }
+
+    getTeam($id) {
+        if (!this.has("teams")) {
+            return {};
+        }
+
+        let teams = this.get("teams");
+        for (let i = 0; i < teams.length; i++) {
+            if (teams[i]['$id'] == $id) {
+                return teams[i];
+            }
+        }
+
+        return {};
+    }
+    
+    addTeam(props) {
+        if (!this.has("teams")) {
+            this.set("teams", []);
+        }
+
+        let teams = this.get("teams");
+        for (let i = 0; i < teams.length; i++) {
+            if (teams[i]['$id'] == props['$id']) {
+                teams[i] = props;
+                this.set("teams", teams);
+                return;
+            }
+        }
+        teams.push(props);
+        this.set("teams", teams);
+    }
+
     getProject() {
         if (!this.has("projectId") || !this.has("projectName")) {
             return {};
