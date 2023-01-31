@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
 import '../lib/packageName.dart';
+import '../lib/client_io.dart';
 import '../lib/models.dart';
+import 'dart:io';
+
+class MockClient extends ClientIO {
+  Future<Directory> getCookiePath() async {
+    final dir = Directory('cookies');
+    await dir.create();
+    return dir;
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Client client = Client();
+  
+  Client client = MockClient();
   Foo foo = Foo(client);
   Bar bar = Bar(client);
   General general = General(client);
