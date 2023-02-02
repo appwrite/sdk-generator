@@ -69,11 +69,11 @@ class {{ service.name | caseUcfirst }} : Service {
         )
         {%~ if method.responseModel %}
         val converter: (Any) -> {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} = {
-        {% if method.responseModel == 'any' %}
+        {%~ if method.responseModel == 'any' %}
             it
-        {% else %}
-        {{sdk.namespace | caseDot}}.models.{{ method.responseModel | caseUcfirst }}.from(map = it as Map<String, Any>{% if method.responseModel | hasGenericType(spec) %}, nestedType{% endif %})
-        {% endif %}
+        {%~ else %}
+            {{sdk.namespace | caseDot}}.models.{{ method.responseModel | caseUcfirst }}.from(map = it as Map<String, Any>{% if method.responseModel | hasGenericType(spec) %}, nestedType{% endif %})
+        {%~ endif %}
         }
         {%~ endif %}
         {%~ if 'multipart/form-data' in method.consumes %}
