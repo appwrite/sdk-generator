@@ -176,8 +176,8 @@ class Swift extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Codable+JSON.swift',
-                'template'      => 'swift/Sources/Extensions/Codable+JSON.swift.twig',
+                'destination'   => '/Sources/JSONCodable/Codable+JSON.swift',
+                'template'      => 'swift/Sources/JSONCodable/Codable+JSON.swift.twig',
             ],
             [
                 'scope'         => 'default',
