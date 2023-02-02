@@ -106,7 +106,7 @@ class {{ service.name | caseUcfirst }} : Service {
         {%~ if 'multipart/form-data' in method.consumes %}
         onProgress: ((UploadProgress) -> Unit)? = null
         {%~ endif %}
-    ) = {{ method.name | caseCamel }}(
+    ): {{ method | returnType(spec, sdk.namespace | caseDot, 'Map<String, Any>') | raw }} = {{ method.name | caseCamel }}(
         {%~ if method.type == "webAuth" %}
         activity,
         {%~ endif %}
