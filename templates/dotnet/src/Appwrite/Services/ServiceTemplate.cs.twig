@@ -10,7 +10,7 @@
 {{ parameter.name | caseCamel | escapeKeyword }}{% endif %}
 {% endmacro %}
 {% macro methodNeedsSecurityParameters(method) %}
-{% if (method.type == "webAuth" or method.type == "location") and method.security|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
+{% if (method.type == "webAuth" or method.type == "location") and method.auth|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
 {% endmacro %}
 
 using System.Collections.Generic;
@@ -46,7 +46,7 @@ namespace {{ spec.title | caseUcfirst }}
 
 {% endfor %}
             };
-{% if _self.methodNeedsSecurityParameters(method) %}{% for node in method.security %}
+{% if _self.methodNeedsSecurityParameters(method) %}{% for node in method.auth %}
 {% for key,header in node|keys %}
             // { "{{header|caseLower}}", _client.GetConfig().get("{{header|caseLower}}") }{% if not loop.last %},{% endif %}
 

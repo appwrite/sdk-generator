@@ -50,7 +50,7 @@
 		1D34C2522702E4A000D1DA8D /* ExampleViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExampleViewModel.swift; sourceTree = "<group>"; };
 		1D34C2542702E4B500D1DA8D /* ExampleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExampleView.swift; sourceTree = "<group>"; };
 		1D43900726FC8B2500C71E3E /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
-		1DBB414627E87BDB00ECF86F /* swift-client */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "swift-client"; path = "../../../examples/swift-client"; sourceTree = "<group>"; };
+		1DBB414627E87BDB00ECF86F /* apple */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "apple"; path = "../../../examples/apple"; sourceTree = "<group>"; };
 		23DDF5922709A457006EFAFA /* ImagePicker+iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImagePicker+iOS.swift"; sourceTree = "<group>"; };
 		23DDF5942709A46A006EFAFA /* ImagePicker+macOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImagePicker+macOS.swift"; sourceTree = "<group>"; };
 		23DDF597270AC2DA006EFAFA /* OSImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OSImage.swift; sourceTree = "<group>"; };
@@ -106,7 +106,7 @@
 		1DBB414527E87BDB00ECF86F /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				1DBB414627E87BDB00ECF86F /* swift-client */,
+				1DBB414627E87BDB00ECF86F /* apple */,
 			);
 			name = Packages;
 			sourceTree = "<group>";

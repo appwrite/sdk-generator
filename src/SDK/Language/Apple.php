@@ -2,14 +2,14 @@
 
 namespace Appwrite\SDK\Language;
 
-class SwiftClient extends Swift
+class Apple extends Swift
 {
     /**
      * @return string
      */
     public function getName(): string
     {
-        return 'SwiftClient';
+        return 'Apple';
     }
 
     public function getFiles(): array
