@@ -1,21 +1,60 @@
 import 'package:flutter/material.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+
 import '../lib/packageName.dart';
 import '../lib/client_io.dart';
 import '../lib/models.dart';
 import 'dart:io';
 
-class MockClient extends ClientIO {
-  Future<Directory> getCookiePath() async {
-    final dir = Directory('cookies');
-    await dir.create();
-    return dir;
+class FakePathProvider extends PathProviderPlatform {
+  @override
+  Future<String?> getTemporaryPath() async {
+    return '.';
+  }
+
+  @override
+  Future<String?> getApplicationSupportPath() async {
+    return '.';
+  }
+
+  @override
+  Future<String?> getLibraryPath() async {
+    return '.';
+  }
+
+  @override
+  Future<String?> getApplicationDocumentsPath() async {
+    return '.';
+  }
+
+  @override
+  Future<String?> getExternalStoragePath() async {
+    return '.';
+  }
+
+  @override
+  Future<List<String>?> getExternalCachePaths() async {
+    return <String>['.'];
+  }
+
+  @override
+  Future<List<String>?> getExternalStoragePaths({
+    StorageDirectory? type,
+  }) async {
+    return <String>['.'];
+  }
+
+  @override
+  Future<String?> getDownloadsPath() async {
+    return '.';
   }
 }
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  Client client = MockClient();
+  PathProviderPlatform.instance = FakePathProvider();
+  Client client = Client();
   Foo foo = Foo(client);
   Bar bar = Bar(client);
   General general = General(client);
