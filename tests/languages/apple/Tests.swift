@@ -31,12 +31,12 @@ class Tests: XCTestCase {
         let realtime = Realtime(client)
         var realtimeResponse = "Realtime failed!"
 
-//         let expectation = XCTestExpectation(description: "realtime server")
-//
-//         realtime.subscribe(channels: ["tests"]) { message in
-//             realtimeResponse = message.payload!["response"] as! String
-//             expectation.fulfill()
-//         }
+        let expectation = XCTestExpectation(description: "realtime server")
+
+        realtime.subscribe(channels: ["tests"]) { message in
+            realtimeResponse = message.payload!["response"] as! String
+            expectation.fulfill()
+        }
         
         var mock: Mock
 
@@ -132,8 +132,8 @@ class Tests: XCTestCase {
             print(error.localizedDescription)
         }
 
-//         wait(for: [expectation], timeout: 10.0)
-//         print(realtimeResponse)
+        wait(for: [expectation], timeout: 10.0)
+        print(realtimeResponse)
 
         mock = try await general.setCookie()
         print(mock.result)
