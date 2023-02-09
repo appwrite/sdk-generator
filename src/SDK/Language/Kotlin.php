@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 class Kotlin extends Language
 {
@@ -383,6 +384,12 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/TypeExtensions.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/extensions/TypeExtensions.kt.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/json/PreciseNumberAdapter.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/json/PreciseNumberAdapter.kt.twig',
             ],
@@ -412,5 +419,103 @@ class Kotlin extends Language
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Model.kt.twig',
             ],
         ];
+    }
+
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('returnType', function (array $method, array $spec, string $namespace, string $generic = 'T') {
+                return $this->getReturnType($method, $spec, $namespace, $generic);
+            }),
+            new TwigFilter('modelType', function (array $property, array $spec, string $generic = 'T') {
+                return $this->getModelType($property, $spec, $generic);
+            }),
+            new TwigFilter('propertyType', function (array $property, array $spec, string $generic = 'T') {
+                return $this->getPropertyType($property, $spec, $generic);
+            }),
+            new TwigFilter('hasGenericType', function (string $model, array $spec) {
+                return $this->hasGenericType($model, $spec);
+            }),
+        ];
+    }
+
+    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
+    {
+        if ($method['type'] === 'webAuth') {
+            return 'Bool';
+        }
+        if ($method['type'] === 'location') {
+            return 'ByteArray';
+        }
+
+        if (
+            !\array_key_exists('responseModel', $method)
+            || empty($method['responseModel'])
+            || $method['responseModel'] === 'any'
+        ) {
+            return 'Any';
+        }
+
+        $ret = $this->toUpperCaseWords($method['responseModel']);
+
+        if ($this->hasGenericType($method['responseModel'], $spec)) {
+            $ret .= '<' . $generic . '>';
+        }
+
+        return $namespace . '.models.' . $ret;
+    }
+
+    protected function getModelType(array $definition, array $spec, string $generic = 'T'): string
+    {
+        if ($this->hasGenericType($definition['name'], $spec)) {
+            return $this->toUpperCaseWords($definition['name']) . '<' . $generic . '>';
+        }
+        return $this->toUpperCaseWords($definition['name']);
+    }
+
+    protected function getPropertyType(array $property, array $spec, string $generic = 'T'): string
+    {
+        if (\array_key_exists('sub_schema', $property)) {
+            $type = $this->toUpperCaseWords($property['sub_schema']);
+
+            if ($this->hasGenericType($property['sub_schema'], $spec)) {
+                $type .= '<' . $generic . '>';
+            }
+
+            if ($property['type'] === 'array') {
+                $type = 'List<' . $type . '>';
+            }
+        } else {
+            $type = $this->getTypeName($property);
+        }
+
+        if (!$property['required']) {
+            $type .= '?';
+        }
+
+        return $type;
+    }
+
+    protected function hasGenericType(?string $model, array $spec): string
+    {
+        if (empty($model) || $model === 'any') {
+            return false;
+        }
+
+        $model = $spec['definitions'][$model];
+
+        if ($model['additionalProperties']) {
+            return true;
+        }
+
+        foreach ($model['properties'] as $property) {
+            if (!\array_key_exists('sub_schema', $property) || !$property['sub_schema']) {
+                continue;
+            }
+
+            return $this->hasGenericType($property['sub_schema'], $spec);
+        }
+
+        return false;
     }
 }

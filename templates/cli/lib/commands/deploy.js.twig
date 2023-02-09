@@ -2,7 +2,7 @@ const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
-const { questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
+const { questionsDeployTeams, questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
@@ -25,6 +25,11 @@ const {
     databasesListIndexes,
     databasesDeleteIndex
 } = require("./databases");
+const {
+    teamsGet,
+    teamsUpdate,
+    teamsCreate
+} = require("./teams");
 
 const POOL_DEBOUNCE = 2000; // in milliseconds
 const POOL_MAX_DEBOUNCES = 30;
@@ -593,6 +598,76 @@ const deployCollection = async ({ all, yes } = {}) => {
     }
 }
 
+const deployTeam = async ({ all, yes } = {}) => {
+    let response = {};
+
+    let teamIds = [];
+    const configTeams = localConfig.getTeams();
+
+    if(all) {
+        if (configTeams.length === 0) {
+            throw new Error("No teams found in the current directory. Run `appwrite init team` to fetch all your teams.");
+        }
+        teamIds.push(...configTeams.map((t) => t.$id));
+    }
+
+    if(teamIds.length === 0) {
+        let answers = await inquirer.prompt(questionsDeployTeams[0])
+        teamIds.push(...answers.teams);
+    }
+
+    let teams = [];
+
+    for(const teamId of teamIds) {
+        const idTeams = configTeams.filter((t) => t.$id === teamId);
+        teams.push(...idTeams);
+    }
+
+    for (let team of teams) {
+        log(`Deploying team ${team.name} ( ${team['$id']} )`)
+
+        try {
+            response = await teamsGet({
+                teamId: team['$id'],
+                parseOutput: false,
+            })
+            log(`Team ${team.name} ( ${team['$id']} ) already exists.`);
+
+            if(!yes) {
+                answers = await inquirer.prompt(questionsDeployTeams[1])
+                if (answers.override !== "YES") {
+                    log(`Received "${answers.override}". Skipping ${team.name} ( ${team['$id']} )`);
+                    continue;
+                }
+            }
+
+            log(`Updating team ...`)
+
+            await teamsUpdate({
+                teamId: team['$id'],
+                name: team.name,
+                parseOutput: false
+            });
+
+            success(`Deployed ${team.name} ( ${team['$id']} )`);
+        } catch (e) {
+            if (e.code == 404) {
+                log(`Team ${team.name} does not exist in the project. Creating ... `);
+
+                response = await teamsCreate({
+                    teamId: team['$id'],
+                    name: team.name,
+                    parseOutput: false
+                })
+
+                success(`Deployed ${team.name} ( ${team['$id']} )`);
+            } else {
+                throw e;
+            }
+        }
+    }
+}
+
 deploy
     .command("function")
     .description("Deploy functions in the current directory.")
@@ -607,6 +682,13 @@ deploy
     .option(`--all`, `Flag to deploy all functions`)
     .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(deployCollection));
+
+deploy
+    .command("team")
+    .description("Deploy teams in the current project.")
+    .option(`--all`, `Flag to deploy all teams`)
+    .option(`--yes`, `Flag to confirm all warnings`)
+    .action(actionRunner(deployTeam));
 
 module.exports = {
     deploy
