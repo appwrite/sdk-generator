@@ -82,6 +82,7 @@ mixin RealtimeMixin {
             stream.close();
           }
         }
+        _channels = {};
         _closeConnection();
       }, onError: (err, stack) {
         for (var list in _channels.values) {
