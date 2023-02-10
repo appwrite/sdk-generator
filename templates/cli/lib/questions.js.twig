@@ -300,6 +300,32 @@ const questionsGetEntrypoint = [
   },
 ]
 
+const questionsDeployTeams = [
+  {
+    type: "checkbox",
+    name: "teams",
+    message: "Which teams would you like to deploy?",
+    choices: () => {
+      let teams = localConfig.getTeams();
+      if (teams.length === 0) {
+        throw new Error("No teams found in the current directory. Run `appwrite init team` to fetch all your teams.");
+      }
+      let choices = teams.map((team, idx) => {
+        return {
+          name: `${team.name} (${team['$id']})`,
+          value: team.$id
+        }
+      })
+      return choices;
+    }
+  },
+  {
+    type: "input",
+    name: "override",
+    message: 'Are you sure you want to override this team? This can lead to loss of data! Type "YES" to confirm.'
+  },
+]
+
 module.exports = {
   questionsInitProject,
   questionsLogin,
@@ -307,5 +333,6 @@ module.exports = {
   questionsInitCollection,
   questionsDeployFunctions,
   questionsDeployCollections,
+  questionsDeployTeams,
   questionsGetEntrypoint
 };
