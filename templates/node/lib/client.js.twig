@@ -9,6 +9,7 @@ class Client {
     constructor() {
         this.endpoint = '{{spec.endpoint}}';
         this.headers = {
+            'accept-encoding': '*',
             'content-type': '',
             'x-sdk-name': '{{ sdk.name }}',
             'x-sdk-platform': '{{ sdk.platform }}',

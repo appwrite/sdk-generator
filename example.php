@@ -2,6 +2,7 @@
 
 include_once 'vendor/autoload.php';
 
+use Appwrite\SDK\Language\GraphQL;
 use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\Web;
@@ -13,7 +14,7 @@ use Appwrite\SDK\Language\Ruby;
 use Appwrite\SDK\Language\Dart;
 use Appwrite\SDK\Language\Go;
 use Appwrite\SDK\Language\Deno;
-use Appwrite\SDK\Language\HTTP;
+use Appwrite\SDK\Language\REST;
 use Appwrite\SDK\Language\Swift;
 use Appwrite\SDK\Language\Apple;
 use Appwrite\SDK\Language\DotNet;
@@ -389,8 +390,8 @@ try {
 
     $sdk->generate(__DIR__ . '/examples/dotnet');
 
-    // HTTP
-    $sdk  = new SDK(new HTTP(), new Swagger2($spec));
+    // REST
+    $sdk  = new SDK(new REST(), new Swagger2($spec));
 
     $sdk
         ->setName('NAME')
@@ -408,7 +409,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
     ;
 
-    $sdk->generate(__DIR__ . '/examples/HTTP');
+    $sdk->generate(__DIR__ . '/examples/REST');
 
     // Android
 
@@ -458,6 +459,16 @@ try {
         ])
     ;
     $sdk->generate(__DIR__ . '/examples/kotlin');
+
+    // GraphQL
+    $sdk = new SDK(new GraphQL(), new Swagger2($spec));
+
+    $sdk
+        ->setName('GraphQL')
+        ->setDescription('Appwrite is an open-source backend as a service server that abstract and simplify complex and repetitive development tasks behind a very simple to use REST API. Appwrite aims to help you develop your apps faster and in a more secure way. Use the Flutter SDK to integrate your app with the Appwrite server to easily start interacting with all of Appwrite backend APIs and tools. For full API documentation and tutorials go to https://appwrite.io/docs')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+    ;
+    $sdk->generate(__DIR__ . '/examples/graphql');
 }
 catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";

@@ -1,7 +1,6 @@
-{% import 'kotlin/base/utils.twig' as utils%}
         return client.call(
             "{{ method.method | caseUpper }}",
             path,
             params = params,
-            responseType = {{ utils.resultTypeKt(sdk.namespace, method) }}::class.java
+            responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java
         )

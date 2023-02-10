@@ -1,6 +1,5 @@
 const { Readable } = require('stream');
 const fs = require('fs');
-const { promisify } = require('util');
 
 class InputFile {
   stream; // Content of file, readable stream
@@ -14,16 +13,15 @@ class InputFile {
   };
 
   static fromBuffer = (buffer, filename) => {
-    const stream = Readable.from(buffer.toString());
+    const stream = Readable.from(buffer);
     const size = Buffer.byteLength(buffer);
     return new InputFile(stream, filename, size);
   };
 
-  static fromBlob = (blob, filename) => {
-    const buffer = blob.arrayBuffer();
-    const stream = Readable.from(buffer.toString());
-    const size = Buffer.byteLength(buffer);
-    return new InputFile(stream, filename);
+  static fromBlob = async (blob, filename) => {
+    const arrayBuffer = await blob.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return InputFile.fromBuffer(buffer, filename);
   };
 
   static fromStream = (stream, filename, size) => {
@@ -32,7 +30,7 @@ class InputFile {
 
   static fromPlainText = (content, filename) => {
     const buffer = Buffer.from(content, "utf-8");
-    const stream = Readable.from(buffer.toString());
+    const stream = Readable.from(buffer);
     const size = Buffer.byteLength(buffer);
     return new InputFile(stream, filename, size);
   };

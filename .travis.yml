@@ -32,9 +32,9 @@ env:
   - SDK=DotNet50
   - SDK=DotNet60
   - SDK=FlutterStable
+  - SDK=FlutterBeta
   - SDK=Go112
   - SDK=Go118
-#  - SDK=FlutterBeta
   - SDK=KotlinJava8
   - SDK=KotlinJava11
   - SDK=KotlinJava17
