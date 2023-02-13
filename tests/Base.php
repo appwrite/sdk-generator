@@ -41,6 +41,14 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/download:passed',
     ];
 
+    protected const DOWNLOAD_URL_CLIENT_RESPONSES = [
+        'https://stage.appwrite.io/v1/mock/tests/general/download?project=console',
+    ];
+
+    protected const DOWNLOAD_URL_SERVER_RESPONSES = [
+        'https://stage.appwrite.io/v1/mock/tests/general/download?project=',
+    ];
+
     protected const COOKIE_RESPONSES = [
         'GET:/v1/mock/tests/general/set-cookie:passed',
         'GET:/v1/mock/tests/general/get-cookie:passed',

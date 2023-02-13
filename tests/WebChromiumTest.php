@@ -26,7 +26,7 @@ class WebChromiumTest extends Base
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
-        "https://appwrite.io/v1/mock/tests/general/download?project=console",
+        ...Base::DOWNLOAD_URL_CLIENT_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,

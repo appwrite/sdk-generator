@@ -15,7 +15,7 @@ class CLINode14Test extends Base
     protected string $language = 'cli';
     protected string $class = 'Appwrite\SDK\Language\CLI';
     protected array $build = [
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli node:16-alpine npm install',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli node:14-alpine npm install',
         'cp tests/languages/cli/test.js tests/sdks/cli/test.js'
     ];
     protected string $command =
