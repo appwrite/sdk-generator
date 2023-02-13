@@ -32,24 +32,24 @@ class LinuxDeviceInfo {
         machineId = getMachineId()
     }
 
-    private static func getOsRelease() -> [String: String] {
+    private func getOsRelease() -> [String: String] {
         return tryReadKeyValues(path: "/etc/os-release")
     }
 
-    private static func getLsbRelease() -> [String: String] {
+    private func getLsbRelease() -> [String: String] {
         return tryReadKeyValues(path: "/etc/lsb-release")
     }
 
-    private static func getMachineId() -> String {
+    private func getMachineId() -> String {
         return tryReadValue(path: "/etc/machine-id")!
     }
 
-    private static func tryReadValue(path: String) -> String? {
+    private func tryReadValue(path: String) -> String? {
         let url = URL(fileURLWithPath: path)
         return try! String(contentsOf: url, encoding: .utf8)
     }
 
-    private static func tryReadKeyValues(path: String) -> [String: String]  {
+    private func tryReadKeyValues(path: String) -> [String: String]  {
         let url = URL(fileURLWithPath: path)
         let string = try! String(contentsOf: url, encoding: .utf8)
         let lines = string.components(separatedBy: .newlines)
