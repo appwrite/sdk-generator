@@ -16,8 +16,8 @@ class LinuxDeviceInfo {
     let machineId: String
 
     public init() {
-        let os = getOsRelease()
-        let lsb = getLsbRelease()
+        let os = LinuxDeviceInfo.getOsRelease()
+        let lsb = LinuxDeviceInfo.getLsbRelease()
 
         name = os["NAME"] ?? "Linux"
         version = os["VERSION"] ?? lsb["LSB_VERSION"] ?? ""
@@ -29,7 +29,7 @@ class LinuxDeviceInfo {
         buildId = os["BUILD_ID"] ?? ""
         variant = os["VARIANT"] ?? ""
         variantId = os["VARIANT_ID"] ?? ""
-        machineId = getMachineId()
+        machineId = LinuxDeviceInfo.getMachineId()
     }
 
     private static func getOsRelease() -> [String: String] {
