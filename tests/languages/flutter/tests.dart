@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+
 import '../lib/packageName.dart';
+import '../lib/client_io.dart';
 import '../lib/models.dart';
+import 'dart:io';
+
+class FakePathProvider extends PathProviderPlatform {
+  @override
+  Future<String?> getApplicationDocumentsPath() async {
+    return '.';
+  }
+}
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  PathProviderPlatform.instance = FakePathProvider();
   Client client = Client();
   Foo foo = Foo(client);
   Bar bar = Bar(client);
