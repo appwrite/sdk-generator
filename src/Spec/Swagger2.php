@@ -184,6 +184,11 @@ class Swagger2 extends Spec
                             'query' => [],
                             'body' => [],
                         ],
+                        'offline' => [
+                            'model' => $method['x-appwrite']['offline-model'] ?? '',
+                            'key' => $method['x-appwrite']['offline-key'] ?? '',
+                            'response-key' => $method['x-appwrite']['offline-response-key'] ?? '$id',
+                        ],
                         'emptyResponse' => $emptyResponse,
                         'responseModel' => $responseModel,
                     ];
