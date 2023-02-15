@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class Deno1171Test extends Base
+class Deno1193Test extends Base
 {
     protected string $sdkName = 'deno';
     protected string $sdkPlatform = 'server';
