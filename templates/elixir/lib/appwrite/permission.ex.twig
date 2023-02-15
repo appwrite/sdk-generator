@@ -1,0 +1,9 @@
+defmodule Appwrite.Permission do
+  @moduledoc false
+
+  def read(role), do: "read(\"#{role}\")"
+  def write(role), do: "write(\"#{role}\")"
+  def create(role), do: "create(\"#{role}\")"
+  def update(role), do: "update(\"#{role}\")"
+  def delete(role), do: "delete(\"#{role}\")"
+end

@@ -1,0 +1,34 @@
+defmodule Appwrite.Query do
+  @moduledoc false
+
+  def equal(attribute, value), do: add_query(attribute, "equal", value)
+  def not_equal(attribute, value), do: add_query(attribute, "notEqual", value)
+  def less_than(attribute, value), do: add_query(attribute, "lessThan", value)
+  def less_than_equal(attribute, value), do: add_query(attribute, "lessThanEqual", value)
+  def greater_than(attribute, value), do: add_query(attribute, "greaterThan", value)
+  def greater_than_equal(attribute, value), do: add_query(attribute, "greaterThanEqual", value)
+  def search(attribute, value), do: add_query(attribute, "search", value)
+
+  def order_asc(attribute), do: "orderAsc(\"#{attribute}\")"
+  def order_desc(attribute), do: "orderDesc(\"#{attribute}\")"
+  def cursor_before(id), do: "cursorBefore(\"#{id}\")"
+  def cursor_after(id), do: "cursorAfter(\"#{id}\")"
+  def limit(limit), do: "limit(#{limit})"
+  def offset(offset), do: "offset(#{offset})"
+
+  def add_query(attribute, method, values) when is_list(values) do
+    params =
+      values
+      |> Enum.map(&parse_value(&1))
+      |> Enum.join(",")
+
+    "#{method}(\"#{attribute}\", [#{params}])"
+  end
+
+  def add_query(attribute, method, value) do
+    "#{method}(\"#{attribute}\", [#{parse_value(value)}])"
+  end
+
+  def parse_value(value) when is_binary(value), do: "\"#{value}\""
+  def parse_value(value), do: "#{value}"
+end
