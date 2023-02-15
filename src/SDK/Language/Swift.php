@@ -87,6 +87,7 @@ class Swift extends Language
             "unowned",
             "weak",
             "willSet",
+            "path"
         ];
     }
 

@@ -103,7 +103,8 @@ class Dart extends Language
             "yield",
             "required",
             "extension",
-            "late"
+            "late",
+            "path"
         ];
     }
 
