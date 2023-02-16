@@ -138,6 +138,31 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/example-uikit/UIKitExample.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
+                'template'      => '/swift/example-uikit/UIKitExample.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-swiftui/Example.xcodeproj/xcshareddata/xcschemes/test (iOS).xcscheme',
+                'template'      => '/swift/example-swiftui/Example.xcodeproj/xcshareddata/xcschemes/test (iOS).xcscheme',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-swiftui/Example.xcodeproj/xcshareddata/xcschemes/test (macOS).xcscheme',
+                'template'      => '/swift/example-swiftui/Example.xcodeproj/xcshareddata/xcschemes/test (macOS).xcscheme',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-swiftui/Example.xcodeproj/xcshareddata/xcschemes/test (tvOS).xcscheme',
+                'template'      => '/swift/example-swiftui/Example.xcodeproj/xcshareddata/xcschemes/test (tvOS).xcscheme',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-swiftui/Example.xcodeproj/xcshareddata/xcschemes/test (watchOS).xcscheme',
+                'template'      => '/swift/example-swiftui/Example.xcodeproj/xcshareddata/xcschemes/test (watchOS).xcscheme',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/example-swiftui/Example.xcodeproj/project.pbxproj',
                 'template'      => '/swift/example-swiftui/Example.xcodeproj/project.pbxproj',
             ],
