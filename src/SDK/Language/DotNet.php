@@ -333,6 +333,11 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Models/ApiErrorAnswer.cs',
+                'template'      => 'dotnet/src/Appwrite/Models/ApiErrorAnswer.cs',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/{{ sdk.namespace | caseSlash }}/src/Appwrite/Models/OrderType.cs',
                 'template'      => 'dotnet/src/Appwrite/Models/OrderType.cs.twig',
             ],
