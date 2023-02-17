@@ -153,7 +153,7 @@ class DotNet extends Language
             case self::TYPE_INTEGER:
                 return 'int';
             case self::TYPE_NUMBER:
-                return 'double?';
+                return 'double';
             case self::TYPE_STRING:
                 return 'string';
             case self::TYPE_FILE:
@@ -240,9 +240,11 @@ class DotNet extends Language
                     $output .= 'new File("./path-to-files/image.jpg")';
                     break;
                 case self::TYPE_NUMBER:
-                case self::TYPE_STRING:
                 case self::TYPE_INTEGER:
                     $output .= 'null';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= '""';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= 'false';
