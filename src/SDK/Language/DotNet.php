@@ -152,6 +152,8 @@ class DotNet extends Language
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'int';
+            case self::TYPE_NUMBER:
+                return 'double?';
             case self::TYPE_STRING:
                 return 'string';
             case self::TYPE_FILE:
@@ -189,6 +191,7 @@ class DotNet extends Language
         if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_INTEGER:
+                case self::TYPE_NUMBER:
                 case self::TYPE_ARRAY:
                 case self::TYPE_OBJECT:
                 case self::TYPE_BOOLEAN:
@@ -201,6 +204,7 @@ class DotNet extends Language
         } else {
             switch ($type) {
                 case self::TYPE_INTEGER:
+                case self::TYPE_NUMBER:
                     $output .= $default;
                     break;
                 case self::TYPE_BOOLEAN:
@@ -236,14 +240,12 @@ class DotNet extends Language
                     $output .= 'new File("./path-to-files/image.jpg")';
                     break;
                 case self::TYPE_NUMBER:
+                case self::TYPE_STRING:
                 case self::TYPE_INTEGER:
-                    $output .= '0';
+                    $output .= 'null';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= '""';
                     break;
                 case self::TYPE_OBJECT:
                     $output .= '[object]';
