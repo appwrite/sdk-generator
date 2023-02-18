@@ -85,6 +85,8 @@
           "scope": "public",
           "platforms": ["client", "server", "server"],
           "packaging": false,
+          "offline-model": "\/mock\/tests\/bar",
+          "offline-key": "{required}",
           "auth": { "Project": [] }
         },
         "security": [{ "Project": [], "Key": [], "JWT": [] }],
