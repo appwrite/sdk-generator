@@ -143,6 +143,9 @@ const awaitPools = {
 
 const deploy = new Command("deploy")
     .description(commandDescriptions['deploy'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
     .action(actionRunner(async (_options, command) => {
         command.help()
     }));
