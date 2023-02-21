@@ -62,12 +62,14 @@ class {{ service.name | caseUcfirst }} : Service {
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
         {%~ endfor %}
+        {%~ if method.type == 'location' or method.type == 'webAuth' %}
         {%~ if method.auth | length > 0 %}
         {%~ for node in method.auth %}
         {%~ for key,header in node | keys %}
             "{{ header | caseLower }}" to client.config["{{ header | caseLower }}"],
         {%~ endfor %}
         {%~ endfor %}
+        {%~ endif %}
         {%~ endif %}
         )
         {%~ if method.type == 'webAuth' %}
