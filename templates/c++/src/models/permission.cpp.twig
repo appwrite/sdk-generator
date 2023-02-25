@@ -1,0 +1,29 @@
+#include "permission.hpp"
+
+Permission::Permission()
+{
+}
+
+Permission::~Permission()
+{
+}
+
+std::string Permission::create(std::string role)
+{
+    return makePermission("create",role);
+}
+
+std::string Permission::read(std::string role)
+{
+    return makePermission("read", role);
+}
+
+std::string Permission::update(std::string role)
+{
+    return makePermission("update", role);
+}
+
+std::string Permission::xdelete(std::string role)
+{
+    return makePermission("delete", role);
+}

@@ -10,7 +10,7 @@ class Cplusplus extends Language
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'C++';
     }
@@ -20,9 +20,8 @@ class Cplusplus extends Language
      *
      * @return array
      */
-    public function getKeywords()
+    public function getKeywords(): array
     {
-        // TODO: Evaluate this list.
         // Referred to https://en.cppreference.com/w/cpp/keyword as a source,
         // This should cover all the keywords for C++17
         return [
@@ -107,7 +106,7 @@ class Cplusplus extends Language
     /**
      * @return array
      */
-    public function getIdentifierOverrides()
+    public function getIdentifierOverrides(): array
     {
         return [];
     }
@@ -115,7 +114,7 @@ class Cplusplus extends Language
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
             [
@@ -227,7 +226,7 @@ class Cplusplus extends Language
      * @param $type
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName($type): string
     {
         switch ($type) {
             case self::TYPE_INTEGER:
@@ -253,7 +252,7 @@ class Cplusplus extends Language
      * @param array $param
      * @return string
      */
-    public function getParamDefault(array $param)
+    public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
         $default    = $param['default'] ?? '';
@@ -315,7 +314,7 @@ class Cplusplus extends Language
      * @param array $param
      * @return string
      */
-    public function getParamExample(array $param)
+    public function getParamExample(array $param): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
