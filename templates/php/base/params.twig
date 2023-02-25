@@ -1,0 +1,27 @@
+        $params = [];
+{% if method.parameters.all | length %}
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+        if (!isset(${{ parameter.name | caseCamel | escapeKeyword }})) {
+            throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
+        }
+{% endif %}
+{% endfor %}
+{% for parameter in method.parameters.query %}
+        if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
+            $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
+        }
+
+{% endfor %}
+{% for parameter in method.parameters.body %}
+        if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
+            $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
+        }
+
+{% endfor %}
+{% for parameter in method.parameters.formData %}
+        if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
+            $params['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
+        }
+{% endfor %}
+{% endif %}

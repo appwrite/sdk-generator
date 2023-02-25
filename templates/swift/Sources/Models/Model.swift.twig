@@ -1,75 +1,62 @@
-{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}[{{property.sub_schema | caseUcfirst}}]{% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}[String : Any]{% else %}{{property.type | typeName}}{% endif %}{% endif %}{% endmacro %}
+import Foundation
+import JSONCodable
 
 /// {{ definition.description }}
-public class {{ definition.name | caseUcfirst }} {
+{% if definition.properties | length == 0 and not definition.additionalProperties %}
+public class {{ definition | modelType(spec) | raw }} {}
+{% else %}
+public class {{ definition | modelType(spec) | raw }} {
 
-{% for property in definition.properties %}
+    {%~ for property in definition.properties %}
     /// {{ property.description }}
-    public let {{ property.name | escapeKeyword | removeDollarSign }}: {{_self.sub_schema(property)}}{% if not property.required %}?{% endif %}
+    public let {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not property.required %}?{% endif %}
 
 
-{% endfor %}
-{% if definition.additionalProperties %}
-    let data: [String: Any]
+    {%~ endfor %}
+    {%~ if definition.additionalProperties %}
+    /// Additional properties
+    public let data: T
+    {%~ endif %}
 
-{% endif %}
     init(
-{% for property in definition.properties %}
-        {{ property.name | escapeKeyword | removeDollarSign }}: {{_self.sub_schema(property)}}{% if not property.required %}?{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+        {%~ for property in definition.properties %}
+        {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw  }}{% if not property.required %}?{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
-{% endfor %}
-{% if definition.additionalProperties %}
-        data: [String: Any]
-{% endif %}
+        {%~ endfor %}
+        {%~ if definition.additionalProperties %}
+        data: T
+        {%~ endif %}
     ) {
-{% for property in definition.properties %}
+        {%~ for property in definition.properties %}
         self.{{ property.name | escapeKeyword | removeDollarSign }} = {{ property.name | escapeKeyword | removeDollarSign }}
-{% endfor %}
-{% if definition.additionalProperties %}
+        {%~ endfor %}
+        {%~ if definition.additionalProperties %}
         self.data = data
-{% endif %}
-    }
-
-    public static func from(map: [String: Any]) -> {{ definition.name | caseUcfirst }} {
-        return {{ definition.name | caseUcfirst }}(
-{% for property in definition.properties %}
-            {{ property.name | escapeKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}(map["{{property.name }}"] as! [[String: Any]]).map { {{property.sub_schema | caseUcfirst}}.from(map: $0) }{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]){% endif %}{% else %}map["{{property.name }}"] as{% if property.required %}!{% else %}?{% endif %} {{ _self.sub_schema(property) }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
-
-{% endfor %}
-{% if definition.additionalProperties %}
-            data: map
-{% endif %}
-        )
+        {%~ endif %}
     }
 
     public func toMap() -> [String: Any] {
         return [
-{% for property in definition.properties %}
+            {%~ for property in definition.properties %}
             "{{ property.name | escapeKeyword }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword | removeDollarSign}}.map { $0.toMap() }{% else %}{{property.name | escapeKeyword | removeDollarSign}}.toMap(){% endif %}{% else %}{{property.name | escapeKeyword | removeDollarSign}}{% endif %} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
-{% endfor %}
-{% if definition.additionalProperties %}
-            "data": data
-{% endif %}
+            {%~ endfor %}
+            {%~ if definition.additionalProperties %}
+            "data": try! JSONEncoder().encode(data)
+            {%~ endif %}
         ]
     }
-{% if definition.additionalProperties %}
 
-    public func convertTo<T>(fromJson: ([String: Any]) -> T) -> T {
-        return fromJson(data)
+    public static func from(map: [String: Any] ) -> {{ definition.name | caseUcfirst }} {
+        return {{ definition.name | caseUcfirst }}(
+            {%~ for property in definition.properties %}
+            {{ property.name | escapeKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}(map["{{property.name }}"] as! [[String: Any]]).map { {{property.sub_schema | caseUcfirst}}.from(map: $0) }{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]){% endif %}{% else %}map["{{property.name }}"] as{% if property.required %}!{% else %}?{% endif %} {{ property | propertyType(spec) | raw }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+
+            {%~ endfor %}
+            {%~ if definition.additionalProperties %}
+            data: try! JSONDecoder().decode(T.self, from: JSONSerialization.data(withJSONObject: map, options: []))
+            {%~ endif %}
+        )
     }
-    {% endif %}
-    {% for property in definition.properties %}
-    {% if property.sub_schema %}
-    {% for def in spec.definitions %}
-    {% if def.name == property.sub_schema and def.additionalProperties and property.type == 'array' %}
-
-    public func convertTo<T>(fromJson: ([String: Any]) -> T) -> [T] {
-        {{property.name | removeDollarSign}}.map { d in d.convertTo(fromJson: fromJson) }
-    }
-{% endif %}
-{% endfor %}
-{% endif %}
-{% endfor %}
-
 }
+{% endif %}

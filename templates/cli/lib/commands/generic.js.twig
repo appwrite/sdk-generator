@@ -6,16 +6,19 @@ const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, log, parse } = require("../parser");
 {% if sdk.test != "true" %}
 const { questionsLogin } = require("../questions");
-const { accountCreateSession, accountDeleteSession } = require("./account");
+const { accountCreateEmailSession, accountDeleteSession } = require("./account");
 
 const login = new Command("login")
     .description(commandDescriptions['login'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
     .action(actionRunner(async () => {
         const answers = await inquirer.prompt(questionsLogin)
 
         let client = await sdkForConsole(false);
 
-        await accountCreateSession({
+        await accountCreateEmailSession({
             email: answers.email,
             password: answers.password,
             parseOutput: false,
@@ -27,6 +30,9 @@ const login = new Command("login")
 
 const logout = new Command("logout")
     .description(commandDescriptions['logout'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
     .action(actionRunner(async () => {
         let client = await sdkForConsole();
 
@@ -43,10 +49,13 @@ const logout = new Command("logout")
 
 const client = new Command("client")
     .description(commandDescriptions['client'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
     .option("--selfSigned <value>", "Configure the CLI to use a self-signed certificate ( true or false )", parseBool)
-    .option("--endpoint <endpoint>", "Set your Apwrite server endpoint")
-    .option("--projectId <projectId>", "Set your Apwrite project ID")
-    .option("--key <key>", "Set your Apwrite server's API key")
+    .option("--endpoint <endpoint>", "Set your Appwrite server endpoint")
+    .option("--projectId <projectId>", "Set your Appwrite project ID")
+    .option("--key <key>", "Set your Appwrite server's API key")
     .option("--debug", "Print CLI debug information")
     .option("--reset", "Reset the CLI configuration")
     .action(actionRunner(async ({ selfSigned, endpoint, projectId, key, debug, reset }, command) => {

@@ -3,13 +3,14 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
-class Kotlin extends Language {
-
+class Kotlin extends Language
+{
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'Kotlin';
     }
@@ -19,7 +20,7 @@ class Kotlin extends Language {
      *
      * @return array
      */
-    public function getKeywords()
+    public function getKeywords(): array
     {
         return [
             "abstract",
@@ -92,7 +93,7 @@ class Kotlin extends Language {
     /**
      * @return array
      */
-    public function getIdentifierOverrides()
+    public function getIdentifierOverrides(): array
     {
         return [];
     }
@@ -101,9 +102,9 @@ class Kotlin extends Language {
      * @param $type
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'Long';
             case self::TYPE_NUMBER:
@@ -111,35 +112,38 @@ class Kotlin extends Language {
             case self::TYPE_STRING:
                 return 'String';
             case self::TYPE_FILE:
-                return 'File';
+                return 'InputFile';
             case self::TYPE_BOOLEAN:
                 return 'Boolean';
             case self::TYPE_ARRAY:
-            	return 'List<Any>';
-			case self::TYPE_OBJECT:
-				return 'Any';
+                if (!empty($parameter['array']['type'])) {
+                    return 'List<' . $this->getTypeName($parameter['array']) . '>';
+                }
+                return 'List<Any>';
+            case self::TYPE_OBJECT:
+                return 'Any';
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     /**
      * @param array $param
      * @return string
      */
-    public function getParamDefault(array $param)
+    public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
         $default    = $param['default'] ?? '';
         $required   = $param['required'] ?? '';
 
-        if($required) {
+        if ($required) {
             return '';
         }
 
         $output = ' = ';
 
-        if(empty($default) && $default !== 0 && $default !== false) {
+        if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_INTEGER:
                     $output .= '-1';
@@ -158,14 +162,13 @@ class Kotlin extends Language {
                     $output .= '""';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_INTEGER:
                     $output .= $default;
                     break;
                 case self::TYPE_NUMBER:
-                    $output .= sprintf("%.1f",$default);;
+                    $output .= sprintf("%.1f", $default);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
@@ -187,22 +190,22 @@ class Kotlin extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamExample(array $param)
+    public function getParamExample(array $param): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
         $output = '';
 
-        if(empty($example) && $example !== 0 && $example !== false) {
+        if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'File("file.png")';
+                    $output .= 'InputFile.fromPath("file.png")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                     $output .= '0';
-                break;
+                    break;
                 case self::TYPE_BOOLEAN:
                     $output .= 'false';
                     break;
@@ -216,8 +219,7 @@ class Kotlin extends Language {
                     $output .= 'listOf()';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_OBJECT:
                     $output .= 'mapOf( "a" to "b" )';
@@ -225,8 +227,16 @@ class Kotlin extends Language {
                 case self::TYPE_FILE:
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
+                    break;
+                case self::TYPE_ARRAY:
+                    if (\str_starts_with($example, '[')) {
+                        $example = \substr($example, 1);
+                    }
+                    if (\str_ends_with($example, ']')) {
+                        $example = \substr($example, 0, -1);
+                    }
+                    $output .= 'listOf(' . $example . ')';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -243,27 +253,24 @@ class Kotlin extends Language {
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
-            // Config for root project 
+            // Config for root project
             [
                 'scope'         => 'copy',
                 'destination'   => '.github/workflows/publish.yml',
                 'template'      => '/kotlin/.github/workflows/publish.yml',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/kotlin/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => '/kotlin/docs/kotlin/example.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/java/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => '/kotlin/docs/java/example.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'copy',
@@ -274,135 +281,241 @@ class Kotlin extends Language {
                 'scope'         => 'copy',
                 'destination'   => 'gradle/wrapper/gradle-wrapper.properties',
                 'template'      => '/kotlin/gradle/wrapper/gradle-wrapper.properties',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'copy',
                 'destination'   => 'scripts/configure.gradle',
                 'template'      => '/kotlin/scripts/configure.gradle',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'copy',
                 'destination'   => 'scripts/publish.gradle',
                 'template'      => '/kotlin/scripts/publish.gradle',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'copy',
                 'destination'   => 'scripts/setup.gradle',
                 'template'      => '/kotlin/scripts/setup.gradle',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'copy',
                 'destination'   => '.gitignore',
                 'template'      => '/kotlin/.gitignore',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'build.gradle',
                 'template'      => '/kotlin/build.gradle.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => '/kotlin/CHANGELOG.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'copy',
                 'destination'   => 'gradle.properties',
                 'template'      => '/kotlin/gradle.properties',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'copy',
                 'destination'   => 'gradlew',
                 'template'      => '/kotlin/gradlew',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'copy',
                 'destination'   => 'gradlew.bat',
                 'template'      => '/kotlin/gradlew.bat',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE.md',
                 'template'      => '/kotlin/LICENSE.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => '/kotlin/README.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'settings.gradle',
                 'template'      => '/kotlin/settings.gradle.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Client.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/Client.kt.twig',
-                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Permission.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Permission.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Role.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Role.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/ID.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/ID.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Query.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/Query.kt.twig',
-                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/coroutines/Callback.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/coroutines/Callback.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.title | caseUcfirst}}Exception.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/exceptions/Exception.kt.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/JsonExtensions.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/extensions/JsonExtensions.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/TypeExtensions.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/extensions/TypeExtensions.kt.twig',
                 'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/json/PreciseNumberAdapter.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/json/PreciseNumberAdapter.kt.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/Service.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/Service.kt.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'service',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/ServiceTemplate.kt.twig',
-                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/InputFile.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/InputFile.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/UploadProgress.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/UploadProgress.kt.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'definition',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ definition.name | caseUcfirst }}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Model.kt.twig',
-                'minify'        => false,
             ],
         ];
     }
-}
 
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('returnType', function (array $method, array $spec, string $namespace, string $generic = 'T') {
+                return $this->getReturnType($method, $spec, $namespace, $generic);
+            }),
+            new TwigFilter('modelType', function (array $property, array $spec, string $generic = 'T') {
+                return $this->getModelType($property, $spec, $generic);
+            }),
+            new TwigFilter('propertyType', function (array $property, array $spec, string $generic = 'T') {
+                return $this->getPropertyType($property, $spec, $generic);
+            }),
+            new TwigFilter('hasGenericType', function (string $model, array $spec) {
+                return $this->hasGenericType($model, $spec);
+            }),
+        ];
+    }
+
+    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
+    {
+        if ($method['type'] === 'webAuth') {
+            return 'Bool';
+        }
+        if ($method['type'] === 'location') {
+            return 'ByteArray';
+        }
+
+        if (
+            !\array_key_exists('responseModel', $method)
+            || empty($method['responseModel'])
+            || $method['responseModel'] === 'any'
+        ) {
+            return 'Any';
+        }
+
+        $ret = $this->toUpperCaseWords($method['responseModel']);
+
+        if ($this->hasGenericType($method['responseModel'], $spec)) {
+            $ret .= '<' . $generic . '>';
+        }
+
+        return $namespace . '.models.' . $ret;
+    }
+
+    protected function getModelType(array $definition, array $spec, string $generic = 'T'): string
+    {
+        if ($this->hasGenericType($definition['name'], $spec)) {
+            return $this->toUpperCaseWords($definition['name']) . '<' . $generic . '>';
+        }
+        return $this->toUpperCaseWords($definition['name']);
+    }
+
+    protected function getPropertyType(array $property, array $spec, string $generic = 'T'): string
+    {
+        if (\array_key_exists('sub_schema', $property)) {
+            $type = $this->toUpperCaseWords($property['sub_schema']);
+
+            if ($this->hasGenericType($property['sub_schema'], $spec)) {
+                $type .= '<' . $generic . '>';
+            }
+
+            if ($property['type'] === 'array') {
+                $type = 'List<' . $type . '>';
+            }
+        } else {
+            $type = $this->getTypeName($property);
+        }
+
+        if (!$property['required']) {
+            $type .= '?';
+        }
+
+        return $type;
+    }
+
+    protected function hasGenericType(?string $model, array $spec): string
+    {
+        if (empty($model) || $model === 'any') {
+            return false;
+        }
+
+        $model = $spec['definitions'][$model];
+
+        if ($model['additionalProperties']) {
+            return true;
+        }
+
+        foreach ($model['properties'] as $property) {
+            if (!\array_key_exists('sub_schema', $property) || !$property['sub_schema']) {
+                continue;
+            }
+
+            return $this->hasGenericType($property['sub_schema'], $spec);
+        }
+
+        return false;
+    }
+}

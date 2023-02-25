@@ -2,13 +2,12 @@
 
 namespace Appwrite\SDK\Language;
 
-
-class Android extends Kotlin {
-
+class Android extends Kotlin
+{
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'Android';
     }
@@ -16,10 +15,10 @@ class Android extends Kotlin {
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
-            // Config for root project 
+            // Config for root project
             [
                 'scope'         => 'copy',
                 'destination'   => '.github/workflows/publish.yml',
@@ -100,11 +99,26 @@ class Android extends Kotlin {
                 'destination'   => 'settings.gradle',
                 'template'      => '/android/settings.gradle',
             ],
-            // Config for project :library 
+            // Config for project :library
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Client.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/Client.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Permission.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/Permission.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Role.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/Role.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/ID.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/ID.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -123,6 +137,11 @@ class Android extends Kotlin {
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/TypeExtensions.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/extensions/TypeExtensions.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/CollectionExtensions.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/extensions/CollectionExtensions.kt.twig',
             ],
@@ -130,6 +149,11 @@ class Android extends Kotlin {
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/json/PreciseNumberAdapter.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/json/PreciseNumberAdapter.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/InputFile.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/InputFile.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -170,6 +194,11 @@ class Android extends Kotlin {
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/cookies/Extensions.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/cookies/Extensions.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/coroutines/Callback.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/coroutines/Callback.kt.twig',
             ],
             [
                 'scope'         => 'default',

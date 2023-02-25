@@ -1,6 +1,0 @@
-library {{ language.params.packageName }}.models;
-
-part 'src/models/model.dart';
-{% for definition in spec.definitions %}
-part 'src/models/{{definition.name | caseSnake}}.dart';
-{% endfor %}

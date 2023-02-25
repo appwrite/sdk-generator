@@ -2,6 +2,7 @@
 
 include_once 'vendor/autoload.php';
 
+use Appwrite\SDK\Language\GraphQL;
 use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
 use Appwrite\SDK\Language\Web;
@@ -13,9 +14,9 @@ use Appwrite\SDK\Language\Ruby;
 use Appwrite\SDK\Language\Dart;
 use Appwrite\SDK\Language\Go;
 use Appwrite\SDK\Language\Deno;
-use Appwrite\SDK\Language\HTTP;
+use Appwrite\SDK\Language\REST;
 use Appwrite\SDK\Language\Swift;
-use Appwrite\SDK\Language\SwiftClient;
+use Appwrite\SDK\Language\Apple;
 use Appwrite\SDK\Language\DotNet;
 use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Android;
@@ -37,11 +38,12 @@ try {
         return $result;
     }
 
-    //$spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1');
-    // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1'); // Enable only with Appwrite local server running on port 80
-    // $spec = getSSLPage('https://appwrite.io/v1/open-api-2.json?extensions=1&platform=console'); // Enable only with Appwrite local server running on port 80
-    // $spec = file_get_contents('https://appwrite.io/specs/swagger2?platform=client');
-    $spec = file_get_contents('https://raw.githubusercontent.com/appwrite/appwrite/master/app/config/specs/swagger2-0.14.x-server.json');
+    // Leave the platform you want uncommented
+    $platform = 'client';
+    // $platform = 'console';
+    // $platform = 'server';
+
+    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/master/app/config/specs/swagger2-latest-${platform}.json");
 
     if (empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -181,8 +183,9 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.13.0',
-        ]);
+            'X-Appwrite-Response-Format' => '0.15.0',
+        ])
+    ;
 
     $sdk->generate(__DIR__ . '/examples/cli');
 
@@ -332,7 +335,7 @@ try {
     $sdk->generate(__DIR__ . '/examples/swift-server');
 
     // Swift (Client)
-    $sdk  = new SDK(new SwiftClient(), new Swagger2($spec));
+    $sdk  = new SDK(new Apple(), new Swagger2($spec));
 
     $sdk
         ->setName('NAME')
@@ -352,8 +355,8 @@ try {
             'X-Appwrite-Response-Format' => '0.7.0',
         ]);
 
-    $sdk->generate(__DIR__ . '/examples/swift-client');
-
+    $sdk->generate(__DIR__ . '/examples/apple');
+    
     // DotNet
     $sdk  = new SDK(new DotNet(), new Swagger2($spec));
 
@@ -377,8 +380,8 @@ try {
 
     $sdk->generate(__DIR__ . '/examples/dotnet');
 
-    // HTTP
-    $sdk  = new SDK(new HTTP(), new Swagger2($spec));
+    // REST
+    $sdk  = new SDK(new REST(), new Swagger2($spec));
 
     $sdk
         ->setName('NAME')
@@ -395,7 +398,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord');
 
-    $sdk->generate(__DIR__ . '/examples/HTTP');
+    $sdk->generate(__DIR__ . '/examples/REST');
 
     // Android
 
@@ -444,29 +447,17 @@ try {
         ]);
     $sdk->generate(__DIR__ . '/examples/kotlin');
 
-    // C++
-    $sdk = new SDK(new Cplusplus(), new Swagger2($spec));
+    // GraphQL
+    $sdk = new SDK(new GraphQL(), new Swagger2($spec));
 
     $sdk
-        ->setName('C++')
-        ->setNamespace('io appwrite')
+        ->setName('GraphQL')
         ->setDescription('Appwrite is an open-source backend as a service server that abstract and simplify complex and repetitive development tasks behind a very simple to use REST API. Appwrite aims to help you develop your apps faster and in a more secure way. Use the Flutter SDK to integrate your app with the Appwrite server to easily start interacting with all of Appwrite backend APIs and tools. For full API documentation and tutorials go to https://appwrite.io/docs')
-        ->setShortDescription('Appwrite C++ SDK')
-        ->setURL('https://example.com')
-        ->setGitUserName('appwrite')
-        ->setGitRepoName('sdk-for-c++')
         ->setLogo('https://appwrite.io/v1/images/console.png')
-        ->setLicenseContent('test test test')
-        ->setWarning('**This SDK is compatible with Appwrite server version 0.7.x. For older versions, please check previous releases.**')
-        ->setChangelog('**CHANGELOG**')
-        ->setVersion('0.0.0-SNAPSHOT')
-        ->setTwitter('appwrite_io')
-        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
-        ->setDefaultHeaders([
-            'x-appwrite-response-format' => '0.12.1',
-        ]);
-    $sdk->generate(__DIR__ . '/examples/c++');
-} catch (Exception $exception) {
+    ;
+    $sdk->generate(__DIR__ . '/examples/graphql');
+}
+catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
 } catch (Throwable $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";

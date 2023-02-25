@@ -4,43 +4,52 @@ namespace Appwrite\SDK;
 
 use Exception;
 use Appwrite\Spec\Spec;
+use Throwable;
 use Twig\Environment;
+use Twig\Error\LoaderError;
+use Twig\Error\RuntimeError;
+use Twig\Error\SyntaxError;
+use Twig\Extension\DebugExtension;
 use Twig\Loader\FilesystemLoader;
 use Twig\TemplateWrapper;
 use Twig\TwigFilter;
 use MatthiasMullie\Minify;
+use Twig_Error_Loader;
+use Twig_Error_Runtime;
+use Twig_Error_Syntax;
 
 class SDK
 {
     /**
-     * @var Language
+     * @var Language|null
      */
-    protected $language = null;
+    protected ?Language $language = null;
 
     /**
-     * @var Spec
+     * @var Spec|null
      */
-    protected $spec = null;
+    protected ?Spec $spec = null;
 
     /**
-     * @var Environment
+     * @var Environment|null
      */
-    protected $twig = null;
-
-    /**
-     * @var array
-     */
-    protected $defaultHeaders = [];
+    protected ?Environment $twig = null;
 
     /**
      * @var array
      */
-    protected $params = [
+    protected array $defaultHeaders = [];
+
+    /**
+     * @var array
+     */
+    protected array $params = [
         'namespace' => '',
         'name' => '',
         'description' => '',
         'shortDescription' => '',
         'version' => '',
+        'platform' => '',
         'license' => '',
         'licenseContent' => '',
         'gitURL' => '',
@@ -74,8 +83,16 @@ class SDK
 
         $this->twig = new Environment(new FilesystemLoader(__DIR__ . '/../../templates'), [
             'debug' => true
-        ] );
-        $this->twig->addExtension(new \Twig\Extension\DebugExtension());
+        ]);
+
+        /**
+         * Add language specific filters
+         */
+        foreach ($this->language->getFilters() as $filter) {
+            $this->twig->addFilter($filter);
+        }
+
+        $this->twig->addExtension(new DebugExtension());
 
         $this->twig->addFilter(new TwigFilter('caseLower', function ($value) {
             return strtolower((string)$value);
@@ -84,13 +101,16 @@ class SDK
             return strtoupper((string)$value);
         }));
         $this->twig->addFilter(new TwigFilter('caseUcfirst', function ($value) {
-            return ucfirst((string)$this->helperCamelCase($value));
+            return ucfirst($this->helperCamelCase($value));
+        }));
+        $this->twig->addFilter(new TwigFilter('caseUcwords', function ($value) {
+            return ucwords($value, " -_");
         }));
         $this->twig->addFilter(new TwigFilter('caseLcfirst', function ($value) {
             return lcfirst((string)$value);
         }));
         $this->twig->addFilter(new TwigFilter('caseCamel', function ($value) {
-            return (string)$this->helperCamelCase($value);
+            return $this->helperCamelCase($value);
         }));
         $this->twig->addFilter(new TwigFilter('caseDash', function ($value) {
             return str_replace([' ', '_'], '-', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
@@ -129,55 +149,13 @@ class SDK
         $this->twig->addFilter(new TwigFilter('comment1', function ($value) {
             $value = explode("\n", $value);
             foreach ($value as $key => $line) {
-                $value[$key] = "     * " . wordwrap($value[$key], 75, "\n     * ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('comment2', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "     * " . wordwrap($value[$key], 75, "\n     * ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('comment3', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "         * " . wordwrap($value[$key], 75, "\n         * ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('dartComment', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "     /// " . wordwrap($value[$key], 75, "\n     /// ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('dotnetComment', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "        /// " . wordwrap($value[$key], 75, "\n        /// ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('swiftComment', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "    /// " . wordwrap($value[$key], 75, "\n    /// ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('rubyComment', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "        # " . wordwrap($line, 75, "\n        # ");
+                $value[$key] = "     * " . wordwrap($line, 75, "\n     * ");
             }
             return implode("\n", $value);
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeDollarSign', function ($value) {
             return str_replace('$', '\$', $value);
-        }, ['is_safe'=>['html']]));
+        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('paramsQuery', function ($value) {
             $query = '';
 
@@ -191,39 +169,24 @@ class SDK
         $this->twig->addFilter(new TwigFilter('html', function ($value) {
             return $value;
         }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('godocComment', function ($value) {
-            $value = explode("\n", $value);
-            foreach ($value as $key => $line) {
-                $value[$key] = "// " . wordwrap($value[$key], 75, "\n// ");
-            }
-            return implode("\n", $value);
-        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeKeyword', function ($value) use ($language) {
-            if(in_array($value, $language->getKeywords())) {
+            if (in_array($value, $language->getKeywords())) {
                 return 'x' . $value;
             }
 
             return $value;
         }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('ucFirstAndEscape', function ($value) use ($language) {
-            $value = ucfirst((string)$this->helperCamelCase($value));
-            if(in_array($value, $language->getKeywords())) {
-                $value = 'x' . $value;
-            }
-
-            return ucfirst((string)$this->helperCamelCase($value));
-        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('caseHTML', function ($value) {
             return $value;
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('removeDollarSign', function ($value) {
-            return str_replace('$','',$value);
+            return str_replace('$', '', $value);
         }));
         $this->twig->addFilter(new TwigFilter('unescape', function ($value) {
             return html_entity_decode($value);
         }));
         $this->twig->addFilter(new TwigFilter('overrideIdentifier', function ($value) use ($language) {
-            if(isset($language->getIdentifierOverrides()[$value])) {
+            if (isset($language->getIdentifierOverrides()[$value])) {
                 return $language->getIdentifierOverrides()[$value];
             }
             return $value;
@@ -234,41 +197,20 @@ class SDK
      * @param array $headers
      * @return $this
      */
-    public function setDefaultHeaders($headers) {
+    public function setDefaultHeaders(array $headers): SDK
+    {
         $this->defaultHeaders = $headers;
-        
-        return $this;
-    }
-
-    /**
-     * @param string $text
-     * @return $this
-     */
-    public function setNamespace($text)
-    {
-        $this->setParam('namespace', $text);
 
         return $this;
     }
 
     /**
-     * @param string $text
+     * @param string $namespace
      * @return $this
      */
-    public function setName($text)
+    public function setNamespace(string $namespace): SDK
     {
-        $this->setParam('name', $text);
-
-        return $this;
-    }
-
-    /**
-     * @param string $text
-     * @return $this
-     */
-    public function setDescription($text)
-    {
-        $this->setParam('description', $text);
+        $this->setParam('namespace', $namespace);
 
         return $this;
     }
@@ -277,7 +219,29 @@ class SDK
      * @param string $name
      * @return $this
      */
-    public function setShortDescription($text)
+    public function setName(string $name): SDK
+    {
+        $this->setParam('name', $name);
+
+        return $this;
+    }
+
+    /**
+     * @param string $text
+     * @return $this
+     */
+    public function setDescription(string $text): SDK
+    {
+        $this->setParam('description', $text);
+
+        return $this;
+    }
+
+    /**
+     * @param string $text
+     * @return $this
+     */
+    public function setShortDescription(string $text): SDK
     {
         $this->setParam('shortDescription', $text);
 
@@ -285,23 +249,34 @@ class SDK
     }
 
     /**
-     * @param string $text
+     * @param string $version
      * @return $this
      */
-    public function setVersion($text)
+    public function setVersion(string $version): SDK
     {
-        $this->setParam('version', $text);
+        $this->setParam('version', $version);
 
         return $this;
     }
 
     /**
-     * @param string $text
+     * @param string $platform
      * @return $this
      */
-    public function setLicense($text)
+    public function setPlatform(string $platform): SDK
     {
-        $this->setParam('license', $text);
+        $this->setParam('platform', $platform);
+
+        return $this;
+    }
+
+    /**
+     * @param string $license
+     * @return $this
+     */
+    public function setLicense(string $license): SDK
+    {
+        $this->setParam('license', $license);
 
         return $this;
     }
@@ -310,7 +285,7 @@ class SDK
      * @param string $content
      * @return $this
      */
-    public function setLicenseContent($content)
+    public function setLicenseContent(string $content): SDK
     {
         $this->setParam('licenseContent', $content);
 
@@ -318,10 +293,10 @@ class SDK
     }
 
     /**
-     * @param $url
+     * @param string $url
      * @return $this
      */
-    public function setGitRepo($url)
+    public function setGitRepo(string $url): SDK
     {
         $this->setParam('gitRepo', $url);
 
@@ -329,10 +304,10 @@ class SDK
     }
 
     /**
-     * @param $name
+     * @param string $name
      * @return $this
      */
-    public function setGitRepoName($name)
+    public function setGitRepoName(string $name): SDK
     {
         $this->setParam('gitRepoName', $name);
 
@@ -340,10 +315,10 @@ class SDK
     }
 
     /**
-     * @param $name
+     * @param string $name
      * @return $this
      */
-    public function setGitUserName($name)
+    public function setGitUserName(string $name): SDK
     {
         $this->setParam('gitUserName', $name);
 
@@ -351,10 +326,10 @@ class SDK
     }
 
     /**
-     * @param $url
+     * @param string $url
      * @return $this
      */
-    public function setGitURL($url)
+    public function setGitURL(string $url): SDK
     {
         $this->setParam('gitURL', $url);
 
@@ -362,10 +337,10 @@ class SDK
     }
 
     /**
-     * @param $url
+     * @param string $url
      * @return $this
      */
-    public function setLogo($url)
+    public function setLogo(string $url): SDK
     {
         $this->setParam('logo', $url);
 
@@ -373,10 +348,10 @@ class SDK
     }
 
     /**
-     * @param $url
+     * @param string $url
      * @return $this
      */
-    public function setURL($url)
+    public function setURL(string $url): SDK
     {
         $this->setParam('url', $url);
 
@@ -384,10 +359,10 @@ class SDK
     }
 
     /**
-     * @param $text
+     * @param string $text
      * @return $this
      */
-    public function setShareText($text)
+    public function setShareText(string $text): SDK
     {
         $this->setParam('shareText', $text);
 
@@ -395,10 +370,10 @@ class SDK
     }
 
     /**
-     * @param $user
+     * @param string $user
      * @return $this
      */
-    public function setShareVia($user)
+    public function setShareVia(string $user): SDK
     {
         $this->setParam('shareVia', $user);
 
@@ -406,10 +381,10 @@ class SDK
     }
 
     /**
-     * @param $url
+     * @param string $url
      * @return $this
      */
-    public function setShareURL($url)
+    public function setShareURL(string $url): SDK
     {
         $this->setParam('shareURL', $url);
 
@@ -417,10 +392,10 @@ class SDK
     }
 
     /**
-     * @param $tags string comma separated list
+     * @param string $tags Comma separated list
      * @return $this
      */
-    public function setShareTags($tags)
+    public function setShareTags(string $tags): SDK
     {
         $this->setParam('shareTags', $tags);
 
@@ -428,10 +403,10 @@ class SDK
     }
 
     /**
-     * @param $message string
+     * @param string $message
      * @return $this
      */
-    public function setWarning($message)
+    public function setWarning(string $message): SDK
     {
         $this->setParam('warning', $message);
 
@@ -442,7 +417,7 @@ class SDK
      * @param $message string
      * @return $this
      */
-    public function setGettingStarted($message)
+    public function setGettingStarted(string $message): SDK
     {
         $this->setParam('gettingStarted', $message);
 
@@ -450,10 +425,10 @@ class SDK
     }
 
     /**
-     * @param $text string
+     * @param string $text
      * @return $this
      */
-    public function setReadme($text)
+    public function setReadme(string $text): SDK
     {
         $this->setParam('readme', $text);
 
@@ -461,10 +436,10 @@ class SDK
     }
 
     /**
-     * @param $text string
+     * @param string $text
      * @return $this
      */
-    public function setChangelog($text)
+    public function setChangelog(string $text): SDK
     {
         $this->setParam('changelog', $text);
 
@@ -472,10 +447,10 @@ class SDK
     }
 
     /**
-     * @param $text string
+     * @param string $text
      * @return $this
      */
-    public function setExamples($text)
+    public function setExamples(string $text): SDK
     {
         $this->setParam('examples', $text);
 
@@ -487,7 +462,7 @@ class SDK
      * @param string $url
      * @return $this
      */
-    public function setDiscord(string $channel, string $url)
+    public function setDiscord(string $channel, string $url): SDK
     {
         $this->setParam('discordChannel', $channel);
         $this->setParam('discordUrl', $url);
@@ -499,7 +474,7 @@ class SDK
      * @param string $handle
      * @return $this
      */
-    public function setTwitter(string $handle)
+    public function setTwitter(string $handle): SDK
     {
         $this->setParam('twitterHandle', $handle);
 
@@ -510,7 +485,7 @@ class SDK
      * @param string $test
      * @return $this
      */
-    public function setTest(string $test)
+    public function setTest(string $test): SDK
     {
         $this->setParam('test', $test);
 
@@ -522,7 +497,7 @@ class SDK
      * @param string $value
      * @return SDK
      */
-    public function setParam($key, $value)
+    public function setParam(string $key, string $value): SDK
     {
         $this->params[$key] = $value;
 
@@ -530,10 +505,10 @@ class SDK
     }
 
     /**
-     * @param $name
+     * @param string $name
      * @return string
      */
-    public function getParam($name)
+    public function getParam(string $name): string
     {
         return $this->params[$name] ?? '';
     }
@@ -541,19 +516,19 @@ class SDK
     /**
      * @return array
      */
-    public function getParams()
+    public function getParams(): array
     {
         return $this->params;
     }
 
     /**
-     * @param $target
-     * @throws \Throwable
-     * @throws \Twig_Error_Loader
-     * @throws \Twig_Error_Runtime
-     * @throws \Twig_Error_Syntax
+     * @param string $target
+     * @throws Throwable
+     * @throws LoaderError
+     * @throws RuntimeError
+     * @throws SyntaxError
      */
-    public function generate($target)
+    public function generate(string $target): void
     {
         $params = [
             'spec' => [
@@ -563,7 +538,7 @@ class SDK
                 'version' => $this->spec->getVersion(),
                 'endpoint' => $this->spec->getEndpoint(),
                 'host' => parse_url($this->spec->getEndpoint(), PHP_URL_HOST),
-                'basePath' => $this->spec->getAttribute('basePath',''),
+                'basePath' => $this->spec->getAttribute('basePath', ''),
                 'licenseName' => $this->spec->getLicenseName(),
                 'licenseURL' => $this->spec->getLicenseURL(),
                 'contactName' => $this->spec->getContactName(),
@@ -585,12 +560,12 @@ class SDK
 
         foreach ($this->language->getFiles() as $file) {
             if ($file['scope'] != 'copy') {
-                $template = $this->twig->load($file['template']); /* @var $template \Twig\TemplateWrapper */
+                $template = $this->twig->load($file['template']); /* @var $template TemplateWrapper */
             }
             $destination    = $target . '/' . $file['destination'];
             $block          = $file['block'] ?? null;
             $minify         = $file['minify'] ?? false;
-            
+
             switch ($file['scope']) {
                 case 'default':
                     $this->render($template, $destination, $block, $params, $minify);
@@ -599,12 +574,13 @@ class SDK
                     if (!file_exists(dirname($destination))) {
                         mkdir(dirname($destination), 0777, true);
                     }
-                    copy(realpath(__DIR__.'/../../templates/' . $file['template']), $destination);
+                    copy(realpath(__DIR__ . '/../../templates/' . $file['template']), $destination);
                     break;
                 case 'service':
                     foreach ($this->spec->getServices() as $key => $service) {
                         $methods = $this->spec->getMethods($key);
                         $params['service'] = [
+                            'globalParams' => $service['globalParams'] ?? [],
                             'description' => $service['description'] ?? '',
                             'name' => $key,
                             'features' => [
@@ -615,13 +591,20 @@ class SDK
                             'methods' => $methods,
                         ];
 
+                        if ($this->exclude($file, $params)) {
+                            continue;
+                        }
+
                         $this->render($template, $destination, $block, $params, $minify);
                     }
                     break;
                 case 'definition':
                     foreach ($this->spec->getDefinitions() as $key => $definition) {
-
                         $params['definition'] = $definition;
+
+                        if ($this->exclude($file, $params)) {
+                            continue;
+                        }
 
                         $this->render($template, $destination, $block, $params, $minify);
                     }
@@ -632,6 +615,7 @@ class SDK
                         $params['service'] = [
                             'name' => $key,
                             'methods' => $methods,
+                            'globalParams' => $service['globalParams'] ?? [],
                             'features' => [
                                 'upload' => $this->hasUploads($methods),
                                 'location' => $this->hasLocation($methods),
@@ -641,6 +625,11 @@ class SDK
 
                         foreach ($methods as $method) {
                             $params['method'] = $method;
+
+                            if ($this->exclude($file, $params)) {
+                                continue;
+                            }
+
                             $this->render($template, $destination, $block, $params, $minify);
                         }
                     }
@@ -650,12 +639,83 @@ class SDK
     }
 
     /**
+     * Determine if a file should be excluded from generation.
+     *
+     * Allows for files to be excluded based on:
+     *   - Service name or feature
+     *   - Method name or type
+     *   - Definition name
+     *
+     * @param $file
+     * @param $params
      * @return bool
      */
-    protected function hasUploads($methods):bool
+    protected function exclude($file, $params): bool
     {
-        foreach($methods as $method) {
-            if(isset($method['type']) && $method['type'] === 'upload') {
+        $exclude = $file['exclude'] ?? [];
+
+        $services = [];
+        $features = [];
+        foreach ($exclude['services'] ?? [] as $service) {
+            if (isset($service['name'])) {
+                $services[] = $service['name'];
+            }
+            if (isset($service['feature'])) {
+                $features[] = $service['feature'];
+            }
+        }
+
+        $methods = [];
+        $types = [];
+        foreach ($exclude['methods'] ?? [] as $method) {
+            if (isset($method['name'])) {
+                $methods[] = $method['name'];
+            }
+            if (isset($method['type'])) {
+                $types[] = $method['type'];
+            }
+        }
+
+        $definitions = [];
+        foreach ($exclude['definitions'] ?? [] as $definition) {
+            if (isset($definition['name'])) {
+                $definitions[] = $definition['name'];
+            }
+        }
+
+        if (\in_array($params['service']['name'] ?? '', $services)) {
+            return true;
+        }
+
+        foreach ($features as $feature) {
+            if ($params['service']['features'][$feature] ?? false) {
+                return true;
+            }
+        }
+
+        if (\in_array($params['method']['name'] ?? '', $methods)) {
+            return true;
+        }
+
+        if (\in_array($params['method']['type'] ?? '', $types)) {
+            return true;
+        }
+
+        if (\in_array($params['definition']['name'] ?? '', $definitions)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array $methods
+     * @return bool
+     */
+    protected function hasUploads(array $methods): bool
+    {
+        foreach ($methods as $method) {
+            if (isset($method['type']) && $method['type'] === 'upload') {
                 return true;
             }
         }
@@ -664,12 +724,13 @@ class SDK
     }
 
     /**
+     * @param array $methods
      * @return bool
      */
-    protected function hasLocation($methods):bool
+    protected function hasLocation(array $methods): bool
     {
-        foreach($methods as $method) {
-            if(isset($method['type']) && $method['type'] === 'location') {
+        foreach ($methods as $method) {
+            if (isset($method['type']) && $method['type'] === 'location') {
                 return true;
             }
         }
@@ -678,12 +739,13 @@ class SDK
     }
 
     /**
+     * @param array $methods
      * @return bool
      */
-    protected function hasWebAuth($methods):bool
+    protected function hasWebAuth(array $methods): bool
     {
-        foreach($methods as $method) {
-            if(isset($method['type']) && $method['type'] === 'webAuth') {
+        foreach ($methods as $method) {
+            if (isset($method['type']) && $method['type'] === 'webAuth') {
                 return true;
             }
         }
@@ -694,15 +756,15 @@ class SDK
     /**
      * @param TemplateWrapper $template
      * @param string $destination
-     * @param string $block
+     * @param string|null $block
      * @param array $params
      * @param bool $minify
      *
-     * @throws \Throwable
-     * @throws \Twig_Error_Loader
-     * @throws \Twig_Error_Syntax
+     * @throws Throwable
+     * @throws Twig_Error_Loader
+     * @throws Twig_Error_Syntax
      */
-    protected function render(TemplateWrapper $template, $destination, $block, $params = [], $minify = false)
+    protected function render(TemplateWrapper $template, string $destination, ?string $block, array $params = [], bool $minify = false): void
     {
         $destination    = $this->twig->createTemplate($destination);
         $destination    = $destination->render($params);
@@ -732,16 +794,15 @@ class SDK
                     break;
                 default:
                     throw new Exception('No minifier found for ' . $ext . ' file');
-                    break;
             }
         }
     }
 
     /**
-     * @param string $str
+     * @param string|null $str
      * @return string
      */
-    protected function helperCamelCase($str): string
+    protected function helperCamelCase(?string $str): string
     {
         if ($str == null) {
             return '';

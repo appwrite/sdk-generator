@@ -9,7 +9,7 @@
     {% elseif property.sub_schemas %}
         ({% for subProperty in property.sub_schemas %}{{subProperty | caseUcfirst}}{% if loop.last == false %} | {% endif %}{% endfor %}){% if property.type == 'array' %}[]{% endif %}
     {% else %}
-        {{property.type | typeName}}
+        {{property | typeName}}
     {% endif %}
 {% endapply %}
 {% endmacro %}

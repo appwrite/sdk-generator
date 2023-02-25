@@ -4,6 +4,11 @@ namespace Tests;
 
 class Python310Test extends Base
 {
+    protected string $sdkName = 'python';
+    protected string $sdkPlatform = 'server';
+    protected string $sdkLanguage = 'python';
+    protected string $version = '0.0.1';
+
     protected string $language = 'python';
     protected string $class = 'Appwrite\SDK\Language\Python';
     protected array $build = [
@@ -19,6 +24,11 @@ class Python310Test extends Base
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
+        ...Base::LARGE_FILE_RESPONSES,
+        ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
+        ...Base::QUERY_HELPER_RESPONSES,
+        ...Base::PERMISSION_HELPER_RESPONSES,
+        ...Base::ID_HELPER_RESPONSES
     ];
 }

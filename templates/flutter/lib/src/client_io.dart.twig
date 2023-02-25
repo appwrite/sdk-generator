@@ -1,11 +1,12 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_web_auth/flutter_web_auth.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'client_mixin.dart';
 import 'client_base.dart';
 import 'cookie_manager.dart';
@@ -14,6 +15,8 @@ import 'exception.dart';
 import 'interceptor.dart';
 import 'response.dart';
 import 'package:flutter/foundation.dart';
+import 'input_file.dart';
+import 'upload_progress.dart';
 
 ClientBase createClient({
   required String endPoint,
@@ -25,11 +28,13 @@ ClientBase createClient({
     );
 
 class ClientIO extends ClientBase with ClientMixin {
+  static const int CHUNK_SIZE = 5*1024*1024;
   String _endPoint;
   Map<String, String>? _headers;
   @override
   late Map<String, String> config;
   bool selfSigned;
+  bool _initProgress = false;
   bool _initialized = false;
   String? _endPointRealtime;
   late http.Client _httpClient;
@@ -37,13 +42,14 @@ class ClientIO extends ClientBase with ClientMixin {
   late CookieJar _cookieJar;
   final List<Interceptor> _interceptors = [];
 
+  bool get initProgress => _initProgress;
   bool get initialized => _initialized;
   CookieJar get cookieJar => _cookieJar;
   @override
   String? get endPointRealtime => _endPointRealtime;
 
   ClientIO({
-    String endPoint = 'https://appwrite.io/v1',
+    String endPoint = '{{spec.endpoint}}',
     this.selfSigned = false,
   }) : _endPoint = endPoint {
     _nativeClient = HttpClient()
@@ -55,7 +61,10 @@ class ClientIO extends ClientBase with ClientMixin {
         .replaceFirst('http://', 'ws://');
     _headers = {
       'content-type': 'application/json',
-      'x-sdk-version': '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
+      'x-sdk-name': '{{ sdk.name }}',
+      'x-sdk-platform': '{{ sdk.platform }}',
+      'x-sdk-language': '{{ language.name | caseLower }}',
+      'x-sdk-version': '{{ sdk.version }}',
 {% for key,header in spec.global.defaultHeaders %}
       '{{key}}' : '{{header}}',
 {% endfor %}
@@ -122,18 +131,20 @@ class ClientIO extends ClientBase with ClientMixin {
   }
 
   Future init() async {
-    // if web skip cookie implementation and origin header as those are automatically handled by browsers
+    if(_initProgress) return;
+    _initProgress = true;
     final Directory cookieDir = await _getCookiePath();
     _cookieJar = PersistCookieJar(storage: FileStorage(cookieDir.path));
     _interceptors.add(CookieManager(_cookieJar));
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    addHeader('Origin',
-        'appwrite-${Platform.operatingSystem}://${packageInfo.packageName}');
 
-    //creating custom user agent
-    DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
     var device = '';
     try {
+      PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      addHeader('Origin',
+          'appwrite-${Platform.operatingSystem}://${packageInfo.packageName}');
+
+      //creating custom user agent
+      DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
       if (Platform.isAndroid) {
         final andinfo = await deviceInfoPlugin.androidInfo;
         device =
@@ -156,14 +167,17 @@ class ClientIO extends ClientBase with ClientMixin {
         final macinfo = await deviceInfoPlugin.macOsInfo;
         device = '(Macintosh; ${macinfo.model})';
       }
+      addHeader(
+          'user-agent', '${packageInfo.packageName}/${packageInfo.version} $device');
     } catch (e) {
       debugPrint('Error getting device info: $e');
       device = Platform.operatingSystem;
+      addHeader(
+          'user-agent', '$device');
     }
-    addHeader(
-        'user-agent', '${packageInfo.packageName}/${packageInfo.version} $device');
 
     _initialized = true;
+    _initProgress = false;
   }
 
   Future<http.BaseRequest> _interceptRequest(http.BaseRequest request) async {
@@ -196,10 +210,106 @@ class ClientIO extends ClientBase with ClientMixin {
   }
 
   @override
-  Future webAuth(Uri url) {
-    return FlutterWebAuth.authenticate(
+  Future<Response> chunkedUpload({
+    required String path,
+    required Map<String, dynamic> params,
+    required String paramName,
+    required String idParamName,
+    required Map<String, String> headers,
+    Function(UploadProgress)? onProgress,
+  }) async {
+    InputFile file = params[paramName];
+    if (file.path == null && file.bytes == null) {
+      throw {{spec.title | caseUcfirst}}Exception("File path or bytes must be provided");
+    }
+
+    int size = 0;
+    if (file.bytes != null) {
+      size = file.bytes!.length;
+    }
+
+    File? iofile;
+
+    if (file.path != null) {
+      iofile = File(file.path!);
+      size = await iofile.length();
+    }
+
+    late Response res;
+    if (size <= CHUNK_SIZE) {
+      if (file.path != null) {
+        params[paramName] = await http.MultipartFile.fromPath(
+            paramName, file.path!,
+            filename: file.filename);
+      } else {
+        params[paramName] = http.MultipartFile.fromBytes(paramName, file.bytes!,
+            filename: file.filename);
+      }
+      return call(
+        HttpMethod.post,
+        path: path,
+        params: params,
+        headers: headers,
+      );
+    }
+
+    var offset = 0;
+    if (idParamName.isNotEmpty && params[idParamName] != 'unique()') {
+      //make a request to check if a file already exists
+      try {
+        res = await call(
+          HttpMethod.get,
+          path: path + '/' + params[idParamName],
+          headers: headers,
+        );
+        final int chunksUploaded = res.data['chunksUploaded'] as int;
+        offset = min(size, chunksUploaded * CHUNK_SIZE);
+      } on {{spec.title | caseUcfirst}}Exception catch (_) {}
+    }
+
+    RandomAccessFile? raf;
+    // read chunk and upload each chunk
+    if (iofile != null) {
+      raf = await iofile.open(mode: FileMode.read);
+    }
+
+    while (offset < size) {
+      var chunk;
+      if (file.bytes != null) {
+        final end = min(offset + CHUNK_SIZE-1, size-1);
+        chunk = file.bytes!.getRange(offset, end).toList();
+      } else {
+        raf!.setPositionSync(offset);
+        chunk = raf.readSync(CHUNK_SIZE);
+      }
+      params[paramName] =
+          http.MultipartFile.fromBytes(paramName, chunk, filename: file.filename);
+      headers['content-range'] =
+          'bytes $offset-${min<int>(((offset + CHUNK_SIZE) - 1), size)}/$size';
+      res = await call(HttpMethod.post,
+          path: path, headers: headers, params: params);
+      offset += CHUNK_SIZE;
+      if (offset < size) {
+        headers['x-{{spec.title | caseLower }}-id'] = res.data['\$id'];
+      }
+      final progress = UploadProgress(
+        $id: res.data['\$id'] ?? '',
+        progress: min(offset - 1, size) / size * 100,
+        sizeUploaded: min(offset - 1, size),
+        chunksTotal: res.data['chunksTotal'] ?? 0,
+        chunksUploaded: res.data['chunksUploaded'] ?? 0,
+      );
+      onProgress?.call(progress);
+    }
+    raf?.close();
+    return res;
+  }
+
+  @override
+  Future webAuth(Uri url, {String? callbackUrlScheme}) {
+    return FlutterWebAuth2.authenticate(
       url: url.toString(),
-      callbackUrlScheme: "appwrite-callback-" + config['project']!,
+      callbackUrlScheme: callbackUrlScheme != null && Platform.isWindows ? callbackUrlScheme : "appwrite-callback-" + config['project']!,
     ).then((value) async {
       Uri url = Uri.parse(value);
       final key = url.queryParameters['key'];
@@ -226,6 +336,9 @@ class ClientIO extends ClientBase with ClientMixin {
     Map<String, dynamic> params = const {},
     ResponseType? responseType,
   }) async {
+    while (!_initialized && _initProgress) {
+      await Future.delayed(Duration(milliseconds: 10));
+    }
     if (!_initialized) {
       await init();
     }
