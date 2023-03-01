@@ -184,6 +184,34 @@ class Python extends Language
                 'destination'   => '.travis.yml',
                 'template'      => 'python/.travis.yml.twig',
             ],
+
+            /* Async */
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/aio/__init__.py',
+                'template'      => 'python/package/aio/__init__.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/aio/client.py',
+                'template'      => 'python/package/aio/client.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/aio/services/__init__.py',
+                'template'      => 'python/package/aio/services/__init__.py.twig',
+                'minify'        => false,
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '{{ spec.title | caseSnake}}/aio/services/{{service.name | caseSnake}}.py',
+                'template'      => 'python/package/aio/services/service.py.twig',
+                'minify'        => false,
+            ],
+
+
         ];
     }
 
