@@ -51,13 +51,13 @@ void main() async {
   final res = await general.redirect();
   print(res['result']);
 
-  var file = InputFile(path: '../../resources/file.png',
+  var file = InputFile.fromPath(path: '../../resources/file.png',
       filename: 'file.png');
   response = await general.upload(
       x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
-  file = InputFile(path: '../../resources/large_file.mp4', filename: 'large_file.mp4');
+  file = InputFile.fromPath(path: '../../resources/large_file.mp4', filename: 'large_file.mp4');
   response = await general.upload(
       x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
