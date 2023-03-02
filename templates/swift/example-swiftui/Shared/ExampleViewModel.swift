@@ -25,6 +25,7 @@ extension ExampleView {
         @Published public var userId: String = "unique()"
         @Published public var bucketId: String = "test"
         @Published public var fileId: String = "test"
+        @Published public var databaseId: String = "test"
         @Published public var collectionId: String = "test"
         @Published public var isShowPhotoLibrary = false
         @Published public var response: String = ""
@@ -105,7 +106,7 @@ extension ExampleView {
         }
         
         func subscribe() {
-            _ = realtime.subscribe(channels: ["collections.\(collectionId).documents"]) { event in
+            _ = realtime.subscribe(channels: ["databases.\(databaseId).collections.\(collectionId).documents"]) { event in
                 DispatchQueue.main.async {
                     self.response = String(describing: event.payload!)
                 }
