@@ -17,7 +17,7 @@ struct ExampleView: View {
                 .aspectRatio(contentMode: .fit)
                 .frame(height: 200)
 
-            TextEditor(text: $viewModel.response)
+            TextField("", text: $viewModel.response)
                 .padding()
 
             Button("Login") {
@@ -44,16 +44,16 @@ struct ExampleView: View {
                 viewModel.subscribe()
             }
         }
+        #if os(macOS)
         .onChange(of: viewModel.isShowPhotoLibrary) { showing in
-            #if os(macOS)
             ImagePicker.present()
-            #endif
         }
+        #endif
+        #if os(iOS)
         .sheet(isPresented: $viewModel.isShowPhotoLibrary) {
-            #if !os(macOS)
             ImagePicker(selectedImage: $imageToUpload)
-            #endif
         }
+        #endif
         .onChange(of: imageToUpload) { img in
             Task { await viewModel.upload(image: img) }
         }

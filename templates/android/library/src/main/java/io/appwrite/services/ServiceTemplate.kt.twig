@@ -62,6 +62,15 @@ class {{ service.name | caseUcfirst }} : Service {
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
         {%~ endfor %}
+        {%~ if method.type == 'location' or method.type == 'webAuth' %}
+        {%~ if method.auth | length > 0 %}
+        {%~ for node in method.auth %}
+        {%~ for key,header in node | keys %}
+            "{{ header | caseLower }}" to client.config["{{ header | caseLower }}"],
+        {%~ endfor %}
+        {%~ endfor %}
+        {%~ endif %}
+        {%~ endif %}
         )
         {%~ if method.type == 'webAuth' %}
         val query = mutableListOf<String>()
@@ -121,11 +130,11 @@ class {{ service.name | caseUcfirst }} : Service {
         )
         {%~ if method.responseModel %}
         val converter: (Any) -> {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} = {
-        {% if method.responseModel == 'any' %}
+        {%~ if method.responseModel == 'any' %}
             it
-        {% else %}
-        {{sdk.namespace | caseDot}}.models.{{ method.responseModel | caseUcfirst }}.from(map = it as Map<String, Any>{% if method.responseModel | hasGenericType(spec) %}, nestedType{% endif %})
-        {% endif %}
+        {%~ else %}
+            {{sdk.namespace | caseDot}}.models.{{ method.responseModel | caseUcfirst }}.from(map = it as Map<String, Any>{% if method.responseModel | hasGenericType(spec) %}, nestedType{% endif %})
+        {%~ endif %}
         }
         {%~ endif %}
         {%~ if 'multipart/form-data' in method.consumes %}

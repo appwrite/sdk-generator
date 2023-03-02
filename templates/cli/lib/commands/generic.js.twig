@@ -10,6 +10,9 @@ const { accountCreateEmailSession, accountDeleteSession } = require("./account")
 
 const login = new Command("login")
     .description(commandDescriptions['login'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
     .action(actionRunner(async () => {
         const answers = await inquirer.prompt(questionsLogin)
 
@@ -27,6 +30,9 @@ const login = new Command("login")
 
 const logout = new Command("logout")
     .description(commandDescriptions['logout'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
     .action(actionRunner(async () => {
         let client = await sdkForConsole();
 
@@ -43,6 +49,9 @@ const logout = new Command("logout")
 
 const client = new Command("client")
     .description(commandDescriptions['client'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
     .option("--selfSigned <value>", "Configure the CLI to use a self-signed certificate ( true or false )", parseBool)
     .option("--endpoint <endpoint>", "Set your Appwrite server endpoint")
     .option("--projectId <projectId>", "Set your Appwrite project ID")

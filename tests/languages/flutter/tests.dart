@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+
 import '../lib/packageName.dart';
+import '../lib/client_io.dart';
 import '../lib/models.dart';
+import 'dart:io';
+
+class FakePathProvider extends PathProviderPlatform {
+  @override
+  Future<String?> getApplicationDocumentsPath() async {
+    return '.';
+  }
+}
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  PathProviderPlatform.instance = FakePathProvider();
   Client client = Client();
   Foo foo = Foo(client);
   Bar bar = Bar(client);
@@ -65,12 +78,12 @@ void main() async {
   final res = await general.redirect();
   print(res['result']);
 
-  var file = InputFile(path: '../../resources/file.png', filename: 'file.png');
+  var file = InputFile.fromPath(path: '../../resources/file.png', filename: 'file.png');
   response = await general.upload(
       x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
-  file = InputFile(path: '../../resources/large_file.mp4', filename: 'large_file.mp4');
+  file = InputFile.fromPath(path: '../../resources/large_file.mp4', filename: 'large_file.mp4');
   response = await general.upload(
       x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
