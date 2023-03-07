@@ -310,6 +310,7 @@ class ClientIO extends ClientBase with ClientMixin {
     return FlutterWebAuth2.authenticate(
       url: url.toString(),
       callbackUrlScheme: callbackUrlScheme != null && Platform.isWindows ? callbackUrlScheme : "appwrite-callback-" + config['project']!,
+      preferEphemeral: true,
     ).then((value) async {
       Uri url = Uri.parse(value);
       final key = url.queryParameters['key'];
