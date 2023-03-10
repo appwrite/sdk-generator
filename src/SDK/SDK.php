@@ -103,6 +103,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseUcfirst', function ($value) {
             return ucfirst($this->helperCamelCase($value));
         }));
+        $this->twig->addFilter(new TwigFilter('php_deviceinfo', function ($value) {
+            return php_uname();
+        }));
         $this->twig->addFilter(new TwigFilter('caseUcwords', function ($value) {
             return ucwords($value, " -_");
         }));

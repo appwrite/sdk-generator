@@ -37,15 +37,11 @@ class Client
      */
     protected $headers = [
         'content-type' => '',
-<<<<<<< HEAD
-        'x-sdk-version' => '{{spec.title | caseDash}}:{{ language.name | caseLower }}:{{ sdk.version }}',
-        'user-agent' => '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${php_uname('s')}; ${php_uname('v')}; ${php_uname('m')})',
-=======
+        'user-agent' => '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({{php_deviceinfo}})',
         'x-sdk-name'=> '{{ sdk.name }}',
         'x-sdk-platform'=> '{{ sdk.platform }}',
         'x-sdk-language'=> '{{ language.name | caseLower }}',
         'x-sdk-version'=> '{{ sdk.version }}',
->>>>>>> 6d2c065b8e2da4521c3add491fd95646e5bfbb54
     ];
 
     /**
