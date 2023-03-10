@@ -5,8 +5,8 @@ namespace Appwrite\SDK\Language;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 
-class Dart extends Language {
-
+class Dart extends Language
+{
     /**
      * @var array
      */
@@ -18,7 +18,7 @@ class Dart extends Language {
      * @param string $name
      * @return $this
      */
-    public function setPackageName($name)
+    public function setPackageName(string $name): self
     {
         $this->setParam('packageName', $name);
 
@@ -28,7 +28,7 @@ class Dart extends Language {
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'Dart';
     }
@@ -38,7 +38,7 @@ class Dart extends Language {
      *
      * @return array
      */
-    public function getKeywords()
+    public function getKeywords(): array
     {
         return [
             "abstract",
@@ -110,59 +110,57 @@ class Dart extends Language {
     /**
      * @return array
      */
-    public function getIdentifierOverrides()
+    public function getIdentifierOverrides(): array
     {
         return ['Function' => 'Func', 'default' => 'xdefault', 'required' => 'xrequired', 'async' => 'xasync'];
     }
 
     /**
-     * @param $type
+     * @param array $parameter
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'int';
-            break;
             case self::TYPE_STRING:
                 return 'String';
-            break;
             case self::TYPE_FILE:
                 return 'InputFile';
-            break;
             case self::TYPE_BOOLEAN:
                 return 'bool';
-            break;
             case self::TYPE_ARRAY:
-            	return 'List';
-	        case self::TYPE_OBJECT:
-		        return 'Map';
+                if (!empty($parameter['array']['type'])) {
+                    return 'List<' . $this->getTypeName($parameter['array']) . '>';
+                }
+                return 'List';
+            case self::TYPE_OBJECT:
+                return 'Map';
             case self::TYPE_NUMBER:
                 return 'double';
-            break;
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     /**
      * @param array $param
      * @return string
      */
-    public function getParamDefault(array $param)
+    public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
         $default    = $param['default'] ?? '';
         $required   = $param['required'] ?? '';
 
-        if($required) {
+        if ($required) {
             return '';
         }
 
         $output = ' = ';
 
-        if(empty($default) && $default !== 0 && $default !== false) {
+        if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_OBJECT:
                     $output .= 'const {}';
@@ -181,8 +179,7 @@ class Dart extends Language {
                     $output .= "''";
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -190,7 +187,7 @@ class Dart extends Language {
                     break;
                 case self::TYPE_OBJECT:
                 case self::TYPE_ARRAY:
-                    $output .= 'const '.$default;
+                    $output .= 'const ' . $default;
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($default) ? 'true' : 'false';
@@ -208,14 +205,14 @@ class Dart extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamExample(array $param)
+    public function getParamExample(array $param): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
         $output = '';
 
-        if(empty($example) && $example !== 0 && $example !== false) {
+        if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
                     $output .= 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')';
@@ -223,7 +220,7 @@ class Dart extends Language {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                     $output .= '0';
-                break;
+                    break;
                 case self::TYPE_BOOLEAN:
                     $output .= 'false';
                     break;
@@ -237,8 +234,7 @@ class Dart extends Language {
                     $output .= '[]';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_OBJECT:
                 case self::TYPE_FILE:
@@ -262,164 +258,158 @@ class Dart extends Language {
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'dart/README.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/example/README.md',
                 'template'      => 'dart/example/README.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => 'dart/CHANGELOG.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => 'dart/LICENSE.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/client.dart',
                 'template'      => 'dart/lib/src/client.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/client_base.dart',
                 'template'      => 'dart/lib/src/client_base.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/client_browser.dart',
                 'template'      => 'dart/lib/src/client_browser.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/client_io.dart',
                 'template'      => 'dart/lib/src/client_io.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/client_mixin.dart',
                 'template'      => 'dart/lib/src/client_mixin.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/client_stub.dart',
                 'template'      => 'dart/lib/src/client_stub.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/exception.dart',
                 'template'      => 'dart/lib/src/exception.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/upload_progress.dart',
                 'template'      => 'dart/lib/src/upload_progress.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/response.dart',
                 'template'      => 'dart/lib/src/response.dart.twig',
-                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/permission.dart',
+                'template'      => 'dart/lib/permission.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/role.dart',
+                'template'      => 'dart/lib/role.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/id.dart',
+                'template'      => 'dart/lib/id.dart.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/query.dart',
                 'template'      => 'dart/lib/query.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/{{ language.params.packageName }}.dart',
                 'template'      => 'dart/lib/package.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/pubspec.yaml',
                 'template'      => 'dart/pubspec.yaml.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/client_io.dart',
                 'template'      => 'dart/lib/client_io.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/client_browser.dart',
                 'template'      => 'dart/lib/client_browser.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/service.dart',
                 'template'      => 'dart/lib/src/service.dart.twig',
-                'minify'        => false,
             ],
             [
-				'scope'         => 'default',
-				'destination'   => '/lib/src/enums.dart',
-				'template'      => 'dart/lib/src/enums.dart.twig',
-				'minify'        => false,
-			],
+                'scope'         => 'default',
+                'destination'   => '/lib/src/enums.dart',
+                'template'      => 'dart/lib/src/enums.dart.twig',
+            ],
             [
-				'scope'         => 'default',
-				'destination'   => '/lib/models.dart',
-				'template'      => 'dart/lib/models.dart.twig',
-				'minify'        => false,
-			],
+                'scope'         => 'default',
+                'destination'   => '/lib/src/models/model.dart',
+                'template'      => 'dart/lib/src/models/model_base.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/models.dart',
+                'template'      => 'dart/lib/models.dart.twig',
+            ],
             [
                 'scope'         => 'service',
                 'destination'   => '/lib/services/{{service.name | caseDash}}.dart',
                 'template'      => 'dart/lib/services/service.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'definition',
                 'destination'   => '/lib/src/models/{{definition.name | caseSnake }}.dart',
                 'template'      => 'dart/lib/src/models/model.dart.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'dart/docs/example.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '.travis.yml',
                 'template'      => 'dart/.travis.yml.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/src/input_file.dart',
                 'template'      => 'dart/lib/src/input_file.dart.twig',
-                'minify'        => false,
             ],
         ];
     }
@@ -430,7 +420,7 @@ class Dart extends Language {
             new TwigFilter('dartComment', function ($value) {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
-                    $value[$key] = "     /// " . wordwrap($value[$key], 75, "\n     /// ");
+                    $value[$key] = "    /// " . wordwrap($value[$key], 75, "\n    /// ");
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),

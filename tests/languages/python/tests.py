@@ -4,11 +4,16 @@ from appwrite.services.bar import Bar
 from appwrite.services.general import General
 from appwrite.exception import AppwriteException
 from appwrite.input_file import InputFile
+from appwrite.query import Query
+from appwrite.permission import Permission
+from appwrite.role import Role
+from appwrite.id import ID
+
 import os.path
 
 
 client = Client()
-foo = Foo(client, 'string')
+foo = Foo(client)
 bar = Bar(client)
 general = General(client)
 
@@ -19,19 +24,19 @@ print("\nTest Started")
 
 # Foo Tests
 
-response = foo.get(123, ['string in array'])
+response = foo.get('string', 123, ['string in array'])
 print(response['result'])
 
-response = foo.post( 123, ['string in array'])
+response = foo.post('string', 123, ['string in array'])
 print(response['result'])
 
-response = foo.put( 123, ['string in array'])
+response = foo.put('string', 123, ['string in array'])
 print(response['result'])
 
-response = foo.patch( 123, ['string in array'])
+response = foo.patch('string', 123, ['string in array'])
 print(response['result'])
 
-response = foo.delete( 123, ['string in array'])
+response = foo.delete('string', 123, ['string in array'])
 print(response['result'])
 
 # Bar Tests
@@ -86,3 +91,35 @@ except AppwriteException as e:
     print(e.message)
 
 general.empty()
+
+# Query helper tests
+print(Query.equal('released', [True]))
+print(Query.equal('title', ['Spiderman', 'Dr. Strange']))
+print(Query.notEqual('title', 'Spiderman'))
+print(Query.lessThan('releasedYear', 1990))
+print(Query.greaterThan('releasedYear', 1990))
+print(Query.search('name', 'john'))
+print(Query.orderAsc("title"))
+print(Query.orderDesc("title"))
+print(Query.cursorAfter("my_movie_id"))
+print(Query.cursorBefore("my_movie_id"))
+print(Query.limit(50))
+print(Query.offset(20))
+
+# Permission & Role helper tests
+print(Permission.read(Role.any()))
+print(Permission.write(Role.user(ID.custom('userid'))))
+print(Permission.create(Role.users()))
+print(Permission.update(Role.guests()))
+print(Permission.delete(Role.team('teamId', 'owner')))
+print(Permission.delete(Role.team('teamId')))
+print(Permission.create(Role.member('memberId')))
+print(Permission.update(Role.users('verified')))
+print(Permission.update(Role.user(ID.custom('userid'), 'unverified')))
+
+# ID helper tests
+print(ID.unique())
+print(ID.custom('custom_id'))
+
+response = general.headers()
+print(response['result'])

@@ -5,8 +5,8 @@ namespace Appwrite\SDK\Language;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 
-class PHP extends Language {
-
+class PHP extends Language
+{
     /**
      * @var array
      */
@@ -19,7 +19,7 @@ class PHP extends Language {
      * @param string $name
      * @return $this
      */
-    public function setComposerVendor($name)
+    public function setComposerVendor(string $name): self
     {
         $this->setParam('composerVendor', $name);
 
@@ -30,7 +30,7 @@ class PHP extends Language {
      * @param string $name
      * @return $this
      */
-    public function setComposerPackage($name)
+    public function setComposerPackage(string $name): self
     {
         $this->setParam('composerPackage', $name);
 
@@ -40,7 +40,7 @@ class PHP extends Language {
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'PHP';
     }
@@ -50,81 +50,81 @@ class PHP extends Language {
      *
      * @return array
      */
-    public function getKeywords()
+    public function getKeywords(): array
     {
         return [
             '__halt_compiler',
-			'abstract',
-			'and',
-			'array',
-			'as',
-			'break',
-			'callable',
-			'case',
-			'catch',
-			'class',
-			'clone',
-			'const',
-			'continue',
-			'declare',
-			'default',
-			'die',
-			'do',
-			'echo',
-			'else',
-			'elseif',
-			'empty',
-			'enddeclare',
-			'endfor',
-			'endforeach',
-			'endif',
-			'endswitch',
-			'endwhile',
-			'eval',
-			'exit',
-			'extends',
-			'final',
-			'for',
-			'foreach',
-			'function',
-			'global',
-			'goto',
-			'if',
-			'implements',
-			'include',
-			'include_once',
-			'instanceof',
-			'insteadof',
-			'interface',
-			'isset',
-			'list',
-			'namespace',
-			'new',
-			'or',
-			'print',
-			'private',
-			'protected',
-			'public',
-			'require',
-			'require_once',
-			'return',
-			'static',
-			'switch',
-			'throw',
-			'trait',
-			'try',
-			'unset',
-			'use',
-			'var',
-			'while',
-			'xor'
+            'abstract',
+            'and',
+            'array',
+            'as',
+            'break',
+            'callable',
+            'case',
+            'catch',
+            'class',
+            'clone',
+            'const',
+            'continue',
+            'declare',
+            'default',
+            'die',
+            'do',
+            'echo',
+            'else',
+            'elseif',
+            'empty',
+            'enddeclare',
+            'endfor',
+            'endforeach',
+            'endif',
+            'endswitch',
+            'endwhile',
+            'eval',
+            'exit',
+            'extends',
+            'final',
+            'for',
+            'foreach',
+            'function',
+            'global',
+            'goto',
+            'if',
+            'implements',
+            'include',
+            'include_once',
+            'instanceof',
+            'insteadof',
+            'interface',
+            'isset',
+            'list',
+            'namespace',
+            'new',
+            'or',
+            'print',
+            'private',
+            'protected',
+            'public',
+            'require',
+            'require_once',
+            'return',
+            'static',
+            'switch',
+            'throw',
+            'trait',
+            'try',
+            'unset',
+            'use',
+            'var',
+            'while',
+            'xor'
         ];
     }
 
     /**
      * @return array
      */
-    public function getIdentifierOverrides()
+    public function getIdentifierOverrides(): array
     {
         return [];
     }
@@ -132,92 +132,99 @@ class PHP extends Language {
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'php/README.md.twig',
-                'minify'        => false,
                 //'block'         => 'default',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => 'php/CHANGELOG.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => 'php/LICENSE.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'composer.json',
                 'template'      => 'php/composer.json.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'service',
                 'destination'   => 'docs/{{service.name | caseLower}}.md',
                 'template'      => 'php/docs/service.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'php/docs/example.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/Client.php',
                 'template'      => 'php/src/Client.php.twig',
-                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Permission.php',
+                'template'      => 'php/src/Permission.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Role.php',
+                'template'      => 'php/src/Role.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/{{ spec.title | caseUcfirst}}/ID.php',
+                'template'      => 'php/src/ID.php.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/Query.php',
                 'template'      => 'php/src/Query.php.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/InputFile.php',
                 'template'      => 'php/src/InputFile.php.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/{{ spec.title | caseUcfirst}}Exception.php',
                 'template'      => 'php/src/Exception.php.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst}}/Service.php',
                 'template'      => 'php/src/Service.php.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'service',
                 'destination'   => '/src/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
                 'template'      => 'php/src/Services/Service.php.twig',
-                'minify'        => false,
             ],
         ];
     }
 
     /**
-     * @param $type
+     * @param array $parameter
+     * @param array $nestedTypes
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
+            case self::TYPE_STRING:
+                $type = 'string';
+                break;
             case self::TYPE_BOOLEAN:
                 $type = 'bool';
                 break;
@@ -225,6 +232,7 @@ class PHP extends Language {
             case self::TYPE_INTEGER:
                 $type = 'int';
                 break;
+            case self::TYPE_ARRAY:
             case self::TYPE_OBJECT:
                 $type = 'array';
                 break;
@@ -240,19 +248,19 @@ class PHP extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamDefault(array $param)
+    public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
         $default    = $param['default'] ?? '';
         $required   = $param['required'] ?? '';
 
-        if($required) {
+        if ($required) {
             return '';
         }
 
         $output = ' = ';
 
-        if(empty($default) && $default !== 0 && $default !== false) {
+        if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -267,8 +275,7 @@ class PHP extends Language {
                     $output .= '[]';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -294,14 +301,14 @@ class PHP extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamExample(array $param)
+    public function getParamExample(array $param): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
         $output = '';
 
-        if(empty($example) && $example !== 0 && $example !== false) {
+        if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -319,8 +326,7 @@ class PHP extends Language {
                     $output .= "InputFile::withPath('file.png')";
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -347,16 +353,16 @@ class PHP extends Language {
 
     /**
      * Converts JSON Object To PHP Native Assoc Array
-     * 
+     *
      * @var $data array
      */
-    protected function jsonToAssoc(array $data):string
+    protected function jsonToAssoc(array $data): string
     {
         $output = '[';
-        
-        foreach($data as $key => $node) {
+
+        foreach ($data as $key => $node) {
             $value = (is_array($node)) ? $this->jsonToAssoc($node) : $node;
-            $output .= '\''.$key.'\' => '.((is_string($node)) ? '\''.$value.'\'' : $value).(($key !== array_key_last($data)) ? ', ' : '');
+            $output .= '\'' . $key . '\' => ' . ((is_string($node)) ? '\'' . $value . '\'' : $value) . (($key !== \array_key_last($data)) ? ', ' : '');
         }
 
         $output .= ']';
@@ -366,16 +372,17 @@ class PHP extends Language {
 
     protected function getReturn(array $method): string
     {
-        if(($method['emptyResponse'] ?? true) || $method['type'] === 'location') {
+        if (($method['emptyResponse'] ?? true) || $method['type'] === 'location') {
             return 'string';
         }
 
         return 'array';
     }
 
-    public function getFilters(): array {
+    public function getFilters(): array
+    {
         return [
-            new TwigFilter('getReturn', function($value) {
+            new TwigFilter('getReturn', function ($value) {
                 return $this->getReturn($value);
             })
         ];

@@ -10,12 +10,14 @@ const { sdkForProject, sdkForConsole } = require('../sdks')
 const { parse, actionRunner, parseInteger, parseBool, commandDescriptions, success, log } = require('../parser')
 const { localConfig, globalConfig } = require("../config");
 
-const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description(commandDescriptions['{{ service.name | caseLower }}'])
+const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description(commandDescriptions['{{ service.name | caseLower }}']).configureHelp({
+    helpWidth: process.stdout.columns || 80
+  })
 
 {% for method in service.methods %}
 const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}, {% endfor %}parseOutput = true, sdk = undefined{% if 'multipart/form-data' in method.consumes %}, onProgress = () => {}{% endif %}{% if method.type == 'location' %}, destination{% endif %}}) => {
 {% for parameter in method.parameters.all %}
-    /* @param {{ '{' }}{{ parameter.type | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} */
+    /* @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} */
 {% endfor %}
 
     let client = !sdk ? await {% if service.name == "projects" %}sdkForConsole(){% else %}sdkForProject(){% endif %} : sdk;
@@ -222,7 +224,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 {% autoescape false %}
     .description(`{{ method.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`)
 {% for parameter in method.parameters.all %}
-    .{% if parameter.required %}requiredOption{% else %}option{% endif %}(`--{{ parameter.name | escapeKeyword }} <{{ parameter.name | escapeKeyword }}{% if parameter.array.type|length > 0 %}...{% endif %}>`, `{{ parameter.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`{% if parameter.type|typeName == 'boolean' %}, parseBool{% elseif parameter.type|typeName == 'number' %}, parseInteger{% endif %})
+    .{% if parameter.required %}requiredOption{% else %}option{% endif %}(`--{{ parameter.name | escapeKeyword }} <{{ parameter.name | escapeKeyword }}{% if parameter.array.type|length > 0 %}...{% endif %}>`, `{{ parameter.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`{% if parameter | typeName == 'boolean' %}, parseBool{% elseif parameter | typeName == 'number' %}, parseInteger{% endif %})
 {% endfor %}
 {% if method.type == 'location' %}
     .requiredOption(`--destination <path>`, `output file path.`)

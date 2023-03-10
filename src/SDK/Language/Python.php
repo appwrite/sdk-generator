@@ -5,8 +5,8 @@ namespace Appwrite\SDK\Language;
 use Appwrite\SDK\Language;
 use Exception;
 
-class Python extends Language {
-
+class Python extends Language
+{
     protected $params = [
         'pipPackage' => 'packageName',
     ];
@@ -15,7 +15,7 @@ class Python extends Language {
      * @param string $name
      * @return $this
      */
-    public function setPipPackage($name)
+    public function setPipPackage(string $name): self
     {
         $this->setParam('pipPackage', $name);
 
@@ -25,7 +25,7 @@ class Python extends Language {
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'Python';
     }
@@ -35,7 +35,7 @@ class Python extends Language {
      *
      * @return array
      */
-    public function getKeywords()
+    public function getKeywords(): array
     {
         return [
             'False',
@@ -78,7 +78,7 @@ class Python extends Language {
     /**
      * @return array
      */
-    public function getIdentifierOverrides()
+    public function getIdentifierOverrides(): array
     {
         return [];
     }
@@ -86,131 +86,113 @@ class Python extends Language {
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'python/README.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => 'python/CHANGELOG.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => 'python/LICENSE.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'setup.py',
                 'template'      => 'python/setup.py.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'setup.cfg',
                 'template'      => 'python/setup.cfg.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'requirements.txt',
                 'template'      => 'python/requirements.txt.twig',
-                'minify'        => false,
             ],
-            /*[
-                'scope'         => 'service',
-                'destination'   => 'docs/{{service.name | caseSnake}}.md',
-                'template'      => 'python/docs/service.md.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'service',
-                'destination'   => 'docs/{{service.name | caseSnake}}.md',
-                'template'      => 'python/docs/service.md.twig',
-                'minify'        => false,
-            ],
-            [
-                'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseSnake}}/{{method.name | caseSnake}}.md',
-                'template'      => 'python/docs/example.md.twig',
-                'minify'        => false,
-            ],*/
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/__init__.py',
                 'template'      => 'python/package/__init__.py.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/client.py',
                 'template'      => 'python/package/client.py.twig',
-                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/permission.py',
+                'template'      => 'python/package/permission.py.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/role.py',
+                'template'      => 'python/package/role.py.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/id.py',
+                'template'      => 'python/package/id.py.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/query.py',
                 'template'      => 'python/package/query.py.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/exception.py',
                 'template'      => 'python/package/exception.py.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/input_file.py',
                 'template'      => 'python/package/input_file.py.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/service.py',
                 'template'      => 'python/package/service.py.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/services/__init__.py',
                 'template'      => 'python/package/services/__init__.py.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'service',
                 'destination'   => '{{ spec.title | caseSnake}}/services/{{service.name | caseSnake}}.py',
                 'template'      => 'python/package/services/service.py.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'python/docs/example.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '.travis.yml',
                 'template'      => 'python/.travis.yml.twig',
-                'minify'        => false,
             ],
         ];
     }
 
     /**
-     * @param $type
+     * @param array $parameter
      * @return string
+     * @throws Exception
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
         throw new Exception('Method not supported for Python SDKs');
     }
@@ -219,19 +201,19 @@ class Python extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamDefault(array $param)
+    public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
         $default    = $param['default'] ?? '';
         $required   = $param['required'] ?? '';
 
-        if($required) {
+        if ($required) {
             return '';
         }
 
         $output = '=';
 
-        if(empty($default) && $default !== 0 && $default !== false) {
+        if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -249,8 +231,7 @@ class Python extends Language {
                     $output .= '{}';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -259,7 +240,6 @@ class Python extends Language {
                     $output .= $default;
                     break;
                 case self::TYPE_FILE:
-                    #$output .= json_encode($default);
                     $output .= '{}';
                     break;
                 case self::TYPE_BOOLEAN:
@@ -278,14 +258,14 @@ class Python extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamExample(array $param)
+    public function getParamExample(array $param): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
         $output = '';
 
-        if(empty($example) && $example !== 0 && $example !== false) {
+        if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -305,8 +285,7 @@ class Python extends Language {
                     $output .= "InputFile.from_path('file.png')";
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:

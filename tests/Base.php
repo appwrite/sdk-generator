@@ -6,6 +6,9 @@ use Appwrite\SDK\Language;
 use Appwrite\SDK\SDK;
 use Appwrite\Spec\Swagger2;
 use PHPUnit\Framework\TestCase;
+use Twig\Error\LoaderError;
+use Twig\Error\RuntimeError;
+use Twig\Error\SyntaxError;
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -13,8 +16,7 @@ error_reporting(E_ALL);
 
 abstract class Base extends TestCase
 {
-
-    const FOO_RESPONSES = [
+    protected const FOO_RESPONSES = [
         'GET:/v1/mock/tests/foo:passed',
         'POST:/v1/mock/tests/foo:passed',
         'PUT:/v1/mock/tests/foo:passed',
@@ -22,7 +24,7 @@ abstract class Base extends TestCase
         'DELETE:/v1/mock/tests/foo:passed',
     ];
 
-    const BAR_RESPONSES = [
+    protected const BAR_RESPONSES = [
         'GET:/v1/mock/tests/bar:passed',
         'POST:/v1/mock/tests/bar:passed',
         'PUT:/v1/mock/tests/bar:passed',
@@ -30,32 +32,64 @@ abstract class Base extends TestCase
         'DELETE:/v1/mock/tests/bar:passed',
     ];
 
-    const GENERAL_RESPONSES = [
+    protected const GENERAL_RESPONSES = [
         'GET:/v1/mock/tests/general/redirect/done:passed',
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
-    const EXTENDED_GENERAL_RESPONSES = [
-        'Download test passed.',
+    protected const EXTENDED_GENERAL_RESPONSES = [
+        'GET:/v1/mock/tests/general/download:passed',
     ];
 
-    const COOKIE_RESPONSES = [
+    protected const COOKIE_RESPONSES = [
         'GET:/v1/mock/tests/general/set-cookie:passed',
         'GET:/v1/mock/tests/general/get-cookie:passed',
     ];
 
-    const LARGE_FILE_RESPONSES = [
+    protected const LARGE_FILE_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
-    const EXCEPTION_RESPONSES = [
+    protected const EXCEPTION_RESPONSES = [
         'Mock 400 error',
-        'Server Error',
+        'Mock 500 error',
         'This is a text error',
     ];
 
-    const REALTIME_RESPONSES = [
+    protected const REALTIME_RESPONSES = [
         'WS:/v1/realtime:passed',
+    ];
+
+    protected const QUERY_HELPER_RESPONSES = [
+        'equal("released", [true])',
+        'equal("title", ["Spiderman","Dr. Strange"])',
+        'notEqual("title", ["Spiderman"])',
+        'lessThan("releasedYear", [1990])',
+        'greaterThan("releasedYear", [1990])',
+        'search("name", ["john"])',
+        'orderAsc("title")',
+        'orderDesc("title")',
+        'cursorAfter("my_movie_id")',
+        'cursorBefore("my_movie_id")',
+        'limit(50)',
+        'offset(20)',
+    ];
+
+    protected const PERMISSION_HELPER_RESPONSES = [
+        'read("any")',
+        'write("user:userid")',
+        'create("users")',
+        'update("guests")',
+        'delete("team:teamId/owner")',
+        'delete("team:teamId")',
+        'create("member:memberId")',
+        'update("users/verified")',
+        'update("user:userid/unverified")',
+    ];
+
+    protected const ID_HELPER_RESPONSES = [
+        'unique()',
+        'custom_id'
     ];
 
     protected string $class = '';
@@ -66,12 +100,20 @@ abstract class Base extends TestCase
 
     public function setUp(): void
     {
+        $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
+        array_push($this->expectedOutput, $headers);
     }
 
     public function tearDown(): void
     {
     }
 
+    /**
+     * @throws SyntaxError
+     * @throws \Throwable
+     * @throws RuntimeError
+     * @throws LoaderError
+     */
     public function testHTTPSuccess(): void
     {
         $spec = file_get_contents(realpath(__DIR__ . '/resources/spec.json'));
@@ -83,11 +125,13 @@ abstract class Base extends TestCase
         $sdk = new SDK($this->getLanguage(), new Swagger2($spec));
 
         $sdk
+            ->setName($this->sdkName)
+            ->setVersion($this->version)
+            ->setPlatform($this->sdkPlatform)
             ->setDescription('Repo description goes here')
             ->setShortDescription('Repo short description goes here')
             ->setLogo('https://appwrite.io/v1/images/console.png')
             ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
-            ->setVersion('0.0.1')
             ->setExamples('**EXAMPLES** <HTML>')
             ->setNamespace("io appwrite")
             ->setGitUserName('repoowner')
@@ -102,7 +146,7 @@ abstract class Base extends TestCase
 
         $dir = __DIR__ . '/sdks/' . $this->language;
 
-        $this->rmdir_recursive($dir);
+        $this->rmdirRecursive($dir);
 
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
 
@@ -151,19 +195,25 @@ abstract class Base extends TestCase
         }
     }
 
-    private function rmdir_recursive($dir) {
+    private function rmdirRecursive($dir)
+    {
         if (!\is_dir($dir)) {
             return;
         }
-        foreach(\scandir($dir) as $file) {
-            if ('.' === $file || '..' === $file) continue;
-            if (\is_dir("$dir/$file")) $this->rmdir_recursive("$dir/$file");
-            else \unlink("$dir/$file");
+        foreach (\scandir($dir) as $file) {
+            if ('.' === $file || '..' === $file) {
+                continue;
+            }
+            if (\is_dir("$dir/$file")) {
+                $this->rmdirRecursive("$dir/$file");
+            } else {
+                \unlink("$dir/$file");
+            }
         }
         rmdir($dir);
     }
 
-    public function getLanguage(): Language 
+    public function getLanguage(): Language
     {
         return new $this->class();
     }

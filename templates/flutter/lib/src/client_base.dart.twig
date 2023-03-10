@@ -1,16 +1,16 @@
-import 'response.dart';
 import 'client.dart';
 import 'enums.dart';
+import 'response.dart';
 
-abstract class ClientBase implements Client {  
+abstract class ClientBase implements Client {
 {% for header in spec.global.headers %}
 {% if header.description %}
-    /// {{header.description}}
+  /// {{header.description}}
 {% endif %}
   @override
   ClientBase set{{header.key | caseUcfirst}}(value);
-{% endfor %}
 
+{% endfor %}
   @override
   ClientBase setSelfSigned({bool status = true});
 
@@ -30,5 +30,25 @@ abstract class ClientBase implements Client {
     Map<String, String> headers = const {},
     Map<String, dynamic> params = const {},
     ResponseType? responseType,
+    String cacheModel = '',
+    String cacheKey = '',
+    String cacheResponseIdKey = '',
+    String cacheResponseContainerKey = '',
+    Map<String, Object?>? previous,
   });
+
+  @override
+  Future<ClientBase> setOfflinePersistency({
+    bool status = true,
+    void Function(Object)? onWriteQueueError,
+  });
+
+  @override
+  bool getOfflinePersistency();
+
+  @override
+  ClientBase setOfflineCacheSize(int kbytes);
+
+  @override
+  int getOfflineCacheSize();
 }

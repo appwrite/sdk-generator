@@ -4,6 +4,11 @@ namespace Tests;
 
 class Node16Test extends Base
 {
+    protected string $sdkName = 'node.js';
+    protected string $sdkPlatform = 'server';
+    protected string $sdkLanguage = 'nodejs';
+    protected string $version = '0.0.1';
+
     protected string $language = 'node';
     protected string $class = 'Appwrite\SDK\Language\Node';
     protected array $build = [
@@ -18,5 +23,8 @@ class Node16Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
+        ...Base::QUERY_HELPER_RESPONSES,
+        ...Base::PERMISSION_HELPER_RESPONSES,
+        ...Base::ID_HELPER_RESPONSES
     ];
 }

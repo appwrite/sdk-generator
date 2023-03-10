@@ -40,7 +40,7 @@ import kotlin.coroutines.resume
 
 class Client @JvmOverloads constructor(
     context: Context,
-    var endPoint: String = "https://appwrite.io/v1",
+    var endPoint: String = "{{spec.endpoint}}",
     var endPointRealtime: String? = null,
     private var selfSigned: Boolean = false
 ) : CoroutineScope {
@@ -85,7 +85,10 @@ class Client @JvmOverloads constructor(
             "content-type" to "application/json",
             "origin" to "{{ spec.title | caseLower }}-android://${context.packageName}",
             "user-agent" to "${context.packageName}/${appVersion}, ${System.getProperty("http.agent")}",
-            "x-sdk-version" to "{{spec.title | caseDash}}:{{ language.name | caseLower }}:${BuildConfig.SDK_VERSION}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+            "x-sdk-name" to "{{ sdk.name }}",
+            "x-sdk-platform" to "{{ sdk.platform }}",
+            "x-sdk-language" to "{{ language.name | caseLower }}",
+            "x-sdk-version" to "{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
             
 {% for key,header in spec.global.defaultHeaders %}
             "{{ key | caseLower }}" to "{{ header }}"{% if not loop.last %},{% endif %}
@@ -227,7 +230,7 @@ class Client @JvmOverloads constructor(
         headers:  Map<String, String> = mapOf(), 
         params: Map<String, Any?> = mapOf(),
         responseType: Class<T>,
-        converter: ((Map<String, Any,>) -> T)? = null
+        converter: ((Any) -> T)? = null
     ): T {
         val filteredParams = params.filterValues { it != null }
 
@@ -318,7 +321,7 @@ class Client @JvmOverloads constructor(
         headers:  MutableMap<String, String>,
         params: MutableMap<String, Any?>,
         responseType: Class<T>,
-        converter: ((Map<String, Any,>) -> T),
+        converter: ((Any) -> T),
         paramName: String,
         idParamName: String? = null,
         onProgress: ((UploadProgress) -> Unit)? = null,
@@ -441,7 +444,7 @@ class Client @JvmOverloads constructor(
     private suspend fun <T> awaitResponse(
         request: Request,
         responseType: Class<T>,
-        converter: ((Map<String, Any,>) -> T)? = null
+        converter: ((Any) -> T)? = null
     ) = suspendCancellableCoroutine<T> {
         http.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
@@ -502,9 +505,9 @@ class Client @JvmOverloads constructor(
                     it.resume(true as T)
                     return
                 }
-                val map = gson.fromJson<Map<String, Any>>(
+                val map = gson.fromJson<Any>(
                     body,
-                    object : TypeToken<Map<String, Any>>(){}.type
+                    object : TypeToken<Any>(){}.type
                 )
                 it.resume(
                     converter?.invoke(map) ?: map as T

@@ -4,6 +4,11 @@ namespace Tests;
 
 class Go118Test extends Base
 {
+    protected string $sdkName = 'go';
+    protected string $sdkPlatform = 'server';
+    protected string $sdkLanguage = 'go';
+    protected string $version = '0.0.1';
+
     protected string $language = 'go';
     protected string $class = 'Appwrite\SDK\Language\Go';
     protected array $build = [

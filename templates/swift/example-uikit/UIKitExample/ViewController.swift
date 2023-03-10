@@ -58,7 +58,7 @@ class ViewController: UIViewController {
     
     @IBAction func loginClick(_ sender: Any) async {
         do {
-            let response = try await account.createSession(
+            let response = try await account.createEmailSession(
                 email: "jake@appwrite.io",
                 password: "password"
             )

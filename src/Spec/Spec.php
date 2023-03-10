@@ -5,14 +5,11 @@ namespace Appwrite\Spec;
 use Exception;
 use ArrayObject;
 
-abstract class Spec extends ArrayObject {
-
-    const FORMAT_OPEN_API_3 = 'Open API 3';
-    const FORMAT_SWAGGER_2  = 'Swagger 2';
-
-    const SET_TYPE_ASSIGN   = 'assign';
-    const SET_TYPE_PREPEND  = 'prepend';
-    const SET_TYPE_APPEND   = 'append';
+abstract class Spec extends ArrayObject
+{
+    private const SET_TYPE_ASSIGN   = 'assign';
+    private const SET_TYPE_PREPEND  = 'prepend';
+    private const SET_TYPE_APPEND   = 'append';
 
     /**
      * Spec constructor.
@@ -23,10 +20,10 @@ abstract class Spec extends ArrayObject {
     {
         if (filter_var($input, FILTER_VALIDATE_URL)) {
             $data = file_get_contents($input, false, stream_context_create([
-                "ssl" => ['verify_peer' => false, 'allow_self_signed'=> true]
+                "ssl" => ['verify_peer' => false, 'allow_self_signed' => true]
             ]));
 
-            if(!$data) {
+            if (!$data) {
                 throw new Exception('Can\'t read data from ' . $input);
             }
 
@@ -35,8 +32,7 @@ abstract class Spec extends ArrayObject {
 
         try {
             $input = json_decode($input, true);
-        }
-        catch (Exception $e) {
+        } catch (Exception $e) {
             throw new Exception('Failed to parse spec: ' . $e->getMessage());
         }
 
@@ -129,8 +125,8 @@ abstract class Spec extends ArrayObject {
 
         $temp = &$this;
 
-        foreach($name as $key) {
-            if(!isset($temp[$key])) {
+        foreach ($name as $key) {
+            if (!isset($temp[$key])) {
                 return $default;
             }
 
@@ -147,7 +143,7 @@ abstract class Spec extends ArrayObject {
      *
      * @param  string $key
      * @param  mixed $value
-     * @param string $type
+     * @param array $parameter
      * @return mixed
      */
     public function setAttribute($key, $value, $type = self::SET_TYPE_ASSIGN)
@@ -158,7 +154,7 @@ abstract class Spec extends ArrayObject {
                 break;
             case self::SET_TYPE_APPEND:
                 $this[$key] = (!isset($this[$key]) || !is_array($this[$key])) ? [] : $this[$key];
-                array_push($this[$key], $value);
+                $this[$key][] = $value;
                 break;
             case self::SET_TYPE_PREPEND:
                 $this[$key] = (!isset($this[$key]) || !is_array($this[$key])) ? [] : $this[$key];

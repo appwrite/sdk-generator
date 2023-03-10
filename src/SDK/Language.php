@@ -2,15 +2,15 @@
 
 namespace Appwrite\SDK;
 
-abstract class Language {
-
-    const TYPE_INTEGER = 'integer';
-    const TYPE_NUMBER = 'number';
-    const TYPE_STRING = 'string';
-    const TYPE_BOOLEAN = 'boolean';
-    const TYPE_ARRAY = 'array';
-    const TYPE_OBJECT = 'object';
-    const TYPE_FILE = 'file';
+abstract class Language
+{
+    public const TYPE_INTEGER = 'integer';
+    public const TYPE_NUMBER = 'number';
+    public const TYPE_STRING = 'string';
+    public const TYPE_BOOLEAN = 'boolean';
+    public const TYPE_ARRAY = 'array';
+    public const TYPE_OBJECT = 'object';
+    public const TYPE_FILE = 'file';
 
     /**
      * @var array
@@ -20,47 +20,47 @@ abstract class Language {
     /**
      * @return string
      */
-    abstract public function getName();
+    abstract public function getName(): string;
 
     /**
-     * @return array
+     * @return array<string>
      */
-    abstract public function getKeywords();
+    abstract public function getKeywords(): array;
 
     /**
-     * @return array
+     * @return array<string>
      */
-    abstract public function getIdentifierOverrides();
+    abstract public function getIdentifierOverrides(): array;
 
     /**
-     * @return array
+     * @return array<array>
      */
-    abstract public function getFiles();
+    abstract public function getFiles(): array;
 
     /**
-     * @param $type
+     * @param array $parameter
      * @return string
      */
-    abstract public function getTypeName($type);
+    abstract public function getTypeName(array $parameter): string;
 
     /**
      * @param array $param
      * @return string
      */
-    abstract public function getParamDefault(array $param);
+    abstract public function getParamDefault(array $param): string;
 
     /**
      * @param array $param
      * @return string
      */
-    abstract public function getParamExample(array $param);
+    abstract public function getParamExample(array $param): string;
 
     /**
      * @param string $key
      * @param string $value
      * @return Language
      */
-    public function setParam($key, $value)
+    public function setParam(string $key, string $value): Language
     {
         $this->params[$key] = $value;
 
@@ -70,17 +70,31 @@ abstract class Language {
     /**
      * @return array
      */
-    public function getParams()
+    public function getParams(): array
     {
         return $this->params;
     }
 
     /**
      * Language specific filters.
-     * @return array 
+     * @return array
      */
     public function getFilters(): array
     {
         return [];
+    }
+
+    protected function toUpperCaseWords(string $value): string
+    {
+        return ucfirst($this->toCamelCase($value));
+    }
+
+    protected function toCamelCase($str): string
+    {
+        $str = preg_replace('/[^a-z0-9' . implode("", []) . ']+/i', ' ', $str);
+        $str = trim($str);
+        $str = ucwords($str);
+        $str = str_replace(" ", "", $str);
+        return lcfirst($str);
     }
 }

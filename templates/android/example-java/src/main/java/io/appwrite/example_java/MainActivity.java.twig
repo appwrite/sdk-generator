@@ -1,18 +1,13 @@
 package io.appwrite.example_java;
 
-import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import org.jetbrains.annotations.NotNull;
+
+import androidx.appcompat.app.AppCompatActivity;
+
 import {{ sdk.namespace | caseDot }}.Client;
-import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception;
-import {{ sdk.namespace | caseDot }}.extensions.JsonExtensionsKt;
-import {{ sdk.namespace | caseDot }}.models.Session;
+import {{ sdk.namespace | caseDot }}.coroutines.CoroutineCallback;
 import {{ sdk.namespace | caseDot }}.services.Account;
-import kotlin.Result;
-import kotlin.coroutines.Continuation;
-import kotlin.coroutines.CoroutineContext;
-import kotlin.coroutines.EmptyCoroutineContext;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -27,31 +22,13 @@ public class MainActivity extends AppCompatActivity {
 
         Account account = new Account(client);
 
-        try {
-            account.createSession("test7@test.com","password", new Continuation<Session>() {
-                @NotNull
-                @Override
-                public CoroutineContext getContext() {
-                    return EmptyCoroutineContext.INSTANCE;
-                }
+        account.createEmailSession("test7@test.com", "password", new CoroutineCallback<>((session, error) -> {
+            if (error != null) {
+                Log.e("Appwrite", error.getMessage());
+                return;
+            }
 
-                @Override
-                public void resumeWith(@NotNull Object o) {
-                    try {
-                        if (o instanceof Result.Failure) {
-                            Result.Failure failure = (Result.Failure) o;
-                            throw failure.exception;
-                        } else {
-                            Session session = (Session) o;
-                            Log.d("RESPONSE", JsonExtensionsKt.toJson(session));
-                        }
-                    } catch (Throwable th) {
-                        Log.e("ERROR", th.toString());
-                    }
-                }
-            });
-        } catch (AppwriteException e) {
-            e.printStackTrace();
-        }
+            Log.d("Appwrite", session.toMap().toString());
+        }));
     }
 }

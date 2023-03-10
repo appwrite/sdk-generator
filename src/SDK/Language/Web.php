@@ -4,14 +4,12 @@ namespace Appwrite\SDK\Language;
 
 use Twig\TwigFilter;
 
-
 class Web extends JS
 {
-
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'Web';
     }
@@ -19,104 +17,103 @@ class Web extends JS
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
             [
                 'scope'         => 'default',
                 'destination'   => 'src/index.ts',
                 'template'      => 'web/src/index.ts.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'src/client.ts',
                 'template'      => 'web/src/client.ts.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'src/service.ts',
                 'template'      => 'web/src/service.ts.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'service',
                 'destination'   => 'src/services/{{service.name | caseDash}}.ts',
                 'template'      => 'web/src/services/template.ts.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'src/models.ts',
                 'template'      => 'web/src/models.ts.twig',
-                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/permission.ts',
+                'template'      => 'web/src/permission.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/role.ts',
+                'template'      => 'web/src/role.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/id.ts',
+                'template'      => 'web/src/id.ts.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'src/query.ts',
                 'template'      => 'web/src/query.ts.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'web/README.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => 'web/CHANGELOG.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => 'web/LICENSE.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'package.json',
                 'template'      => 'web/package.json.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'web/docs/example.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'tsconfig.json',
                 'template'      => '/web/tsconfig.json.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'rollup.config.js',
                 'template'      => '/web/rollup.config.js.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'dist/cjs/package.json',
                 'template'      => '/web/dist/cjs/package.json.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'dist/esm/package.json',
                 'template'      => '/web/dist/esm/package.json.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '.travis.yml',
                 'template'      => 'web/.travis.yml.twig',
-                'minify'        => false,
             ],
         ];
     }
@@ -125,7 +122,7 @@ class Web extends JS
      * @param array $param
      * @return string
      */
-    public function getParamExample(array $param)
+    public function getParamExample(array $param): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
@@ -175,26 +172,26 @@ class Web extends JS
         return $output;
     }
 
-    public function getTypeName($type, $method = []): string
+    public function getTypeName(array $parameter, array $method = []): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
                 return 'number';
-                break;
             case self::TYPE_ARRAY:
+                if (!empty($parameter['array']['type'])) {
+                    return $this->getTypeName($parameter['array']) . '[]';
+                }
                 return 'string[]';
             case self::TYPE_FILE:
                 return 'File';
             case self::TYPE_OBJECT:
                 if (empty($method)) {
-                    return $type;
+                    return $parameter['type'];
                 }
-
                 switch ($method['responseModel']) {
                     case 'user':
                         return "Partial<Preferences>";
-                        break;
                     case 'document':
                         if ($method['method'] === 'post') {
                             return "Omit<Document, keyof Models.Document>";
@@ -203,23 +200,22 @@ class Web extends JS
                             return "Partial<Omit<Document, keyof Models.Document>>";
                         }
                 }
-                break;
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     protected function populateGenerics(string $model, array $spec, array &$generics, bool $skipFirst = false)
     {
         if (!$skipFirst && $spec['definitions'][$model]['additionalProperties']) {
-            $generics[] = $this->toUpperCase($model);
+            $generics[] = $this->toUpperCaseWords($model);
         }
 
         $properties = $spec['definitions'][$model]['properties'];
 
         foreach ($properties as $property) {
             if (array_key_exists('sub_schema', $property) && $property['sub_schema']) {
-                $this->populateGenerics($property['sub_schema'], $spec, $generics, false);
+                $this->populateGenerics($property['sub_schema'], $spec, $generics);
             }
         }
     }
@@ -232,7 +228,9 @@ class Web extends JS
             $this->populateGenerics($model, $spec, $generics, $skipFirst);
         }
 
-        if (empty($generics)) return '';
+        if (empty($generics)) {
+            return '';
+        }
 
         $generics = array_unique($generics);
         $generics = array_map(fn ($type) => "{$type} extends Models.{$type}", $generics);
@@ -259,16 +257,14 @@ class Web extends JS
                 $ret .= 'Models.';
             }
 
-            $ret .= $this->toUpperCase($method['responseModel']);
+            $ret .= $this->toUpperCaseWords($method['responseModel']);
 
             $models = [];
 
-            if ($method['responseModel']) {
-                $this->populateGenerics($method['responseModel'], $spec, $models);
-            }
+            $this->populateGenerics($method['responseModel'], $spec, $models);
 
             $models = array_unique($models);
-            $models = array_filter($models, fn ($model) => $model != $this->toUpperCase($method['responseModel']));
+            $models = array_filter($models, fn ($model) => $model != $this->toUpperCaseWords($method['responseModel']));
 
             if (!empty($models)) {
                 $ret .= '<' . implode(', ', $models) . '>';
@@ -277,27 +273,8 @@ class Web extends JS
             $ret .= '>';
 
             return $ret;
-        } else {
-            return 'Promise<{}>';
         }
-
-        return "";
-    }
-
-    public function toUpperCase(string $value): string
-    {
-        return ucfirst((string)$this->helperCamelCase($value));
-    }
-
-    protected function helperCamelCase($str)
-    {
-        $str = preg_replace('/[^a-z0-9' . implode("", []) . ']+/i', ' ', $str);
-        $str = trim($str);
-        $str = ucwords($str);
-        $str = str_replace(" ", "", $str);
-        $str = lcfirst($str);
-
-        return $str;
+        return 'Promise<{}>';
     }
 
     public function getSubSchema(array $property, array $spec): string
@@ -307,9 +284,9 @@ class Web extends JS
             $generics = [];
             $this->populateGenerics($property['sub_schema'], $spec, $generics);
 
-            $generics = array_filter($generics, fn ($model) => $model != $this->toUpperCase($property['sub_schema']));
+            $generics = array_filter($generics, fn ($model) => $model != $this->toUpperCaseWords($property['sub_schema']));
 
-            $ret .= $this->toUpperCase($property['sub_schema']);
+            $ret .= $this->toUpperCaseWords($property['sub_schema']);
             if (!empty($generics)) {
                 $ret .= '<' . implode(', ', $generics) . '>';
             }
@@ -320,7 +297,7 @@ class Web extends JS
             return $ret;
         }
 
-        return $this->getTypeName($property['type']);
+        return $this->getTypeName($property);
     }
 
     public function getFilters(): array
@@ -341,14 +318,14 @@ class Web extends JS
             new TwigFilter('comment2', function ($value) {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
-                    $value[$key] = "     * " . wordwrap($value[$key], 75, "\n     * ");
+                    $value[$key] = "     * " . wordwrap($line, 75, "\n     * ");
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),
             new TwigFilter('comment3', function ($value) {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
-                    $value[$key] = "         * " . wordwrap($value[$key], 75, "\n         * ");
+                    $value[$key] = "         * " . wordwrap($line, 75, "\n         * ");
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),

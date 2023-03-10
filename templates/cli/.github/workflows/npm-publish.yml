@@ -31,7 +31,14 @@ jobs:
           npm run mac-x64
           npm run mac-arm64
       - name: Publish NPM library
-        run: npm publish
+        run: |
+          if ${{ contains(github.event.release.tag_name, '-RC') }}; then
+            echo "Publishing Release Candidate ${{ github.event.release.tag_name}} to NPM"
+            npm publish --tag next
+          else
+            echo "Publishing ${{ github.event.release.tag_name}} to NPM"
+            npm publish
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - uses: fnkr/github-action-ghr@v1

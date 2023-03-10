@@ -5,12 +5,12 @@ namespace Appwrite\SDK\Language;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 
-class Go extends Language {
-
+class Go extends Language
+{
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'Go';
     }
@@ -20,7 +20,7 @@ class Go extends Language {
      *
      * @return array
      */
-    public function getKeywords()
+    public function getKeywords(): array
     {
         return [
             'bool',
@@ -47,7 +47,7 @@ class Go extends Language {
     /**
      * @return array
      */
-    public function getIdentifierOverrides()
+    public function getIdentifierOverrides(): array
     {
         return [];
     }
@@ -55,75 +55,67 @@ class Go extends Language {
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
             [
                 'scope'         => 'default',
                 'destination'   => 'go.mod',
                 'template'      => 'go/go.mod.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'example/main.go',
                 'template'      => 'go/main.go.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'go/README.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => 'go/CHANGELOG.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => 'go/LICENSE.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseLower}}/client.go',
                 'template'      => 'go/client.go.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'service',
                 'destination'   => '{{ spec.title | caseLower}}/{{service.name | caseDash}}.go',
                 'template'      => 'go/services/service.go.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'go/docs/example.md.twig',
-                'minify'        => false,
             ],
         ];
     }
 
     /**
-     * @param $type
+     * @param array $parameter
+     * @param array $nestedTypes
      * @return string
      */
-    public function getTypeName($type)
+    public function getTypeName(array $parameter): string
     {
-        switch ($type) {
+        switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'int';
             case self::TYPE_NUMBER:
                 return 'float64';
+            case self::TYPE_FILE:
             case self::TYPE_STRING:
                 return 'string';
-            case self::TYPE_FILE:
-                return 'string'; // '*os.File';
             case self::TYPE_BOOLEAN:
                 return 'bool';
             case self::TYPE_OBJECT:
@@ -132,26 +124,26 @@ class Go extends Language {
                 return '[]interface{}';
         }
 
-        return $type;
+        return $parameter['type'];
     }
 
     /**
      * @param array $param
      * @return string
      */
-    public function getParamDefault(array $param)
+    public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
         $default    = $param['default'] ?? '';
         $required   = $param['required'] ?? '';
 
-        if($required) {
+        if ($required) {
             return '';
         }
 
         $output = ' = ';
 
-        if(empty($default) && $default !== 0 && $default !== false) {
+        if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -168,8 +160,7 @@ class Go extends Language {
                     $output .= '[]';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -195,14 +186,14 @@ class Go extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamExample(array $param)
+    public function getParamExample(array $param): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
         $output = '';
 
-        if(empty($example) && $example !== 0 && $example !== false) {
+        if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -222,8 +213,7 @@ class Go extends Language {
                     $output .= "file";
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -254,7 +244,7 @@ class Go extends Language {
             new TwigFilter('godocComment', function ($value) {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
-                    $value[$key] = "// " . wordwrap($value[$key], 75, "\n// ");
+                    $value[$key] = "// " . wordwrap($line, 75, "\n// ");
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']])

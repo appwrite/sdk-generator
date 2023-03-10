@@ -1,13 +1,27 @@
 {% import 'flutter/base/utils.twig' as utils %}
         final Map<String, dynamic> params = {
-            {{ utils.map_parameter(method.parameters.query) }}
-            {{ utils.map_parameter(method.parameters.body) }}
+            {{- utils.map_parameter(method.parameters.query) -}}
+            {{~ utils.map_parameter(method.parameters.body) }}
         };
 
         final Map<String, String> headers = {
-            {{ utils.map_headers(method.headers) }}
+            {{~ utils.map_headers(method.headers) }}
         };
 
-        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
+        final cacheModel = '{{method['offline']['model']}}'{% if method['offline']['model'] is not empty %}{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | overrideIdentifier }}){% endfor %}{% endif %};
+        final cacheKey = {% if method['offline']['key'] starts with '{' and method['offline']['key'] ends with '}' %}{{method['offline']['key'] | replace({'{': '', '}': ''}) | overrideIdentifier }}{% else %}'{{method['offline']['key']}}'{% endif %};
+        final cacheResponseIdKey = '{{method['offline']['response-key'] | escapeDollarSign}}';
+        final cacheResponseContainerKey = '{% for property in spec.definitions[method.responseModel].properties %}{% if property.sub_schema and property.type == 'array' %}{{property.name}}{% endif %}{% endfor %}';
+
+        final res = await client.call(
+            HttpMethod.{{ method.method | caseLower }},
+            path: path,
+            params: params,
+            headers: headers,
+            cacheModel: cacheModel,
+            cacheKey: cacheKey,
+            cacheResponseIdKey: cacheResponseIdKey,
+            cacheResponseContainerKey: cacheResponseContainerKey,
+        );
 
         return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst | overrideIdentifier}}.fromMap(res.data){% else %} res.data{% endif %};
