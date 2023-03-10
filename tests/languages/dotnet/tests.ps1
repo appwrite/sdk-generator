@@ -91,3 +91,6 @@ try {
 } catch [Appwrite.AppwriteException] {
     Write-Host $_.Exception.Message
 }
+
+$response = $general.headers()  | Await-Task
+Print-Response $response.GetResult()

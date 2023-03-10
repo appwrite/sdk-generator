@@ -4,7 +4,13 @@ namespace Tests;
 
 class Node12Test extends Base
 {
+    protected string $sdkName = 'node.js';
+    protected string $sdkPlatform = 'server';
+    protected string $sdkLanguage = 'nodejs';
+    protected string $version = '0.0.1';
+
     protected string $language = 'node';
+
     protected string $class = 'Appwrite\SDK\Language\Node';
     protected array $build = [
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:12-alpine npm install',
@@ -18,5 +24,8 @@ class Node12Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
+        ...Base::QUERY_HELPER_RESPONSES,
+        ...Base::PERMISSION_HELPER_RESPONSES,
+        ...Base::ID_HELPER_RESPONSES
     ];
 }

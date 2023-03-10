@@ -2,10 +2,14 @@
 typealias OSApplication = NSApplication
 typealias OSViewController = NSViewController
 let notificationType = NSApplication.willBecomeActiveNotification
-#elseif os(iOS) || os(tvOS) || os(watchOS)
+#elseif os(iOS) || os(tvOS)
 typealias OSApplication = UIApplication
 typealias OSViewController = UIViewController
 let notificationType = UIApplication.willEnterForegroundNotification
+#elseif os(watchOS)
+typealias OSApplication = WKApplication
+typealias OSViewController = WKInterfaceController
+let notificationType = WKApplication.willEnterForegroundNotification
 #endif
 
 #if canImport(SwiftUI)

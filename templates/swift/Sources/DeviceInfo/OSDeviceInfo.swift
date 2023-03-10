@@ -1,11 +1,11 @@
 import Foundation
 
-protocol DeviceInfo {}
-
 class OSDeviceInfo {
 
-    #if os(iOS) || os(watchOS) || os(tvOS)
-    var iOSInfo: iOSDeviceInfo?
+    #if os(iOS) || os(tvOS)
+    var iOSInfo: IOSDeviceInfo?
+    #elseif os(watchOS)
+    var watchOSInfo: WatchOSDeviceInfo?
     #elseif os(macOS)
     var macOSInfo: MacOSDeviceInfo?
     #elseif os(Linux)
@@ -15,14 +15,16 @@ class OSDeviceInfo {
     #endif
 
     init() {
-        #if os(iOS) || os(watchOS) || os(tvOS)
-        self.iOSInfo = iOSDeviceInfo.get()
+        #if os(iOS) || os(tvOS)
+        self.iOSInfo = IOSDeviceInfo()
+        #elseif os(watchOS)
+        self.watchOSInfo = WatchOSDeviceInfo()
         #elseif os(macOS)
-        self.macOSInfo = MacOSDeviceInfo.get()
+        self.macOSInfo = MacOSDeviceInfo()
         #elseif os(Linux)
-        self.linuxInfo = LinuxDeviceInfo.get()
+        self.linuxInfo = LinuxDeviceInfo()
         #elseif os(Windows)
-        self.windowsInfo = LinuxDeviceInfo.get()
+        self.windowsInfo = LinuxDeviceInfo()
         #endif
     }
 }
