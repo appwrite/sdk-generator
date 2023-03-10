@@ -147,7 +147,7 @@ void main() async {
   print(Permission.update(Role.user(ID.custom('userid'), 'unverified')));
 
   // ID helper tests
-  print(ID.unique());
+  assert(ID.unique() != ID.unique());
   print(ID.custom('custom_id'));
 
   response = await general.headers();
