@@ -3,7 +3,7 @@ import '../lib/models.dart';
 
 void main() async {
   Client client = Client();
-  Foo foo = Foo(client, x: 'string');
+  Foo foo = Foo(client);
   Bar bar = Bar(client);
   General general = General(client);
 
@@ -14,19 +14,19 @@ void main() async {
   
   // Foo Tests
   Mock response;
-  response = await foo.get(y: 123, z: ['string in array']);
+  response = await foo.get(x: 'string', y: 123, z: ['string in array']);
   print(response.result);
 
-  response = await foo.post(y: 123, z: ['string in array']);
+  response = await foo.post(x: 'string', y: 123, z: ['string in array']);
   print(response.result);
 
-  response = await foo.put(y: 123, z: ['string in array']);
+  response = await foo.put(x: 'string', y: 123, z: ['string in array']);
   print(response.result);
 
-  response = await foo.patch(y: 123, z: ['string in array']);
+  response = await foo.patch(x: 'string', y: 123, z: ['string in array']);
   print(response.result);
 
-  response = await foo.delete(y: 123, z: ['string in array']);
+  response = await foo.delete(x: 'string', y: 123, z: ['string in array']);
   print(response.result);
 
   // Bar Tests
@@ -51,13 +51,13 @@ void main() async {
   final res = await general.redirect();
   print(res['result']);
 
-  var file = InputFile(path: '../../resources/file.png',
+  var file = InputFile.fromPath(path: '../../resources/file.png',
       filename: 'file.png');
   response = await general.upload(
       x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
-  file = InputFile(path: '../../resources/large_file.mp4', filename: 'large_file.mp4');
+  file = InputFile.fromPath(path: '../../resources/large_file.mp4', filename: 'large_file.mp4');
   response = await general.upload(
       x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
@@ -87,4 +87,36 @@ void main() async {
   // print(response.result);
 
   await general.empty();
+
+  // Query helper tests
+  print(Query.equal('released', [true]));
+  print(Query.equal('title', ['Spiderman', 'Dr. Strange']));
+  print(Query.notEqual('title', 'Spiderman'));
+  print(Query.lessThan('releasedYear', 1990));
+  print(Query.greaterThan('releasedYear', 1990));
+  print(Query.search('name', 'john'));
+  print(Query.orderAsc("title"));
+  print(Query.orderDesc("title"));
+  print(Query.cursorAfter("my_movie_id"));
+  print(Query.cursorBefore("my_movie_id"));
+  print(Query.limit(50));
+  print(Query.offset(20));
+
+  // Permission & Role helper tests
+  print(Permission.read(Role.any()));
+  print(Permission.write(Role.user(ID.custom('userid'))));
+  print(Permission.create(Role.users()));
+  print(Permission.update(Role.guests()));
+  print(Permission.delete(Role.team('teamId', 'owner')));
+  print(Permission.delete(Role.team('teamId')));
+  print(Permission.create(Role.member('memberId')));
+  print(Permission.update(Role.users('verified')));
+  print(Permission.update(Role.user(ID.custom('userid'), 'unverified')));
+
+  // ID helper tests
+  assert(ID.unique() != ID.unique());
+  print(ID.custom('custom_id'));
+
+  response = await general.headers();
+  print(response.result);
 }

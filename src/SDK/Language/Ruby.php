@@ -5,8 +5,8 @@ namespace Appwrite\SDK\Language;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 
-class Ruby extends Language {
-
+class Ruby extends Language
+{
     protected $params = [
         'gemPackage' => 'gemName',
     ];
@@ -15,7 +15,7 @@ class Ruby extends Language {
      * @param string $name
      * @return $this
      */
-    public function setGemPackage($name)
+    public function setGemPackage(string $name): self
     {
         $this->setParam('gemPackage', $name);
 
@@ -25,7 +25,7 @@ class Ruby extends Language {
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return 'Ruby';
     }
@@ -35,52 +35,52 @@ class Ruby extends Language {
      *
      * @return array
      */
-    public function getKeywords()
+    public function getKeywords(): array
     {
         return [
             'BEGIN',
-			'END',
-			'alias',
-			'and',
-			'begin',
-			'break',
-			'case',
-			'class',
-			'def',
-			'defined?',
-			'do',
-			'else',
-			'module',
-			'next',
-			'nil',
-			'not',
-			'or',
-			'redo',
-			'rescue',
-			'retry',
-			'return',
-			'self',
-			'super',
-			'then',
-			'elsif',
-			'end',
-			'false',
-			'ensure',
-			'for',
-			'if',
-			'true',
-			'undef',
-			'unless',
-			'until',
-			'when',
-			'while',
+            'END',
+            'alias',
+            'and',
+            'begin',
+            'break',
+            'case',
+            'class',
+            'def',
+            'defined?',
+            'do',
+            'else',
+            'module',
+            'next',
+            'nil',
+            'not',
+            'or',
+            'redo',
+            'rescue',
+            'retry',
+            'return',
+            'self',
+            'super',
+            'then',
+            'elsif',
+            'end',
+            'false',
+            'ensure',
+            'for',
+            'if',
+            'true',
+            'undef',
+            'unless',
+            'until',
+            'when',
+            'while',
         ];
     }
 
     /**
      * @return array
      */
-    public function getIdentifierOverrides()
+    public function getIdentifierOverrides(): array
     {
         return [];
     }
@@ -88,98 +88,98 @@ class Ruby extends Language {
     /**
      * @return array
      */
-    public function getFiles()
+    public function getFiles(): array
     {
         return [
             [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'ruby/README.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'CHANGELOG.md',
                 'template'      => 'ruby/CHANGELOG.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
                 'template'      => 'ruby/LICENSE.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'Gemfile',
                 'template'      => 'ruby/Gemfile.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseDash }}.gemspec',
                 'template'      => 'ruby/gemspec.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}.rb',
                 'template'      => 'ruby/lib/container.rb.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}/client.rb',
                 'template'      => 'ruby/lib/container/client.rb.twig',
-                'minify'        => false,
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/permission.rb',
+                'template'      => 'ruby/lib/container/permission.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/role.rb',
+                'template'      => 'ruby/lib/container/role.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/id.rb',
+                'template'      => 'ruby/lib/container/id.rb.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}/query.rb',
                 'template'      => 'ruby/lib/container/query.rb.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}/service.rb',
                 'template'      => 'ruby/lib/container/service.rb.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}/input_file.rb',
                 'template'      => 'ruby/lib/container/input_file.rb.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}/exception.rb',
                 'template'      => 'ruby/lib/container/exception.rb.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'service',
                 'destination'   => '/lib/{{ spec.title | caseDash}}/services/{{service.name | caseDash}}.rb',
                 'template'      => 'ruby/lib/container/services/service.rb.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'ruby/docs/example.md.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '.travis.yml',
                 'template'      => 'ruby/.travis.yml.twig',
-                'minify'        => false,
             ],
             [
                 'scope'         => 'definition',
                 'destination'   => '/lib/{{ spec.title | caseDash }}/models/{{ definition.name | caseSnake }}.rb',
                 'template'      => 'ruby/lib/container/models/model.rb.twig',
-                'minify'        => false,
             ],
         ];
     }
@@ -213,19 +213,19 @@ class Ruby extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamDefault(array $param)
+    public function getParamDefault(array $param): string
     {
         $type       = $param['type'] ?? '';
         $default    = $param['default'] ?? '';
         $required   = $param['required'] ?? '';
 
-        if($required) {
+        if ($required) {
             return ':';
         }
 
         $output = ': ';
 
-        if(empty($default) && $default !== 0 && $default !== false) {
+        if (empty($default) && $default !== 0 && $default !== false) {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -242,8 +242,7 @@ class Ruby extends Language {
                     $output .= '{}';
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -267,14 +266,14 @@ class Ruby extends Language {
      * @param array $param
      * @return string
      */
-    public function getParamExample(array $param)
+    public function getParamExample(array $param): string
     {
         $type       = $param['type'] ?? '';
         $example    = $param['example'] ?? '';
 
         $output = '';
 
-        if(empty($example) && $example !== 0 && $example !== false) {
+        if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -286,7 +285,7 @@ class Ruby extends Language {
                     break;
                 case self::TYPE_ARRAY:
                     $output .= '[]';
-                break;
+                    break;
                 case self::TYPE_OBJECT:
                     $output .= '{}';
                     break;
@@ -294,8 +293,7 @@ class Ruby extends Language {
                     $output .= "InputFile.from_path('dir/file.png')";
                     break;
             }
-        }
-        else {
+        } else {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -322,16 +320,17 @@ class Ruby extends Language {
 
     /**
      * Converts JSON Object To Ruby Native Hash
-     * 
+     *
+     * @return string
      * @var $data array
      */
-    protected function jsonToHash(array $data):string
+    protected function jsonToHash(array $data): string
     {
         $output = '{';
-        
-        foreach($data as $key => $node) {
+
+        foreach ($data as $key => $node) {
             $value = (is_array($node)) ? $this->jsonToHash($node) : $node;
-            $output .= '"'.$key.'" => '.((is_string($node)) ? '"'.$value.'"' : $value).(($key !== array_key_last($data)) ? ', ' : '');
+            $output .= '"' . $key . '" => ' . ((is_string($node)) ? '"' . $value . '"' : $value) . (($key !== array_key_last($data)) ? ', ' : '');
         }
 
         $output .= '}';

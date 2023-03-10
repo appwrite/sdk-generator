@@ -1,4 +1,4 @@
-#if os(iOS) || os(tvOS) || os(watchOS)
+#if os(iOS) || os(tvOS)
 import Foundation
 import UIKit
 
@@ -14,8 +14,8 @@ public extension UIDevice {
         }
 
         func mapToDevice(identifier: String) -> String { // swiftlint:disable:this cyclomatic_complexity
-            #if os(iOS)
             switch identifier {
+            #if os(iOS)
             case "iPod5,1":                                       return "iPod touch (5th generation)"
             case "iPod7,1":                                       return "iPod touch (6th generation)"
             case "iPod9,1":                                       return "iPod touch (7th generation)"
@@ -49,6 +49,11 @@ public extension UIDevice {
             case "iPhone14,5":                                    return "iPhone 13"
             case "iPhone14,2":                                    return "iPhone 13 Pro"
             case "iPhone14,3":                                    return "iPhone 13 Pro Max"
+            case "iPhone14,6":                                    return "iPhone SE (3rd generation)"
+            case "iPhone14,7":                                    return "iPhone 14"
+            case "iPhone14,8":                                    return "iPhone 14 Plus"
+            case "iPhone15,2":                                    return "iPhone 14 Pro"
+            case "iPhone15,3":                                    return "iPhone 14 Pro Max"
             case "iPad2,1", "iPad2,2", "iPad2,3", "iPad2,4":      return "iPad 2"
             case "iPad3,1", "iPad3,2", "iPad3,3":                 return "iPad (3rd generation)"
             case "iPad3,4", "iPad3,5", "iPad3,6":                 return "iPad (4th generation)"
@@ -77,21 +82,19 @@ public extension UIDevice {
             case "iPad8,5", "iPad8,6", "iPad8,7", "iPad8,8":      return "iPad Pro (12.9-inch) (3rd generation)"
             case "iPad8,11", "iPad8,12":                          return "iPad Pro (12.9-inch) (4th generation)"
             case "iPad13,8", "iPad13,9", "iPad13,10", "iPad13,11":return "iPad Pro (12.9-inch) (5th generation)"
-            case "AppleTV5,3":                                    return "Apple TV"
-            case "AppleTV6,2":                                    return "Apple TV 4K"
-            case "AudioAccessory1,1":                             return "HomePod"
-            case "AudioAccessory5,1":                             return "HomePod mini"
             case "i386", "x86_64":                                return "Simulator \(mapToDevice(identifier: ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "iOS"))"
             default:                                              return identifier
-            }
             #elseif os(tvOS)
-            switch identifier {
-            case "AppleTV5,3": return "Apple TV 4"
-            case "AppleTV6,2": return "Apple TV 4K"
+            case "AppleTV1,1":                                    return "Apple TV (1st generation)"
+            case "AppleTV2,1":                                    return "Apple TV (2nd generation)"
+            case "AppleTV3,1", "AppleTV3,2":                      return "Apple TV (3rd generation)"
+            case "AppleTV5,3":                                    return "Apple TV (4th generation)"
+            case "AppleTV6,2":                                    return "Apple TV 4K (1st generation)"
+            case "AppleTV11,1":                                   return "Apple TV 4K (2nd generation)"
             case "i386", "x86_64": return "Simulator \(mapToDevice(identifier: ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "tvOS"))"
             default: return identifier
-            }
             #endif
+            }
         }
 
         return mapToDevice(identifier: identifier)

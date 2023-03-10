@@ -24,13 +24,13 @@ public class RealtimeCallback {
 public class RealtimeResponseEvent {
     public let events: [String]?
     public let channels: [String]?
-    public let timestamp: Int64?
+    public let timestamp: String?
     public var payload: [String: Any]?
 
     init(
         events: [String],
         channels: [String],
-        timestamp: Int64,
+        timestamp: String,
         payload: [String: Any]
     ) {
         self.events = events

@@ -7,13 +7,13 @@ let package = Package(
     platforms: [
         .iOS("15.0"),
         .macOS("11.0"),
-        .watchOS("6.0"),
+        .watchOS("7.0"),
         .tvOS("13.0"),
     ],
     products: [
         .library(
             name: "{{spec.title | caseUcfirst}}",
-            targets: ["{{spec.title | caseUcfirst}}", "{{spec.title | caseUcfirst}}Models"]
+            targets: ["{{spec.title | caseUcfirst}}", "{{spec.title | caseUcfirst}}Models", "JSONCodable"]
         ),
     ],
     dependencies: [
@@ -26,11 +26,18 @@ let package = Package(
             dependencies: [
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "NIOWebSocket", package: "swift-nio"),
-                "{{spec.title | caseUcfirst}}Models"
+                "{{spec.title | caseUcfirst}}Models",
+                "JSONCodable"
             ]
         ),
         .target(
-            name: "{{spec.title | caseUcfirst}}Models"
+            name: "{{spec.title | caseUcfirst}}Models",
+            dependencies: [
+                "JSONCodable"
+            ]
+        ),
+        .target(
+            name: "JSONCodable"
         ),
         .testTarget(
             name: "{{spec.title | caseUcfirst}}Tests",

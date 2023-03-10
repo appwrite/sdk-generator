@@ -11,29 +11,29 @@
 ** {{ method.description }} **
 {% endif %}
 
-{% if method.parameters.all | filter((param) => not param.isGlobal) is not empty  %}
+{% if method.parameters.all is not empty  %}
 ### Parameters
 
 | Field Name | Type | Description | Default |
 | --- | --- | --- | --- |
 {% if method.parameters.path | length > 0 %}
-{% for parameter in method.parameters.path | filter((param) => not param.isGlobal) %}
-| {{ parameter.name }} | {{ parameter.type }} | {% if parameter.required == 1 %}**Required** {% endif %}{{ parameter.description }} | {{ parameter.default }} |
+{% for parameter in method.parameters.path %}
+| {{ parameter.name }} | {{ parameter.type }} | {% if parameter.required == 1 %}**Required** {% endif %}{{ parameter.description | raw }} | {{ parameter.default }} |
 {% endfor %}
 {% endif %}
 {% if method.parameters.query | length > 0 %}
-{% for parameter in method.parameters.query | filter((param) => not param.isGlobal) %}
-| {{ parameter.name }} | {{ parameter.type }} | {% if parameter.required == 1 %}**Required** {% endif %}{{ parameter.description }} | {{ parameter.default }} |
+{% for parameter in method.parameters.query %}
+| {{ parameter.name }} | {{ parameter.type }} | {% if parameter.required == 1 %}**Required** {% endif %}{{ parameter.description | raw }} | {{ parameter.default }} |
 {% endfor %}
 {% endif %}
 {% if method.parameters.body | length > 0 %}
-{% for parameter in method.parameters.body | filter((param) => not param.isGlobal) %}
-| {{ parameter.name }} | {{ parameter.type }} | {{ parameter.description }} | {{ parameter.default }} |
+{% for parameter in method.parameters.body %}
+| {{ parameter.name }} | {{ parameter.type }} | {{ parameter.description | raw }} | {{ parameter.default }} |
 {% endfor %}
 {% endif %}
 {% if method.parameters.formData | length > 0 %}
-{% for parameter in method.parameters.formData | filter((param) => not param.isGlobal) %}
-| {{ parameter.name }} | {{ parameter.type }} | {{ parameter.description }} | {{ parameter.default }} |
+{% for parameter in method.parameters.formData %}
+| {{ parameter.name }} | {{ parameter.type }} | {{ parameter.description | raw }} | {{ parameter.default }} |
 {% endfor %}
 {% endif %}
 
