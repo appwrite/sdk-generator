@@ -104,7 +104,7 @@ class SDK
             return ucfirst($this->helperCamelCase($value));
         }));
         $this->twig->addFilter(new TwigFilter('deviceInfo', function ($value) {
-            return php_uname('s').';'. php_uname('v') .';'. php_uname('m');
+            return php_uname('s') . ';' . php_uname('v') . ';' . php_uname('m');
         }));
         $this->twig->addFilter(new TwigFilter('caseUcwords', function ($value) {
             return ucwords($value, " -_");
