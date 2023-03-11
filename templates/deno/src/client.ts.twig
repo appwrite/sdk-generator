@@ -11,7 +11,7 @@ export class Client {
     endpoint: string = '{{spec.endpoint}}';
     headers: Payload = {
         'content-type': '',
-        'user-agent' : '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Deno.build.os}; ${Deno.build.arch})',
+        'user-agent' : `{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Deno.build.os}; ${Deno.build.arch})`,
         'x-sdk-name': '{{ sdk.name }}',
         'x-sdk-platform': '{{ sdk.platform }}',
         'x-sdk-language': '{{ language.name | caseLower }}',
