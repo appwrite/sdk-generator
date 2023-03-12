@@ -212,6 +212,7 @@ class Swagger2 extends Spec
                             'class' => $parameter['x-class'] ?? null,
                             'description' => $parameter['description'] ?? '',
                             'required' => $parameter['required'] ?? false,
+                            'nullable' => $parameter['x-nullable'] ?? false,
                             'default' => $parameter['default'] ?? null,
                             'example' => $parameter['x-example'] ?? null,
                             'isUploadID' => $parameter['x-upload-id'] ?? false,
