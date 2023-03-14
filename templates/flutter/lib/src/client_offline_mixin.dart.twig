@@ -10,7 +10,9 @@ import 'package:sembast/utils/value_utils.dart';
 
 import 'enums.dart';
 import 'exception.dart';
-import 'offline_db.dart';
+import 'offline_db_stub.dart'
+    if (dart.library.html) 'offline_db_web.dart'
+    if (dart.library.io) 'offline_db_io.dart';
 import 'response.dart';
 
 class AccessTimestamp {
