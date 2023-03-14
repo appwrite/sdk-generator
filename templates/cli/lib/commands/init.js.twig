@@ -3,7 +3,7 @@ const path = require("path");
 const childProcess = require('child_process');
 const { Command } = require("commander");
 const inquirer = require("inquirer");
-const { teamsCreate } = require("./teams");
+const { teamsCreate, teamsList } = require("./teams");
 const { projectsCreate } = require("./projects");
 const { functionsCreate } = require("./functions");
 const { databasesListCollections, databasesList } = require("./databases");
@@ -14,6 +14,9 @@ const { success, log, actionRunner, commandDescriptions } = require("../parser")
 
 const init = new Command("init")
   .description(commandDescriptions['init'])
+  .configureHelp({
+        helpWidth: process.stdout.columns || 80
+  })
   .action(actionRunner(async (_options, command) => {
     command.help();
   }));
@@ -186,9 +189,36 @@ const initCollection = async ({ all, databaseId } = {}) => {
 
     collections.forEach(async collection => {
       log(`Fetching ${collection.name} ...`);
-      localConfig.addCollection(collection);
+      localConfig.addCollection({
+        ...collection,
+        '$createdAt': undefined,
+        '$updatedAt': undefined,
+      });
     });
   }
+
+  success();
+}
+
+const initTeam = async () => {
+  // TODO: Pagination?
+  let response = await teamsList({
+    queries: [ 'limit(100)' ],
+    parseOutput: false
+  })
+
+  let teams = response.teams;
+  log(`Found ${teams.length} teams`);
+
+  teams.forEach(async team => {
+    log(`Fetching ${team.name} ...`);
+    localConfig.addTeam({
+      ...team,
+      '$createdAt': undefined,
+      '$updatedAt': undefined,
+      'total': undefined
+    });
+  });
 
   success();
 }
@@ -209,6 +239,11 @@ init
   .option(`--databaseId <databaseId>`, `Database ID`)
   .option(`--all`, `Flag to initialize all databases`)
   .action(actionRunner(initCollection))
+
+init
+  .command("team")
+  .description("Initialise your Appwrite teams")
+  .action(actionRunner(initTeam))
 
 module.exports = {
   init,
