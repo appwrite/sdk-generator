@@ -207,8 +207,18 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/src/offline_db.dart',
-                'template'      => 'flutter/lib/src/offline_db.dart.twig',
+                'destination'   => '/lib/src/offline_db_io.dart',
+                'template'      => 'flutter/lib/src/offline_db_io.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/offline_db_stub.dart',
+                'template'      => 'flutter/lib/src/offline_db_stub.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/offline_db_web.dart',
+                'template'      => 'flutter/lib/src/offline_db_web.dart.twig',
             ],
             [
                 'scope'         => 'default',
