@@ -76,11 +76,19 @@ export type UploadProgress = {
     chunksUploaded: number;
 }
 
+export type {{spec.title | caseUcfirst}}ExceptionResponse = {
+    message: string;
+    code: number;
+    type: string;
+    version: string;
+};
+
 class {{spec.title | caseUcfirst}}Exception extends Error {
     code: number;
-    response: string;
+    response?: {{spec.title | caseUcfirst}}ExceptionResponse;
     type: string;
-    constructor(message: string, code: number = 0, type: string = '', response: string = '') {
+
+    constructor(message: string, code: number = 0, type: string = '', response?: {{spec.title | caseUcfirst}}ExceptionResponse) {
         super(message);
         this.name = '{{spec.title | caseUcfirst}}Exception';
         this.message = message;

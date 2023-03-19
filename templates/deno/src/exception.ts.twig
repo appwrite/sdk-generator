@@ -1,10 +1,19 @@
-export class {{ spec.title | caseUcfirst}}Exception {
+export type {{spec.title | caseUcfirst}}ExceptionResponse = {
+    message: string;
+    code: number;
+    type: string;
+    version: string;
+};
+
+export class {{ spec.title | caseUcfirst}}Exception extends Error {
     message: String;
     code: Number;
-    response: any;
+    response?: {{spec.title | caseUcfirst}}ExceptionResponse;
     type: String;
 
-    constructor(message: String, code: Number = 0, type: String = "", response: any = "") {
+    constructor(message: String, code: Number = 0, type: String = "", response?: {{spec.title | caseUcfirst}}ExceptionResponse) {
+        super(message);
+        this.name = '{{spec.title | caseUcfirst}}Exception';
         this.message = message;
         this.code = code;
         this.type = type;

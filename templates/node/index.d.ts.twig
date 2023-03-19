@@ -125,9 +125,9 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
   export class {{spec.title | caseUcfirst}}Exception extends Error {
     public code: number;
     public type: string;
-    public response: {{spec.title | caseUcfirst}}ExceptionResponse;
+    public response?: {{spec.title | caseUcfirst}}ExceptionResponse;
 
-    constructor(message: string, code?: number, type?: string, response?: {{spec.title | caseUcfirst}}ExceptionResponse);
+    constructor(message: string, code: number = 0, type: string = '', response?: {{spec.title | caseUcfirst}}ExceptionResponse);
   }
 
   export class Service {
