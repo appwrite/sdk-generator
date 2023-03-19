@@ -135,7 +135,7 @@ class Local extends Config {
     }
 
     getCollection($id) {
-        if (!this.has("collection")) {
+        if (!this.has("collections")) {
             return {};
         }
 
@@ -188,6 +188,62 @@ class Local extends Config {
         return {};
     }
 
+    addBucket(props) {
+        if (!this.has("buckets")) {
+            this.set("buckets", []);
+        }
+
+        let buckets = this.get("buckets");
+        for (let i = 0; i < buckets.length; i++) {
+            if (buckets[i]['$id'] == props['$id']) {
+                buckets[i] = props;
+                this.set("buckets", buckets);
+                return;
+            }
+        }
+        buckets.push(props);
+        this.set("buckets", buckets);
+    }
+
+    getDatabases() {
+        if (!this.has("databases")) {
+            return [];
+        }
+        return this.get("databases");
+    }
+
+    getDatabase($id) {
+        if (!this.has("databases")) {
+            return {};
+        }
+
+        let databases = this.get("databases");
+        for (let i = 0; i < databases.length; i++) {
+            if (databases[i]['$id'] == $id) {
+                return databases[i];
+            }
+        }
+
+        return {};
+    }
+
+    addDatabase(props) {
+        if (!this.has("databases")) {
+            this.set("databases", []);
+        }
+
+        let databases = this.get("databases");
+        for (let i = 0; i < databases.length; i++) {
+            if (databases[i]['$id'] == props['$id']) {
+                databases[i] = props;
+                this.set("databases", databases);
+                return;
+            }
+        }
+        databases.push(props);
+        this.set("databases", databases);
+    }
+
     getTeams() {
         if (!this.has("teams")) {
             return [];
@@ -208,23 +264,6 @@ class Local extends Config {
         }
 
         return {};
-    }
-
-    addBucket(props) {
-        if (!this.has("buckets")) {
-            this.set("buckets", []);
-        }
-
-        let buckets = this.get("buckets");
-        for (let i = 0; i < buckets.length; i++) {
-            if (buckets[i]['$id'] == props['$id']) {
-                buckets[i] = props;
-                this.set("buckets", buckets);
-                return;
-            }
-        }
-        buckets.push(props);
-        this.set("buckets", buckets);
     }
     
     addTeam(props) {
