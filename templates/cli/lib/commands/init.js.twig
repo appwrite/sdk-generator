@@ -170,6 +170,13 @@ const initCollection = async ({ all, databaseId } = {}) => {
   }
 
   for(const databaseId of databaseIds) {
+    const database = await databasesGet({
+      databaseId,
+      parseOutput: false
+    });
+
+    localConfig.addDatabase(database);
+
     // TODO: Pagination?
     let response = await databasesListCollections({
       databaseId,
