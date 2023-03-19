@@ -176,8 +176,8 @@ class Swift extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Codable+JSON.swift',
-                'template'      => 'swift/Sources/Extensions/Codable+JSON.swift.twig',
+                'destination'   => '/Sources/JSONCodable/Codable+JSON.swift',
+                'template'      => 'swift/Sources/JSONCodable/Codable+JSON.swift.twig',
             ],
             [
                 'scope'         => 'default',
@@ -206,8 +206,8 @@ class Swift extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/iOS/iOSDeviceInfo.swift',
-                'template'      => 'swift/Sources/DeviceInfo/iOS/iOSDeviceInfo.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/iOS/IOSDeviceInfo.swift',
+                'template'      => 'swift/Sources/DeviceInfo/iOS/IOSDeviceInfo.swift',
             ],
             [
                 'scope'         => 'default',
@@ -221,13 +221,23 @@ class Swift extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/MacOS/MacOSDeviceInfo.swift',
-                'template'      => 'swift/Sources/DeviceInfo/MacOS/MacOSDeviceInfo.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/macOS/MacOSDeviceInfo.swift',
+                'template'      => 'swift/Sources/DeviceInfo/macOS/MacOSDeviceInfo.swift',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/MacOS/CwlSysCtl.swift',
-                'template'      => 'swift/Sources/DeviceInfo/MacOS/CwlSysCtl.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/watchOS/WatchOSDeviceInfo.swift',
+                'template'      => 'swift/Sources/DeviceInfo/watchOS/WatchOSDeviceInfo.swift',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/watchOS/WKInterfaceDevice+ModelName.swift',
+                'template'      => 'swift/Sources/DeviceInfo/watchOS/WKInterfaceDevice+ModelName.swift',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/DeviceInfo/macOS/CwlSysCtl.swift',
+                'template'      => 'swift/Sources/DeviceInfo/macOS/CwlSysCtl.swift',
             ],
             [
                 'scope'         => 'default',

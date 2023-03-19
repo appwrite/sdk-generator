@@ -15,6 +15,9 @@ const { success, log, actionRunner, commandDescriptions } = require("../parser")
 
 const init = new Command("init")
   .description(commandDescriptions['init'])
+  .configureHelp({
+        helpWidth: process.stdout.columns || 80
+  })
   .action(actionRunner(async (_options, command) => {
     command.help();
   }));
@@ -180,7 +183,11 @@ const initCollection = async ({ all, databaseId } = {}) => {
 
     collections.forEach(async collection => {
       log(`Fetching ${collection.name} ...`);
-      localConfig.addCollection(collection);
+      localConfig.addCollection({
+        ...collection,
+        '$createdAt': undefined,
+        '$updatedAt': undefined,
+      });
     });
   }
 
@@ -217,7 +224,12 @@ const initTeam = async () => {
 
   teams.forEach(async team => {
     log(`Fetching ${team.name} ...`);
-    localConfig.addTeam(team);
+    localConfig.addTeam({
+      ...team,
+      '$createdAt': undefined,
+      '$updatedAt': undefined,
+      'total': undefined
+    });
   });
 
   success();

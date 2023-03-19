@@ -1,5 +1,3 @@
-import { readableStreamFromReader } from "https://deno.land/std/streams/conversion.ts";
-
 const _bufferToString = (buffer: Uint8Array): ReadableStream<Uint8Array> => {
     return new ReadableStream({
         start(controller) {
@@ -16,7 +14,7 @@ export class InputFile {
 
     static fromPath = (filePath: string, filename: string): InputFile => {
         const file = Deno.openSync(filePath);
-        const stream = readableStreamFromReader(file);
+        const stream = file.readable;
         const size = Deno.statSync(filePath).size;
         return new InputFile(stream, filename, size);
     };
