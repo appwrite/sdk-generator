@@ -7,6 +7,7 @@ const { teamsCreate, teamsList } = require("./teams");
 const { projectsCreate } = require("./projects");
 const { functionsCreate } = require("./functions");
 const { databasesListCollections, databasesList } = require("./databases");
+const { storageListBuckets } = require("./storage");
 const { sdkForConsole } = require("../sdks");
 const { localConfig } = require("../config");
 const { questionsInitProject, questionsInitFunction, questionsInitCollection } = require("../questions");
@@ -170,6 +171,13 @@ const initCollection = async ({ all, databaseId } = {}) => {
   }
 
   for(const databaseId of databaseIds) {
+    const database = await databasesGet({
+      databaseId,
+      parseOutput: false
+    });
+
+    localConfig.addDatabase(database);
+
     // TODO: Pagination?
     let response = await databasesListCollections({
       databaseId,
@@ -189,6 +197,24 @@ const initCollection = async ({ all, databaseId } = {}) => {
       });
     });
   }
+
+  success();
+}
+
+const initBucket = async () => {
+  // TODO: Pagination?
+  let response = await storageListBuckets({
+    queries: [ 'limit(100)' ],
+    parseOutput: false
+  })
+
+  let buckets = response.buckets;
+  log(`Found ${buckets.length} buckets`);
+
+  buckets.forEach(async bucket => {
+    log(`Fetching ${bucket.name} ...`);
+    localConfig.addBucket(bucket);
+  });
 
   success();
 }
@@ -232,6 +258,11 @@ init
   .option(`--databaseId <databaseId>`, `Database ID`)
   .option(`--all`, `Flag to initialize all databases`)
   .action(actionRunner(initCollection))
+
+init
+  .command("bucket")
+  .description("Initialise your Appwrite buckets")
+  .action(actionRunner(initBucket))
 
 init
   .command("team")
