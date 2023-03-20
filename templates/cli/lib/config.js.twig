@@ -166,6 +166,45 @@ class Local extends Config {
         this.set("collections", collections);
     }
 
+    getBuckets() {
+        if (!this.has("buckets")) {
+            return [];
+        }
+        return this.get("buckets");
+    }
+
+    getBucket($id) {
+        if (!this.has("buckets")) {
+            return {};
+        }
+
+        let buckets = this.get("buckets");
+        for (let i = 0; i < buckets.length; i++) {
+            if (buckets[i]['$id'] == $id) {
+                return buckets[i];
+            }
+        }
+
+        return {};
+    }
+
+    addBucket(props) {
+        if (!this.has("buckets")) {
+            this.set("buckets", []);
+        }
+
+        let buckets = this.get("buckets");
+        for (let i = 0; i < buckets.length; i++) {
+            if (buckets[i]['$id'] == props['$id']) {
+                buckets[i] = props;
+                this.set("buckets", buckets);
+                return;
+            }
+        }
+        buckets.push(props);
+        this.set("buckets", buckets);
+    }
+
     getDatabases() {
         if (!this.has("databases")) {
             return [];

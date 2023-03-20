@@ -2,7 +2,7 @@ const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
-const { questionsDeployTeams, questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
+const { questionsDeployBuckets, questionsDeployTeams, questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
@@ -26,6 +26,9 @@ const {
     databasesDeleteIndex,
     databasesUpdateCollection
 } = require("./databases");
+const {
+    storageGetBucket, storageUpdateBucket, storageCreateBucket
+} = require("./storage");
 const {
     teamsGet,
     teamsUpdate,
@@ -624,6 +627,93 @@ const deployCollection = async ({ all, yes } = {}) => {
     }
 }
 
+const deployBucket = async ({ all, yes } = {}) => {
+    let response = {};
+
+    let bucketIds = [];
+    const configBuckets = localConfig.getBuckets();
+
+    if(all) {
+        if (configBuckets.length === 0) {
+            throw new Error("No buckets found in the current directory. Run `appwrite init bucket` to fetch all your buckets.");
+        }
+        bucketIds.push(...configBuckets.map((b) => b.$id));
+    }
+
+    if(bucketIds.length === 0) {
+        let answers = await inquirer.prompt(questionsDeployBuckets[0])
+        bucketIds.push(...answers.buckets);
+    }
+
+    let buckets = [];
+
+    for(const bucketId of bucketIds) {
+        const idBuckets = configBuckets.filter((b) => b.$id === bucketId);
+        buckets.push(...idBuckets);
+    }
+
+    for (let bucket of buckets) {
+        log(`Deploying bucket ${bucket.name} ( ${bucket['$id']} )`)
+
+        try {
+            response = await storageGetBucket({
+                bucketId: bucket['$id'],
+                parseOutput: false,
+            })
+            log(`Bucket ${bucket.name} ( ${bucket['$id']} ) already exists.`);
+
+            if(!yes) {
+                answers = await inquirer.prompt(questionsDeployBuckets[1])
+                if (answers.override !== "YES") {
+                    log(`Received "${answers.override}". Skipping ${bucket.name} ( ${bucket['$id']} )`);
+                    continue;
+                }
+            }
+
+            log(`Updating bucket ...`)
+
+            await storageUpdateBucket({
+                bucketId: bucket['$id'],
+                name: bucket.name,
+                permissions: bucket['$permissions'],
+                fileSecurity: bucket.fileSecurity,
+                enabled: bucket.enabled,
+                maximumFileSize: bucket.maximumFileSize,
+                allowedFileExtensions: bucket.allowedFileExtensions,
+                compression: bucket.compression,
+                encryption: bucket.encryption,
+                antivirus: bucket.antivirus,
+                compression: bucket.compression,
+                parseOutput: false
+            });
+
+            success(`Deployed ${bucket.name} ( ${bucket['$id']} )`);
+        } catch (e) {
+            if (e.code == 404) {
+                log(`Bucket ${bucket.name} does not exist in the project. Creating ... `);
+
+                response = await storageCreateBucket({
+                    bucketId: bucket['$id'],
+                    name: bucket.name,
+                    permissions: bucket['$permissions'],
+                    fileSecurity: bucket.fileSecurity,
+                    enabled: bucket.enabled,
+                    maximumFileSize: bucket.maximumFileSize,
+                    allowedFileExtensions: bucket.allowedFileExtensions,
+                    compression: bucket.compression,
+                    encryption: bucket.encryption,
+                    antivirus: bucket.antivirus,
+                    parseOutput: false
+                })
+
+                success(`Deployed ${bucket.name} ( ${bucket['$id']} )`);
+            } else {
+                throw e;
+            }
+        }
+    }
+}
+
 const deployTeam = async ({ all, yes } = {}) => {
     let response = {};
 
@@ -708,6 +798,13 @@ deploy
     .option(`--all`, `Flag to deploy all functions`)
     .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(deployCollection));
+
+deploy
+    .command("bucket")
+    .description("Deploy buckets in the current project.")
+    .option(`--all`, `Flag to deploy all buckets`)
+    .option(`--yes`, `Flag to confirm all warnings`)
+    .action(actionRunner(deployBucket));
 
 deploy
     .command("team")
