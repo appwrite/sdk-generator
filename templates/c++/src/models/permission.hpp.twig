@@ -1,0 +1,24 @@
+#include <iostream>
+#include <string>
+#include <sstream>
+
+class Permission
+{
+private:
+    Permission();
+
+    static std::string makePermission(std::string method, const std::string &value)
+    {
+        std::ostringstream ss;
+        ss << method << "(\"" << value << "\")";
+        return ss.str();
+    }
+
+public:
+    static std::string read(std::string role);
+    static std::string write(std::string role);
+    static std::string create(std::string role);
+    static std::string update(std::string role);
+    static std::string xdelete(std::string role);
+    ~Permission();
+};

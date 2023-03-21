@@ -1,0 +1,34 @@
+#include <iostream>
+#include "{{service.name | caseLower}}.hpp';
+
+int main() { 
+    // Init SDK
+ {{spec.title | caseUcfirst}}::Client client = Client();
+  {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = {{service.name | caseUcfirst}}(client);
+
+{% if method.security|length > 0 %}
+  client
+    .setEndpoint('https://[HOSTNAME_OR_IP]/v1') // Your API Endpoint
+{% for node in method.security %}
+{% for key,header in node|keys %}
+    .set{{header}}('{{node[header]['x-appwrite']['demo']}}') // {{node[header].description}}
+{% endfor %}
+{% endfor %}  ;
+
+{% endif %}
+  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+{% if loop.first %}
+
+{% endif %}
+{% if parameter.required %}
+    {{ parameter.name | caseCamel }}: {{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }},
+{% endif %}
+{% endfor %}{% if method.parameters.all|length > 0 %}  {% endif %});
+
+  result
+    .then((response) {
+      print(response);
+    }).catchError((error) {
+      print(error.response);
+  });
+}

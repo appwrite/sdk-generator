@@ -21,10 +21,12 @@ use Appwrite\SDK\Language\DotNet;
 use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Kotlin;
+use Appwrite\SDK\Language\Cplusplus;
 
 try {
 
-    function getSSLPage($url) {
+    function getSSLPage($url)
+    {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_HEADER, false);
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -43,7 +45,7 @@ try {
 
     $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/master/app/config/specs/swagger2-latest-${platform}.json");
 
-    if(empty($spec)) {
+    if (empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
     }
 
@@ -69,12 +71,11 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
+        ]);
 
     $sdk->generate(__DIR__ . '/examples/php');
 
-    // // Web
+    // Web
     $sdk  = new SDK(new Web(), new Swagger2($spec));
 
     $sdk
@@ -94,8 +95,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
+        ]);
 
     $sdk->generate(__DIR__ . '/examples/web');
 
@@ -118,8 +118,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
+        ]);
 
     $sdk->generate(__DIR__ . '/examples/deno');
 
@@ -141,8 +140,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
+        ]);
 
     $sdk->generate(__DIR__ . '/examples/node');
 
@@ -186,8 +184,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.15.0',
-        ])
-    ;
+        ]);
 
     $sdk->generate(__DIR__ . '/examples/cli');
 
@@ -209,8 +206,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
+        ]);
 
     $sdk->generate(__DIR__ . '/examples/ruby');
 
@@ -232,8 +228,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
+        ]);
 
     $sdk->generate(__DIR__ . '/examples/python');
 
@@ -260,8 +255,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
+        ]);
 
     $sdk->generate(__DIR__ . '/examples/dart');
 
@@ -287,8 +281,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
+        ]);
 
     $sdk->generate(__DIR__ . '/examples/flutter');
 
@@ -312,8 +305,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
+        ]);
 
     $sdk->generate(__DIR__ . '/examples/go');
 
@@ -337,8 +329,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
+        ]);
 
     $sdk->generate(__DIR__ . '/examples/swift-server');
 
@@ -361,11 +352,10 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
+        ]);
 
     $sdk->generate(__DIR__ . '/examples/apple');
-    
+
     // DotNet
     $sdk  = new SDK(new DotNet(), new Swagger2($spec));
 
@@ -385,8 +375,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'X-Appwrite-Response-Format' => '0.7.0',
-        ])
-    ;
+        ]);
 
     $sdk->generate(__DIR__ . '/examples/dotnet');
 
@@ -406,15 +395,14 @@ try {
         ->setGitUserName('repoowner')
         ->setGitRepoName('reponame')
         ->setTwitter('appwrite_io')
-        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
-    ;
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord');
 
     $sdk->generate(__DIR__ . '/examples/REST');
 
     // Android
 
     $sdk = new SDK(new Android(), new Swagger2($spec));
-    
+
     $sdk
         ->setName('Android')
         ->setNamespace('io appwrite')
@@ -432,13 +420,12 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'x-appwrite-response-format' => '0.7.0',
-        ])
-    ;
+        ]);
     $sdk->generate(__DIR__ . '/examples/android');
 
     // Kotlin
     $sdk = new SDK(new Kotlin(), new Swagger2($spec));
-    
+
     $sdk
         ->setName('Kotlin')
         ->setNamespace('io appwrite')
@@ -456,8 +443,7 @@ try {
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
             'x-appwrite-response-format' => '0.8.0',
-        ])
-    ;
+        ]);
     $sdk->generate(__DIR__ . '/examples/kotlin');
 
     // GraphQL
@@ -466,14 +452,34 @@ try {
     $sdk
         ->setName('GraphQL')
         ->setDescription('Appwrite is an open-source backend as a service server that abstract and simplify complex and repetitive development tasks behind a very simple to use REST API. Appwrite aims to help you develop your apps faster and in a more secure way. Use the Flutter SDK to integrate your app with the Appwrite server to easily start interacting with all of Appwrite backend APIs and tools. For full API documentation and tutorials go to https://appwrite.io/docs')
-        ->setLogo('https://appwrite.io/v1/images/console.png')
-    ;
+        ->setLogo('https://appwrite.io/v1/images/console.png');
     $sdk->generate(__DIR__ . '/examples/graphql');
-}
-catch (Exception $exception) {
+
+    // C++
+    $sdk = new SDK(new Cplusplus(), new Swagger2($spec));
+
+    $sdk
+        ->setName('C++')
+        ->setNamespace('io appwrite')
+        ->setDescription('Appwrite is an open-source backend as a service server that abstract and simplify complex and repetitive development tasks behind a very simple to use REST API. Appwrite aims to help you develop your apps faster and in a more secure way. Use the Flutter SDK to integrate your app with the Appwrite server to easily start interacting with all of Appwrite backend APIs and tools. For full API documentation and tutorials go to https://appwrite.io/docs')
+        ->setShortDescription('Appwrite C++ SDK')
+        ->setURL('https://example.com')
+        ->setGitUserName('appwrite')
+        ->setGitRepoName('sdk-for-c++')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**This SDK is compatible with Appwrite server version 0.10.x. For older versions, please check previous releases.**')
+        ->setChangelog('**CHANGELOG**')
+        ->setVersion('0.0.0-SNAPSHOT')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
+        ->setDefaultHeaders([
+            'x-appwrite-response-format' => '0.12.1',
+        ]);
+    $sdk->generate(__DIR__ . '/examples/c++');
+} catch (Exception $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
-}
-catch (Throwable $exception) {
+} catch (Throwable $exception) {
     echo 'Error: ' . $exception->getMessage() . ' on ' . $exception->getFile() . ':' . $exception->getLine() . "\n";
 }
 

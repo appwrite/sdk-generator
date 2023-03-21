@@ -1,0 +1,102 @@
+#include "query.hpp"
+
+Query::Query()
+{
+}
+
+Query::~Query()
+{
+}
+
+template <typename T>
+std::string Query::addQuery(std::string attribute, std::string method, T value)
+{
+    if (value.isArray())
+    {
+        std::vector<std::string> items;
+        for (const auto &item : value)
+        {
+            items.push_back(parseValues(item));
+        }
+        return method + "(\"" + attribute + "\", [" + join(items, ", ") + "])";
+    }
+    else
+    {
+        return method + "(\"" + attribute + "\", [" + parseValues(value) + "])";
+    }
+}
+
+template <typename T>
+std::string Query::equal(std::string attribute, T value)
+{
+    return addQuery(attribute, "equal", value);
+}
+
+template <typename T>
+std::string Query::notEqual(std::string attribute, T value)
+{
+    return addQuery(attribute, "notEqual", value);
+}
+
+template <typename T>
+std::string Query::lessThan(std::string attribute, T value)
+{
+    return addQuery(attribute, "lessThan", value);
+}
+template <typename T>
+std::string Query::lessThanEqual(std::string attribute, T value)
+{
+    return addQuery(attribute, "lessThanEqual", value);
+}
+
+template <typename T>
+std::string Query::greaterThan(std::string attribute, T value)
+{
+    return addQuery(attribute, "greaterThan", value);
+}
+
+template <typename T>
+std::string Query::greaterThanEqual(std::string attribute, T value)
+{
+    return addQuery(attribute, "greaterThanEqual", value);
+}
+
+template <typename T>
+std::string Query::search(std::string attribute, T value)
+{
+    return addQuery(attribute, "search", value);
+}
+
+std::string Query::orderAsc(std::string attribute)
+{
+
+    return makeQuery("orderAsc", attribute);
+}
+std::string Query::orderDesc(std::string attribute)
+{
+
+    return makeQuery("orderDesc", attribute);
+}
+
+std::string Query::cursorBefore(std::string id)
+{
+
+    return makeQuery("cursorBefore", id);
+}
+std::string Query::cursorAfter(std::string id)
+{
+
+    return makeQuery("cursorAfter", id);
+}
+
+std::string Query::limit(int limit)
+{
+
+    return makeQuery("limit", limit);
+}
+
+std::string Query::offset(int offset)
+{
+
+    return makeQuery("offset", offset);
+}

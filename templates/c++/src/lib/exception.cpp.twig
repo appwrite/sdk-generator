@@ -1,0 +1,19 @@
+#include "exception.hpp"
+
+namespace {{ spec.title | caseUcfirst }} {
+
+AppwriteException::AppwriteException(std::string message, int code, std::string response):
+    runtime_error(message) {
+    this->message = message;
+    this->code = code;
+    this->response = response;
+}
+
+const char* AppwriteException::what() const throw() {
+    return this->message.c_str();
+}
+
+std::string AppwriteException::getResponse() {
+    return this->response;
+}
+} // namespace {{ spec.title | caseUcfirst }}

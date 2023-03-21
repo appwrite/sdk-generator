@@ -1,0 +1,83 @@
+#include <string>
+#include <iostream>
+#include <vector>
+#include <sstream>
+
+class Query
+{
+private:
+    Query();
+    template <typename T>
+    static std::string addQuery(std::string attribute, std::string method, T value);
+
+    // join the elements of a vector into a string with a separator
+    static std::string join(const std::vector<std::string> &items, const std::string &separator)
+    {
+        std::string result;
+        for (int i = 0; i < items.size(); i++)
+        {
+            if (i > 0)
+            {
+                result += separator;
+            }
+            result += items[i];
+        }
+        return result;
+    }
+
+    template <typename T>
+    static std::string parseValues(const T &value)
+    {
+        std::ostringstream ss;
+        ss << value;
+        return ss.str();
+    }
+
+    template <typename T>
+    static std::string makeQuery(std::string method, const T &value)
+    {
+        std::ostringstream ss;
+      ss << method << "(\"" << value << "\")";
+        return ss.str();
+    }
+
+public:
+    template <typename T>
+    static std::string equal(std::string attribute, T value);
+
+    template <typename T>
+    static std::string notEqual(std::string attribute, T value);
+    template <typename T>
+
+    static std::string lessThan(std::string attribute, T value);
+    template <typename T>
+
+    static std::string lessThanEqual(std::string attribute, T value);
+
+    template <typename T>
+
+    static std::string greaterThan(std::string attribute, T value);
+    template <typename T>
+
+    static std::string greaterThanEqual(std::string attribute, T value);
+
+    template <typename T>
+    static std::string search(std::string attribute, T value);
+
+    static std::string orderAsc(std::string attribute);
+
+    static std::string orderDesc(std::string attribute);
+
+    static std::string cursorBefore(std::string id);
+
+    static std::string cursorAfter(std::string id);
+
+    static std::string limit(int limit);
+
+    static std::string offset(int offset);
+
+    template <typename T>
+    static std::string parseValues(T value);
+
+    ~Query();
+};
