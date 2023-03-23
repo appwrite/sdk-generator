@@ -30,8 +30,8 @@ export class Query {
   static isNotNull = (attribute: string): string =>
     `isNotNull("${attribute}")`;
 
-  static between = (attribute: string, value: QueryTypesList): string =>
-    Query.addQuery(attribute, "between", value);
+  static between = (attribute: string, start: string|number, end: string|number): string =>
+    Query.addQuery(attribute, "between", [start, end]);
 
   static startsWith = (attribute: string, value: string): string =>
     Query.addQuery(attribute, "startsWith", value);

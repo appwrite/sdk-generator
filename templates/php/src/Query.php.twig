@@ -118,7 +118,7 @@ class Query
      * @param string|int|float $end
      * @return string
      */
-    public static function between(string $attribute, string|int|float $start, string|int|float $end): string
+    public static function between(string $attribute, mixed $start, mixed $end): string
     {
         return self::addQuery($attribute, 'between', [$start, $end]);
     }

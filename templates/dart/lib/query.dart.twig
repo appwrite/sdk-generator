@@ -28,13 +28,7 @@ class Query {
 
   static isNotNull(String attribute) => 'isNotNull("$attribute")';
 
-  static between(String attribute, int start, int end) =>
-      _addQuery(attribute, 'between', [start, end]);
-
-  static between(String attribute, double start, double end) =>
-      _addQuery(attribute, 'between', [start, end]);
-
-  static between(String attribute, String start, String end) =>
+  static between(String attribute, dynamic start, dynamic end) =>
       _addQuery(attribute, 'between', [start, end]);
 
   static startsWith(String attribute, String value) =>

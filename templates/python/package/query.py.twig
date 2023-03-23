@@ -36,11 +36,11 @@ class Query:
         return Query.add_query(attribute, "between", [start, end])
 
     @staticmethod
-    def starts_with(value):
+    def starts_with(attribute, value):
         return Query.add_query(attribute, "startsWith", value)
 
     @staticmethod
-    def ends_with(value):
+    def ends_with(attribute, value):
         return Query.add_query(attribute, "endsWith", value)
 
     @staticmethod

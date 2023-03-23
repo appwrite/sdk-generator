@@ -30,7 +30,7 @@ class Query {
 
     fun endsWith(attribute: String, value: String) = Query.addQuery(attribute, "endsWith", value)
 
-    fun select(attributes: List<String>) = "select([${attributes.map { \"it\" }.joinToString(",")}])"
+    fun select(attributes: List<String>) = "select([${attributes.joinToString(",") { "\"it\"" }}])"
 
     fun orderAsc(attribute: String) = "orderAsc(\"${attribute}\")"
 

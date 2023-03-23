@@ -33,8 +33,8 @@ module {{spec.title | caseUcfirst}}
                 return "isNotNull(\"#{attribute}\")"
             end
 
-            def between(attribute, start, end)
-                return add_query(attribute, "between", [start, end])
+            def between(attribute, start, ending)
+                return add_query(attribute, "between", [start, ending])
             end
 
             def starts_with(attribute, value)
