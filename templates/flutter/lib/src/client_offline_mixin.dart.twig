@@ -183,7 +183,7 @@ class ClientOfflineMixin {
 
   Future<void> checkOnlineStatus() async {
     try {
-      final url = Uri.parse('{{sdk.url}}/version');
+      final url = Uri.parse('{{spec.endpoint}}/version');
       await http.head(url).timeout(Duration(seconds: 1));
       isOnline.value = true;
     } catch (_) {
