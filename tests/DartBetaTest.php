@@ -26,6 +26,6 @@ class DartBetaTest extends Base
         ...Base::EXCEPTION_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
-        Base::ID_HELPER_RESPONSES[1]
+        ...Base::ID_HELPER_RESPONSES
     ];
 }
