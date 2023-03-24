@@ -22,7 +22,7 @@ class Query {
 
     fun between(attribute: String, start: Int, end: Int) = Query.addQuery(attribute, "between", listOf(start, end))
 
-    fun between(attribute: String, start: Float, end: Float) = Query.addQuery(attribute, "between", listOf(start, end))
+    fun between(attribute: String, start: Double, end: Double) = Query.addQuery(attribute, "between", listOf(start, end))
 
     fun between(attribute: String, start: String, end: String) = Query.addQuery(attribute, "between", listOf(start, end))
 

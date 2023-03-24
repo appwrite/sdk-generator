@@ -37,7 +37,7 @@ class Query {
   static endsWith(String attribute, String value) =>
       _addQuery(attribute, 'endsWith', value);
 
-  static select(List<String> attributes) => 'select([${attributes.map((attr) => "$attr").join(",")}])';
+  static select(List<String> attributes) => 'select([${attributes.map((attr) => "\"$attr\"").join(",")}])';
 
   static String orderAsc(String attribute) => 'orderAsc("$attribute")';
 
