@@ -16,6 +16,22 @@ class Query {
     
     fun search(attribute: String, value: String) = Query.addQuery(attribute, "search", value)
 
+    fun isNull(attribute: String) = "isNull(\"${attribute}\")"
+
+    fun isNotNull(attribute: String) = "isNotNull(\"${attribute}\")"
+
+    fun between(attribute: String, start: Int, end: Int) = Query.addQuery(attribute, "between", listOf(start, end))
+
+    fun between(attribute: String, start: Double, end: Double) = Query.addQuery(attribute, "between", listOf(start, end))
+
+    fun between(attribute: String, start: String, end: String) = Query.addQuery(attribute, "between", listOf(start, end))
+
+    fun startsWith(attribute: String, value: String) = Query.addQuery(attribute, "startsWith", value)
+
+    fun endsWith(attribute: String, value: String) = Query.addQuery(attribute, "endsWith", value)
+
+    fun select(attributes: List<String>) = "select([${attributes.joinToString(",") { "\"$it\"" }}])"
+
     fun orderAsc(attribute: String) = "orderAsc(\"${attribute}\")"
 
     fun orderDesc(attribute: String) = "orderDesc(\"${attribute}\")"
