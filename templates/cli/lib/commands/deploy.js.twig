@@ -8,6 +8,7 @@ const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeploymen
 const {
     databasesGet,
     databasesCreate,
+    databasesUpdate,
     databasesCreateBooleanAttribute,
     databasesGetCollection,
     databasesCreateCollection,
@@ -20,6 +21,7 @@ const {
     databasesCreateUrlAttribute,
     databasesCreateIpAttribute,
     databasesCreateEnumAttribute,
+    databasesCreateRelationshipAttribute,
     databasesDeleteAttribute,
     databasesListAttributes,
     databasesListIndexes,
@@ -408,6 +410,18 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 array: attribute.array,
                 parseOutput: false
             })
+        case 'relationship':
+            return databasesCreateRelationshipAttribute({
+                databaseId,
+                collectionId,
+                relatedCollectionId: attribute.relatedCollection,
+                type: attribute.relationType,
+                twoWay: attribute.twoWay,
+                key: attribute.key,
+                twoWayKey: attribute.twoWayKey,
+                onDelete: attribute.onDelete,
+                parseOutput: false
+            })
     }
 }
 
@@ -483,7 +497,7 @@ const deployCollection = async ({ all, yes } = {}) => {
                 }
             }
 
-            log(`Updating attributes ... `);
+            log(`Deleting indexes and attributes ... `);
 
             // TODO: Pagination?
             const { indexes: remoteIndexes } = await databasesListIndexes({
@@ -529,39 +543,6 @@ const deployCollection = async ({ all, yes } = {}) => {
                 throw new Error("Attribute deletion did not finish for too long.");
             }
 
-            await Promise.all(collection.attributes.map(async attribute => {
-                await createAttribute(databaseId, collection['$id'], attribute);
-            }));
-
-            const attributeKeys = collection.attributes.map(attribute => attribute.key);
-            const createPoolStatus = await awaitPools.expectAttributes(databaseId, collection['$id'], attributeKeys);
-            if (!createPoolStatus) {
-                throw new Error("Attribute creation did not finish for too long.");
-            }
-
-            success(`Created ${collection.attributes.length} attributes`);
-
-            log(`Creating indexes ...`)
-            await Promise.all(collection.indexes.map(async index => {
-                await databasesCreateIndex({
-                    databaseId,
-                    collectionId: collection['$id'],
-                    key: index.key,
-                    type: index.type,
-                    attributes: index.attributes,
-                    orders: index.orders,
-                    parseOutput: false
-                });
-            }));
-
-            const indexKeys = collection.indexes.map(attribute => attribute.key);
-            const indexPoolStatus = await awaitPools.expectIndexes(databaseId, collection['$id'], indexKeys);
-            if (!indexPoolStatus) {
-                throw new Error("Index creation did not finish for too long.");
-            }
-
-            success(`Created ${collection.indexes.length} indexes`);
-
             await databasesUpdateCollection({
                 databaseId,
                 collectionId: collection['$id'],
@@ -571,8 +552,6 @@ const deployCollection = async ({ all, yes } = {}) => {
                 enabled: collection.enabled,
                 parseOutput: false
             })
-
-            success(`Deployed ${collection.name} ( ${collection['$id']} )`);
         } catch (e) {
             if (e.code == 404) {
                 log(`Collection ${collection.name} does not exist in the project. Creating ... `);
@@ -585,45 +564,68 @@ const deployCollection = async ({ all, yes } = {}) => {
                     parseOutput: false
                 })
 
-                log(`Creating attributes ... `);
-                await Promise.all(collection.attributes.map(async attribute => {
-                    await createAttribute(databaseId, collection['$id'], attribute);
-                }));
-
-                const attributeKeys = collection.attributes.map(attribute => attribute.key);
-                const attributePoolStatus = await awaitPools.expectAttributes(databaseId, collection['$id'], attributeKeys);
-                if (!attributePoolStatus) {
-                    throw new Error("Attribute creation did not finish for too long.");
-                }
-
-                success(`Created ${collection.attributes.length} attributes`);
-
-                log(`Creating indexes ...`);
-                await Promise.all(collection.indexes.map(async index => {
-                    await databasesCreateIndex({
-                        databaseId,
-                        collectionId: collection['$id'],
-                        key: index.key,
-                        type: index.type,
-                        attributes: index.attributes,
-                        orders: index.orders,
-                        parseOutput: false
-                    });
-                }));
-
-                const indexKeys = collection.indexes.map(attribute => attribute.key);
-                const indexPoolStatus = await awaitPools.expectIndexes(databaseId, collection['$id'], indexKeys);
-                if (!indexPoolStatus) {
-                    throw new Error("Index creation did not finish for too long.");
-                }
-
-                success(`Created ${collection.indexes.length} indexes`);
-
-                success(`Deployed ${collection.name} ( ${collection['$id']} )`);
             } else {
                 throw e;
             }
         }
+
+        // Create all non-relationship attributes first
+        const nonRelationshipAttributes = collection.attributes.filter(attribute => attribute.type !== 'relationship');
+        await Promise.all(nonRelationshipAttributes.map(attribute => {
+            return createAttribute(databaseId, collection['$id'], attribute);
+        }));
+
+        const nonRelationshipAttributeKeys = nonRelationshipAttributes.map(attribute => attribute.key);
+        const createPoolStatus = await awaitPools.expectAttributes(databaseId, collection['$id'], nonRelationshipAttributeKeys);
+        if (!createPoolStatus) {
+            throw new Error("Attribute creation did not finish for too long.");
+        }
+
+        success(`Created ${nonRelationshipAttributeKeys.length} non-relationship attributes`);
+
+        log(`Creating indexes ...`)
+        await Promise.all(collection.indexes.map(async index => {
+            await databasesCreateIndex({
+                databaseId,
+                collectionId: collection['$id'],
+                key: index.key,
+                type: index.type,
+                attributes: index.attributes,
+                orders: index.orders,
+                parseOutput: false
+            });
+        }));
+
+        const indexKeys = collection.indexes.map(attribute => attribute.key);
+        const indexPoolStatus = await awaitPools.expectIndexes(databaseId, collection['$id'], indexKeys);
+        if (!indexPoolStatus) {
+            throw new Error("Index creation did not finish for too long.");
+        }
+
+        success(`Created ${collection.indexes.length} indexes`);
+
+        success(`Deployed ${collection.name} ( ${collection['$id']} )`);
+    }
+
+    // Create the relationship attributes
+    for (let collection of collections) {
+        const relationshipAttributes = collection.attributes.filter(attribute => attribute.type === 'relationship' && attribute.side === 'parent');
+
+        if (relationshipAttributes.length === 0) continue;
+
+        log(`Deploying relationships for collection ${collection.name} ( ${collection['$id']} )`);
+
+        await Promise.all(relationshipAttributes.map(attribute => {
+            return createAttribute(collection['databaseId'], collection['$id'], attribute);
+        }));
+
+        const nonRelationshipAttributeKeys = relationshipAttributes.map(attribute => attribute.key);
+        const createPoolStatus = await awaitPools.expectAttributes(collection['databaseId'], collection['$id'], nonRelationshipAttributeKeys);
+        if (!createPoolStatus) {
+            throw new Error("Attribute creation did not finish for too long.");
+        }
+
+        success(`Created ${nonRelationshipAttributeKeys.length} relationship attributes`);
     }
 }
 
