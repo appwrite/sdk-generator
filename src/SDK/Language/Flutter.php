@@ -207,16 +207,6 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/lib/src/offline_db.dart',
-                'template'      => 'flutter/lib/src/offline_db.dart.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/lib/src/client_offline_mixin.dart',
-                'template'      => 'flutter/lib/src/client_offline_mixin.dart.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/lib/{{ language.params.packageName }}.dart',
                 'template'      => 'flutter/lib/package.dart.twig',
             ],

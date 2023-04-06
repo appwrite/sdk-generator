@@ -17,6 +17,24 @@ class Query {
   static greaterThanEqual = (attribute, value) =>
     Query.addQuery(attribute, "greaterThanEqual", value);
 
+  static isNull = (attribute) =>
+    `isNull("${attribute}")`;
+
+  static isNotNull = (attribute) =>
+    `isNotNull("${attribute}")`;
+
+  static between = (attribute, start, end) =>
+    Query.addQuery(attribute, "between", [start, end]);
+
+  static startsWith = (attribute, value) =>
+    Query.addQuery(attribute, "startsWith", value);
+
+  static endsWith = (attribute, value) =>
+    Query.addQuery(attribute, "endsWith", value);
+
+  static select = (attributes) =>
+    `select([${attributes.map((attr) => `"${attr}"`).join(",")}])`;
+
   static search = (attribute, value) =>
     Query.addQuery(attribute, "search", value);
 
