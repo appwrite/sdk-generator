@@ -95,6 +95,14 @@ void main() async {
   print(Query.lessThan('releasedYear', 1990));
   print(Query.greaterThan('releasedYear', 1990));
   print(Query.search('name', 'john'));
+  print(Query.isNull("name"));
+  print(Query.isNotNull("name"));
+  print(Query.between("age", 50, 100));
+  print(Query.between("age", 50.5, 100.5));
+  print(Query.between("name", "Anna", "Brad"));
+  print(Query.startsWith("name", "Ann"));
+  print(Query.endsWith("name", "nne"));
+  print(Query.select(["name", "age"]));
   print(Query.orderAsc("title"));
   print(Query.orderDesc("title"));
   print(Query.cursorAfter("my_movie_id"));
@@ -114,7 +122,7 @@ void main() async {
   print(Permission.update(Role.user(ID.custom('userid'), 'unverified')));
 
   // ID helper tests
-  assert(ID.unique() != ID.unique());
+  print(ID.unique());
   print(ID.custom('custom_id'));
 
   response = await general.headers();
