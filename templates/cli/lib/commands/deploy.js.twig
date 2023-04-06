@@ -276,6 +276,19 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             }
         }
 
+        // Create variables
+        if (func.variables) {
+            // Deploy local variables
+            await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
+                await functionsCreateVariable({
+                    functionId: func['$id'],
+                    key: localVariableKey,
+                    value: func.variables[localVariableKey],
+                    parseOutput: false
+                });
+            }));
+        }
+
         // Create tag
         if (!func.entrypoint) {
             answers = await inquirer.prompt(questionsGetEntrypoint)
