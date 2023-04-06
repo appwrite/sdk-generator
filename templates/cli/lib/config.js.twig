@@ -156,7 +156,7 @@ class Local extends Config {
 
         let collections = this.get("collections");
         for (let i = 0; i < collections.length; i++) {
-            if (collections[i]['$id'] == props['$id']) {
+            if (collections[i]['$id'] == props['$id'] && collections[i]['databaseId'] == props['databaseId']) {
                 collections[i] = props;
                 this.set("collections", collections);
                 return;
