@@ -1,12 +1,12 @@
+import 'enums.dart';
 import 'client_stub.dart'
     if (dart.library.html) 'client_browser.dart'
     if (dart.library.io) 'client_io.dart';
-import 'enums.dart';
 import 'response.dart';
 import 'upload_progress.dart';
 
 abstract class Client {
-  static const int CHUNK_SIZE = 5 * 1024 * 1024;
+  static const int CHUNK_SIZE = 5*1024*1024;
   late Map<String, String> config;
   late String _endPoint;
   late String? _endPointRealtime;
@@ -14,10 +14,9 @@ abstract class Client {
   String get endPoint => _endPoint;
   String? get endPointRealtime => _endPointRealtime;
 
-  factory Client({
-    String endPoint = '{{ spec.endpoint }}',
-    bool selfSigned = false,
-  }) =>
+  factory Client(
+          {String endPoint = '{{ spec.endpoint }}',
+          bool selfSigned = false}) =>
       createClient(endPoint: endPoint, selfSigned: selfSigned);
 
   Future webAuth(Uri url, {String? callbackUrlScheme});
@@ -39,34 +38,17 @@ abstract class Client {
 
 {% for header in spec.global.headers %}
 {% if header.description %}
-  /// {{header.description}}
+    /// {{header.description}}
 {% endif %}
   Client set{{header.key | caseUcfirst}}(value);
 {% endfor %}
 
   Client addHeader(String key, String value);
 
-  Future<Response> call(
-    HttpMethod method, {
+  Future<Response> call(HttpMethod method, {
     String path = '',
     Map<String, String> headers = const {},
     Map<String, dynamic> params = const {},
     ResponseType? responseType,
-    String cacheModel = '',
-    String cacheKey = '',
-    String cacheResponseIdKey = '',
-    String cacheResponseContainerKey = '',
-    Map<String, Object?>? previous,
   });
-
-  Future<Client> setOfflinePersistency({
-    bool status = true,
-    void Function(Object)? onWriteQueueError,
-  });
-
-  bool getOfflinePersistency();
-
-  Client setOfflineCacheSize(int kbytes);
-
-  int getOfflineCacheSize();
 }

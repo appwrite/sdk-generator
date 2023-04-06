@@ -1,25 +1,21 @@
-import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
-
-import 'client_base.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'client_mixin.dart';
-import 'client_offline_mixin.dart';
+import 'client_base.dart';
 import 'cookie_manager.dart';
 import 'enums.dart';
 import 'exception.dart';
-import 'input_file.dart';
 import 'interceptor.dart';
 import 'response.dart';
+import 'package:flutter/foundation.dart';
+import 'input_file.dart';
 import 'upload_progress.dart';
 
 ClientBase createClient({
@@ -31,8 +27,8 @@ ClientBase createClient({
       selfSigned: selfSigned,
     );
 
-class ClientIO extends ClientBase with ClientMixin, ClientOfflineMixin {
-  static const int CHUNK_SIZE = 5 * 1024 * 1024;
+class ClientIO extends ClientBase with ClientMixin {
+  static const int CHUNK_SIZE = 5*1024*1024;
   String _endPoint;
   Map<String, String>? _headers;
   @override
@@ -51,8 +47,6 @@ class ClientIO extends ClientBase with ClientMixin, ClientOfflineMixin {
   CookieJar get cookieJar => _cookieJar;
   @override
   String? get endPointRealtime => _endPointRealtime;
-  bool _offlinePersistency = false;
-  int _maxCacheSize = 40000; // 40MB
 
   ClientIO({
     String endPoint = '{{spec.endpoint}}',
@@ -72,7 +66,7 @@ class ClientIO extends ClientBase with ClientMixin, ClientOfflineMixin {
       'x-sdk-language': '{{ language.name | caseLower }}',
       'x-sdk-version': '{{ sdk.version }}',
 {% for key,header in spec.global.defaultHeaders %}
-      '{{key}}': '{{header}}',
+      '{{key}}' : '{{header}}',
 {% endfor %}
     };
 
@@ -96,16 +90,16 @@ class ClientIO extends ClientBase with ClientMixin, ClientOfflineMixin {
 
 {% for header in spec.global.headers %}
 {% if header.description %}
-  /// {{header.description}}
+     /// {{header.description}}
 {% endif %}
-  @override
-  ClientIO set{{header.key | caseUcfirst}}(value) {
-    config['{{ header.key | caseCamel }}'] = value;
-    addHeader('{{header.name}}', value);
-    return this;
-  }
-
+    @override
+    ClientIO set{{header.key | caseUcfirst}}(value) {
+        config['{{ header.key | caseCamel }}'] = value;
+        addHeader('{{header.name}}', value);
+        return this;
+    }
 {% endfor %}
+
   @override
   ClientIO setSelfSigned({bool status = true}) {
     selfSigned = status;
@@ -129,38 +123,6 @@ class ClientIO extends ClientBase with ClientMixin, ClientOfflineMixin {
     return this;
   }
 
-  bool getOfflinePersistency() {
-    return _offlinePersistency;
-  }
-
-  @override
-  Future<ClientIO> setOfflinePersistency(
-      {bool status = true, void Function(Object)? onWriteQueueError}) async {
-    _offlinePersistency = status;
-
-    if (_offlinePersistency) {
-      await initOffline(
-        call: call,
-        onWriteQueueError: onWriteQueueError,
-        getOfflineCacheSize: getOfflineCacheSize,
-      );
-    }
-
-    return this;
-  }
-
-  @override
-  ClientIO setOfflineCacheSize(int kbytes) {
-    _maxCacheSize = kbytes * 1000;
-
-    return this;
-  }
-
-  @override
-  int getOfflineCacheSize() {
-    return _maxCacheSize;
-  }
-
   @override
   ClientIO addHeader(String key, String value) {
     _headers![key] = value;
@@ -169,7 +131,7 @@ class ClientIO extends ClientBase with ClientMixin, ClientOfflineMixin {
   }
 
   Future init() async {
-    if (_initProgress) return;
+    if(_initProgress) return;
     _initProgress = true;
     final Directory cookieDir = await _getCookiePath();
     _cookieJar = PersistCookieJar(storage: FileStorage(cookieDir.path));
@@ -178,10 +140,8 @@ class ClientIO extends ClientBase with ClientMixin, ClientOfflineMixin {
     var device = '';
     try {
       PackageInfo packageInfo = await PackageInfo.fromPlatform();
-      addHeader(
-        'Origin',
-        '{{spec.title | caseLower}}-${Platform.operatingSystem}://${packageInfo.packageName}',
-      );
+      addHeader('Origin',
+          'appwrite-${Platform.operatingSystem}://${packageInfo.packageName}');
 
       //creating custom user agent
       DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
@@ -208,13 +168,12 @@ class ClientIO extends ClientBase with ClientMixin, ClientOfflineMixin {
         device = '(Macintosh; ${macinfo.model})';
       }
       addHeader(
-        'user-agent',
-        '${packageInfo.packageName}/${packageInfo.version} $device',
-      );
+          'user-agent', '${packageInfo.packageName}/${packageInfo.version} $device');
     } catch (e) {
       debugPrint('Error getting device info: $e');
       device = Platform.operatingSystem;
-      addHeader('user-agent', '$device');
+      addHeader(
+          'user-agent', '$device');
     }
 
     _initialized = true;
@@ -280,16 +239,11 @@ class ClientIO extends ClientBase with ClientMixin, ClientOfflineMixin {
     if (size <= CHUNK_SIZE) {
       if (file.path != null) {
         params[paramName] = await http.MultipartFile.fromPath(
-          paramName,
-          file.path!,
-          filename: file.filename,
-        );
+            paramName, file.path!,
+            filename: file.filename);
       } else {
-        params[paramName] = http.MultipartFile.fromBytes(
-          paramName,
-          file.bytes!,
-          filename: file.filename,
-        );
+        params[paramName] = http.MultipartFile.fromBytes(paramName, file.bytes!,
+            filename: file.filename);
       }
       return call(
         HttpMethod.post,
@@ -322,25 +276,18 @@ class ClientIO extends ClientBase with ClientMixin, ClientOfflineMixin {
     while (offset < size) {
       List<int> chunk = [];
       if (file.bytes != null) {
-        final end = min(offset + CHUNK_SIZE - 1, size - 1);
+        final end = min(offset + CHUNK_SIZE-1, size-1);
         chunk = file.bytes!.getRange(offset, end).toList();
       } else {
         raf!.setPositionSync(offset);
         chunk = raf.readSync(CHUNK_SIZE);
       }
-      params[paramName] = http.MultipartFile.fromBytes(
-        paramName,
-        chunk,
-        filename: file.filename,
-      );
+      params[paramName] =
+          http.MultipartFile.fromBytes(paramName, chunk, filename: file.filename);
       headers['content-range'] =
           'bytes $offset-${min<int>(((offset + CHUNK_SIZE) - 1), size)}/$size';
-      res = await call(
-        HttpMethod.post,
-        path: path,
-        headers: headers,
-        params: params,
-      );
+      res = await call(HttpMethod.post,
+          path: path, headers: headers, params: params);
       offset += CHUNK_SIZE;
       if (offset < size) {
         headers['x-{{spec.title | caseLower }}-id'] = res.data['\$id'];
@@ -362,9 +309,7 @@ class ClientIO extends ClientBase with ClientMixin, ClientOfflineMixin {
   Future webAuth(Uri url, {String? callbackUrlScheme}) {
     return FlutterWebAuth2.authenticate(
       url: url.toString(),
-      callbackUrlScheme: callbackUrlScheme != null && Platform.isWindows
-          ? callbackUrlScheme
-          : "{{spec.title | caseLower}}-callback-" + config['project']!,
+      callbackUrlScheme: callbackUrlScheme != null && Platform.isWindows ? callbackUrlScheme : "appwrite-callback-" + config['project']!,
       preferEphemeral: true,
     ).then((value) async {
       Uri url = Uri.parse(value);
@@ -384,17 +329,13 @@ class ClientIO extends ClientBase with ClientMixin, ClientOfflineMixin {
     });
   }
 
-  Future<Response> send(
+  @override
+  Future<Response> call(
     HttpMethod method, {
     String path = '',
     Map<String, String> headers = const {},
     Map<String, dynamic> params = const {},
     ResponseType? responseType,
-    String cacheModel = '',
-    String cacheKey = '',
-    String cacheResponseIdKey = '',
-    String cacheResponseContainerKey = '',
-    Map<String, Object?>? previous,
   }) async {
     while (!_initialized && _initProgress) {
       await Future.delayed(Duration(milliseconds: 10));
@@ -403,10 +344,10 @@ class ClientIO extends ClientBase with ClientMixin, ClientOfflineMixin {
       await init();
     }
 
-    final uri = Uri.parse(_endPoint + path);
+    late http.Response res;
     http.BaseRequest request = prepareRequest(
       method,
-      uri: uri,
+      uri: Uri.parse(_endPoint + path),
       headers: {..._headers!, ...headers},
       params: params,
     );
@@ -414,108 +355,18 @@ class ClientIO extends ClientBase with ClientMixin, ClientOfflineMixin {
     try {
       request = await _interceptRequest(request);
       final streamedResponse = await _httpClient.send(request);
-      http.Response res = await toResponse(streamedResponse);
+      res = await toResponse(streamedResponse);
       res = await _interceptResponse(res);
 
-      final response = prepareResponse(
+      return prepareResponse(
         res,
         responseType: responseType,
       );
-
-      return response;
     } catch (e) {
       if (e is {{spec.title | caseUcfirst}}Exception) {
         rethrow;
       }
       throw {{spec.title | caseUcfirst}}Exception(e.toString());
-    }
-  }
-
-  @override
-  Future<Response> call(
-    HttpMethod method, {
-    String path = '',
-    Map<String, String> headers = const {},
-    Map<String, dynamic> params = const {},
-    ResponseType? responseType,
-    String cacheModel = '',
-    String cacheKey = '',
-    String cacheResponseIdKey = '',
-    String cacheResponseContainerKey = '',
-    Map<String, Object?>? previous,
-  }) async {
-    while (true) {
-      final uri = Uri.parse(endPoint + path);
-
-      http.BaseRequest request = prepareRequest(
-        method,
-        uri: uri,
-        headers: {..._headers!, ...headers},
-        params: params,
-      );
-
-      if (getOfflinePersistency() && !isOnline.value) {
-        await checkOnlineStatus();
-      }
-
-      if (cacheModel.isNotEmpty &&
-          getOfflinePersistency() &&
-          !isOnline.value &&
-          responseType != ResponseType.bytes) {
-        return handleOfflineRequest(
-          uri: uri,
-          method: method,
-          call: call,
-          path: path,
-          headers: headers,
-          params: params,
-          responseType: responseType,
-          cacheModel: cacheModel,
-          cacheKey: cacheKey,
-          cacheResponseIdKey: cacheResponseIdKey,
-          cacheResponseContainerKey: cacheResponseContainerKey,
-        );
-      }
-
-      try {
-        final response = await send(
-          method,
-          path: path,
-          headers: headers,
-          params: params,
-          responseType: responseType,
-          cacheModel: cacheModel,
-          cacheKey: cacheKey,
-          cacheResponseIdKey: cacheResponseIdKey,
-          cacheResponseContainerKey: cacheResponseContainerKey,
-        );
-
-        if (getOfflinePersistency()) {
-          cacheResponse(
-            cacheModel: cacheModel,
-            cacheKey: cacheKey,
-            cacheResponseIdKey: cacheResponseIdKey,
-            request: request,
-            response: response,
-          );
-        }
-
-        return response;
-      } on {{spec.title | caseUcfirst}}Exception catch (e) {
-        if ((e.message != "Network is unreachable" &&
-                !(e.message?.contains("Failed host lookup") ?? false)) ||
-            !getOfflinePersistency()) {
-          rethrow;
-        }
-        isOnline.value = false;
-      } on SocketException catch (_) {
-        if (!getOfflinePersistency()) {
-          rethrow;
-        }
-        isOnline.value = false;
-      } catch (e) {
-        throw {{spec.title | caseUcfirst}}Exception(e.toString());
-      }
     }
   }
 }
