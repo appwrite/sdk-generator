@@ -231,12 +231,8 @@ const initTeam = async () => {
 
     teams.forEach(async team => {
         log(`Fetching ${team.name} ...`);
-        localConfig.addTeam({
-            ...team,
-            '$createdAt': undefined,
-            '$updatedAt': undefined,
-            'total': undefined
-        });
+        const { total, $updatedAt, $createdAt, prefs, ...rest } = team;
+        localConfig.addTeam(rest);
     });
 
     success();
