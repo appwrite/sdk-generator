@@ -309,6 +309,8 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             }
         }
     }
+
+    success(`Deployed ${functions.length} functions`);
 }
 
 const createAttribute = async (databaseId, collectionId, attribute) => {
