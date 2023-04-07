@@ -202,49 +202,6 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 throw new Error(`Runtime missmatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.json`);
             }
 
-            if (func.variables) {
-                // Delete existing variables
-
-                // TODO: Pagination?
-                const { variables: remoteVariables } = await functionsListVariables({
-                    functionId: func['$id'],
-                    queries: ['limit(100)'],
-                    parseOutput: false
-                });
-
-                if (remoteVariables.length > 0) {
-                    let override = yes;
-                    if (!yes) {
-                        const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
-                        override = variableAnswers.override === "YES";
-                    }
-
-                    if (!override) {
-                        log(`Skipping variables for ${func.name} ( ${func['$id']} )`);
-                    } else {
-                        log(`Deploying variables for ${func.name} ( ${func['$id']} )`);
-
-                        await Promise.all(remoteVariables.map(async remoteVariable => {
-                            await functionsDeleteVariable({
-                                functionId: func['$id'],
-                                variableId: remoteVariable['$id'],
-                                parseOutput: false
-                            });
-                        }));
-
-                        // Deploy local variables
-                        await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
-                            await functionsCreateVariable({
-                                functionId: func['$id'],
-                                key: localVariableKey,
-                                value: func.variables[localVariableKey],
-                                parseOutput: false
-                            });
-                        }));
-                    }
-                }
-            }
-
             response = await functionsUpdate({
                 functionId: func['$id'],
                 name: func.name,
@@ -278,6 +235,49 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 log(`Function ${func.name} created.`);
             } else {
                 throw e;
+            }
+        }
+
+        if (func.variables) {
+            // Delete existing variables
+
+            // TODO: Pagination?
+            const { variables: remoteVariables } = await functionsListVariables({
+                functionId: func['$id'],
+                queries: ['limit(100)'],
+                parseOutput: false
+            });
+
+            let deployVariables = yes;
+            if (remoteVariables.length == 0) {
+                deployVariables = true;
+            } else if (remoteVariables.length > 0 && !yes) {
+                const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
+                deployVariables = variableAnswers.override === "YES";
+            }
+
+            if (!deployVariables) {
+                log(`Skipping variables for ${func.name} ( ${func['$id']} )`);
+            } else {
+                log(`Deploying variables for ${func.name} ( ${func['$id']} )`);
+
+                await Promise.all(remoteVariables.map(async remoteVariable => {
+                    await functionsDeleteVariable({
+                        functionId: func['$id'],
+                        variableId: remoteVariable['$id'],
+                        parseOutput: false
+                    });
+                }));
+
+                // Deploy local variables
+                await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
+                    await functionsCreateVariable({
+                        functionId: func['$id'],
+                        key: localVariableKey,
+                        value: func.variables[localVariableKey],
+                        parseOutput: false
+                    });
+                }));
             }
         }
 
