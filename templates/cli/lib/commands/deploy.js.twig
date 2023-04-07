@@ -428,30 +428,27 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
 const deployCollection = async ({ all, yes } = {}) => {
     let response = {};
 
-    let collectionIds = [];
-    const configCollections = localConfig.getCollections();
+    const collections = [];
 
     if (all) {
-        if (configCollections.length === 0) {
+        if (localConfig.getCollections().length === 0) {
             throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
         }
-        collectionIds.push(...configCollections.map((c) => c.$id));
-    }
-
-    if (collectionIds.length <= 0) {
-        let answers = await inquirer.prompt(questionsDeployCollections[0])
-        collectionIds.push(...answers.collections);
-    }
-
-    let collections = [];
-
-    for (const collectionId of collectionIds) {
-        const idCollections = configCollections.filter((c) => c.$id === collectionId);
-        collections.push(...idCollections);
+        collections.push(...localConfig.getCollections());
+    } else {
+        const answers = await inquirer.prompt(questionsDeployCollections[0])
+        const configCollections = new Map();
+        localConfig.getCollections().forEach((c) => {
+            configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
+        });
+        answers.collections.forEach((a) => {
+            const collection = configCollections.get(a);
+            collections.push(collection);
+        })
     }
 
     for (let collection of collections) {
-        log(`Deploying collection ${collection.name} ( ${collection['$id']} )`)
+        log(`Deploying collection ${collection.name} ( ${collection['databaseId']} - ${collection['$id']} )`)
 
         let databaseId;
 

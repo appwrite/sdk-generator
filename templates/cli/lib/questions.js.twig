@@ -271,8 +271,8 @@ const questionsDeployCollections = [
             }
             let choices = collections.map((collection, idx) => {
                 return {
-                    name: `${collection.name} (${collection['$id']})`,
-                    value: collection.$id
+                    name: `${collection.name} (${collection['databaseId']} - ${collection['$id']})`,
+                    value: `${collection['databaseId']}|${collection['$id']}`
                 }
             })
             return choices;
