@@ -213,33 +213,36 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 });
 
                 if (remoteVariables.length > 0) {
+                    let override = yes;
                     if (!yes) {
                         const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
-
-                        if (variableAnswers.override !== "YES") {
-                            log(`Received "${variableAnswers.override}". Skipping ${func.name} ( ${func['$id']} )`);
-                            continue;
-                        }
+                        override = variableAnswers.override === "YES";
                     }
 
-                    await Promise.all(remoteVariables.map(async remoteVariable => {
-                        await functionsDeleteVariable({
-                            functionId: func['$id'],
-                            variableId: remoteVariable['$id'],
-                            parseOutput: false
-                        });
-                    }));
-                }
+                    if (!override) {
+                        log(`Skipping variables for ${func.name} ( ${func['$id']} )`);
+                    } else {
+                        log(`Deploying variables for ${func.name} ( ${func['$id']} )`);
 
-                // Deploy local variables
-                await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
-                    await functionsCreateVariable({
-                        functionId: func['$id'],
-                        key: localVariableKey,
-                        value: func.variables[localVariableKey],
-                        parseOutput: false
-                    });
-                }));
+                        await Promise.all(remoteVariables.map(async remoteVariable => {
+                            await functionsDeleteVariable({
+                                functionId: func['$id'],
+                                variableId: remoteVariable['$id'],
+                                parseOutput: false
+                            });
+                        }));
+
+                        // Deploy local variables
+                        await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
+                            await functionsCreateVariable({
+                                functionId: func['$id'],
+                                key: localVariableKey,
+                                value: func.variables[localVariableKey],
+                                parseOutput: false
+                            });
+                        }));
+                    }
+                }
             }
 
             response = await functionsUpdate({
