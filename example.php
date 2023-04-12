@@ -37,8 +37,8 @@ try {
     }
 
     // Leave the platform you want uncommented
-    // $platform = 'client';
-    $platform = 'console';
+    $platform = 'client';
+    // $platform = 'console';
     // $platform = 'server';
 
     $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/master/app/config/specs/swagger2-latest-{$platform}.json");
