@@ -10,7 +10,7 @@ const {{ service.name | caseCamel }} = new sdk.{{service.name | caseUcfirst}}(cl
 
 {% if method.auth|length > 0 %}
 client
-    .setEndpoint('https://[HOSTNAME_OR_IP]/v1') // Your API Endpoint
+    .setEndpoint('https://cloud.appwrite.io/v1') // Your API Endpoint
 {% for node in method.auth %}
 {% for key,header in node|keys %}
     .set{{header}}('{{node[header]['x-appwrite']['demo']}}') // {{node[header].description}}
