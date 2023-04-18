@@ -308,10 +308,6 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 				message:    message,
 			}
 		}
-		output,  ok := jsonResponse["result"].(string)
-		if !ok {
-			return nil, fmt.Errorf("invalid response type %v", jsonResponse)
-		}
 		return &ClientResponse{
 			Status:     resp.Status,
 			StatusCode: resp.StatusCode,
