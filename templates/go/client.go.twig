@@ -258,23 +258,12 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 				return nil, errors.New("invalid input file")
 			}
 		}
-		for key, val := range params {
-			rt := reflect.TypeOf(val)
-			switch rt.Kind() {
-			case reflect.Array:
-			case reflect.Slice:
-				arr := reflect.ValueOf(val)
-				for i := 0; i < arr.Len(); i++ {
-					err = writer.WriteField(fmt.Sprintf("%s[]", key), toString(arr.Index(i)))
-					if err != nil {
-						return nil, err
-					}
-				}
-			default:
-				err = writer.WriteField(key, toString(val))
-				if err != nil {
-					return nil, err
-				}
+		flatParams := make(map[string]string)
+		flatten(params, "", &flatParams)
+		for key, val := range flatParams {
+			err = writer.WriteField(key, val)
+			if err != nil {
+				return nil, err
 			}
 		}
 		err = writer.Close()
@@ -442,6 +431,12 @@ func toString(arg interface{}) string {
 		return strconv.FormatFloat(float64(v), 'f', -1, 32)
 	case float64:
 		return strconv.FormatFloat(v, 'f', -1, 64)
+	case bool:
+		return strconv.FormatBool(v)
+	case complex64:
+		return strconv.FormatComplex(complex128(v), 'f', -1, 64)
+	case complex128:
+		return strconv.FormatComplex(v, 'f', -1, 128)
 	case reflect.Value:
 		return toString(v.Interface())
 	case fmt.Stringer:
@@ -449,4 +444,49 @@ func toString(arg interface{}) string {
 	default:
 		return fmt.Sprintf("%s", v)
 	}
+}
+
+// flatten recursively flattens params into a map[string]string and writes it to result
+func flatten(params interface{}, prefix string, result *map[string]string) error {
+	if result == nil {
+		return errors.New("result is nil")
+	}
+
+	paramsType := reflect.TypeOf(params)
+	if paramsType.Kind() == reflect.Pointer {
+		paramsType = paramsType.Elem()
+	}
+	switch paramsType.Kind() {
+	case reflect.Array:
+		fallthrough
+	case reflect.Slice:
+		arr := reflect.Indirect(reflect.ValueOf(params))
+		for i := 0; i < arr.Len(); i++ {
+			currentPrefix := fmt.Sprintf("%s[%d]", prefix, i)
+			err := flatten(arr.Index(i).Interface(), currentPrefix, result)
+			if err != nil {
+				return err
+			}
+		}
+	case reflect.Map:
+		m := reflect.Indirect(reflect.ValueOf(params))
+		for _, key := range m.MapKeys() {
+			var currentPrefix string
+			if prefix == "" {
+				currentPrefix = toString(key)
+			} else {
+				currentPrefix = fmt.Sprintf("%s[%s]", prefix, toString(key))
+			}
+			err := flatten(m.MapIndex(key).Interface(), currentPrefix, result)
+			if err != nil {
+				return err
+			}
+		}
+		default:
+			if prefix == "" {
+				return fmt.Errorf("prefix is empty for %s", params)
+			}
+			(*result)[prefix] = toString(params)
+	}
+	return nil
 }
