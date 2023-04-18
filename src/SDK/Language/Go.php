@@ -89,6 +89,11 @@ class Go extends Language
                 'template'      => 'go/client.go.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseLower}}/inputFile.go',
+                'template'      => 'go/inputFile.go.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '{{ spec.title | caseLower}}/{{service.name | caseDash}}.go',
                 'template'      => 'go/services/service.go.twig',

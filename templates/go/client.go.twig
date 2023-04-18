@@ -13,7 +13,6 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -23,6 +22,7 @@ import (
 const (
 	fileNameKey = "file"
 	defaultTimeout = 10 * time.Second
+	defaultChunkSize = 5 * 1024 * 1024
 )
 
 // {{ spec.title | caseUcfirst }}Error represents an error of a client request
@@ -58,6 +58,7 @@ type Client struct {
 	endpoint   string
 	timeout    time.Duration
 	selfSigned bool
+	chunkSize  int64
 }
 
 // NewClient initializes a new {{ spec.title | caseUcfirst }} client with a given timeout
@@ -78,6 +79,7 @@ func NewClient() Client {
 		client: httpClient,
 		timeout: defaultTimeout,
 		headers: headers,
+		chunkSize: defaultChunkSize,
 	}
 }
 
@@ -87,8 +89,8 @@ func (clt *Client) String() string {
 
 func getDefaultClient(timeout time.Duration) (*http.Client, error) {
 	jar, err := cookiejar.New(nil)
-	if err != nil { 
-		return nil, err 
+	if err != nil {
+		return nil, err
 	}
 	return &http.Client {
 		Jar: jar,
@@ -114,6 +116,11 @@ func (clt *Client) SetSelfSigned(status bool) {
 	clt.selfSigned = status
 }
 
+// SetChunkSize sets the chunk size for file upload
+func (clt *Client) SetChunkSize(size int64) {
+	clt.chunkSize = size
+}
+
 // AddHeader add a new custom header that the Client should send on each request
 func (clt *Client) AddHeader(key string, value string) {
 	clt.headers[key] = value
@@ -136,59 +143,69 @@ func isFileUpload(headers map[string]interface{}) bool {
 	return false
 }
 
-func (clt *Client) newfileUploadRequest(uri string, params map[string]interface{}, paramName string) (*http.Request, error) {
-	path, ok := params[paramName].(string)
+func (clt *Client) FileUpload(url string, headers map[string]interface{}, params map[string]interface{}, paramName string, uploadId string) (*ClientResponse, error) {
+	inputFile, ok := params[paramName].(InputFile)
 	if !ok {
-		return nil, os.ErrNotExist
+		msg := fmt.Sprintf("invalid input file. params[%s] must be of type InputFile", paramName)
+		return nil, errors.New(msg)
 	}
-	if _, err := os.Stat(path); err != nil {
-		return nil, err
-	}
-	file, err := os.Open(path)
+
+	file, err := os.Open(inputFile.Path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile(paramName, filepath.Base(path))
-	if err != nil {
-		return nil, err
-	}
-	_, err = io.Copy(part, file)
+	fileInfo, err := file.Stat()
 	if err != nil {
 		return nil, err
 	}
 
-	for key, val := range params {
-		rt := reflect.TypeOf(val)
-		switch rt.Kind() {
-		case reflect.Array:
-		case reflect.Slice:
-			arr := reflect.ValueOf(val)
-			for i := 0; i < arr.Len(); i++ {
-				err = writer.WriteField(fmt.Sprintf("%s[]", key), toString(arr.Index(i)))
-				if err != nil {
-					return nil, err
-				}
-			}
-		default:
-			err = writer.WriteField(key, toString(val))
-			if err != nil {
-				return nil, err
-			}
+	inputFile.Data = make([]byte, clt.chunkSize)
+
+	var result *ClientResponse
+
+	numChunks := fileInfo.Size() / clt.chunkSize
+	if fileInfo.Size()%clt.chunkSize != 0 {
+		numChunks++
+	}
+	var currentChunk int64 = 0
+	if uploadId != "" && uploadId != "unique()" {
+		resp, err := clt.Call("GET", url + "/" + uploadId, nil, nil)
+		if err == nil {
+			currentChunk = int64(resp.Result.(map[string]interface{})["chunksUploaded"].(float64))
 		}
 	}
+	for i := currentChunk; i < numChunks; i++ {
+		chunkSize := clt.chunkSize
+		offset := int64(i) * chunkSize
+		if i == numChunks-1 {
+			chunkSize = fileInfo.Size() - offset
+			inputFile.Data = make([]byte, chunkSize)
+		}
+		_, err := file.ReadAt(inputFile.Data, offset)
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+		params[paramName] = inputFile
+		if uploadId != "" {
+			headers["x-appwrite-id"] = uploadId
+		}
+		totalSize := fileInfo.Size()
+		start := offset
+		end := offset + clt.chunkSize - 1
+		if end > totalSize {
+			end = totalSize
+		}
+		headers["content-range"] = fmt.Sprintf("bytes %d-%d/%d", start, end, totalSize)
+		result, err = clt.Call("POST", url, headers, params)
+		if err != nil {
+			return nil, err
+		}
 
-	err = writer.Close()
-	if err != nil {
-		return nil, err
+		uploadId, _ = result.Result.(map[string]interface{})["$id"].(string)
 	}
-
-	req, err := http.NewRequest("POST", uri, body)
-	clt.AddHeader("content-type", writer.FormDataContentType())
-	return req, err
+	return result, nil
 }
 
 // Call an API using Client
@@ -218,10 +235,53 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		if !isPost {
 			return nil, errors.New("fileupload needs POST Request")
 		}
-		req, err = clt.newfileUploadRequest(urlPath, params, fileNameKey)
+		var body bytes.Buffer
+		writer := multipart.NewWriter(&body)
+		if val, ok := params[fileNameKey]; ok {
+			if file, ok := val.(InputFile); ok {
+				fileName := file.Name
+				fileData := file.Data
+				fw, err := writer.CreateFormFile(fileNameKey, fileName)
+				if err != nil {
+					return nil, err
+				}
+				_, err = io.Copy(fw, bytes.NewReader(fileData))
+				if err != nil {
+					return nil, err
+				}
+				delete(params, fileNameKey)
+			} else {
+				return nil, errors.New("invalid input file")
+			}
+		}
+		for key, val := range params {
+			rt := reflect.TypeOf(val)
+			switch rt.Kind() {
+			case reflect.Array:
+			case reflect.Slice:
+				arr := reflect.ValueOf(val)
+				for i := 0; i < arr.Len(); i++ {
+					err = writer.WriteField(fmt.Sprintf("%s[]", key), toString(arr.Index(i)))
+					if err != nil {
+						return nil, err
+					}
+				}
+			default:
+				err = writer.WriteField(key, toString(val))
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+		err = writer.Close()
 		if err != nil {
 			return nil, err
 		}
+		req, err = http.NewRequest(method, urlPath, &body)
+		if err != nil {
+			return nil, err
+		}
+		headers["content-type"] = writer.FormDataContentType()
 	} else {
 		if !isGet {
 			var reqBody *strings.Reader

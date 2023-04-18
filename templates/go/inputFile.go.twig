@@ -1,0 +1,12 @@
+package {{ spec.title | caseLower }}
+
+type InputFile struct {
+	Name string
+	Path string
+	Data []byte
+}
+
+func (inp *InputFile) FromPath(path string, name string) {
+	inp.Path = path
+	inp.Name = name
+}
