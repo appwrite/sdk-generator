@@ -119,6 +119,7 @@ class Go extends Language
             case self::TYPE_NUMBER:
                 return 'float64';
             case self::TYPE_FILE:
+                return 'InputFile';
             case self::TYPE_STRING:
                 return 'string';
             case self::TYPE_BOOLEAN:
@@ -215,7 +216,7 @@ class Go extends Language
                     $output .= '[]';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "file";
+                    $output .= 'NewInputFile("/path/to/file.png", "file.png")';
                     break;
             }
         } else {
