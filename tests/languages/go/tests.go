@@ -130,8 +130,9 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {
 	general := appwrite.NewGeneral(client)
 	uploadFile := path.Join("/app", "tests/resources/file.png")
+	inputFile := appwrite.NewInputFile(uploadFile, "file.png")
 
-	response, err := general.Upload("string", 123, stringInArray, uploadFile)
+	response, err := general.Upload("string", 123, stringInArray, inputFile)
 	if err != nil {
 		fmt.Errorf("general.Upload => error %v", err)
 	}
