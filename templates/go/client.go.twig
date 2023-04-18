@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	fileNameKey = "file"
-	defaultTimeout = 10 * time.Second
+	fileNameKey      = "file"
+	defaultTimeout   = 10 * time.Second
 	defaultChunkSize = 5 * 1024 * 1024
 )
 
@@ -73,12 +73,14 @@ func NewClient() Client {
 {% endfor %}
 	}
 	httpClient, err := getDefaultClient(defaultTimeout)
-	if err != nil { panic(err) }
-	return Client {
-		endpoint: "{{spec.endpoint}}",
-		client: httpClient,
-		timeout: defaultTimeout,
-		headers: headers,
+	if err != nil {
+		panic(err)
+	}
+	return Client{
+		endpoint:  "https://HOSTNAME/v1",
+		client:    httpClient,
+		timeout:   defaultTimeout,
+		headers:   headers,
 		chunkSize: defaultChunkSize,
 	}
 }
@@ -92,8 +94,8 @@ func getDefaultClient(timeout time.Duration) (*http.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &http.Client {
-		Jar: jar,
+	return &http.Client{
+		Jar:     jar,
 		Timeout: timeout,
 	}, nil
 }
@@ -101,7 +103,9 @@ func getDefaultClient(timeout time.Duration) (*http.Client, error) {
 func (clt *Client) SetTimeout(timeout time.Duration) error {
 	clt.timeout = timeout
 	httpClient, err := getDefaultClient(timeout)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	clt.client = httpClient
 	return nil
 }
@@ -171,7 +175,7 @@ func (clt *Client) FileUpload(url string, headers map[string]interface{}, params
 	}
 	var currentChunk int64 = 0
 	if uploadId != "" && uploadId != "unique()" {
-		resp, err := clt.Call("GET", url + "/" + uploadId, nil, nil)
+		resp, err := clt.Call("GET", url+"/"+uploadId, nil, nil)
 		if err == nil {
 			currentChunk = int64(resp.Result.(map[string]interface{})["chunksUploaded"].(float64))
 		}
