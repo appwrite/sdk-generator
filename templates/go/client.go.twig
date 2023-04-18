@@ -262,7 +262,9 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 						q.Add(fmt.Sprintf("%s[]", key), toString(arr.Index(i)))
 					}
 				default:
-					q.Add(key, toString(val))
+					if strVal := toString(val); strVal != "" {
+						q.Add(key, strVal)
+					}
 				}
 			}
 			rawQuery := q.Encode()
