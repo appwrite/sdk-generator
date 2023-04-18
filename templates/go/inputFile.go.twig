@@ -6,7 +6,10 @@ type InputFile struct {
 	Data []byte
 }
 
-func (inp *InputFile) NewInputFile(path string, name string) {
-	inp.Path = path
-	inp.Name = name
+func NewInputFile(path string, name string) InputFile {
+	return InputFile{
+		Name: name,
+		Path: path,
+		Data: nil,
+	}
 }
