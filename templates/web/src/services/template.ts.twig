@@ -122,7 +122,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
             for (counter; counter < totalCounters; counter++) {
                 const start = (counter * Service.CHUNK_SIZE);
-                const end = Math.min((((counter * Service.CHUNK_SIZE) + Service.CHUNK_SIZE) - 1), size);
+                const end = Math.min((((counter * Service.CHUNK_SIZE) + Service.CHUNK_SIZE) - 1), size - 1);
 
                 headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size
 
@@ -142,7 +142,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 if (onProgress) {
                     onProgress({
                         $id: response.$id,
-                        progress: Math.min((counter + 1) * Service.CHUNK_SIZE - 1, size) / size * 100,
+                        progress: Math.min((counter + 1) * Service.CHUNK_SIZE, size) / size * 100,
                         sizeUploaded: end,
                         chunksTotal: response.chunksTotal,
                         chunksUploaded: response.chunksUploaded
