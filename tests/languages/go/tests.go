@@ -17,7 +17,7 @@ func main() {
 		panic(err)
 	}
 	client.AddHeader("Origin", "http://localhost")
-	fmt.Print("\n\nTest Started\n")
+	fmt.Print("\nTest Started\n")
 	testFooService(client, stringInArray)
 	testBarService(client, stringInArray)
 	testGeneralService(client, stringInArray)
