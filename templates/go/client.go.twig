@@ -433,10 +433,6 @@ func toString(arg interface{}) string {
 		return strconv.FormatFloat(v, 'f', -1, 64)
 	case bool:
 		return strconv.FormatBool(v)
-	case complex64:
-		return strconv.FormatComplex(complex128(v), 'f', -1, 64)
-	case complex128:
-		return strconv.FormatComplex(v, 'f', -1, 128)
 	case reflect.Value:
 		return toString(v.Interface())
 	case fmt.Stringer:
@@ -453,7 +449,7 @@ func flatten(params interface{}, prefix string, result *map[string]string) error
 	}
 
 	paramsType := reflect.TypeOf(params)
-	if paramsType.Kind() == reflect.Pointer {
+	if paramsType.Kind() == reflect.Ptr {
 		paramsType = paramsType.Elem()
 	}
 	switch paramsType.Kind() {
