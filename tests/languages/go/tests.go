@@ -134,7 +134,7 @@ func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {
 
 	response, err := general.Upload("string", 123, stringInArray, inputFile)
 	if err != nil {
-		fmt.Errorf("general.Upload => error %v", err)
+		fmt.Printf("general.Upload => error %v", err)
 	}
 	fmt.Printf("%s\n", response.Result)
 }
@@ -143,7 +143,7 @@ func testGeneralDownload(client appwrite.Client) {
 	general := appwrite.NewGeneral(client)
 	response, err := general.Download()
 	if err != nil {
-		fmt.Errorf("general.Download => error %v", err)
+		fmt.Printf("general.Download => error %v", err)
 	}
 	fmt.Printf("%s\n", response.Result)
 }
