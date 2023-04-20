@@ -126,6 +126,9 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 
 	general.Empty()
 
+	// Test Queries
+	testQueries()
+
 	// Final test
 	response, err = general.Headers()
 	if err != nil {
@@ -165,4 +168,28 @@ func testLargeUpload(client appwrite.Client, stringInArray []interface{}) {
 		fmt.Printf("general.Upload => error %v\n", err)
 	}
 	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+}
+
+func testQueries() {
+	query := appwrite.NewQuery()
+	fmt.Println(query.Equal("released", []interface{}{true}))
+	fmt.Println(query.Equal("title", []string{"Spiderman", "Dr. Strange"}))
+	fmt.Println(query.NotEqual("title", "Spiderman"))
+	fmt.Println(query.LessThan("releasedYear", 1990))
+	fmt.Println(query.GreaterThan("releasedYear", 1990))
+	fmt.Println(query.Search("name", "john"))
+	fmt.Println(query.IsNull("name"))
+	fmt.Println(query.IsNotNull("name"))
+	fmt.Println(query.Between("age", 50, 100))
+	fmt.Println(query.Between("age", 50.5, 100.5))
+	fmt.Println(query.Between("name", "Anna", "Brad"))
+	fmt.Println(query.StartsWith("name", "Ann"))
+	fmt.Println(query.EndsWith("name", "nne"))
+	fmt.Println(query.Select([]string{"name", "age"}))
+	fmt.Println(query.OrderAsc("title"))
+	fmt.Println(query.OrderDesc("title"))
+	fmt.Println(query.CursorAfter("my_movie_id"))
+	fmt.Println(query.CursorBefore("my_movie_id"))
+	fmt.Println(query.Limit(50))
+	fmt.Println(query.Offset(20))
 }
