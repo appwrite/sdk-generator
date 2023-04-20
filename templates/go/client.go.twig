@@ -241,11 +241,11 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		}
 		var body bytes.Buffer
 		writer := multipart.NewWriter(&body)
-		if val, ok := params[fileNameKey]; ok {
+		for key, val := range params {
 			if file, ok := val.(InputFile); ok {
 				fileName := file.Name
 				fileData := file.Data
-				fw, err := writer.CreateFormFile(fileNameKey, fileName)
+				fw, err := writer.CreateFormFile(key, fileName)
 				if err != nil {
 					return nil, err
 				}
@@ -253,9 +253,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 				if err != nil {
 					return nil, err
 				}
-				delete(params, fileNameKey)
-			} else {
-				return nil, errors.New("invalid input file")
+				delete(params, key)
 			}
 		}
 		flatParams := make(map[string]string)
