@@ -99,6 +99,21 @@ class Go extends Language
                 'template'      => 'go/query.go.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseLower}}/permission.go',
+                'template'      => 'go/permission.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseLower}}/role.go',
+                'template'      => 'go/role.go.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseLower}}/id.go',
+                'template'      => 'go/id.go.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '{{ spec.title | caseLower}}/{{service.name | caseDash}}.go',
                 'template'      => 'go/services/service.go.twig',

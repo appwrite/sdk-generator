@@ -129,6 +129,12 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 	// Test Queries
 	testQueries()
 
+	// Test Permission Helpers
+	testPermissionHelpers()
+
+	// Test Id Helpers
+	testIdHelpers()
+
 	// Final test
 	response, err = general.Headers()
 	if err != nil {
@@ -192,4 +198,23 @@ func testQueries() {
 	fmt.Println(query.CursorBefore("my_movie_id"))
 	fmt.Println(query.Limit(50))
 	fmt.Println(query.Offset(20))
+}
+
+func testPermissionHelpers() {
+	permission := appwrite.NewPermission()
+	roles := appwrite.NewRole()
+	fmt.Println(permission.Read(roles.Any()))
+	fmt.Println(permission.Write(roles.User(appwrite.NewID().Custom("userid"), "")))
+	fmt.Println(permission.Create(roles.Users("")))
+	fmt.Println(permission.Update(roles.Guests()))
+	fmt.Println(permission.Delete(roles.Team("teamId", "owner")))
+	fmt.Println(permission.Delete(roles.Team("teamId", "")))
+	fmt.Println(permission.Create(roles.Member("memberId")))
+	fmt.Println(permission.Update(roles.Users("verified")))
+	fmt.Println(permission.Update(roles.User(appwrite.NewID().Custom("userid"), "unverified")))
+}
+
+func testIdHelpers() {
+	fmt.Println(appwrite.NewID().Unique())
+	fmt.Println(appwrite.NewID().Custom("custom_id"))
 }
