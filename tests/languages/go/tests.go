@@ -12,7 +12,7 @@ func main() {
 	stringInArray := []interface{}{"string in array"}
 
 	client := appwrite.NewClient()
-	err := client.SetTimeout(10 * time.Second)
+	err := client.SetTimeout(60 * time.Second)
 	if err != nil {
 		panic(err)
 	}
