@@ -1,4 +1,5 @@
 const os = require('os');
+const https = require("https");
 const axios = require("axios");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const FormData = require("form-data");
@@ -100,11 +101,6 @@ class Client {
     params = {},
     responseType = "json"
   ) {
-    if (this.selfSigned == true) {
-      // Allow self signed requests
-      process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
-    }
-
     headers = Object.assign({}, this.headers, headers);
 
     let contentType = headers["content-type"].toLowerCase();
@@ -140,6 +136,10 @@ class Client {
       transformResponse: [ (data) =>  data ? JSONbig.parse(data) : data ],
       responseType: responseType,
     };
+    if (this.selfSigned == true) {
+      // Allow self signed requests
+      options.httpsAgent = new https.Agent({ rejectUnauthorized: false });
+    }
     try {
       let response = await axios(options);
       if (response.headers["set-cookie"]) {

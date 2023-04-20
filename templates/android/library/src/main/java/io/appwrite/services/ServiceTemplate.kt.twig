@@ -44,7 +44,7 @@ class {{ service.name | caseUcfirst }} : Service {
         activity: ComponentActivity,
         {%~ endif %}
         {%~ for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required %}? = null{% endif %},
+        {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required or parameter.nullable %}? = null{% endif %},
         {%~ endfor %}
         {%~ if method.responseModel | hasGenericType(spec) %}
         nestedType: Class<T>,
@@ -198,7 +198,7 @@ class {{ service.name | caseUcfirst }} : Service {
         activity: ComponentActivity,
         {%~ endif %}
         {%~ for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required %}? = null{% endif %},
+        {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required or parameter.nullable %}? = null{% endif %},
         {%~ endfor %}
         {%~ if 'multipart/form-data' in method.consumes %}
         onProgress: ((UploadProgress) -> Unit)? = null
