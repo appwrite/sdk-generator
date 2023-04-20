@@ -22,6 +22,7 @@ class Go118Test extends Base
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::EXTENDED_GENERAL_RESPONSES,
+        ...Base::LARGE_FILE_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
     ];
 }

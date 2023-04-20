@@ -101,8 +101,14 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 
 	testGeneralUpload(client, stringInArray)
+
+	// Extended General Responses
 	testGeneralDownload(client)
 
+	// Large File Responses
+	testLargeUpload(client, stringInArray)
+
+	// Exception Responses
 	response, err = general.Error400()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
@@ -120,6 +126,7 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 
 	general.Empty()
 
+	// Final test
 	response, err = general.Headers()
 	if err != nil {
 		fmt.Printf("general.Headers => error %v", err)
@@ -146,4 +153,16 @@ func testGeneralDownload(client appwrite.Client) {
 		fmt.Printf("general.Download => error %v", err)
 	}
 	fmt.Printf("%s\n", response.Result)
+}
+
+func testLargeUpload(client appwrite.Client, stringInArray []interface{}) {
+	general := appwrite.NewGeneral(client)
+	uploadFile := path.Join("/app", "tests/resources/large_file.mp4")
+	inputFile := appwrite.NewInputFile(uploadFile, "large_file.mp4")
+
+	response, err := general.Upload("string", 123, stringInArray, inputFile)
+	if err != nil {
+		fmt.Printf("general.Upload => error %v\n", err)
+	}
+	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 }
