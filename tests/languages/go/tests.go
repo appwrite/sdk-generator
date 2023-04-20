@@ -17,7 +17,7 @@ func main() {
 		panic(err)
 	}
 	client.AddHeader("Origin", "http://localhost")
-	fmt.Print("\nTest Started\n")
+	fmt.Print("\n\nTest Started\n")
 	testFooService(client, stringInArray)
 	testBarService(client, stringInArray)
 	testGeneralService(client, stringInArray)
@@ -30,31 +30,31 @@ func testFooService(client appwrite.Client, stringInArray []interface{}) {
 	if err != nil {
 		fmt.Printf("foo.Get => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
+	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 
 	response, err = foo.Post("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("foo.Post => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
+	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 
 	response, err = foo.Put("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("foo.Put => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
+	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 
 	response, err = foo.Patch("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("foo.Patch => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
+	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 
 	response, err = foo.Delete("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("foo.Delete => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
+	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 }
 
 func testBarService(client appwrite.Client, stringInArray []interface{}) {
@@ -64,31 +64,31 @@ func testBarService(client appwrite.Client, stringInArray []interface{}) {
 	if err != nil {
 		fmt.Printf("bar.Get => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
+	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 
 	response, err = bar.Post("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("bar.Post => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
+	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 
 	response, err = bar.Put("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("bar.Put => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
+	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 
 	response, err = bar.Patch("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("bar.Patch => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
+	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 
 	response, err = bar.Delete("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("bar.Delete => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
+	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 }
 
 func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
@@ -98,7 +98,7 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 	if err != nil {
 		fmt.Printf("general.Redirect => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
+	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 
 	testGeneralUpload(client, stringInArray)
 	testGeneralDownload(client)
@@ -119,6 +119,12 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 	}
 
 	general.Empty()
+
+	response, err = general.Headers()
+	if err != nil {
+		fmt.Printf("general.Headers => error %v", err)
+	}
+	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 }
 
 func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {
@@ -130,7 +136,7 @@ func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {
 	if err != nil {
 		fmt.Printf("general.Upload => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
+	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
 }
 
 func testGeneralDownload(client appwrite.Client) {
