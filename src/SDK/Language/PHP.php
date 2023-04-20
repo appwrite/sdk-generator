@@ -385,9 +385,9 @@ class PHP extends Language
             new TwigFilter('getReturn', function ($value) {
                 return $this->getReturn($value);
             }),
-            $this->twig->addFilter(new TwigFilter('deviceInfo', function ($value) {
+            new TwigFilter('deviceInfo', function ($value) {
                 return php_uname('s') . ';' . php_uname('v') . ';' . php_uname('m');
-            })),
+            }),
         ];
     }
 }
