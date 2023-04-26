@@ -46,7 +46,6 @@ class ClientIO extends ClientBase with ClientMixin {
       'user-agent' : '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/({{Platform.operatingSystem}}; {{Platform.operatingSystemVersion}})',
 {% for key,header in spec.global.defaultHeaders %}
       '{{key}}' : '{{header}}',
-
 {% endfor %}
     };
 
