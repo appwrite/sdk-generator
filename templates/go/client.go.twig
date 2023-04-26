@@ -65,7 +65,7 @@ func NewClient() Client {
 	headers := map[string]string{
 {% for key,header in spec.global.defaultHeaders %}
 		"{{key}}" : "{{header}}",
-		"user-agent" : "{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/ ({{deviceInfo}})",
+		"user-agent" : "{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }}",
 		"x-sdk-name": "{{ sdk.name }}",
 		"x-sdk-platform": "{{ sdk.platform }}",
 		"x-sdk-language": "{{ language.name | caseLower }}",
