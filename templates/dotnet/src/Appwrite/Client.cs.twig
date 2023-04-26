@@ -30,7 +30,7 @@ namespace {{ spec.title | caseUcfirst }}
             this.headers = new Dictionary<string, string>()
             {
                 { "content-type", "application/json" },
-                { "user-agent" , "{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Environment.OSVersion.Platform}; ${Environment.OSVersion.VersionString})"}{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+                { "user-agent" , "{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Environment.OSVersion.Platform}; ${Environment.OSVersion.VersionString})"},
                 { "x-sdk-name", "{{ sdk.name }}" },
                 { "x-sdk-platform", "{{ sdk.platform }}" },
                 { "x-sdk-language", "{{ language.name | caseLower }}" },
