@@ -267,13 +267,14 @@ class Go extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('godocComment', function ($value) {
+            new TwigFilter('godocComment', function ($value, $indent=0) {
                 $value = explode("\n", $value);
+                $indent = \str_repeat(' ', $indent);
                 foreach ($value as $key => $line) {
-                    $value[$key] = "// " . wordwrap($line, 75, "\n// ");
+                    $value[$key] = "// " . wordwrap($line, 75, "\n" . $indent . "// ");
                 }
-                return implode("\n", $value);
-            }, ['is_safe' => ['html']])
+                return implode("\n" . $indent, $value);
+            }, ['is_safe' => ['html']]),
         ];
     }
 }
