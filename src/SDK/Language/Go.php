@@ -115,13 +115,18 @@ class Go extends Language
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '{{ spec.title | caseLower}}/{{service.name | caseDash}}.go',
+                'destination'   => '{{ service.name | caseLower}}/{{service.name | caseDash}}.go',
                 'template'      => 'go/services/service.go.twig',
             ],
             [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'go/docs/example.md.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '{{ spec.title | caseLower}}models/{{ definition.name | caseLower }}.go',
+                'template'      => 'go/models/model.go.twig',
             ],
         ];
     }
@@ -139,7 +144,7 @@ class Go extends Language
             case self::TYPE_NUMBER:
                 return 'float64';
             case self::TYPE_FILE:
-                return 'InputFile';
+                return 'appwrite.InputFile';
             case self::TYPE_STRING:
                 return 'string';
             case self::TYPE_BOOLEAN:
@@ -275,6 +280,41 @@ class Go extends Language
                 }
                 return implode("\n" . $indent, $value);
             }, ['is_safe' => ['html']]),
+            new TwigFilter('propertyType', function (array $property, array $spec, string $generic = 'interface{}') {
+                return $this->getPropertyType($property, $spec, $generic);
+            }),
+            new TwigFilter('returnType', function (array $method, array $spec, string $namespace, string $generic = 'T') {
+                return $this->getReturnType($method, $spec, $namespace, $generic);
+            }),
         ];
+    }
+
+    protected function getPropertyType(array $property, array $spec, string $generic = 'interface{}'): string
+    {
+        $type = $this->getTypeName($property);
+        return $type;
+    }
+
+    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
+    {
+        if ($method['type'] === 'webAuth') {
+            return 'bool';
+        }
+        if ($method['type'] === 'location') {
+            return '[]byte';
+        }
+
+        if (
+            !\array_key_exists('responseModel', $method)
+            || empty($method['responseModel'])
+            || $method['responseModel'] === 'any'
+        ) {
+            return 'interface{}';
+        }
+
+        $ret = ucfirst($method['responseModel']);
+
+
+        return $namespace . 'Model.' . $ret;
     }
 }

@@ -37,6 +37,7 @@ type ClientResponse struct {
 	StatusCode int
 	Header     http.Header
 	Result     interface{}
+	Type	   string
 }
 
 func (ce *{{ spec.title | caseUcfirst }}Error) Error() string {
@@ -347,11 +348,12 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		return nil, err
 	}
 
-	var isJson = strings.HasPrefix(resp.Header.Get("content-type"), "application/json")
+	contentType := resp.Header.Get("content-type")
+	var isJson = strings.HasPrefix(contentType, "application/json")
 	if isJson {
-		var jsonResponse map[string]interface{}
-		json.Unmarshal(responseData, &jsonResponse)
 		if resp.StatusCode < 200 || resp.StatusCode > 399 {
+			var jsonResponse map[string]interface{}
+			json.Unmarshal(responseData, &jsonResponse)
 			message, ok := jsonResponse["message"].(string)
 			if !ok {
 				message = "N/A"
@@ -365,10 +367,11 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 			Status:     resp.Status,
 			StatusCode: resp.StatusCode,
 			Header:     resp.Header,
-			Result:     jsonResponse,
+			Result:     string(responseData),
+			Type:	   contentType,
 		}, nil
 	}
-	output, err := getOutput(params, fileNameKey, responseData, resp.Header.Get("content-type"))
+	output, err := getOutput(params, fileNameKey, responseData, contentType)
 	if err != nil {
 		return nil, err
 	}
@@ -383,6 +386,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		StatusCode: resp.StatusCode,
 		Header:     resp.Header,
 		Result:     output,
+		Type:	   contentType,
 	}, nil
 }
 

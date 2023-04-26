@@ -12,4 +12,12 @@
 {% endif %}
 {% endfor %}
 
-    return srv.client.FileUpload(path, headers, params, paramName, uploadId)
+    resp, err := srv.client.FileUpload(path, headers, params, paramName, uploadId)
+    if err != nil {
+		return nil, err
+	}
+	parsed, ok := resp.Result.({{ method | returnType(spec, spec.title | caseLower) }})
+	if !ok {
+		return nil, errors.New("Unexpected response type")
+	}
+	return &parsed, nil
