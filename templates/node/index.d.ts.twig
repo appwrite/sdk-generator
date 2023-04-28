@@ -157,6 +157,18 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 
     static greaterThanEqual(attribute: string, value: QueryTypes): string;
 
+    static isNull(attribute: string): string;
+
+    static isNotNull(attribute: string): string;
+
+    static between<T extends string | number>(attribute: string, start: T, end: T): string;
+
+    static startsWith(attribute: string, value: string): string;
+
+    static endsWith(attribute: string, value: string): string;
+
+    static select(attributes: string[]): string;
+
     static search(attribute: string, value: string): string;
 
     static orderDesc(attribute: string): string;
