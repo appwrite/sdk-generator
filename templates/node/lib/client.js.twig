@@ -12,7 +12,7 @@ class Client {
         this.headers = {
             'accept-encoding': '*',
             'content-type': '',
-            'user-agent' : `{{spec.title | caseUcfirst}}{{language.name | caseUcFirst}}SDK/{{ sdk.version }} (${os.type()} ${os.version()}; ${os.arch()})`,
+            'user-agent' : `{{spec.title | caseUcfirst}}{{language.name | caseUcFirst}}SDK/{{ sdk.version }} (${os.type()}; ${os.version()}; ${os.arch()})`,
             'x-sdk-name': '{{ sdk.name }}',
             'x-sdk-platform': '{{ sdk.platform }}',
             'x-sdk-language': '{{ language.name | caseLower }}',
