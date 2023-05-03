@@ -22,7 +22,7 @@ class Config {
 
     write() {
         let dir = _path.dirname(this.path)
-        if (!fs.existsSync(dir)){
+        if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
         fs.writeFileSync(this.path, JSONbig.stringify(this.data, null, 4));
@@ -135,7 +135,7 @@ class Local extends Config {
     }
 
     getCollection($id) {
-        if (!this.has("collection")) {
+        if (!this.has("collections")) {
             return {};
         }
 
@@ -156,7 +156,7 @@ class Local extends Config {
 
         let collections = this.get("collections");
         for (let i = 0; i < collections.length; i++) {
-            if (collections[i]['$id'] == props['$id']) {
+            if (collections[i]['$id'] == props['$id'] && collections[i]['databaseId'] == props['databaseId']) {
                 collections[i] = props;
                 this.set("collections", collections);
                 return;
@@ -164,6 +164,84 @@ class Local extends Config {
         }
         collections.push(props);
         this.set("collections", collections);
+    }
+
+    getBuckets() {
+        if (!this.has("buckets")) {
+            return [];
+        }
+        return this.get("buckets");
+    }
+
+    getBucket($id) {
+        if (!this.has("buckets")) {
+            return {};
+        }
+
+        let buckets = this.get("buckets");
+        for (let i = 0; i < buckets.length; i++) {
+            if (buckets[i]['$id'] == $id) {
+                return buckets[i];
+            }
+        }
+
+        return {};
+    }
+
+    addBucket(props) {
+        if (!this.has("buckets")) {
+            this.set("buckets", []);
+        }
+
+        let buckets = this.get("buckets");
+        for (let i = 0; i < buckets.length; i++) {
+            if (buckets[i]['$id'] == props['$id']) {
+                buckets[i] = props;
+                this.set("buckets", buckets);
+                return;
+            }
+        }
+        buckets.push(props);
+        this.set("buckets", buckets);
+    }
+
+    getDatabases() {
+        if (!this.has("databases")) {
+            return [];
+        }
+        return this.get("databases");
+    }
+
+    getDatabase($id) {
+        if (!this.has("databases")) {
+            return {};
+        }
+
+        let databases = this.get("databases");
+        for (let i = 0; i < databases.length; i++) {
+            if (databases[i]['$id'] == $id) {
+                return databases[i];
+            }
+        }
+
+        return {};
+    }
+
+    addDatabase(props) {
+        if (!this.has("databases")) {
+            this.set("databases", []);
+        }
+
+        let databases = this.get("databases");
+        for (let i = 0; i < databases.length; i++) {
+            if (databases[i]['$id'] == props['$id']) {
+                databases[i] = props;
+                this.set("databases", databases);
+                return;
+            }
+        }
+        databases.push(props);
+        this.set("databases", databases);
     }
 
     getTeams() {
@@ -187,7 +265,7 @@ class Local extends Config {
 
         return {};
     }
-    
+
     addTeam(props) {
         if (!this.has("teams")) {
             this.set("teams", []);
@@ -300,6 +378,6 @@ class Global extends Config {
 }
 
 module.exports = {
-    localConfig : new Local(),
-    globalConfig : new Global(),
+    localConfig: new Local(),
+    globalConfig: new Global(),
 };

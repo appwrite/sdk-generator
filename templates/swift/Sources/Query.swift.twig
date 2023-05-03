@@ -24,6 +24,38 @@ public class Query {
         buildQueryWhere(attribute, is: "greaterThanEqual", to: value)
     }
 
+    public static func isNull(_ attribute: String) -> String {
+        "isNull(\"\(attribute)\")"
+    }
+
+    public static func isNotNull(_ attribute: String) -> String {
+        "isNotNull(\"\(attribute)\")"
+    }
+
+    public static func between(_ attribute: String, start: Int, end: Int) -> String {
+        buildQueryWhere(attribute, is: "between", to: [start, end])
+    }
+
+    public static func between(_ attribute: String, start: Double, end: Double) -> String {
+        buildQueryWhere(attribute, is: "between", to: [start, end])
+    }
+
+    public static func between(_ attribute: String, start: String, end: String) -> String {
+        buildQueryWhere(attribute, is: "between", to: [start, end])
+    }
+
+    public static func startsWith(_ attribute: String, value: String) -> String {
+        buildQueryWhere(attribute, is: "startsWith", to: value)
+    }
+
+    public static func endsWith(_ attribute: String, value: String) -> String {
+        buildQueryWhere(attribute, is: "endsWith", to: value)
+    }
+
+    public static func select(_ attributes: [String]) -> String {
+        "select([\(attributes.map { "\"\($0)\"" }.joined(separator: ","))])"
+    }
+
     public static func search(_ attribute: String, value: String) -> String {
         buildQueryWhere(attribute, is: "search", to: value)
     }

@@ -103,7 +103,15 @@ async function start() {
   console.log(Query.notEqual('title', 'Spiderman'));
   console.log(Query.lessThan('releasedYear', 1990));
   console.log(Query.greaterThan('releasedYear', 1990));
-  console.log(Query.search('name', "john"));
+  console.log(Query.search('name', 'john'));
+  console.log(Query.isNull('name'))
+  console.log(Query.isNotNull('name'))
+  console.log(Query.between('age', 50, 100))
+  console.log(Query.between('age', 50.5, 100.5))
+  console.log(Query.between('name', 'Anna', 'Brad'))
+  console.log(Query.startsWith('name', 'Ann'))
+  console.log(Query.endsWith('name', 'nne'))
+  console.log(Query.select(['name', 'age']))
   console.log(Query.orderAsc("title"));
   console.log(Query.orderDesc("title"));
   console.log(Query.cursorAfter("my_movie_id"));

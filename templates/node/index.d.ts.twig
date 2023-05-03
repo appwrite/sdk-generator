@@ -131,7 +131,7 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 
     static fromBuffer(buffer: Buffer, filename: string): InputFile;
 
-    static fromBlob(blob: buffer.Blob, filename: string): Promise<InputFile>;
+    static fromBlob(blob: Blob, filename: string): Promise<InputFile>;
 
     static fromStream(stream: NodeJS.ReadableStream, filename: string, size: number): InputFile;
 
@@ -156,6 +156,18 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
     static greaterThan(attribute: string, value: QueryTypes): string;
 
     static greaterThanEqual(attribute: string, value: QueryTypes): string;
+
+    static isNull(attribute: string): string;
+
+    static isNotNull(attribute: string): string;
+
+    static between<T extends string | number>(attribute: string, start: T, end: T): string;
+
+    static startsWith(attribute: string, value: string): string;
+
+    static endsWith(attribute: string, value: string): string;
+
+    static select(attributes: string[]): string;
 
     static search(attribute: string, value: string): string;
 
@@ -200,7 +212,7 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 
 {% for service in spec.services %}
   export class {{ service.name | caseUcfirst }} extends Service {
-    constructor(client: Client{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName }}{% if not parameter.required %}|null{% endif %}{% endfor %});
+    constructor(client: Client{% for parameter in service.globalParams %}, {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName }}{% if not parameter.required or parameter.nullable %}|null{% endif %}{% endfor %});
     
 {% if service.globalParams | length %}
 {% for parameter in service.globalParams %}
@@ -237,7 +249,7 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {Promise}
      */
-    {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Buffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}string{% endif %}{% endif %}>;
+    {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Buffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}{% if method.method == 'delete' %}string{% else %}any{% endif %}{% endif %}{% endif %}>;
 {% endfor %}
   }
 {% endfor %}
