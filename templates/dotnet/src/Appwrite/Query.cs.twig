@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Appwrite
 {
@@ -38,6 +39,46 @@ namespace Appwrite
         public static string Search(string attribute, string value)
         {
             return AddQuery(attribute, "search", value);
+        }
+
+        public static string IsNull(string attribute)
+        {
+            return $"isNull(\"{attribute}\")";
+        }
+
+        public static string IsNotNull(string attribute)
+        {
+            return $"isNotNull(\"{attribute}\")";
+        }
+
+        public static string StartsWith(string attribute, string value)
+        {
+            return AddQuery(attribute, "startsWith", value);
+        }
+
+        public static string EndsWith(string attribute, string value)
+        {
+            return AddQuery(attribute, "endsWith", value);
+        }
+
+        public static string Between(string attribute, string start, string end)
+        {
+            return AddQuery(attribute, "between", new List<string> { start, end });
+        }
+
+        public static string Between(string attribute, int start, int end)
+        {
+            return AddQuery(attribute, "between", new List<int> { start, end });
+        }
+
+        public static string Between(string attribute, double start, double end)
+        {
+            return AddQuery(attribute, "between", new List<double> { start, end });
+        }
+
+        public static string Select(List<string> attributes)
+        {
+            return $"select([{string.Join(",", attributes.Select(attribute => $"\"{attribute}\""))}])";
         }
 
         public static string CursorAfter(string documentId)
