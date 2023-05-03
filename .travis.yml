@@ -29,9 +29,8 @@ env:
   - SDK=DartStable
   - SDK=Deno1193
   - SDK=Deno1303
-  - SDK=DotNet31
-  - SDK=DotNet50
   - SDK=DotNet60
+  - SDK=DotNet70
   - SDK=FlutterStable
   - SDK=FlutterBeta
   - SDK=Go112

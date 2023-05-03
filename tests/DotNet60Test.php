@@ -17,7 +17,7 @@ class DotNet60Test extends Base
         'cp tests/languages/dotnet/Tests60.csproj tests/sdks/dotnet/src/test/Tests.csproj',
     ];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:6.0-alpine dotnet test --verbosity normal --framework net6.0';
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:6.0-alpine3.17 dotnet test --verbosity normal --framework net6.0';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
