@@ -61,8 +61,8 @@ export class Client {
     }
 
     withoutHeader(key: string, headers: Payload): Payload {
-        return Object.keys(headers).reduce((acc: Payload, cv) => {
-            if (cv == 'content-type') return acc;
+        return Object.keys(headers).reduce((acc: Payload, cv: string) => {
+            if (cv === 'content-type') return acc;
             acc[cv] = headers[cv];
             return acc;
         }, {})

@@ -1,46 +1,70 @@
 class Query:
     @staticmethod
     def equal(attribute, value):
-        return Query.addQuery(attribute, "equal", value)
+        return Query.add_query(attribute, "equal", value)
 
     @staticmethod
-    def notEqual(attribute, value):
-        return Query.addQuery(attribute, "notEqual", value)
+    def not_equal(attribute, value):
+        return Query.add_query(attribute, "notEqual", value)
     
     @staticmethod
-    def lessThan(attribute, value):
-        return Query.addQuery(attribute, "lessThan", value)
+    def less_than(attribute, value):
+        return Query.add_query(attribute, "lessThan", value)
     
     @staticmethod
-    def lessThanEqual(attribute, value):
-        return Query.addQuery(attribute, "lessThanEqual", value)
+    def less_than_equal(attribute, value):
+        return Query.add_query(attribute, "lessThanEqual", value)
     
     @staticmethod
-    def greaterThan(attribute, value):
-        return Query.addQuery(attribute, "greaterThan", value)
+    def greater_than(attribute, value):
+        return Query.add_query(attribute, "greaterThan", value)
     
     @staticmethod
-    def greaterThanEqual(attribute, value):
-        return Query.addQuery(attribute, "greaterThanEqual", value)
+    def greater_than_equal(attribute, value):
+        return Query.add_query(attribute, "greaterThanEqual", value)
+
+    @staticmethod
+    def is_null(attribute):
+        return f'isNull("{attribute}")'
+
+    @staticmethod
+    def is_not_null(attribute):
+        return f'isNotNull("{attribute}")'
+
+    @staticmethod
+    def between(attribute, start, end):
+        return Query.add_query(attribute, "between", [start, end])
+
+    @staticmethod
+    def starts_with(attribute, value):
+        return Query.add_query(attribute, "startsWith", value)
+
+    @staticmethod
+    def ends_with(attribute, value):
+        return Query.add_query(attribute, "endsWith", value)
+
+    @staticmethod
+    def select(attributes):
+        return f'select([{",".join(map(Query.parseValues, attributes))}])'
 
     @staticmethod
     def search(attribute, value):
-        return Query.addQuery(attribute, "search", value)
+        return Query.add_query(attribute, "search", value)
 
     @staticmethod
-    def orderAsc(attribute):
+    def order_asc(attribute):
         return f'orderAsc("{attribute}")'
 
     @staticmethod
-    def orderDesc(attribute):
+    def order_desc(attribute):
         return f'orderDesc("{attribute}")'
 
     @staticmethod
-    def cursorBefore(id):
+    def cursor_before(id):
         return f'cursorBefore("{id}")'
 
     @staticmethod
-    def cursorAfter(id):
+    def cursor_after(id):
         return f'cursorAfter("{id}")'
 
     @staticmethod
@@ -52,7 +76,7 @@ class Query:
         return f'offset({offset})'
 
     @staticmethod
-    def addQuery(attribute, method, value):
+    def add_query(attribute, method, value):
         if type(value) == list:
             return f'{method}("{attribute}", [{",".join(map(Query.parseValues, value))}])'
         else:

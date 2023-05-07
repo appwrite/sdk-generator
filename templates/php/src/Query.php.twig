@@ -89,6 +89,76 @@ class Query
     }
 
     /**
+     * Is Null
+     *
+     * @param string $attribute
+     * @return string
+     */
+    public static function isNull(string $attribute): string
+    {
+        return 'isNull("' . $attribute . '")';
+    }
+
+    /**
+     * Is Not Null
+     *
+     * @param string $attribute
+     * @return string
+     */
+    public static function isNotNull(string $attribute): string
+    {
+        return 'isNotNull("' . $attribute . '")';
+    }
+
+    /**
+     * Between
+     *
+     * @param string $attribute
+     * @param string|int|float $start
+     * @param string|int|float $end
+     * @return string
+     */
+    public static function between(string $attribute, $start, $end): string
+    {
+        return self::addQuery($attribute, 'between', [$start, $end]);
+    }
+
+    /**
+     * Starts With
+     *
+     * @param string $attribute
+     * @param string $value
+     * @return string
+     */
+    public static function startsWith(string $attribute, string $value): string
+    {
+        return self::addQuery($attribute, 'startsWith', $value);
+    }
+
+    /**
+     * Ends With
+     *
+     * @param string $attribute
+     * @param string $value
+     * @return string
+     */
+    public static function endsWith(string $attribute, string $value): string
+    {
+        return self::addQuery($attribute, 'endsWith', $value);
+    }
+
+    /**
+     * Select
+     *
+     * @param array<string> $attributes
+     * @return string
+     */
+    public static function select(array $attributes): string
+    {
+        return 'select([' . implode(",", array_map(function ($attr) {return '"' . $attr . '"';}, $attributes)) . '])';
+    }
+
+    /**
      * Cursor After
      *
      * @param string $documentId

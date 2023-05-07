@@ -2,12 +2,13 @@ const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
-const { questionsDeployTeams, questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
+const { questionsDeployBuckets, questionsDeployTeams, questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
     databasesCreate,
+    databasesUpdate,
     databasesCreateBooleanAttribute,
     databasesGetCollection,
     databasesCreateCollection,
@@ -20,11 +21,16 @@ const {
     databasesCreateUrlAttribute,
     databasesCreateIpAttribute,
     databasesCreateEnumAttribute,
+    databasesCreateRelationshipAttribute,
     databasesDeleteAttribute,
     databasesListAttributes,
     databasesListIndexes,
-    databasesDeleteIndex
+    databasesDeleteIndex,
+    databasesUpdateCollection
 } = require("./databases");
+const {
+    storageGetBucket, storageUpdateBucket, storageCreateBucket
+} = require("./storage");
 const {
     teamsGet,
     teamsUpdate,
@@ -44,7 +50,7 @@ const awaitPools = {
         const { attributes: remoteAttributes } = await databasesListAttributes({
             databaseId,
             collectionId,
-            queries: [ 'limit(100)' ],
+            queries: ['limit(100)'],
             parseOutput: false
         });
 
@@ -64,7 +70,7 @@ const awaitPools = {
         const { indexes: remoteIndexes } = await databasesListIndexes({
             databaseId,
             collectionId,
-            queries: [ 'limit(100)' ],
+            queries: ['limit(100)'],
             parseOutput: false
         });
 
@@ -84,7 +90,7 @@ const awaitPools = {
         const { attributes: remoteAttributes } = await databasesListAttributes({
             databaseId,
             collectionId,
-            queries: [ 'limit(100)' ],
+            queries: ['limit(100)'],
             parseOutput: false
         });
 
@@ -116,7 +122,7 @@ const awaitPools = {
         const { indexes: remoteIndexes } = await databasesListIndexes({
             databaseId,
             collectionId,
-            queries: [ 'limit(100)' ],
+            queries: ['limit(100)'],
             parseOutput: false
         });
 
@@ -155,9 +161,9 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
 
     const functionIds = [];
 
-    if(functionId) {
+    if (functionId) {
         functionIds.push(functionId);
-    } else if(all) {
+    } else if (all) {
         const functions = localConfig.getFunctions();
         if (functions.length === 0) {
             throw new Error("No functions found in the current directory.");
@@ -167,22 +173,22 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
         }));
     }
 
-    if(functionIds.length <= 0) {
+    if (functionIds.length <= 0) {
         const answers = await inquirer.prompt(questionsDeployFunctions[0]);
         functionIds.push(...answers.functions);
     }
 
     let functions = functionIds.map((id) => {
-      const functions = localConfig.getFunctions();
-      const func = functions.find((f) => f.$id === id);
+        const functions = localConfig.getFunctions();
+        const func = functions.find((f) => f.$id === id);
 
-      if(!func) {
-        throw new Error("Function '" + id + "' not found.")
-      }
+        if (!func) {
+            throw new Error("Function '" + id + "' not found.")
+        }
 
-      return func;
+        return func;
     });
-    
+
     for (let func of functions) {
         log(`Deploying function ${func.name} ( ${func['$id']} )`)
 
@@ -192,48 +198,8 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 parseOutput: false,
             });
 
-            if(response.runtime !== func.runtime) {
+            if (response.runtime !== func.runtime) {
                 throw new Error(`Runtime missmatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.json`);
-            }
-
-            if(func.variables) {
-                // Delete existing variables
-
-                // TODO: Pagination?
-                const { variables: remoteVariables } = await functionsListVariables({
-                    functionId: func['$id'],
-                    queries: [ 'limit(100)' ],
-                    parseOutput: false
-                });
-
-                if(remoteVariables.length > 0) {
-                    if(!yes) {
-                        const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
-
-                        if (variableAnswers.override !== "YES") {
-                            log(`Received "${variableAnswers.override}". Skipping ${func.name} ( ${func['$id']} )`);
-                            continue;
-                        }
-                    }
-
-                    await Promise.all(remoteVariables.map(async remoteVariable => {
-                        await functionsDeleteVariable({
-                            functionId: func['$id'],
-                            variableId: remoteVariable['$id'],
-                            parseOutput: false
-                        });
-                    }));
-                }
-
-                // Deploy local variables
-                await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
-                    await functionsCreateVariable({
-                        functionId: func['$id'],
-                        key: localVariableKey,
-                        value: func.variables[localVariableKey],
-                        parseOutput: false
-                    });
-                }));
             }
 
             response = await functionsUpdate({
@@ -272,6 +238,49 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             }
         }
 
+        if (func.variables) {
+            // Delete existing variables
+
+            // TODO: Pagination?
+            const { variables: remoteVariables } = await functionsListVariables({
+                functionId: func['$id'],
+                queries: ['limit(100)'],
+                parseOutput: false
+            });
+
+            let deployVariables = yes;
+            if (remoteVariables.length == 0) {
+                deployVariables = true;
+            } else if (remoteVariables.length > 0 && !yes) {
+                const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
+                deployVariables = variableAnswers.override === "YES";
+            }
+
+            if (!deployVariables) {
+                log(`Skipping variables for ${func.name} ( ${func['$id']} )`);
+            } else {
+                log(`Deploying variables for ${func.name} ( ${func['$id']} )`);
+
+                await Promise.all(remoteVariables.map(async remoteVariable => {
+                    await functionsDeleteVariable({
+                        functionId: func['$id'],
+                        variableId: remoteVariable['$id'],
+                        parseOutput: false
+                    });
+                }));
+
+                // Deploy local variables
+                await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
+                    await functionsCreateVariable({
+                        functionId: func['$id'],
+                        key: localVariableKey,
+                        value: func.variables[localVariableKey],
+                        parseOutput: false
+                    });
+                }));
+            }
+        }
+
         // Create tag
         if (!func.entrypoint) {
             answers = await inquirer.prompt(questionsGetEntrypoint)
@@ -300,6 +309,8 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             }
         }
     }
+
+    success(`Deployed ${functions.length} functions`);
 }
 
 const createAttribute = async (databaseId, collectionId, attribute) => {
@@ -404,38 +415,49 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 array: attribute.array,
                 parseOutput: false
             })
+        case 'relationship':
+            return databasesCreateRelationshipAttribute({
+                databaseId,
+                collectionId,
+                relatedCollectionId: attribute.relatedCollection,
+                type: attribute.relationType,
+                twoWay: attribute.twoWay,
+                key: attribute.key,
+                twoWayKey: attribute.twoWayKey,
+                onDelete: attribute.onDelete,
+                parseOutput: false
+            })
     }
 }
 
 const deployCollection = async ({ all, yes } = {}) => {
     let response = {};
 
-    let collectionIds = [];
-    const configCollections = localConfig.getCollections();
+    const collections = [];
 
-    if(all) {
-        if (configCollections.length === 0) {
+    if (all) {
+        if (localConfig.getCollections().length === 0) {
             throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
         }
-        collectionIds.push(...configCollections.map((c) => c.$id));
-    }
-
-    if(collectionIds.length <= 0) {
-        let answers = await inquirer.prompt(questionsDeployCollections[0])
-        collectionIds.push(...answers.collections);
-    }
-
-    let collections = [];
-
-    for(const collectionId of collectionIds) {
-        const idCollections = configCollections.filter((c) => c.$id === collectionId);
-        collections.push(...idCollections);
+        collections.push(...localConfig.getCollections());
+    } else {
+        const answers = await inquirer.prompt(questionsDeployCollections[0])
+        const configCollections = new Map();
+        localConfig.getCollections().forEach((c) => {
+            configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
+        });
+        answers.collections.forEach((a) => {
+            const collection = configCollections.get(a);
+            collections.push(collection);
+        })
     }
 
     for (let collection of collections) {
-        log(`Deploying collection ${collection.name} ( ${collection['$id']} )`)
+        log(`Deploying collection ${collection.name} ( ${collection['databaseId']} - ${collection['$id']} )`)
 
         let databaseId;
+
+        const localDatabase = localConfig.getDatabase(collection.databaseId);
 
         try {
             const database = await databasesGet({
@@ -443,11 +465,19 @@ const deployCollection = async ({ all, yes } = {}) => {
                 parseOutput: false,
             });
             databaseId = database.$id;
-        } catch(err) {
+
+            await databasesUpdate({
+                databaseId: collection.databaseId,
+                name: localDatabase.name ?? collection.databaseId,
+                parseOutput: false
+            })
+
+            success(`Updated ${localDatabase.name} ( ${collection.databaseId} )`);
+        } catch (err) {
             log(`Database ${collection.databaseId} not found. Creating it now...`);
             const database = await databasesCreate({
                 databaseId: collection.databaseId,
-                name: collection.databaseId,
+                name: localDatabase.name ?? collection.databaseId,
                 parseOutput: false,
             });
             databaseId = database.$id;
@@ -461,7 +491,7 @@ const deployCollection = async ({ all, yes } = {}) => {
             })
             log(`Collection ${collection.name} ( ${collection['$id']} ) already exists.`);
 
-            if(!yes) {
+            if (!yes) {
                 answers = await inquirer.prompt(questionsDeployCollections[1])
                 if (answers.override !== "YES") {
                     log(`Received "${answers.override}". Skipping ${collection.name} ( ${collection['$id']} )`);
@@ -469,13 +499,13 @@ const deployCollection = async ({ all, yes } = {}) => {
                 }
             }
 
-            log(`Updating attributes ... `);
+            log(`Deleting indexes and attributes ... `);
 
             // TODO: Pagination?
             const { indexes: remoteIndexes } = await databasesListIndexes({
                 databaseId,
                 collectionId: collection['$id'],
-                queries: [ 'limit(100)' ],
+                queries: ['limit(100)'],
                 parseOutput: false
             });
 
@@ -497,10 +527,10 @@ const deployCollection = async ({ all, yes } = {}) => {
             const { attributes: remoteAttributes } = await databasesListAttributes({
                 databaseId,
                 collectionId: collection['$id'],
-                queries: [ 'limit(100)' ],
+                queries: ['limit(100)'],
                 parseOutput: false
             });
-            
+
             await Promise.all(remoteAttributes.map(async attribute => {
                 await databasesDeleteAttribute({
                     databaseId,
@@ -515,38 +545,15 @@ const deployCollection = async ({ all, yes } = {}) => {
                 throw new Error("Attribute deletion did not finish for too long.");
             }
 
-            await Promise.all(collection.attributes.map(async attribute => {
-                await createAttribute(databaseId, collection['$id'], attribute);
-            }));
-
-            const attributeKeys = collection.attributes.map(attribute => attribute.key);
-            const createPoolStatus = await awaitPools.expectAttributes(databaseId, collection['$id'], attributeKeys);
-            if (!createPoolStatus) {
-                throw new Error("Attribute creation did not finish for too long.");
-            }
-
-            success(`Created ${collection.attributes.length} attributes`);
-
-            log(`Creating indexes ...`)
-            await Promise.all(collection.indexes.map(async index => {
-                await databasesCreateIndex({
-                    databaseId,
-                    collectionId: collection['$id'],
-                    key: index.key,
-                    type: index.type,
-                    attributes: index.attributes,
-                    orders: index.orders,
-                    parseOutput: false
-                });
-            }));
-
-            const indexKeys = collection.indexes.map(attribute => attribute.key);
-            const indexPoolStatus = await awaitPools.expectIndexes(databaseId, collection['$id'], indexKeys);
-            if (!indexPoolStatus) {
-                throw new Error("Index creation did not finish for too long.");
-            }
-
-            success(`Created ${collection.indexes.length} indexes`);
+            await databasesUpdateCollection({
+                databaseId,
+                collectionId: collection['$id'],
+                name: collection.name,
+                documentSecurity: collection.documentSecurity,
+                permissions: collection['$permissions'],
+                enabled: collection.enabled,
+                parseOutput: false
+            })
         } catch (e) {
             if (e.code == 404) {
                 log(`Collection ${collection.name} does not exist in the project. Creating ... `);
@@ -559,41 +566,151 @@ const deployCollection = async ({ all, yes } = {}) => {
                     parseOutput: false
                 })
 
-                log(`Creating attributes ... `);
-                await Promise.all(collection.attributes.map(async attribute => {
-                    await createAttribute(databaseId, collection['$id'], attribute);
-                }));
+            } else {
+                throw e;
+            }
+        }
 
-                const attributeKeys = collection.attributes.map(attribute => attribute.key);
-                const attributePoolStatus = await awaitPools.expectAttributes(databaseId, collection['$id'], attributeKeys);
-                if (!attributePoolStatus) {
-                    throw new Error("Attribute creation did not finish for too long.");
+        // Create all non-relationship attributes first
+        const nonRelationshipAttributes = collection.attributes.filter(attribute => attribute.type !== 'relationship');
+        await Promise.all(nonRelationshipAttributes.map(attribute => {
+            return createAttribute(databaseId, collection['$id'], attribute);
+        }));
+
+        const nonRelationshipAttributeKeys = nonRelationshipAttributes.map(attribute => attribute.key);
+        const createPoolStatus = await awaitPools.expectAttributes(databaseId, collection['$id'], nonRelationshipAttributeKeys);
+        if (!createPoolStatus) {
+            throw new Error("Attribute creation did not finish for too long.");
+        }
+
+        success(`Created ${nonRelationshipAttributeKeys.length} non-relationship attributes`);
+
+        log(`Creating indexes ...`)
+        await Promise.all(collection.indexes.map(async index => {
+            await databasesCreateIndex({
+                databaseId,
+                collectionId: collection['$id'],
+                key: index.key,
+                type: index.type,
+                attributes: index.attributes,
+                orders: index.orders,
+                parseOutput: false
+            });
+        }));
+
+        const indexKeys = collection.indexes.map(attribute => attribute.key);
+        const indexPoolStatus = await awaitPools.expectIndexes(databaseId, collection['$id'], indexKeys);
+        if (!indexPoolStatus) {
+            throw new Error("Index creation did not finish for too long.");
+        }
+
+        success(`Created ${collection.indexes.length} indexes`);
+
+        success(`Deployed ${collection.name} ( ${collection['$id']} )`);
+    }
+
+    // Create the relationship attributes
+    for (let collection of collections) {
+        const relationshipAttributes = collection.attributes.filter(attribute => attribute.type === 'relationship' && attribute.side === 'parent');
+
+        if (relationshipAttributes.length === 0) continue;
+
+        log(`Deploying relationships for collection ${collection.name} ( ${collection['$id']} )`);
+
+        await Promise.all(relationshipAttributes.map(attribute => {
+            return createAttribute(collection['databaseId'], collection['$id'], attribute);
+        }));
+
+        const nonRelationshipAttributeKeys = relationshipAttributes.map(attribute => attribute.key);
+        const createPoolStatus = await awaitPools.expectAttributes(collection['databaseId'], collection['$id'], nonRelationshipAttributeKeys);
+        if (!createPoolStatus) {
+            throw new Error("Attribute creation did not finish for too long.");
+        }
+
+        success(`Created ${nonRelationshipAttributeKeys.length} relationship attributes`);
+    }
+}
+
+const deployBucket = async ({ all, yes } = {}) => {
+    let response = {};
+
+    let bucketIds = [];
+    const configBuckets = localConfig.getBuckets();
+
+    if (all) {
+        if (configBuckets.length === 0) {
+            throw new Error("No buckets found in the current directory. Run `appwrite init bucket` to fetch all your buckets.");
+        }
+        bucketIds.push(...configBuckets.map((b) => b.$id));
+    }
+
+    if (bucketIds.length === 0) {
+        let answers = await inquirer.prompt(questionsDeployBuckets[0])
+        bucketIds.push(...answers.buckets);
+    }
+
+    let buckets = [];
+
+    for (const bucketId of bucketIds) {
+        const idBuckets = configBuckets.filter((b) => b.$id === bucketId);
+        buckets.push(...idBuckets);
+    }
+
+    for (let bucket of buckets) {
+        log(`Deploying bucket ${bucket.name} ( ${bucket['$id']} )`)
+
+        try {
+            response = await storageGetBucket({
+                bucketId: bucket['$id'],
+                parseOutput: false,
+            })
+            log(`Bucket ${bucket.name} ( ${bucket['$id']} ) already exists.`);
+
+            if (!yes) {
+                answers = await inquirer.prompt(questionsDeployBuckets[1])
+                if (answers.override !== "YES") {
+                    log(`Received "${answers.override}". Skipping ${bucket.name} ( ${bucket['$id']} )`);
+                    continue;
                 }
+            }
 
-                success(`Created ${collection.attributes.length} attributes`);
+            log(`Updating bucket ...`)
 
-                log(`Creating indexes ...`);
-                await Promise.all(collection.indexes.map(async index => {
-                    await databasesCreateIndex({
-                        databaseId,
-                        collectionId: collection['$id'],
-                        key: index.key,
-                        type: index.type,
-                        attributes: index.attributes,
-                        orders: index.orders,
-                        parseOutput: false
-                    });
-                }));
+            await storageUpdateBucket({
+                bucketId: bucket['$id'],
+                name: bucket.name,
+                permissions: bucket['$permissions'],
+                fileSecurity: bucket.fileSecurity,
+                enabled: bucket.enabled,
+                maximumFileSize: bucket.maximumFileSize,
+                allowedFileExtensions: bucket.allowedFileExtensions,
+                compression: bucket.compression,
+                encryption: bucket.encryption,
+                antivirus: bucket.antivirus,
+                compression: bucket.compression,
+                parseOutput: false
+            });
 
-                const indexKeys = collection.indexes.map(attribute => attribute.key);
-                const indexPoolStatus = await awaitPools.expectIndexes(databaseId, collection['$id'], indexKeys);
-                if (!indexPoolStatus) {
-                    throw new Error("Index creation did not finish for too long.");
-                }
+            success(`Deployed ${bucket.name} ( ${bucket['$id']} )`);
+        } catch (e) {
+            if (e.code == 404) {
+                log(`Bucket ${bucket.name} does not exist in the project. Creating ... `);
 
-                success(`Created ${collection.indexes.length} indexes`);
+                response = await storageCreateBucket({
+                    bucketId: bucket['$id'],
+                    name: bucket.name,
+                    permissions: bucket['$permissions'],
+                    fileSecurity: bucket.fileSecurity,
+                    enabled: bucket.enabled,
+                    maximumFileSize: bucket.maximumFileSize,
+                    allowedFileExtensions: bucket.allowedFileExtensions,
+                    compression: bucket.compression,
+                    encryption: bucket.encryption,
+                    antivirus: bucket.antivirus,
+                    parseOutput: false
+                })
 
-                success(`Deployed ${collection.name} ( ${collection['$id']} )`);
+                success(`Deployed ${bucket.name} ( ${bucket['$id']} )`);
             } else {
                 throw e;
             }
@@ -607,21 +724,21 @@ const deployTeam = async ({ all, yes } = {}) => {
     let teamIds = [];
     const configTeams = localConfig.getTeams();
 
-    if(all) {
+    if (all) {
         if (configTeams.length === 0) {
             throw new Error("No teams found in the current directory. Run `appwrite init team` to fetch all your teams.");
         }
         teamIds.push(...configTeams.map((t) => t.$id));
     }
 
-    if(teamIds.length === 0) {
+    if (teamIds.length === 0) {
         let answers = await inquirer.prompt(questionsDeployTeams[0])
         teamIds.push(...answers.teams);
     }
 
     let teams = [];
 
-    for(const teamId of teamIds) {
+    for (const teamId of teamIds) {
         const idTeams = configTeams.filter((t) => t.$id === teamId);
         teams.push(...idTeams);
     }
@@ -636,7 +753,7 @@ const deployTeam = async ({ all, yes } = {}) => {
             })
             log(`Team ${team.name} ( ${team['$id']} ) already exists.`);
 
-            if(!yes) {
+            if (!yes) {
                 answers = await inquirer.prompt(questionsDeployTeams[1])
                 if (answers.override !== "YES") {
                     log(`Received "${answers.override}". Skipping ${team.name} ( ${team['$id']} )`);
@@ -685,6 +802,13 @@ deploy
     .option(`--all`, `Flag to deploy all functions`)
     .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(deployCollection));
+
+deploy
+    .command("bucket")
+    .description("Deploy buckets in the current project.")
+    .option(`--all`, `Flag to deploy all buckets`)
+    .option(`--yes`, `Flag to confirm all warnings`)
+    .action(actionRunner(deployBucket));
 
 deploy
     .command("team")
