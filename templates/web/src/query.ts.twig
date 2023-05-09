@@ -10,6 +10,11 @@ export type CustomQueryTypes<T extends ModelType> = {
   [K in keyof T]: [attribute: string & K, value: T[K] | T[K][]];
 }[keyof T];
 
+type betweenOverload = {
+  <T extends ModelType>(attribute: string & keyof T, start: string, end: string): string,
+  <T extends ModelType>(attribute: string & keyof T, start: number, end: number): string,
+}
+
 export class Query {
   static equal = <T extends ModelType>(...args: CustomQueryTypes<T>): string =>
     Query.addQuery(args[0], "equal", args[1]);
@@ -35,7 +40,7 @@ export class Query {
   static isNotNull = <T extends ModelType>(attribute: string&keyof T): string =>
     `isNotNull("${attribute}")`;
 
-  static between = <T extends ModelType>(attribute: string&keyof T, start: string|number, end: string|number): string =>
+  static between: betweenOverload = <T extends ModelType>(attribute: string&keyof T, start: string|number, end: string|number): string =>
     `between("${attribute}", [${Query.parseValues(start)},${Query.parseValues(end)}])`;
 
   static startsWith = <T extends ModelType>(attribute: string&keyof T, value: string): string =>

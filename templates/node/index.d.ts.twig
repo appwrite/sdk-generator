@@ -152,6 +152,11 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
     [K in keyof T]: [attribute: string & K, value: T[K] | T[K][]];
   }[keyof T];
 
+  type betweenOverload = {
+    <T extends ModelType>(attribute: string & keyof T, start: string, end: string): string,
+    <T extends ModelType>(attribute: string & keyof T, start: number, end: number): string,
+  }
+
   export class Query {
     static equal<T extends ModelType>(...args: CustomQueryTypes<T>): string;
 
@@ -169,7 +174,7 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 
     static isNotNull<T extends ModelType>(attribute: string & keyof T): string;
 
-    static between<T extends string | number>(attribute: string, start: T, end: T): string;
+    static between: betweenOverload;
 
     static startsWith<T extends ModelType>(attribute: string & keyof T, value: string): string;
 
