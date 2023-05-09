@@ -71,7 +71,7 @@ export class Query {
   private static addQuery = <T extends ModelType>(attribute: CustomQueryTypes<T>[0], method: string, value: CustomQueryTypes<T>[1]): string =>
     value instanceof Array
       ? `${method}("${attribute}", [${value
-          .map((v: QueryTypesSingle) => Query.parseValues(v))
+          .map((v) => Query.parseValues(v))
           .join(",")}])`
       : `${method}("${attribute}", [${Query.parseValues(value)}])`;
 
