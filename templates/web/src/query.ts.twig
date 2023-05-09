@@ -2,50 +2,58 @@ type QueryTypesSingle = string | number | boolean;
 export type QueryTypesList = string[] | number[] | boolean[];
 export type QueryTypes = QueryTypesSingle | QueryTypesList;
 
+type ModelType = {
+    [key: string]: QueryTypes;
+}
+
+export type CustomQueryTypes<T extends ModelType> = {
+  [K in keyof T]: [attribute: string & K, value: T[K] | T[K][]];
+}[keyof T];
+
 export class Query {
-  static equal = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "equal", value);
+  static equal = <T extends ModelType>(...args: CustomQueryTypes<T>): string =>
+    Query.addQuery(args[0], "equal", args[1]);
 
-  static notEqual = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "notEqual", value);
+  static notEqual = <T extends ModelType>(...args: CustomQueryTypes<T>): string =>
+    Query.addQuery(args[0], "notEqual", args[1]);
 
-  static lessThan = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "lessThan", value);
+  static lessThan = <T extends ModelType>(...args: CustomQueryTypes<T>): string =>
+    Query.addQuery(args[0], "lessThan", args[1]);
 
-  static lessThanEqual = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "lessThanEqual", value);
+  static lessThanEqual = <T extends ModelType>(...args: CustomQueryTypes<T>): string =>
+    Query.addQuery(args[0], "lessThanEqual", args[1]);
 
-  static greaterThan = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "greaterThan", value);
+  static greaterThan = <T extends ModelType>(...args: CustomQueryTypes<T>): string =>
+    Query.addQuery(args[0], "greaterThan", args[1]);
 
-  static greaterThanEqual = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "greaterThanEqual", value);
+  static greaterThanEqual = <T extends ModelType>(...args: CustomQueryTypes<T>): string =>
+    Query.addQuery(args[0], "greaterThanEqual", args[1]);
 
-  static isNull = (attribute: string): string =>
+  static isNull = <T extends ModelType>(attribute: string&keyof T): string =>
     `isNull("${attribute}")`;
 
-  static isNotNull = (attribute: string): string =>
+  static isNotNull = <T extends ModelType>(attribute: string&keyof T): string =>
     `isNotNull("${attribute}")`;
 
-  static between = (attribute: string, start: string|number, end: string|number): string =>
+  static between = <T extends ModelType>(attribute: string&keyof T, start: string|number, end: string|number): string =>
     `between("${attribute}", [${Query.parseValues(start)},${Query.parseValues(end)}])`;
 
-  static startsWith = (attribute: string, value: string): string =>
+  static startsWith = <T extends ModelType>(attribute: string&keyof T, value: string): string =>
     Query.addQuery(attribute, "startsWith", value);
 
-  static endsWith = (attribute: string, value: string): string =>
+  static endsWith = <T extends ModelType>(attribute: string&keyof T, value: string): string =>
     Query.addQuery(attribute, "endsWith", value);
 
-  static select = (attributes: string[]): string =>
+  static select = <T extends ModelType>(attributes: (string&keyof T)[]): string =>
     `select([${attributes.map((attr: string) => `"${attr}"`).join(",")}])`;
 
-  static search = (attribute: string, value: string): string =>
+  static search = <T extends ModelType>(attribute: string&keyof T, value: string): string =>
     Query.addQuery(attribute, "search", value);
 
-  static orderDesc = (attribute: string): string =>
+  static orderDesc = <T extends ModelType>(attribute: string&keyof T): string =>
     `orderDesc("${attribute}")`;
 
-  static orderAsc = (attribute: string): string =>
+  static orderAsc = <T extends ModelType>(attribute: string&keyof T): string =>
     `orderAsc("${attribute}")`;
 
   static cursorAfter = (documentId: string): string =>
@@ -60,7 +68,7 @@ export class Query {
   static offset = (offset: number): string =>
     `offset(${offset})`;
 
-  private static addQuery = (attribute: string, method: string, value: QueryTypes): string =>
+  private static addQuery = <T extends ModelType>(attribute: CustomQueryTypes<T>[0], method: string, value: CustomQueryTypes<T>[1]): string =>
     value instanceof Array
       ? `${method}("${attribute}", [${value
           .map((v: QueryTypesSingle) => Query.parseValues(v))
