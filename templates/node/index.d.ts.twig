@@ -144,36 +144,44 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
   type QueryTypesList = string[] | number[] | boolean[];
   type QueryTypes = QueryTypesSingle | QueryTypesList;
 
+  type ModelType = {
+    [key: string]: QueryTypes;
+  }
+
+  type CustomQueryTypes<T extends ModelType> = {
+    [K in keyof T]: [attribute: string & K, value: T[K] | T[K][]];
+  }[keyof T];
+
   export class Query {
-    static equal(attribute: string, value: QueryTypes): string;
+    static equal<T extends ModelType>(...args: CustomQueryTypes<T>): string;
 
-    static notEqual(attribute: string, value: QueryTypes): string;
+    static notEqual<T extends ModelType>(...args: CustomQueryTypes<T>): string;
 
-    static lessThan(attribute: string, value: QueryTypes): string;
+    static lessThan<T extends ModelType>(...args: CustomQueryTypes<T>): string;
 
-    static lessThanEqual(attribute: string, value: QueryTypes): string;
+    static lessThanEqual<T extends ModelType>(...args: CustomQueryTypes<T>): string;
 
-    static greaterThan(attribute: string, value: QueryTypes): string;
+    static greaterThan<T extends ModelType>(...args: CustomQueryTypes<T>): string;
 
-    static greaterThanEqual(attribute: string, value: QueryTypes): string;
+    static greaterThanEqual<T extends ModelType>(...args: CustomQueryTypes<T>): string;
 
-    static isNull(attribute: string): string;
+    static isNull<T extends ModelType>(attribute: string & keyof T): string;
 
-    static isNotNull(attribute: string): string;
+    static isNotNull<T extends ModelType>(attribute: string & keyof T): string;
 
     static between<T extends string | number>(attribute: string, start: T, end: T): string;
 
-    static startsWith(attribute: string, value: string): string;
+    static startsWith<T extends ModelType>(attribute: string & keyof T, value: string): string;
 
-    static endsWith(attribute: string, value: string): string;
+    static endsWith<T extends ModelType>(attribute: string & keyof T, value: string): string;
 
-    static select(attributes: string[]): string;
+    static select<T extends ModelType>(attributes: (string & keyof T)[]): string;
 
-    static search(attribute: string, value: string): string;
+    static search<T extends ModelType>(attribute: string & keyof T, value: string): string;
 
-    static orderDesc(attribute: string): string;
+    static orderDesc<T extends ModelType>(attribute: string & keyof T): string;
     
-    static orderAsc(attribute: string): string;
+    static orderAsc<T extends ModelType>(attribute: string & keyof T): string;
     
     static cursorAfter(documentId: string): string;
     
@@ -183,7 +191,7 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
     
     static offset(value: number): string;
 
-    private static addQuery(attribute: string, method: string, value: QueryTypes): string;
+    private static addQuery<T extends ModelType>(attribute: CustomQueryTypes<T>[0], method: string, value: CustomQueryTypes<T>[1]): string;
 
     private static parseValues(value: QueryTypes): string;
   }
