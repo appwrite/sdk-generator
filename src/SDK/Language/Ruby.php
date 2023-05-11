@@ -73,7 +73,8 @@ class Ruby extends Language
             'unless',
             'until',
             'when',
-            'while'
+            'while',
+            'path'
         ];
     }
 
