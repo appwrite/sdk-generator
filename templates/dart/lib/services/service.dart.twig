@@ -1,5 +1,5 @@
 part of {{ language.params.packageName }};
-{% macro parameter(parameter) %}{% if parameter.required %}required {{ parameter | typeName }}{% else %}{{ parameter | typeName }}?{% endif %} {{ parameter.name | caseCamel | overrideIdentifier }}{% endmacro %}
+{% macro parameter(parameter) %}{% if parameter.required %}required {% endif %}{{ parameter | typeName }}{% if not parameter.required or parameter.nullable %}?{% endif %} {{ parameter.name | caseCamel | overrideIdentifier }}{% endmacro %}
 {% macro method_parameters(parameters, consumes) %}
 {% if parameters|length > 0 %}{{ '{' }}{% for parameter in parameters %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, Function(UploadProgress)? onProgress{% endif %}{{ '}' }}{% endif %}
 {% endmacro %}

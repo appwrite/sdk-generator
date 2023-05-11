@@ -5,7 +5,7 @@ import 'enums.dart';
 abstract class ClientBase implements Client {  
 {% for header in spec.global.headers %}
 {% if header.description %}
-    /// {{header.description}}
+  /// {{header.description}}
 {% endif %}
   @override
   ClientBase set{{header.key | caseUcfirst}}(value);

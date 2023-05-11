@@ -10,6 +10,9 @@ const { accountCreateEmailSession, accountDeleteSession } = require("./account")
 
 const login = new Command("login")
     .description(commandDescriptions['login'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
     .action(actionRunner(async () => {
         const answers = await inquirer.prompt(questionsLogin)
 
@@ -27,6 +30,9 @@ const login = new Command("login")
 
 const logout = new Command("logout")
     .description(commandDescriptions['logout'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
     .action(actionRunner(async () => {
         let client = await sdkForConsole();
 
@@ -43,6 +49,9 @@ const logout = new Command("logout")
 
 const client = new Command("client")
     .description(commandDescriptions['client'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
     .option("--selfSigned <value>", "Configure the CLI to use a self-signed certificate ( true or false )", parseBool)
     .option("--endpoint <endpoint>", "Set your Appwrite server endpoint")
     .option("--projectId <projectId>", "Set your Appwrite project ID")
@@ -71,13 +80,16 @@ const client = new Command("client")
                 if (url.protocol !== "http:" && url.protocol !== "https:") {
                     throw new Error();
                 }
-                
+
                 let client = new Client().setEndpoint(endpoint);
+                if (selfSigned || globalConfig.getSelfSigned()) {
+                    client.setSelfSigned(true);
+                }
                 let response = await client.call('GET', '/health/version');
-                if(!response.version) {
+                if (!response.version) {
                     throw new Error();
                 }
-                
+
                 globalConfig.setEndpoint(endpoint);
             } catch (_) {
                 throw new Error("Invalid endpoint or your Appwrite server is not running as expected.");

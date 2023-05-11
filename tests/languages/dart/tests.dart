@@ -51,13 +51,13 @@ void main() async {
   final res = await general.redirect();
   print(res['result']);
 
-  var file = InputFile(path: '../../resources/file.png',
+  var file = InputFile.fromPath(path: '../../resources/file.png',
       filename: 'file.png');
   response = await general.upload(
       x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
-  file = InputFile(path: '../../resources/large_file.mp4', filename: 'large_file.mp4');
+  file = InputFile.fromPath(path: '../../resources/large_file.mp4', filename: 'large_file.mp4');
   response = await general.upload(
       x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
@@ -95,6 +95,14 @@ void main() async {
   print(Query.lessThan('releasedYear', 1990));
   print(Query.greaterThan('releasedYear', 1990));
   print(Query.search('name', 'john'));
+  print(Query.isNull("name"));
+  print(Query.isNotNull("name"));
+  print(Query.between("age", 50, 100));
+  print(Query.between("age", 50.5, 100.5));
+  print(Query.between("name", "Anna", "Brad"));
+  print(Query.startsWith("name", "Ann"));
+  print(Query.endsWith("name", "nne"));
+  print(Query.select(["name", "age"]));
   print(Query.orderAsc("title"));
   print(Query.orderDesc("title"));
   print(Query.cursorAfter("my_movie_id"));
