@@ -71,8 +71,7 @@ class Python extends Language
             'except',
             'in',
             'raise',
-            'async',
-            'path'
+            'async'
         ];
     }
 
