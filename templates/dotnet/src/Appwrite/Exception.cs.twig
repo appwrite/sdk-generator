@@ -1,13 +1,16 @@
 using System;
 
-namespace Appwrite
+namespace {{spec.title | caseUcfirst}}
 {
     public class {{spec.title | caseUcfirst}}Exception : Exception
     {
-        public int? Code;
-        public string Response = null;
-        public {{spec.title | caseUcfirst}}Exception(string message = null, int? code = null, string response = null)
-        : base(message)
+        public int? Code { get; set; }
+        public string? Response { get; set; } = null;
+
+        public {{spec.title | caseUcfirst}}Exception(
+            string? message = null,
+            int? code = null,
+            string? response = null) : base(message)
         {
             this.Code = code;
             this.Response = response;
