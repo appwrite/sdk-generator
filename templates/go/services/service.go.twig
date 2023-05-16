@@ -15,6 +15,7 @@ package {{ service.name | caseLower }}
 import (
 	"encoding/json"
 	"errors"
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/client"
 {% if requireModelsPkg %}
 	"github.com/{{sdk.gitUserName}}/sdk-for-go/models"
 {% endif %}
@@ -22,7 +23,6 @@ import (
 	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
 {% endif %}
 	"strings"
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/client"
 )
 
 {{ ((service.name | caseUcfirst) ~ " service") | godocComment }}
@@ -88,7 +88,7 @@ func With{{ method.name | caseUcfirst }}{{ parameter.name | caseUcfirst }}(v {{ 
 {% else %}
 // {{ method.name | caseUcfirst }}
 {% endif %}
-func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ params }})  (*{{ method | returnType(spec, spec.title | caseLower) }}, error) {
+func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ params }})(*{{ method | returnType(spec, spec.title | caseLower) }}, error) {
 {% if method.parameters.path|length > 0 %}
 	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
 	path := r.Replace("{{ method.path }}")
