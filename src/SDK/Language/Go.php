@@ -272,7 +272,7 @@ class Go extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('godocComment', function ($value, $indent=0) {
+            new TwigFilter('godocComment', function ($value, $indent = 0) {
                 $value = trim($value);
                 $value = explode("\n", $value);
                 $indent = \str_repeat(' ', $indent);
