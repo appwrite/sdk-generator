@@ -1,7 +1,7 @@
 using {{ spec.title | caseUcfirst }};
 using {{ spec.title | caseUcfirst }}.Models;
 
-Client client = new Client()
+var client = new Client()
 {% if method.auth|length > 0 %}
     .SetEndPoint("https://cloud.appwrite.io/v1") // Your API Endpoint
 {% for node in method.auth %}
@@ -9,9 +9,9 @@ Client client = new Client()
     .Set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo']}}"){% if loop.last %};{% endif %} // {{node[header].description}}
 {% endfor %}{% endfor %}{% endif %}
 
-{{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
+var {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
 
-{% if method.type == 'location' %}byte[]{% else %}{{ method.responseModel | caseUcfirst | overrideIdentifier }}{% endif %} result = await {{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}({% if method.parameters.all | length == 0 %});{% endif %}
+{% if method.method != 'delete' %}{% if method.type == 'location' %}byte[]{% else %}{{ method.responseModel | caseUcfirst | overrideIdentifier }}{% endif %} result = {% endif %}await {{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}({% if method.parameters.all | length == 0 %});{% endif %}
 {% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %},{% endif %}
 
     {{ parameter.name }}: {{ parameter | paramExample }}{% endif %}{% endfor %}{% if method.parameters.all | length > 0 %});{% endif %}
