@@ -196,14 +196,14 @@ func (clt *Client) FileUpload(url string, headers map[string]interface{}, params
 			return nil, err
 		}
 		params[paramName] = inputFile
-		if uploadId != "" {
+		if uploadId != "" && uploadId != "unique()" {
 			headers["x-appwrite-id"] = uploadId
 		}
 		totalSize := fileInfo.Size()
 		start := offset
 		end := offset + clt.chunkSize - 1
-		if end > totalSize {
-			end = totalSize
+		if end >= totalSize {
+			end = totalSize - 1
 		}
 		headers["content-range"] = fmt.Sprintf("bytes %d-%d/%d", start, end, totalSize)
 		result, err = clt.Call("POST", url, headers, params)
