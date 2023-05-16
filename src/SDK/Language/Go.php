@@ -302,7 +302,7 @@ class Go extends Language
             return 'bool';
         }
         if ($method['type'] === 'location') {
-            return 'string';
+            return '[]byte';
         }
 
         if (

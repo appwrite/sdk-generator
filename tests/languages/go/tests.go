@@ -169,7 +169,7 @@ func testGeneralDownload(client client.Client) {
 	if err != nil {
 		fmt.Printf("general.Download => error %v", err)
 	}
-	fmt.Printf("%v\n", *response)
+	fmt.Printf("%s\n", string(*response))
 }
 
 func testLargeUpload(client client.Client, stringInArray []interface{}) {
