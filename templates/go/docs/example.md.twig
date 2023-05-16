@@ -28,7 +28,16 @@ func main() {
 
 {% endif %}
     service := {{ service.name | caseLower }}.New{{ service.name | caseUcfirst }}(client)
-    response, error := service.{{ method.name | caseUcfirst }}({% for parameter in method.parameters.all %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endfor %})
+    response, error := service.{{ method.name | caseUcfirst }}(
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+        {{ parameter | paramExample }},
+{% else %}
+        {{ service.name | caseLower }}.With{{ method.name | caseUcfirst }}{{ parameter.name | caseUcfirst }}({{ parameter | paramExample }}),
+{% endif %}
+{% endfor %}
+    )
+
     if error != nil {
         panic(error)
     }

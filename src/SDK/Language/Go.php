@@ -228,31 +228,41 @@ class Go extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
+                    $output .= '0';
+                    break;
                 case self::TYPE_BOOLEAN:
-                    $output .= 'null';
+                    $output .= 'false';
                     break;
                 case self::TYPE_STRING:
                     $output .= '""';
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= 'nil';
+                    $output .= 'map[string]interface{}{}';
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= '[]';
+                    $output .= '[]interface{}{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'NewInputFile("/path/to/file.png", "file.png")';
+                    $output .= 'file.NewInputFile("/path/to/file.png", "file.png")';
                     break;
             }
         } else {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
                     $output .= $example;
                     break;
+                case self::TYPE_ARRAY:
+                    if (\str_starts_with($example, '[')) {
+                        $example = \substr($example, 1);
+                    }
+                    if (\str_ends_with($example, ']')) {
+                        $example = \substr($example, 0, -1);
+                    }
+                    $output .= 'interface{}{' . $example . '}';
+                    break;
                 case self::TYPE_OBJECT:
-                    $output .= 'nil';
+                    $output .= 'map[string]interface{}{}';
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
@@ -261,7 +271,7 @@ class Go extends Language
                     $output .= "\"{$example}\"";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "file";
+                    $output .= 'file.NewInputFile("/path/to/file.png", "file.png")';
                     break;
             }
         }
