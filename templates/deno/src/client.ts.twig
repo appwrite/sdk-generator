@@ -11,6 +11,7 @@ export class Client {
     endpoint: string = '{{spec.endpoint}}';
     headers: Payload = {
         'content-type': '',
+        'user-agent' : `{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Deno.build.os}; ${Deno.build.arch})`,
         'x-sdk-name': '{{ sdk.name }}',
         'x-sdk-platform': '{{ sdk.platform }}',
         'x-sdk-language': '{{ language.name | caseLower }}',
@@ -61,8 +62,8 @@ export class Client {
     }
 
     withoutHeader(key: string, headers: Payload): Payload {
-        return Object.keys(headers).reduce((acc: Payload, cv) => {
-            if (cv == 'content-type') return acc;
+        return Object.keys(headers).reduce((acc: Payload, cv: string) => {
+            if (cv === 'content-type') return acc;
             acc[cv] = headers[cv];
             return acc;
         }, {})

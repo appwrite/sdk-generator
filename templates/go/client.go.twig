@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"runtime"
 	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
 )
 
@@ -68,6 +69,7 @@ func NewClient() Client {
 	headers := map[string]string{
 {% for key,header in spec.global.defaultHeaders %}
 		"{{key}}" : "{{header}}",
+		"user-agent" : fmt.Sprintf("{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (%s; %s)", runtime.GOOS, runtime.GOARCH),
 		"x-sdk-name": "{{ sdk.name }}",
 		"x-sdk-platform": "{{ sdk.platform }}",
 		"x-sdk-language": "{{ language.name | caseLower }}",
@@ -424,6 +426,7 @@ func toString(arg interface{}) string {
 		return fmt.Sprintf("%s", v)
 	}
 }
+
 
 // flatten recursively flattens params into a map[string]string and writes it to result
 func flatten(params interface{}, prefix string, result *map[string]string) error {

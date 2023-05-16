@@ -22,7 +22,7 @@ class Config {
 
     write() {
         let dir = _path.dirname(this.path)
-        if (!fs.existsSync(dir)){
+        if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
         fs.writeFileSync(this.path, JSONbig.stringify(this.data, null, 4));
@@ -156,7 +156,7 @@ class Local extends Config {
 
         let collections = this.get("collections");
         for (let i = 0; i < collections.length; i++) {
-            if (collections[i]['$id'] == props['$id']) {
+            if (collections[i]['$id'] == props['$id'] && collections[i]['databaseId'] == props['databaseId']) {
                 collections[i] = props;
                 this.set("collections", collections);
                 return;
@@ -265,7 +265,7 @@ class Local extends Config {
 
         return {};
     }
-    
+
     addTeam(props) {
         if (!this.has("teams")) {
             this.set("teams", []);
@@ -378,6 +378,6 @@ class Global extends Config {
 }
 
 module.exports = {
-    localConfig : new Local(),
-    globalConfig : new Global(),
+    localConfig: new Local(),
+    globalConfig: new Global(),
 };

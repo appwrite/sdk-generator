@@ -80,13 +80,16 @@ const client = new Command("client")
                 if (url.protocol !== "http:" && url.protocol !== "https:") {
                     throw new Error();
                 }
-                
+
                 let client = new Client().setEndpoint(endpoint);
+                if (selfSigned || globalConfig.getSelfSigned()) {
+                    client.setSelfSigned(true);
+                }
                 let response = await client.call('GET', '/health/version');
-                if(!response.version) {
+                if (!response.version) {
                     throw new Error();
                 }
-                
+
                 globalConfig.setEndpoint(endpoint);
             } catch (_) {
                 throw new Error("Invalid endpoint or your Appwrite server is not running as expected.");

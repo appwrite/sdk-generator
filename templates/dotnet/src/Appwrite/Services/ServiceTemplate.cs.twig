@@ -1,73 +1,58 @@
-{% macro parameter(parameter) %}
-{% if parameter.name == 'orderType' %}{{ 'OrderType orderType = OrderType.ASC' }}{% else %}
-{{ parameter | typeName }}{% if not parameter.required and (parameter.type == 'boolean' or parameter.type == 'integer') %}?{% endif %} {{ parameter.name | caseCamel | escapeKeyword }}{{ parameter | paramDefault }}{% endif %}
-{% endmacro %}
-{% macro method_parameters(parameters) %}
-{% if parameters.all|length > 0 %}{% for parameter in parameters.all %}{{ _self.parameter(parameter) }}{% if not loop.last %}{{ ', ' }}{% endif %}{% endfor %}{% endif %}
-{% endmacro %}
-{% macro map_parameter(parameter) %}
-{% if parameter.name == 'orderType' %}{{ parameter.name | caseCamel ~ '.ToString()'}}{% else %}
-{{ parameter.name | caseCamel | escapeKeyword }}{% endif %}
-{% endmacro %}
-{% macro methodNeedsSecurityParameters(method) %}
-{% if (method.type == "webAuth" or method.type == "location") and method.auth|length > 0 %}{{ true }}{% else %}{{false}}{% endif %}
-{% endmacro %}
+{% import 'dotnet/base/utils.twig' as utils %}
 
+using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
+using System.Linq;
 using System.Threading.Tasks;
+using {{ spec.title | caseUcfirst }}.Models;
 
-namespace {{ spec.title | caseUcfirst }}
+namespace {{ spec.title | caseUcfirst }}.Services
 {
     public class {{ service.name | caseUcfirst }} : Service
     {
-        public {{ service.name | caseUcfirst }}(Client client) : base(client) { }
+        public {{ service.name | caseUcfirst }}(Client client) : base(client)
+        {
+        }
 
-{% for method in service.methods %}
-{% if method.title %}
+        {%~ for method in service.methods %}
+        {%~ if method.title %}
         /// <summary>
         /// {{ method.title }}
-{% endif %}
-{% if method.description %}
+        {%~ endif %}
+        {%~ if method.description %}
         /// <para>
-{{method.description|dotnetComment}}
+        {{~ method.description | dotnetComment }}
         /// </para>
-{% endif %}
+        {%~ endif %}
         /// </summary>
-        public {% if method.type == "location" %}string{% else %}async Task<HttpResponseMessage>{% endif %} {{ method.name | caseUcfirst }}({{ _self.method_parameters(method.parameters) }}) 
+        public Task{% if method.type != "webAuth" %}<{{ utils.resultType(spec.title, method) }}>{% endif %} {{ method.name | caseUcfirst }}({{ utils.method_parameters(method.parameters, method.consumes) }})
         {
-            string path = "{{ method.path }}"{% for parameter in method.parameters.path %}.Replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+            var path = "{{ method.path }}"{% if method.parameters.path | length == 0 %};{% endif %}
 
-            Dictionary<string, object> parameters = new Dictionary<string, object>()
-            {
-{% for parameter in method.parameters.query | merge(method.parameters.body) %}
-                { "{{ parameter.name }}", {{ _self.map_parameter(parameter) }} }{% if not loop.last or _self.methodNeedsSecurityParameters(method) %},{% endif %}
+		{{~ include('dotnet/base/params.twig') }}
 
-{% endfor %}
-            };
-{% if _self.methodNeedsSecurityParameters(method) %}{% for node in method.auth %}
-{% for key,header in node|keys %}
-            // { "{{header|caseLower}}", _client.GetConfig().get("{{header|caseLower}}") }{% if not loop.last %},{% endif %}
+        {%~ if method.type == 'location' %}
+		{{~ include('dotnet/base/requests/location.twig') }}
+		{%~ else %}
 
-{% endfor %}
-{% endfor %}
-{% endif %}
-{% if method.type == 'location' %}            
-            return _client.GetEndPoint() + path + "?" + parameters.ToQueryString();
-{% else %}
+			{%~ if method.responseModel %}
+            static {{ utils.resultType(spec.title, method) }} Convert(Dictionary<string, object> it) =>
+				{%~ if method.responseModel == 'any' %}
+                it;
+				{%~ else %}
+                {{ utils.resultType(spec.title, method) }}.From(map: it);
+				{%~ endif %}
+			{%~ endif %}
 
-            Dictionary<string, string> headers = new Dictionary<string, string>()
-            {
-{{ method.headers|map((header, key) => "                { \"#{key}\", \"#{header}\" }")|join(',\n')|raw }}
-            };
+			{%~ if 'multipart/form-data' in method.consumes %}
+			{{~ include('dotnet/base/requests/file.twig') }}
+			{%~ else %}
 
-            return await _client.Call("{{ method.method | caseUpper }}", path, headers, parameters);
-{% endif %}
+			{{~ include('dotnet/base/requests/api.twig')}}
+			{%~ endif %}
+			{%~ endif %}
         }
-{% if not loop.last %}
 
-{% endif %}
-{% endfor %}
-    };
+    {%~ endfor %}
+    }
 }

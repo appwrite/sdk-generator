@@ -384,7 +384,10 @@ class PHP extends Language
         return [
             new TwigFilter('getReturn', function ($value) {
                 return $this->getReturn($value);
-            })
+            }),
+            new TwigFilter('deviceInfo', function ($value) {
+                return php_uname('s') . '; ' . php_uname('v') . '; ' . php_uname('m');
+            }),
         ];
     }
 }
