@@ -394,29 +394,6 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 	}, nil
 }
 
-func getOutput(params map[string]interface{}, paramName string, responseData []byte, contentType string) (string, error) {
-	if strings.HasPrefix(contentType, "text") || strings.HasSuffix(contentType, "json") {
-		return string(responseData), nil
-	}
-	path, ok := params[paramName].(string)
-	if !ok {
-		return "", os.ErrNotExist
-	}
-	file, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-
-	if _, err = file.Write(responseData); err != nil {
-		return "", err
-	}
-
-	if err := file.Close(); err != nil {
-		return "", err
-	}
-	return file.Name(), nil
-}
-
 // toString changes arg to string
 func toString(arg interface{}) string {
 	var tmp = reflect.Indirect(reflect.ValueOf(arg)).Interface()
