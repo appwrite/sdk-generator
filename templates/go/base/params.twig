@@ -1,5 +1,5 @@
 {% if method.parameters.all|filter(v => not v.required)|length > 0 %}
-	options := &{{(method.name ~ "Options") | caseUcfirst}}{}
+	options := {{(method.name ~ "Options") | caseUcfirst}}{}.New()
 	for _, opt := range optionalSetters {
 		opt(options)
 	}
@@ -9,7 +9,9 @@
 {% if parameter.required %}
 	params["{{ parameter.name }}"] = {{ parameter.name | caseUcfirst }}
 {% else %}
-	params["{{ parameter.name }}"] = options.{{ parameter.name | caseUcfirst }}
+	if options.enabledSetters["{{ parameter.name | caseUcfirst}}"] {
+		params["{{ parameter.name }}"] = options.{{ parameter.name | caseUcfirst }}
+	}
 {% endif %}
 {% endfor %}
 	headers := map[string]interface{}{

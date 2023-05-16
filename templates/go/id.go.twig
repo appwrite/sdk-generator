@@ -1,15 +1,9 @@
-package {{ spec.title | caseLower }}
+package id
 
-type ID struct {}
-
-func NewID() *ID {
-    return &ID{}
-}
-
-func (i *ID) Custom(id string) string {
+func Custom(id string) string {
     return id
 }
 
-func (id *ID) Unique() string {
+func Unique() string {
     return "unique()"
 }

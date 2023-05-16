@@ -5,13 +5,21 @@ import (
 	"path"
 	"time"
 
-	"github.com/repoowner/sdk-for-go/appwrite"
+	"github.com/repoowner/sdk-for-go/bar"
+	"github.com/repoowner/sdk-for-go/client"
+	"github.com/repoowner/sdk-for-go/file"
+	"github.com/repoowner/sdk-for-go/foo"
+	"github.com/repoowner/sdk-for-go/general"
+	"github.com/repoowner/sdk-for-go/id"
+	"github.com/repoowner/sdk-for-go/permission"
+	"github.com/repoowner/sdk-for-go/query"
+	"github.com/repoowner/sdk-for-go/role"
 )
 
 func main() {
 	stringInArray := []interface{}{"string in array"}
 
-	client := appwrite.NewClient()
+	client := client.NewClient()
 	err := client.SetTimeout(60 * time.Second)
 	if err != nil {
 		panic(err)
@@ -23,103 +31,103 @@ func main() {
 	testGeneralService(client, stringInArray)
 }
 
-func testFooService(client appwrite.Client, stringInArray []interface{}) {
-	foo := appwrite.NewFoo(client)
+func testFooService(client client.Client, stringInArray []interface{}) {
+	foo := foo.NewFoo(client)
 	// Foo Service
 	response, err := foo.Get("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("foo.Get => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+	fmt.Printf("%s\n", response.Result)
 
 	response, err = foo.Post("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("foo.Post => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+	fmt.Printf("%s\n", response.Result)
 
 	response, err = foo.Put("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("foo.Put => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+	fmt.Printf("%s\n", response.Result)
 
 	response, err = foo.Patch("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("foo.Patch => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+	fmt.Printf("%s\n", response.Result)
 
 	response, err = foo.Delete("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("foo.Delete => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+	fmt.Printf("%s\n", response.Result)
 }
 
-func testBarService(client appwrite.Client, stringInArray []interface{}) {
-	bar := appwrite.NewBar(client)
+func testBarService(client client.Client, stringInArray []interface{}) {
+	bar := bar.NewBar(client)
 	// Bar Service
 	response, err := bar.Get("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("bar.Get => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+	fmt.Printf("%s\n", response.Result)
 
 	response, err = bar.Post("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("bar.Post => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+	fmt.Printf("%s\n", response.Result)
 
 	response, err = bar.Put("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("bar.Put => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+	fmt.Printf("%s\n", response.Result)
 
 	response, err = bar.Patch("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("bar.Patch => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+	fmt.Printf("%s\n", response.Result)
 
 	response, err = bar.Delete("string", 123, stringInArray)
 	if err != nil {
 		fmt.Printf("bar.Delete => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+	fmt.Printf("%s\n", response.Result)
 }
 
-func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
-	general := appwrite.NewGeneral(client)
+func testGeneralService(client client.Client, stringInArray []interface{}) {
+	general := general.NewGeneral(client)
 	// General Service
 	response, err := general.Redirect()
 	if err != nil {
 		fmt.Printf("general.Redirect => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+	fmt.Printf("%s\n", (*response).(map[string]interface{})["result"].(string))
 
 	testGeneralUpload(client, stringInArray)
 
-	// Extended General Responses
+	// // Extended General Responses
 	testGeneralDownload(client)
 
-	// Large File Responses
+	// // Large File Responses
 	testLargeUpload(client, stringInArray)
 
 	// Exception Responses
-	response, err = general.Error400()
+	_, err = general.Error400()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
 	}
 
-	response, err = general.Error500()
+	_, err = general.Error500()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
 	}
 
-	response, err = general.Error502()
+	_, err = general.Error502()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
 	}
@@ -136,48 +144,47 @@ func testGeneralService(client appwrite.Client, stringInArray []interface{}) {
 	testIdHelpers()
 
 	// Final test
-	response, err = general.Headers()
+	headersResponse, err := general.Headers()
 	if err != nil {
 		fmt.Printf("general.Headers => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+	fmt.Printf("%s\n", headersResponse.Result)
 }
 
-func testGeneralUpload(client appwrite.Client, stringInArray []interface{}) {
-	general := appwrite.NewGeneral(client)
+func testGeneralUpload(client client.Client, stringInArray []interface{}) {
+	general := general.NewGeneral(client)
 	uploadFile := path.Join("/app", "tests/resources/file.png")
-	inputFile := appwrite.NewInputFile(uploadFile, "file.png")
+	inputFile := file.NewInputFile(uploadFile, "file.png")
 
 	response, err := general.Upload("string", 123, stringInArray, inputFile)
 	if err != nil {
 		fmt.Printf("general.Upload => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+	fmt.Printf("%s\n", response.Result)
 }
 
-func testGeneralDownload(client appwrite.Client) {
-	general := appwrite.NewGeneral(client)
+func testGeneralDownload(client client.Client) {
+	general := general.NewGeneral(client)
 	response, err := general.Download()
 	if err != nil {
 		fmt.Printf("general.Download => error %v", err)
 	}
-	fmt.Printf("%s\n", response.Result)
+	fmt.Printf("%v\n", *response)
 }
 
-func testLargeUpload(client appwrite.Client, stringInArray []interface{}) {
-	general := appwrite.NewGeneral(client)
+func testLargeUpload(client client.Client, stringInArray []interface{}) {
+	general := general.NewGeneral(client)
 	uploadFile := path.Join("/app", "tests/resources/large_file.mp4")
-	inputFile := appwrite.NewInputFile(uploadFile, "large_file.mp4")
+	inputFile := file.NewInputFile(uploadFile, "large_file.mp4")
 
 	response, err := general.Upload("string", 123, stringInArray, inputFile)
 	if err != nil {
 		fmt.Printf("general.Upload => error %v\n", err)
 	}
-	fmt.Printf("%s\n", response.Result.(map[string]interface{})["result"])
+	fmt.Printf("%s\n", response.Result)
 }
 
 func testQueries() {
-	query := appwrite.NewQuery()
 	fmt.Println(query.Equal("released", []interface{}{true}))
 	fmt.Println(query.Equal("title", []string{"Spiderman", "Dr. Strange"}))
 	fmt.Println(query.NotEqual("title", "Spiderman"))
@@ -201,20 +208,18 @@ func testQueries() {
 }
 
 func testPermissionHelpers() {
-	permission := appwrite.NewPermission()
-	roles := appwrite.NewRole()
-	fmt.Println(permission.Read(roles.Any()))
-	fmt.Println(permission.Write(roles.User(appwrite.NewID().Custom("userid"), "")))
-	fmt.Println(permission.Create(roles.Users("")))
-	fmt.Println(permission.Update(roles.Guests()))
-	fmt.Println(permission.Delete(roles.Team("teamId", "owner")))
-	fmt.Println(permission.Delete(roles.Team("teamId", "")))
-	fmt.Println(permission.Create(roles.Member("memberId")))
-	fmt.Println(permission.Update(roles.Users("verified")))
-	fmt.Println(permission.Update(roles.User(appwrite.NewID().Custom("userid"), "unverified")))
+	fmt.Println(permission.Read(role.Any()))
+	fmt.Println(permission.Write(role.User(id.Custom("userid"), "")))
+	fmt.Println(permission.Create(role.Users("")))
+	fmt.Println(permission.Update(role.Guests()))
+	fmt.Println(permission.Delete(role.Team("teamId", "owner")))
+	fmt.Println(permission.Delete(role.Team("teamId", "")))
+	fmt.Println(permission.Create(role.Member("memberId")))
+	fmt.Println(permission.Update(role.Users("verified")))
+	fmt.Println(permission.Update(role.User(id.Custom("userid"), "unverified")))
 }
 
 func testIdHelpers() {
-	fmt.Println(appwrite.NewID().Unique())
-	fmt.Println(appwrite.NewID().Custom("custom_id"))
+	fmt.Println(id.Unique())
+	fmt.Println(id.Custom("custom_id"))
 }

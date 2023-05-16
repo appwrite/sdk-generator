@@ -1,4 +1,4 @@
-package {{ spec.title | caseLower }}
+package client
 
 import (
 	"bytes"
@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
 )
 
 const (
@@ -149,9 +150,9 @@ func isFileUpload(headers map[string]interface{}) bool {
 }
 
 func (clt *Client) FileUpload(url string, headers map[string]interface{}, params map[string]interface{}, paramName string, uploadId string) (*ClientResponse, error) {
-	inputFile, ok := params[paramName].(InputFile)
+	inputFile, ok := params[paramName].(file.InputFile)
 	if !ok {
-		msg := fmt.Sprintf("invalid input file. params[%s] must be of type InputFile", paramName)
+		msg := fmt.Sprintf("invalid input file. params[%s] must be of type file.InputFile", paramName)
 		return nil, errors.New(msg)
 	}
 
@@ -208,7 +209,13 @@ func (clt *Client) FileUpload(url string, headers map[string]interface{}, params
 			return nil, err
 		}
 
-		uploadId, _ = result.Result.(map[string]interface{})["$id"].(string)
+		var parsed map[string]interface{}
+		if strings.HasPrefix(result.Type, "application/json") {
+			err = json.Unmarshal([]byte(result.Result.(string)), &parsed)
+			if err == nil {
+				uploadId, _ = parsed["$id"].(string)
+			}
+		}
 	}
 	return result, nil
 }
@@ -243,7 +250,7 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		var body bytes.Buffer
 		writer := multipart.NewWriter(&body)
 		for key, val := range params {
-			if file, ok := val.(InputFile); ok {
+			if file, ok := val.(file.InputFile); ok {
 				fileName := file.Name
 				fileData := file.Data
 				fw, err := writer.CreateFormFile(key, fileName)

@@ -85,32 +85,32 @@ class Go extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseLower}}/client.go',
+                'destination'   => 'client/client.go',
                 'template'      => 'go/client.go.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseLower}}/inputFile.go',
+                'destination'   => 'file/inputFile.go',
                 'template'      => 'go/inputFile.go.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseLower}}/query.go',
+                'destination'   => 'query/query.go',
                 'template'      => 'go/query.go.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseLower}}/permission.go',
+                'destination'   => 'permission/permission.go',
                 'template'      => 'go/permission.go.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseLower}}/role.go',
+                'destination'   => 'role/role.go',
                 'template'      => 'go/role.go.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseLower}}/id.go',
+                'destination'   => 'id/id.go',
                 'template'      => 'go/id.go.twig',
             ],
             [
@@ -125,7 +125,7 @@ class Go extends Language
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => '{{ spec.title | caseLower}}models/{{ definition.name | caseLower }}.go',
+                'destination'   => 'models/{{ definition.name | caseLower }}.go',
                 'template'      => 'go/models/model.go.twig',
             ],
         ];
@@ -144,7 +144,7 @@ class Go extends Language
             case self::TYPE_NUMBER:
                 return 'float64';
             case self::TYPE_FILE:
-                return 'appwrite.InputFile';
+                return 'file.InputFile';
             case self::TYPE_STRING:
                 return 'string';
             case self::TYPE_BOOLEAN:
@@ -273,10 +273,11 @@ class Go extends Language
     {
         return [
             new TwigFilter('godocComment', function ($value, $indent=0) {
+                $value = trim($value);
                 $value = explode("\n", $value);
                 $indent = \str_repeat(' ', $indent);
                 foreach ($value as $key => $line) {
-                    $value[$key] = "// " . wordwrap($line, 75, "\n" . $indent . "// ");
+                    $value[$key] = "// " . wordwrap(trim($line), 75, "\n" . $indent . "// ");
                 }
                 return implode("\n" . $indent, $value);
             }, ['is_safe' => ['html']]),
@@ -301,7 +302,7 @@ class Go extends Language
             return 'bool';
         }
         if ($method['type'] === 'location') {
-            return '[]byte';
+            return 'string';
         }
 
         if (
@@ -314,7 +315,6 @@ class Go extends Language
 
         $ret = ucfirst($method['responseModel']);
 
-
-        return $namespace . 'Model.' . $ret;
+        return 'models.' . $ret;
     }
 }
