@@ -27,7 +27,7 @@ const parse = (data) => {
                 console.log(`${chalk.yellow.bold(key)} : ${data[key]}`);
             } else {
                 console.log(`${chalk.yellow.bold.underline(key)}`)
-                drawTable(data[key]);
+                drawTable([data[key]]);
             }
         } else {
             console.log(`${chalk.yellow.bold(key)} : ${data[key]}`);
