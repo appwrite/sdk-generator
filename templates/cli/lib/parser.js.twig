@@ -23,11 +23,11 @@ const parse = (data) => {
                 drawJSON(data[key]);
             }
         } else if (typeof data[key] === 'object') {
-            if (data[key] && data[key].constructor.name === 'BigNumber') {
+            if (data[key]?.constructor?.name === 'BigNumber') {
                 console.log(`${chalk.yellow.bold(key)} : ${data[key]}`);
             } else {
                 console.log(`${chalk.yellow.bold.underline(key)}`)
-                parse(data[key]);
+                drawTable([data[key]]);
             }
         } else {
             console.log(`${chalk.yellow.bold(key)} : ${data[key]}`);
