@@ -59,8 +59,13 @@ $ brew install --HEAD {{ language.params.executableName }}
 > Please note that `--HEAD` will be removed with official release.
 
 ### Windows
+Via Powershell
 ```powershell
 $ iwr -useb {{ sdk.url }}/cli/install.ps1 | iex
+```
+Via [Scoop](https://scoop.sh)
+```powershell
+$ scoop install https://raw.githubusercontent.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/master/scoop/appwrite.json
 ```
 
 Once the installation completes, you can verify your install using
