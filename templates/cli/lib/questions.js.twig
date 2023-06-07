@@ -352,6 +352,152 @@ const questionsDeployTeams = [
     },
 ]
 
+
+const questionsFlutterConfigure = [
+    {
+        type: "list",
+        name: "start",
+        when(answers) {
+            if (answers.override == undefined) {
+                return true
+            }
+            return answers.override;
+        },
+        message: "Which project do you want to link?",
+        choices: [
+            {
+                name: "Create a new Appwrite project",
+                value: "new",
+            },
+            {
+                name: "Link this Flutter project to an existing Appwrite project",
+                value: "existing",
+            },
+        ],
+    },
+    {
+        type: "input",
+        name: "project",
+        message: "What would you like to name your project?",
+        default: "My Awesome Project",
+        when(answers) {
+            return answers.start == "new";
+        },
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your project?",
+        default: "unique()",
+        when(answers) {
+            return answers.start == "new";
+        },
+    },
+    {
+        type: "list",
+        name: "project",
+        message: "Choose your Appwrite project.",
+        when(answers) {
+            return answers.start == "existing";
+        },
+        choices: async () => {
+            let response = await projectsList({
+                parseOutput: false
+            })
+            let projects = response["projects"]
+            let choices = projects.map((project, idx) => {
+                return {
+                    name: `${project.name} (${project['$id']})`,
+                    value: {
+                        name: project.name,
+                        id: project['$id']
+                    }
+                }
+            })
+
+            if (choices.length == 0) {
+                throw new Error("No projects found. Please create a new project.")
+            }
+
+            return choices;
+        }
+    }
+];
+
+const questionsFlutterSelectPlatforms = [
+    {
+        type: "checkbox",
+        name: "platforms",
+        message: "Choose your Platforms to configure.",
+        choices: [
+            'Android',
+            'iOS',
+            'Web',
+            'Linux',
+            'MacOS',
+            'Windows',
+        ]
+    }
+];
+
+const questionsFlutterChooseProject = [
+    {
+        type: "list",
+        name: "project",
+        message: "Choose Appwrite project.",
+        choices: async () => {
+            let response = await projectsList({
+                parseOutput: false
+            })
+            let projects = response["projects"]
+            let choices = projects.map((project, idx) => {
+                return {
+                    name: `${project.name} (${project['$id']})`,
+                    value: {
+                        name: project.name,
+                        id: project['$id']
+                    }
+                }
+            })
+
+            if (choices.length == 0) {
+                throw new Error("No projects found. Please create a new project.")
+            }
+
+            return choices;
+        }
+    },
+]
+
+const questionsFlutterChooseDatabase = [
+    {
+        type: "checkbox",
+        name: "databases",
+        message: "Select databases to generate classes.",
+        choices: async () => {
+            let response = await databasesList({
+                parseOutput: false
+            })
+            let databases = response["databases"]
+            let choices = databases.map((database, idx) => {
+                return {
+                    name: `${database.name} (${database['$id']})`,
+                    value: {
+                        name: database.name,
+                        id: database['$id']
+                    }
+                }
+            })
+
+            if (choices.length == 0) {
+                throw new Error("No databases found. Please create databases and collections.")
+            }
+
+            return choices;
+        }
+    }
+]
+
 module.exports = {
     questionsInitProject,
     questionsLogin,
@@ -361,5 +507,9 @@ module.exports = {
     questionsDeployCollections,
     questionsDeployBuckets,
     questionsDeployTeams,
-    questionsGetEntrypoint
+    questionsGetEntrypoint,
+    questionsFlutterConfigure,
+    questionsFlutterSelectPlatforms,
+    questionsFlutterChooseDatabase,
+    questionsFlutterChooseProject,
 };

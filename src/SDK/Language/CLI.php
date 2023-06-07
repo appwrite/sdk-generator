@@ -157,6 +157,21 @@ class CLI extends Node
                 'template'      => 'cli/lib/commands/deploy.js.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'lib/commands/flutter.js',
+                'template'      => 'cli/lib/commands/flutter.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'flutter_res/apwrite.dart',
+                'template'      => 'cli/flutter_res/appwrite.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'flutter_res/template_model.dart',
+                'template'      => 'cli/flutter_res/template_model.dart.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '/lib/commands/{{service.name | caseDash}}.js',
                 'template'      => 'cli/lib/commands/command.js.twig',

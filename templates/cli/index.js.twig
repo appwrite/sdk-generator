@@ -10,6 +10,7 @@ const chalk = require("chalk");
 const { version } = require("./package.json");
 const { commandDescriptions, cliConfig } = require("./lib/parser");
 const { client } = require("./lib/commands/generic");
+const { flutter } = require("./lib/commands/flutter");
 {% if sdk.test != "true" %}
 const { login, logout } = require("./lib/commands/generic");
 const { init } = require("./lib/commands/init");
@@ -45,6 +46,7 @@ program
   .addCommand({{ service.name | caseLower }})
 {% endfor %}
   .addCommand(client)
+  .addCommand(flutter)
   .parse(process.argv);
   
 process.stdout.columns = oldWidth;
