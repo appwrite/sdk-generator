@@ -1,8 +1,8 @@
-import io
 import requests
 import os
 from .input_file import InputFile
 from .exception import {{spec.title | caseUcfirst}}Exception
+from typing import Optional
 
 class Client:
     def __init__(self):
@@ -21,20 +21,20 @@ class Client:
 {% endfor %}
         }
 
-    def set_self_signed(self, status=True):
+    def set_self_signed(self, status: bool = True):
         self._self_signed = status
         return self
 
-    def set_endpoint(self, endpoint):
+    def set_endpoint(self, endpoint: str):
         self._endpoint = endpoint
         return self
 
-    def add_header(self, key, value):
+    def add_header(self, key: str, value: str):
         self._global_headers[key.lower()] = value
         return self
 {% for header in spec.global.headers %}
 
-    def set_{{header.key | caseSnake}}(self, value):
+    def set_{{header.key | caseSnake}}(self, value: str):
 {% if header.description %}
         """{{header.description}}"""
 
@@ -43,7 +43,7 @@ class Client:
         return self
 {% endfor %}
 
-    def call(self, method, path='', headers=None, params=None):
+    def call(self, method: str, path: str = '', headers: Optional[dict] = None, params: Optional[dict] = None):
         if headers is None:
             headers = {}
 
@@ -105,12 +105,12 @@ class Client:
 
     def chunked_upload(
         self,
-        path,
-        headers = None,
-        params = None,
-        param_name = '',
+        path: str,
+        headers: Optional[dict] = None,
+        params: Optional[dict] = None,
+        param_name: str = '',
         on_progress = None,
-        upload_id = ''
+        upload_id: str = ''
     ):
         input_file = params[param_name]
 
@@ -186,7 +186,7 @@ class Client:
 
         return result
 
-    def flatten(self, data, prefix='', stringify=False):
+    def flatten(self, data: dict, prefix: str = '', stringify: bool = False):
         output = {}
         i = 0
 

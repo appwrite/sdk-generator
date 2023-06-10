@@ -1,9 +1,10 @@
 import os
 import mimetypes
+from typing import Optional
 
 class InputFile:
     @classmethod
-    def from_path(cls, path):
+    def from_path(cls, path: str) -> 'InputFile':
         instance = cls()
         instance.path = path
         instance.filename = os.path.basename(path)
@@ -12,7 +13,7 @@ class InputFile:
         return instance
 
     @classmethod
-    def from_bytes(cls, bytes, filename = None, mime_type = None):
+    def from_bytes(cls, bytes, filename: Optional[str] = None, mime_type: Optional[str] = None) -> 'InputFile':
         instance = cls()
         instance.data = bytes
         instance.filename = filename
