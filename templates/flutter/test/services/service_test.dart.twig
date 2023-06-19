@@ -1,0 +1,63 @@
+{% import 'flutter/base/utils.twig' as utils %}
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
+import 'package:appwrite/models.dart' as models;
+import 'package:appwrite/src/enums.dart';
+import 'package:appwrite/src/response.dart';
+import 'dart:typed_data';
+
+class MockClient extends Mock implements Client {
+  @override
+  Future<Response> call(
+    HttpMethod? method, {
+    String path = '',
+    Map<String, String> headers = const {},
+    Map<String, dynamic> params = const {},
+    ResponseType? responseType,
+  }) async {
+    super.noSuchMethod(Invocation.method(#call, [method]));
+    return super.noSuchMethod(Invocation.method(#call, [method]),
+        returnValue: Response());
+  }
+}
+
+void main() {
+    group('{{service.name | caseUcfirst}} test', () {
+        late Client client;
+        late {{service.name | caseUcfirst}} {{service.name | caseCamel}};
+
+        setUp(() {
+            client = MockClient();
+            {{service.name | caseCamel}} = {{service.name | caseUcfirst}}(client);
+        });
+
+{% for method in service.methods %}
+        test('test method {{method.name | caseCamel}}()', () async {
+            {% if method.type == 'webAuth' %}
+
+            {%~ elseif method.type == 'location' ~%}
+            final Uint8List data = [];
+            {% else %}
+            final Map<String, dynamic> data = {
+                {# need response model #}
+            };
+            {% endif %}
+
+            when(client.call(
+                HttpMethod.{{method.method | caseLower}},
+            ).then(_) async => Response(data: data));
+
+            final response = await {{service.name | caseCamel}}.{{method.name | caseCamel}}(
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+                '{{parameter.name | caseCamel}}':'{{parameter.example}}',
+{% endif %}
+{% endfor %}    
+            );
+        });
+
+{% endfor %}
+
+
+    });
+}
