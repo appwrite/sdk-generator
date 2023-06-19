@@ -36,19 +36,16 @@ void main() {
 
 {% for method in service.methods %}
         test('test method {{method.name | caseCamel}}()', () async {
-            {% if method.type == 'webAuth' %}
-
-            {%~ elseif method.type == 'location' ~%}
+            {%- if method.type == 'webAuth' -%}
+            {%~ elseif method.type == 'location' -%}
             final Uint8List data = Uint8List.fromList([]);
-            {% else %}
+            {%- else -%}
 
                 {%~ if method.responseModel and method.responseModel != 'any' ~%}
             final Map<String, dynamic> data = {
-                {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}
-                    {%~ for property in definition.properties | filter((param) => param.required) ~%}
-                '{{property.name | escapeKeyword | escapeDollarSign}}': {% if property.type == 'object' %}{}{% elseif property.type == 'array' %}[]{% elseif property.type == 'string' %}'{{property.example}}'{% else %}{{property.example}}{% endif %},
-                    {%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor ~%}
-                {# need response model #}
+                {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
+                '{{property.name | escapeKeyword | escapeDollarSign}}': {% if property.type == 'object' %}{}{% elseif property.type == 'array' %}[]{% elseif property.type == 'string' %}'{{property.example}}'{% else %}{{property.example}}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
+
             };
                 {%~ else ~%}
             final data = null;
@@ -59,25 +56,17 @@ void main() {
                 HttpMethod.{{method.method | caseLower}},
             )).thenAnswer((_) async => Response(data: data));
 
-            final response = await {{service.name | caseCamel}}.{{method.name | caseCamel}}(
-{% for parameter in method.parameters.all %}
-{% if parameter.required %}
-                {{parameter.name | caseCamel}}: {% if parameter.type == 'object' %}{}{% else %}'{{parameter.example}}'{% endif %},
-{% endif %}
-{% endfor %}    
+            final response = await {{service.name | caseCamel}}.{{method.name | caseCamel}}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
+                {{parameter.name | caseCamel}}: {% if parameter.type == 'object' %}{}{% else %}'{{parameter.example}}'{%~ endif ~%},{%~ endfor ~%}
             );
 
-        {%~ if method.type == 'location' ~%}
+        {%- if method.type == 'location' ~%}
             expect(response, isA<Uint8List>());
-        {% endif %}
-        {%~ if method.responseModel and method.responseModel != 'any' ~%}
+        {%~ endif ~%}{%~ if method.responseModel and method.responseModel != 'any' ~%}
             expect(response, isA<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>());
-        {% endif %}
-
+        {%~ endif ~%}
         });
 
 {% endfor %}
-
-
     });
 }
