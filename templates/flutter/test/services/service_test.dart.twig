@@ -5,8 +5,11 @@ import 'package:appwrite/models.dart' as models;
 import 'package:appwrite/src/enums.dart';
 import 'package:appwrite/src/response.dart';
 import 'dart:typed_data';
+import 'package:appwrite/appwrite.dart';
 
 class MockClient extends Mock implements Client {
+  Map<String, String> config = {'project': 'testproject'};
+
   @override
   Future<Response> call(
     HttpMethod? method, {
@@ -36,7 +39,7 @@ void main() {
             {% if method.type == 'webAuth' %}
 
             {%~ elseif method.type == 'location' ~%}
-            final Uint8List data = [];
+            final Uint8List data = Uint8List.fromList([]);
             {% else %}
             final Map<String, dynamic> data = {
                 {# need response model #}
@@ -45,15 +48,20 @@ void main() {
 
             when(client.call(
                 HttpMethod.{{method.method | caseLower}},
-            ).then(_) async => Response(data: data));
+            )).thenAnswer((_) async => Response(data: data));
 
             final response = await {{service.name | caseCamel}}.{{method.name | caseCamel}}(
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
-                '{{parameter.name | caseCamel}}':'{{parameter.example}}',
+                {{parameter.name | caseCamel}}: '{{parameter.example}}',
 {% endif %}
 {% endfor %}    
             );
+
+        {%~ if method.type == 'location' ~%}
+            expect(response, isA<Uint8List>());
+        {% endif %}
+
         });
 
 {% endfor %}
