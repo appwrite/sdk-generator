@@ -634,6 +634,28 @@ class SDK
                         }
                     }
                     break;
+                case 'enum':
+                    foreach ($this->spec->getServices() as $key => $service) {
+                        $methods = $this->spec->getMethods($key);
+
+
+                        foreach ($methods as $method) {
+                            $params['method'] = $method;
+                            $parameters = $method['parameters']['path'];
+
+                            foreach ($parameters as $parameter) {
+                                // Check if the enum field is defined
+                                if ($parameter['enum'] != null) {
+                                    $params['enum'] = [
+                                        'name' => $parameter['name'],
+                                        'enum' => $parameter['enum'],
+                                    ];
+                                    $this->render($template, $destination, $block, $params, $minify);
+                                }
+                            }
+                        }
+                    }
+                    break;
             }
         }
     }
