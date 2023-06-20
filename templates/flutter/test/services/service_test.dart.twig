@@ -5,6 +5,7 @@ import 'package:appwrite/models.dart' as models;
 import 'package:appwrite/src/enums.dart';
 import 'package:appwrite/src/response.dart';
 import 'dart:typed_data';
+import 'dart:convert';
 import 'package:appwrite/appwrite.dart';
 
 class MockClient extends Mock implements Client {
@@ -30,6 +31,18 @@ class MockClient extends Mock implements Client {
     }
   ) async {
     return super.noSuchMethod(Invocation.method(#webAuth, [url]), returnValue: 'done');
+  }
+
+  @override
+  Future<Response> chunkedUpload({
+    required String path,
+    required Map<String, dynamic> params,
+    required String paramName,
+    required String idParamName,
+    required Map<String, String> headers,
+    Function(UploadProgress)? onProgress,
+  }) async {
+    return super.noSuchMethod(Invocation.method(#chunkedUpload, [path, params, paramName, idParamName, headers]), returnValue: Response());
   }
 }
 
@@ -65,6 +78,14 @@ void main() {
             when(client.webAuth(
                 Uri(),
             )).thenAnswer((_) async => 'done');
+            {%~ elseif method.type == 'upload' ~%}
+            when(client.chunkedUpload(
+                path: '',
+                params: data,
+                paramName: 'file',
+                idParamName: 'fileId',
+                headers: {},
+            )).thenAnswer((_) async => Response(data: data));
             {%~ else ~%}
             when(client.call(
                 HttpMethod.{{method.method | caseLower}},
@@ -72,7 +93,7 @@ void main() {
             {%~ endif ~%}
 
             final response = await {{service.name | caseCamel}}.{{method.name | caseCamel}}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
-                {{parameter.name | caseCamel}}: {% if parameter.type == 'object' %}{}{% else %}'{{parameter.example}}'{%~ endif ~%},{%~ endfor ~%}
+                {{parameter.name | caseCamel}}: {% if parameter.type == 'object' %}{}{% elseif parameter.type == 'array' %}[]{% elseif parameter.type == 'file' %}InputFile.fromBytes(bytes: utf8.encode('bytes'), filename: 'file.txt'){% else %}'{{parameter.example}}'{%~ endif ~%},{%~ endfor ~%}
             );
 
         {%- if method.type == 'location' ~%}
