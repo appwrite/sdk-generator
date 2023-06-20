@@ -403,6 +403,36 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/id_test.dart',
+                'template'      => 'dart/test/id_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/permission_test.dart',
+                'template'      => 'dart/test/permission_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/query_test.dart',
+                'template'      => 'dart/test/query_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/role_test.dart',
+                'template'      => 'dart/test/role_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/enums_test.dart',
+                'template'      => 'dart/test/src/enums_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/response_test.dart',
+                'template'      => 'dart/test/src/response_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '.travis.yml',
                 'template'      => 'dart/.travis.yml.twig',
             ],

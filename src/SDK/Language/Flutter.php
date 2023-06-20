@@ -246,6 +246,46 @@ class Flutter extends Dart
                 'template'      => 'flutter/test/services/service_test.dart.twig',
             ],
             [
+                'scope'         => 'definition',
+                'destination'   => '/test/src/models/{{definition.name | caseSnake }}_test.dart',
+                'template'      => 'dart/test/src/models/model_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/id_test.dart',
+                'template'      => 'dart/test/id_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/permission_test.dart',
+                'template'      => 'dart/test/permission_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/query_test.dart',
+                'template'      => 'dart/test/query_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/role_test.dart',
+                'template'      => 'dart/test/role_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/cookie_manager_test.dart',
+                'template'      => 'flutter/test/src/cookie_manager_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/enums_test.dart',
+                'template'      => 'dart/test/src/enums_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/response_test.dart',
+                'template'      => 'dart/test/src/response_test.dart.twig',
+            ],
+            [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'flutter/docs/example.md.twig',
