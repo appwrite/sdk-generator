@@ -2,7 +2,7 @@
 
 [![pub package](https://img.shields.io/pub/v/{{ language.params.packageName }}?style=flat-square)](https://pub.dartlang.org/packages/{{ language.params.packageName }})
 ![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?style=flat-square)
-![Version](https://img.shields.io/badge/api%20version-{{ spec.version|url_encode }}-blue.svg?style=flat-square)
+![Version](https://img.shields.io/badge/api%20version-{{spec.version | split('.') | slice(0,2) | join('.') ~ '.x' | url_encode}}-blue.svg?style=flat-square)
 [![Build Status](https://img.shields.io/travis/com/appwrite/sdk-generator?style=flat-square)](https://travis-ci.com/appwrite/sdk-generator)
 {% if sdk.twitterHandle %}
 [![Twitter Account](https://img.shields.io/twitter/follow/{{ sdk.twitterHandle }}?color=00acee&label=twitter&style=flat-square)](https://twitter.com/{{ sdk.twitterHandle }})
