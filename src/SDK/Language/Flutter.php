@@ -282,6 +282,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/src/exception_test.dart',
+                'template'      => 'dart/test/src/exception_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/test/src/response_test.dart',
                 'template'      => 'dart/test/src/response_test.dart.twig',
             ],
