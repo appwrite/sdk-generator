@@ -277,6 +277,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/src/interceptor_test.dart',
+                'template'      => 'flutter/test/src/interceptor_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/test/src/enums_test.dart',
                 'template'      => 'dart/test/src/enums_test.dart.twig',
             ],
