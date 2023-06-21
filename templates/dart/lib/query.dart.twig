@@ -13,22 +13,42 @@ class Query {
       _addQuery(attribute, 'equal', value);
 
   /// Filter resources where [attribute] is not equal to [value].
+  ///
+  /// [value] can be a single value or a list. If a list is used
+  /// the query will return resources where [attribute] is equal
+  /// to any of the values in the list.
   static String notEqual(String attribute, dynamic value) =>
       _addQuery(attribute, 'notEqual', value);
 
   /// Filter resources where [attribute] is less than [value].
+  ///
+  /// [value] can be a single value or a list. If a list is used
+  /// the query will return resources where [attribute] is equal
+  /// to any of the values in the list.
   static String lessThan(String attribute, dynamic value) =>
       _addQuery(attribute, 'lessThan', value);
 
   /// Filter resources where [attribute] is less than or equal to [value].
+  ///
+  /// [value] can be a single value or a list. If a list is used
+  /// the query will return resources where [attribute] is equal
+  /// to any of the values in the list.
   static String lessThanEqual(String attribute, dynamic value) =>
       _addQuery(attribute, 'lessThanEqual', value);
 
   /// Filter resources where [attribute] is greater than [value].
+  ///
+  /// [value] can be a single value or a list. If a list is used
+  /// the query will return resources where [attribute] is equal
+  /// to any of the values in the list.
   static String greaterThan(String attribute, dynamic value) =>
       _addQuery(attribute, 'greaterThan', value);
 
   /// Filter resources where [attribute] is greater than or equal to [value].
+  ///
+  /// [value] can be a single value or a list. If a list is used
+  /// the query will return resources where [attribute] is equal
+  /// to any of the values in the list.
   static String greaterThanEqual(String attribute, dynamic value) =>
       _addQuery(attribute, 'greaterThanEqual', value);
 
