@@ -448,6 +448,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/src/input_file_test.dart',
+                'template'      => 'dart/test/src/input_file_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/test/src/response_test.dart',
                 'template'      => 'dart/test/src/response_test.dart.twig',
             ],
