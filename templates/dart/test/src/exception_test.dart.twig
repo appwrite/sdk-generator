@@ -1,5 +1,9 @@
 import 'package:{{language.params.packageName}}/src/exception.dart';
+{% if 'dart' in language.params.packageName %}
+import 'package:test/test.dart';
+{% else %}
 import 'package:flutter_test/flutter_test.dart';
+{% endif %}
 
 void main() {
   group('{{spec.title | caseUcfirst}}Exception', () {
