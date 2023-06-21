@@ -402,6 +402,16 @@ class Dart extends Language
                 'template'      => 'dart/docs/example.md.twig',
             ],
             [
+                'scope'         => 'service',
+                'destination'   => '/test/services/{{service.name | caseDash}}_test.dart',
+                'template'      => 'dart/test/services/service_test.dart.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/test/src/models/{{definition.name | caseSnake }}_test.dart',
+                'template'      => 'dart/test/src/models/model_test.dart.twig',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => '/test/id_test.dart',
                 'template'      => 'dart/test/id_test.dart.twig',
