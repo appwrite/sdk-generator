@@ -1,0 +1,21 @@
+import 'package:{{language.params.packageName}}/src/exception.dart';
+{% if 'dart' in language.params.packageName %}
+import 'package:test/test.dart';
+{% else %}
+import 'package:flutter_test/flutter_test.dart';
+{% endif %}
+
+void main() {
+  group('{{spec.title | caseUcfirst}}Exception', () {
+    test('toString should return correct string representation', () {
+      final exception1 = {{spec.title | caseUcfirst}}Exception();
+      expect(exception1.toString(), equals('{{spec.title | caseUcfirst}}Exception'));
+
+      final exception2 = {{spec.title | caseUcfirst}}Exception('Some error message');
+      expect(exception2.toString(), equals('{{spec.title | caseUcfirst}}Exception: , Some error message (0)'));
+
+      final exception3 = {{spec.title | caseUcfirst}}Exception('Invalid request', 400, 'ValidationError');
+      expect(exception3.toString(), equals('{{spec.title | caseUcfirst}}Exception: ValidationError, Invalid request (400)'));
+    });
+  });
+}
