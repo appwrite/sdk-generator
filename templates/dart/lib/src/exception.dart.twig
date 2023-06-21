@@ -8,7 +8,7 @@ class {{spec.title | caseUcfirst}}Exception implements Exception {
   
   @override
   String toString() {
-    if (message == null) return "{{spec.title | caseUcfirst}}Exception";
-    return "{{spec.title | caseUcfirst}}Exception: $type, $message (${code ?? 0})";
+    if (message == null || message == "") return "{{spec.title | caseUcfirst}}Exception";
+    return "{{spec.title | caseUcfirst}}Exception: ${type ?? ''}, $message (${code ?? 0})";
   }
 }

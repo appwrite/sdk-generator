@@ -277,8 +277,33 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/src/interceptor_test.dart',
+                'template'      => 'flutter/test/src/interceptor_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/realtime_response_test.dart',
+                'template'      => 'flutter/test/src/realtime_response_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/realtime_response_connected_test.dart',
+                'template'      => 'flutter/test/src/realtime_response_connected_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/realtime_subscription_test.dart',
+                'template'      => 'flutter/test/src/realtime_subscription_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/test/src/enums_test.dart',
                 'template'      => 'dart/test/src/enums_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/exception_test.dart',
+                'template'      => 'dart/test/src/exception_test.dart.twig',
             ],
             [
                 'scope'         => 'default',
