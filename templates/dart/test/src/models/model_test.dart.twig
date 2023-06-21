@@ -1,6 +1,10 @@
 {% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>{% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier }}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
 import 'package:{{ language.params.packageName }}/models.dart';
+{% if 'dart' in language.params.packageName %}
+import 'package:test/test.dart';
+{% else %}
 import 'package:flutter_test/flutter_test.dart';
+{% endif %}
 
 void main() {
   group('{{ definition.name | caseUcfirst | overrideIdentifier }}', () {
