@@ -1,9 +1,51 @@
 import 'package:appwrite/appwrite.dart';
 
-final client = Client()
-  .setEndpoint('{ENDPOINT}')
-  .setProject('{PROJECT}');
+class Appwrite {
+  final Client client = Client();
+  late final Account account;
+  late final Databases databases;
+  late final Avatars avatars;
+  late final Storage storage;
+  late final Functions functions;
+  late final Graphql graphql;
+  late final Teams teams;
 
-final account = Account(client);
-final databases = Databases(client);
-final storage = Storage(client);
+  // Comment out the following constructor if you prefer singleton
+  Appwrite() {
+    client
+        .setEndpoint('{ENDPOINT}')
+        .setProject('{PROJECT}');
+    
+    account = Account(client);
+    databases = Databases(client);
+    avatars = Avatars(client);
+    storage = Storage(client);
+    functions = Functions(client);
+    graphql = Graphql(client);
+    teams = Teams(client);
+  }
+
+  // Uncoment the following code if you prefer using singleton
+  /*
+  static Appwrite? _instance;
+
+  Appwrite._internal() {
+    client
+        .setEndpoint('{ENDPOINT}')
+        .setProject('{PROJECT}');
+    
+    account = Account(client);
+    databases = Databases(client);
+    avatars = Avatars(client);
+    storage = Storage(client);
+    functions = Functions(client);
+    graphql = Graphql(client);
+    teams = Teams(client);
+  }
+
+  static Appwrite get instance {
+    _instance ??= Appwrite._internal();
+    return _instance!;
+  }
+  */
+}
