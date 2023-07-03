@@ -36,6 +36,11 @@ class SDK
     protected ?Environment $twig = null;
 
     /**
+     * @var FileSystemLoader
+     */
+    protected $loader = null;
+
+    /**
      * @var array
      */
     protected array $defaultHeaders = [];
@@ -80,8 +85,8 @@ class SDK
     {
         $this->language = $language;
         $this->spec     = $spec;
-
-        $this->twig = new Environment(new FilesystemLoader(__DIR__ . '/../../templates'), [
+        $this->loader = new FileSystemLoader(__DIR__ . '/../../templates');
+        $this->twig = new Environment($this->loader, [
             'debug' => true
         ]);
 

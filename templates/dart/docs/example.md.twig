@@ -17,14 +17,7 @@ void main() { // Init SDK
 {% endfor %}  ;
 
 {% endif %}
-  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
-{% if loop.first %}
-
-{% endif %}
-{% if parameter.required %}
-    {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }},
-{% endif %}
-{% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %});
+  Future result = {{ service.name | exampleMethod(method) }}
 
   result
     .then((response) {
