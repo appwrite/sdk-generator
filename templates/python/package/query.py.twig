@@ -1,89 +1,89 @@
 class Query:
     @staticmethod
-    def equal(attribute, value):
+    def equal(attribute, value) -> str:
         return Query.add_query(attribute, "equal", value)
 
     @staticmethod
-    def not_equal(attribute, value):
+    def not_equal(attribute, value) -> str:
         return Query.add_query(attribute, "notEqual", value)
     
     @staticmethod
-    def less_than(attribute, value):
+    def less_than(attribute, value) -> str:
         return Query.add_query(attribute, "lessThan", value)
     
     @staticmethod
-    def less_than_equal(attribute, value):
+    def less_than_equal(attribute, value) -> str:
         return Query.add_query(attribute, "lessThanEqual", value)
     
     @staticmethod
-    def greater_than(attribute, value):
+    def greater_than(attribute, value) -> str:
         return Query.add_query(attribute, "greaterThan", value)
     
     @staticmethod
-    def greater_than_equal(attribute, value):
+    def greater_than_equal(attribute, value) -> str:
         return Query.add_query(attribute, "greaterThanEqual", value)
 
     @staticmethod
-    def is_null(attribute):
+    def is_null(attribute) -> str:
         return f'isNull("{attribute}")'
 
     @staticmethod
-    def is_not_null(attribute):
+    def is_not_null(attribute) -> str:
         return f'isNotNull("{attribute}")'
 
     @staticmethod
-    def between(attribute, start, end):
+    def between(attribute, start, end) -> str:
         return Query.add_query(attribute, "between", [start, end])
 
     @staticmethod
-    def starts_with(attribute, value):
+    def starts_with(attribute, value) -> str:
         return Query.add_query(attribute, "startsWith", value)
 
     @staticmethod
-    def ends_with(attribute, value):
+    def ends_with(attribute, value) -> str:
         return Query.add_query(attribute, "endsWith", value)
 
     @staticmethod
-    def select(attributes):
+    def select(attributes) -> str:
         return f'select([{",".join(map(Query.parseValues, attributes))}])'
 
     @staticmethod
-    def search(attribute, value):
+    def search(attribute, value) -> str:
         return Query.add_query(attribute, "search", value)
 
     @staticmethod
-    def order_asc(attribute):
+    def order_asc(attribute) -> str:
         return f'orderAsc("{attribute}")'
 
     @staticmethod
-    def order_desc(attribute):
+    def order_desc(attribute) -> str:
         return f'orderDesc("{attribute}")'
 
     @staticmethod
-    def cursor_before(id):
+    def cursor_before(id) -> str:
         return f'cursorBefore("{id}")'
 
     @staticmethod
-    def cursor_after(id):
+    def cursor_after(id) -> str:
         return f'cursorAfter("{id}")'
 
     @staticmethod
-    def limit(limit):
+    def limit(limit) -> str:
         return f'limit({limit})'
 
     @staticmethod
-    def offset(offset):
+    def offset(offset) -> str:
         return f'offset({offset})'
 
     @staticmethod
-    def add_query(attribute, method, value):
+    def add_query(attribute, method, value) -> str:
         if type(value) == list:
             return f'{method}("{attribute}", [{",".join(map(Query.parseValues, value))}])'
         else:
             return f'{method}("{attribute}", [{Query.parseValues(value)}])'
 
     @staticmethod
-    def parseValues(value):
+    def parseValues(value) -> str:
         if type(value) == str:
             return f'"{value}"'
         elif type(value) == bool:

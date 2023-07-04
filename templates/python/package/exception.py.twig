@@ -1,5 +1,7 @@
+from typing import Optional
+
 class {{spec.title | caseUcfirst}}Exception(Exception):
-    def __init__(self, message, code = 0, type = None, response = None):
+    def __init__(self, message: str, code: int = 0, type: Optional[str] = None, response: Optional[dict] = None):
         self.message = message
         self.code = code
         self.type = type
