@@ -93,6 +93,7 @@ abstract class Base extends TestCase
         'create("member:memberId")',
         'update("users/verified")',
         'update("user:userid/unverified")',
+        'create("label:admin")',
     ];
 
     protected const ID_HELPER_RESPONSES = [
