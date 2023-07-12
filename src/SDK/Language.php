@@ -97,4 +97,25 @@ abstract class Language
         $str = str_replace(" ", "", $str);
         return lcfirst($str);
     }
+
+    public function getEnumType(string $service, string $method): string
+    {
+        switch ($service) {
+            case 'account':
+                switch ($method) {
+                    case 'createOAuth2Session':
+                        return 'Provider';
+                }
+            case 'avatars':
+                switch ($method) {
+                    case 'getBrowser':
+                        return 'Browser';
+                    case 'getCreditCard':
+                        return 'CreditCard';
+                    case 'getFlag':
+                        return  'Flag';
+                }
+        }
+        throw new \Exception('Enum type not found for service: ' . $service . ' method: ' . $method);
+    }
 }

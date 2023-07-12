@@ -140,6 +140,9 @@ class SDK
         $this->twig->addFilter(new TwigFilter('typeName', function ($value) {
             return $this->language->getTypeName($value);
         }, ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('getEnumType', function ($service, $method) {
+            return $this->language->getEnumType($service, $method);
+        }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('paramDefault', function ($value) {
             return $this->language->getParamDefault($value);
         }, ['is_safe' => ['html']]));
@@ -647,9 +650,9 @@ class SDK
                                 // Check if the enum field is defined
                                 if ($parameter['enum'] != null) {
                                     $params['enum'] = [
-                                        'name' => $parameter['name'],
+                                        'name' =>  $this->language->getEnumType($service['name'], $method['name']),
                                         'enum' => $parameter['enum'],
-                                    ];
+                                        ];
                                     $this->render($template, $destination, $block, $params, $minify);
                                 }
                             }
