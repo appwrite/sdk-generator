@@ -184,6 +184,11 @@ class Python extends Language
                 'destination'   => '.travis.yml',
                 'template'      => 'python/.travis.yml.twig',
             ],
+            [
+                'scope'         => 'enum',
+                'destination'   => '{{ spec.title | caseSnake}}/enums/{{ enum.name | caseSnake }}.py',
+                'template'      => 'python/package/enums/enum.py.twig',
+            ],
         ];
     }
 

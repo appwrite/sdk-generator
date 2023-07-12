@@ -211,6 +211,11 @@ class PHP extends Language
                 'destination'   => '/src/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
                 'template'      => 'php/src/Services/Service.php.twig',
             ],
+            [
+                'scope'         => 'enum',
+                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Enums/{{ enum.name | caseUcfirst }}.php',
+                'template'      => 'php/src/Enums/Enum.php.twig',
+            ],
         ];
     }
 
