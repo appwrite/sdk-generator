@@ -1,0 +1,16 @@
+import 'package:{{ language.params.packageName }}/src/enums.dart';
+{% if 'dart' in language.params.packageName %}
+import 'package:test/test.dart';
+{% else %}
+import 'package:flutter_test/flutter_test.dart';
+{% endif %}
+
+void main() {
+  group('name()', () {
+    for (final method in HttpMethod.values) {
+      test('returns ${method.toString().split('.').last.toUpperCase()} for $method', () {
+        expect(method.name(), method.toString().split('.').last.toUpperCase());
+      });
+    }
+  });
+}
