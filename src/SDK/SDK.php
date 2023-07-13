@@ -641,7 +641,6 @@ class SDK
                     foreach ($this->spec->getServices() as $key => $service) {
                         $methods = $this->spec->getMethods($key);
 
-
                         foreach ($methods as $method) {
                             $params['method'] = $method;
                             $parameters = $method['parameters']['path'];
