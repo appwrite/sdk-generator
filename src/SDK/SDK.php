@@ -649,7 +649,7 @@ class SDK
                                 // Check if the enum field is defined
                                 if ($parameter['enum'] != null) {
                                     $params['enum'] = [
-                                        'name' =>  $this->language->getEnumType($service['name'], $method['name']),
+                                        'name' =>  $parameter['enum-name'],
                                         'enum' => $parameter['enum'],
                                         ];
                                     $this->render($template, $destination, $block, $params, $minify);
