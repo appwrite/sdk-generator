@@ -1,0 +1,9 @@
+package {{ sdk.namespace | caseDot }}.enums
+
+enum class {{ enum.name | caseUcfirst | overrideIdentifier }}(val value: String) {
+{% for value in enum.enum %}
+    {{value | caseUpper | replace({'-': ''})}}('{{value}}'){% if not loop.last %},
+{% endif %}
+{% endfor %}
+
+}
