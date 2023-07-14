@@ -93,6 +93,11 @@ class Deno extends JS
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'deno/docs/example.md.twig',
             ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'src/enums/{{ enum.name | caseCamel }}.ts',
+                'template'      => 'deno/src/enums/enum.ts.twig',
+            ],
         ];
     }
 

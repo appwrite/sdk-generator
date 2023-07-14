@@ -1,0 +1,5 @@
+export enum {{ enum.name | caseUcfirst | overrideIdentifier }} {
+    {% for value in enum.enum %}
+    {{ value | caseUcfirst | overrideIdentifier }} = '{{ value }}',
+{% endfor %}
+}
