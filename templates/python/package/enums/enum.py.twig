@@ -2,5 +2,5 @@ from enum import Enum
 
 class {{ enum.name | caseUcfirst | overrideIdentifier }}(Enum):
 {% for value in enum.enum %}
-    {{value}}
+    {{value | caseUpper | overrideIdentifier}} = {{ value }}
 {% endfor %}

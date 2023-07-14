@@ -95,10 +95,10 @@ class SDK
         $this->twig->addExtension(new DebugExtension());
 
         $this->twig->addFilter(new TwigFilter('caseLower', function ($value) {
-            return strtolower((string)$value);
+            return strtolower(str_replace('-', '', (string)$value));
         }));
         $this->twig->addFilter(new TwigFilter('caseUpper', function ($value) {
-            return strtoupper((string)$value);
+            return strtoupper(str_replace('-', '', (string)$value));
         }));
         $this->twig->addFilter(new TwigFilter('caseUcfirst', function ($value) {
             return ucfirst($this->helperCamelCase($value));
@@ -139,9 +139,6 @@ class SDK
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('typeName', function ($value) {
             return $this->language->getTypeName($value);
-        }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('getEnumType', function ($service, $method) {
-            return $this->language->getEnumType($service, $method);
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('paramDefault', function ($value) {
             return $this->language->getParamDefault($value);

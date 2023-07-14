@@ -2,8 +2,9 @@
 
 namespace {{ spec.title | caseUcfirst }}\Enums;
 
-enum {{ enum.name | caseUcfirst | overrideIdentifier }} {
+class {{ enum.name | caseUcfirst | overrideIdentifier }}
+{
 {% for value in enum.enum %}
-  case {{value}};
+    public const {{value | caseUpper | overrideIdentifier}} = '{{value}}';
 {% endfor %}
 }
