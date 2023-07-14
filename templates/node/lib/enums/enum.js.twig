@@ -1,6 +1,6 @@
 const {{ enum.name | caseUcfirst | overrideIdentifier }} = {
     {% for value in enum.enum %}
-    {{ value | caseLower | overrideIdentifier }}: '{{value}}' {% if not loop.last %},
+    {{ value | caseLower | replace({'-': ''})}}: '{{value}}' {% if not loop.last %},
     {% endif %}
     {% endfor %}
 }

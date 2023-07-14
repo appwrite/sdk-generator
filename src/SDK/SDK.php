@@ -95,10 +95,10 @@ class SDK
         $this->twig->addExtension(new DebugExtension());
 
         $this->twig->addFilter(new TwigFilter('caseLower', function ($value) {
-            return strtolower(str_replace('-', '', (string)$value));
+            return strtolower((string)$value);
         }));
         $this->twig->addFilter(new TwigFilter('caseUpper', function ($value) {
-            return strtoupper(str_replace('-', '', (string)$value));
+            return strtoupper((string)$value);
         }));
         $this->twig->addFilter(new TwigFilter('caseUcfirst', function ($value) {
             return ucfirst($this->helperCamelCase($value));
@@ -639,15 +639,14 @@ class SDK
                         $methods = $this->spec->getMethods($key);
 
                         foreach ($methods as $method) {
-                            $params['method'] = $method;
                             $parameters = $method['parameters']['path'];
 
                             foreach ($parameters as $parameter) {
                                 // Check if the enum field is defined
-                                if ($parameter['enum'] != null) {
+                                if ($parameter['enum-values'] != null) {
                                     $params['enum'] = [
                                         'name' =>  $parameter['enum-name'],
-                                        'enum' => $parameter['enum'],
+                                        'enum' => $parameter['enum-values'],
                                         ];
                                     $this->render($template, $destination, $block, $params, $minify);
                                 }

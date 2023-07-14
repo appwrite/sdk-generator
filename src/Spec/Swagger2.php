@@ -227,7 +227,7 @@ class Swagger2 extends Spec
                                 $output['parameters']['header'][] = $param;
                                 break;
                             case 'path':
-                                $param['enum'] = $parameter['enum'] ?? null;
+                                $param['enum-values'] = $parameter['enum'] ?? null;
                                 $param['enum-name'] = $parameter['x-enum-name'] ?? null;
                                 $output['parameters']['path'][] = $param;
                                 break;
