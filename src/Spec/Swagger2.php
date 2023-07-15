@@ -343,4 +343,25 @@ class Swagger2 extends Spec
         }
         return $list;
     }
+
+    /**
+     * @return array
+     */
+    public function getEnumNames(): array
+    {
+        $list = [];
+
+        foreach ($this->getServices() as $key => $service) {
+            foreach ($this->getMethods($key) as $method) {
+                if (isset($method['parameters']) && is_array($method['parameters'])) {
+                    foreach ($method['parameters']['path'] as $parameter) {
+                        if (isset($parameter['enum-name'])) {
+                            $list[] = $parameter['enum-name'];
+                        }
+                    }
+                }
+            }
+        }
+        return $list;
+    }
 }

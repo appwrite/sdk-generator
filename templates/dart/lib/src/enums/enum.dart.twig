@@ -2,7 +2,11 @@ part of {{ language.params.packageName }}.enums;
 
 enum {{ enum.name | caseUcfirst | overrideIdentifier }} {
     {% for value in enum.enum %}
-    {{value | caseCamel | replace({'-': ''})}}{% if not loop.last %},
+    {{value | caseCamel | replace({'-': ''})}}('{{ value }}'){% if not loop.last %},
 {% endif %}
+{% if loop.last %};{% endif %}
     {% endfor %}
+
+final String value;
+const {{ enum.name | caseUcfirst | overrideIdentifier }}(this.value);
 }

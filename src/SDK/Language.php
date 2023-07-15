@@ -97,5 +97,4 @@ abstract class Language
         $str = str_replace(" ", "", $str);
         return lcfirst($str);
     }
-
 }

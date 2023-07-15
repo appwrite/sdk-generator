@@ -164,4 +164,11 @@ abstract class Spec extends ArrayObject
 
         return $this;
     }
+
+    /**
+     * Get EnumNames
+     *
+     * @return array
+     */
+    abstract public function getEnumNames();
 }

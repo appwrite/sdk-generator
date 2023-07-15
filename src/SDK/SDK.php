@@ -556,6 +556,7 @@ class SDK
                 'params' => $this->language->getParams(),
             ],
             'sdk' => $this->getParams(),
+            'enums' => $this->spec->getEnumNames(),
         ];
 
         foreach ($this->language->getFiles() as $file) {
