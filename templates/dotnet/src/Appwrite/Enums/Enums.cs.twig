@@ -1,0 +1,11 @@
+using System;
+
+namespace {{ spec.title | caseUcfirst }}.Enums
+{
+    public static class {{ enum.name | caseUcfirst | overrideIdentifier }}
+    {
+        {% for value in enum.enum %}
+        public static string {{ value | caseUcfirst | replace({'-': ''}) }} = "{{ value }}",
+        {% endfor %}
+    }
+}

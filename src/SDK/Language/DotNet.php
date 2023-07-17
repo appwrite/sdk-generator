@@ -394,6 +394,11 @@ class DotNet extends Language
                 'scope'         => 'definition',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/src/Appwrite/Models/Model.cs.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Enums/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
+                'template'      => 'dotnet/src/Appwrite/Enums/Enums.cs.twig',
             ]
         ];
     }
