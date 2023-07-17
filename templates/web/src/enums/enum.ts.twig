@@ -1,4 +1,4 @@
-export enum {{ enum.name | caseUcfirst | overrideIdentifier }} {
+export enum {{ enum.name | caseUcfirst  }} {
     {% for value in enum.enum %}
     {{ value | caseUcfirst | replace({'-': ''})}} = '{{ value }}',
     {% endfor %}
