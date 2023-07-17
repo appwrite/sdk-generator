@@ -163,13 +163,23 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/commands/generate.js',
+                'template'      => 'cli/lib/commands/generate.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'flutter_res/apwrite.dart',
                 'template'      => 'cli/flutter_res/appwrite.dart.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'flutter_res/template_model.dart',
-                'template'      => 'cli/flutter_res/template_model.dart.twig',
+                'destination'   => 'generator/template_dart.dart',
+                'template'      => 'cli/generator/template_dart.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'generator/template_ts.ts',
+                'template'      => 'cli/generator/template_ts.ts.twig',
             ],
             [
                 'scope'         => 'service',
