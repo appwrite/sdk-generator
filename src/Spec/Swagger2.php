@@ -221,14 +221,16 @@ class Swagger2 extends Spec
                         }
 
                         $param['default'] = (is_array($param['default'])) ? json_encode($param['default']) : $param['default'];
+                        if (isset($parameter['enum'])) {
+                            $param['enum-values'] = $parameter['enum'];
+                            $param['enum-name'] = $parameter['x-enum-name'];
+                        }
 
                         switch ($parameter['in']) {
                             case 'header':
                                 $output['parameters']['header'][] = $param;
                                 break;
                             case 'path':
-                                $param['enum-values'] = $parameter['enum'] ?? null;
-                                $param['enum-name'] = $parameter['x-enum-name'] ?? null;
                                 $output['parameters']['path'][] = $param;
                                 break;
                             case 'query':
@@ -354,9 +356,9 @@ class Swagger2 extends Spec
         foreach ($this->getServices() as $key => $service) {
             foreach ($this->getMethods($key) as $method) {
                 if (isset($method['parameters']) && is_array($method['parameters'])) {
-                    foreach ($method['parameters']['path'] as $parameter) {
-                        if (isset($parameter['enum-name'])) {
-                            $list[] = $parameter['enum-name'];
+                    foreach ($method['parameters']['all'] as $parameter) {
+                        if (isset($parameter['enum-values'])) {
+                            $list[] = $parameter['enum-name'] ?? $parameter['name'];
                         }
                     }
                 }

@@ -640,15 +640,15 @@ class SDK
                         $methods = $this->spec->getMethods($key);
 
                         foreach ($methods as $method) {
-                            $parameters = $method['parameters']['path'];
+                            $parameters = $method['parameters']['all'];
 
                             foreach ($parameters as $parameter) {
-                                // Check if the enum field is defined
-                                if ($parameter['enum-values'] != null) {
+                                    // Check if the enum field is defined
+                                if (isset($parameter['enum-values'])) {
                                     $params['enum'] = [
-                                        'name' =>  $parameter['enum-name'],
+                                        'name' =>  $parameter['enum-name'] ?? $parameter['name'],
                                         'enum' => $parameter['enum-values'],
-                                        ];
+                                    ];
                                     $this->render($template, $destination, $block, $params, $minify);
                                 }
                             }
