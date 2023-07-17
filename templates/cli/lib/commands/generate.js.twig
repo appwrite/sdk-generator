@@ -1,0 +1,244 @@
+const fs = require("fs");
+const inquirer = require("inquirer");
+const { questionsGeneratorChooseDatabase: questionsFlutterChooseDatabase, questionsGeneratorChooseProject: questionsFlutterChooseProject } = require("../questions");
+const { success, actionRunner, error } = require("../parser");
+const { Command } = require("commander");
+const { localConfig } = require("../config");
+const { databasesListCollections } = require("./databases");
+const { sdkForProject } = require("../sdks");
+const { toSnakeCase, toUpperCamelCase } = require("../utils");
+
+const generate = new Command('generate');
+
+generate
+    .argument('[language]', 'Language to generate models. Currently only `dart` and `ts` is supported.')
+    .description("Generate model classes")
+    .option('--modelPath <modelPath>', 'Path where the generated models are saved. By default it\'s saved to lib/models folder.')
+    .option('--projectId <projectId>', 'Project ID to use to generate models for database. If not provided you will be requested to select.')
+    .option('--databaseIds <databaseIds>', 'Comma separated database IDs to generate models for. If not provided you will be requested to choose.')
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
+    .action(actionRunner(async (language, options) => {
+        if (language === 'dart' || language === 'ts') {
+            generateModels({ ...options, language })
+            return;
+        }
+        generate.help();
+    }));
+
+const generateModels = async (options) => {
+    let modelPath = options.modelPath ?? './lib/models/';
+    if (!modelPath.endsWith('/')) {
+        modelPath += '/';
+    }
+    let projectId = options.projectId ?? localConfig.getProject().projectId;
+    let databaseIds = options.databaseIds?.split(',');
+
+    if (!projectId) {
+        let answer = await inquirer.prompt(questionsFlutterChooseProject);
+        if (!answer.project) {
+            error('You must select a project.');
+            return;
+        }
+        projectId = answer.project.id;
+        localConfig.setProject(projectId, answer.project.name);
+    }
+
+    if (!databaseIds) {
+        answer = await inquirer.prompt(questionsFlutterChooseDatabase);
+
+        if (!answer.databases.length) {
+            error('Please select at least one database');
+            return;
+        }
+        databaseIds = answer.databases.map(database => database.id);
+    }
+
+    const sdk = await sdkForProject();
+    for (let index in databaseIds) {
+        let id = databaseIds[index];
+        let response = await databasesListCollections({
+            databaseId: id,
+            sdk,
+            parseOutput: false
+        });
+
+        let collections = response.collections;
+
+        for (let index in collections) {
+            let extension = '.dart';
+            const collection = collections[index];
+            const className = toUpperCamelCase(collection.$id);
+
+            let template = fs.readFileSync(`${__dirname}/../../generator/template_dart.dart`, 'utf8');
+
+            let data = '';
+            switch (options.language) {
+                case 'dart':
+                    extension = '.dart';
+                    data = generateDartClass(className, collection.attributes, template);
+                    break;
+                case 'ts':
+                    extension = '.ts';
+                    template = fs.readFileSync(`${__dirname}/../../generator/template_ts.ts`, 'utf8');
+                    data = generateTSClass(className, collection.attributes, template);
+                    break;
+            }
+
+            const filename = toSnakeCase(collection.$id) + extension;
+            if (!fs.existsSync(modelPath)) {
+                fs.mkdirSync(modelPath, { recursive: true });
+            }
+            fs.writeFileSync(modelPath + filename, data);
+            success(`Generated ${className} class and saved to ${modelPath + filename}`);
+        }
+    }
+}
+
+function generateTSClass(name, attributes, template) {
+    let imports = '';
+
+    const getType = (attribute) => {
+        switch (attribute.type) {
+            case 'string':
+            case 'email':
+            case 'url':
+            case 'enum':
+            case 'datetime':
+                return attribute.array ? 'string[]' : 'string';
+            case 'boolean':
+                return attribute.array ? 'bool[]' : 'bool';
+            case 'integer':
+            case 'double':
+
+            case 'relationship':
+                if (imports.indexOf(toSnakeCase(attribute.relatedCollection)) === -1) {
+                    imports += `import './${toSnakeCase(attribute.relatedCollection)}.ts';\n`;
+                }
+
+                if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
+
+                    return `${toUpperCamelCase(attribute.relatedCollection)}[]`;
+                }
+                return toUpperCamelCase(attribute.relatedCollection);
+        }
+    }
+
+    const properties = attributes.map(attr => {
+        let property = `${attr.key}${(!attr.required) ? '?' : ''}: ${getType(attr)}`;
+        property += ';';
+        return property;
+    }).join('\n  ');
+
+    const replaceMaps = {
+        "%NAME%": name,
+        "%IMPORTS%": imports,
+        "%ATTRIBUTES%": properties,
+    }
+
+    for (let key in replaceMaps) {
+        template = template.replaceAll(key, replaceMaps[key]);
+    }
+
+    return template;
+}
+
+function generateDartClass(name, attributes, template) {
+    let imports = '';
+
+    const getType = (attribute) => {
+        switch (attribute.type) {
+            case 'string':
+            case 'email':
+            case 'url':
+            case 'enum':
+            case 'datetime':
+                return attribute.array ? 'List<String>' : 'String';
+            case 'boolean':
+                return attribute.array ? 'List<bool>' : 'bool';
+            case 'integer':
+                return attribute.array ? 'List<int>' : 'int';
+            case 'double':
+                return attribute.array ? 'List<double>' : 'double';
+            case 'relationship':
+                if (imports.indexOf(toSnakeCase(attribute.relatedCollection)) === -1) {
+                    imports += `import './${toSnakeCase(attribute.relatedCollection)}.dart';\n`;
+                }
+
+                if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
+
+                    return `List<${toUpperCamelCase(attribute.relatedCollection)}>`;
+                }
+                return toUpperCamelCase(attribute.relatedCollection);
+        }
+    }
+
+    const getFromMap = (attr) => {
+        if (attr.type === 'relationship') {
+            if ((attr.relationType === 'oneToMany' && attr.side === 'parent') || (attr.relationType === 'manyToOne' && attr.side === 'child') || attr.relationType === 'manyToMany') {
+                return `${getType(attr)}.from((map['${attr.key}'] ?? []).map((p) => ${toUpperCamelCase(attr.relatedCollection)}.fromMap(p)))`;
+            }
+            return `map['${attr.key}'] != null ? ${getType(attr)}.fromMap(map['${attr.key}']) : null`;
+        }
+        if (attr.array) {
+            return `${getType(attr)}.from(map['${attr.key}'])`;
+        }
+        return `map['${attr.key}']`;
+    }
+    const properties = attributes.map(attr => {
+        let property = `final ${getType(attr)}${(!attr.required) ? '?' : ''} ${attr.key}`;
+        property += ';';
+        return property;
+    }).join('\n  ');
+
+    const constructorParams = attributes.map(attr => {
+        let out = '';
+        if (attr.required) {
+            out += 'required ';
+        }
+        out += `this.${attr.key}`;
+        if (attr.default && attr.default !== null) {
+            out += ` = ${JSON.stringify(attr.default)}`;
+        }
+        return out;
+    }).join(',\n    ');
+
+    const constructorArgs = attributes.map(attr => {
+        return `${attr.key}: ${getFromMap(attr)}`;
+    }).join(',\n      ');
+
+    const mapFields = attributes.map(attr => {
+        let out = `'${attr.key}': `;
+        if (attr.type === 'relationship') {
+            if ((attr.relationType === 'oneToMany' && attr.side === 'parent') || (attr.relationType === 'manyToOne' && attr.side === 'child') || attr.relationType === 'manyToMany') {
+                return `${out}${attr.key}?.map((p) => p.toMap())`;
+            }
+            return `${out}${attr.key}?.toMap()`;
+        }
+        return `${out}${attr.key}`;
+    }).join(',\n      ');
+
+    const replaceMaps = {
+        "%NAME%": name,
+        "%IMPORTS%": imports,
+        "%ATTRIBUTES%": properties,
+        "%CONSTRUCTOR_PARAMETERS%": constructorParams,
+        "%CONSTRUCTOR_ARGUMENTS%": constructorArgs,
+        "%MAP_FIELDS%": mapFields,
+    }
+
+    for (let key in replaceMaps) {
+        template = template.replaceAll(key, replaceMaps[key]);
+    }
+
+    return template;
+}
+
+function generateJSType(name, attributes, template) {
+
+}
+
+module.exports = {
+    generate,
+}
