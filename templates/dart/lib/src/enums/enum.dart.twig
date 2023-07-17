@@ -1,4 +1,4 @@
-part of {{ language.params.packageName }}.enums;
+part of {{ language.params.packageName }};
 
 enum {{ enum.name | caseUcfirst | overrideIdentifier }} {
     {% for value in enum.enum %}
