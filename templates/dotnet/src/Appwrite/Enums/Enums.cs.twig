@@ -5,7 +5,8 @@ namespace {{ spec.title | caseUcfirst }}.Enums
     public static class {{ enum.name | caseUcfirst | overrideIdentifier }}
     {
         {% for value in enum.enum %}
-        public static string {{ value | caseUcfirst | replace({'-': ''}) }} = "{{ value }}",
+            {% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+        public static string {{ key | caseUcfirst | replace({'-': ''}) }} = "{{ value }}",
         {% endfor %}
     }
 }

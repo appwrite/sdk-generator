@@ -224,6 +224,7 @@ class Swagger2 extends Spec
                         if (isset($parameter['enum'])) {
                             $param['enum-values'] = $parameter['enum'];
                             $param['enum-name'] = $parameter['x-enum-name'];
+                            $param['enum-keys'] = $parameter['x-enum-keys'];
                         }
 
                         switch ($parameter['in']) {
