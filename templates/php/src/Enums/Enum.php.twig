@@ -5,6 +5,7 @@ namespace {{ spec.title | caseUcfirst }}\Enums;
 class {{ enum.name | caseUcfirst | overrideIdentifier }}
 {
 {% for value in enum.enum %}
-    public const {{value | caseUpper | replace({'-': ''})}} = '{{value}}';
+  {% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+    public const {{ key | caseUpper | replace({'-': ''})}} = '{{value}}';
 {% endfor %}
 }

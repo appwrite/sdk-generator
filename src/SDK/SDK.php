@@ -648,6 +648,7 @@ class SDK
                                     $params['enum'] = [
                                         'name' =>  $parameter['enum-name'] ?? $parameter['name'],
                                         'enum' => $parameter['enum-values'],
+                                        'keys' => $parameter['enum-keys'],
                                     ];
                                     $this->render($template, $destination, $block, $params, $minify);
                                 }

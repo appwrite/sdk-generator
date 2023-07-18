@@ -37,13 +37,13 @@ try {
     }
 
     // Leave the platform you want uncommented
-    $platform = 'client';
-    // $platform = 'console';
-    // $platform = 'server';
+//    $platform = 'client';
+//     $platform = 'console';
+     $platform = 'server';
 
-    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/master/app/config/specs/swagger2-latest-{$platform}.json");
+    $spec = getSSLPage("https://raw.githubusercontent.com/2002bishwajeet/appwrite/feat-whitelist-enums/app/config/specs/swagger2-latest-{$platform}.json");
 
-    if(empty($spec)) {
+    if (empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
     }
 
