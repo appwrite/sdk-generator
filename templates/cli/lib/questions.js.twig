@@ -5,361 +5,361 @@ const { databasesList } = require('./commands/databases');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
 const getIgnores = (runtime) => {
-  const languge = runtime.split('-')[0];
+    const languge = runtime.split('-')[0];
 
-  switch (languge) {
-    case 'cpp':
-        return ['build', 'CMakeFiles', 'CMakeCaches.txt'];
-    case 'dart':
-      return ['.packages', '.dart_tool'];
-    case 'deno':
-      return [];
-    case 'dotnet':
-        return ['bin', 'obj', '.nuget'];
-    case 'java':
-    case 'kotlin':
-        return ['build'];
-    case 'node':
-      return ['node_modules', '.npm'];
-    case 'php':
-      return ['vendor'];
-    case 'python':
-      return ['__pypackages__'];
-    case 'ruby':
-      return ['vendor'];
-    case 'rust':
-      return ['target', 'debug', '*.rs.bk', '*.pdb'];
-    case 'swift':
-      return ['.build', '.swiftpm'];
-  }
+    switch (languge) {
+        case 'cpp':
+            return ['build', 'CMakeFiles', 'CMakeCaches.txt'];
+        case 'dart':
+            return ['.packages', '.dart_tool'];
+        case 'deno':
+            return [];
+        case 'dotnet':
+            return ['bin', 'obj', '.nuget'];
+        case 'java':
+        case 'kotlin':
+            return ['build'];
+        case 'node':
+            return ['node_modules', '.npm'];
+        case 'php':
+            return ['vendor'];
+        case 'python':
+            return ['__pypackages__'];
+        case 'ruby':
+            return ['vendor'];
+        case 'rust':
+            return ['target', 'debug', '*.rs.bk', '*.pdb'];
+        case 'swift':
+            return ['.build', '.swiftpm'];
+    }
 
-  return undefined;
+    return undefined;
 };
 
 const getEntrypoint = (runtime) => {
-  const languge = runtime.split('-')[0];
+    const languge = runtime.split('-')[0];
 
-  switch (languge) {
-    case 'dart':
-      return 'lib/main.dart';
-    case 'deno':
-      return 'src/mod.ts';
-    case 'node':
-      return 'src/index.js';
-    case 'php':
-      return 'src/index.php';
-    case 'python':
-      return 'src/index.py';
-    case 'ruby':
-      return 'src/index.rb';
-    case 'rust':
-      return 'main.rs';
-    case 'swift':
-      return 'Sources/swift-5.5/main.swift';
-    case 'cpp':
-      return 'src/index.cc';
-    case 'dotnet':
-      return 'src/Index.cs';
-    case 'java':
-      return 'src/Index.java';
-    case 'kotlin':
-      return 'src/Index.kt';
-  }
+    switch (languge) {
+        case 'dart':
+            return 'lib/main.dart';
+        case 'deno':
+            return 'src/mod.ts';
+        case 'node':
+            return 'src/index.js';
+        case 'php':
+            return 'src/index.php';
+        case 'python':
+            return 'src/index.py';
+        case 'ruby':
+            return 'src/index.rb';
+        case 'rust':
+            return 'main.rs';
+        case 'swift':
+            return 'Sources/swift-5.5/main.swift';
+        case 'cpp':
+            return 'src/index.cc';
+        case 'dotnet':
+            return 'src/Index.cs';
+        case 'java':
+            return 'src/Index.java';
+        case 'kotlin':
+            return 'src/Index.kt';
+    }
 
-  return undefined;
+    return undefined;
 };
 
 const questionsInitProject = [
-  {
-    type: "confirm",
-    name: "override",
-    message:
-      `An {{ spec.title|caseUcfirst }} project ( ${localConfig.getProject()['projectName']} ) is already associated with the current directory. Would you like to override`,
-    when() {
-      return Object.keys(localConfig.getProject()).length !== 0;
-    }
-  },
-  {
-    type: "list",
-    name: "start",
-    when(answers) {
-      if (answers.override == undefined) {
-        return true 
-      }
-      return answers.override;
-    },
-    message: "How would you like to start?",
-    choices: [
-      {
-        name: "Create a new {{ spec.title|caseUcfirst }} project",
-        value: "new",
-      },
-      {
-        name: "Link this directory to an existing {{ spec.title|caseUcfirst }} project",
-        value: "existing",
-      },
-    ],
-  },
-  {
-    type: "input",
-    name: "project",
-    message: "What would you like to name your project?",
-    default: "My Awesome Project",
-    when(answers) {
-      return answers.start == "new";
-    },
-  },
-  {
-    type: "input",
-    name: "id",
-    message: "What ID would you like to have for your project?",
-    default: "unique()",
-    when(answers) {
-      return answers.start == "new";
-    },
-  },
-  {
-    type: "list",
-    name: "project",
-    message: "Choose your {{ spec.title|caseUcfirst }} project.",
-    when(answers) {
-      return answers.start == "existing";
-    },
-    choices: async () => {
-      let response = await projectsList({
-        parseOutput: false
-      })
-      let projects = response["projects"]
-      let choices = projects.map((project, idx) => {
-        return {
-          name: `${project.name} (${project['$id']})`,
-          value: {
-            name: project.name,
-            id: project['$id']
-          }
+    {
+        type: "confirm",
+        name: "override",
+        message:
+            `An {{ spec.title|caseUcfirst }} project ( ${localConfig.getProject()['projectName']} ) is already associated with the current directory. Would you like to override`,
+        when() {
+            return Object.keys(localConfig.getProject()).length !== 0;
         }
-      })
+    },
+    {
+        type: "list",
+        name: "start",
+        when(answers) {
+            if (answers.override == undefined) {
+                return true
+            }
+            return answers.override;
+        },
+        message: "How would you like to start?",
+        choices: [
+            {
+                name: "Create a new {{ spec.title|caseUcfirst }} project",
+                value: "new",
+            },
+            {
+                name: "Link this directory to an existing {{ spec.title|caseUcfirst }} project",
+                value: "existing",
+            },
+        ],
+    },
+    {
+        type: "input",
+        name: "project",
+        message: "What would you like to name your project?",
+        default: "My Awesome Project",
+        when(answers) {
+            return answers.start == "new";
+        },
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your project?",
+        default: "unique()",
+        when(answers) {
+            return answers.start == "new";
+        },
+    },
+    {
+        type: "list",
+        name: "project",
+        message: "Choose your {{ spec.title|caseUcfirst }} project.",
+        when(answers) {
+            return answers.start == "existing";
+        },
+        choices: async () => {
+            let response = await projectsList({
+                parseOutput: false
+            })
+            let projects = response["projects"]
+            let choices = projects.map((project, idx) => {
+                return {
+                    name: `${project.name} (${project['$id']})`,
+                    value: {
+                        name: project.name,
+                        id: project['$id']
+                    }
+                }
+            })
 
-      if (choices.length == 0) {
-        throw new Error("No projects found. Please create a new project.")
-      }
+            if (choices.length == 0) {
+                throw new Error("No projects found. Please create a new project.")
+            }
 
-      return choices;
+            return choices;
+        }
     }
-  }
 ];
 
 const questionsInitFunction = [
-  {
-    type: "input",
-    name: "name",
-    message: "What would you like to name your function?",
-    default: "My Awesome Function"
-  },
-  {
-    type: "input",
-    name: "id",
-    message: "What ID would you like to have for your function?",
-    default: "unique()"
-  },
-  {
-    type: "list",
-    name: "runtime",
-    message: "What runtime would you like to use?",
-    choices: async () => {
-      let response = await functionsListRuntimes({
-        parseOutput: false
-      })
-      let runtimes = response["runtimes"]
-      let choices = runtimes.map((runtime, idx) => {
-        return {
-          name: `${runtime.name} (${runtime['$id']})`,
-          value: { id: runtime['$id'], entrypoint: getEntrypoint(runtime['$id']), ignore: getIgnores(runtime['$id'])},
+    {
+        type: "input",
+        name: "name",
+        message: "What would you like to name your function?",
+        default: "My Awesome Function"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your function?",
+        default: "unique()"
+    },
+    {
+        type: "list",
+        name: "runtime",
+        message: "What runtime would you like to use?",
+        choices: async () => {
+            let response = await functionsListRuntimes({
+                parseOutput: false
+            })
+            let runtimes = response["runtimes"]
+            let choices = runtimes.map((runtime, idx) => {
+                return {
+                    name: `${runtime.name} (${runtime['$id']})`,
+                    value: { id: runtime['$id'], entrypoint: getEntrypoint(runtime['$id']), ignore: getIgnores(runtime['$id']) },
+                }
+            })
+            return choices;
         }
-      })
-      return choices;
     }
-  }
 ];
 
 const questionsInitCollection = [
-  {
-    type: "checkbox",
-    name: "databases",
-    message: "From which database would you like to init collections?",
-    choices: async () => {
-      let response = await databasesList({
-        parseOutput: false
-      })
-      let databases = response["databases"]
+    {
+        type: "checkbox",
+        name: "databases",
+        message: "From which database would you like to init collections?",
+        choices: async () => {
+            let response = await databasesList({
+                parseOutput: false
+            })
+            let databases = response["databases"]
 
-      if(databases.length <= 0) {
-        throw new Error("No databases found. Please create one in project console.")
-      }
-      let choices = databases.map((database, idx) => {
-        return {
-          name: `${database.name} (${database.$id})`,
-          value: database.$id
+            if (databases.length <= 0) {
+                throw new Error("No databases found. Please create one in project console.")
+            }
+            let choices = databases.map((database, idx) => {
+                return {
+                    name: `${database.name} (${database.$id})`,
+                    value: database.$id
+                }
+            })
+            return choices;
         }
-      })
-      return choices;
     }
-  }
 ];
 
 const questionsLogin = [
-  {
-    type: "input",
-    name: "email",
-    message: "Enter your email",
-    validate(value) {
-      if (!value) {
-        return "Please enter your email";
-      }
-      return true;
+    {
+        type: "input",
+        name: "email",
+        message: "Enter your email",
+        validate(value) {
+            if (!value) {
+                return "Please enter your email";
+            }
+            return true;
+        },
     },
-  },
-  {
-    type: "password",
-    name: "password",
-    message: "Enter your password",
-    mask: "*",
-    validate(value) {
-      if (!value) {
-        return "Please enter your password";
-      }
-      return true;
-    }
-  },
+    {
+        type: "password",
+        name: "password",
+        message: "Enter your password",
+        mask: "*",
+        validate(value) {
+            if (!value) {
+                return "Please enter your password";
+            }
+            return true;
+        }
+    },
 ];
 
 const questionsDeployFunctions = [
-  {
-    type: "checkbox",
-    name: "functions",
-    message: "Which functions would you like to deploy?",
-    choices: () => {
-      let functions = localConfig.getFunctions();
-      if (functions.length === 0) {
-        throw new Error("No functions found in the current directory.");
-      }
-      let choices = functions.map((func, idx) => {
-        return {
-          name: `${func.name} (${func.$id})`,
-          value: func.$id
+    {
+        type: "checkbox",
+        name: "functions",
+        message: "Which functions would you like to deploy?",
+        choices: () => {
+            let functions = localConfig.getFunctions();
+            if (functions.length === 0) {
+                throw new Error("No functions found in the current directory.");
+            }
+            let choices = functions.map((func, idx) => {
+                return {
+                    name: `${func.name} (${func.$id})`,
+                    value: func.$id
+                }
+            })
+            return choices;
         }
-      })
-      return choices;
-    }
-  },
-  {
-    type: "input",
-    name: "override",
-    message: 'Are you sure you want to override this function\'s variables? This can lead to loss of secrets! Type "YES" to confirm.'
-  },
+    },
+    {
+        type: "input",
+        name: "override",
+        message: 'Are you sure you want to override this function\'s variables? This can lead to loss of secrets! Type "YES" to confirm.'
+    },
 ]
 
 const questionsDeployCollections = [
-  {
-    type: "checkbox",
-    name: "collections",
-    message: "Which collections would you like to deploy?",
-    choices: () => {
-      let collections = localConfig.getCollections();
-      if (collections.length === 0) {
-        throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
-      }
-      let choices = collections.map((collection, idx) => {
-        return {
-          name: `${collection.name} (${collection['$id']})`,
-          value: collection.$id
+    {
+        type: "checkbox",
+        name: "collections",
+        message: "Which collections would you like to deploy?",
+        choices: () => {
+            let collections = localConfig.getCollections();
+            if (collections.length === 0) {
+                throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
+            }
+            let choices = collections.map((collection, idx) => {
+                return {
+                    name: `${collection.name} (${collection['databaseId']} - ${collection['$id']})`,
+                    value: `${collection['databaseId']}|${collection['$id']}`
+                }
+            })
+            return choices;
         }
-      })
-      return choices;
-    }
-  },
-  {
-    type: "input",
-    name: "override",
-    message: 'Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.'
-  },
+    },
+    {
+        type: "input",
+        name: "override",
+        message: 'Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.'
+    },
 ]
 
 const questionsDeployBuckets = [
-  {
-    type: "checkbox",
-    name: "buckets",
-    message: "Which buckets would you like to deploy?",
-    choices: () => {
-      let buckets = localConfig.getBuckets();
-      if (buckets.length === 0) {
-        throw new Error("No buckets found in the current directory. Run `appwrite init bucket` to fetch all your buckets.");
-      }
-      let choices = buckets.map((bucket, idx) => {
-        return {
-          name: `${bucket.name} (${bucket['$id']})`,
-          value: bucket.$id
+    {
+        type: "checkbox",
+        name: "buckets",
+        message: "Which buckets would you like to deploy?",
+        choices: () => {
+            let buckets = localConfig.getBuckets();
+            if (buckets.length === 0) {
+                throw new Error("No buckets found in the current directory. Run `appwrite init bucket` to fetch all your buckets.");
+            }
+            let choices = buckets.map((bucket, idx) => {
+                return {
+                    name: `${bucket.name} (${bucket['$id']})`,
+                    value: bucket.$id
+                }
+            })
+            return choices;
         }
-      })
-      return choices;
-    }
-  },
-  {
-    type: "input",
-    name: "override",
-    message: 'Are you sure you want to override this bucket? This can lead to loss of data! Type "YES" to confirm.'
-  },
+    },
+    {
+        type: "input",
+        name: "override",
+        message: 'Are you sure you want to override this bucket? This can lead to loss of data! Type "YES" to confirm.'
+    },
 ]
 
 const questionsGetEntrypoint = [
-  {
-    type: "input",
-    name: "entrypoint",
-    message: "Enter the entrypoint",
-    default: null,
-    validate(value) {
-      if (!value) {
-        return "Please enter your enrtypoint";
-      }
-      return true;
-    }
-  },
+    {
+        type: "input",
+        name: "entrypoint",
+        message: "Enter the entrypoint",
+        default: null,
+        validate(value) {
+            if (!value) {
+                return "Please enter your enrtypoint";
+            }
+            return true;
+        }
+    },
 ]
 
 const questionsDeployTeams = [
-  {
-    type: "checkbox",
-    name: "teams",
-    message: "Which teams would you like to deploy?",
-    choices: () => {
-      let teams = localConfig.getTeams();
-      if (teams.length === 0) {
-        throw new Error("No teams found in the current directory. Run `appwrite init team` to fetch all your teams.");
-      }
-      let choices = teams.map((team, idx) => {
-        return {
-          name: `${team.name} (${team['$id']})`,
-          value: team.$id
+    {
+        type: "checkbox",
+        name: "teams",
+        message: "Which teams would you like to deploy?",
+        choices: () => {
+            let teams = localConfig.getTeams();
+            if (teams.length === 0) {
+                throw new Error("No teams found in the current directory. Run `appwrite init team` to fetch all your teams.");
+            }
+            let choices = teams.map((team, idx) => {
+                return {
+                    name: `${team.name} (${team['$id']})`,
+                    value: team.$id
+                }
+            })
+            return choices;
         }
-      })
-      return choices;
-    }
-  },
-  {
-    type: "input",
-    name: "override",
-    message: 'Are you sure you want to override this team? This can lead to loss of data! Type "YES" to confirm.'
-  },
+    },
+    {
+        type: "input",
+        name: "override",
+        message: 'Are you sure you want to override this team? This can lead to loss of data! Type "YES" to confirm.'
+    },
 ]
 
 module.exports = {
-  questionsInitProject,
-  questionsLogin,
-  questionsInitFunction,
-  questionsInitCollection,
-  questionsDeployFunctions,
-  questionsDeployCollections,
-  questionsDeployBuckets,
-  questionsDeployTeams,
-  questionsGetEntrypoint
+    questionsInitProject,
+    questionsLogin,
+    questionsInitFunction,
+    questionsInitCollection,
+    questionsDeployFunctions,
+    questionsDeployCollections,
+    questionsDeployBuckets,
+    questionsDeployTeams,
+    questionsGetEntrypoint
 };

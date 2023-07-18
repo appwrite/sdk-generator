@@ -37,6 +37,7 @@ class Client
      */
     protected $headers = [
         'content-type' => '',
+        'user-agent' => '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({{deviceInfo}})',
         'x-sdk-name'=> '{{ sdk.name }}',
         'x-sdk-platform'=> '{{ sdk.platform }}',
         'x-sdk-language'=> '{{ language.name | caseLower }}',

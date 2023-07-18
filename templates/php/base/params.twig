@@ -1,7 +1,7 @@
         $params = [];
 {% if method.parameters.all | length %}
 {% for parameter in method.parameters.all %}
-{% if parameter.required %}
+{% if parameter.required and not parameter.nullable %}
         if (!isset(${{ parameter.name | caseCamel | escapeKeyword }})) {
             throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
         }

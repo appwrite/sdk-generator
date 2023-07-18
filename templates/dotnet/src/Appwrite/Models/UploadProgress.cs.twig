@@ -1,0 +1,26 @@
+namespace {{ spec.title | caseUcfirst }}
+{
+    public class UploadProgress
+    {
+        public string Id { get; private set; }
+        public double Progress { get; private set; }
+        public long SizeUploaded { get; private set; }
+        public long ChunksTotal { get; private set; }
+        public long ChunksUploaded { get; private set; }
+
+        public UploadProgress(
+            string id,
+            double progress,
+            long sizeUploaded,
+            long chunksTotal,
+            long chunksUploaded
+        )
+        {
+            Id = id;
+            Progress = progress;
+            SizeUploaded = sizeUploaded;
+            ChunksTotal = chunksTotal;
+            ChunksUploaded = chunksUploaded;
+        }
+    }
+}

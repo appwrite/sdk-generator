@@ -152,6 +152,7 @@ class ServiceTest {
             writeToFile(Permission.create(Role.member("memberId")))
             writeToFile(Permission.update(Role.users("verified")));
             writeToFile(Permission.update(Role.user(ID.custom("userid"), "unverified")));
+            writeToFile(Permission.create(Role.label("admin")));
 
             // ID helper tests
             writeToFile(ID.unique())

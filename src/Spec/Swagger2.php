@@ -207,6 +207,7 @@ class Swagger2 extends Spec
                             'class' => $parameter['x-class'] ?? null,
                             'description' => $parameter['description'] ?? '',
                             'required' => $parameter['required'] ?? false,
+                            'nullable' => $parameter['x-nullable'] ?? false,
                             'default' => $parameter['default'] ?? null,
                             'example' => $parameter['x-example'] ?? null,
                             'isUploadID' => $parameter['x-upload-id'] ?? false,
@@ -245,6 +246,7 @@ class Swagger2 extends Spec
                                     $param['required'] = (in_array($key, $bodyRequired));
                                     $param['example'] = $value['x-example'] ?? null;
                                     $param['isUploadID'] = $value['x-upload-id'] ?? false;
+                                    $param['nullable'] = $value['x-nullable'] ?? false;
                                     $param['array'] = [
                                         'type' => $value['items']['type'] ?? '',
                                     ];
@@ -317,6 +319,7 @@ class Swagger2 extends Spec
                 foreach ($sch['properties'] as $name => $def) {
                     $sch['properties'][$name]['name'] = $name;
                     $sch['properties'][$name]['description'] = $def['description'];
+                    $sch['properties'][$name]['example'] = $def['x-example'];
                     $sch['properties'][$name]['required'] =  in_array($name, $sch['required']);
                     if (isset($def['items']['$ref'])) {
                         //nested model
