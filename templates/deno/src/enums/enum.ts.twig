@@ -1,6 +1,5 @@
 export enum {{ enum.name | caseUcfirst | overrideIdentifier }} {
     {% for value in enum.enum %}
-    {% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
-    {{ key | caseUcfirst | replace({'-': ''}) }} = '{{ value }}',
+    {{ value | caseUcfirst | replace({'-': ''}) }} = '{{ value }}',
 {% endfor %}
 }

@@ -2,8 +2,7 @@ part of {{ language.params.packageName }};
 
 enum {{ enum.name | caseUcfirst | overrideIdentifier }} {
     {% for value in enum.enum %}
-{% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
-    {{ key | caseCamel | replace({'-': ''})}}('{{ value }}'){% if not loop.last %},
+    {{value | caseCamel | replace({'-': ''})}}('{{ value }}'){% if not loop.last %},
 {% endif %}
 {% if loop.last %};{% endif %}
     {% endfor %}
