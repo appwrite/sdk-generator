@@ -86,7 +86,8 @@ class Kotlin extends Language
             "vararg",
             "when",
             "where",
-            "while"
+            "while",
+            "path"
         ];
     }
 

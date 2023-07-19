@@ -117,7 +117,8 @@ class PHP extends Language
             'use',
             'var',
             'while',
-            'xor'
+            'xor',
+            'path'
         ];
     }
 

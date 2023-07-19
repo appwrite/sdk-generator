@@ -15,7 +15,7 @@ namespace {{spec.title | caseUcfirst}}
             string? response = null) : base(message)
         {
             this.Code = code;
-            this.Type = type
+            this.Type = type;
             this.Response = response;
         }
         public {{spec.title | caseUcfirst}}Exception(string message, Exception inner)
