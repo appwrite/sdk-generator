@@ -22,7 +22,7 @@ void main() { // Init SDK
 
 {% endif %}
 {% if parameter.required %}
-    {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }},
+    {{ parameter.name | caseCamel | overrideIdentifier }}:{% if parameter.enumValues | length > 0%} {{parameter.enumName}}.{{(parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseCamel | replace({'-': ''}) }}.value{% else%}{{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }} {% endif %},
 {% endif %}
 {% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %});
 
@@ -32,4 +32,4 @@ void main() { // Init SDK
     }).catchError((error) {
       print(error.response);
   });
-}
+}}

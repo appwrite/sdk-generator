@@ -18,7 +18,7 @@ client
 {% endfor %};
 
 {% endif %}
-const promise = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
+const promise = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{% if parameter.enumValues | length > 0%}{{parameter.enumName}}.{{(parameter.enumKeys[0] ?? parameter.enumValues[0])  | replace({'-': '',' ': ''}) }}{% else%}{{ parameter | paramExample}}{% endif %}{% endif %}{% endfor %});
 
 promise.then(function (response) {
     console.log(response);
