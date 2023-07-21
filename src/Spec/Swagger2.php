@@ -222,9 +222,9 @@ class Swagger2 extends Spec
 
                         $param['default'] = (is_array($param['default'])) ? json_encode($param['default']) : $param['default'];
                         if (isset($parameter['enum'])) {
-                            $param['enum-values'] = $parameter['enum'];
-                            $param['enum-name'] = $parameter['x-enum-name'];
-                            $param['enum-keys'] = $parameter['x-enum-keys'];
+                            $param['enumValues'] = $parameter['enum'];
+                            $param['enumName'] = $parameter['x-enum-name'];
+                            $param['enumKeys'] = $parameter['x-enum-keys'];
                         }
 
                         switch ($parameter['in']) {
@@ -358,8 +358,8 @@ class Swagger2 extends Spec
             foreach ($this->getMethods($key) as $method) {
                 if (isset($method['parameters']) && is_array($method['parameters'])) {
                     foreach ($method['parameters']['all'] as $parameter) {
-                        if (isset($parameter['enum-values'])) {
-                            $list[] = $parameter['enum-name'] ?? $parameter['name'];
+                        if (isset($parameter['enumValues'])) {
+                            $list[] = $parameter['enumName'] ?? $parameter['name'];
                         }
                     }
                 }

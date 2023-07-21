@@ -644,11 +644,11 @@ class SDK
 
                             foreach ($parameters as $parameter) {
                                     // Check if the enum field is defined
-                                if (isset($parameter['enum-values'])) {
+                                if (isset($parameter['enumValues'])) {
                                     $params['enum'] = [
-                                        'name' =>  $parameter['enum-name'] ?? $parameter['name'],
-                                        'enum' => $parameter['enum-values'],
-                                        'keys' => $parameter['enum-keys'],
+                                        'name' =>  $parameter['enumName'] ?? $parameter['name'],
+                                        'enum' => $parameter['enumValues'],
+                                        'keys' => $parameter['enumKeys'],
                                     ];
                                     $this->render($template, $destination, $block, $params, $minify);
                                 }
