@@ -1,4 +1,4 @@
-import {{ '{' }} Client, {{service.name | caseUcfirst}} {{ '}' }} from "{{ language.params.npmPackage }}";
+import {{ '{' }} Client, {% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}{% endif %}{% if parameter.enumValues | length > 0%}{{parameter.enumName | caseUcfirst}},{% endif %}{% endif %}{% endfor %} {{service.name | caseUcfirst}} {{ '}' }} from "{{ language.params.npmPackage }}";
 
 const client = new Client();
 
