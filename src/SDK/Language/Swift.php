@@ -284,6 +284,11 @@ class Swift extends Language
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ definition.name | caseUcfirst }}.swift',
                 'template'      => '/swift/Sources/Models/Model.swift.twig',
             ],
+            [
+                'scope' => 'enum',
+                'destination' => '/Sources/{{ spec.title | caseUcfirst}}/Enums/{{ enum.name | caseUcfirst }}.swift',
+                'template' => '/swift/Sources/Enums/Enum.swift.twig',
+            ]
         ];
     }
 
