@@ -95,7 +95,7 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'enum',
-                'destination'   => 'src/enums/{{ enum.name | caseCamel }}.ts',
+                'destination'   => 'src/enums/{{ enum.name | caseDash }}.ts',
                 'template'      => 'deno/src/enums/enum.ts.twig',
             ],
         ];

@@ -3,6 +3,9 @@ from {{ spec.title | caseSnake }}.client import Client
 from {{ spec.title | caseSnake }}.input_file import InputFile
 {% endif %}
 from {{ spec.title | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
+{% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}{% endif %}
+{% if parameter.enumValues | length > 0%}from {{ spec.title | caseUcfirst }}.enums import {{parameter.enumName | caseUcfirst}},{% endif %}
+{% endif %}{% endfor %}
 
 client = Client()
 
