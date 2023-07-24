@@ -3,6 +3,10 @@ import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.models.InputFile
 {% endif %}
 import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }}
+{% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}{% endif %}
+{% if parameter.enumValues | length > 0%}import {{ sdk.namespace | caseDot }}.enums.{{parameter.enumName | caseUcfirst}};{% endif %}
+
+{% endif %}{% endfor %}
 
 val client = Client(context)
 {% if method.auth|length > 0 %}
