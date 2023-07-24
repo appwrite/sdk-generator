@@ -8,17 +8,16 @@ part of {{ language.params.packageName }};
 {% endmacro %}
 
 {%if service.description %}
-{{- service.description|dartComment}}
+{{- service.description|dartComment | split('    ///') | join('///')}}
 {% endif %}
 class {{ service.name | caseUcfirst }} extends Service {
     {{ service.name | caseUcfirst }}(super.client);
-
 {% for method in service.methods %}
+
     /// {{ method.title }}
+    ///
 {%~ if method.description %}
-    ///
 {{ method.description | dartComment }}
-    ///
 {% endif %}
     {% if method.type == 'location' %}Future<Uint8List>{% else %}{% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters.all, method.consumes) }}) async {
         final String path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | overrideIdentifier }}){% endfor %};
@@ -30,7 +29,6 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% else %}
 {{ include('dart/base/requests/api.twig') }}
 {% endif %}
-
     }
 {% endfor %}
 }

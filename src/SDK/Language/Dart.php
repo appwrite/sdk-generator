@@ -402,6 +402,61 @@ class Dart extends Language
                 'template'      => 'dart/docs/example.md.twig',
             ],
             [
+                'scope'         => 'service',
+                'destination'   => '/test/services/{{service.name | caseDash}}_test.dart',
+                'template'      => 'dart/test/services/service_test.dart.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/test/src/models/{{definition.name | caseSnake }}_test.dart',
+                'template'      => 'dart/test/src/models/model_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/id_test.dart',
+                'template'      => 'dart/test/id_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/permission_test.dart',
+                'template'      => 'dart/test/permission_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/query_test.dart',
+                'template'      => 'dart/test/query_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/role_test.dart',
+                'template'      => 'dart/test/role_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/enums_test.dart',
+                'template'      => 'dart/test/src/enums_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/upload_progress_test.dart',
+                'template'      => 'dart/test/src/upload_progress_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/exception_test.dart',
+                'template'      => 'dart/test/src/exception_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/input_file_test.dart',
+                'template'      => 'dart/test/src/input_file_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/response_test.dart',
+                'template'      => 'dart/test/src/response_test.dart.twig',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => '.travis.yml',
                 'template'      => 'dart/.travis.yml.twig',

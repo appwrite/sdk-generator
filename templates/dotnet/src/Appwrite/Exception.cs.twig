@@ -1,0 +1,27 @@
+using System;
+
+namespace {{spec.title | caseUcfirst}}
+{
+    public class {{spec.title | caseUcfirst}}Exception : Exception
+    {
+        public int? Code { get; set; }
+        public string? Type { get; set; } = null;
+        public string? Response { get; set; } = null;
+
+        public {{spec.title | caseUcfirst}}Exception(
+            string? message = null,
+            int? code = null,
+            string? type = null,
+            string? response = null) : base(message)
+        {
+            this.Code = code;
+            this.Type = type;
+            this.Response = response;
+        }
+        public {{spec.title | caseUcfirst}}Exception(string message, Exception inner)
+        : base(message, inner)
+        {
+        }
+    }
+}
+

@@ -1,0 +1,30 @@
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>{% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier }}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
+import 'package:{{ language.params.packageName }}/models.dart';
+{% if 'dart' in language.params.packageName %}
+import 'package:test/test.dart';
+{% else %}
+import 'package:flutter_test/flutter_test.dart';
+{% endif %}
+
+void main() {
+  group('{{ definition.name | caseUcfirst | overrideIdentifier }}', () {
+
+    test('model', () {
+      final model = {{ definition.name | caseUcfirst | overrideIdentifier }}(
+{% for property in definition.properties | filter(p => p.required) %}
+        {{ property.name | escapeKeyword }}: {% if property.type == 'array' %}[]{% elseif property.type == 'object' and (property.sub_schema == 'prefs' or property.sub_schema == 'preferences') %}Preferences(data: {}){% elseif property.type == 'object' %}{}{% elseif property.type == 'string' %}'{{property['x-example'] | escapeDollarSign}}'{% elseif property.type == 'boolean' %}true{% else %}{{property['x-example']}}{% endif %},
+{% endfor %}
+{% if definition.additionalProperties %}
+        data: {},
+{% endif %}
+      );
+
+      final map = model.toMap();
+      final result = {{ definition.name | caseUcfirst | overrideIdentifier }}.fromMap(map);
+
+{% for property in definition.properties | filter(p => p.required) %}
+      expect(result.{{ property.name | escapeKeyword }}{% if property.type == 'object' and (property.sub_schema == 'prefs' or property.sub_schema == 'preferences') %}.data{% endif %}, {% if property.type == 'array' %}[]{% elseif property.type == 'object' and (property.sub_schema == 'prefs' or property.sub_schema == 'preferences') %}{"data": {}}{% elseif property.type == 'object' %}{}{% elseif property.type == 'string' %}'{{property['x-example'] | escapeDollarSign}}'{% elseif property.type == 'boolean' %}true{% else %}{{property['x-example']}}{% endif %});
+{% endfor %}
+    });
+  });
+}
