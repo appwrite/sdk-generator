@@ -1,0 +1,31 @@
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+    paramName := "{{ parameter.name }}"
+
+{% endif %}
+{% endfor %}
+
+    uploadId := ""
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+    uploadId = {{ parameter.name | escapeKeyword | caseUcfirst }}
+{% endif %}
+{% endfor %}
+
+    resp, err := srv.client.FileUpload(path, headers, params, paramName, uploadId)
+    if err != nil {
+		return nil, err
+	}
+	var parsed {{ method | returnType(spec, spec.title | caseLower) }}
+	if strings.HasPrefix(resp.Type, "application/json") {
+		err = json.Unmarshal([]byte(resp.Result.(string)), &parsed)
+		if err != nil {
+			return nil, err
+		}
+		return &parsed, nil
+	}
+	parsed, ok := resp.Result.({{ method | returnType(spec, spec.title | caseLower) }})
+	if !ok {
+		return nil, errors.New("unexpected response type")
+	}
+	return &parsed, nil

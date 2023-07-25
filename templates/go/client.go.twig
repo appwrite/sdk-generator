@@ -1,4 +1,4 @@
-package {{ spec.title | caseLower }}
+package client
 
 import (
 	"bytes"
@@ -13,17 +13,18 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 	"runtime"
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
 )
 
 const (
-	fileNameKey = "file"
-	defaultTimeout = 10 * time.Second
+	fileNameKey      = "file"
+	defaultTimeout   = 10 * time.Second
+	defaultChunkSize = 5 * 1024 * 1024
 )
 
 // {{ spec.title | caseUcfirst }}Error represents an error of a client request
@@ -37,7 +38,8 @@ type ClientResponse struct {
 	Status     string
 	StatusCode int
 	Header     http.Header
-	Result     string
+	Result     interface{}
+	Type	   string
 }
 
 func (ce *{{ spec.title | caseUcfirst }}Error) Error() string {
@@ -59,6 +61,7 @@ type Client struct {
 	endpoint   string
 	timeout    time.Duration
 	selfSigned bool
+	chunkSize  int64
 }
 
 // NewClient initializes a new {{ spec.title | caseUcfirst }} client with a given timeout
@@ -74,12 +77,15 @@ func NewClient() Client {
 {% endfor %}
 	}
 	httpClient, err := getDefaultClient(defaultTimeout)
-	if err != nil { panic(err) }
-	return Client {
-		endpoint: "{{spec.endpoint}}",
-		client: httpClient,
-		timeout: defaultTimeout,
-		headers: headers,
+	if err != nil {
+		panic(err)
+	}
+	return Client{
+		endpoint:  "{{spec.endpoint}}",
+		client:    httpClient,
+		timeout:   defaultTimeout,
+		headers:   headers,
+		chunkSize: defaultChunkSize,
 	}
 }
 
@@ -89,11 +95,11 @@ func (clt *Client) String() string {
 
 func getDefaultClient(timeout time.Duration) (*http.Client, error) {
 	jar, err := cookiejar.New(nil)
-	if err != nil { 
-		return nil, err 
+	if err != nil {
+		return nil, err
 	}
-	return &http.Client {
-		Jar: jar,
+	return &http.Client{
+		Jar:     jar,
 		Timeout: timeout,
 	}, nil
 }
@@ -101,7 +107,9 @@ func getDefaultClient(timeout time.Duration) (*http.Client, error) {
 func (clt *Client) SetTimeout(timeout time.Duration) error {
 	clt.timeout = timeout
 	httpClient, err := getDefaultClient(timeout)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	clt.client = httpClient
 	return nil
 }
@@ -114,6 +122,11 @@ func (clt *Client) SetEndpoint(endpoint string) {
 // SetSelfSigned sets the condition that specify if the Client should allow connections to a server using a self-signed certificate
 func (clt *Client) SetSelfSigned(status bool) {
 	clt.selfSigned = status
+}
+
+// SetChunkSize sets the chunk size for file upload
+func (clt *Client) SetChunkSize(size int64) {
+	clt.chunkSize = size
 }
 
 // AddHeader add a new custom header that the Client should send on each request
@@ -138,59 +151,75 @@ func isFileUpload(headers map[string]interface{}) bool {
 	return false
 }
 
-func (clt *Client) newfileUploadRequest(uri string, params map[string]interface{}, paramName string) (*http.Request, error) {
-	path, ok := params[paramName].(string)
+func (clt *Client) FileUpload(url string, headers map[string]interface{}, params map[string]interface{}, paramName string, uploadId string) (*ClientResponse, error) {
+	inputFile, ok := params[paramName].(file.InputFile)
 	if !ok {
-		return nil, os.ErrNotExist
+		msg := fmt.Sprintf("invalid input file. params[%s] must be of type file.InputFile", paramName)
+		return nil, errors.New(msg)
 	}
-	if _, err := os.Stat(path); err != nil {
-		return nil, err
-	}
-	file, err := os.Open(path)
+
+	file, err := os.Open(inputFile.Path)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile(paramName, filepath.Base(path))
-	if err != nil {
-		return nil, err
-	}
-	_, err = io.Copy(part, file)
+	fileInfo, err := file.Stat()
 	if err != nil {
 		return nil, err
 	}
 
-	for key, val := range params {
-		rt := reflect.TypeOf(val)
-		switch rt.Kind() {
-		case reflect.Array:
-		case reflect.Slice:
-			arr := reflect.ValueOf(val)
-			for i := 0; i < arr.Len(); i++ {
-				err = writer.WriteField(fmt.Sprintf("%s[]", key), toString(arr.Index(i)))
-				if err != nil {
-					return nil, err
-				}
-			}
-		default:
-			err = writer.WriteField(key, toString(val))
-			if err != nil {
-				return nil, err
+	inputFile.Data = make([]byte, clt.chunkSize)
+
+	var result *ClientResponse
+
+	numChunks := fileInfo.Size() / clt.chunkSize
+	if fileInfo.Size()%clt.chunkSize != 0 {
+		numChunks++
+	}
+	var currentChunk int64 = 0
+	if uploadId != "" && uploadId != "unique()" {
+		resp, err := clt.Call("GET", url+"/"+uploadId, nil, nil)
+		if err == nil {
+			currentChunk = int64(resp.Result.(map[string]interface{})["chunksUploaded"].(float64))
+		}
+	}
+	for i := currentChunk; i < numChunks; i++ {
+		chunkSize := clt.chunkSize
+		offset := int64(i) * chunkSize
+		if i == numChunks-1 {
+			chunkSize = fileInfo.Size() - offset
+			inputFile.Data = make([]byte, chunkSize)
+		}
+		_, err := file.ReadAt(inputFile.Data, offset)
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+		params[paramName] = inputFile
+		if uploadId != "" && uploadId != "unique()" {
+			headers["x-appwrite-id"] = uploadId
+		}
+		totalSize := fileInfo.Size()
+		start := offset
+		end := offset + clt.chunkSize - 1
+		if end >= totalSize {
+			end = totalSize - 1
+		}
+		headers["content-range"] = fmt.Sprintf("bytes %d-%d/%d", start, end, totalSize)
+		result, err = clt.Call("POST", url, headers, params)
+		if err != nil {
+			return nil, err
+		}
+
+		var parsed map[string]interface{}
+		if strings.HasPrefix(result.Type, "application/json") {
+			err = json.Unmarshal([]byte(result.Result.(string)), &parsed)
+			if err == nil {
+				uploadId, _ = parsed["$id"].(string)
 			}
 		}
 	}
-
-	err = writer.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", uri, body)
-	clt.AddHeader("content-type", writer.FormDataContentType())
-	return req, err
+	return result, nil
 }
 
 // Call an API using Client
@@ -220,10 +249,40 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		if !isPost {
 			return nil, errors.New("fileupload needs POST Request")
 		}
-		req, err = clt.newfileUploadRequest(urlPath, params, fileNameKey)
+		var body bytes.Buffer
+		writer := multipart.NewWriter(&body)
+		for key, val := range params {
+			if file, ok := val.(file.InputFile); ok {
+				fileName := file.Name
+				fileData := file.Data
+				fw, err := writer.CreateFormFile(key, fileName)
+				if err != nil {
+					return nil, err
+				}
+				_, err = io.Copy(fw, bytes.NewReader(fileData))
+				if err != nil {
+					return nil, err
+				}
+				delete(params, key)
+			}
+		}
+		flatParams := make(map[string]string)
+		flatten(params, "", &flatParams)
+		for key, val := range flatParams {
+			err = writer.WriteField(key, val)
+			if err != nil {
+				return nil, err
+			}
+		}
+		err = writer.Close()
 		if err != nil {
 			return nil, err
 		}
+		req, err = http.NewRequest(method, urlPath, &body)
+		if err != nil {
+			return nil, err
+		}
+		headers["content-type"] = writer.FormDataContentType()
 	} else {
 		if !isGet {
 			var reqBody *strings.Reader
@@ -264,7 +323,9 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 						q.Add(fmt.Sprintf("%s[]", key), toString(arr.Index(i)))
 					}
 				default:
-					q.Add(key, toString(val))
+					if strVal := toString(val); strVal != "" {
+						q.Add(key, strVal)
+					}
 				}
 			}
 			rawQuery := q.Encode()
@@ -296,11 +357,12 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 		return nil, err
 	}
 
-	var isJson = strings.HasPrefix(resp.Header.Get("content-type"), "application/json")
+	contentType := resp.Header.Get("content-type")
+	var isJson = strings.HasPrefix(contentType, "application/json")
 	if isJson {
-		var jsonResponse map[string]interface{}
-		json.Unmarshal(responseData, &jsonResponse)
 		if resp.StatusCode < 200 || resp.StatusCode > 399 {
+			var jsonResponse map[string]interface{}
+			json.Unmarshal(responseData, &jsonResponse)
 			message, ok := jsonResponse["message"].(string)
 			if !ok {
 				message = "N/A"
@@ -310,56 +372,28 @@ func (clt *Client) Call(method string, path string, headers map[string]interface
 				message:    message,
 			}
 		}
-		output,  ok := jsonResponse["result"].(string)
-		if !ok {
-			return nil, fmt.Errorf("invalid response type %v", jsonResponse)
-		}
 		return &ClientResponse{
 			Status:     resp.Status,
 			StatusCode: resp.StatusCode,
 			Header:     resp.Header,
-			Result:     string(output),
+			Result:     string(responseData),
+			Type:	   contentType,
 		}, nil
 	}
-	output, err := getOutput(params, fileNameKey, responseData, resp.Header.Get("content-type"))
-	if err != nil {
-		return nil, err
-	}
+
 	if resp.StatusCode < 200 || resp.StatusCode > 399 {
 		return nil, &{{ spec.title | caseUcfirst }}Error{
 			statusCode: resp.StatusCode,
-			message:    output,
+			message:    string(responseData),
 		}
 	}
 	return &ClientResponse{
 		Status:     resp.Status,
 		StatusCode: resp.StatusCode,
 		Header:     resp.Header,
-		Result:     output,
+		Result:     responseData,
+		Type:	   contentType,
 	}, nil
-}
-
-func getOutput(params map[string]interface{}, paramName string, responseData []byte, contentType string) (string, error) {
-	if strings.HasPrefix(contentType, "text") || strings.HasSuffix(contentType, "json") {
-		return string(responseData), nil
-	}
-	path, ok := params[paramName].(string)
-	if !ok {
-		return "", os.ErrNotExist
-	}
-	file, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-
-	if _, err = file.Write(responseData); err != nil {
-		return "", err
-	}
-
-	if err := file.Close(); err != nil {
-		return "", err
-	}
-	return file.Name(), nil
 }
 
 // toString changes arg to string
@@ -382,6 +416,8 @@ func toString(arg interface{}) string {
 		return strconv.FormatFloat(float64(v), 'f', -1, 32)
 	case float64:
 		return strconv.FormatFloat(v, 'f', -1, 64)
+	case bool:
+		return strconv.FormatBool(v)
 	case reflect.Value:
 		return toString(v.Interface())
 	case fmt.Stringer:
@@ -389,4 +425,50 @@ func toString(arg interface{}) string {
 	default:
 		return fmt.Sprintf("%s", v)
 	}
+}
+
+
+// flatten recursively flattens params into a map[string]string and writes it to result
+func flatten(params interface{}, prefix string, result *map[string]string) error {
+	if result == nil {
+		return errors.New("result is nil")
+	}
+
+	paramsType := reflect.TypeOf(params)
+	if paramsType.Kind() == reflect.Ptr {
+		paramsType = paramsType.Elem()
+	}
+	switch paramsType.Kind() {
+	case reflect.Array:
+		fallthrough
+	case reflect.Slice:
+		arr := reflect.Indirect(reflect.ValueOf(params))
+		for i := 0; i < arr.Len(); i++ {
+			currentPrefix := fmt.Sprintf("%s[%d]", prefix, i)
+			err := flatten(arr.Index(i).Interface(), currentPrefix, result)
+			if err != nil {
+				return err
+			}
+		}
+	case reflect.Map:
+		m := reflect.Indirect(reflect.ValueOf(params))
+		for _, key := range m.MapKeys() {
+			var currentPrefix string
+			if prefix == "" {
+				currentPrefix = toString(key)
+			} else {
+				currentPrefix = fmt.Sprintf("%s[%s]", prefix, toString(key))
+			}
+			err := flatten(m.MapIndex(key).Interface(), currentPrefix, result)
+			if err != nil {
+				return err
+			}
+		}
+		default:
+			if prefix == "" {
+				return fmt.Errorf("prefix is empty for %s", params)
+			}
+			(*result)[prefix] = toString(params)
+	}
+	return nil
 }
