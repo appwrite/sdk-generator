@@ -40,7 +40,7 @@
             }
             
             const start = currentChunkStart;
-            const end = Math.min(((start + client.CHUNK_SIZE) - 1), size);
+            const end = Math.min(((start + client.CHUNK_SIZE) - 1), size - 1);
 
             if(!lastUpload || currentChunkStart !== 0) {
                 headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
