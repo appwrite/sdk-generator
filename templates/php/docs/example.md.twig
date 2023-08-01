@@ -6,7 +6,7 @@ use {{ spec.title | caseUcfirst }}\InputFile;
 {% endif %}
 use {{ spec.title | caseUcfirst }}\Services\{{ service.name | caseUcfirst }};
 {% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}{% endif %}
-{% if parameter.enumValues | length > 0%}using {{ spec.title | caseUcfirst }}\Enums\{{parameter.enumName | caseUcfirst}};{% endif %}
+{% if parameter.enumValues | length > 0%}use {{ spec.title | caseUcfirst }}\Enums\{{parameter.enumName | caseUcfirst}};{% endif %}
 
 {% endif %}{% endfor %}
 

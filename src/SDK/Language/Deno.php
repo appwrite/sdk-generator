@@ -107,6 +107,10 @@ class Deno extends JS
      */
     public function getTypeName(array $parameter): string
     {
+        if (isset($parameter['enumName'])) {
+            return $parameter['enumName'];
+        }
+
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'number';

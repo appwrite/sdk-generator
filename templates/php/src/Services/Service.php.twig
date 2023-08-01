@@ -6,6 +6,9 @@ use {{ spec.title | caseUcfirst }}\{{spec.title | caseUcfirst}}Exception;
 use {{ spec.title | caseUcfirst }}\Client;
 use {{ spec.title | caseUcfirst }}\Service;
 use {{ spec.title | caseUcfirst }}\InputFile;
+{% for method in service.methods %}{% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}{% endif %}{% if parameter.enumValues | length > 0%}use {{ spec.title | caseUcfirst }}\Enums\{{parameter.enumName | caseUcfirst}};
+{% endif %}
+{% endif %}{% endfor %}{% endfor %}
 
 class {{ service.name | caseUcfirst }} extends Service
 {
