@@ -259,6 +259,12 @@ class Swagger2 extends Spec
                                         $value['default'] = (empty($value['default'])) ? new stdClass() : $value['default'];
                                     }
 
+                                    if (isset($value['enum'])) {
+                                        $param['enumValues'] = $value['enum'];
+                                        $param['enumName'] = $value['x-enum-name'];
+                                        $param['enumKeys'] = $value['x-enum-keys'];
+                                    }
+
                                     $param['default'] = (is_array($value['default']) || $value['default'] instanceof stdClass) ? json_encode($value['default']) : $value['default'];
 
                                     $output['parameters']['body'][] = $param;
