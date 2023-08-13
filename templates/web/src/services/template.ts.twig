@@ -122,7 +122,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
         for (counter; counter < totalCounters; counter++) {
             const start = (counter * Service.CHUNK_SIZE);
-            const end = Math.min((((counter * Service.CHUNK_SIZE) + Service.CHUNK_SIZE) - 1), size);
+            const end = Math.min((((counter * Service.CHUNK_SIZE) + Service.CHUNK_SIZE) - 1), size - 1);
 
             headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size
 
