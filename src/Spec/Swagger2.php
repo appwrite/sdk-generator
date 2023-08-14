@@ -245,14 +245,15 @@ class Swagger2 extends Spec
                                 $bodyRequired = $parameter['schema']['required'] ?? [];
 
                                 foreach ($bodyProperties as $key => $value) {
-                                    $param['name'] = $key;
-                                    $param['type'] = $value['type'] ?? null;
-                                    $param['description'] = $value['description'] ?? '';
-                                    $param['required'] = (in_array($key, $bodyRequired));
-                                    $param['example'] = $value['x-example'] ?? null;
-                                    $param['isUploadID'] = $value['x-upload-id'] ?? false;
-                                    $param['nullable'] = $value['x-nullable'] ?? false;
-                                    $param['array'] = [
+                                    $temp = $param;
+                                    $temp['name'] = $key;
+                                    $temp['type'] = $value['type'] ?? null;
+                                    $temp['description'] = $value['description'] ?? '';
+                                    $temp['required'] = (in_array($key, $bodyRequired));
+                                    $temp['example'] = $value['x-example'] ?? null;
+                                    $temp['isUploadID'] = $value['x-upload-id'] ?? false;
+                                    $temp['nullable'] = $value['x-nullable'] ?? false;
+                                    $temp['array'] = [
                                         'type' => $value['items']['type'] ?? '',
                                     ];
                                     if ($value['type'] === 'object' && is_array($value['default'])) {
@@ -260,15 +261,15 @@ class Swagger2 extends Spec
                                     }
 
                                     if (isset($value['enum'])) {
-                                        $param['enumValues'] = $value['enum'];
-                                        $param['enumName'] = $value['x-enum-name'];
-                                        $param['enumKeys'] = $value['x-enum-keys'];
+                                        $temp['enumValues'] = $value['enum'];
+                                        $temp['enumName'] = $value['x-enum-name'];
+                                        $temp['enumKeys'] = $value['x-enum-keys'];
                                     }
 
-                                    $param['default'] = (is_array($value['default']) || $value['default'] instanceof stdClass) ? json_encode($value['default']) : $value['default'];
+                                    $temp['default'] = (is_array($value['default']) || $value['default'] instanceof stdClass) ? json_encode($value['default']) : $value['default'];
 
-                                    $output['parameters']['body'][] = $param;
-                                    $output['parameters']['all'][] = $param;
+                                    $output['parameters']['body'][] = $temp;
+                                    $output['parameters']['all'][] = $temp;
                                 }
 
                                 continue 2;
@@ -371,6 +372,6 @@ class Swagger2 extends Spec
                 }
             }
         }
-        return $list;
+        return  \array_values(\array_unique($list));
     }
 }
