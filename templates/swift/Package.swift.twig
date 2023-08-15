@@ -27,6 +27,7 @@ let package = Package(
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "NIOWebSocket", package: "swift-nio"),
                 "{{spec.title | caseUcfirst}}Models",
+                "{{spec.title | caseUcfirst}}Enums",
                 "JSONCodable"
             ]
         ),
@@ -35,6 +36,9 @@ let package = Package(
             dependencies: [
                 "JSONCodable"
             ]
+        ),
+        .target(
+            name: "{{spec.title | caseUcfirst}}Enums"
         ),
         .target(
             name: "JSONCodable"
