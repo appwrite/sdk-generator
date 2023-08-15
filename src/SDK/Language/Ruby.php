@@ -182,6 +182,11 @@ class Ruby extends Language
                 'destination'   => '/lib/{{ spec.title | caseDash }}/models/{{ definition.name | caseSnake }}.rb',
                 'template'      => 'ruby/lib/container/models/model.rb.twig',
             ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'lib/{{ spec.title | caseSnake}}/enums/{{ enum.name | caseSnake }}.rb',
+                'template'      => 'ruby/lib/container/enums/enum.rb.twig',
+            ],
         ];
     }
 
