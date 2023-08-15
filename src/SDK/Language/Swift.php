@@ -284,6 +284,11 @@ class Swift extends Language
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ definition.name | caseUcfirst }}.swift',
                 'template'      => '/swift/Sources/Models/Model.swift.twig',
             ],
+            [
+                'scope' => 'enum',
+                'destination' => '/Sources/{{ spec.title | caseUcfirst}}Enums/{{ enum.name | caseUcfirst }}.swift',
+                'template' => '/swift/Sources/Enums/Enum.swift.twig',
+            ]
         ];
     }
 
@@ -293,6 +298,10 @@ class Swift extends Language
      */
     public function getTypeName(array $parameter): string
     {
+        if (isset($parameter['enumName'])) {
+            return $parameter['enumName'];
+        }
+
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'Int';

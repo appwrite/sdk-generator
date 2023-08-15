@@ -126,6 +126,11 @@ class Node extends JS
                 'destination'   => '.travis.yml',
                 'template'      => 'node/.travis.yml.twig',
             ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'lib/enums/{{ enum.name | caseDash }}.js',
+                'template'      => 'node/lib/enums/enum.js.twig',
+            ],
         ];
     }
 

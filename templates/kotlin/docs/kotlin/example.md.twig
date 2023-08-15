@@ -3,6 +3,10 @@ import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.models.InputFile
 {% endif %}
 import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }}
+{% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}{% endif %}
+{% if parameter.enumValues | length > 0%}import {{ sdk.namespace | caseDot }}.enums.{{parameter.enumName | caseUcfirst}}{% endif %}
+
+{% endif %}{% endfor %}
 
 val client = Client(context)
 {% if method.auth|length > 0 %}
@@ -18,7 +22,7 @@ val {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client)
 
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
-    {{parameter.name}} = {{ parameter | paramExample }}{% if not loop.last %},{% endif %}
+    {{parameter.name}} = {% if parameter.enumValues | length > 0%} {{parameter.enumName}}.{{(parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseUpper | replace({'-': '',' ': '_'}) }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %}
 
 {% endif %}
 {% if loop.last %}

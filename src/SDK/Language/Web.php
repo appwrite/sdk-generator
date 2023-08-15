@@ -115,6 +115,11 @@ class Web extends JS
                 'destination'   => '.travis.yml',
                 'template'      => 'web/.travis.yml.twig',
             ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'src/enums/{{ enum.name | caseDash }}.ts',
+                'template'      => 'web/src/enums/enum.ts.twig',
+            ],
         ];
     }
 

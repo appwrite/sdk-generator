@@ -93,6 +93,11 @@ class Deno extends JS
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'deno/docs/example.md.twig',
             ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'src/enums/{{ enum.name | caseDash }}.ts',
+                'template'      => 'deno/src/enums/enum.ts.twig',
+            ],
         ];
     }
 
@@ -102,6 +107,10 @@ class Deno extends JS
      */
     public function getTypeName(array $parameter): string
     {
+        if (isset($parameter['enumName'])) {
+            return $parameter['enumName'];
+        }
+
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'number';

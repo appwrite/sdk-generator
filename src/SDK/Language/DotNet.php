@@ -129,7 +129,8 @@ class DotNet extends Language
             'when',
             'where',
             'while',
-            'yield'
+            'yield',
+            'path'
         ];
     }
 
@@ -150,6 +151,7 @@ class DotNet extends Language
      */
     public function getTypeName(array $parameter): string
     {
+
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'long';
@@ -394,6 +396,11 @@ class DotNet extends Language
                 'scope'         => 'definition',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/src/Appwrite/Models/Model.cs.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
+                'template'      => 'dotnet/src/Appwrite/Enums/Enums.cs.twig',
             ]
         ];
     }

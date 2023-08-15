@@ -105,6 +105,7 @@ abstract class JS extends Language
             'while',
             'with',
             'yield',
+            'path'
         ];
     }
 
@@ -123,6 +124,7 @@ abstract class JS extends Language
      */
     public function getTypeName(array $parameter): string
     {
+
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:

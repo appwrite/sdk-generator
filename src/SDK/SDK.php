@@ -556,6 +556,7 @@ class SDK
                 'params' => $this->language->getParams(),
             ],
             'sdk' => $this->getParams(),
+            'enums' => $this->spec->getEnumNames(),
         ];
 
         foreach ($this->language->getFiles() as $file) {
@@ -631,6 +632,27 @@ class SDK
                             }
 
                             $this->render($template, $destination, $block, $params, $minify);
+                        }
+                    }
+                    break;
+                case 'enum':
+                    foreach ($this->spec->getServices() as $key => $service) {
+                        $methods = $this->spec->getMethods($key);
+
+                        foreach ($methods as $method) {
+                            $parameters = $method['parameters']['all'];
+
+                            foreach ($parameters as $parameter) {
+                                    // Check if the enum field is defined
+                                if (isset($parameter['enumValues'])) {
+                                    $params['enum'] = [
+                                        'name' =>  $parameter['enumName'] ?? $parameter['name'],
+                                        'enum' => $parameter['enumValues'],
+                                        'keys' => $parameter['enumKeys'],
+                                    ];
+                                    $this->render($template, $destination, $block, $params, $minify);
+                                }
+                            }
                         }
                     }
                     break;

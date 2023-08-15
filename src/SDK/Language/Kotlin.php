@@ -86,7 +86,8 @@ class Kotlin extends Language
             "vararg",
             "when",
             "where",
-            "while"
+            "while",
+            "path"
         ];
     }
 
@@ -104,6 +105,7 @@ class Kotlin extends Language
      */
     public function getTypeName(array $parameter): string
     {
+
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
                 return 'Long';
@@ -417,6 +419,11 @@ class Kotlin extends Language
                 'scope'         => 'definition',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ definition.name | caseUcfirst }}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Model.kt.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/enums/{{ enum.name | caseUcfirst }}.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/enums/Enum.kt.twig',
             ],
         ];
     }

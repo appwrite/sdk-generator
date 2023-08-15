@@ -1,4 +1,4 @@
-import {{ '{' }} Client, {{service.name | caseUcfirst}} {{ '}' }} from "{{ language.params.npmPackage }}";
+import {{ '{' }} Client, {% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}{% endif %}{% if parameter.enumValues | length > 0%}{{parameter.enumName | caseUcfirst}},{% endif %}{% endif %}{% endfor %} {{service.name | caseUcfirst}} {{ '}' }} from "{{ language.params.npmPackage }}";
 
 const client = new Client();
 
@@ -16,7 +16,7 @@ client
 {% endif %}
 {% if method.type == 'webAuth' %}// Go to OAuth provider login page
 {% endif %}
-{% if method.type == 'webAuth' %}{% elseif method.type == 'location' %}const result = {% else %}const promise = {% endif %}{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
+{% if method.type == 'webAuth' %}{% elseif method.type == 'location' %}const result = {% else %}const promise = {% endif %}{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{% if parameter.enumValues | length > 0%}{{parameter.enumName}}.{{(parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseUcfirst | replace({'-': ''}) }}{% else%}{{ parameter | paramExample  }}{% endif %}{% endif %}{% endfor %});
 
 {% if method.type == 'webAuth' %}{% elseif method.type == 'location' %}console.log(result); // Resource URL{% else %}promise.then(function (response) {
     console.log(response); // Success
