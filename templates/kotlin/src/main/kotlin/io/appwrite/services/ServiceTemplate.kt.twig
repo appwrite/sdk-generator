@@ -1,8 +1,12 @@
 package {{ sdk.namespace | caseDot }}.services
 
 import {{ sdk.namespace | caseDot }}.Client
+{% if spec.definitions is not empty %}
 import {{ sdk.namespace | caseDot }}.models.*
+{% endif %}
+{% if spec.enums is not empty %}
 import {{ sdk.namespace | caseDot }}.enums.*
+{% endif %}
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.classOf
 import okhttp3.Cookie

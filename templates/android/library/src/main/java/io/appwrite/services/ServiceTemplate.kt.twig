@@ -2,8 +2,12 @@ package {{ sdk.namespace | caseDot }}.services
 
 import android.net.Uri
 import {{ sdk.namespace | caseDot }}.Client
-import {{ sdk.namespace | caseDot }}.enums.*
+{% if spec.definitions is not empty %}
 import {{ sdk.namespace | caseDot }}.models.*
+{% endif %}
+{% if spec.enums is not empty %}
+import {{ sdk.namespace | caseDot }}.enums.*
+{% endif %}
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.classOf
 {% if service.features.webAuth %}

@@ -26,20 +26,28 @@ let package = Package(
             dependencies: [
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "NIOWebSocket", package: "swift-nio"),
+                {%~ if spec.definitions is not empty %}
                 "{{spec.title | caseUcfirst}}Models",
+                {%~ endif %}
+                {%~ if spec.enums is not empty %}
                 "{{spec.title | caseUcfirst}}Enums",
+                {%~ endif %}
                 "JSONCodable"
             ]
         ),
+        {%~ if spec.definitions is not empty %}
         .target(
             name: "{{spec.title | caseUcfirst}}Models",
             dependencies: [
                 "JSONCodable"
             ]
         ),
+        {%~ endif %}
+        {%~ if spec.enums is not empty %}
         .target(
             name: "{{spec.title | caseUcfirst}}Enums"
         ),
+        {%~ endif %}
         .target(
             name: "JSONCodable"
         ),
