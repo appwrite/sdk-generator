@@ -35,7 +35,7 @@ import type { Models } from '../models.d.ts';
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}
 {% if parameter.enumName is not null and parameter.enumName not in added %}
-import {{ '{' }} {{ parameter.enumName }} {{ '}' }} from '../enums/{{ parameter.enumName | caseDash }}.ts';
+import type {{ '{' }} {{ parameter.enumName }} {{ '}' }} from '../enums/{{ parameter.enumName | caseDash }}.ts';
 {% set added = added|merge([parameter.enumName]) %}
 {% endif %}
 {% endfor %}

@@ -191,7 +191,7 @@ class SDK
             }
             return $value;
         }));
-        $this->twig->addFilter(new TwigFilter('strip', function($value) {
+        $this->twig->addFilter(new TwigFilter('strip', function ($value) {
             $value = \str_replace(['-',' ',], '_', $value);
             $value = \preg_replace('/[^A-Za-z0-9_]/', '', $value);
 
@@ -551,6 +551,7 @@ class SDK
                 'contactURL' => $this->spec->getContactURL(),
                 'contactEmail' => $this->spec->getContactEmail(),
                 'services' => $this->spec->getServices(),
+                'enums' => $this->spec->getEnumNames(),
                 'definitions' => $this->spec->getDefinitions(),
                 'global' => [
                     'headers' => $this->spec->getGlobalHeaders(),
@@ -562,7 +563,6 @@ class SDK
                 'params' => $this->language->getParams(),
             ],
             'sdk' => $this->getParams(),
-            'enums' => $this->spec->getEnumNames(),
         ];
 
         foreach ($this->language->getFiles() as $file) {
