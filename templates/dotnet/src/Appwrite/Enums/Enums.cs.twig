@@ -2,11 +2,23 @@ using System;
 
 namespace {{ spec.title | caseUcfirst }}.Enums
 {
-    public static class {{ enum.name | caseUcfirst | overrideIdentifier }}
+    public class {{ enum.name | caseUcfirst | overrideIdentifier }}
     {
+        public string Value { get; private set; }
+
+        public {{ enum.name | caseUcfirst | overrideIdentifier }}(string value)
+        {
+            Value = value;
+        }
+
 {% for value in enum.enum %}
 {% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
-        public const string {{ key | caseUcfirst | replace({'-': ''}) }} => "{{ value }}";
+        public static {{ enum.name | caseUcfirst | overrideIdentifier }} {{ key | caseUcfirst | strip }} => new {{ enum.name | caseUcfirst | overrideIdentifier }}("{{ value }}");
 {% endfor %}
+
+        public override string ToString()
+        {
+            return Value;
+        }
     }
 }

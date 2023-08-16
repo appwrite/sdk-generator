@@ -179,6 +179,9 @@ class Web extends JS
 
     public function getTypeName(array $parameter, array $method = []): string
     {
+        if (isset($parameter['enumName'])) {
+            return $parameter['enumName'];
+        }
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:

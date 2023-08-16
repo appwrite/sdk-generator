@@ -1,6 +1,6 @@
         let path: String = "{{ method.path }}"
         {%~ for parameter in method.parameters.path %}
-            .replacingOccurrences(of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", with: {{ parameter.name | caseCamel | escapeKeyword }})
+            .replacingOccurrences(of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", with: {{ parameter.name | caseCamel | escapeKeyword }}{% if parameter.enumName is not null %}.rawValue{% endif %})
         {%~ endfor %}
 
         {%~ if method.parameters.query | merge(method.parameters.body) | length <= 0 %}

@@ -191,6 +191,12 @@ class SDK
             }
             return $value;
         }));
+        $this->twig->addFilter(new TwigFilter('strip', function($value) {
+            $value = \str_replace(['-',' ',], '_', $value);
+            $value = \preg_replace('/[^A-Za-z0-9_]/', '', $value);
+
+            return $value;
+        }));
     }
 
     /**

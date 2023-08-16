@@ -2,6 +2,7 @@ package {{ sdk.namespace | caseDot }}.services
 
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.models.*
+import {{ sdk.namespace | caseDot }}.enums.*
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.classOf
 import okhttp3.Cookie
@@ -51,7 +52,7 @@ class {{ service.name | caseUcfirst }} : Service {
     ): {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} {
         val path = "{{ method.path }}"
         {%~ for parameter in method.parameters.path %}
-            .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }})
+            .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}{% if parameter.enumName is not null %}.value{% endif %})
         {%~ endfor %}
 
         val params = mutableMapOf<String, Any?>(

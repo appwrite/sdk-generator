@@ -105,6 +105,9 @@ class Kotlin extends Language
      */
     public function getTypeName(array $parameter): string
     {
+        if (isset($parameter['enumName'])) {
+            return $parameter['enumName'];
+        }
 
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:

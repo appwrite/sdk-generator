@@ -2,10 +2,34 @@
 
 namespace {{ spec.title | caseUcfirst }}\Enums;
 
-class {{ enum.name | caseUcfirst | overrideIdentifier }}
+class {{ enum.name | caseUcfirst | overrideIdentifier }} implements JsonSerializable
 {
+    private string $value;
+
+    public function __construct(string $value)
+    {
+        $this->value = $value;
+
 {% for value in enum.enum %}
 {% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
-    public const {{ key | caseUpper | replace({'-': '',' ':'_', '(': '', ')': '', '.': ''})}} = '{{value}}';
+        if (!isset(self::${{ key | caseUpper | strip }})) {
+            self::${{ key | caseUpper | strip }} = new {{ enum.name | caseUcfirst | overrideIdentifier }}('{{value}}');
+        }
+{% endfor %}
+    }
+
+    public function __toString(): string
+    {
+        return $this->value;
+    }
+
+    public function jsonSerialize(): string
+    {
+        return $this->value;
+    }
+
+{% for value in enum.enum %}
+{% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+    public static {{ enum.name | caseUcfirst | overrideIdentifier }} ${{ key | caseUpper | strip }};
 {% endfor %}
 }

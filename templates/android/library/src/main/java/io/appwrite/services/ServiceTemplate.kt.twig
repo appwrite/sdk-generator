@@ -2,6 +2,7 @@ package {{ sdk.namespace | caseDot }}.services
 
 import android.net.Uri
 import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.enums.*
 import {{ sdk.namespace | caseDot }}.models.*
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.classOf
@@ -55,7 +56,7 @@ class {{ service.name | caseUcfirst }} : Service {
     ){% if method.type != "webAuth" %}: {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}{% endif %} {
         val path = "{{ method.path }}"
         {%~ for parameter in method.parameters.path %}
-            .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }})
+            .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}{% if parameter.enumName is not null %}.value{% endif %})
         {%~ endfor %}
 
         val params = mutableMapOf<String, Any?>(
