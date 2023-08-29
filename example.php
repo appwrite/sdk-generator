@@ -2,6 +2,7 @@
 
 include_once 'vendor/autoload.php';
 
+use Appwrite\SDK\Language\Crystal;
 use Appwrite\SDK\Language\GraphQL;
 use Appwrite\Spec\Swagger2;
 use Appwrite\SDK\SDK;
@@ -37,9 +38,9 @@ try {
     }
 
     // Leave the platform you want uncommented
-    $platform = 'client';
+    // $platform = 'client';
     // $platform = 'console';
-    // $platform = 'server';
+    $platform = 'server';
 
     $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/master/app/config/specs/swagger2-latest-{$platform}.json");
 
@@ -459,6 +460,30 @@ try {
         ])
     ;
     $sdk->generate(__DIR__ . '/examples/kotlin');
+
+    // Crystal
+    $sdk = new SDK(new Crystal(), new Swagger2($spec));
+
+    $sdk
+        ->setName('Crystal')
+        ->setNamespace('io appwrite')
+        ->setDescription('Appwrite is an open-source backend as a service server that abstract and simplify complex and repetitive development tasks behind a very simple to use REST API. Appwrite aims to help you develop your apps faster and in a more secure way. Use the Flutter SDK to integrate your app with the Appwrite server to easily start interacting with all of Appwrite backend APIs and tools. For full API documentation and tutorials go to https://appwrite.io/docs')
+        ->setShortDescription('Appwrite Crystal SDK')
+        ->setURL('https://example.com')
+        ->setGitUserName('appwrite')
+        ->setGitRepoName('sdk-for-crystal')
+        ->setLogo('https://appwrite.io/v1/images/console.png')
+        ->setLicenseContent('test test test')
+        ->setWarning('**This SDK is compatible with Appwrite server version 0.7.x. For older versions, please check previous releases.**')
+        ->setChangelog('**CHANGELOG**')
+        ->setVersion('0.0.0-SNAPSHOT')
+        ->setTwitter('appwrite_io')
+        ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
+        ->setDefaultHeaders([
+            'x-appwrite-response-format' => '1.4.0',
+        ])
+    ;
+    $sdk->generate(__DIR__ . '/examples/crystal');
 
     // GraphQL
     $sdk = new SDK(new GraphQL(), new Swagger2($spec));

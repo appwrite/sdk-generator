@@ -1,0 +1,326 @@
+require "http/client"
+require "uri"
+require "json"
+require "random"
+
+module {{ spec.title | caseUcfirst }}
+    class Client
+        def initialize
+            @chunk_size = 5 * 1024 * 1024
+            @headers = {
+                "user-agent" => ":{{ language.name | caseLower }}-",
+                "x-sdk-name" => "{{ sdk.name }}",
+                "x-sdk-platform" => "{{ sdk.platform }}",
+                "x-sdk-language" => "{{ language.name | caseLower }}",
+                "x-sdk-version" => "{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
+                
+                {%~ for key,header in spec.global.defaultHeaders %}
+                "{{key}}" => "{{header}}"{% if not loop.last %},{% endif %}
+                {%~ endfor %}
+
+            }
+            @endpoint = "{{spec.endpoint}}"
+            @self_signed = false
+        end
+
+{% for header in spec.global.headers %}
+        # Set {{header.key | caseUcfirst}}
+        #
+{% if header.description %}
+        # {{header.description}}
+        #
+{% endif %}
+        # @param [String] value The value to set for the {{ header.key }} header
+        #
+        # @return [self]
+        def set_{{header.key | caseSnake}}(value : String)
+            add_header("{{header.name | caseLower}}", value)
+            self
+        end
+
+{% endfor %}
+        # Set endpoint.
+        #
+        # @param [String] endpoint The endpoint to set
+        #
+        # @return [self]
+        def set_endpoint(endpoint : String)
+            @endpoint = endpoint
+            self
+        end
+
+        # Set self signed.
+        #
+        # @param [String] self_signed Whether to allow self signed certificates.
+        #
+        # @return [self]
+        def set_self_signed(self_signed = true)
+            @self_signed = self_signed
+            self
+        end
+
+        # Add Header
+        #
+        # @param [String] key The key for the header to add
+        # @param [String] value The value for the header to add
+        #
+        # @return [self]
+        def add_header(key : String, value : String)
+            @headers[key.downcase] = value
+            self
+        end
+
+        # Send the HTTP request.
+        #
+        # @param [String] method The HTTP method for the request
+        # @param [String] path The path for the request
+        # @param [Hash] headers The headers to send with the request
+        # @param [Hash] params The parameters to send with the request
+        # @param [Class] response_type The type of response to return
+        #
+        # @return [self]
+        def call(
+            method : String,
+            path : String = "",
+            headers : Hash(String, String) = {} of String => String,
+            params : Hash(String, T) = {} of String => T,
+            response_type : Object? = nil
+        ) forall T
+            uri = URI.parse(@endpoint + path + ((method == "GET" && params.size) ? "?" + encode(params) : ""))
+
+            fetch(method, uri, headers, params, response_type)
+        end
+
+        def chunked_upload(
+            path : String,
+            headers : Hash(String, String),
+            params : Hash(String, T),
+            param_name : String = "",
+            id_param_name : String? = nil,
+            on_progress : (Hash(String, T) ->)? = nil,
+            response_type = nil
+        ) forall T
+            input_file = params[param_name].as(InputFile)
+            size = 0
+
+            case input_file.source_type
+            when "path"
+                if input_file.path.nil?
+                    raise {{spec.title | caseUcfirst}}::Exception.new("File not found")
+                end
+                size = File.size(input_file.path || "") || 0
+            when "string"
+                if input_file.data.nil?
+                    raise {{spec.title | caseUcfirst}}::Exception.new("File not found")
+                end
+                size = input_file.data.try &.bytesize || 0
+            end
+
+            if size < @chunk_size
+                if input_file.source_type == "path"
+                    file_path = input_file.path
+                    if file_path.nil?
+                        raise {{spec.title | caseUcfirst}}::Exception.new("File not found")
+                    end
+                    input_file.data = File.read(file_path)
+                end
+
+                params[param_name] = input_file
+
+                return call(
+                    method: "POST",
+                    path: path,
+                    headers: headers,
+                    params: params,
+                    response_type: response_type,
+                )
+            end
+
+            offset = 0
+
+            id_param_name = id_param_name if id_param_name
+
+            if id_param_name.try &.empty? == false && params[id_param_name] != "unique()"
+                # Make a request to check if a file already exists
+                current = call(
+                    method: "GET",
+                    path: "#{path}/#{params[id_param_name]}",
+                    headers: headers,
+                    params: {} of String => T
+                )
+                chunks_uploaded = current["chunksUploaded"].to_s.to_i
+                offset = [size, (chunks_uploaded * @chunk_size)].min
+            end
+
+            while offset < size
+                string = ""
+
+                case input_file.source_type
+                when "path"
+                    file_path = input_file.path
+                    if file_path.nil?
+                        raise {{spec.title | caseUcfirst}}::Exception.new("File not found")
+                    end
+                    File.open(file_path) do |file|
+                        string = file.read_string(@chunk_size)
+                    end
+                when "string"
+                    data = input_file.data
+                    if data.nil?
+                        raise {{spec.title | caseUcfirst}}::Exception.new("Invalid file data")
+                    end
+                    string = data.byte_slice(offset, [@chunk_size, size - offset].min)
+                end
+
+                params[param_name] = InputFile.from_string(
+                    string,
+                    filename = input_file.filename,
+                    mime_type = input_file.mime_type
+                )
+
+                headers["content-range"] = "bytes #{offset}-#{[offset + @chunk_size - 1, size - 1].min}/#{size}"
+
+                result = call(
+                    method: "POST",
+                    path: path,
+                    headers: headers,
+                    params: params,
+                )
+
+                offset += @chunk_size
+
+                if id = result["$id"]?
+                    headers["x-{{ spec.title | caseLower }}-id"] = id.to_s
+                end
+
+                on_progress.call({
+                    "id" => result["$id"]? || "",
+                    "progress" => ([offset, size].min).to_f/size.to_f * 100.0,
+                    "size_uploaded" => [offset, size].min,
+                    "chunks_total" => result["chunksTotal"],
+                    "chunks_uploaded" => result["chunksUploaded"]
+                }) unless on_progress.nil?
+            end
+
+            if response_type.responds_to?(:from)  && result.is_a?(JSON::Any)
+                return response_type.from(map: result.as_h)
+            end
+
+            result
+        end
+
+        private def fetch(
+            method : String,
+            uri : URI,
+            headers : Hash(String, String),
+            params : Hash(String, T),
+            response_type = nil,
+            limit = 5
+        ) forall T
+            raise ArgumentError.new("Too Many HTTP Redirects") if limit == 0
+
+            @http = HTTP::Client.new(uri.host.to_s, uri.port, !@self_signed) if @http.nil?
+            payload = ""
+            headers = @headers.merge(headers)
+
+            @boundary = "-------#{Random::Secure.hex(6)}"
+            if method != "GET"
+                case headers["content-type"]
+                when "application/json"
+                    payload = params.to_json
+                when "multipart/form-data"
+                    payload = "--#{@boundary}\r\n" + encode_form_data(params)
+                    headers["content-type"] = "multipart/form-data; boundary=#{@boundary}"
+                else
+                    payload = encode(params)
+                end
+            end
+
+            http_headers = HTTP::Headers.new
+
+            headers.each do |key, value|
+                http_headers[key] = value
+            end
+
+            begin
+                response = @http.try &.exec(method, uri.request_target, http_headers, payload)
+            rescue ex
+                raise {{spec.title | caseUcfirst}}::Exception.new(ex.message || "Unknown error")
+            end
+
+            if response.nil?
+                raise {{spec.title | caseUcfirst}}::Exception.new("Unknown error")
+            end
+            
+            # Handle Redirects
+            if response.status == HTTP::Status::MOVED_PERMANENTLY || response.status == HTTP::Status::PERMANENT_REDIRECT
+                location = response.headers["location"]
+                uri = URI.parse(location)
+                
+                return fetch(method, uri, headers, {} of String => T, response_type, limit - 1)
+            end
+
+            if response.content_type.try &.starts_with?("application/json")
+                begin
+                    result = JSON.parse(response.body)
+                rescue e : JSON::ParseException
+                    raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.status_code, "", response.body || "")
+                end
+
+                if response.status.code >= 400
+                    raise {{spec.title | caseUcfirst}}::Exception.new(result["message"].to_s, result["code"].to_s.to_i, "", result.to_s)
+                end
+
+                if response_type.responds_to?(:from) && result.is_a?(JSON::Any)
+                    return response_type.from(map: result.as_h)
+                end
+
+                return result
+            end
+
+            if response.status_code >= 400
+                raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.status_code, "", response.body || "")
+            end
+
+            return response.body
+        end
+        
+        def encode_form_data(value, key = nil)
+            case value
+            when Hash
+                value.map { |k,v| encode_form_data(v,k) }.join
+            when Array
+                value.map { |v| encode_form_data(v, "#{key}[]") }.join
+            when nil
+                ""
+            else
+                post_body = Array(String).new
+                if value.is_a? InputFile
+                    post_body << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{value.filename}\"\r\n"
+                    post_body << "Content-Type: #{value.mime_type}\r\n\r\n"
+                    post_body << (value.data || "")
+                    post_body << "\r\n--#{@boundary}--\r\n"
+                else          
+                    post_body << "Content-Disposition: form-data; name=\"#{key}\"\r\n\r\n"
+                    post_body << "#{value.to_s}" 
+                    post_body << "\r\n--#{@boundary}\r\n"
+                end
+                post_body.join
+            end
+        end
+
+        def encode(value, key = nil)
+            case value
+            when Hash  then value.map { |k,v| encode(v, append_key(key,k)) }.join("&")
+            when Array then value.map { |v| encode(v, "#{key}[]") }.join("&")
+            when nil   then ""
+            else            
+            "#{key}=#{URI.encode_path(value.to_s)}"
+            end
+        end
+
+        def append_key(root_key, key)
+            root_key.nil? ? key : "#{root_key}[#{key.to_s}]"
+        end
+    end 
+end

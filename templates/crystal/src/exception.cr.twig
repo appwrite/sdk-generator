@@ -1,0 +1,15 @@
+module {{spec.title | caseUcfirst}}
+    class Exception < Exception
+        def initialize(
+            message : String,
+            code : Int32 = 0,
+            type : String = "",
+            response : String = ""
+        )
+            super(message)
+            @code = code
+            @type = type
+            @response = response
+        end
+    end
+end

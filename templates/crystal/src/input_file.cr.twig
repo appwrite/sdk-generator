@@ -1,0 +1,39 @@
+require "mime"
+require "./extensions/mime_types"
+
+module {{spec.title | caseUcfirst}}
+    class InputFile
+        include JSON::Serializable
+
+        property path : String? = nil
+        property filename : String? = nil
+        property mime_type : String? = nil
+        property source_type : String? = nil
+        property data : String? = nil
+
+        def initialize
+        end
+
+        def self.from_path(path : String)
+            instance = InputFile.new
+            instance.path = path
+            instance.filename = File.basename(path)
+            instance.mime_type = MIME.from_filename(path)
+            instance.source_type = "path"
+            instance
+        end
+
+        def self.from_string(string : String, filename = nil, mime_type = nil)
+            instance = InputFile.new
+            instance.data = string
+            instance.filename = filename
+            instance.mime_type = mime_type
+            instance.source_type = "string"
+            instance
+        end
+
+        def self.from_bytes(bytes, filename = nil, mime_type = nil)
+            self.from_string(bytes.pack("C*"), filename: filename, mime_type: mime_type)
+        end
+    end
+end

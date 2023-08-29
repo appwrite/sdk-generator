@@ -84,6 +84,29 @@ abstract class Language
         return [];
     }
 
+    protected function hasGenericType(?string $model, array $spec): string
+    {
+        if (empty($model) || $model === 'any') {
+            return false;
+        }
+
+        $model = $spec['definitions'][$model];
+
+        if ($model['additionalProperties']) {
+            return true;
+        }
+
+        foreach ($model['properties'] as $property) {
+            if (!\array_key_exists('sub_schema', $property) || !$property['sub_schema']) {
+                continue;
+            }
+
+            return $this->hasGenericType($property['sub_schema'], $spec);
+        }
+
+        return false;
+    }
+
     protected function toUpperCaseWords(string $value): string
     {
         return ucfirst($this->toCamelCase($value));

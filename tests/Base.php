@@ -203,7 +203,7 @@ abstract class Base extends TestCase
         }
     }
 
-    private function rmdirRecursive($dir)
+    private function rmdirRecursive($dir): void
     {
         if (!\is_dir($dir)) {
             return;
@@ -218,7 +218,7 @@ abstract class Base extends TestCase
                 \unlink("$dir/$file");
             }
         }
-        rmdir($dir);
+        \rmdir($dir);
     }
 
     public function getLanguage(): Language

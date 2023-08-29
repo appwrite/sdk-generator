@@ -1,0 +1,62 @@
+{% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}Array({{property.sub_schema | caseUcfirst}}){% else %}{{property.sub_schema | caseUcfirst}}{% endif %}{% else %}{{property | typeName}}{% endif %}{% endmacro %}
+
+module {{ spec.title | caseUcfirst }}
+    module Models
+        class {{ definition.name | caseUcfirst }}
+            {%~ for property in definition.properties %}
+            getter{% if not property.required %}?{% endif %} {{ property.name | caseSnake | escapeKeyword }} : {{ property | propertyType(spec) }}{% if not property.required %}?{% endif %}
+
+            {%~ endfor %}
+
+            def initialize(
+                {%~ for property in definition.properties %}
+                @{{ property.name | caseSnake | escapeKeyword }} : {{ property | propertyType(spec) }}{% if not property.required %} = {{ property.default }}{% endif %},
+                {%~ endfor %}
+                {%~ if definition.additionalProperties %}
+                data
+                {%~ endif %}
+            )
+            end
+
+            def self.from(map : Hash(String, T)) forall T
+                {{ definition.name | caseUcfirst }}.new(
+                    {%~ for property in definition.properties %}
+                    {{ property.name | caseSnake | escapeKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}map["{{ property.name }}"].map { |it| {{ property.sub_schema | caseUcfirst }}.from(map: it) }{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"]){% endif %}{% else %}map["{{ property.name }}"]{{ property | cast }}{% endif %},
+                    {%~ endfor %}
+                    {%~ if definition.additionalProperties %}
+                    data: map["data"]
+                    {%~ endif %}
+                )
+            end
+
+            def to_map
+                {
+                    {%~ for property in definition.properties %}
+                    "{{ property.name }}" => {% if property.sub_schema %}{% if property.type == 'array' %}@{{ property.name | caseSnake | escapeKeyword | removeDollarSign }}.map { |it| it.to_map }{% else %}@{{property.name | caseSnake | escapeKeyword | removeDollarSign }}.to_map{% endif %}{% else %}@{{property.name | caseSnake | escapeKeyword }}{% endif %},
+                    {%~ endfor %}
+                    {%~ if definition.additionalProperties %}
+                    "data" => @data
+                    {%~ endif %}
+                }
+            end
+            {%~ if definition.additionalProperties %}
+
+            def convert_to(from_json)
+                from_json.call(data)
+            end
+            {%~ endif %}
+            {%~ for property in definition.properties %}
+            {%~ if property.sub_schema %}
+            {%~ for def in spec.definitions %}
+            {%~ if def.name == property.sub_schema and def.additionalProperties and property.type == 'array' %}
+
+            def convert_to(from_json)
+                {{ property.name | caseSnake | escapeKeyword }}.map { |it| it.convert_to(from_json) }
+            end
+            {%~ endif %}
+            {%~ endfor %}
+            {%~ endif %}
+            {%~ endfor %}
+        end
+    end
+end
