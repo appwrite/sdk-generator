@@ -7,7 +7,7 @@
             {%~ endfor %}
 
             return _client.ChunkedUpload(
-                path,
+                apiPath,
                 headers,
                 parameters,
                 {%~ if method.responseModel %}

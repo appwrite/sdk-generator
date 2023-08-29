@@ -1,6 +1,6 @@
             @client.call(
                 method: '{{ method.method | caseUpper }}',
-                path: path,
+                path: api_path,
                 headers: headers,
                 params: params,
 {% if method.responseModel and method.responseModel != 'any' %}

@@ -1,6 +1,6 @@
         return client.call(
             "{{ method.method | caseUpper }}",
-            path,
+            apiPath,
             headers,
             params,
             {%~ if method.responseModel | hasGenericType(spec) %}

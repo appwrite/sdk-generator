@@ -34,8 +34,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% endif %}
 {% endfor %}
-        let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-        let payload: Payload = {};
+        const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+        const payload: Payload = {};
 
 {% for parameter in method.parameters.query %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
@@ -49,7 +49,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
         }
 
 {% endfor %}
-        const uri = new URL(this.client.config.endpoint + path);
+        const uri = new URL(this.client.config.endpoint + apiPath);
 {% if method.type == 'location' or method.type == 'webAuth' %}
 {% if method.auth|length > 0 %}
 {% for node in method.auth %}
@@ -112,7 +112,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% if parameter.isUploadID %}
         if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
-                response = await this.client.call('GET', new URL(this.client.config.endpoint + path + '/' + {{ parameter.name }}), headers);
+                response = await this.client.call('GET', new URL(this.client.config.endpoint + apiPath + '/' + {{ parameter.name }}), headers);
                 counter = response.chunksUploaded;
             } catch(e) {
             }

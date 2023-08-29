@@ -1,5 +1,5 @@
         let query = "?\(client.parametersToQueryString(params: params))"
-        let url = URL(string: client.endPoint + path + query)!
+        let url = URL(string: client.endPoint + api_path + query)!
         let callbackScheme = "appwrite-callback-\(client.config["project"] ?? "")"
         let group = DispatchGroup()
 

@@ -1,6 +1,6 @@
         return client.call(
             "{{ method.method | caseUpper }}",
-            path,
+            apiPath,
             params = params,
             responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java
         )

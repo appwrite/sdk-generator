@@ -1,4 +1,4 @@
-            path = '{{ method.path }}'
+            api_path = '{{ method.path }}'
 {% for parameter in method.parameters.path %}
                 .gsub('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseSnake | escapeKeyword }})
 {% endfor %}
