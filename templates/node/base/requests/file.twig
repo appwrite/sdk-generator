@@ -20,7 +20,7 @@
 {% if parameter.isUploadID %}
         if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
-                response = await this.client.call('get', path + '/' + {{ parameter.name }}, headers);
+                response = await this.client.call('get', apiPath + '/' + {{ parameter.name }}, headers);
                 chunksUploaded = response.chunksUploaded;
             } catch(e) {
             }
@@ -53,7 +53,7 @@
             const stream = Stream.Readable.from(currentChunk);
             payload['{{ parameter.name }}'] = { type: 'file', file: stream, filename: {{ parameter.name }}.filename };
 
-            response = await selfClient.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+            response = await selfClient.call('{{ method.method | caseLower }}', apiPath, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
             if (!id) {
                 id = response['$id'];

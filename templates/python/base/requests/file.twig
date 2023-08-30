@@ -12,7 +12,7 @@
 {% endif %}
 {% endfor %}
 
-        return self.client.chunked_upload(path, {
+        return self.client.chunked_upload(api_path, {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
 {% endfor %}

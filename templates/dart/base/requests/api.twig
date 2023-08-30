@@ -8,6 +8,6 @@
             {{ utils.map_headers(method.headers) }}
         };
 
-        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
+        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: apiPath, params: params, headers: headers);
 
         return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst | overrideIdentifier}}.fromMap(res.data){% else %} res.data{% endif %};

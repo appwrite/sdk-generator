@@ -1,4 +1,4 @@
-        return self.client.call('{{ method.method | caseLower }}', path, {
+        return self.client.call('{{ method.method | caseLower }}', api_path, {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
 {% endfor %}

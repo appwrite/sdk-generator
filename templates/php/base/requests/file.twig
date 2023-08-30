@@ -9,7 +9,7 @@
             $postedName = ${{ parameter.name | caseCamel }}->getFilename();
             if ($size <= Client::CHUNK_SIZE) {
                 $params['{{ parameter.name | caseCamel }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(${{ parameter.name | caseCamel }}->getData()), $mimeType, $postedName);
-                return $this->client->call(Client::METHOD_POST, $path, [
+                return $this->client->call(Client::METHOD_POST, $apiPath, [
     {% for param in method.parameters.header %}
                     '{{ param.name }}' => ${{ param.name | caseCamel }},
     {% endfor %}
@@ -25,7 +25,7 @@
             //send single file if size is less than or equal to 5MB
             if ($size <= Client::CHUNK_SIZE) {
                 $params['{{ parameter.name }}'] = new \CURLFile(${{ parameter.name | caseCamel }}->getPath(), $mimeType, $postedName);
-                return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
+                return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $apiPath, [
     {% for param in method.parameters.header %}
                     '{{ param.name }}' => ${{ param.name | caseCamel }},
     {% endfor %}
@@ -43,7 +43,7 @@
 {% if parameter.isUploadID %}
         if(${{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
-                $response = $this->client->call(Client::METHOD_GET, $path . '/' . ${{ parameter.name }});
+                $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . ${{ parameter.name }});
                 $counter = $response['chunksUploaded'] ?? 0;
             } catch(\Exception $e) {
             }
@@ -72,7 +72,7 @@
             if(!empty($id)) {
                 $headers['x-{{spec.title | caseLower }}-id'] = $id;
             }
-            $response = $this->client->call(Client::METHOD_POST, $path, $headers, $params);
+            $response = $this->client->call(Client::METHOD_POST, $apiPath, $headers, $params);
             $counter++;
             $start += Client::CHUNK_SIZE;
             if(empty($id)) {

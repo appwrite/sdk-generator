@@ -49,7 +49,7 @@ class {{ service.name | caseUcfirst }} : Service {
         onProgress: ((UploadProgress) -> Unit)? = null
         {%~ endif %}
     ): {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} {
-        val path = "{{ method.path }}"
+        val apiPath = "{{ method.path }}"
         {%~ for parameter in method.parameters.path %}
             .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }})
         {%~ endfor %}

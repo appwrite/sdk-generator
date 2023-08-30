@@ -72,8 +72,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% endif %}
 {% endfor %}
-        let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-        let payload: Payload = {};
+        const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+        const payload: Payload = {};
 
 {% for parameter in method.parameters.query %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
@@ -110,7 +110,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% if parameter.isUploadID %}
         if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
-                response = await this.client.call('get', path + '/' + {{ parameter.name }}, headers);
+                response = await this.client.call('get', apiPath + '/' + {{ parameter.name }}, headers);
                 chunksUploaded = response.chunksUploaded;
             } catch(e) {
             }
@@ -151,7 +151,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
             payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
 
-            response = await this.client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+            response = await this.client.call('{{ method.method | caseLower }}', apiPath, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
             if (!id) {
                 id = response['$id'];
@@ -193,7 +193,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endif %}
 {% endfor %}
 {% else %}
-        return await this.client.call('{{ method.method | caseLower }}', path, {
+        return await this.client.call('{{ method.method | caseLower }}', apiPath, {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
