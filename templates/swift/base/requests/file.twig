@@ -6,7 +6,7 @@
 {% endif %}
 {% endfor %}
         return try await client.chunkedUpload(
-            path: path,
+            path: api_path,
             headers: &headers,
             params: &params,
             paramName: paramName,

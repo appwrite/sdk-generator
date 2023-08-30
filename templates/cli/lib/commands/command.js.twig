@@ -21,7 +21,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 {% endfor %}
 
     let client = !sdk ? await {% if service.name == "projects" %}sdkForConsole(){% else %}sdkForProject(){% endif %} : sdk;
-    let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+    let apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
     let payload = {};
 {% if method.parameters.query|length > 0 %}
 
@@ -95,9 +95,9 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
     payload['project'] = localConfig.getProject().projectId
     payload['key'] = globalConfig.getKey();
     const queryParams = new URLSearchParams(payload);
-    path = `${globalConfig.getEndpoint()}${path}?${queryParams.toString()}`;
+    apiPath = `${globalConfig.getEndpoint()}${apiPath}?${queryParams.toString()}`;
 
-    const response = await client.call('{{ method.method | caseLower }}', path, {
+    const response = await client.call('{{ method.method | caseLower }}', apiPath, {
 {% for parameter in method.parameters.header %}
         '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
@@ -122,7 +122,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
     if (size <= libClient.CHUNK_SIZE) {
         payload['{{ parameter.name }}'] = fs.createReadStream(payload['{{ parameter.name }}']);
 
-        response = await client.call('{{ method.method | caseLower }}', path, {
+        response = await client.call('{{ method.method | caseLower }}', apiPath, {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
@@ -154,7 +154,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 {% if parameter.isUploadID %}
         if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
-                response = await client.call('get', path + '/' + {{ parameter.name }}, headers);
+                response = await client.call('get', apiPath + '/' + {{ parameter.name }}, headers);
                 counter = response.chunksUploaded;
             } catch(e) {
             }
@@ -178,7 +178,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
             });
             payload['{{ parameter.name }}'] = stream;
 
-            response = await client.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+            response = await client.call('{{ method.method | caseLower }}', apiPath, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
             if (!id) {
                 id = response['$id'];
@@ -198,7 +198,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 {% endif %}
 {% endfor %}
 {% else %}
-    response = await client.call('{{ method.method | caseLower }}', path, {
+    response = await client.call('{{ method.method | caseLower }}', apiPath, {
 {% for parameter in method.parameters.header %}
         '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}

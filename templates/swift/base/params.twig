@@ -1,4 +1,4 @@
-        let path: String = "{{ method.path }}"
+        let api_path: String = "{{ method.path }}"
         {%~ for parameter in method.parameters.path %}
             .replacingOccurrences(of: "{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", with: {{ parameter.name | caseCamel | escapeKeyword }})
         {%~ endfor %}
