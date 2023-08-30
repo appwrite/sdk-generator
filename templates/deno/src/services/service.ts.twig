@@ -92,7 +92,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
         
-        const headers: { [header: string]: string } = {
+        const apiHeaders: { [header: string]: string } = {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
@@ -110,7 +110,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% if parameter.isUploadID %}
         if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
-                response = await this.client.call('get', apiPath + '/' + {{ parameter.name }}, headers);
+                response = await this.client.call('get', apiPath + '/' + {{ parameter.name }}, apiHeaders);
                 chunksUploaded = response.chunksUploaded;
             } catch(e) {
             }
@@ -131,7 +131,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
             const end = start + currentPosition;
 
             if(!lastUpload || currentChunk !== 1) {
-                headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
+                apiHeaders['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
             }
 
             let uploadableChunkTrimmed: Uint8Array;
@@ -146,12 +146,12 @@ export class {{ service.name | caseUcfirst }} extends Service {
             }
 
             if (id) {
-                headers['x-{{spec.title | caseLower }}-id'] = id;
+                apiHeaders['x-{{spec.title | caseLower }}-id'] = id;
             }
 
             payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
 
-            response = await this.client.call('{{ method.method | caseLower }}', apiPath, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+            response = await this.client.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
             if (!id) {
                 id = response['$id'];

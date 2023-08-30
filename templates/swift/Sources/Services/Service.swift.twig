@@ -43,11 +43,11 @@ open class {{ service.name | caseUcfirst }}: Service {
         {{~ include('swift/base/requests/location.twig')}}
         {%~ else %}
         {%~ if method.headers | length <= 0 %}
-        let headers: [String: String] = [:]
+        let apiHeaders: [String: String] = [:]
         {%~ else %}
         {% if 'multipart/form-data' in method.consumes -%} var
         {%- else -%} let
-        {%- endif %} headers: [String: String] = [
+        {%- endif %} apiHeaders: [String: String] = [
         {%~ for key, header in method.headers %}
             "{{ key }}": "{{ header }}"{% if not loop.last %},{% endif %}
 
