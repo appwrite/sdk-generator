@@ -141,7 +141,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
         let counter = 0;
         const totalCounters = Math.ceil(size / libClient.CHUNK_SIZE);
 
-        const headers = {
+        const apiHeaders = {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
@@ -154,7 +154,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 {% if parameter.isUploadID %}
         if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
-                response = await client.call('get', apiPath + '/' + {{ parameter.name }}, headers);
+                response = await client.call('get', apiPath + '/' + {{ parameter.name }}, apiHeaders);
                 counter = response.chunksUploaded;
             } catch(e) {
             }
@@ -166,10 +166,10 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
             const start = (counter * libClient.CHUNK_SIZE);
             const end = Math.min((((counter * libClient.CHUNK_SIZE) + libClient.CHUNK_SIZE) - 1), size);
 
-            headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
+            apiHeaders['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
 
             if (id) {
-                headers['x-appwrite-id'] = id;
+                apiHeaders['x-appwrite-id'] = id;
             }
 
             const stream = fs.createReadStream(streamFilePath, {
@@ -178,7 +178,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
             });
             payload['{{ parameter.name }}'] = stream;
 
-            response = await client.call('{{ method.method | caseLower }}', apiPath, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+            response = await client.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
             if (!id) {
                 id = response['$id'];

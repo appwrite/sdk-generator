@@ -4,7 +4,7 @@
 
             {%~ endfor %}
 
-            var parameters = new Dictionary<string, object?>()
+            var apiParameters = new Dictionary<string, object?>()
             {
                 {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
                 { "{{ parameter.name }}", {{ utils.map_parameter(parameter) }} }{% if not loop.last %},{% endif %}

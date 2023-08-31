@@ -1,8 +1,8 @@
             @client.call(
                 method: '{{ method.method | caseUpper }}',
                 path: api_path,
-                headers: headers,
-                params: params,
+                headers: api_headers,
+                params: api_params,
 {% if method.responseModel and method.responseModel != 'any' %}
                 response_type: Models::{{method.responseModel | caseUcfirst}}
 {% endif %}

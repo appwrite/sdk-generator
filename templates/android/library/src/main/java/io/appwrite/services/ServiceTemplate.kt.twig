@@ -58,7 +58,7 @@ class {{ service.name | caseUcfirst }} : Service {
             .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }})
         {%~ endfor %}
 
-        val params = mutableMapOf<String, Any?>(
+        val apiParams = mutableMapOf<String, Any?>(
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
         {%~ endfor %}
@@ -73,25 +73,25 @@ class {{ service.name | caseUcfirst }} : Service {
         {%~ endif %}
         )
         {%~ if method.type == 'webAuth' %}
-        val query = mutableListOf<String>()
-        params.forEach {
+        val apiQuery = mutableListOf<String>()
+        apiParams.forEach {
             when (it.value) {
                 null -> {
                     return@forEach
                 }
                 is List<*> -> {
-                    query.add("${it.key}[]=${it.value.toString()}")
+                    apiQuery.add("${it.key}[]=${it.value.toString()}")
                 }
                 else -> {
-                   query.add("${it.key}=${it.value.toString()}")
+                   apiQuery.add("${it.key}=${it.value.toString()}")
                 }
             }
         }
 
-        val url = Uri.parse("${client.endPoint}${apiPath}?${query.joinToString("&")}")
+        val apiUrl = Uri.parse("${client.endPoint}${apiPath}?${apiQuery.joinToString("&")}")
         val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.config["project"]}"
 
-        WebAuthComponent.authenticate(activity, url, callbackUrlScheme) {
+        WebAuthComponent.authenticate(activity, apiUrl, callbackUrlScheme) {
             if (it.isFailure) {
                 throw it.exceptionOrNull()!!
             }
@@ -119,11 +119,11 @@ class {{ service.name | caseUcfirst }} : Service {
         return client.call(
             "{{ method.method | caseUpper }}",
             apiPath,
-            params = params,
+            params = apiParams,
             responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java
         )
         {%~ else %}
-        val headers = mutableMapOf(
+        val apiHeaders = mutableMapOf(
         {%~ for key, header in method.headers %}
             "{{ key }}" to "{{ header }}",
         {%~ endfor %}
@@ -147,8 +147,8 @@ class {{ service.name | caseUcfirst }} : Service {
         {%~ endfor %}
         return client.chunkedUpload(
             apiPath,
-            headers,
-            params,
+            apiHeaders,
+            apiParams,
             responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java,
             {%~ if method.responseModel %}
             converter,
@@ -161,8 +161,8 @@ class {{ service.name | caseUcfirst }} : Service {
         return client.call(
             "{{ method.method | caseUpper }}",
             apiPath,
-            headers,
-            params,
+            apiHeaders,
+            apiParams,
             {%~ if method.responseModel | hasGenericType(spec) %}
             responseType = classOf(),
             {%~ else %}

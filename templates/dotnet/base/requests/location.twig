@@ -2,4 +2,4 @@
                 method: "{{ method.method | caseUpper }}",
                 path: apiPath,
                 headers: apiHeaders,
-                parameters: parameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!);
+                parameters: apiParameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!);
