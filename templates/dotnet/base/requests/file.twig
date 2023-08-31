@@ -9,7 +9,7 @@
             return _client.ChunkedUpload(
                 apiPath,
                 apiHeaders,
-                parameters,
+                apiParameters,
                 {%~ if method.responseModel %}
                 Convert,
                 {%~ endif %}
