@@ -2,7 +2,7 @@
             return _client.Call{% if method.type != 'webAuth' %}<{{ utils.resultType(spec.title, method) }}>{% endif %}(
                 method: "{{ method.method | caseUpper }}",
                 path: apiPath,
-                headers: headers,
+                headers: apiHeaders,
                 {%~ if not method.responseModel %}
                 parameters: parameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!);
                 {%~ else %}
