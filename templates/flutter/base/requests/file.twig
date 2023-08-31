@@ -4,7 +4,7 @@
             {{~ utils.map_parameter(method.parameters.body) }}
         };
 
-        final Map<String, String> headers = {
+        final Map<String, String> apiHeaders = {
             {{~ utils.map_headers(method.headers) }}
         };
 
@@ -23,7 +23,7 @@
             params: params,
             paramName: paramName,
             idParamName: idParamName,
-            headers: headers,
+            headers: apiHeaders,
             onProgress: onProgress,
           );
 
