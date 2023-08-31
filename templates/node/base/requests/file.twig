@@ -40,7 +40,7 @@
             }
             
             const start = currentChunkStart;
-            const end = Math.min(((start + client.CHUNK_SIZE) - 1), size);
+            const end = currentChunkStart + currentChunkSize - 1;
 
             if(!lastUpload || currentChunkStart !== 0) {
                 apiHeaders['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
@@ -50,8 +50,12 @@
                 apiHeaders['x-{{spec.title | caseLower }}-id'] = id;
             }
 
-            const stream = Stream.Readable.from(currentChunk);
-            payload['{{ parameter.name }}'] = { type: 'file', file: stream, filename: {{ parameter.name }}.filename };
+            payload['{{ parameter.name }}'] = {
+                type: 'file',
+                file: currentChunk,
+                filename: {{ parameter.name }}.filename,
+                size: currentChunkSize
+            };
 
             response = await selfClient.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
@@ -92,6 +96,7 @@
                         if(chunkSize + currentChunkSize == client.CHUNK_SIZE) {
                             // Upload chunk
                             currentChunk = Buffer.concat([currentChunk, chunk]);
+                            currentChunkSize = Buffer.byteLength(currentChunk);
                             await uploadChunk();
                             currentChunk = Buffer.from('');
                             currentChunkSize = 0;
