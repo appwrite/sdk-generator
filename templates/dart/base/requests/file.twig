@@ -1,10 +1,10 @@
 {% import 'dart/base/utils.twig' as utils %}
-        final Map<String, dynamic> params = {
+        final Map<String, dynamic> apiParams = {
             {{ utils.map_parameter(method.parameters.query) }}
             {{ utils.map_parameter(method.parameters.body) }}
         };
 
-        final Map<String, String> headers = {
+        final Map<String, String> apiHeaders = {
             {{ utils.map_headers(method.headers) }}
         };
 
@@ -20,10 +20,10 @@
 {% endfor %}
         final res = await client.chunkedUpload(
             path: apiPath,
-            params: params,
+            params: apiParams,
             paramName: paramName,
             idParamName: idParamName,
-            headers: headers,
+            headers: apiHeaders,
             onProgress: onProgress,
         );
 

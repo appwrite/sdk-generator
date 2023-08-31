@@ -7,8 +7,8 @@
         {%~ endfor %}
         return client.chunkedUpload(
             apiPath,
-            headers,
-            params,
+            apiHeaders,
+            apiParams,
             responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java,
             {%~ if method.responseModel %}
             converter,
