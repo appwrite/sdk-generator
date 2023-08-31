@@ -8,7 +8,7 @@
 {% endif %}
 {% endfor %}
 {% for parameter in method.parameters.path %}
-        path = path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | escapeKeyword | caseSnake }})
+        api_path = api_path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | escapeKeyword | caseSnake }})
 {% endfor %}
 
 {% for parameter in method.parameters.query %}
