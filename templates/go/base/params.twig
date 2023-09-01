@@ -1,4 +1,4 @@
-	params := map[string]interface{}{
+	apiParams := map[string]interface{}{
 {% for parameter in method.parameters.query %}
 		"{{ parameter.name }}": {{ parameter.name | caseUcfirst }},
 {% endfor %}
@@ -7,7 +7,7 @@
 {% endfor %}
 	}
 
-	headers := map[string]interface{}{
+	apiHeaders := map[string]interface{}{
 {% for key, header in method.headers %}
 		"{{ key }}": "{{ header }}",
 {% endfor %}

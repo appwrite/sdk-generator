@@ -141,7 +141,7 @@ module {{ spec.title | caseUcfirst }}
                     params: {}
                 )
                 chunks_uploaded = current['chunksUploaded'].to_i
-                offset = [size, (chunks_uploaded * @chunk_size)].min
+                offset = chunks_uploaded * @chunk_size
             end
 
             while offset < size
