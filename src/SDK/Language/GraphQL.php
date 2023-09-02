@@ -34,8 +34,8 @@ class GraphQL extends HTTP
                 $type = 'Bool';
                 break;
             case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    $type = '[' . $this->getTypeName($parameter['array']) . ']';
+                if (!empty($parameter['items']['type'])) {
+                    $type = '[' . $this->getTypeName($parameter['items']) . ']';
                     break;
                 }
                 $type = '[String]';

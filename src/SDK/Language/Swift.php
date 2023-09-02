@@ -305,8 +305,8 @@ class Swift extends Language
             case self::TYPE_BOOLEAN:
                 return 'Bool';
             case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    return '[' . $this->getTypeName($parameter['array']) . ']';
+                if (!empty($parameter['items']['type'])) {
+                    return '[' . $this->getTypeName($parameter['items']) . ']';
                 }
                 return '[Any]';
             case self::TYPE_OBJECT:
