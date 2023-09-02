@@ -2,9 +2,9 @@ module {{spec.title | caseUcfirst}}
     class Exception < Exception
         def initialize(
             message : String,
-            code : Int32 = 0,
-            type : String = "",
-            response : String = ""
+            code : Int = 0,
+            type : String? = nil,
+            response : String? = nil
         )
             super(message)
             @code = code

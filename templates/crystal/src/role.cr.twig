@@ -4,7 +4,7 @@ module {{spec.title | caseUcfirst}}
             "any"
         end
 
-        def self.user(id, status : String = "")
+        def self.user(id : Int | String, status : String = "")
             if status.empty?
                 "user:#{id}"
             else
@@ -24,7 +24,7 @@ module {{spec.title | caseUcfirst}}
             "guests"
         end
         
-        def self.team(id, role : String = "")
+        def self.team(id : Int | String, role : String = "")
             if role.empty?
                 "team:#{id}"
             else

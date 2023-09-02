@@ -1,18 +1,18 @@
 module {{spec.title | caseUcfirst}}
     class Permission
-        def self.read(role)
+        def self.read(role : String)
             return "read(\"#{role}\")"
         end
-        def self.write(role)
+        def self.write(role : String)
             return "write(\"#{role}\")"
         end
-        def self.create(role)
+        def self.create(role : String)
             return "create(\"#{role}\")"
         end
-        def self.update(role)
+        def self.update(role : String)
             return "update(\"#{role}\")"
         end
-        def self.delete(role)
+        def self.delete(role : String)
             return "delete(\"#{role}\")"
         end
     end

@@ -69,7 +69,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
 
@@ -94,7 +94,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
 
@@ -118,7 +118,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
 
@@ -141,7 +141,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
 
@@ -186,7 +186,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.15.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
 
@@ -209,7 +209,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
 
@@ -232,7 +232,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
 
@@ -260,7 +260,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
 
@@ -287,7 +287,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
 
@@ -312,7 +312,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
 
@@ -337,7 +337,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
 
@@ -361,7 +361,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
 
@@ -385,7 +385,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
 
@@ -432,7 +432,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'x-appwrite-response-format' => '0.7.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
     $sdk->generate(__DIR__ . '/examples/android');
@@ -456,7 +456,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'x-appwrite-response-format' => '0.8.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
     $sdk->generate(__DIR__ . '/examples/kotlin');
@@ -480,7 +480,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'x-appwrite-response-format' => '1.4.0',
+            'X-Appwrite-Response-Format' => '1.4.0',
         ])
     ;
     $sdk->generate(__DIR__ . '/examples/crystal');

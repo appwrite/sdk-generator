@@ -68,11 +68,11 @@ module {{spec.title | caseUcfirst}}
             "cursorAfter(\"#{id}\")"
         end
 
-        def self.limit(limit : UInt32)
+        def self.limit(limit : Int)
             "limit(#{limit})"
         end
 
-        def self.offset(offset : UInt32)
+        def self.offset(offset : Int)
             "offset(#{offset})"
         end
 
