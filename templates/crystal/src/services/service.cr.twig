@@ -9,7 +9,7 @@ module {{spec.title | caseUcfirst}}
         end
 
 {% for method in service.methods %}
-{{ method.description | rubyComment }}
+{{ method.description | crystalComment }}
         #
 {% for parameter in method.parameters.all %}
         # @param [{{ parameter | typeName }}] {{ parameter.name | caseSnake | escapeKeyword }} {{ parameter.description | raw }}

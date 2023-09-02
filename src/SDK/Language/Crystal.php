@@ -340,7 +340,7 @@ class Crystal extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('rubyComment', function ($value) {
+            new TwigFilter('crystalComment', function ($value) {
                 $value = explode("\n", $value);
                 foreach ($value as $key => $line) {
                     $value[$key] = "        # " . wordwrap($line, 75, "\n        # ");
