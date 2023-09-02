@@ -22,10 +22,21 @@
 
 ## Installation
 
-To install via [Gem](https://rubygems.org/):
+To install via [Shards](https://github.com/crystal-lang/shards):
+
+Add the following to your `shard.yml` file:
+
+```yaml
+dependencies:
+  {{ spec.title | caseLower }}:
+    github: {{ sdk.gitUserName }}/{{ sdk.gitRepoName }}
+    version: ~> {{ sdk.version }}
+```
+
+Then run:
 
 ```bash
-shards install {{ spec.title | caseLower }}
+shards install
 ```
 
 {% if sdk.gettingStarted %}
