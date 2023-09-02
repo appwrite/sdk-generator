@@ -175,7 +175,6 @@ class Crystal extends Language
 
     /**
      * @param array $parameter
-     * @param array $nestedTypes
      * @return string
      */
     public function getTypeName(array $parameter): string
@@ -188,10 +187,10 @@ class Crystal extends Language
             case self::TYPE_STRING:
                 return 'String';
             case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    return 'Array(' . $this->getTypeName($parameter['array']) . ')';
+                if (!empty($parameter['items']['type'])) {
+                    return 'Array(' . $this->getTypeName($parameter['items']) . ')';
                 }
-                return 'Array';
+                return 'Array(Void)';
             case self::TYPE_OBJECT:
                 return 'Hash';
             case self::TYPE_BOOLEAN:
