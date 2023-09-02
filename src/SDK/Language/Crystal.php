@@ -166,11 +166,6 @@ class Crystal extends Language
                 'template'      => 'crystal/docs/example.md.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '.travis.yml',
-                'template'      => 'crystal/.travis.yml.twig',
-            ],
-            [
                 'scope'         => 'definition',
                 'destination'   => '/src/{{ spec.title | caseDash }}/models/{{ definition.name | caseSnake }}.cr',
                 'template'      => 'crystal/src/models/model.cr.twig',
