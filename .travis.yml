@@ -25,6 +25,7 @@ env:
   - SDK=Android12Java11
   - SDK=CLINode14
   - SDK=CLINode16
+  - SDK=Crystal19
   - SDK=DartBeta
   - SDK=DartStable
   - SDK=Deno1193
