@@ -4,13 +4,12 @@ module {{ spec.title | caseUcfirst }}
     module Models
         class {{ definition.name | caseUcfirst }}
             {%~ for property in definition.properties %}
-            getter{% if not property.required %}?{% endif %} {{ property.name | caseSnake | escapeKeyword }} : {{ property | propertyType(spec) }}{% if not property.required %}?{% endif %}
-
+            getter{% if not property.required %}?{% endif %} {{ property.name | caseSnake | escapeKeyword }} : {{ property | propertyType(spec) }}
             {%~ endfor %}
 
             def initialize(
                 {%~ for property in definition.properties %}
-                @{{ property.name | caseSnake | escapeKeyword }} : {{ property | propertyType(spec) }}{% if not property.required %} = {{ property.default }}{% endif %},
+                @{{ property.name | caseSnake | escapeKeyword }} : {{ property | propertyType(spec) }},
                 {%~ endfor %}
                 {%~ if definition.additionalProperties %}
                 data
