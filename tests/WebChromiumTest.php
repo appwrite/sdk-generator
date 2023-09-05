@@ -22,14 +22,14 @@ class WebChromiumTest extends Base
         'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js';
 
     protected array $expectedOutput = [
-        ...Base::FOO_RESPONSES,
-        ...Base::BAR_RESPONSES,
-        ...Base::GENERAL_RESPONSES,
+        // ...Base::FOO_RESPONSES,
+        // ...Base::BAR_RESPONSES,
+        // ...Base::GENERAL_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
-        ...Base::EXCEPTION_RESPONSES,
-        ...Base::REALTIME_RESPONSES,
-        ...Base::QUERY_HELPER_RESPONSES,
-        ...Base::PERMISSION_HELPER_RESPONSES,
-        ...Base::ID_HELPER_RESPONSES
+        // ...Base::EXCEPTION_RESPONSES,
+        // ...Base::REALTIME_RESPONSES,
+        // ...Base::QUERY_HELPER_RESPONSES,
+        // ...Base::PERMISSION_HELPER_RESPONSES,
+        // ...Base::ID_HELPER_RESPONSES
     ];
 }

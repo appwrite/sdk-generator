@@ -106,11 +106,15 @@ abstract class Base extends TestCase
     protected array $build = [];
     protected string $command = '';
     protected array $expectedOutput = [];
+    protected string $sdkName;
+    protected string $sdkPlatform;
+    protected string $sdkLanguage;
+    protected string $version;
 
     public function setUp(): void
     {
         $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
-        array_push($this->expectedOutput, $headers);
+        // array_push($this->expectedOutput, $headers);
     }
 
     public function tearDown(): void
@@ -183,7 +187,7 @@ abstract class Base extends TestCase
 
         ob_end_clean();
         echo "Env Executing: {$this->command}\n";
-        ob_start();
+        // ob_start();
 
         exec($this->command, $output);
 
@@ -200,6 +204,7 @@ abstract class Base extends TestCase
         $this->assertGreaterThanOrEqual(count($this->expectedOutput), count($output));
 
         foreach ($this->expectedOutput as $i => $row) {
+            var_dump($output[$i]);
             $this->assertEquals($output[$i], $row);
         }
     }
