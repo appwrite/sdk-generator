@@ -15,9 +15,9 @@
       "url": "https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE"
     }
   },
-  "host": "00b1-67-87-243-148.ngrok-free.app",
+  "host": "stage.appwrite.io",
   "basePath": "/v1",
-  "schemes": ["http"],
+  "schemes": ["https"],
   "consumes": ["application/json", "multipart/form-data"],
   "produces": ["application/json"],
   "securityDefinitions": {
