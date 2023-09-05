@@ -114,7 +114,7 @@ abstract class Base extends TestCase
     public function setUp(): void
     {
         $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
-        // array_push($this->expectedOutput, $headers);
+        array_push($this->expectedOutput, $headers);
     }
 
     public function tearDown(): void
@@ -187,7 +187,7 @@ abstract class Base extends TestCase
 
         ob_end_clean();
         echo "Env Executing: {$this->command}\n";
-        // ob_start();
+        ob_start();
 
         exec($this->command, $output);
 
