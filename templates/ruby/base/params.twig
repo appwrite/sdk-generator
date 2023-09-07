@@ -1,4 +1,4 @@
-            path = '{{ method.path }}'
+            api_path = '{{ method.path }}'
 {% for parameter in method.parameters.path %}
                 .gsub('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseSnake | escapeKeyword }})
 {% endfor %}
@@ -11,13 +11,13 @@
 
 {% endif %}
 {% endfor %}
-            params = {
+            api_params = {
 {% for parameter in method.parameters.query | merge(method.parameters.body)  %}
                 {{ parameter.name }}: {{ parameter.name | caseSnake | escapeKeyword }},
 {% endfor %}
             }
             
-            headers = {
+            api_headers = {
 {% for parameter in method.parameters.header %}
                 "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}

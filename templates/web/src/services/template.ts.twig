@@ -43,8 +43,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% endif %}
 {% endfor %}
-        let path = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-        let payload: Payload = {};
+        const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+        const payload: Payload = {};
 
 {% for parameter in method.parameters.query %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
@@ -58,7 +58,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
         }
 
 {% endfor %}
-        const uri = new URL(this.client.config.endpoint + path);
+        const uri = new URL(this.client.config.endpoint + apiPath);
 {% if method.type == 'location' or method.type == 'webAuth' %}
 {% if method.auth|length > 0 %}
 {% for node in method.auth %}
@@ -94,7 +94,6 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
         if (size <= Service.CHUNK_SIZE) {
             return await this.client.call('{{ method.method | caseLower }}', uri, {
-
 {% for parameter in method.parameters.header %}
                 '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
@@ -103,10 +102,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
             }, payload);
         }
-        let id = undefined;
-        let response = undefined;
 
-        const headers: { [header: string]: string } = {
+        const apiHeaders: { [header: string]: string } = {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
@@ -115,50 +112,43 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endfor %}
         }
 
-        let counter = 0;
-        const totalCounters = Math.ceil(size / Service.CHUNK_SIZE);
+        let offset = 0;
+        let response = undefined;
 {% for parameter in method.parameters.all %}
 {% if parameter.isUploadID %}
         if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
-                response = await this.client.call('GET', new URL(this.client.config.endpoint + path + '/' + {{ parameter.name }}), headers);
-                counter = response.chunksUploaded;
+                response = await this.client.call('GET', new URL(this.client.config.endpoint + apiPath + '/' + {{ parameter.name }}), apiHeaders);
+                offset = response.chunksUploaded * Service.CHUNK_SIZE;
             } catch(e) {
             }
         }
 {% endif %}
 {% endfor %}
 
-        for (counter; counter < totalCounters; counter++) {
-            const start = (counter * Service.CHUNK_SIZE);
-            const end = Math.min((((counter * Service.CHUNK_SIZE) + Service.CHUNK_SIZE) - 1), size);
+        while (offset < size) {
+            let end = Math.min(offset + Service.CHUNK_SIZE - 1, size - 1);
 
-            headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size
-
-            if (id) {
-                headers['x-{{spec.title | caseLower }}-id'] = id;
+            apiHeaders['content-range'] = 'bytes ' + offset + '-' + end + '/' + size;
+            if (response && response.$id) {
+                apiHeaders['x-{{spec.title | caseLower }}-id'] = response.$id;
             }
 
-            const stream = {{ parameter.name | caseCamel | escapeKeyword }}.slice(start, end + 1);
-            payload['{{ parameter.name }}'] = new File([stream], {{ parameter.name | caseCamel | escapeKeyword }}.name);
-
-            response = await this.client.call('{{ method.method | caseLower }}', uri, headers, payload);
-
-            if (!id) {
-                id = response['$id'];
-            }
+            const chunk = {{ parameter.name | caseCamel | escapeKeyword }}.slice(offset, end + 1);
+            payload['{{ parameter.name }}'] = new File([chunk], {{ parameter.name | caseCamel | escapeKeyword }}.name);
+            response = await this.client.call('{{ method.method | caseLower }}', uri, apiHeaders, payload);
 
             if (onProgress) {
                 onProgress({
                     $id: response.$id,
-                    progress: Math.min((counter + 1) * Service.CHUNK_SIZE, size) / size * 100,
-                    sizeUploaded: end,
+                    progress: (offset / size) * 100,
+                    sizeUploaded: offset,
                     chunksTotal: response.chunksTotal,
                     chunksUploaded: response.chunksUploaded
                 });
             }
+            offset += Service.CHUNK_SIZE;
         }
-
         return response;
 {% endif %}
 {% endfor %}

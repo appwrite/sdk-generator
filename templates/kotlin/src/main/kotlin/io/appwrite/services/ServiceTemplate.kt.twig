@@ -54,12 +54,12 @@ class {{ service.name | caseUcfirst }} : Service {
         onProgress: ((UploadProgress) -> Unit)? = null
         {%~ endif %}
     ): {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} {
-        val path = "{{ method.path }}"
+        val apiPath = "{{ method.path }}"
         {%~ for parameter in method.parameters.path %}
             .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}{% if parameter.enumName is not null %}.value{% endif %})
         {%~ endfor %}
 
-        val params = mutableMapOf<String, Any?>(
+        val apiParams = mutableMapOf<String, Any?>(
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
         {%~ endfor %}
@@ -67,7 +67,7 @@ class {{ service.name | caseUcfirst }} : Service {
         {%~ if method.type == 'location' %}
             {{~ include('kotlin/base/requests/location.twig') }}
         {%~ else %}
-        val headers = mutableMapOf(
+        val apiHeaders = mutableMapOf(
         {%~ for key, header in method.headers %}
             "{{ key }}" to "{{ header }}",
         {%~ endfor %}
