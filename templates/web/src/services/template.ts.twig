@@ -120,25 +120,25 @@ export class {{ service.name | caseUcfirst }} extends Service {
         while (offset < size) {
             let end = Math.min(offset + Service.CHUNK_SIZE - 1, size - 1);
 
-            const chunk = {{ parameter.name | caseCamel | escapeKeyword }}.slice(offset, end + 1);
-            payload['{{ parameter.name }}'] = new File([chunk], {{ parameter.name | caseCamel | escapeKeyword }}.name);
             apiHeaders['content-range'] = 'bytes ' + offset + '-' + end + '/' + size;
-            response = await this.client.call('{{ method.method | caseLower }}', uri, apiHeaders, payload);
-
-            offset += Service.CHUNK_SIZE;
-            if (offset < size) {
+            if (response && response.$id) {
                 apiHeaders['x-{{spec.title | caseLower }}-id'] = response.$id;
             }
+
+            const chunk = {{ parameter.name | caseCamel | escapeKeyword }}.slice(offset, end + 1);
+            payload['{{ parameter.name }}'] = new File([chunk], {{ parameter.name | caseCamel | escapeKeyword }}.name);
+            response = await this.client.call('{{ method.method | caseLower }}', uri, apiHeaders, payload);
 
             if (onProgress) {
                 onProgress({
                     $id: response.$id,
-                    progress: Math.min(offset, size) / size * 100,
-                    sizeUploaded: Math.min(offset, size),
+                    progress: (offset / size) * 100,
+                    sizeUploaded: offset,
                     chunksTotal: response.chunksTotal,
                     chunksUploaded: response.chunksUploaded
                 });
             }
+            offset += Service.CHUNK_SIZE;
         }
         return response;
 {% endif %}
