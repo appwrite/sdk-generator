@@ -174,7 +174,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 
             const stream = fs.createReadStream(streamFilePath, {
                 start,
-                end - 1
+                end: end - 1
             });
             payload['{{ parameter.name }}'] = stream;
 
