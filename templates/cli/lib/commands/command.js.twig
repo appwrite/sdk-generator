@@ -136,10 +136,6 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 
     } else {
         const streamFilePath = payload['{{ parameter.name }}'];
-        let id = undefined;
-
-        let counter = 0;
-        const totalCounters = Math.ceil(size / libClient.CHUNK_SIZE);
 
         const apiHeaders = {
 {% for parameter in method.parameters.header %}
@@ -150,49 +146,44 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
 {% endfor %}
         };
 
+        let offset = 0;
 {% for parameter in method.parameters.all %}
 {% if parameter.isUploadID %}
         if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
                 response = await client.call('get', apiPath + '/' + {{ parameter.name }}, apiHeaders);
-                counter = response.chunksUploaded;
+                offset = response.chunksUploaded * libClient.CHUNK_SIZE;
             } catch(e) {
             }
         }
 {% endif %}
 {% endfor %}
 
-        for (counter; counter < totalCounters; counter++) {
-            const start = (counter * libClient.CHUNK_SIZE);
-            const end = Math.min((((counter * libClient.CHUNK_SIZE) + libClient.CHUNK_SIZE) - 1), size - 1);
+        while (offset < size) {
+            let end = Math.min(offset + libClient.CHUNK_SIZE - 1, size - 1);
 
-            apiHeaders['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
-
-            if (id) {
-                apiHeaders['x-appwrite-id'] = id;
+            apiHeaders['content-range'] = 'bytes ' + offset + '-' + end + '/' + size;
+            if (response && response.$id) {
+                apiHeaders['x-{{spec.title | caseLower }}-id'] = response.$id;
             }
 
             const stream = fs.createReadStream(streamFilePath, {
-                start,
+                start: offset,
                 end
             });
             payload['{{ parameter.name }}'] = stream;
-
             response = await client.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
-            if (!id) {
-                id = response['$id'];
-            }
-
-            if (onProgress !== null) {
+            if (onProgress) {
                 onProgress({
-                    $id: response['$id'],
-                    progress: Math.min((counter+1) * libClient.CHUNK_SIZE, size) / size * 100,
-                    sizeUploaded: end+1,
-                    chunksTotal: response['chunksTotal'],
-                    chunksUploaded: response['chunksUploaded']
+                    $id: response.$id,
+                    progress: ( offset / size ) * 100,
+                    sizeUploaded: offset,
+                    chunksTotal: response.chunksTotal,
+                    chunksUploaded: response.chunksUploaded
                 });
             }
+            offset += libClient.CHUNK_SIZE;
         }
     }
 {% endif %}
