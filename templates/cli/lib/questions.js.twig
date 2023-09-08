@@ -87,16 +87,13 @@ const getInstallCommand = (runtime) => {
             return 'bundle install';
         case 'rust':
             return 'cargo install';
-        case 'swift':
-            return 'swift build';
-        case 'cpp':
-            return 'apt-get install g++';
         case 'dotnet':
             return 'dotnet restore';
+        case 'swift':
         case 'java':
-            return 'mvn install';
         case 'kotlin':
-            return 'mvn install';
+        case 'cpp':
+            return '';
     }
 
     return undefined;
