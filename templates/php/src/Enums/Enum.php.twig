@@ -2,6 +2,8 @@
 
 namespace {{ spec.title | caseUcfirst }}\Enums;
 
+use JsonSerializable;
+
 class {{ enum.name | caseUcfirst | overrideIdentifier }} implements JsonSerializable
 {
     private string $value;
