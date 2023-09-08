@@ -72,10 +72,16 @@ const initFunction = async () => {
         log(`Entrypoint for this runtime not found. You will be asked to configure entrypoint when you first deploy the function.`);
     }
 
+    if (!answers.runtime.commands) {
+        log(`Installation command for this runtime not found. You will be asked to configure the install command when you first deploy the function.`);
+    }
+
     let response = await functionsCreate({
         functionId: answers.id,
         name: answers.name,
         runtime: answers.runtime.id,
+        entrypoint: answers.runtime.entrypoint || '',
+        commands: answers.runtime.commands || '',
         parseOutput: false
     })
 
@@ -138,13 +144,16 @@ const initFunction = async () => {
         $id: response['$id'],
         name: response.name,
         runtime: response.runtime,
-        path: `functions/${answers.name}`,
-        entrypoint: answers.runtime.entrypoint || '',
-        ignore: answers.runtime.ignore || null,
         execute: response.execute,
         events: response.events,
         schedule: response.schedule,
         timeout: response.timeout,
+        enabled: response.enabled,
+        logging: response.logging,
+        entrypoint: response.entrypoint,
+        commands: response.commands,
+        ignore: answers.runtime.ignore || null,
+        path: `functions/${answers.name}`,
     };
 
     localConfig.addFunction(data);

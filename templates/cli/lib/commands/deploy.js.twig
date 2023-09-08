@@ -206,10 +206,14 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 functionId: func['$id'],
                 name: func.name,
                 execute: func.execute,
-                vars: JSON.stringify(response.vars),
                 events: func.events,
                 schedule: func.schedule,
                 timeout: func.timeout,
+                enabled: func.enabled,
+                logging: func.logging,
+                entrypoint: func.entrypoint,
+                commands: func.commands,
+                vars: JSON.stringify(response.vars),
                 parseOutput: false
             });
         } catch (e) {
@@ -220,10 +224,14 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                     name: func.name,
                     runtime: func.runtime,
                     execute: func.execute,
-                    vars: JSON.stringify(func.vars),
                     events: func.events,
                     schedule: func.schedule,
                     timeout: func.timeout,
+                    enabled: func.enabled,
+                    logging: func.logging,
+                    entrypoint: func.entrypoint,
+                    commands: func.commands,
+                    vars: JSON.stringify(func.vars),
                     parseOutput: false
                 });
 
@@ -292,6 +300,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             response = await functionsCreateDeployment({
                 functionId: func['$id'],
                 entrypoint: func.entrypoint,
+                commands: func.commands,
                 code: func.path,
                 activate: true,
                 parseOutput: false
