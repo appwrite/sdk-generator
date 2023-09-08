@@ -1,0 +1,6 @@
+/// {{spec.title | caseUcfirst}} Models
+library {{ language.params.packageName }}.enums;
+
+{% for definition in spec.definitions %}
+part 'src/enums/{{definition.name | caseSnake}}.dart';
+{% endfor %}
