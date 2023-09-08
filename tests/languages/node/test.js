@@ -13,10 +13,7 @@ async function start() {
     let MockType = appwrite.MockType;
 
     // Init SDK
-    let client = new appwrite.Client()
-        .addHeader('Origin', 'http://localhost')
-        .setEndpoint('https://192.168.0.33/v1')
-        .setSelfSigned();
+    let client = new appwrite.Client();
 
     let foo = new appwrite.Foo(client);
     let bar = new appwrite.Bar(client);
@@ -72,11 +69,11 @@ async function start() {
     response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../resources/large_file.mp4', 'large_file.mp4'));
     console.log(response.result);
 
-    let buffer = (await (await fs.open('./tests/resources/file.png')).read()).buffer;
+    let buffer= await fs.readFile('./tests/resources/file.png');
     response = await general.upload('string', 123, ['string in array'], appwrite.InputFile.fromBuffer(buffer, 'file.png'))
     console.log(response.result)
 
-    buffer = (await (await fs.open('./tests/resources/large_file.mp4')).read()).buffer;
+    buffer = await fs.readFile('./tests/resources/large_file.mp4');
     response = await general.upload('string', 123, ['string in array'], appwrite.InputFile.fromBuffer(buffer, 'large_file.mp4'))
     console.log(response.result)
 
