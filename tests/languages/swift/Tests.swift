@@ -104,6 +104,9 @@ class Tests: XCTestCase {
             print(error.localizedDescription)
         }
 
+        mock = try await general.enum(.first)
+        print(mock.result)
+
         do {
             try await general.error400()
         } catch {

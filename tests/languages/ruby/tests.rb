@@ -81,6 +81,9 @@ rescue => e
     puts e
 end
 
+response = general.enum(MockType::FIRST)
+puts response.result
+
 begin
     general.error400()
 rescue Exception => error

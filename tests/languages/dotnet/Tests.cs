@@ -77,6 +77,9 @@ namespace AppwriteTests
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
             TestContext.WriteLine(mock.Result);
 
+            mock = await general.Enum(MockType.First)
+            TestContext.WriteLine(mock.Result);
+
             try
             {
                 await general.Error400();

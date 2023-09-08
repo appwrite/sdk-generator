@@ -110,12 +110,14 @@ class ServiceTest {
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
+
             try {
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../resources/large_file.mp4"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
+
             try {
                 var bytes = File("../../../resources/file.png").readBytes()
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(bytes, "file.png", "image/png"))
@@ -123,6 +125,7 @@ class ServiceTest {
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
+
             try {
                 var bytes = File("../../../resources/large_file.mp4").readBytes()
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(bytes, "large_file.mp4", "video/mp4"))
@@ -130,6 +133,9 @@ class ServiceTest {
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
+
+            mock = general.enum(MockType.FIRST)
+            writeToFile(mock.result)
 
             try {
                 general.error400()

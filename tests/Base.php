@@ -34,10 +34,9 @@ abstract class Base extends TestCase
 
     protected const GENERAL_RESPONSES = [
         'GET:/v1/mock/tests/general/redirect/done:passed',
-        'POST:/v1/mock/tests/general/upload:passed',
     ];
 
-    protected const EXTENDED_GENERAL_RESPONSES = [
+    protected const DOWNLOAD_RESPONSES = [
         'GET:/v1/mock/tests/general/download:passed',
     ];
 
@@ -46,7 +45,14 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/get-cookie:passed',
     ];
 
-    protected const LARGE_FILE_RESPONSES = [
+    protected const ENUM_RESPONSES = [
+        'POST:/v1/mock/tests/general/enum:passed',
+    ];
+
+    protected const UPLOAD_RESPONSES = [
+        'POST:/v1/mock/tests/general/upload:passed',
+        'POST:/v1/mock/tests/general/upload:passed',
+        'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
@@ -166,49 +172,31 @@ abstract class Base extends TestCase
         /**
          * Build SDK
          */
-        foreach ($this->build as $key => $command) {
-            echo "Building phase #{$key} for {$this->language} package...\n";
-            echo "Executing: {$command}\n";
-
-            $buildOutput = [];
-
-            ob_end_clean();
+        foreach ($this->build as $command) {
             echo "Build Executing: {$command}\n";
-            ob_start();
 
-            exec($command, $buildOutput);
-
-            foreach ($buildOutput as $i => $row) {
-                echo "{$i}. {$row}\n";
-            }
+            exec($command);
         }
 
         $output = [];
 
-        ob_end_clean();
         echo "Env Executing: {$this->command}\n";
-        ob_start();
 
         exec($this->command, $output);
-
-        foreach ($output as $i => $row) {
-            echo "{$row}\n";
-        }
 
         $this->assertIsArray($output);
 
         do {
-            $removed = array_shift($output);
+            $removed = \array_shift($output);
         } while ($removed != 'Test Started' && sizeof($output) != 0);
 
-        $this->assertGreaterThanOrEqual(count($this->expectedOutput), count($output));
+        echo \implode("\n", $output);
 
-        foreach ($this->expectedOutput as $i => $row) {
-            $this->assertEquals($output[$i], $row);
-        }
+        $this->assertEquals(\count($this->expectedOutput), \count($output));
+        $this->assertEquals([], \array_diff($this->expectedOutput, $output));
     }
 
-    private function rmdirRecursive($dir)
+    private function rmdirRecursive($dir): void
     {
         if (!\is_dir($dir)) {
             return;
@@ -223,7 +211,7 @@ abstract class Base extends TestCase
                 \unlink("$dir/$file");
             }
         }
-        rmdir($dir);
+        \rmdir($dir);
     }
 
     public function getLanguage(): Language

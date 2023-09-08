@@ -11,6 +11,7 @@ include __DIR__ . '/../../sdks/php/src/Appwrite/AppwriteException.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Foo.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Services/Bar.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Services/General.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/Enums/MockType.php';
 
 use Appwrite\AppwriteException;
 use Appwrite\Client;
@@ -81,6 +82,9 @@ $response = $general->upload('string', 123, ['string in array'], InputFile::with
 echo "{$response['result']}\n";
 
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../resources/large_file.mp4'));
+echo "{$response['result']}\n";
+
+$response = $general->enum(MockType::FIRST);
 echo "{$response['result']}\n";
 
 try {
