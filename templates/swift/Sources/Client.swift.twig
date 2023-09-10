@@ -301,18 +301,21 @@ open class Client {
             default:
                 var message = ""
                 var data = try await response.body.collect(upTo: Int.max)
+                var type = ""
                 
                 do {
                     let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
 
                     message = dict?["message"] as? String ?? response.status.reasonPhrase
+                    type = dict?["type"] as? String ?? ""
                 } catch {
                     message =  data.readString(length: data.readableBytes)!
                 }
 
                 throw {{ spec.title | caseUcfirst }}Error(
                     message: message,
-                    code: Int(response.status.code)
+                    code: Int(response.status.code),
+                    type: type
                 )
             }
         }
