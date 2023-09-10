@@ -106,6 +106,10 @@ abstract class Base extends TestCase
     protected array $build = [];
     protected string $command = '';
     protected array $expectedOutput = [];
+    protected string $sdkName;
+    protected string $sdkPlatform;
+    protected string $sdkLanguage;
+    protected string $version;
 
     public function setUp(): void
     {
