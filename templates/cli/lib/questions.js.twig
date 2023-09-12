@@ -20,6 +20,7 @@ const getIgnores = (runtime) => {
         case 'kotlin':
             return ['build'];
         case 'node':
+        case 'bun':
             return ['node_modules', '.npm'];
         case 'php':
             return ['vendor'];
@@ -46,6 +47,8 @@ const getEntrypoint = (runtime) => {
             return 'src/main.ts';
         case 'node':
             return 'src/main.js';
+        case 'bun':
+            return 'src/main.ts';
         case 'php':
             return 'src/index.php';
         case 'python':
@@ -79,6 +82,8 @@ const getInstallCommand = (runtime) => {
             return "deno install";
         case 'node':
             return 'npm install';
+        case 'bun':
+            return 'bun install';
         case 'php':
             return 'composer install';
         case 'python':
