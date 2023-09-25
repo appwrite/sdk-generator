@@ -7,6 +7,7 @@ const JSONbig = require("json-bigint")({ storeAsString: false });
 class Config {
     constructor(path) {
         this.path = path;
+        this.configFileAbsent = null;
         this.read();
     }
 
@@ -14,8 +15,10 @@ class Config {
         try {
             const file = fs.readFileSync(this.path).toString();
             this.data = JSONbig.parse(file);
+            this.configFileAbsent = false;
         } catch (e) {
             this.data = {};
+            this.configFileAbsent = true;
         }
     }
 

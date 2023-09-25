@@ -2,6 +2,7 @@ const { localConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { functionsListRuntimes } = require('./commands/functions');
 const { databasesList } = require('./commands/databases');
+const { checkDeployConditions } = require('./utils');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
 const getIgnores = (runtime) => {
@@ -280,6 +281,7 @@ const questionsDeployFunctions = [
         message: "Which functions would you like to deploy?",
         choices: () => {
             let functions = localConfig.getFunctions();
+            checkDeployConditions(functions, localConfig, "function")
             if (functions.length === 0) {
                 throw new Error("No functions found in the current directory.");
             }
@@ -306,6 +308,7 @@ const questionsDeployCollections = [
         message: "Which collections would you like to deploy?",
         choices: () => {
             let collections = localConfig.getCollections();
+            checkDeployConditions(collections, localConfig, "collection")
             if (collections.length === 0) {
                 throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
             }
@@ -332,6 +335,7 @@ const questionsDeployBuckets = [
         message: "Which buckets would you like to deploy?",
         choices: () => {
             let buckets = localConfig.getBuckets();
+            checkDeployConditions(buckets, localConfig, "bucket")
             if (buckets.length === 0) {
                 throw new Error("No buckets found in the current directory. Run `appwrite init bucket` to fetch all your buckets.");
             }
@@ -373,6 +377,7 @@ const questionsDeployTeams = [
         message: "Which teams would you like to deploy?",
         choices: () => {
             let teams = localConfig.getTeams();
+            checkDeployConditions(teams, localConfig, "team")
             if (teams.length === 0) {
                 throw new Error("No teams found in the current directory. Run `appwrite init team` to fetch all your teams.");
             }
