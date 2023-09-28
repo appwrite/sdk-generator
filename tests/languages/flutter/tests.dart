@@ -98,7 +98,7 @@ void main() async {
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
-  response = await general.enum(MockType.FIRST);
+  response = await general.xenum(MockType.FIRST);
   print(response.result);
 
   try {

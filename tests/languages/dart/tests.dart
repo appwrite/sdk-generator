@@ -1,5 +1,9 @@
 import '../lib/packageName.dart';
 import '../lib/models.dart';
+import '../lib/enums.dart';
+import '../lib/src/input_file.dart';
+
+import 'dart:io';
 
 void main() async {
   Client client = Client();
@@ -59,19 +63,19 @@ void main() async {
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
-  var resource = new File.fromUri(Uri.parse('../../resources/file.png'));
+  var resource = File.fromUri(Uri.parse('../../resources/file.png'));
   var bytes = await resource.readAsBytes();
   file = InputFile.fromBytes(bytes: bytes, filename: 'file.png');
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
-  resource = new File.fromUri(Uri.parse('../../resources/large_file.mp4'));
+  resource = File.fromUri(Uri.parse('../../resources/large_file.mp4'));
   bytes = await resource.readAsBytes();
   file = InputFile.fromBytes(bytes: bytes, filename: 'large_file.mp4');
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
-  response = await general.enum(MockType.FIRST);
+  response = await general.xenum(mockType: MockType.first);
   print(response.result);
 
   try {

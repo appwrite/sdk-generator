@@ -1,6 +1,6 @@
-/// {{spec.title | caseUcfirst}} Models
+/// {{spec.title | caseUcfirst}} Enums
 library {{ language.params.packageName }}.enums;
 
-{% for definition in spec.definitions %}
-part 'src/enums/{{definition.name | caseSnake}}.dart';
+{% for enum in spec.enums %}
+part 'src/enums/{{enum | caseSnake}}.dart';
 {% endfor %}

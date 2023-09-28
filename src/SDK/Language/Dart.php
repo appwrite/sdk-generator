@@ -112,7 +112,13 @@ class Dart extends Language
      */
     public function getIdentifierOverrides(): array
     {
-        return ['Function' => 'Func', 'default' => 'xdefault', 'required' => 'xrequired', 'async' => 'xasync'];
+        return [
+            'Function' => 'Func',
+            'default' => 'xdefault',
+            'required' => 'xrequired',
+            'async' => 'xasync',
+            'enum' => 'xenum',
+        ];
     }
 
     /**
@@ -122,7 +128,10 @@ class Dart extends Language
     public function getTypeName(array $parameter): string
     {
         if (isset($parameter['enumName'])) {
-            return $parameter['enumName'];
+            return 'enums.' . \ucfirst($parameter['enumName']);
+        }
+        if (!empty($parameter['enumValues'])) {
+            return 'enums.' . \ucfirst($parameter['name']);
         }
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
@@ -388,6 +397,11 @@ class Dart extends Language
                 'scope'         => 'default',
                 'destination'   => '/lib/models.dart',
                 'template'      => 'dart/lib/models.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/enums.dart',
+                'template'      => 'dart/lib/enums.dart.twig',
             ],
             [
                 'scope'         => 'service',

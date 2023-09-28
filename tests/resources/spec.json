@@ -1236,12 +1236,20 @@
         "consumes": [
           "application\/json"
         ],
-        "produces": [],
+        "produces": [
+          "application\/json"
+        ],
         "tags": [
           "general"
         ],
         "description": "",
         "responses": {
+          "200": {
+            "description": "Mock",
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
+          },
           "500": {
             "description": "File",
             "schema": {

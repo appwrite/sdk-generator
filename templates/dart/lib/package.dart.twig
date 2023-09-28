@@ -13,6 +13,7 @@ import 'src/service.dart';
 import 'src/input_file.dart';
 import 'src/upload_progress.dart';
 import 'models.dart' as models;
+import 'enums.dart' as enums;
 
 export 'src/response.dart';
 export 'src/client.dart';
@@ -26,7 +27,4 @@ part 'role.dart';
 part 'id.dart';
 {% for service in spec.services %}
 part 'services/{{service.name | caseDash}}.dart';
-{% endfor %}
-{% for enum in spec.enums %}
-part 'src/enums/{{enum | caseSnake}}.dart';
 {% endfor %}
