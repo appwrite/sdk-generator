@@ -6,18 +6,15 @@ use JsonSerializable;
 
 class {{ enum.name | caseUcfirst | overrideIdentifier }} implements JsonSerializable
 {
+    {%~ for value in enum.enum %}
+    private static {{ enum.name | caseUcfirst }} ${{ value | caseSnake | caseUpper | strip }};
+    {%~ endfor %}
+
     private string $value;
 
-    public function __construct(string $value)
+    private function __construct(string $value)
     {
         $this->value = $value;
-
-{% for value in enum.enum %}
-{% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
-        if (!isset(self::${{ key | caseUpper | strip }})) {
-            self::${{ key | caseUpper | strip }} = new {{ enum.name | caseUcfirst | overrideIdentifier }}('{{value}}');
-        }
-{% endfor %}
     }
 
     public function __toString(): string
@@ -32,6 +29,12 @@ class {{ enum.name | caseUcfirst | overrideIdentifier }} implements JsonSerializ
 
 {% for value in enum.enum %}
 {% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
-    public static {{ enum.name | caseUcfirst | overrideIdentifier }} ${{ key | caseUpper | strip }};
+    public static function {{ key | caseSnake | caseUpper }}(): {{ enum.name | caseUcfirst | overrideIdentifier}}
+    {
+        if (!isset(self::${{ key | caseUpper | strip }})) {
+            self::${{ key | caseSnake | caseUpper | strip }} = new {{ enum.name | caseUcfirst | overrideIdentifier }}('{{value}}');
+        }
+        return self::${{ key | caseSnake | caseUpper | strip }};
+    }
 {% endfor %}
 }
