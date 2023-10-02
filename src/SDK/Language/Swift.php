@@ -95,7 +95,9 @@ class Swift extends Language
      */
     public function getIdentifierOverrides(): array
     {
-        return [];
+        return [
+            'enum' => 'xenum'
+        ];
     }
 
     /**
