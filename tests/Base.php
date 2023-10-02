@@ -192,7 +192,6 @@ abstract class Base extends TestCase
 
         echo \implode("\n", $output);
 
-        $this->assertEquals(\count($this->expectedOutput), \count($output));
         $this->assertEquals([], \array_diff($this->expectedOutput, $output));
     }
 

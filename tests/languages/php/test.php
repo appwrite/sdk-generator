@@ -25,12 +25,13 @@ use Appwrite\Services\Bar;
 use Appwrite\Services\Foo;
 use Appwrite\Services\General;
 
-$client = new Client();
+$client = (new Client())
+    ->addHeader("Origin", "http://localhost")
+    ->setSelfSigned();
+
 $foo = new Foo($client);
 $bar = new Bar($client);
 $general = new General($client);
-
-$client->addHeader('Origin', 'http://localhost');
 
 echo "\nTest Started\n";
 

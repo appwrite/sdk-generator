@@ -3,7 +3,9 @@ require_relative '../../sdks/ruby/lib/appwrite'
 include Appwrite
 
 client = Client.new
-client.add_header('Origin', 'http://localhost')
+client
+  .add_header('Origin', 'http://localhost')
+  .set_self_signed()
 
 foo = Foo.new(client)
 bar = Bar.new(client)

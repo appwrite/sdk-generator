@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 using Appwrite;
 using Appwrite.Models;
+using Appwrite.Enums;
 using Appwrite.Services;
 using NUnit.Framework;
 
@@ -21,7 +22,10 @@ namespace AppwriteTests
         [Test]
         public async Task Test1()
         {
-            var client = new Client();
+            var client = new Client()
+                .AddHeader("Origin", "http://localhost")
+                .SetSelfSigned(true);
+
             var foo = new Foo(client);
             var bar = new Bar(client);
             var general = new General(client);
@@ -77,7 +81,7 @@ namespace AppwriteTests
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
             TestContext.WriteLine(mock.Result);
 
-            mock = await general.Enum(MockType.First)
+            mock = await general.Enum(MockType.First);
             TestContext.WriteLine(mock.Result);
 
             try

@@ -124,6 +124,12 @@ abstract class JS extends Language
      */
     public function getTypeName(array $parameter): string
     {
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
+        }
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
+        }
 
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:

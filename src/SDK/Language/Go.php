@@ -108,23 +108,21 @@ class Go extends Language
      */
     public function getTypeName(array $parameter): string
     {
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-                return 'int';
-            case self::TYPE_NUMBER:
-                return 'float64';
-            case self::TYPE_FILE:
-            case self::TYPE_STRING:
-                return 'string';
-            case self::TYPE_BOOLEAN:
-                return 'bool';
-            case self::TYPE_OBJECT:
-                return 'interface{}';
-            case self::TYPE_ARRAY:
-                return '[]interface{}';
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
         }
-
-        return $parameter['type'];
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
+        }
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER => 'int',
+            self::TYPE_NUMBER => 'float64',
+            self::TYPE_FILE, self::TYPE_STRING => 'string',
+            self::TYPE_BOOLEAN => 'bool',
+            self::TYPE_OBJECT => 'interface{}',
+            self::TYPE_ARRAY => '[]interface{}',
+            default => $parameter['type'],
+        };
     }
 
     /**

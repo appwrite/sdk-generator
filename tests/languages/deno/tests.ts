@@ -12,6 +12,8 @@ async function start() {
 
   // Init SDK
   let client = new appwrite.Client()
+      .addHeader("Origin", "http://localhost")
+      .setSelfSigned(true)
 
   let foo = new appwrite.Foo(client)
   let bar = new appwrite.Bar(client)

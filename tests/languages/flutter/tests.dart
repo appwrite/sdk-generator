@@ -4,6 +4,8 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 import '../lib/packageName.dart';
 import '../lib/client_io.dart';
 import '../lib/models.dart';
+import '../lib/enums.dart';
+import '../lib/src/input_file.dart';
 import 'dart:io';
 
 class FakePathProvider extends PathProviderPlatform {
@@ -17,7 +19,9 @@ class FakePathProvider extends PathProviderPlatform {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   PathProviderPlatform.instance = FakePathProvider();
-  Client client = Client();
+  Client client = Client()
+      .addHeader("Origin", "http://localhost")
+      .setSelfSigned(true);
   Foo foo = Foo(client);
   Bar bar = Bar(client);
   General general = General(client);
@@ -86,19 +90,19 @@ void main() async {
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
-  var resource = new File.fromUri(Uri.parse('../../resources/file.png'));
+  var resource = File.fromUri(Uri.parse('../../resources/file.png'));
   var bytes = await resource.readAsBytes();
   file = InputFile.fromBytes(bytes: bytes, filename: 'file.png');
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
-  resource = new File.fromUri(Uri.parse('../../resources/large_file.mp4'));
+  resource = File.fromUri(Uri.parse('../../resources/large_file.mp4'));
   bytes = await resource.readAsBytes();
   file = InputFile.fromBytes(bytes: bytes, filename: 'large_file.mp4');
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
-  response = await general.xenum(MockType.FIRST);
+  response = await general.xenum(mockType: MockType.FIRST);
   print(response.result);
 
   try {

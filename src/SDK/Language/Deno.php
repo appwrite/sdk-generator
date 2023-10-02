@@ -108,28 +108,22 @@ class Deno extends JS
     public function getTypeName(array $parameter): string
     {
         if (isset($parameter['enumName'])) {
-            return $parameter['enumName'];
+            return \ucfirst($parameter['enumName']);
         }
-
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-                return 'number';
-            case self::TYPE_STRING:
-                return 'string';
-            case self::TYPE_FILE:
-                return 'InputFile';
-            case self::TYPE_BOOLEAN:
-                return 'boolean';
-            case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    return $this->getTypeName($parameter['array']) . '[]';
-                }
-                return 'string[]';
-            case self::TYPE_OBJECT:
-                return 'object';
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
         }
-
-        return $parameter['type'];
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER => 'number',
+            self::TYPE_STRING => 'string',
+            self::TYPE_FILE => 'InputFile',
+            self::TYPE_BOOLEAN => 'boolean',
+            self::TYPE_ARRAY => $parameter['array']['type']
+                ? $this->getTypeName($parameter['array']) . '[]'
+                : 'string[]',
+            self::TYPE_OBJECT => 'object',
+            default => $parameter['type']
+        };
     }
 
     /**

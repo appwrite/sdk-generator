@@ -197,22 +197,21 @@ class Ruby extends Language
      */
     public function getTypeName(array $parameter): string
     {
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-                return 'Integer';
-            case self::TYPE_NUMBER:
-                return 'Float';
-            case self::TYPE_STRING:
-                return 'String';
-            case self::TYPE_ARRAY:
-                return 'Array';
-            case self::TYPE_OBJECT:
-                return 'Hash';
-            case self::TYPE_BOOLEAN:
-                return '';
-            default:
-                return $parameter['type'];
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
         }
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
+        }
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER => 'Integer',
+            self::TYPE_NUMBER => 'Float',
+            self::TYPE_STRING => 'String',
+            self::TYPE_ARRAY => 'Array',
+            self::TYPE_OBJECT => 'Hash',
+            self::TYPE_BOOLEAN => '',
+            default => $parameter['type'],
+        };
     }
 
     /**

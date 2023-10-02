@@ -19,6 +19,24 @@ class Node extends JS
      */
     public function getTypeName(array $parameter): string
     {
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
+        }
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
+        }
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER,
+            self::TYPE_NUMBER => 'number',
+            self::TYPE_STRING => 'string',
+            self::TYPE_FILE => 'InputFile',
+            self::TYPE_BOOLEAN => 'boolean',
+            self::TYPE_OBJECT => 'object',
+            self::TYPE_ARRAY => $parameter['array']['type']
+                ? $this->getTypeName($parameter['array']) . '[]'
+                : 'string[]',
+            default => $parameter['type'],
+        };
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
@@ -30,9 +48,9 @@ class Node extends JS
                 return 'string[]';
             case self::TYPE_FILE:
                 return 'InputFile';
+            default:
+                return $parameter['type'];
         }
-
-        return $parameter['type'];
     }
 
     /**

@@ -228,30 +228,21 @@ class PHP extends Language
     public function getTypeName(array $parameter): string
     {
         if (isset($parameter['enumName'])) {
-            return $parameter['enumName'];
+            return \ucfirst($parameter['enumName']);
         }
-
-        switch ($parameter['type']) {
-            case self::TYPE_STRING:
-                $type = 'string';
-                break;
-            case self::TYPE_BOOLEAN:
-                $type = 'bool';
-                break;
-            case self::TYPE_NUMBER:
-            case self::TYPE_INTEGER:
-                $type = 'int';
-                break;
-            case self::TYPE_ARRAY:
-            case self::TYPE_OBJECT:
-                $type = 'array';
-                break;
-            case self::TYPE_FILE:
-                $type = 'InputFile';
-                break;
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
         }
-
-        return $type;
+        return match ($parameter['type']) {
+            self::TYPE_STRING => 'string',
+            self::TYPE_BOOLEAN => 'bool',
+            self::TYPE_NUMBER,
+            self::TYPE_INTEGER => 'int',
+            self::TYPE_ARRAY,
+            self::TYPE_OBJECT => 'array',
+            self::TYPE_FILE => 'InputFile',
+            default => $parameter['type'],
+        };
     }
 
     /**

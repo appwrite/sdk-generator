@@ -199,7 +199,22 @@ class Python extends Language
      */
     public function getTypeName(array $parameter): string
     {
-        throw new Exception('Method not supported for Python SDKs');
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
+        }
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
+        }
+        return match ($parameter['type'] ?? '') {
+            self::TYPE_FILE => 'InputFile',
+            self::TYPE_NUMBER,
+            self::TYPE_INTEGER => 'float',
+            self::TYPE_BOOLEAN => 'bool',
+            self::TYPE_STRING => 'str',
+            self::TYPE_ARRAY => 'list',
+            self::TYPE_OBJECT => 'dict',
+            default => $parameter['type'],
+        };
     }
 
     /**

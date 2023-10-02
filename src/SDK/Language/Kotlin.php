@@ -106,30 +106,23 @@ class Kotlin extends Language
     public function getTypeName(array $parameter): string
     {
         if (isset($parameter['enumName'])) {
-            return $parameter['enumName'];
+            return \ucfirst($parameter['enumName']);
         }
-
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-                return 'Long';
-            case self::TYPE_NUMBER:
-                return 'Double';
-            case self::TYPE_STRING:
-                return 'String';
-            case self::TYPE_FILE:
-                return 'InputFile';
-            case self::TYPE_BOOLEAN:
-                return 'Boolean';
-            case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    return 'List<' . $this->getTypeName($parameter['array']) . '>';
-                }
-                return 'List<Any>';
-            case self::TYPE_OBJECT:
-                return 'Any';
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
         }
-
-        return $parameter['type'];
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER => 'Long',
+            self::TYPE_NUMBER => 'Double',
+            self::TYPE_STRING => 'String',
+            self::TYPE_FILE => 'InputFile',
+            self::TYPE_BOOLEAN => 'Boolean',
+            self::TYPE_ARRAY => $parameter['array']['type']
+                ? 'List<' . $this->getTypeName($parameter['array']) . '>'
+                : 'List<Any>',
+            self::TYPE_OBJECT => 'Any',
+            default => $parameter['type'],
+        };
     }
 
     /**

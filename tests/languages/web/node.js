@@ -4,7 +4,10 @@ async function start() {
     let response;
 
     console.log('\nTest Started');
-    const client = new Client();
+    const client = new Client()
+        .addHeader("Origin", "http://localhost")
+        .setSelfSigned(true);
+
     const foo = new Foo(client);
     const bar = new Bar(client);
     const general = new General(client);

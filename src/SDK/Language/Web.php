@@ -180,7 +180,10 @@ class Web extends JS
     public function getTypeName(array $parameter, array $method = []): string
     {
         if (isset($parameter['enumName'])) {
-            return $parameter['enumName'];
+            return \ucfirst($parameter['enumName']);
+        }
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
         }
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
@@ -208,8 +211,8 @@ class Web extends JS
                             return "Partial<Omit<Document, keyof Models.Document>>";
                         }
                 }
+                break;
         }
-
         return $parameter['type'];
     }
 

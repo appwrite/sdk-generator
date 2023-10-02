@@ -133,7 +133,7 @@ class Dart extends Language
         if (!empty($parameter['enumValues'])) {
             return 'enums.' . \ucfirst($parameter['name']);
         }
-        switch ($parameter['type']) {
+        switch ($parameter['type'] ?? '') {
             case self::TYPE_INTEGER:
                 return 'int';
             case self::TYPE_STRING:
@@ -151,9 +151,9 @@ class Dart extends Language
                 return 'Map';
             case self::TYPE_NUMBER:
                 return 'double';
+            default:
+                return $parameter['type'];
         }
-
-        return $parameter['type'];
     }
 
     /**
