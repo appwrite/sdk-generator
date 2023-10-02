@@ -8,10 +8,9 @@ from appwrite.query import Query
 from appwrite.permission import Permission
 from appwrite.role import Role
 from appwrite.id import ID
-from appwrite.mock_type import MockType
+from appwrite.enums.mock_type import MockType
 
 import os.path
-
 
 client = Client()
 foo = Foo(client)

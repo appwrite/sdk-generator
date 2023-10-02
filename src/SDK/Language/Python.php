@@ -170,6 +170,21 @@ class Python extends Language
                 'template'      => 'python/package/services/__init__.py.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/encoders/__init__.py',
+                'template'      => 'python/package/services/__init__.py.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/enums/__init__.py',
+                'template'      => 'python/package/services/__init__.py.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseSnake}}/encoders/value_class_encoder.py',
+                'template'      => 'python/package/encoders/value_class_encoder.py.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '{{ spec.title | caseSnake}}/services/{{service.name | caseSnake}}.py',
                 'template'      => 'python/package/services/service.py.twig',

@@ -13,7 +13,12 @@ let package = Package(
     products: [
         .library(
             name: "{{spec.title | caseUcfirst}}",
-            targets: ["{{spec.title | caseUcfirst}}", "{{spec.title | caseUcfirst}}Models", "JSONCodable"]
+            targets: [
+                "{{spec.title | caseUcfirst}}",
+                "{{spec.title | caseUcfirst}}Enums",
+                "{{spec.title | caseUcfirst}}Models",
+                "JSONCodable"
+            ]
         ),
     ],
     dependencies: [
