@@ -1,9 +1,23 @@
+/**
+ * Helper class to generate ID strings for resources.
+ */
 export class ID {
-    public static custom(id: string): string {
-        return id
+    /**
+     * Uses the provided ID as the ID for the resource.
+     *
+     * @param {string} id
+     * @returns {string}
+     */
+    static custom(id: string): string {
+        return id;
     }
-    
-    public static unique(): string {
-        return 'unique()'
+
+    /**
+     * Have Appwrite generate a unique ID for you.
+     *
+     * @returns {string}
+     */
+    static unique(): string {
+        return 'unique()';
     }
 }

@@ -1,3 +1,10 @@
+/**
+ * {{spec.title | caseUcfirst}} {{sdk.name}} SDK
+ *
+ * This SDK is compatible with Appwrite server version {{spec.version | split('.') | slice(0,2) | join('.') ~ '.x' }}. 
+ * For older versions, please check
+ * [previous releases](https://github.com/{{sdk.gitUserName}}/{{sdk.gitRepoName}}/releases).
+ */
 export { Client, Query, {{spec.title | caseUcfirst}}Exception } from './client';
 {% for service in spec.services %}
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseDash}}';

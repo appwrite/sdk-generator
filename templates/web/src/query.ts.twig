@@ -2,73 +2,218 @@ type QueryTypesSingle = string | number | boolean;
 export type QueryTypesList = string[] | number[] | boolean[];
 export type QueryTypes = QueryTypesSingle | QueryTypesList;
 
+/**
+ * Helper class to generate query strings.
+ */
 export class Query {
+  /**
+   * Filter resources where attribute is equal to value.
+   *
+   * @param {string} attribute
+   * @param {QueryTypes} value
+   * @returns {string}
+   */
   static equal = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "equal", value);
+      Query.addQuery(attribute, "equal", value);
 
+  /**
+   * Filter resources where attribute is not equal to value.
+   *
+   * @param {string} attribute
+   * @param {QueryTypes} value
+   * @returns {string}
+   */
   static notEqual = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "notEqual", value);
+      Query.addQuery(attribute, "notEqual", value);
 
+  /**
+   * Filter resources where attribute is less than value.
+   *
+   * @param {string} attribute
+   * @param {QueryTypes} value
+   * @returns {string}
+   */
   static lessThan = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "lessThan", value);
+      Query.addQuery(attribute, "lessThan", value);
 
+  /**
+   * Filter resources where attribute is less than or equal to value.
+   *
+   * @param {string} attribute
+   * @param {QueryTypes} value
+   * @returns {string}
+   */
   static lessThanEqual = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "lessThanEqual", value);
+      Query.addQuery(attribute, "lessThanEqual", value);
 
+  /**
+   * Filter resources where attribute is greater than value.
+   *
+   * @param {string} attribute
+   * @param {QueryTypes} value
+   * @returns {string}
+   */
   static greaterThan = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "greaterThan", value);
+      Query.addQuery(attribute, "greaterThan", value);
 
+  /**
+   * Filter resources where attribute is greater than or equal to value.
+   *
+   * @param {string} attribute
+   * @param {QueryTypes} value
+   * @returns {string}
+   */
   static greaterThanEqual = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "greaterThanEqual", value);
+      Query.addQuery(attribute, "greaterThanEqual", value);
 
+  /**
+   * Filter resources where attribute is null.
+   *
+   * @param {string} attribute
+   * @returns {string}
+   */
   static isNull = (attribute: string): string =>
-    `isNull("${attribute}")`;
+      `isNull("${attribute}")`;
 
+  /**
+   * Filter resources where attribute is not null.
+   *
+   * @param {string} attribute
+   * @returns {string}
+   */
   static isNotNull = (attribute: string): string =>
-    `isNotNull("${attribute}")`;
+      `isNotNull("${attribute}")`;
 
+  /**
+   * Filter resources where attribute is between start and end (inclusive).
+   *
+   * @param {string} attribute
+   * @param {string|number} start
+   * @param {string|number} end
+   * @returns {string}
+   */
   static between = (attribute: string, start: string|number, end: string|number): string =>
-    `between("${attribute}", [${Query.parseValues(start)},${Query.parseValues(end)}])`;
+      `between("${attribute}", ${Query.parseValues(start)}, ${Query.parseValues(end)})`;
 
+  /**
+   * Filter resources where attribute starts with value.
+   *
+   * @param {string} attribute
+   * @param {string} value
+   * @returns {string}
+   */
   static startsWith = (attribute: string, value: string): string =>
-    Query.addQuery(attribute, "startsWith", value);
+      Query.addQuery(attribute, "startsWith", value);
 
+  /**
+   * Filter resources where attribute ends with value.
+   *
+   * @param {string} attribute
+   * @param {string} value
+   * @returns {string}
+   */
   static endsWith = (attribute: string, value: string): string =>
-    Query.addQuery(attribute, "endsWith", value);
+      Query.addQuery(attribute, "endsWith", value);
 
+  /**
+   * Specify which attributes should be returned by the API call.
+   *
+   * @param {string[]} attributes
+   * @returns {string}
+   */
   static select = (attributes: string[]): string =>
-    `select([${attributes.map((attr: string) => `"${attr}"`).join(",")}])`;
+      `select([${attributes.map((attr: string) => `"${attr}"`).join(",")}])`;
 
+  /**
+   * Filter resources by searching attribute for value.
+   * A fulltext index on attribute is required for this query to work.
+   *
+   * @param {string} attribute
+   * @param {string} value
+   * @returns {string}
+   */
   static search = (attribute: string, value: string): string =>
-    Query.addQuery(attribute, "search", value);
+      Query.addQuery(attribute, "search", value);
 
+  /**
+   * Sort results by attribute descending.
+   *
+   * @param {string} attribute
+   * @returns {string}
+   */
   static orderDesc = (attribute: string): string =>
-    `orderDesc("${attribute}")`;
+      `orderDesc("${attribute}")`;
 
+  /**
+   * Sort results by attribute ascending.
+   *
+   * @param {string} attribute
+   * @returns {string}
+   */
   static orderAsc = (attribute: string): string =>
-    `orderAsc("${attribute}")`;
+      `orderAsc("${attribute}")`;
 
+  /**
+   * Return results after documentId.
+   *
+   * @param {string} documentId
+   * @returns {string}
+   */
   static cursorAfter = (documentId: string): string =>
-    `cursorAfter("${documentId}")`;
+      `cursorAfter("${documentId}")`;
 
+  /**
+   * Return results before documentId.
+   *
+   * @param {string} documentId
+   * @returns {string}
+   */
   static cursorBefore = (documentId: string): string =>
-    `cursorBefore("${documentId}")`;
+      `cursorBefore("${documentId}")`;
 
+  /**
+   * Return only limit results.
+   *
+   * @param {number} limit
+   * @returns {string}
+   */
   static limit = (limit: number): string =>
-    `limit(${limit})`;
+      `limit(${limit})`;
 
+  /**
+   * Filter resources by skipping the first offset results.
+   *
+   * @param {number} offset
+   * @returns {string}
+   */
   static offset = (offset: number): string =>
-    `offset(${offset})`;
+      `offset(${offset})`;
 
+  /**
+   * Helper function to construct query strings.
+   *
+   * @param {string} attribute
+   * @param {string} method
+   * @param {QueryTypes} value
+   * @returns {string}
+   * @private
+   */
   private static addQuery = (attribute: string, method: string, value: QueryTypes): string =>
-    value instanceof Array
-      ? `${method}("${attribute}", [${value
-          .map((v: QueryTypesSingle) => Query.parseValues(v))
-          .join(",")}])`
-      : `${method}("${attribute}", [${Query.parseValues(value)}])`;
+      value instanceof Array
+          ? `${method}("${attribute}", [${value
+              .map((v: QueryTypesSingle) => Query.parseValues(v))
+              .join(",")}])`
+          : `${method}("${attribute}", [${Query.parseValues(value)}])`;
 
+  /**
+   * Helper function to parse query values.
+   *
+   * @param {QueryTypes} value
+   * @returns {string}
+   * @private
+   */
   private static parseValues = (value: QueryTypes): string =>
-    typeof value === "string" || value instanceof String
-      ? `"${value}"`
-      : `${value}`;
+      typeof value === "string" || value instanceof String
+          ? `"${value}"`
+          : `${value}`;
 }
