@@ -13,7 +13,6 @@ async function start() {
   // Init SDK
   let client = new appwrite.Client()
       .addHeader("Origin", "http://localhost")
-      .setSelfSigned(true)
 
   let foo = new appwrite.Foo(client)
   let bar = new appwrite.Bar(client)
@@ -89,7 +88,7 @@ async function start() {
   // @ts-ignore
   console.log(response.result)
 
-  response = await general.enum(MockType.first)
+  response = await general.enum(appwrite.MockType.First)
   // @ts-ignore
   console.log(response.result)
 
