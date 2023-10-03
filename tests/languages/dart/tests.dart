@@ -6,7 +6,7 @@ import '../lib/src/input_file.dart';
 import 'dart:io';
 
 void main() async {
-  Client client = Client().setSelfSigned(true);
+  Client client = Client().setSelfSigned();
   Foo foo = Foo(client);
   Bar bar = Bar(client);
   General general = General(client);
