@@ -1,7 +1,7 @@
 
 const appwrite = require('../../sdks/node/index');
 const InputFile = require('../../sdks/node/lib/inputFile');
-const fs = require('fs/promises');
+const fs = require('fs').promises;
 
 async function start() {
     var response;
