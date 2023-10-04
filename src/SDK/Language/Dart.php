@@ -125,7 +125,7 @@ class Dart extends Language
      * @param array $parameter
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
         if (isset($parameter['enumName'])) {
             return 'enums.' . \ucfirst($parameter['enumName']);

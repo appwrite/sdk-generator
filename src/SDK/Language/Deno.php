@@ -105,7 +105,7 @@ class Deno extends JS
      * @param array $parameter
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
         if (isset($parameter['enumName'])) {
             return \ucfirst($parameter['enumName']);

@@ -106,7 +106,7 @@ class Go extends Language
      * @param array $nestedTypes
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
         if (isset($parameter['enumName'])) {
             return \ucfirst($parameter['enumName']);

@@ -41,7 +41,7 @@ abstract class Language
      * @param array $parameter
      * @return string
      */
-    abstract public function getTypeName(array $parameter): string;
+    abstract public function getTypeName(array $parameter, array $spec = []): string;
 
     /**
      * @param array $param

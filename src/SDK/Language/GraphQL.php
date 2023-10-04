@@ -16,7 +16,7 @@ class GraphQL extends HTTP
      * @param $type
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
         $type = '';
 

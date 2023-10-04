@@ -298,13 +298,13 @@ class Swift extends Language
      * @param array $parameter
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
         if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
+            return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+            return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['name']);
         }
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'Int',

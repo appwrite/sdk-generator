@@ -212,7 +212,7 @@ class Python extends Language
      * @return string
      * @throws Exception
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
         if (isset($parameter['enumName'])) {
             return \ucfirst($parameter['enumName']);
