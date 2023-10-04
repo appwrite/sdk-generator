@@ -5,9 +5,16 @@ import type { UploadProgress, Payload } from '../client';
 {% set added = [] %}
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}
-{% if parameter.enumName is not null and parameter.enumName not in added %}
-import type {{ '{' }} {{ parameter.enumName }} {{ '}' }} from '../enums/{{ parameter.enumName | caseDash }}.ts';
-{% set added = added|merge([parameter.enumName]) %}
+{% if parameter.enumValues is not empty %}
+{% if parameter.enumName is not empty %}
+{% set name = parameter.enumName %}
+{% else %}
+{% set name = parameter.name %}
+{% endif %}
+{% if name not in added %}
+import { {{ name | caseUcfirst }} } from '../enums/{{ name | caseDash }}';
+{% set added = added|merge([name]) %}
+{% endif %}
 {% endif %}
 {% endfor %}
 {% endfor %}

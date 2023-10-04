@@ -4,10 +4,7 @@ async function start() {
     let response;
 
     console.log('\nTest Started');
-    const client = new Client()
-        .addHeader("Origin", "http://localhost")
-        .setSelfSigned(true);
-
+    const client = new Client();
     const foo = new Foo(client);
     const bar = new Bar(client);
     const general = new General(client);
@@ -52,7 +49,7 @@ async function start() {
     console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip file upload test on Node.js
     console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip big file upload test on Node.js
 
-    response = await general.enum(MockType.first);
+    response = await general.enum(MockType.First);
     console.log(response.result);
 
     try {
