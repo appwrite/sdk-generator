@@ -117,7 +117,7 @@ class Kotlin extends Language
             self::TYPE_STRING => 'String',
             self::TYPE_FILE => 'InputFile',
             self::TYPE_BOOLEAN => 'Boolean',
-            self::TYPE_ARRAY => $parameter['array']['type']
+            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? 'List<' . $this->getTypeName($parameter['array']) . '>'
                 : 'List<Any>',
             self::TYPE_OBJECT => 'Any',

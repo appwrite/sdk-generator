@@ -163,7 +163,7 @@ class DotNet extends Language
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_FILE => 'InputFile',
-            self::TYPE_ARRAY => $parameter['array']['type']
+            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? 'List<' . $this->getTypeName($parameter['array']) . '>'
                 : 'List<object>',
             self::TYPE_OBJECT => 'object',
@@ -401,7 +401,7 @@ class DotNet extends Language
             [
                 'scope'         => 'enum',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
-                'template'      => 'dotnet/src/Appwrite/Enums/Enums.cs.twig',
+                'template'      => 'dotnet/src/Appwrite/Enums/Enum.cs.twig',
             ]
         ];
     }

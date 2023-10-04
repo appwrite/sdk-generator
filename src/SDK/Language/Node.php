@@ -32,25 +32,11 @@ class Node extends JS
             self::TYPE_FILE => 'InputFile',
             self::TYPE_BOOLEAN => 'boolean',
             self::TYPE_OBJECT => 'object',
-            self::TYPE_ARRAY => $parameter['array']['type']
+            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? $this->getTypeName($parameter['array']) . '[]'
                 : 'string[]',
             default => $parameter['type'],
         };
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-            case self::TYPE_NUMBER:
-                return 'number';
-            case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    return $this->getTypeName($parameter['array']) . '[]';
-                }
-                return 'string[]';
-            case self::TYPE_FILE:
-                return 'InputFile';
-            default:
-                return $parameter['type'];
-        }
     }
 
     /**

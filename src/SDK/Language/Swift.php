@@ -312,7 +312,7 @@ class Swift extends Language
             self::TYPE_STRING => 'String',
             self::TYPE_FILE => 'InputFile',
             self::TYPE_BOOLEAN => 'Bool',
-            self::TYPE_ARRAY => $parameter['array']['type']
+            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? '[' . $this->getTypeName($parameter['array']) . ']'
                 : '[Any]',
             self::TYPE_OBJECT => 'Any',
@@ -459,6 +459,12 @@ class Swift extends Language
             }),
             new TwigFilter('hasGenericType', function (string $model, array $spec) {
                 return $this->hasGenericType($model, $spec);
+            }),
+            new TwigFilter('escapeSwiftKeyword', function ($value) {
+                if (in_array($value, $this->getKeywords())) {
+                    return "`{$value}`";
+                }
+                return $value;
             }),
         ];
     }
