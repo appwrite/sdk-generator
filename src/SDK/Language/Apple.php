@@ -60,11 +60,6 @@ class Apple extends Swift
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/WebSockets/WebSocketClientError.swift',
                 'template'      => '/swift/Sources/WebSockets/WebSocketClientError.swift.twig',
             ],
-            [
-                'scope' => 'enum',
-                'destination' => '/Sources/{{ spec.title | caseUcfirst}}/Enums/{{ enum.name | caseUcfirst }}.swift',
-                'template' => '/swift/Sources/Enums/Enum.swift.twig',
-            ],
             // Config for project example-swiftui
             [
                 'scope'         => 'default',
