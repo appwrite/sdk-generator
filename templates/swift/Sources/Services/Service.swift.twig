@@ -27,7 +27,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     {%~ endif %}
     open func {{ method.name | caseCamel | overrideIdentifier }}{% if method.responseModel | hasGenericType(spec) %}<T>{% endif %}(
         {%~ for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes or method.responseModel | hasGenericType(spec) %},{% endif %}
+        {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes or method.responseModel | hasGenericType(spec) %},{% endif %}
 
         {%~ endfor %}
         {%~ if method.responseModel | hasGenericType(spec) %}
@@ -93,7 +93,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     {%~ endif %}
     open func {{ method.name | caseCamel }}(
         {%~ for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
+        {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
 
         {%~ endfor %}
         {%~ if 'multipart/form-data' in method.consumes %}
@@ -102,7 +102,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     ) async throws -> {{ method | returnType(spec, '[String: AnyCodable]') | raw }} {
         return try await {{ method.name | caseCamel }}(
             {%~ for parameter in method.parameters.all %}
-            {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.name | caseCamel | escapeKeyword }},
+            {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter.name | caseCamel | escapeSwiftKeyword }},
             {%~ endfor %}
             nestedType: [String: AnyCodable].self
             {%~ if 'multipart/form-data' in method.consumes %}

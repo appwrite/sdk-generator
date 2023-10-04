@@ -3,7 +3,7 @@ import Foundation
 public enum {{ enum.name | caseUcfirst | overrideIdentifier }}: String, Codable {
     {%~ for value in enum.enum %}
     {%~ set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
-    case {{ key | caseCamel | replace({'-': ''})}}
+    case {{ key | caseCamel | replace({'-': ''}) | escapeSwiftKeyword }}
     {%~ endfor %}
 
     public func encode(to encoder: Encoder) throws {
