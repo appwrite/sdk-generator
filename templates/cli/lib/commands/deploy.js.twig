@@ -166,7 +166,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
         functionIds.push(functionId);
     } else if (all) {
         const functions = localConfig.getFunctions();
-        checkDeployConditions(functions, localConfig, "function");
+        checkDeployConditions(localConfig);
         if (functions.length === 0) {
             throw new Error("No functions found in the current directory.");
         }
@@ -447,7 +447,11 @@ const deployCollection = async ({ all, yes } = {}) => {
     const collections = [];
 
     if (all) {
-        checkDeployConditions(localConfig.getCollections(), localConfig, "collection");
+        checkDeployConditions(localConfig);
+        console.log(localConfig.getCollections())
+        if (localConfig.getCollections().length === 0) {
+            throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
+        }
         collections.push(...localConfig.getCollections());
     } else {
         const answers = await inquirer.prompt(questionsDeployCollections[0])
@@ -647,7 +651,7 @@ const deployBucket = async ({ all, yes } = {}) => {
     const configBuckets = localConfig.getBuckets();
 
     if (all) {
-        checkDeployConditions(configBuckets, localConfig, "bucket");
+        checkDeployConditions(localConfig);
         bucketIds.push(...configBuckets.map((b) => b.$id));
     }
 
@@ -732,7 +736,7 @@ const deployTeam = async ({ all, yes } = {}) => {
     const configTeams = localConfig.getTeams();
 
     if (all) {
-        checkDeployConditions(configTeams, localConfig, "team");
+        checkDeployConditions(localConfig);
         teamIds.push(...configTeams.map((t) => t.$id));
     }
 
