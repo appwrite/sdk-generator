@@ -2,9 +2,18 @@ package {{ sdk.namespace | caseDot }}.exceptions
 
 import java.lang.Exception
 
-class {{spec.title | caseUcfirst}}Exception(
+class {{spec.title | caseUcfirst}} Exception(
     override val message: String? = null,
     val code: Int? = null,
     val type: String? = null,
     val response: String? = null
 ) : Exception(message)
+
+enum class ErrorType(val value: String) {
+{% for error in spec.definitions.appwriteException.error_types %}
+    /**
+     * {{ error.description }}
+     */
+    {{ error.type|title|replace({'_': ''}) }}("{{ error.type }}"),
+{% endfor %}
+}

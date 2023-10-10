@@ -21,3 +21,10 @@ class {{spec.title | caseUcfirst}}Exception implements Exception {
     return "{{spec.title | caseUcfirst}}Exception: ${type ?? ''}, $message (${code ?? 0})";
   }
 }
+
+enum ErrorType {
+{% for error in spec.definitions.appwriteException.error_types %}
+  /// {{ error.description }}
+  {{ error.type|title|replace({'_': ''}) }},
+{% endfor %}
+}

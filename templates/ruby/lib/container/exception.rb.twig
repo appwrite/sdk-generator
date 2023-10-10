@@ -12,3 +12,10 @@ module {{spec.title | caseUcfirst}}
         end
     end
 end
+
+class ErrorType
+{% for error in spec.definitions.appwriteException.error_types %}
+    # {{ error.description }}
+    {{ error.type|title|replace({'_': ''}) }} = '{{ error.type }}'
+{% endfor %}
+end

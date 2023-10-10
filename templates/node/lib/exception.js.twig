@@ -8,3 +8,14 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
 }
 
 module.exports = {{spec.title | caseUcfirst}}Exception;
+
+enum ErrorType {
+{% for error in spec.definitions.appwriteException.error_types %}
+  /**
+   * {{ error.description }}
+   */
+  {{ error.type|title|replace({'_': ''}) }} = "{{ error.type }}",
+{% endfor %}
+}
+
+module.exports = ErrorType;

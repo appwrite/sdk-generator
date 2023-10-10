@@ -312,6 +312,7 @@ class Swagger2 extends Spec
                 "name" => $key,
                 "properties" => $schema['properties'] ?? [],
                 "description" => $schema['description'] ?? [],
+                "error_types" => $schema['x-appwrite']['types'] ?? [],
                 "required" => $schema['required'] ?? [],
                 "additionalProperties" => $schema['additionalProperties'] ?? []
             ];
@@ -336,6 +337,18 @@ class Swagger2 extends Spec
                         $sch['properties'][$name]['sub_schemas'] = \array_map(fn($schema) => str_replace('#/definitions/', '', $schema['$ref']), $def['items']['x-oneOf']);
                     }
                 }
+            }
+            if (isset($sch['error_types'])) {
+                $types = [];
+                foreach ($sch['error_types'] as $type) {
+
+                    $types[] = [
+                        'code' => $type['code'],
+                        'type' => $type['type'],
+                        'description' => $type['description']
+                    ];
+                }
+                $sch['error_types'] = $types;
             }
             $list[$key] = $sch;
         }

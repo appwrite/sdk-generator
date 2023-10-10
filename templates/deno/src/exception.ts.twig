@@ -15,3 +15,12 @@ export class {{ spec.title | caseUcfirst}}Exception {
         return `${this.message} - ${this.code} - ${this.type} - ${JSON.stringify(this.response)}`;
     }
 }
+
+enum ErrorType {
+{% for error in spec.definitions.appwriteException.error_types %}
+	/**
+	 * {{ error.description }}
+	 */
+    {{ error.type|title|replace({'_': ''}) }} = "{{ error.type }}",
+{% endfor %}
+}
