@@ -125,6 +125,22 @@ class Client {
     }
 
     /**
+     * Set Session
+     *
+     * Set the session for the current user.
+     * 
+     * @param {{userId: string, secret: string}}
+     *
+     * @returns {this}
+     */
+    setSession({userId, secret}: {userId: string, secret: string}) {
+        const encodedSession = btoa(JSON.stringify({userId, secret}));
+        this.headers['X-Fallback-Cookies'] = JSON.stringify({ [`a_session_${this.config.project}`]: encodedSession });
+
+        return this;
+    }
+
+    /**
      * Set Realtime Endpoint
      *
      * @param {string} endpointRealtime
