@@ -448,7 +448,6 @@ const deployCollection = async ({ all, yes } = {}) => {
 
     if (all) {
         checkDeployConditions(localConfig);
-        console.log(localConfig.getCollections())
         if (localConfig.getCollections().length === 0) {
             throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
         }
