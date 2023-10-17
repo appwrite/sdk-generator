@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 abstract class JS extends Language
 {
@@ -198,5 +199,14 @@ abstract class JS extends Language
         }
 
         return $output;
+    }
+
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('caseEnumKey', function (string $value) {
+                return $this->toUpperSnakeCase($value);
+            }),
+        ];
     }
 }

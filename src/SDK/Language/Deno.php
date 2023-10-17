@@ -2,6 +2,8 @@
 
 namespace Appwrite\SDK\Language;
 
+use Twig\TwigFilter;
+
 class Deno extends JS
 {
     /**
@@ -178,5 +180,14 @@ class Deno extends JS
         }
 
         return $output;
+    }
+
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('caseEnumKey', function (string $value) {
+                return $this->toPascalCase($value);
+            }),
+        ];
     }
 }

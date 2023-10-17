@@ -219,7 +219,7 @@ class Web extends JS
     protected function populateGenerics(string $model, array $spec, array &$generics, bool $skipFirst = false)
     {
         if (!$skipFirst && $spec['definitions'][$model]['additionalProperties']) {
-            $generics[] = $this->toUpperCaseWords($model);
+            $generics[] = $this->toPascalCase($model);
         }
 
         $properties = $spec['definitions'][$model]['properties'];
@@ -268,14 +268,14 @@ class Web extends JS
                 $ret .= 'Models.';
             }
 
-            $ret .= $this->toUpperCaseWords($method['responseModel']);
+            $ret .= $this->toPascalCase($method['responseModel']);
 
             $models = [];
 
             $this->populateGenerics($method['responseModel'], $spec, $models);
 
             $models = array_unique($models);
-            $models = array_filter($models, fn ($model) => $model != $this->toUpperCaseWords($method['responseModel']));
+            $models = array_filter($models, fn ($model) => $model != $this->toPascalCase($method['responseModel']));
 
             if (!empty($models)) {
                 $ret .= '<' . implode(', ', $models) . '>';
@@ -295,9 +295,9 @@ class Web extends JS
             $generics = [];
             $this->populateGenerics($property['sub_schema'], $spec, $generics);
 
-            $generics = array_filter($generics, fn ($model) => $model != $this->toUpperCaseWords($property['sub_schema']));
+            $generics = array_filter($generics, fn ($model) => $model != $this->toPascalCase($property['sub_schema']));
 
-            $ret .= $this->toUpperCaseWords($property['sub_schema']);
+            $ret .= $this->toPascalCase($property['sub_schema']);
             if (!empty($generics)) {
                 $ret .= '<' . implode(', ', $generics) . '>';
             }
@@ -340,6 +340,9 @@ class Web extends JS
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),
+            new TwigFilter('caseEnumKey', function($value) {
+               return $this->toPascalCase($value);
+            }),
         ];
     }
 }

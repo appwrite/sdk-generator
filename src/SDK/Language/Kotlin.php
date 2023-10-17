@@ -439,6 +439,9 @@ class Kotlin extends Language
             new TwigFilter('hasGenericType', function (string $model, array $spec) {
                 return $this->hasGenericType($model, $spec);
             }),
+            new TwigFilter('caseEnumKey', function (string $value) {
+                return $this->toUpperSnakeCase($value);
+            }),
         ];
     }
 
@@ -459,7 +462,7 @@ class Kotlin extends Language
             return 'Any';
         }
 
-        $ret = $this->toUpperCaseWords($method['responseModel']);
+        $ret = $this->toPascalCase($method['responseModel']);
 
         if ($this->hasGenericType($method['responseModel'], $spec)) {
             $ret .= '<' . $generic . '>';
@@ -471,15 +474,15 @@ class Kotlin extends Language
     protected function getModelType(array $definition, array $spec, string $generic = 'T'): string
     {
         if ($this->hasGenericType($definition['name'], $spec)) {
-            return $this->toUpperCaseWords($definition['name']) . '<' . $generic . '>';
+            return $this->toPascalCase($definition['name']) . '<' . $generic . '>';
         }
-        return $this->toUpperCaseWords($definition['name']);
+        return $this->toPascalCase($definition['name']);
     }
 
     protected function getPropertyType(array $property, array $spec, string $generic = 'T'): string
     {
         if (\array_key_exists('sub_schema', $property)) {
-            $type = $this->toUpperCaseWords($property['sub_schema']);
+            $type = $this->toPascalCase($property['sub_schema']);
 
             if ($this->hasGenericType($property['sub_schema'], $spec)) {
                 $type .= '<' . $generic . '>';

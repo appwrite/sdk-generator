@@ -245,7 +245,10 @@ class Go extends Language
                     $value[$key] = "// " . wordwrap($line, 75, "\n// ");
                 }
                 return implode("\n", $value);
-            }, ['is_safe' => ['html']])
+            }, ['is_safe' => ['html']]),
+            new TwigFilter('caseEnumKey', function (string $value) {
+                return $this->toUpperSnakeCase($value);
+            }),
         ];
     }
 }

@@ -60,7 +60,7 @@ class {{ service.name | caseUcfirst }} : Service {
     ){% if method.type != "webAuth" %}: {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}{% endif %} {
         val apiPath = "{{ method.path }}"
         {%~ for parameter in method.parameters.path %}
-            .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}{% if parameter.enumName is not null %}.value{% endif %})
+            .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}{% if parameter.enumValues is not empty %}.value{% endif %})
         {%~ endfor %}
 
         val apiParams = mutableMapOf<String, Any?>(
