@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  mockapi:
+    container_name: mockapi
+    build:
+      context: .
+      args:
+        DEBUG: false
+        TESTING: true
+        VERSION: dev
+    entrypoint:
+      - php
+      - -e
+      - app/http.php
+    volumes:
+      - ./app:/usr/src/code/app
+      - ./src:/usr/src/code/src
+      - ./vendor:/usr/src/code/vendor
