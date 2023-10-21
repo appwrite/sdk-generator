@@ -184,6 +184,11 @@ class Python extends Language
                 'destination'   => '.travis.yml',
                 'template'      => 'python/.travis.yml.twig',
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/{{ spec.title | caseSnake}}/test_exception.py',
+                'template'      => 'python/test/package/test_exception.py.twig',
+            ],
         ];
     }
 
