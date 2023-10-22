@@ -2,6 +2,7 @@ package {{ sdk.namespace | caseDot }}
 
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
+import {{ sdk.namespace | caseDot }}.Response
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
 import {{ sdk.namespace | caseDot }}.json.PreciseNumberAdapter
@@ -109,7 +110,6 @@ class Client @JvmOverloads constructor(
 
         val builder = OkHttpClient()
             .newBuilder()
-            .cookieJar(JavaNetCookieJar(cookieJar))
 
         if (!selfSigned) {
             http = builder.build()

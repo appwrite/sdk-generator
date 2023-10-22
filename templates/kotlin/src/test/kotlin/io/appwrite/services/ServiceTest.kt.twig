@@ -1,11 +1,7 @@
 package {{ sdk.namespace | caseDot }}.services
 
-import androidx.activity.ComponentActivity
-import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.Response
-import {{ sdk.namespace | caseDot }}.WebAuthComponent
 import {{ sdk.namespace | caseDot }}.models.InputFile
 import io.mockk.coEvery
 import io.mockk.mockkObject
@@ -13,17 +9,24 @@ import io.mockk.spyk
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
 import kotlin.test.assertIs
 
+{% if language.name == 'Android' %}
+import androidx.activity.ComponentActivity
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import {{ sdk.namespace | caseDot }}.WebAuthComponent
+import org.junit.runner.RunWith
+
 @RunWith(AndroidJUnit4::class)
+{% endif %}
 class {{service.name | caseUcfirst}}ServiceTest {
     private lateinit var client: Client
     private lateinit var {{service.name | caseCamel}}: {{service.name | caseUcfirst}}
 
     @Before
     fun setup() {
-        client = spyk(Client(ApplicationProvider.getApplicationContext()))
+        client = spyk(Client({% if language.name == 'Android' %}ApplicationProvider.getApplicationContext(){% endif %}))
         {{service.name | caseCamel}} = {{service.name | caseUcfirst}}(client)
     }
 
@@ -46,10 +49,16 @@ class {{service.name | caseUcfirst}}ServiceTest {
         {% endif %}
 
         {%~ if method.type == 'webAuth' ~%}
+            {%~ if language.name == 'Android' ~%}
         mockkObject(WebAuthComponent.Companion)
         coEvery { WebAuthComponent.Companion.authenticate(any(), any(), any(), any()) } answers {
             arg<((Result<String>) -> Unit)?>(3)?.invoke(Result.success("http://localhost/oauth?key=example&secret=example"))
         }
+            {%~ else ~%}
+        coEvery {
+            client.awaitResponse<Any>(any(), any())
+        } returns Response(true)
+            {%~ endif ~%}
         {%~ else ~%}
         coEvery {
             client.awaitResponse<Any>(any(), any())
@@ -59,7 +68,7 @@ class {{service.name | caseUcfirst}}ServiceTest {
         runTest {
             val response = {{service.name | caseCamel}}.{{method.name | caseCamel}}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
                 {{parameter.name | escapeKeyword | caseCamel}} = {% if parameter.type == 'object' %}mapOf<String, Any>(){% elseif parameter.type == 'array' %}listOf(){% elseif parameter.type == 'file' %}InputFile.fromBytes(byteArrayOf(), mimeType = "image/png"){% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'string' %}"{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}"{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%},{%~ endfor ~%}
-                {%~ if method.type == "webAuth" %}
+                {%~ if method.type == "webAuth" and language.name == 'Android' %}
                 activity = ComponentActivity(),
                 {%~ endif %}
             )

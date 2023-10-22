@@ -253,7 +253,7 @@ class Android extends Kotlin
             [
                 'scope'         => 'service',
                 'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/services/{{ service.name | caseUcfirst }}ServiceTest.kt',
-                'template'      => '/android/library/src/test/java/io/appwrite/services/ServiceTest.kt.twig',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/services/ServiceTest.kt.twig',
             ],
             [
                 'scope'         => 'default',

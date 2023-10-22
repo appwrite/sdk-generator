@@ -355,8 +355,18 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/PermissionTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/PermissionTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Role.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/Role.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/RoleTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/RoleTest.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -365,13 +375,28 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/IDTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/IDTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Query.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/Query.kt.twig',
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/QueryTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/QueryTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Response.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Response.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/coroutines/Callback.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/coroutines/Callback.kt.twig',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/coroutines/Callback.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -405,6 +430,11 @@ class Kotlin extends Language
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/ServiceTemplate.kt.twig',
             ],
             [
+                'scope'         => 'service',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}ServiceTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/services/ServiceTest.kt.twig',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/InputFile.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/InputFile.kt.twig',
@@ -418,6 +448,11 @@ class Kotlin extends Language
                 'scope'         => 'definition',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ definition.name | caseUcfirst }}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Model.kt.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ definition.name | caseUcfirst }}Test.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/models/ModelTest.kt.twig',
             ],
         ];
     }
@@ -443,7 +478,7 @@ class Kotlin extends Language
     protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
     {
         if ($method['type'] === 'webAuth') {
-            return 'Bool';
+            return 'Boolean';
         }
         if ($method['type'] === 'location') {
             return 'ByteArray';

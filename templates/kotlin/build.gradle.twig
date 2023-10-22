@@ -36,7 +36,9 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor")
     implementation("com.google.code.gson:gson:2.9.0")
 
+    testImplementation 'io.mockk:mockk:1.13.7'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
+    testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3"
 }
 
 test {
