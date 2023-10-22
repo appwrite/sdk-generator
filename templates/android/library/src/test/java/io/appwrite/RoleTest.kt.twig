@@ -1,0 +1,66 @@
+package {{ sdk.namespace | caseDot }}
+
+import org.junit.Test
+import kotlin.test.assertEquals
+
+class RoleTest {
+    @Test
+    fun anyReturnsAny() = assertEquals(
+        "any",
+        Role.any()
+    )
+
+    @Test
+    fun userWithoutStatus() = assertEquals(
+        "user:custom",
+        Role.user("custom")
+    )
+
+    @Test
+    fun userWithStatus() = assertEquals(
+        "user:custom/verified",
+        Role.user("custom", "verified")
+    )
+
+    @Test
+    fun usersWithoutStatus() = assertEquals(
+        "users",
+        Role.users()
+    )
+
+    @Test
+    fun usersWithStatus() = assertEquals(
+        "users/verified",
+        Role.users("verified")
+    )
+
+    @Test
+    fun guestsReturnsGuests() = assertEquals(
+        "guests",
+        Role.guests()
+    )
+
+    @Test
+    fun teamWithoutRole() = assertEquals(
+        "team:custom",
+        Role.team("custom")
+    )
+
+    @Test
+    fun teamWithRole() = assertEquals(
+        "team:custom/owner",
+        Role.team("custom", "owner")
+    )
+
+    @Test
+    fun memberReturnsMember() = assertEquals(
+        "member:custom",
+        Role.member("custom")
+    )
+
+    @Test
+    fun labelReturnsLabel() = assertEquals(
+        "label:admin",
+        Role.label("admin")
+    )
+}

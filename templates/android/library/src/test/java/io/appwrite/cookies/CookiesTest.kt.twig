@@ -1,0 +1,17 @@
+package {{ sdk.namespace | caseDot }}.cookies
+
+import java.net.HttpCookie
+import kotlin.test.assertEquals
+import org.junit.Test
+
+class CookiesTest {
+    @Test
+    fun cookiesToString() {
+        val httpCookie = HttpCookie("name", "value").apply {
+            domain = "localhost"
+        }
+        val internalCookie = InternalCookie(httpCookie)
+
+        assertEquals("name=value; domain=localhost", internalCookie.toHttpCookie().toSetCookieString())
+    }
+}

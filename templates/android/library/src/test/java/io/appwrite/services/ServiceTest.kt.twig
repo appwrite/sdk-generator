@@ -1,0 +1,77 @@
+package {{ sdk.namespace | caseDot }}.services
+
+import androidx.activity.ComponentActivity
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.Response
+import {{ sdk.namespace | caseDot }}.WebAuthComponent
+import {{ sdk.namespace | caseDot }}.models.InputFile
+import io.mockk.coEvery
+import io.mockk.mockkObject
+import io.mockk.spyk
+import kotlinx.coroutines.test.runTest
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import kotlin.test.assertIs
+
+{%~ if method.type == 'webAuth' ~%}
+@RunWith(AndroidJUnit4::class)
+{%~ endif ~%}
+class {{service.name | caseUcfirst}}ServiceTest {
+    private lateinit var client: Client
+    private lateinit var {{service.name | caseCamel}}: {{service.name | caseUcfirst}}
+
+    @Before
+    fun setup() {
+        client = spyk(Client(ApplicationProvider.getApplicationContext()))
+        {{service.name | caseCamel}} = {{service.name | caseUcfirst}}(client)
+    }
+
+{% for method in service.methods %}
+    @Test
+    fun method{{method.name | caseUcfirst}}() {
+    {%- if method.type == 'webAuth' -%}
+    {%- elseif method.type == 'location' -%}
+        val data = byteArrayOf()
+    {%- else -%}
+       {%~ if method.responseModel and method.responseModel != 'any' ~%}
+        val data = mapOf<String, Any>(
+            {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
+            "{{property.name | escapeDollarSign}}" to {% if property.type == 'object' %}mapOf<String, Any>(){% elseif property.type == 'array' %}listOf<Any>(){% elseif property.type == 'string' %}"{{property.example | escapeDollarSign}}"{% elseif property.type == 'boolean' %}true{% else %}{{property.example}}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
+
+        )
+            {%~ else ~%}
+        val data = "";
+            {%- endif -%}
+        {% endif %}
+
+        {%~ if method.type == 'webAuth' ~%}
+        mockkObject(WebAuthComponent.Companion)
+        coEvery { WebAuthComponent.Companion.authenticate(any(), any(), any(), any()) } answers {
+            arg<((Result<String>) -> Unit)?>(3)?.invoke(Result.success("http://localhost/oauth?key=example&secret=example"))
+        }
+        {%~ else ~%}
+        coEvery {
+            client.awaitResponse<Any>(any(), any())
+        } returns Response(data)
+        {%~ endif ~%}
+
+        runTest {
+            val response = {{service.name | caseCamel}}.{{method.name | caseCamel}}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
+                {{parameter.name | escapeKeyword | caseCamel}} = {% if parameter.type == 'object' %}mapOf<String, Any>(){% elseif parameter.type == 'array' %}listOf(){% elseif parameter.type == 'file' %}InputFile.fromBytes(byteArrayOf(), mimeType = "image/png"){% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'string' %}"{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}"{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%},{%~ endfor ~%}
+                {%~ if method.type == "webAuth" %}
+                activity = ComponentActivity(),
+                {%~ endif %}
+            )
+        {%- if method.type == 'location' ~%}
+            assertIs<ByteArray>(response)
+        {%~ endif ~%}
+        {%~ if method.responseModel and method.responseModel != 'any' ~%}
+            assertIs<{{ sdk.namespace | caseDot }}.models.{{method.responseModel | caseUcfirst | overrideIdentifier}}{% if method.responseModel | hasGenericType(spec) %}<*>{% endif %}>(response)
+        {%~ endif ~%}
+        }
+    }
+{% endfor %}
+}

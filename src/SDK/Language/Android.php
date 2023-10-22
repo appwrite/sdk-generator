@@ -177,6 +177,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Response.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/Response.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/views/CallbackActivity.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/views/CallbackActivity.kt.twig',
             ],
@@ -224,6 +229,16 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/AndroidManifest.xml',
                 'template'      => '/android/library/src/main/AndroidManifest.xml.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/services/{{ service.name | caseUcfirst }}ServiceTest.kt',
+                'template'      => '/android/library/src/test/java/io/appwrite/services/ServiceTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/cookies/CookiesTest.kt',
+                'template'      => '/android/library/src/test/java/io/appwrite/cookies/CookiesTest.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -386,6 +401,11 @@ class Android extends Kotlin
                 'scope'         => 'definition',
                 'destination'   => 'library/src/main/java/io/appwrite/models/{{ definition.name | caseUcfirst }}.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/models/Model.kt.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => 'library/src/test/java/io/appwrite/models/{{ definition.name | caseUcfirst }}Test.kt',
+                'template'      => '/android/library/src/test/java/io/appwrite/models/ModelTest.kt.twig',
             ],
         ];
     }

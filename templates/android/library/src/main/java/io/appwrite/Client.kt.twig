@@ -37,6 +37,7 @@ import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
+import okhttp3.Response as Okhttp3Response
 
 class Client @JvmOverloads constructor(
     context: Context,
@@ -266,7 +267,10 @@ class Client @JvmOverloads constructor(
                 .get()
                 .build()
 
-            return awaitResponse(request, responseType, converter)
+            val response = awaitResponse(request, responseType)
+
+            @Suppress("UNCHECKED_CAST")
+            return converter?.invoke(response.data) ?: response.data as T
         }
 
         val body = if (MultipartBody.FORM.toString() == headers["content-type"]) {
@@ -303,7 +307,10 @@ class Client @JvmOverloads constructor(
             .method(method, body)
             .build()
 
-        return awaitResponse(request, responseType, converter)
+        val response = awaitResponse(request, responseType)
+
+        @Suppress("UNCHECKED_CAST")
+        return converter?.invoke(response.data) ?: response.data as T
     }
 
     /**
@@ -441,11 +448,10 @@ class Client @JvmOverloads constructor(
      * @return [T]
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
-    private suspend fun <T> awaitResponse(
+    internal suspend fun <T> awaitResponse(
         request: Request,
         responseType: Class<T>,
-        converter: ((Any) -> T)? = null
-    ) = suspendCancellableCoroutine<T> {
+    ) = suspendCancellableCoroutine<Response<Any>> {
         http.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 if (it.isCancelled) {
@@ -454,8 +460,7 @@ class Client @JvmOverloads constructor(
                 it.cancel(e)
             }
 
-            @Suppress("UNCHECKED_CAST")
-            override fun onResponse(call: Call, response: Response) {
+            override fun onResponse(call: Call, response: Okhttp3Response) {
                 if (!response.isSuccessful) {
                     val body = response.body!!
                         .charStream()
@@ -481,19 +486,19 @@ class Client @JvmOverloads constructor(
                 }
                 when {
                     responseType == Boolean::class.java -> {
-                        it.resume(true as T)
+                        it.resume(Response(true))
                         return
                     }
                     responseType == ByteArray::class.java -> {
-                        it.resume(response.body!!
+                        val data = response.body!!
                             .byteStream()
                             .buffered()
-                            .use(BufferedInputStream::readBytes) as T
-                        )
+                            .use(BufferedInputStream::readBytes)
+                        it.resume(Response(data))
                         return
                     }
                     response.body == null -> {
-                        it.resume(true as T)
+                        it.resume(Response(true))
                         return
                     }
                 }
@@ -502,7 +507,7 @@ class Client @JvmOverloads constructor(
                     .buffered()
                     .use(BufferedReader::readText)
                 if (body.isEmpty()) {
-                    it.resume(true as T)
+                    it.resume(Response(true))
                     return
                 }
                 val map = gson.fromJson<Any>(
@@ -510,7 +515,7 @@ class Client @JvmOverloads constructor(
                     object : TypeToken<Any>(){}.type
                 )
                 it.resume(
-                    converter?.invoke(map) ?: map as T
+                    Response(map)
                 )
             }
         })
