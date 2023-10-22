@@ -16,9 +16,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.test.assertIs
 
-{%~ if method.type == 'webAuth' ~%}
 @RunWith(AndroidJUnit4::class)
-{%~ endif ~%}
 class {{service.name | caseUcfirst}}ServiceTest {
     private lateinit var client: Client
     private lateinit var {{service.name | caseCamel}}: {{service.name | caseUcfirst}}
