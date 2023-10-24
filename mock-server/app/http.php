@@ -673,9 +673,8 @@ App::error()
     ->inject('error')
     ->inject('request')
     ->inject('response')
-    ->inject('logger')
     ->action(
-        function ($utopia, $error, $request, $response, $logger) {
+        function ($utopia, $error, $request, $response) {
             $route = $utopia->match($request);
 
             $code = $error->getCode();

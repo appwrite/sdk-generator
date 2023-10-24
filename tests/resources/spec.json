@@ -15,9 +15,9 @@
       "url": "https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE"
     }
   },
-  "host": "stage.appwrite.io",
+  "host": "localhost",
   "basePath": "/v1",
-  "schemes": ["https"],
+  "schemes": ["http"],
   "consumes": ["application/json", "multipart/form-data"],
   "produces": ["application/json"],
   "securityDefinitions": {
