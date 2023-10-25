@@ -6,9 +6,9 @@ services:
     build:
       context: .
       args:
-        DEBUG: false
-        TESTING: true
-        VERSION: dev
+        DEBUG: "false"
+        TESTING: "true"
+        VERSION: "dev"
     entrypoint:
       - php
       - -e
