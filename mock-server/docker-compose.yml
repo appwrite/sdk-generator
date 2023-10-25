@@ -16,3 +16,9 @@ services:
     volumes:
       - ./app:/usr/src/code/app
       - ./src:/usr/src/code/src
+    networks:
+      - mockapi
+
+networks:
+  mockapi:
+    name: mockapi
