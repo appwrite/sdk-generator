@@ -1,0 +1,16 @@
+import 'package:{{language.params.packageName}}/src/exception.dart';
+{% if 'dart' in language.params.packageName %}
+import 'package:test/test.dart';
+{% else %}
+import 'package:flutter_test/flutter_test.dart';
+{% endif %}
+
+void main() {
+  group('ErrorType Enum Test', () {
+  {% for key, value in testData.enumData %}
+  test('ErrorType.{{ key }} should have correct value', () {
+      expect(ErrorType.{{ key }}.toString(), equals('ErrorType.{{ value }}'));
+    });
+  {% endfor %}
+  });
+}
