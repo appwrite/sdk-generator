@@ -17,7 +17,7 @@ class Android12Java11Test extends Base
         'chmod +x tests/sdks/android/gradlew',
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-32-jdk11 sh -c "./gradlew :library:testReleaseUnitTest -q && cat library/result.txt"';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-32-jdk11 sh -c "./gradlew :library:testReleaseUnitTest --stacktrace -q && cat library/result.txt"';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
