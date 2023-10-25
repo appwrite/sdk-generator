@@ -115,6 +115,16 @@ class Web extends JS
                 'destination'   => '.travis.yml',
                 'template'      => 'web/.travis.yml.twig',
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tests/test_exception.ts',
+                'template'      => 'web/tests/test_exception.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/exception.ts',
+                'template'      => 'web/src/exception.ts.twig',
+            ],
         ];
     }
 

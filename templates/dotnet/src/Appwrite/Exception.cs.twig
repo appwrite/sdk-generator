@@ -23,13 +23,15 @@ namespace {{spec.title | caseUcfirst}}
         {
         }
     }
+
+    public enum ErrorType {
+    {% for error in spec.definitions.appwriteException.error_types %}
+        /// <summary>
+        /// {{ error.description }}
+        /// </summary>
+        {{ error.type|title|replace({'_': ''}) }},
+    {% endfor %}
+    }
 }
 
-public enum ErrorType {
-{% for error in spec.definitions.appwriteException.error_types %}
-    /// <summary>
-    /// {{ error.description }}
-    /// </summary>
-    {{ error.type|title|replace({'_': ''}) }},
-{% endfor %}
-}
+

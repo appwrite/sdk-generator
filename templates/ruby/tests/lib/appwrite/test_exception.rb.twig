@@ -1,0 +1,11 @@
+require 'test/unit'
+require_relative '../../../lib/{{ spec.title | caseSnake }}/exception' # Ensure this path is correct
+
+class ErrorTypeTest < Test::Unit::TestCase
+
+    def test_error_type_values
+    {% for key, value in testData.enumData %}
+    assert_equal('{{ value }}', ErrorType::{{ key }})
+    {% endfor %}
+    end
+end

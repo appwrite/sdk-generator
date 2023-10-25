@@ -1,0 +1,6 @@
+enum ErrorType: String {
+{% for error in spec.definitions.appwriteException.error_types %}
+    /// {{ error.description }}
+    case {{ error.type|camelCase }} = "{{ error.type }}"
+{% endfor %}
+}

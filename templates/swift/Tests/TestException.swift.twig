@@ -1,0 +1,10 @@
+import XCTest
+@testable import {{spec.title | caseUcfirst}}
+
+class ErrorTypeTests: XCTestCase {
+    func testErrorTypeValues() {
+    {% for key, value in testData.enumData %}
+    XCTAssertEqual(ErrorType.{{ key }}.rawValue, "{{ value }}")
+    {% endfor %}
+}
+}

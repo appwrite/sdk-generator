@@ -1,0 +1,12 @@
+import * as assert from "assert";
+import { ErrorType } from "../src/exception.ts"
+
+try {
+    {% for key, value in testData.enumData %}
+	assert.strictEqual(ErrorType.{{ key }}, '{{ value }}');
+    {% endfor %}
+
+	console.log('All tests passed!');
+} catch (error) {
+	console.error('Test failed:', error);
+}

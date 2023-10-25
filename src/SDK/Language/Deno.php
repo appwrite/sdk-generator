@@ -93,6 +93,11 @@ class Deno extends JS
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'deno/docs/example.md.twig',
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tests/test_exception.ts',
+                'template'      => 'deno/tests/test_exception.ts.twig',
+            ],
         ];
     }
 

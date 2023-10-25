@@ -395,7 +395,12 @@ class DotNet extends Language
                 'scope'         => 'definition',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/src/Appwrite/Models/Model.cs.twig',
-            ]
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tests/Test{{ spec.title | caseUcfirst }}Exception.cs',
+                'template'      => 'dotnet/tests/TestException.cs.twig',
+            ],
         ];
     }
 

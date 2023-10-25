@@ -1,0 +1,9 @@
+// Assuming errorType.ts contains your ErrorType enum
+import {assertEquals} from "https://deno.land/std/testing/asserts.ts";
+import {ErrorType} from "../src/exception.ts";
+
+Deno.test("ErrorType values should match expected strings", () => {
+    {% for key, value in testData.enumData %}
+	assertEquals(ErrorType.{{ key }}, '{{ value }}');
+    {% endfor %}
+})

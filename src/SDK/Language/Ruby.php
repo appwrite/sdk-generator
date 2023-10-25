@@ -185,7 +185,7 @@ class Ruby extends Language
             [
                 'scope'         => 'default',
                 'destination'   => 'test/lib/{{ spec.title | caseDash }}/test_exception.rb',
-                'template'      => 'ruby/test/lib/appwrite/test_exception.rb.twig',
+                'template'      => 'ruby/tests/lib/appwrite/test_exception.rb.twig',
             ],
         ];
     }

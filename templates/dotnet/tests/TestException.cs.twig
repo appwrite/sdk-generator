@@ -1,0 +1,14 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using {{spec.title | caseUcfirst}};
+
+[TestClass]
+public class TestException
+{
+    [TestMethod]
+    public void TestEnumValues()
+    {
+    {% for key, value in testData.enumData %}
+    Assert.AreEqual(ErrorType.{{ key }}, "{{ value }}");
+    {% endfor %}
+}
+}

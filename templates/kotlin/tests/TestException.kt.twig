@@ -1,0 +1,15 @@
+package tests
+
+import {{ sdk.namespace | caseDot }}.exceptions.ErrorType
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
+
+class TestException {
+
+    @Test
+    fun testEnumValues() {
+    {% for key, value in testData.enumData %}
+    assertEquals(ErrorType.{{ key }}.value), "{{ value }}")
+    {% endfor %}
+}
+}

@@ -1,0 +1,10 @@
+use PHPUnit\Framework\TestCase;
+
+class TestErrorEnum extends TestCase {
+
+    public function testEnumValues() {
+    {% for key, value in testData.enumData %}
+    $this->assertEquals(ErrorType::{{ key }}, '{{ value }}');
+    {% endfor %}
+}
+}

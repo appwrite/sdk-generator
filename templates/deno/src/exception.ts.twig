@@ -16,7 +16,7 @@ export class {{ spec.title | caseUcfirst}}Exception {
     }
 }
 
-enum ErrorType {
+export enum ErrorType {
 {% for error in spec.definitions.appwriteException.error_types %}
 	/**
 	 * {{ error.description }}

@@ -212,6 +212,11 @@ class PHP extends Language
                 'destination'   => '/src/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
                 'template'      => 'php/src/Services/Service.php.twig',
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tests/TestException.php',
+                'template'      => 'php/tests/TestException.php.twig',
+            ],
         ];
     }
 

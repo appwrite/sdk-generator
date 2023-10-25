@@ -187,7 +187,7 @@ class Python extends Language
             [
                 'scope'         => 'default',
                 'destination'   => 'test/{{ spec.title | caseSnake}}/test_exception.py',
-                'template'      => 'python/test/package/test_exception.py.twig',
+                'template'      => 'python/tests/package/test_exception.py.twig',
             ],
         ];
     }
