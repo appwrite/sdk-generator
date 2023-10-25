@@ -1,35 +1,6 @@
 version: '3'
 
 services:
-  traefik:
-    image: traefik:2.9
-    container_name: appwrite-traefik
-    command:
-      - --log.level=DEBUG
-      - --api.insecure=true
-      - --providers.file.directory=/storage/config
-      - --providers.file.watch=true
-      - --providers.docker=true
-      - --providers.docker.exposedByDefault=false
-      - --providers.docker.constraints=Label(`traefik.constraint-label-stack`,`mock_api`)
-      - --entrypoints.mock_web.address=:80
-      - --entrypoints.mock_websecure.address=:443
-      - --accesslog=true
-    ports:
-      - 80:80
-      - 8080:80
-      - 443:443
-      - 9500:8080
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - mock-config:/storage/config:ro
-      - mock-certificates:/storage/certificates:ro
-    depends_on:
-      - mockapi
-    networks:
-      - gateway
-      - mockapi
-
   mockapi:
     container_name: mockapi
     build:
@@ -45,31 +16,3 @@ services:
     volumes:
       - ./app:/usr/src/code/app
       - ./src:/usr/src/code/src
-      - ./vendor:/usr/src/code/vendor
-    labels:
-      - "traefik.enable=true"
-      - "traefik.constraint-label-stack=mock_api"
-      - "traefik.docker.network=mockapi"
-      - "traefik.http.services.mock_api.loadbalancer.server.port=80"
-      #http
-      - traefik.http.routers.mock_api_http.entrypoints=mock_web
-      - traefik.http.routers.mock_api_http.rule=PathPrefix(`/`)
-      - traefik.http.routers.mock_api_http.service=mock_api
-      # https
-      - traefik.http.routers.mock_api_https.entrypoints=mock_websecure
-      - traefik.http.routers.mock_api_https.rule=PathPrefix(`/`)
-      - traefik.http.routers.mock_api_https.service=mock_api
-      - traefik.http.routers.mock_api_https.tls=true
-    networks:
-      - mockapi
-
-volumes:
-  mock-certificates:
-  mock-config:
-
-networks:
-  mockapi:
-    name: mockapi
-  gateway:
-    name: gateway
-    

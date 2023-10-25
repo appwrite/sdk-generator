@@ -39,6 +39,19 @@ const APP_STORAGE_CACHE = '/storage/cache';
 
 $http = new Server("0.0.0.0", App::getEnv('PORT', 80));
 $payloadSize = 6 * (1024 * 1024); // 6MB
+$workerNumber = swoole_cpu_num() * intval(App::getEnv('_APP_WORKER_PER_CORE', 6));
+
+$http
+    ->set([
+        'worker_num' => $workerNumber,
+        'open_http2_protocol' => true,
+        // 'document_root' => __DIR__.'/../public',
+        // 'enable_static_handler' => true,
+        'http_compression' => true,
+        'http_compression_level' => 6,
+        'package_max_length' => $payloadSize,
+        'buffer_output_size' => $payloadSize,
+    ]);
 
 // Mock Routes
 App::get('/v1/mock/tests/foo')
@@ -236,7 +249,7 @@ App::get('/v1/mock/tests/general/headers')
     ->label('sdk.mock', true)
     ->inject('request')
     ->inject('response')
-    ->action(function (Request $request, Response $response) {
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
         $res = [
             'x-sdk-name' => $request->getHeader('x-sdk-name'),
             'x-sdk-platform' => $request->getHeader('x-sdk-platform'),
@@ -248,7 +261,7 @@ App::get('/v1/mock/tests/general/headers')
         }, array_keys($res), $res);
         $res = implode("; ", $res);
 
-        $response->dynamic(new Document(['result' => $res]), Response::MODEL_MOCK);
+        $response->json(['result' => $res]);
     });
 
 App::get('/v1/mock/tests/general/download')
@@ -264,7 +277,7 @@ App::get('/v1/mock/tests/general/download')
     ->label('sdk.response.code', Response::STATUS_CODE_OK)
     ->label('sdk.mock', true)
     ->inject('response')
-    ->action(function (Response $response) {
+    ->action(function (UtopiaSwooleResponse $response) {
 
         $response
             ->setContentType('text/plain')
@@ -293,7 +306,7 @@ App::post('/v1/mock/tests/general/upload')
     ->param('file', [], new File(), 'Sample file param', skipValidation: true)
     ->inject('request')
     ->inject('response')
-    ->action(function (string $x, int $y, array $z, mixed $file, Request $request, Response $response) {
+    ->action(function (string $x, int $y, array $z, mixed $file, Request $request, UtopiaSwooleResponse $response) {
 
         $file = $request->getFiles('file');
 
@@ -375,7 +388,7 @@ App::get('/v1/mock/tests/general/redirect')
     ->label('sdk.response.model', Response::MODEL_MOCK)
     ->label('sdk.mock', true)
     ->inject('response')
-    ->action(function (Response $response) {
+    ->action(function (UtopiaSwooleResponse $response) {
 
         $response->redirect('/v1/mock/tests/general/redirect/done');
     });
@@ -409,7 +422,7 @@ App::get('/v1/mock/tests/general/set-cookie')
     ->label('sdk.mock', true)
     ->inject('response')
     ->inject('request')
-    ->action(function (Response $response, Request $request) {
+    ->action(function (UtopiaSwooleResponse $response, Request $request) {
 
         $response->addCookie('cookieName', 'cookieValue', \time() + 31536000, '/', $request->getHostname(), true, true);
     });
@@ -446,7 +459,7 @@ App::get('/v1/mock/tests/general/empty')
     ->label('sdk.response.model', Response::MODEL_NONE)
     ->label('sdk.mock', true)
     ->inject('response')
-    ->action(function (Response $response) {
+    ->action(function (UtopiaSwooleResponse $response) {
 
         $response->noContent();
     });
@@ -524,7 +537,7 @@ App::get('/v1/mock/tests/general/502-error')
     ->label('sdk.response.model', Response::MODEL_ANY)
     ->label('sdk.mock', true)
     ->inject('response')
-    ->action(function (Response $response) {
+    ->action(function (UtopiaSwooleResponse $response) {
 
         $response
             ->setStatusCode(502)
@@ -542,7 +555,7 @@ App::get('/v1/mock/tests/general/oauth2')
     ->param('scope', '', new Text(100), 'OAuth2 scope list.')
     ->param('state', '', new Text(1024), 'OAuth2 state.')
     ->inject('response')
-    ->action(function (string $client_id, string $redirectURI, string $scope, string $state, Response $response) {
+    ->action(function (string $client_id, string $redirectURI, string $scope, string $state, UtopiaSwooleResponse $response) {
 
         $response->redirect($redirectURI . '?' . \http_build_query(['code' => 'abcdef', 'state' => $state]));
     });
@@ -560,7 +573,7 @@ App::get('/v1/mock/tests/general/oauth2/token')
     ->param('code', '', new Text(100), 'OAuth2 state.', true)
     ->param('refresh_token', '', new Text(100), 'OAuth2 refresh token.', true)
     ->inject('response')
-    ->action(function (string $client_id, string $client_secret, string $grantType, string $redirectURI, string $code, string $refreshToken, Response $response) {
+    ->action(function (string $client_id, string $client_secret, string $grantType, string $redirectURI, string $code, string $refreshToken, UtopiaSwooleResponse $response) {
 
         if ($client_id != '1') {
             throw new Exception(Exception::GENERAL_MOCK, 'Invalid client ID');
@@ -600,7 +613,7 @@ App::get('/v1/mock/tests/general/oauth2/user')
     ->label('docs', false)
     ->param('token', '', new Text(100), 'OAuth2 Access Token.')
     ->inject('response')
-    ->action(function (string $token, Response $response) {
+    ->action(function (string $token, UtopiaSwooleResponse $response) {
 
         if ($token != '123456') {
             throw new Exception(Exception::GENERAL_MOCK, 'Invalid token');
@@ -619,7 +632,7 @@ App::get('/v1/mock/tests/general/oauth2/success')
     ->label('scope', 'public')
     ->label('docs', false)
     ->inject('response')
-    ->action(function (Response $response) {
+    ->action(function (UtopiaSwooleResponse $response) {
 
         $response->json([
             'result' => 'success',
@@ -632,7 +645,7 @@ App::get('/v1/mock/tests/general/oauth2/failure')
     ->label('scope', 'public')
     ->label('docs', false)
     ->inject('response')
-    ->action(function (Response $response) {
+    ->action(function (UtopiaSwooleResponse $response) {
 
         $response
             ->setStatusCode(Response::STATUS_CODE_BAD_REQUEST)
@@ -646,7 +659,7 @@ App::shutdown()
     ->inject('utopia')
     ->inject('response')
     ->inject('request')
-    ->action(function (App $utopia, Response $response, Request $request) {
+    ->action(function (App $utopia, UtopiaSwooleResponse $response, Request $request) {
 
         $result = [];
         $route  = $utopia->getRoute();
@@ -665,7 +678,7 @@ App::shutdown()
             throw new Exception(Exception::GENERAL_MOCK, 'Failed to save results', 500);
         }
 
-        $response->dynamic(new Document(['result' => $route->getMethod() . ':' . $route->getPath() . ':passed']), Response::MODEL_MOCK);
+        $response->json(['result' => $route->getMethod() . ':' . $route->getPath() . ':passed']);
     });
 
 App::error()
@@ -714,7 +727,6 @@ App::error()
                     break;
                 default:
                     $code = 500; // All other errors get the generic 500 server error status code
-                    $message = 'Server Error';
             }
 
             $output = ((App::isDevelopment())) ? [
