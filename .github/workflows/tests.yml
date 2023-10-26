@@ -1,5 +1,9 @@
 name: CI Workflow
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on: [pull_request]
 
 jobs:
@@ -10,15 +14,20 @@ jobs:
         php-version: ['8.1']
         sdk: [Android11Java8, Android11Java11, Android12Java8, Android12Java11, CLINode14, CLINode16, DartBeta, DartStable, Deno1193, Deno1303, DotNet60, DotNet70, FlutterStable, FlutterBeta, Go112, Go118, KotlinJava8, KotlinJava11, KotlinJava17, Node12, Node14, Node16, PHP74, PHP80, Python38, Python39, Python310, Ruby27, Ruby30, Ruby31, AppleSwift55, Swift55, WebChromium, WebNode]
 
-    container:
-      image: php:${{ matrix.php-version }}
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Docker Setup Buildx
         uses: docker/setup-buildx-action@v3.0.0
+
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: curl
 
       - name: Before Install
         run: |
