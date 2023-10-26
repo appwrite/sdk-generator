@@ -51,22 +51,16 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
-    container:
-      image: php:8.1
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install Git
-        run: |
-          apt-get update
-          apt-get install -y git
-
-      - name: Install composer
-        run: |
-          curl -sS https://getcomposer.org/installer | php
-          mv composer.phar /usr/local/bin/composer
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: curl
 
       - name: Install
         run: composer install
