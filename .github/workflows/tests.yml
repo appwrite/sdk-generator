@@ -1,0 +1,53 @@
+name: CI Workflow
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.1']
+        sdk: [Android11Java8, Android11Java11, Android12Java8, Android12Java11, CLINode14, CLINode16, DartBeta, DartStable, Deno1193, Deno1303, DotNet60, DotNet70, FlutterStable, FlutterBeta, Go112, Go118, KotlinJava8, KotlinJava11, KotlinJava17, Node12, Node14, Node16, PHP74, PHP80, Python38, Python39, Python310, Ruby27, Ruby30, Ruby31, AppleSwift55, Swift55, WebChromium, WebNode]
+
+    container:
+      image: php:${{ matrix.php-version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Before Install
+        run: |
+          if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
+            echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
+          fi
+
+      - name: Install
+        run: |
+          docker --version
+          composer install
+
+      - name: Lint
+        if: matrix.sdk == 'Lint'
+        run: |
+          composer lint
+
+      - name: Run Tests
+        run: |
+          composer test tests/${{ matrix.sdk }}Test.php
+
+  lint:
+    runs-on: ubuntu-latest
+    container:
+      image: php:8.1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install
+        run: composer install
+
+      - name: Lint
+        run: composer lint
