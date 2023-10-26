@@ -17,6 +17,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Docker Setup Buildx
+        uses: docker/setup-buildx-action@v3.0.0
+
       - name: Before Install
         run: |
           if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
