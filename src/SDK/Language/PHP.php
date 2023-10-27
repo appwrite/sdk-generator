@@ -390,7 +390,7 @@ class PHP extends Language
                 return php_uname('s') . '; ' . php_uname('v') . '; ' . php_uname('m');
             }),
             new TwigFilter('caseEnumKey', function (string $value) {
-                $this->toUpperSnakeCase($value);
+                return $this->toUpperSnakeCase($value);
             }),
         ];
     }
