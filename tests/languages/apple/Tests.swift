@@ -4,6 +4,7 @@ import Foundation
 import FoundationNetworking
 #endif
 import Appwrite
+import AppwriteEnums
 import AsyncHTTPClient
 import NIO
 
@@ -114,7 +115,7 @@ class Tests: XCTestCase {
             print(error.localizedDescription)
         }
 
-        mock = try await general.enum(.first)
+        mock = try await general.xenum(mockType: .first)
         print(mock.result)
 
         do {

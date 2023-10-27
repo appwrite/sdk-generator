@@ -2,10 +2,9 @@ require_relative '../../sdks/ruby/lib/appwrite'
 
 include Appwrite
 
-client = Client.new
-client
-  .add_header('Origin', 'http://localhost')
-  .set_self_signed()
+client = Client.new()
+    .add_header('Origin', 'http://localhost')
+    .set_self_signed()
 
 foo = Foo.new(client)
 bar = Bar.new(client)
@@ -83,7 +82,7 @@ rescue => e
     puts e
 end
 
-response = general.enum(MockType::FIRST)
+response = general.enum(mockType: MockType::FIRST)
 puts response.result
 
 begin

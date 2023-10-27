@@ -340,8 +340,8 @@ class Web extends JS
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),
-            new TwigFilter('caseEnumKey', function($value) {
-               return $this->toPascalCase($value);
+            new TwigFilter('caseEnumKey', function ($value) {
+                return $this->toPascalCase($value);
             }),
         ];
     }
