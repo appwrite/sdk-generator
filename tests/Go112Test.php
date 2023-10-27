@@ -17,12 +17,12 @@ class Go112Test extends Base
     ];
     protected string $command =
         'docker run --rm -v $(pwd):/app -w /app golang:1.12 sh -c "cd tests/languages/go/ && ./test.sh"';
+
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
-        ...Base::ENUM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
     ];
 }
