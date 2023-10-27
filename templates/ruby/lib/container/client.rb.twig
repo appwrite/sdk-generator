@@ -218,9 +218,6 @@ module {{ spec.title | caseUcfirst }}
                 end
             end
 
-            puts @http.inspect
-            puts "Request: #{method} #{uri.request_uri} #{headers} #{payload}"
-
             begin
                 response = @http.send_request(method, uri.request_uri, payload, headers)
             rescue => error

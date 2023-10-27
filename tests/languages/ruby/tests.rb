@@ -1,10 +1,10 @@
 require_relative '../../sdks/ruby/lib/appwrite'
 
 include Appwrite
+include Appwrite::Enums
 
 client = Client.new()
     .add_header('Origin', 'http://localhost')
-    .set_self_signed()
 
 foo = Foo.new(client)
 bar = Bar.new(client)
@@ -82,7 +82,7 @@ rescue => e
     puts e
 end
 
-response = general.enum(mockType: MockType::FIRST)
+response = general.enum(mock_type: MockType::FIRST)
 puts response.result
 
 begin
