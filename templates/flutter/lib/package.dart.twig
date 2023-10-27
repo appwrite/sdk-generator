@@ -30,6 +30,3 @@ part 'id.dart';
 {% for service in spec.services %}
 part 'services/{{service.name | caseDash}}.dart';
 {% endfor %}
-{% for enum in spec.enums %}
-part 'src/enums/{{enum | caseSnake}}.dart';
-{% endfor %}
