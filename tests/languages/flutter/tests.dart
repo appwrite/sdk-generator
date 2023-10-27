@@ -21,7 +21,7 @@ void main() async {
   PathProviderPlatform.instance = FakePathProvider();
   Client client = Client()
       .addHeader("Origin", "http://localhost")
-      .setSelfSigned(true);
+      .setSelfSigned();
   Foo foo = Foo(client);
   Bar bar = Bar(client);
   General general = General(client);
