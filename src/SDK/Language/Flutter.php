@@ -62,6 +62,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/enums.dart',
+                'template'      => 'dart/lib/enums.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/permission.dart',
                 'template'      => 'dart/lib/permission.dart.twig',
             ],
