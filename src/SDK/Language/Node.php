@@ -2,7 +2,7 @@
 
 namespace Appwrite\SDK\Language;
 
-class Node extends Web
+class Node extends JS
 {
     /**
      * @return string
@@ -147,8 +147,18 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/permission.test.js',
+                'template'      => 'node/test/permission.test.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/permission.ts',
                 'template'      => 'web/src/permission.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/role.test.js',
+                'template'      => 'node/test/role.test.js.twig',
             ],
             [
                 'scope'         => 'default',
@@ -157,8 +167,18 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/id.test.js',
+                'template'      => 'node/test/id.test.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/id.ts',
                 'template'      => 'web/src/id.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/query.test.js',
+                'template'      => 'node/test/query.test.js.twig',
             ],
             [
                 'scope'         => 'default',
@@ -169,6 +189,11 @@ class Node extends Web
                 'scope'         => 'default',
                 'destination'   => 'src/operator.ts',
                 'template'      => 'node/src/operator.ts.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '/test/services/{{service.name | caseDash}}.test.js',
+                'template'      => 'node/test/services/service.test.js.twig',
             ],
             [
                 'scope'         => 'default',
