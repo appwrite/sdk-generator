@@ -1,0 +1,6 @@
+const ID = require("../lib/id");
+
+describe("ID", () => {
+    test('unique', () => expect(ID.unique()).toEqual('unique()'));
+    test('custom', () => expect(ID.custom('custom')).toEqual('custom'));
+});
