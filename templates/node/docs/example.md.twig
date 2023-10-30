@@ -6,7 +6,7 @@ const fs = require('fs');
 // Init SDK
 const client = new sdk.Client();
 
-const {{ service.name | caseCamel }} = new sdk.{{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %});
+const {{ service.name | caseCamel }} = new sdk.{{service.name | caseUcfirst}}(client);
 
 {% if method.auth|length > 0 %}
 client
@@ -18,7 +18,7 @@ client
 {% endfor %};
 
 {% endif %}
-const promise = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{% if parameter.enumValues | length > 0%}{{parameter.enumName}}.{{(parameter.enumKeys[0] ?? parameter.enumValues[0])  | replace({'-': '',' ': ''}) }}{% else%}{{ parameter | paramExample}}{% endif %}{% endif %}{% endfor %});
+const promise = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{% if parameter.enumValues | length > 0%}sdk.{{ parameter.enumName }}.{{(parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample}}{% endif %}{% endif %}{% endfor %});
 
 promise.then(function (response) {
     console.log(response);
