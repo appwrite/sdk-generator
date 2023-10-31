@@ -5,9 +5,9 @@ namespace Appwrite;
 use PHPUnit\Framework\TestCase;
 
 final class BasicFilterQueryTest {
-    public string $description;
-    public mixed $value;
-    public string $expectedValues;
+    public $description;
+    public $value;
+    public $expectedValues;
 
     public function __construct(string $description, mixed $value, string $expectedValues) {
         $this->description = $description;
@@ -20,7 +20,7 @@ final class QueryTest extends TestCase {
     /**
      * @var BasicFilterQueryTest[] $tests
      */
-    private array $tests;
+    private $tests;
 
     function __construct(string $name)
     {
