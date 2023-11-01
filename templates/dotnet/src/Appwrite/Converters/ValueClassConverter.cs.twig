@@ -8,7 +8,9 @@ namespace {{ spec.title | caseUcfirst }}.Converters
 
         public override bool CanConvert(Type objectType)
         {
-            return {% for enum in spec.enums %}typeof({{ enum | caseUcfirst }}).IsAssignableFrom(objectType){% if not loop.last %} ||{% else %};{% endif %}
+            return
+            {%~ for enum in spec.enums %}
+                typeof({{ enum | caseUcfirst }}).IsAssignableFrom(objectType){% if not loop.last %} ||{% else %};{% endif %}
 
             {%~ endfor %}
         }
