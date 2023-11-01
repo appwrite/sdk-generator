@@ -462,7 +462,7 @@ class Swift extends Language
                 return $this->hasGenericType($model, $spec);
             }),
             new TwigFilter('escapeSwiftKeyword', function ($value) {
-                if (in_array($value, $this->getKeywords())) {
+                if (\in_array($value, $this->getKeywords())) {
                     return "`{$value}`";
                 }
                 return $value;

@@ -33,7 +33,7 @@ class {{ enum.name | caseUcfirst | overrideIdentifier }} implements JsonSerializ
     public static function {{ key | caseEnumKey }}(): {{ enum.name | caseUcfirst | overrideIdentifier}}
     {
         if (!isset(self::${{ key | caseEnumKey }})) {
-            self::${{ key | caseEnumKey }} = new {{ enum.name | caseUcfirst | overrideIdentifier }}('{{value}}');
+            self::${{ key | caseEnumKey }} = new {{ enum.name | caseUcfirst | overrideIdentifier }}('{{ value }}');
         }
         return self::${{ key | caseEnumKey }};
     }
