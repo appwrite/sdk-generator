@@ -6,7 +6,7 @@ use JsonSerializable;
 
 class {{ enum.name | caseUcfirst | overrideIdentifier }} implements JsonSerializable
 {
-    {%~ for key in enum.keys %}
+    {%~ for key in enum.enum %}
     private static {{ enum.name | caseUcfirst }} ${{ key | caseEnumKey }};
     {%~ endfor %}
 
