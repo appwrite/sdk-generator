@@ -402,6 +402,11 @@ class DotNet extends Language
                 'scope'         => 'enum',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/src/Appwrite/Enums/Enum.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Enums/IEnum.cs',
+                'template'      => 'dotnet/src/Appwrite/Enums/IEnum.cs.twig',
             ]
         ];
     }

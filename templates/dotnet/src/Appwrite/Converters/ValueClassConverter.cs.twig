@@ -8,11 +8,7 @@ namespace {{ spec.title | caseUcfirst }}.Converters
 
         public override bool CanConvert(Type objectType)
         {
-            return
-            {%~ for enum in spec.enums %}
-                typeof({{ enum | caseUcfirst }}).IsAssignableFrom(objectType){% if not loop.last %} ||{% else %};{% endif %}
-
-            {%~ endfor %}
+            return typeof(IEnum).IsAssignableFrom(objectType);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
@@ -27,7 +23,7 @@ namespace {{ spec.title | caseUcfirst }}.Converters
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             var type = value.GetType();
-            var property = type.GetProperty("Value");
+            var property = type.GetProperty(nameof(IEnum.Value));
             var propertyValue = property.GetValue(value);
 
             if (propertyValue == null)

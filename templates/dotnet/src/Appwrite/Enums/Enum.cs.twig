@@ -2,7 +2,7 @@ using System;
 
 namespace {{ spec.title | caseUcfirst }}.Enums
 {
-    public class {{ enum.name | caseUcfirst | overrideIdentifier }}
+    public class {{ enum.name | caseUcfirst | overrideIdentifier }} : IEnum
     {
         public string Value { get; private set; }
 
