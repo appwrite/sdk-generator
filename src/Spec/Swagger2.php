@@ -312,7 +312,7 @@ class Swagger2 extends Spec
                 "name" => $key,
                 "properties" => $schema['properties'] ?? [],
                 "description" => $schema['description'] ?? [],
-                "error_types" => $schema['x-appwrite']['types'] ?? [],
+                "error_types" => $schema['x-appwrite']['types'] ?? null,
                 "required" => $schema['required'] ?? [],
                 "additionalProperties" => $schema['additionalProperties'] ?? []
             ];
@@ -338,9 +338,9 @@ class Swagger2 extends Spec
                     }
                 }
             }
-            if (isset($sch['error_types'])) {
+            if (isset($sch['errorTypes'])) {
                 $types = [];
-                foreach ($sch['error_types'] as $type) {
+                foreach ($sch['errorTypes'] as $type) {
 
                     $types[] = [
                         'code' => $type['code'],
@@ -348,7 +348,7 @@ class Swagger2 extends Spec
                         'description' => $type['description']
                     ];
                 }
-                $sch['error_types'] = $types;
+                $sch['errorTypes'] = $types;
             }
             $list[$key] = $sch;
         }
