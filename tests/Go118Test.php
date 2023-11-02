@@ -16,7 +16,7 @@ class Go118Test extends Base
         'cp -Rf tests/sdks/go/* tests/tmp/go/src/github.com/repoowner/sdk-for-go/'
     ];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app golang:1.18 sh -c "cd tests/languages/go/ && ./test.sh"';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app golang:1.18 sh -c "cd tests/languages/go/ && ./test.sh"';
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
