@@ -2,8 +2,8 @@ const assert = require('assert');
 const ErrorType = require('../lib/exception.js');
 
 try {
-{% for key, value in testData.enumData %}
-	assert.strictEqual(ErrorType.{{ key }}, '{{ value }}');
+{% for error in spec.definitions.appwriteException.errorTypes %}
+	assert.strictEqual(ErrorType.{{ error.type|title|replace({'_': ''}) }}, '{{ error.type }}');
 {% endfor %}
 
 	console.log('All tests passed!');

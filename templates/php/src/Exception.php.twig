@@ -46,9 +46,9 @@ class {{spec.title | caseUcfirst}}Exception extends Exception {
 }
 
 class ErrorType {
-{% for error in spec.definitions.appwriteException.error_types %}
+{% for error in spec.definitions.appwriteException.errorTypes %}
     /**
-    * {{ error.description }}
+    * {{ error.message }}
     */
     const {{ error.type|title|replace({'_': ''}) }} = '{{ error.type }}';
 {% endfor %}

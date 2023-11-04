@@ -3,8 +3,8 @@ use PHPUnit\Framework\TestCase;
 class TestErrorEnum extends TestCase {
 
     public function testEnumValues() {
-    {% for key, value in testData.enumData %}
-    $this->assertEquals(ErrorType::{{ key }}, '{{ value }}');
+    {% for error in spec.definitions.appwriteException.errorTypes %}
+    $this->assertEquals(ErrorType::{{ error.type|title|replace({'_': ''}) }}, '{{ error.type }}');
     {% endfor %}
 }
 }

@@ -22,7 +22,7 @@ void main() {
   group('ErrorType Enum Test', () {
   {% for key, value in testData.enumData %}
   test('ErrorType.{{ key }} should have correct value', () {
-      expect(ErrorType.{{ key }}.toString(), equals('ErrorType.{{ value }}'));
+      expect(ErrorType.{{ error.type|title|replace({'_': ''}) }}.toString(), equals('ErrorType.{{ error.type }}'));
     });
   {% endfor %}
   });

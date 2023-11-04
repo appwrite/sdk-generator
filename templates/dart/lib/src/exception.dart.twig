@@ -23,8 +23,8 @@ class {{spec.title | caseUcfirst}}Exception implements Exception {
 }
 
 enum ErrorType {
-{% for error in spec.definitions.appwriteException.error_types %}
-  /// {{ error.description }}
+{% for error in spec.definitions.appwriteException.errorTypes %}
+  /// {{ error.message }}
   {{ error.type|title|replace({'_': ''}) }},
 {% endfor %}
 }

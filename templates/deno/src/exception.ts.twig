@@ -17,9 +17,9 @@ export class {{ spec.title | caseUcfirst}}Exception {
 }
 
 export enum ErrorType {
-{% for error in spec.definitions.appwriteException.error_types %}
+{% for error in spec.definitions.appwriteException.errorTypes %}
 	/**
-	 * {{ error.description }}
+	 * {{ error.message }}
 	 */
     {{ error.type|title|replace({'_': ''}) }} = "{{ error.type }}",
 {% endfor %}

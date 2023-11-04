@@ -25,9 +25,9 @@ namespace {{spec.title | caseUcfirst}}
     }
 
     public enum ErrorType {
-    {% for error in spec.definitions.appwriteException.error_types %}
+    {% for error in spec.definitions.appwriteException.errorTypes %}
         /// <summary>
-        /// {{ error.description }}
+        /// {{ error.message }}
         /// </summary>
         {{ error.type|title|replace({'_': ''}) }},
     {% endfor %}

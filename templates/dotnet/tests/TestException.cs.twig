@@ -7,8 +7,8 @@ public class TestException
     [TestMethod]
     public void TestEnumValues()
     {
-    {% for key, value in testData.enumData %}
-    Assert.AreEqual(ErrorType.{{ key }}, "{{ value }}");
+    {% for error in spec.definitions.appwriteException.errorTypes %}
+    Assert.AreEqual(ErrorType.{{ error.type|title|replace({'_': ''}) }}, "{{ error.type }}");
     {% endfor %}
 }
 }

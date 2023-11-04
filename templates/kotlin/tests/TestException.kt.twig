@@ -8,8 +8,8 @@ class TestException {
 
     @Test
     fun testEnumValues() {
-    {% for key, value in testData.enumData %}
-    assertEquals(ErrorType.{{ key }}.value), "{{ value }}")
+    {% for error in spec.definitions.appwriteException.errorTypes %}
+    assertEquals(ErrorType.{{ error.type|title|replace({'_': ''}) }}.value), "{{ error.type }}")
     {% endfor %}
 }
 }
