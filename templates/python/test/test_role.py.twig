@@ -1,0 +1,36 @@
+import unittest
+
+from appwrite.role import Role
+
+
+class TestRoleMethods(unittest.TestCase):
+
+    def test_any(self):
+        self.assertEqual(Role.any(), 'any')
+
+    def test_user_without_status(self):
+        self.assertEqual(Role.user('custom'), 'user:custom')
+
+    def test_user_with_status(self):
+        self.assertEqual(Role.user('custom', 'verified'), 'user:custom/verified')
+
+    def test_users_without_status(self):
+        self.assertEqual(Role.users(), 'users')
+
+    def test_users_with_status(self):
+        self.assertEqual(Role.users('verified'), 'users/verified')
+
+    def test_guests(self):
+        self.assertEqual(Role.guests(), 'guests')
+
+    def test_team_without_role(self):
+        self.assertEqual(Role.team('custom'), 'team:custom')
+
+    def test_team_with_role(self):
+        self.assertEqual(Role.team('custom', 'owner'), 'team:custom/owner')
+
+    def test_member(self):
+        self.assertEqual(Role.member('custom'), 'member:custom')
+
+    def test_label(self):
+        self.assertEqual(Role.label('admin'), 'label:admin')

@@ -1,0 +1,12 @@
+import unittest
+
+from appwrite.id import ID
+
+
+class TestIDMethods(unittest.TestCase):
+
+    def test_unique(self):
+        self.assertEqual(ID.unique(), 'unique()')
+
+    def test_custom(self):
+        self.assertEqual(ID.custom('custom'), 'custom')
