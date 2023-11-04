@@ -126,6 +126,11 @@ class Python extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/__init__.py',
+                'template'      => 'python/test/__init__.py.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/client.py',
                 'template'      => 'python/package/client.py.twig',
             ],
@@ -136,8 +141,18 @@ class Python extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/test_permission.py',
+                'template'      => 'python/test/test_permission.py.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/role.py',
                 'template'      => 'python/package/role.py.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/test_role.py',
+                'template'      => 'python/test/test_role.py.twig',
             ],
             [
                 'scope'         => 'default',
@@ -146,8 +161,18 @@ class Python extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/test_id.py',
+                'template'      => 'python/test/test_id.py.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseSnake}}/query.py',
                 'template'      => 'python/package/query.py.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/test_query.py',
+                'template'      => 'python/test/test_query.py.twig',
             ],
             [
                 'scope'         => 'default',
@@ -170,9 +195,19 @@ class Python extends Language
                 'template'      => 'python/package/services/__init__.py.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'test/services/__init__.py',
+                'template'      => 'python/test/services/__init__.py.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '{{ spec.title | caseSnake}}/services/{{service.name | caseSnake}}.py',
                 'template'      => 'python/package/services/service.py.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => 'test/services/test_{{service.name | caseSnake}}.py',
+                'template'      => 'python/test/services/test_service.py.twig',
             ],
             [
                 'scope'         => 'method',

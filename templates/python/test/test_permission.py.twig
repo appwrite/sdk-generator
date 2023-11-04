@@ -1,0 +1,22 @@
+import unittest
+
+from appwrite.permission import Permission
+from appwrite.role import Role
+
+
+class TestPermissionMethods(unittest.TestCase):
+
+    def test_read(self):
+        self.assertEqual(Permission.read(Role.any()), 'read("any")')
+
+    def test_write(self):
+        self.assertEqual(Permission.write(Role.any()), 'write("any")')
+
+    def test_create(self):
+        self.assertEqual(Permission.create(Role.any()), 'create("any")')
+
+    def test_update(self):
+        self.assertEqual(Permission.update(Role.any()), 'update("any")')
+
+    def test_delete(self):
+        self.assertEqual(Permission.delete(Role.any()), 'delete("any")')

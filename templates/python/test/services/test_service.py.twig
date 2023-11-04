@@ -1,0 +1,43 @@
+import json
+import requests_mock
+import unittest
+
+from appwrite.client import Client
+from appwrite.input_file import InputFile
+from appwrite.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
+
+
+class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.{{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}(self.client)
+
+{% for method in service.methods %}
+    @requests_mock.Mocker()
+    def test_{{ method.name | caseSnake }}(self, m):
+    {%~ if method.type == 'webAuth' %}
+        data = ''
+    {%~ elseif method.type == 'location' %}
+        data = bytearray()
+    {%~ else %}
+        {%~ if method.responseModel and method.responseModel != 'any' %}
+        data = {
+            {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
+            '{{property.name}}': {% if property.type == 'object' %}{}{% elseif property.type == 'array' %}[]{% elseif property.type == 'string' %}'{{property.example | escapeDollarSign}}'{% elseif property.type == 'boolean' %}True{% else %}{{property.example}}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}
+            {%~ endfor ~%}
+        }
+        {%~ else %}
+        data = ''
+        {%~ endif %}
+    {%~ endif %}
+        headers = {'Content-Type': {% if method.type == 'location' %}'application/octet-stream'{% else %}'application/json'{% endif %}}
+        m.request(requests_mock.ANY, requests_mock.ANY, {% if method.type == 'location' %}body=data{% else %}text=json.dumps(data){% endif %}, headers=headers)
+
+        response = self.{{ service.name | caseSnake }}.{{ method.name | caseSnake }}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
+            {% if parameter.type == 'object' %}{}{% elseif parameter.type == 'array' %}[]{% elseif parameter.type == 'file' %}InputFile.from_bytes(bytearray()){% elseif parameter.type == 'boolean' %}True{% elseif parameter.type == 'string' %}'{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}'{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%},{%~ endfor ~%}
+        )
+
+        self.assertEqual(response, data)
+
+{% endfor %}
