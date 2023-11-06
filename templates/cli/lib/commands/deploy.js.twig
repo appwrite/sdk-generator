@@ -37,12 +37,14 @@ const {
     teamsCreate
 } = require("./teams");
 
-const POOL_DEBOUNCE = 2000; // in milliseconds
-const POOL_MAX_DEBOUNCES = 30;
+const STEP_SIZE = 100;      // Resources
+const POOL_DEBOUNCE = 2000; // Milliseconds
+
+let poolMaxDebounces = 30;
 
 const awaitPools = {
     wipeAttributes: async (databaseId, collectionId, iteration = 1) => {
-        if (iteration > POOL_MAX_DEBOUNCES) {
+        if (iteration > poolMaxDebounces) {
             return false;
         }
 
@@ -58,11 +60,18 @@ const awaitPools = {
             return true;
         }
 
+        let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+        if (steps > 1 && iteration === 1) {
+            poolMaxDebounces *= steps;
+
+            log('Found a large number of attributes, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+        }
+
         await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
         return await awaitPools.wipeAttributes(databaseId, collectionId, iteration + 1);
     },
     wipeIndexes: async (databaseId, collectionId, iteration = 1) => {
-        if (iteration > POOL_MAX_DEBOUNCES) {
+        if (iteration > poolMaxDebounces) {
             return false;
         }
 
@@ -78,16 +87,31 @@ const awaitPools = {
             return true;
         }
 
+        let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+        if (steps > 1 && iteration === 1) {
+            poolMaxDebounces *= steps;
+
+            log('Found a large number of indexes, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+        }
+
         await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
         return await awaitPools.wipeIndexes(databaseId, collectionId, iteration + 1);
     },
     expectAttributes: async (databaseId, collectionId, attributeKeys, iteration = 1) => {
-        if (iteration > POOL_MAX_DEBOUNCES) {
+        if (iteration > poolMaxDebounces) {
             return false;
         }
 
         // TODO: Pagination?
         const { attributes: remoteAttributes } = await databasesListAttributes({
+        let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
+        if (steps > 1 && iteration === 1) {
+            poolMaxDebounces *= steps;
+
+            log('Creating a large number of attributes, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+        }
+
+        const { attributes } = await paginate(databasesListAttributes, {
             databaseId,
             collectionId,
             queries: ['limit(100)'],
@@ -114,12 +138,19 @@ const awaitPools = {
         return await awaitPools.expectAttributes(databaseId, collectionId, attributeKeys, iteration + 1);
     },
     expectIndexes: async (databaseId, collectionId, indexKeys, iteration = 1) => {
-        if (iteration > POOL_MAX_DEBOUNCES) {
+        if (iteration > poolMaxDebounces) {
             return false;
         }
 
         // TODO: Pagination?
         const { indexes: remoteIndexes } = await databasesListIndexes({
+        let steps = Math.max(1, Math.ceil(indexKeys.length / STEP_SIZE));
+        if (steps > 1 && iteration === 1) {
+            poolMaxDebounces *= steps;
+
+            log('Creating a large number of indexes, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+        }
+
             databaseId,
             collectionId,
             queries: ['limit(100)'],
