@@ -137,8 +137,8 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseArray', function ($value) {
             return (is_array($value)) ? json_encode($value) : '[]';
         }, ['is_safe' => ['html']]));
-        $this->twig->addFilter(new TwigFilter('typeName', function ($value) {
-            return $this->language->getTypeName($value);
+        $this->twig->addFilter(new TwigFilter('typeName', function ($value, $spec = []) {
+            return $this->language->getTypeName($value, $spec);
         }, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('paramDefault', function ($value) {
             return $this->language->getParamDefault($value);
@@ -545,6 +545,7 @@ class SDK
                 'contactURL' => $this->spec->getContactURL(),
                 'contactEmail' => $this->spec->getContactEmail(),
                 'services' => $this->spec->getServices(),
+                'enums' => $this->spec->getEnumNames(),
                 'definitions' => $this->spec->getDefinitions(),
                 'global' => [
                     'headers' => $this->spec->getGlobalHeaders(),
@@ -631,6 +632,27 @@ class SDK
                             }
 
                             $this->render($template, $destination, $block, $params, $minify);
+                        }
+                    }
+                    break;
+                case 'enum':
+                    foreach ($this->spec->getServices() as $key => $service) {
+                        $methods = $this->spec->getMethods($key);
+
+                        foreach ($methods as $method) {
+                            $parameters = $method['parameters']['all'];
+
+                            foreach ($parameters as $parameter) {
+                                    // Check if the enum field is defined
+                                if (isset($parameter['enumValues'])) {
+                                    $params['enum'] = [
+                                        'name' =>  $parameter['enumName'] ?? $parameter['name'],
+                                        'enum' => $parameter['enumValues'],
+                                        'keys' => $parameter['enumKeys'],
+                                    ];
+                                    $this->render($template, $destination, $block, $params, $minify);
+                                }
+                            }
                         }
                     }
                     break;

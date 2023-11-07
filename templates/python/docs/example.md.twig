@@ -2,7 +2,22 @@ from {{ spec.title | caseSnake }}.client import Client
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
 from {{ spec.title | caseSnake }}.input_file import InputFile
 {% endif %}
-from {{ spec.title | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
+{% set added = [] %}
+{% for parameter in method.parameters.all %}
+{% if method == parameter.required %}
+{% if parameter.enumValues is not empty %}
+{% if parameter.enumName is not empty %}
+{% set name = parameter.enumName %}
+{% else %}
+{% set name = parameter.name %}
+{% endif %}
+{% if name not in added %}
+from {{ spec.title | caseUcfirst }}.enums import {{parameter.enumName | caseUcfirst}}
+{% set added = added|merge([name]) %}
+{% endif %}
+{% endif %}
+{% endif %}
+{% endfor %}
 
 client = Client()
 
@@ -16,6 +31,6 @@ client = Client()
 {% endfor %})
 
 {% endif %}
-{{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %})
+{{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}(client)
 
-result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %})
+result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{% if parameter.enumValues | length > 0 %}{{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample  }}{% endif %}{% endif %}{% endfor %})

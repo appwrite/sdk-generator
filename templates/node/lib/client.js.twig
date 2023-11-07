@@ -18,24 +18,24 @@ class Client {
             'x-sdk-platform': '{{ sdk.platform }}',
             'x-sdk-language': '{{ language.name | caseLower }}',
             'x-sdk-version': '{{ sdk.version }}',
-{% for key,header in spec.global.defaultHeaders %}
+            {%~ for key,header in spec.global.defaultHeaders %}
             '{{key}}' : '{{header}}',
-{% endfor %}
+            {%~ endfor %}
         };
         this.selfSigned = false;
     }
 
-{% for header in spec.global.headers %}
+    {%~ for header in spec.global.headers %}
     /**
      * Set {{header.key | caseUcfirst}}
      *
-{% if header.description %}
+    {%~ if header.description %}
      * {{header.description}}
      *
-{% endif %}
+    {%~ endif %}
      * @param {string} {{header.key | caseLower}}
      *
-     * @return self
+     * @return Client
      */
     set{{header.key | caseUcfirst}}({{header.key | caseLower}}) {
         this.addHeader('{{header.name}}', {{header.key | caseLower}});
@@ -43,7 +43,7 @@ class Client {
         return this;
     }
 
-{% endfor %}
+    {%~ endfor %}
     /**
      * Set self signed.
      *
@@ -127,6 +127,7 @@ class Client {
         }
         try {
             let response = await axios(options);
+
             return response.data;
         } catch(error) {
             if('response' in error && error.response !== undefined) {

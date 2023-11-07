@@ -25,10 +25,10 @@ open class Client {
         "x-sdk-language": "{{ language.name | caseLower }}",
         "x-sdk-version": "{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
 
-{% for key,header in spec.global.defaultHeaders %}
+        {%~ for key,header in spec.global.defaultHeaders %}
         "{{key}}": "{{header}}"{% if not loop.last %},{% endif %}
 
-{% endfor %}
+        {%~ endfor %}
     ]
 
     open var config: [String: String] = [:]
@@ -95,14 +95,14 @@ open class Client {
         }
     }
 
-{% for header in spec.global.headers %}
+    {%~ for header in spec.global.headers %}
     ///
     /// Set {{header.key | caseUcfirst}}
     ///
-{% if header.description %}
+    {%~ if header.description %}
     /// {{header.description}}
     ///
-{% endif %}
+    {%~ endif %}
     /// @param String value
     ///
     /// @return Client
@@ -113,7 +113,7 @@ open class Client {
         return self
     }
 
-{% endfor %}
+    {%~ endfor %}
 
     ///
     /// Set self signed
@@ -446,7 +446,12 @@ open class Client {
                 || param is [Bool: Any] {
                 encodedParams[key] = param
             } else {
-                encodedParams[key] = try! (param as! Encodable).toJson()
+                let value = try! (param as! Encodable).toJson()
+
+                let range = value.index(value.startIndex, offsetBy: 1)..<value.index(value.endIndex, offsetBy: -1)
+                let substring = value[range]
+
+                encodedParams[key] = substring
             }
         }
 
@@ -585,7 +590,6 @@ extension Client {
 }
 
 extension Client {
-
     public enum HTTPStatus: Int {
       case unknown = -1
       case ok = 200

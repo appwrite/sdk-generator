@@ -387,6 +387,11 @@ class Android extends Kotlin
                 'destination'   => 'library/src/main/java/io/appwrite/models/{{ definition.name | caseUcfirst }}.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/models/Model.kt.twig',
             ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'library/src/main/java/io/appwrite/enums/{{ enum.name | caseUcfirst }}.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/enums/Enum.kt.twig',
+            ],
         ];
     }
 }

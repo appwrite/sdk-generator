@@ -12,6 +12,7 @@ async function start() {
 
   // Init SDK
   let client = new appwrite.Client()
+      .addHeader("Origin", "http://localhost")
 
   let foo = new appwrite.Foo(client)
   let bar = new appwrite.Bar(client)
@@ -73,7 +74,21 @@ async function start() {
   // @ts-ignore
   console.log(response.result)
 
-  response = await general.upload('string', 123, ['string in array'], appwrite.InputFile.fromPath('./tests/resources/file.png', 'file.png'))
+  response = await general.upload('string', 123, ['string in array'], appwrite.InputFile.fromPath('./tests/resources/large_file.mp4', 'large_file.mp4'))
+  // @ts-ignore
+  console.log(response.result)
+
+  let buffer = await Deno.readFile('./tests/resources/file.png')
+  response = await general.upload('string', 123, ['string in array'], appwrite.InputFile.fromBuffer(buffer, 'file.png'))
+  // @ts-ignore
+  console.log(response.result)
+
+  buffer = await Deno.readFile('./tests/resources/large_file.mp4')
+  response = await general.upload('string', 123, ['string in array'], appwrite.InputFile.fromBuffer(buffer, 'large_file.mp4'))
+  // @ts-ignore
+  console.log(response.result)
+
+  response = await general.enum(appwrite.MockType.First)
   // @ts-ignore
   console.log(response.result)
 

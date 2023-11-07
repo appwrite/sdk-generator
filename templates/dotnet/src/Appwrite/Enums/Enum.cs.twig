@@ -1,0 +1,19 @@
+using System;
+
+namespace {{ spec.title | caseUcfirst }}.Enums
+{
+    public class {{ enum.name | caseUcfirst | overrideIdentifier }} : IEnum
+    {
+        public string Value { get; private set; }
+
+        public {{ enum.name | caseUcfirst | overrideIdentifier }}(string value)
+        {
+            Value = value;
+        }
+
+        {%~ for value in enum.enum %}
+        {%~ set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+        public static {{ enum.name | caseUcfirst | overrideIdentifier }} {{ key | caseEnumKey }} => new {{ enum.name | caseUcfirst | overrideIdentifier }}("{{ value }}");
+        {%~ endfor %}
+    }
+}

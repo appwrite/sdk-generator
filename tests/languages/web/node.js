@@ -1,4 +1,4 @@
-const { Client, Foo, Bar, General, Query, Permission, Role, ID } = require('./dist/cjs/sdk.js');
+const { Client, Foo, Bar, General, Query, Permission, Role, ID, MockType } = require('./dist/cjs/sdk.js');
 
 async function start() {
     let response;
@@ -46,6 +46,11 @@ async function start() {
   
     console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip file upload test on Node.js
     console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip big file upload test on Node.js
+    console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip file upload test on Node.js
+    console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip big file upload test on Node.js
+
+    response = await general.enum(MockType.First);
+    console.log(response.result);
 
     try {
         response = await general.empty();

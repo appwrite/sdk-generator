@@ -31,6 +31,22 @@ import { Payload, Client } from '../client.ts';
 import { InputFile } from '../inputFile.ts';
 import { AppwriteException } from '../exception.ts';
 import type { Models } from '../models.d.ts';
+{% set added = [] %}
+{% for method in service.methods %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues is not empty %}
+{% if parameter.enumName is not empty %}
+{% set name = parameter.enumName %}
+{% else %}
+{% set name = parameter.name %}
+{% endif %}
+{% if name not in added %}
+import { {{ name | caseUcfirst }} } from '../enums/{{ name | caseDash }}.ts';
+{% set added = added|merge([name]) %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endfor %}
 
 export type UploadProgress = {
     $id: string;
@@ -128,7 +144,11 @@ export class {{ service.name | caseUcfirst }} extends Service {
             }
 
             const start = ((currentChunk - 1) * Client.CHUNK_SIZE);
-            const end = start + currentPosition;
+            let end = start + currentPosition;
+
+            if (end === size) {
+                end -= 1;
+            }
 
             if(!lastUpload || currentChunk !== 1) {
                 apiHeaders['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
