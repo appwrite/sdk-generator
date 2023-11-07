@@ -18,7 +18,7 @@ class WebChromiumTest extends Base
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal sh -c "npm install && npm run build"',
     ];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

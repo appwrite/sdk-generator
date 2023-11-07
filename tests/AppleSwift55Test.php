@@ -16,7 +16,7 @@ class AppleSwift55Test extends Base
         'cp tests/languages/apple/Tests.swift tests/sdks/apple/Tests/AppwriteTests/Tests.swift',
     ];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/apple swiftarm/swift:5.5.2-focal-multi-arch swift test';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/apple swiftarm/swift:5.5.2-focal-multi-arch swift test';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

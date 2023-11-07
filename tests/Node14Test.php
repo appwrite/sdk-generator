@@ -15,7 +15,7 @@ class Node14Test extends Base
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:14-alpine npm install',
     ];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app node:14-alpine node tests/languages/node/test.js';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app node:14-alpine node tests/languages/node/test.js';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

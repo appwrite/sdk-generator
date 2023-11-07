@@ -17,7 +17,7 @@ class Python310Test extends Base
         'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor python:3.10-alpine pip install -r tests/sdks/python/requirements.txt --upgrade',
     ];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.10-alpine python tests/sdks/python/test.py';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/sdks/python/vendor --env PYTHONPATH=tests/sdks/python/vendor python:3.10-alpine python tests/sdks/python/test.py';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

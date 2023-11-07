@@ -15,17 +15,15 @@
       "url": "https:\/\/raw.githubusercontent.com\/appwrite\/appwrite\/master\/LICENSE"
     }
   },
-  "host": "sdk-generator-tests.appwrite.org",
-  "basePath": "\/v1",
-  "schemes": [
-    "https"
-  ],
+  "host": "mockapi",
+  "basePath": "/v1",
+  "schemes": ["http"],
   "consumes": [
-    "application\/json",
-    "multipart\/form-data"
+    "application/json",
+    "multipart/form-data"
   ],
   "produces": [
-    "application\/json"
+    "application/json"
   ],
   "securityDefinitions": {
     "Project": {
