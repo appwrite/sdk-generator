@@ -41,7 +41,7 @@ public class Query {
     }
 
     public static func between(_ attribute: String, start: String, end: String) -> String {
-        "between(\"\(attribute)\", \(start), \(end))"
+        "between(\"\(attribute)\", \"\(start)\", \"\(end)\")"
     }
 
     public static func startsWith(_ attribute: String, value: String) -> String {

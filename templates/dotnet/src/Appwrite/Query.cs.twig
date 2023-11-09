@@ -63,7 +63,7 @@ namespace Appwrite
 
         public static string Between(string attribute, string start, string end)
         {
-            return $"between(\"{attribute}\", {start}, {end})";
+            return $"between(\"{attribute}\", \"{start}\", \"{end}\")";
         }
 
         public static string Between(string attribute, int start, int end)

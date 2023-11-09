@@ -24,7 +24,7 @@ class Query {
 
     fun between(attribute: String, start: Double, end: Double) = "between(\"${attribute}\", ${start}, ${end})"
 
-    fun between(attribute: String, start: String, end: String) = "between(\"${attribute}\", ${start}, ${end})"
+    fun between(attribute: String, start: String, end: String) = "between(\"${attribute}\", \"${start}\", \"${end}\")"
 
     fun startsWith(attribute: String, value: String) = Query.addQuery(attribute, "startsWith", value)
 
