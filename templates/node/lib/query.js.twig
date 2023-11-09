@@ -24,7 +24,7 @@ class Query {
     `isNotNull("${attribute}")`;
 
   static between = (attribute, start, end) =>
-    Query.addQuery(attribute, "between", [start, end]);
+    `between("${attribute}", ${start}, ${end})`
 
   static startsWith = (attribute, value) =>
     Query.addQuery(attribute, "startsWith", value);

@@ -47,8 +47,7 @@ class Query {
   static String isNotNull(String attribute) => 'isNotNull("$attribute")';
 
   /// Filter resources where [attribute] is between [start] and [end] (inclusive).
-  static String between(String attribute, dynamic start, dynamic end) =>
-      _addQuery(attribute, 'between', [start, end]);
+  static String between(String attribute, dynamic start, dynamic end) => 'between("$attribute", $start, $end)'
 
   /// Filter resources where [attribute] starts with [value].
   static String startsWith(String attribute, String value) =>
