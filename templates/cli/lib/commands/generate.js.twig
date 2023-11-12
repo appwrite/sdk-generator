@@ -20,7 +20,7 @@ generate
         helpWidth: process.stdout.columns || 80
     })
     .action(actionRunner(async (language, options) => {
-        if (language === 'dart' || language === 'ts') {
+        if (language === 'dart' || language === 'ts' || language === 'swift') {
             generateModels({ ...options, language })
             return;
         }
@@ -185,25 +185,28 @@ function generateSwiftClass(name, attributes, template) {
     const getFromMap = (attr) => {
         if (attr.type === 'relationship') {
             if ((attr.relationType === 'oneToMany' && attr.side === 'parent') || (attr.relationType === 'manyToOne' && attr.side === 'child') || attr.relationType === 'manyToMany') {
-                return `${getType(attr)}.from((map['${attr.key}'] as [[String: Any]]).map{${toUpperCamelCase(attr.relatedCollection)}.from(map: \$0)))`;
+                return `${getType(attr)}.from((map["${attr.key}"] as [[String: Any]]).map{${toUpperCamelCase(attr.relatedCollection)}.from(map: \$0)))`;
             }
-            return `map['${attr.key}'] != null ? ${getType(attr)}.fromMap(map['${attr.key}']) : null`;
+            return `map["${attr.key}"] != null ? ${getType(attr)}.fromMap(map["${attr.key}"]) : null`;
         }
         if (attr.array) {
-            return `${getType(attr)}.from(map['${attr.key}'])`;
+            return `${getType(attr)}.from(map["${attr.key}"])`;
         }
-        return `map['${attr.key}']`;
+        return `map["${attr.key}"] as! ${getType(attr)}`;
     }
 
     const constructorParams = attributes.map(attr => {
         let out = '';
-        if (attr.required) {
-            out += 'required ';
-        }
-        out += `this.${attr.key}`;
+        out += `${attr.key}: ${getType(attr)}`;
         if (attr.default && attr.default !== null) {
             out += ` = ${JSON.stringify(attr.default)}`;
         }
+        return out;
+    }).join(',\n    ');
+
+    const constructorAssignments = attributes.map(attr => {
+        let out = '';
+        out += `self.${attr.key} = ${attr.key}`;
         return out;
     }).join(',\n    ');
 
@@ -212,14 +215,14 @@ function generateSwiftClass(name, attributes, template) {
     }).join(',\n      ');
 
     const mapFields = attributes.map(attr => {
-        let out = `'${attr.key}': `;
+        let out = `"${attr.key}": `;
         if (attr.type === 'relationship') {
             if ((attr.relationType === 'oneToMany' && attr.side === 'parent') || (attr.relationType === 'manyToOne' && attr.side === 'child') || attr.relationType === 'manyToMany') {
                 return `${out}${attr.key}?.map((p) => p.toMap())`;
             }
             return `${out}${attr.key}?.toMap()`;
         }
-        return `${out}${attr.key}`;
+        return `${out}${attr.key} as Any`;
     }).join(',\n      ');
 
     const replaceMaps = {
@@ -228,6 +231,7 @@ function generateSwiftClass(name, attributes, template) {
         "%ATTRIBUTES%": properties,
         "%CONSTRUCTOR_PARAMETERS%": constructorParams,
         "%CONSTRUCTOR_ARGUMENTS%": constructorArgs,
+        "%CONSTRUCTOR_ASSIGNMENTS%": constructorAssignments,
         "%MAP_FIELDS%": mapFields,
     }
 

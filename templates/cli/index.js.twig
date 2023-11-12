@@ -15,6 +15,7 @@ const { flutter } = require("./lib/commands/flutter");
 const { login, logout } = require("./lib/commands/generic");
 const { init } = require("./lib/commands/init");
 const { deploy } = require("./lib/commands/deploy");
+const { generate } = require("./lib/commands/generate");
 {% endif %}
 {% for service in spec.services %}
 const { {{ service.name | caseLower }} } = require("./lib/commands/{{ service.name | caseLower }}");
@@ -47,6 +48,7 @@ program
 {% endfor %}
   .addCommand(client)
   .addCommand(flutter)
+  .addCommand(generate)
   .parse(process.argv);
   
 process.stdout.columns = oldWidth;
