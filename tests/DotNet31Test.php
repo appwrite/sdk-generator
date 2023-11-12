@@ -17,7 +17,7 @@ class DotNet31Test extends Base
         'cp tests/languages/dotnet/Tests31.csproj tests/sdks/dotnet/src/test/Tests.csproj',
     ];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:3.1 dotnet test --verbosity normal --framework netcoreapp3.1';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/src/test/ mcr.microsoft.com/dotnet/sdk:3.1 dotnet test --verbosity normal --framework netcoreapp3.1';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
