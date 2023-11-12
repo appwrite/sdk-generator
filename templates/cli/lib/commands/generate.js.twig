@@ -178,7 +178,7 @@ function generateSwiftClass(name, attributes, template) {
     }
 
     const properties = attributes.map(attr => {
-        let property = `public let ${attr.key}${(!attr.required) ? '?' : ''}: ${getType(attr)}`;
+        let property = `public let ${attr.key}${(!attr.required) ? '??' : ''}: ${getType(attr)}`;
         return property;
     }).join('\n  ');
 
@@ -187,12 +187,12 @@ function generateSwiftClass(name, attributes, template) {
             if ((attr.relationType === 'oneToMany' && attr.side === 'parent') || (attr.relationType === 'manyToOne' && attr.side === 'child') || attr.relationType === 'manyToMany') {
                 return `${getType(attr)}.from((map["${attr.key}"] as [[String: Any]]).map{${toUpperCamelCase(attr.relatedCollection)}.from(map: \$0)))`;
             }
-            return `map["${attr.key}"] != null ? ${getType(attr)}.fromMap(map["${attr.key}"]) : null`;
+            return `${getType(attr)}.from(map["${attr.key}"])`;
         }
         if (attr.array) {
             return `${getType(attr)}.from(map["${attr.key}"])`;
         }
-        return `map["${attr.key}"] as! ${getType(attr)}`;
+        return `map["${attr.key}"] as ${attr.required ? '!' : '?'} ${getType(attr)}${!attr.required} ? '?':''`;
     }
 
     const constructorParams = attributes.map(attr => {
