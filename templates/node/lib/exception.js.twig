@@ -7,8 +7,6 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
   }
 }
 
-module.exports = {{spec.title | caseUcfirst}}Exception;
-
 const ErrorType = {
 {% for error in spec.definitions.appwriteException.errorTypes %}
   /**
