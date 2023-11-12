@@ -188,6 +188,11 @@ class CLI extends Node
                 'template'      => 'cli/generator/template_ts.ts.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'generator/template_swift.swift',
+                'template'      => 'cli/generator/template_swift.swift.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '/lib/commands/{{service.name | caseDash}}.js',
                 'template'      => 'cli/lib/commands/command.js.twig',

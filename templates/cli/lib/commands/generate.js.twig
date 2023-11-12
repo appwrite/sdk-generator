@@ -74,6 +74,7 @@ const generateModels = async (options) => {
             let template = fs.readFileSync(`${__dirname}/../../generator/template_dart.dart`, 'utf8');
 
             let data = '';
+            let filename = toSnakeCase(collection.$id) + extension;
             switch (options.language) {
                 case 'dart':
                     extension = '.dart';
@@ -84,9 +85,14 @@ const generateModels = async (options) => {
                     template = fs.readFileSync(`${__dirname}/../../generator/template_ts.ts`, 'utf8');
                     data = generateTSClass(className, collection.attributes, template);
                     break;
+                case 'swift':
+                    extension = '.swift';
+                    template = fs.readFileSync(`${__dirname}/../../generator/template_swift.swift`, 'utf8');
+                    data = generateSwiftClass(className, collection.attributes, template);
+                    filename = toUpperCamelCase(collection.$id) + extension;
+                    break;
             }
 
-            const filename = toSnakeCase(collection.$id) + extension;
             if (!fs.existsSync(modelPath)) {
                 fs.mkdirSync(modelPath, { recursive: true });
             }
@@ -135,6 +141,94 @@ function generateTSClass(name, attributes, template) {
         "%NAME%": name,
         "%IMPORTS%": imports,
         "%ATTRIBUTES%": properties,
+    }
+
+    for (let key in replaceMaps) {
+        template = template.replaceAll(key, replaceMaps[key]);
+    }
+
+    return template;
+}
+
+function generateSwiftClass(name, attributes, template) {
+    let imports = '';
+
+    const getType = (attribute) => {
+        switch (attribute.type) {
+            case 'string':
+            case 'email':
+            case 'url':
+            case 'enum':
+            case 'datetime':
+                return attribute.array ? '[String]' : 'String';
+            case 'boolean':
+                return attribute.array ? '[Bool]' : 'Bool';
+            case 'integer':
+                return attribute.array ? '[Int]' : 'Int';
+            case 'double':
+                return attribute.array ? '[Float]' : 'Float';
+            case 'relationship':
+
+                if ((attribute.relationType === 'oneToMany' && attribute.side === 'parent') || (attribute.relationType === 'manyToOne' && attribute.side === 'child') || attribute.relationType === 'manyToMany') {
+
+                    return `[${toUpperCamelCase(attribute.relatedCollection)}]`;
+                }
+                return toUpperCamelCase(attribute.relatedCollection);
+        }
+    }
+
+    const properties = attributes.map(attr => {
+        let property = `public let ${attr.key}${(!attr.required) ? '?' : ''}: ${getType(attr)}`;
+        return property;
+    }).join('\n  ');
+
+    const getFromMap = (attr) => {
+        if (attr.type === 'relationship') {
+            if ((attr.relationType === 'oneToMany' && attr.side === 'parent') || (attr.relationType === 'manyToOne' && attr.side === 'child') || attr.relationType === 'manyToMany') {
+                return `${getType(attr)}.from((map['${attr.key}'] as [[String: Any]]).map{${toUpperCamelCase(attr.relatedCollection)}.from(map: \$0)))`;
+            }
+            return `map['${attr.key}'] != null ? ${getType(attr)}.fromMap(map['${attr.key}']) : null`;
+        }
+        if (attr.array) {
+            return `${getType(attr)}.from(map['${attr.key}'])`;
+        }
+        return `map['${attr.key}']`;
+    }
+
+    const constructorParams = attributes.map(attr => {
+        let out = '';
+        if (attr.required) {
+            out += 'required ';
+        }
+        out += `this.${attr.key}`;
+        if (attr.default && attr.default !== null) {
+            out += ` = ${JSON.stringify(attr.default)}`;
+        }
+        return out;
+    }).join(',\n    ');
+
+    const constructorArgs = attributes.map(attr => {
+        return `${attr.key}: ${getFromMap(attr)}`;
+    }).join(',\n      ');
+
+    const mapFields = attributes.map(attr => {
+        let out = `'${attr.key}': `;
+        if (attr.type === 'relationship') {
+            if ((attr.relationType === 'oneToMany' && attr.side === 'parent') || (attr.relationType === 'manyToOne' && attr.side === 'child') || attr.relationType === 'manyToMany') {
+                return `${out}${attr.key}?.map((p) => p.toMap())`;
+            }
+            return `${out}${attr.key}?.toMap()`;
+        }
+        return `${out}${attr.key}`;
+    }).join(',\n      ');
+
+    const replaceMaps = {
+        "%NAME%": name,
+        "%IMPORTS%": imports,
+        "%ATTRIBUTES%": properties,
+        "%CONSTRUCTOR_PARAMETERS%": constructorParams,
+        "%CONSTRUCTOR_ARGUMENTS%": constructorArgs,
+        "%MAP_FIELDS%": mapFields,
     }
 
     for (let key in replaceMaps) {
