@@ -20,6 +20,7 @@ const getIgnores = (runtime) => {
         case 'kotlin':
             return ['build'];
         case 'node':
+        case 'bun':
             return ['node_modules', '.npm'];
         case 'php':
             return ['vendor'];
@@ -43,27 +44,61 @@ const getEntrypoint = (runtime) => {
         case 'dart':
             return 'lib/main.dart';
         case 'deno':
-            return 'src/mod.ts';
+            return 'src/main.ts';
         case 'node':
-            return 'src/index.js';
+            return 'src/main.js';
+        case 'bun':
+            return 'src/main.ts';
         case 'php':
             return 'src/index.php';
         case 'python':
-            return 'src/index.py';
+            return 'src/main.py';
         case 'ruby':
-            return 'src/index.rb';
+            return 'lib/main.rb';
         case 'rust':
             return 'main.rs';
         case 'swift':
-            return 'Sources/swift-5.5/main.swift';
+            return 'Sources/index.swift';
         case 'cpp':
-            return 'src/index.cc';
+            return 'src/main.cc';
         case 'dotnet':
             return 'src/Index.cs';
         case 'java':
-            return 'src/Index.java';
+            return 'src/Main.java';
         case 'kotlin':
-            return 'src/Index.kt';
+            return 'src/Main.kt';
+    }
+
+    return undefined;
+};
+
+const getInstallCommand = (runtime) => {
+    const languge = runtime.split('-')[0];
+
+    switch (languge) {
+        case 'dart':
+            return 'dart pub get';
+        case 'deno':
+            return "deno install";
+        case 'node':
+            return 'npm install';
+        case 'bun':
+            return 'bun install';
+        case 'php':
+            return 'composer install';
+        case 'python':
+            return 'pip install -r requirements.txt';
+        case 'ruby':
+            return 'bundle install';
+        case 'rust':
+            return 'cargo install';
+        case 'dotnet':
+            return 'dotnet restore';
+        case 'swift':
+        case 'java':
+        case 'kotlin':
+        case 'cpp':
+            return '';
     }
 
     return undefined;
@@ -171,10 +206,15 @@ const questionsInitFunction = [
                 parseOutput: false
             })
             let runtimes = response["runtimes"]
-            let choices = runtimes.map((runtime, idx) => {
+            let choices = runtimes.map((runtime, idx) => { 
                 return {
                     name: `${runtime.name} (${runtime['$id']})`,
-                    value: { id: runtime['$id'], entrypoint: getEntrypoint(runtime['$id']), ignore: getIgnores(runtime['$id']) },
+                    value: { 
+                        id: runtime['$id'], 
+                        entrypoint: getEntrypoint(runtime['$id']), 
+                        ignore: getIgnores(runtime['$id']),
+                        commands : getInstallCommand(runtime['$id'])
+                    },
                 }
             })
             return choices;

@@ -15,7 +15,6 @@ class Config {
             const file = fs.readFileSync(this.path).toString();
             this.data = JSONbig.parse(file);
         } catch (e) {
-            // console.log(`${this.path} not found. Empty data`);
             this.data = {};
         }
     }
@@ -25,7 +24,7 @@ class Config {
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
         }
-        fs.writeFileSync(this.path, JSONbig.stringify(this.data, null, 4));
+        fs.writeFileSync(this.path, JSONbig.stringify(this.data, null, 4), { mode: 0o600 });
     }
 
     get(key) {

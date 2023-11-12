@@ -208,6 +208,7 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
     static guests(): string;
     static team(id: string, role?: string): string;
     static member(id: string): string;
+    static label(name: string): string;
   }
 
 {% for service in spec.services %}

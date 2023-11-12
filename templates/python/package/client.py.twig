@@ -160,7 +160,7 @@ class Client:
                 input_file.data = input[offset:end]
 
             params[param_name] = input_file
-            headers["content-range"] = f'bytes {offset}-{min((offset + self._chunk_size) - 1, size)}/{size}'
+            headers["content-range"] = f'bytes {offset}-{min((offset + self._chunk_size) - 1, size - 1)}/{size}'
 
             result = self.call(
                 'post',
@@ -175,7 +175,7 @@ class Client:
                 headers["x-{{ spec.title | caseLower }}-id"] = result["$id"]
 
             if on_progress is not None:
-                end = min((((counter * self._chunk_size) + self._chunk_size) - 1), size)
+                end = min((((counter * self._chunk_size) + self._chunk_size) - 1), size - 1)
                 on_progress({
                     "$id": result["$id"],
                     "progress": min(offset, size)/size * 100,

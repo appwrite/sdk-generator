@@ -93,6 +93,7 @@ abstract class Base extends TestCase
         'create("member:memberId")',
         'update("users/verified")',
         'update("user:userid/unverified")',
+        'create("label:admin")',
     ];
 
     protected const ID_HELPER_RESPONSES = [
@@ -105,11 +106,23 @@ abstract class Base extends TestCase
     protected array $build = [];
     protected string $command = '';
     protected array $expectedOutput = [];
+    protected string $sdkName;
+    protected string $sdkPlatform;
+    protected string $sdkLanguage;
+    protected string $version;
 
     public function setUp(): void
     {
         $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
         array_push($this->expectedOutput, $headers);
+
+        // Figure out if mock-server is running
+        $isMockAPIRunning = (strlen(exec('docker ps | grep mock-server')) > 0);
+
+        if (!$isMockAPIRunning) {
+            echo "Starting Mock API Server";
+            exec('cd ./mock-server && docker-compose up -d --force-recreate');
+        }
     }
 
     public function tearDown(): void

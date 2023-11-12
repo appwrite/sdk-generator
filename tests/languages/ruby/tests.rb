@@ -3,6 +3,7 @@ require_relative '../../sdks/ruby/lib/appwrite'
 include Appwrite
 
 client = Client.new
+client.set_self_signed(true)
 client.add_header('Origin', 'http://localhost')
 
 foo = Foo.new(client)
@@ -133,6 +134,7 @@ puts Permission.delete(Role.team('teamId'))
 puts Permission.create(Role.member('memberId'))
 puts Permission.update(Role.users('verified'))
 puts Permission.update(Role.user(ID.custom('userid'), 'unverified'))
+puts Permission.create(Role.label('admin'))
 
 # ID helper tests
 puts ID.unique()
