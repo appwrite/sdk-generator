@@ -33,7 +33,7 @@ class Query:
 
     @staticmethod
     def between(attribute, start, end):
-        return Query.add_query(attribute, "between", [start, end])
+        return f'between("{attribute}", {Query.parseValues(start)}, {Query.parseValues(end)})'
 
     @staticmethod
     def starts_with(attribute, value):
