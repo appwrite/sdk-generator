@@ -1134,6 +1134,27 @@
         }
       },
       "required": ["result"]
+    },
+    "appwriteException": {
+      "x-appwrite": {
+        "types": [
+          {
+            "code": 400,
+            "type": "general_mock",
+            "message": "General errors thrown by the mock controller used for testing."
+          },
+          {
+            "code": 409,
+            "type": "document_already_exists",
+            "message": "Document with the requested ID already exists. Try again with a different ID or use unique() to generate a unique ID."
+          },
+          {
+            "code": 404,
+            "type": "avatar_not_found",
+            "message": "The request avatar could not be found."
+          }
+        ]
+      }
     }
   },
   "externalDocs": {
