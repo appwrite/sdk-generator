@@ -1,6 +1,6 @@
 {% if spec.definitions.appwriteException.errorTypes|length > 0 %}
 const assert = require('assert');
-const ErrorType = require('../lib/exception.js');
+const { ErrorType } = require('../lib/exception.js');
 
 try {
 {% for error in spec.definitions.appwriteException.errorTypes %}

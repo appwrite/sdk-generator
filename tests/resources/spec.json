@@ -1136,6 +1136,30 @@
       "required": ["result"]
     },
     "appwriteException": {
+      "description": "Error Types",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Error message.",
+          "x-example": "Invalid id: Parameter must be a valid number"
+        },
+        "type": {
+          "type": "string",
+          "description": "Error type.",
+          "enum": [
+            "general_mock",
+            "general_argument_invalid"
+          ],
+          "x-example": "argument_invalid"
+        },
+        "code": {
+          "type": "integer",
+          "description": "Error code.",
+          "x-example": 400,
+          "format": "int32"
+        }
+      },
       "x-appwrite": {
         "types": [
           {
