@@ -9,6 +9,7 @@ class {{spec.title | caseUcfirst}} Exception(
     val response: String? = null
 ) : Exception(message)
 
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
 enum class ErrorType(val value: String) {
 {% for error in spec.definitions.appwriteException.errorTypes %}
     /**
@@ -17,3 +18,4 @@ enum class ErrorType(val value: String) {
     {{ error.type|title|replace({'_': ''}) }}("{{ error.type }}"),
 {% endfor %}
 }
+{% endif %}

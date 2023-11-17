@@ -1,3 +1,4 @@
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
 const assert = require('assert');
 const ErrorType = require('../lib/exception.js');
 
@@ -10,3 +11,4 @@ try {
 } catch (error) {
 	console.error('Test failed:', error);
 }
+{% endif %}

@@ -1,3 +1,4 @@
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
 use PHPUnit\Framework\TestCase;
 
 class TestErrorEnum extends TestCase {
@@ -8,3 +9,4 @@ class TestErrorEnum extends TestCase {
     {% endfor %}
 }
 }
+{% endif %}

@@ -1,3 +1,4 @@
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
 require 'test/unit'
 require_relative '../../../lib/{{ spec.title | caseSnake }}/exception' # Ensure this path is correct
 
@@ -9,3 +10,4 @@ class ErrorTypeTest < Test::Unit::TestCase
     {% endfor %}
     end
 end
+{% endif %}

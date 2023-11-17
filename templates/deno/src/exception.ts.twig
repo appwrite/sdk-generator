@@ -16,6 +16,7 @@ export class {{ spec.title | caseUcfirst}}Exception {
     }
 }
 
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
 export enum ErrorType {
 {% for error in spec.definitions.appwriteException.errorTypes %}
 	/**
@@ -24,3 +25,4 @@ export enum ErrorType {
     {{ error.type|title|replace({'_': ''}) }} = "{{ error.type }}",
 {% endfor %}
 }
+{% endif %}

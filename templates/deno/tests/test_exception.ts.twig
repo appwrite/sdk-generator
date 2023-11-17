@@ -1,4 +1,4 @@
-// Assuming errorType.ts contains your ErrorType enum
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
 import {assertEquals} from "https://deno.land/std/testing/asserts.ts";
 import {ErrorType} from "../src/exception.ts";
 
@@ -7,3 +7,4 @@ Deno.test("ErrorType values should match expected strings", () => {
 	assertEquals(ErrorType.{{ error.type|title|replace({'_': ''}) }}, '{{ error.type }}');
     {% endfor %}
 })
+{% endif %}

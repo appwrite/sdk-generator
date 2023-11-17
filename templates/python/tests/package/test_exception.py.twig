@@ -1,4 +1,5 @@
-from ...{{ spec.title | caseSnake}}.exception import ErrorType
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
+from ...{{ spec.title | caseSnake}}.exception import (ErrorType)
 import unittest
 
 
@@ -8,5 +9,4 @@ class TestErrorEnum(unittest.TestCase):
     {% for error in spec.definitions.appwriteException.errorTypes %}
     self.assertEqual(ErrorType.{{ error.type|title|replace({'_': ''}) }}.value, '{{ error.type }}')
     {% endfor %}
-
-
+{% endif %}
