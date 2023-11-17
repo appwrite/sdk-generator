@@ -602,6 +602,10 @@ class SDK
                     foreach ($this->spec->getDefinitions() as $key => $definition) {
                         $params['definition'] = $definition;
 
+                        if (strpos($definition['name'], "Exception")){
+                            continue;
+                        }
+
                         if ($this->exclude($file, $params)) {
                             continue;
                         }
