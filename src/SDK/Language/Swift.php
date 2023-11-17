@@ -286,6 +286,11 @@ class Swift extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Exception.swift',
+                'template'      => 'swift/Sources/Exception.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Tests/{{ spec.title | caseUcfirst}}Tests/TestException.swift',
                 'template'      => 'swift/Tests/TestException.swift.twig',
             ],

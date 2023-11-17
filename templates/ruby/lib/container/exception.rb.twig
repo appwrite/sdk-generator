@@ -11,7 +11,7 @@ module {{spec.title | caseUcfirst}}
             @response = response
         end
     end
-end
+
 
 {% if spec.definitions.appwriteException.errorTypes|length > 0 %}
 class ErrorType
@@ -21,3 +21,4 @@ class ErrorType
 {% endfor %}
 end
 {% endif %}
+end

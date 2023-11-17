@@ -3,5 +3,7 @@ library {{ language.params.packageName }}.models;
 
 part 'src/models/model.dart';
 {% for definition in spec.definitions %}
+{% if 'Exception' not in definition.name %}
 part 'src/models/{{definition.name | caseSnake}}.dart';
+{% endif %}
 {% endfor %}
