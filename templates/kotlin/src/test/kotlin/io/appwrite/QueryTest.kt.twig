@@ -129,19 +129,19 @@ class QueryTest {
 
     @Test
     fun betweenWithIntegers() = assertEquals(
-        "between(\"attr\", [1,2])",
+        "between(\"attr\", 1, 2)",
         Query.between("attr", 1, 2)
     )
 
     @Test
     fun betweenWithDoubles() = assertEquals(
-        "between(\"attr\", [1.0,2.0])",
+        "between(\"attr\", 1.0, 2.0)",
         Query.between("attr", 1.0, 2.0)
     )
 
     @Test
     fun betweenWithStrings() = assertEquals(
-        "between(\"attr\", [\"a\",\"z\"])",
+        "between(\"attr\", \"a\", \"z\")",
         Query.between("attr", "a", "z")
     )
 
