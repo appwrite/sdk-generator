@@ -1,0 +1,36 @@
+using NUnit.Framework;
+
+namespace Appwrite.Tests;
+
+public class PermissionTest
+{
+    [Test]
+    public void TestRead()
+    {
+        Assert.That(Permission.Read(Role.Any()), Is.EqualTo("read(\"any\")"));
+    }
+
+    [Test]
+    public void TestWrite()
+    {
+        Assert.That(Permission.Write(Role.Any()), Is.EqualTo("write(\"any\")"));
+    }
+
+    [Test]
+    public void TestCreate()
+    {
+        Assert.That(Permission.Create(Role.Any()), Is.EqualTo("create(\"any\")"));
+    }
+
+    [Test]
+    public void TestUpdate()
+    {
+        Assert.That(Permission.Update(Role.Any()), Is.EqualTo("update(\"any\")"));
+    }
+
+    [Test]
+    public void TestDelete()
+    {
+        Assert.That(Permission.Delete(Role.Any()), Is.EqualTo("delete(\"any\")"));
+    }
+}

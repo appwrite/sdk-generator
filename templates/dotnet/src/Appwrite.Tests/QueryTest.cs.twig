@@ -1,0 +1,193 @@
+using System.Collections.Generic;
+using System.Globalization;
+using NUnit.Framework;
+
+namespace Appwrite.Tests;
+
+class BasicFilterQueryTest
+{
+    public string Description { get; set; } = "";
+    public object Value { get; set; } = default!;
+    public string ExpectedValues { get; set; } = "";
+}
+
+public class QueryTest
+{
+    private readonly List<BasicFilterQueryTest> _tests = new()
+    {
+        new BasicFilterQueryTest
+        {
+            Description = "with a string",
+            Value = "s",
+            ExpectedValues = "[\"s\"]"
+        },
+        new BasicFilterQueryTest
+        {
+            Description = "with a integer",
+            Value = 1,
+            ExpectedValues = "[1]"
+        },
+        new BasicFilterQueryTest
+        {
+            Description = "with a double",
+            Value = 1.2,
+            ExpectedValues = "[1.2]"
+        },
+        new BasicFilterQueryTest
+        {
+            Description = "with a whole number double",
+            Value = 1.0,
+            ExpectedValues = "[1]"
+        },
+        new BasicFilterQueryTest
+        {
+            Description = "with a bool",
+            Value = false,
+            ExpectedValues = "[false]"
+        },
+        new BasicFilterQueryTest
+        {
+            Description = "with a list",
+            Value = new [] {"a", "b", "c"},
+            ExpectedValues = "[\"a\",\"b\",\"c\"]"
+        }
+    };
+
+    [SetUp]
+    public void Setup()
+    {
+        CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+    }
+
+    [Test]
+    public void TestEqual()
+    {
+        foreach (var test in _tests)
+        {
+            Assert.That(Query.Equal("attr", test.Value), Is.EqualTo($"equal(\"attr\", {test.ExpectedValues})"), test.Description);
+        }
+    }
+
+    [Test]
+    public void TestNotEqual()
+    {
+        foreach (var test in _tests)
+        {
+            Assert.That(Query.NotEqual("attr", test.Value), Is.EqualTo($"notEqual(\"attr\", {test.ExpectedValues})"), test.Description);
+        }
+    }
+
+    [Test]
+    public void TestLessThan()
+    {
+        foreach (var test in _tests)
+        {
+            Assert.That(Query.LessThan("attr", test.Value), Is.EqualTo($"lessThan(\"attr\", {test.ExpectedValues})"), test.Description);
+        }
+    }
+
+    [Test]
+    public void TestLessThanEqual()
+    {
+        foreach (var test in _tests)
+        {
+            Assert.That(Query.LessThanEqual("attr", test.Value), Is.EqualTo($"lessThanEqual(\"attr\", {test.ExpectedValues})"), test.Description);
+        }
+    }
+
+    [Test]
+    public void TestGreaterThan()
+    {
+        foreach (var test in _tests)
+        {
+            Assert.That(Query.GreaterThan("attr", test.Value), Is.EqualTo($"greaterThan(\"attr\", {test.ExpectedValues})"), test.Description);
+        }
+    }
+
+    [Test]
+    public void TestGreaterThanEqual()
+    {
+        foreach (var test in _tests)
+        {
+            Assert.That(Query.GreaterThanEqual("attr", test.Value), Is.EqualTo($"greaterThanEqual(\"attr\", {test.ExpectedValues})"), test.Description);
+        }
+    }
+
+    [Test]
+    public void TestSearch()
+    {
+        Assert.That(Query.Search("attr", "keyword1 keyword2"), Is.EqualTo("search(\"attr\", [\"keyword1 keyword2\"])"));
+    }
+
+    [Test]
+    public void TestIsNull()
+    {
+        Assert.That(Query.IsNull("attr"), Is.EqualTo("isNull(\"attr\")"));
+    }
+
+    [Test]
+    public void TestIsNotNull()
+    {
+        Assert.That(Query.IsNotNull("attr"), Is.EqualTo("isNotNull(\"attr\")"));
+    }
+
+    [Test]
+    public void TestBetweenWithIntegers()
+    {
+        Assert.That(Query.Between("attr", 1, 2), Is.EqualTo("between(\"attr\", 1, 2)"));
+    }
+
+    [Test]
+    public void TestBetweenWithDoubles()
+    {
+        Assert.That(Query.Between("attr", 1.2, 2.2), Is.EqualTo("between(\"attr\", 1.2, 2.2)"));
+    }
+
+    [Test]
+    public void TestBetweenWithStrings()
+    {
+        Assert.That(Query.Between("attr", "a", "z"), Is.EqualTo("between(\"attr\", \"a\", \"z\")"));
+    }
+
+    [Test]
+    public void TestSelect()
+    {
+        Assert.That(Query.Select(new List<string> {"attr1", "attr2"}), Is.EqualTo("select([\"attr1\",\"attr2\"])"));
+    }
+
+    [Test]
+    public void TestOrderAsc()
+    {
+        Assert.That(Query.OrderAsc("attr"), Is.EqualTo("orderAsc(\"attr\")"));
+    }
+
+    [Test]
+    public void TestOrderDesc()
+    {
+        Assert.That(Query.OrderDesc("attr"), Is.EqualTo("orderDesc(\"attr\")"));
+    }
+
+    [Test]
+    public void TestCursorBefore()
+    {
+        Assert.That(Query.CursorBefore("attr"), Is.EqualTo("cursorBefore(\"attr\")"));
+    }
+
+    [Test]
+    public void TestCursorAfter()
+    {
+        Assert.That(Query.CursorAfter("attr"), Is.EqualTo("cursorAfter(\"attr\")"));
+    }
+
+    [Test]
+    public void TestLimit()
+    {
+        Assert.That(Query.Limit(1), Is.EqualTo("limit(1)"));
+    }
+
+    [Test]
+    public void TestOffset()
+    {
+        Assert.That(Query.Offset(1), Is.EqualTo("offset(1)"));
+    }
+}

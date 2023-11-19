@@ -333,6 +333,11 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}.Tests/{{ spec.title | caseUcfirst }}.Tests.csproj',
+                'template'      => 'dotnet/src/Appwrite.Tests/Appwrite.Tests.csproj.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Client.cs',
                 'template'      => 'dotnet/src/Appwrite/Client.cs.twig',
             ],
@@ -348,8 +353,18 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}.Tests/IDTest.cs',
+                'template'      => 'dotnet/src/Appwrite.Tests/IDTest.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Permission.cs',
                 'template'      => 'dotnet/src/Appwrite/Permission.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}.Tests/PermissionTest.cs',
+                'template'      => 'dotnet/src/Appwrite.Tests/PermissionTest.cs.twig',
             ],
             [
                 'scope'         => 'default',
@@ -358,8 +373,18 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}.Tests/QueryTest.cs',
+                'template'      => 'dotnet/src/Appwrite.Tests/QueryTest.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Role.cs',
                 'template'      => 'dotnet/src/Appwrite/Role.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}.Tests/RoleTest.cs',
+                'template'      => 'dotnet/src/Appwrite.Tests/RoleTest.cs.twig',
             ],
             [
                 'scope'         => 'default',
@@ -392,9 +417,19 @@ class DotNet extends Language
                 'template'      => 'dotnet/src/Appwrite/Services/ServiceTemplate.cs.twig',
             ],
             [
+                'scope'         => 'service',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}.Tests/Services/{{service.name | caseUcfirst}}ServiceTest.cs',
+                'template'      => 'dotnet/src/Appwrite.Tests/Services/ServiceTest.cs.twig',
+            ],
+            [
                 'scope'         => 'definition',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/src/Appwrite/Models/Model.cs.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}.Tests/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}Test.cs',
+                'template'      => 'dotnet/src/Appwrite.Tests/Models/ModelTest.cs.twig',
             ]
         ];
     }

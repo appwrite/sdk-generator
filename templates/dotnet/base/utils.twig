@@ -14,3 +14,6 @@
 {% macro resultType(namespace, method) %}
 {% if method.type == "webAuth" %}bool{% elseif method.type == "location" %}byte[]{% elseif not method.responseModel or method.responseModel == 'any' %}object{% else %}Models.{{method.responseModel | caseUcfirst | overrideIdentifier }}{% endif %}
 {% endmacro %}
+{% macro sub_schema(property) %}
+{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>{% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier}}{% endif %}{% else %}{{property | typeName}}{% endif %}{% if not property.required %}?{% endif %}
+{% endmacro %}

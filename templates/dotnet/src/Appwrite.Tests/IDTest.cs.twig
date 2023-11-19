@@ -1,0 +1,18 @@
+using NUnit.Framework;
+
+namespace Appwrite.Tests;
+
+public class IDTest
+{
+    [Test]
+    public void TestUnique()
+    {
+        Assert.That(ID.Unique(), Is.EqualTo("unique()"));
+    }
+
+    [Test]
+    public void TestCustom()
+    {
+        Assert.That(ID.Custom("custom"), Is.EqualTo("custom"));
+    }
+}

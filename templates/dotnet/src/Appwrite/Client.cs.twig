@@ -165,7 +165,7 @@ namespace {{ spec.title | caseUcfirst }}
                             form.Add(new StringContent(list[index].ToString()!), $"{parameter.Key}[{index}]");
                         }
                     }
-                    else
+                    else if (parameter.Value is not null)
                     {
                         form.Add(new StringContent(parameter.Value.ToString()!), parameter.Key);
                     }
