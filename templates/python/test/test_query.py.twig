@@ -80,13 +80,13 @@ class TestQueryMethods(unittest.TestCase):
         self.assertEqual(Query.is_not_null('attr'), 'isNotNull("attr")')
 
     def test_between_with_integers(self):
-        self.assertEqual(Query.between('attr', 1, 2), 'between("attr", [1,2])')
+        self.assertEqual(Query.between('attr', 1, 2), 'between("attr", 1, 2)')
 
     def test_between_with_doubles(self):
-        self.assertEqual(Query.between('attr', 1.0, 2.0), 'between("attr", [1.0,2.0])')
+        self.assertEqual(Query.between('attr', 1.0, 2.0), 'between("attr", 1.0, 2.0)')
 
     def test_between_with_strings(self):
-        self.assertEqual(Query.between('attr', 'a', 'z'), 'between("attr", ["a","z"])')
+        self.assertEqual(Query.between('attr', 'a', 'z'), 'between("attr", "a" "z")')
 
     def test_select(self):
         self.assertEqual(Query.select(['attr1', 'attr2']), 'select(["attr1","attr2"])')
