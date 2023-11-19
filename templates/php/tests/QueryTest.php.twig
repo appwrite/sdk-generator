@@ -108,15 +108,15 @@ final class QueryTest extends TestCase {
     }
 
     public function testBetweenWithIntegers(): void {
-        $this->assertSame('between("attr", [1,2])', Query::between('attr', 1, 2));
+        $this->assertSame('between("attr", 1, 2)', Query::between('attr', 1, 2));
     }
 
     public function testBetweenWithDoubles(): void {
-        $this->assertSame('between("attr", [1,2])', Query::between('attr', 1.0, 2.0));
+        $this->assertSame('between("attr", 1, 2)', Query::between('attr', 1.0, 2.0));
     }
 
     public function testBetweenWithStrings(): void {
-        $this->assertSame('between("attr", ["a","z"])', Query::between('attr', 'a', 'z'));
+        $this->assertSame('between("attr", "a", "z")', Query::between('attr', 'a', 'z'));
     }
 
     public function testSelect(): void {
