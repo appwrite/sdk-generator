@@ -126,15 +126,15 @@ describe('Query', () => {
     describe('between', () => {
         test('with integers', () => assertEquals(
             Query.between('attr', 1, 2),
-            'between("attr", [1,2])'
+            'between("attr", 1, 2)'
         ));
         test('with doubles', () => assertEquals(
             Query.between('attr', 1.2, 2.2),
-            'between("attr", [1.2,2.2])'
+            'between("attr", 1.2, 2.2)'
         ));
         test('with strings', () => assertEquals(
             Query.between('attr', "a", "z"),
-            'between("attr", ["a","z"])'
+            'between("attr", "a", "z")'
         ));
     });
 
