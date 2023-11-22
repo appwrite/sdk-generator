@@ -12,8 +12,10 @@ require_relative '{{ spec.title | caseSnake }}/permission'
 require_relative '{{ spec.title | caseSnake }}/role'
 require_relative '{{ spec.title | caseSnake }}/id'
 
-{% for defintion in spec.definitions %}
-require_relative '{{ spec.title | caseSnake }}/models/{{ defintion.name | caseSnake }}'
+{% for definition in spec.definitions %}
+{% if 'Exception' not in definition.name %}
+require_relative '{{ spec.title | caseSnake }}/models/{{ definition.name | caseSnake }}'
+{% endif %}
 {% endfor %}
 
 {% for service in spec.services %}
