@@ -1,7 +1,8 @@
 {% if spec.definitions.appwriteException.errorTypes|length > 0 %}
 require 'test/unit'
-require_relative '../../../lib/{{ spec.title | caseSnake }}/exception' # Ensure this path is correct
+require_relative '../../../lib/{{ spec.title | caseSnake }}/exception'
 
+module {{spec.title | caseUcfirst}}
 class ErrorTypeTest < Test::Unit::TestCase
 
     def test_error_type_values
@@ -9,5 +10,7 @@ class ErrorTypeTest < Test::Unit::TestCase
     assert_equal('{{ error.type }}', ErrorType::{{ error.type|title|replace({'_': ''}) }})
     {% endfor %}
     end
+    end
 end
+
 {% endif %}
