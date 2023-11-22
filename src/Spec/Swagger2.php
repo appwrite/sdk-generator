@@ -341,7 +341,6 @@ class Swagger2 extends Spec
             if (isset($sch['errorTypes'])) {
                 $types = [];
                 foreach ($sch['errorTypes'] as $type) {
-
                     $types[] = [
                         'code' => $type['code'],
                         'type' => $type['type'],
