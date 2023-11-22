@@ -5,7 +5,7 @@ import XCTest
 class ErrorTypeTests: XCTestCase {
     func testErrorTypeValues() {
     {% for error in spec.definitions.appwriteException.errorTypes %}
-    XCTAssertEqual(ErrorType.{{ error.type|title|replace({'_': ''}) }}.rawValue, "{{ error.type }}")
+    XCTAssertEqual(ErrorType.{{ error.type | caseCamel }}.rawValue, "{{ error.type }}")
     {% endfor %}
 }
 }
