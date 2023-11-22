@@ -71,6 +71,21 @@ class Client {
     }
 
     /**
+     * Set Session
+     *
+     * Set the session for the current user.
+     * 
+     * @param {string} encodedSession
+     *
+     * @returns {this}
+     */
+    setSession(encodedSession: string) {
+        this.headers['x-fallback-cookies'] = JSON.stringify({ [`a_session_${this.config.project}`]: encodedSession });
+
+        return this;
+    }
+
+    /**
      * @param {string} key
      * @param {string} value
      */
