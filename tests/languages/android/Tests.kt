@@ -152,11 +152,11 @@ class ServiceTest {
             delay(5000)
             writeToFile(realtimeResponse)
 
-            mock = general.setCookie()
-            writeToFile(mock.result)
+            // mock = general.setCookie()
+            // writeToFile(mock.result)
 
-            mock = general.getCookie()
-            writeToFile(mock.result)
+            // mock = general.getCookie()
+            // writeToFile(mock.result)
 
             general.empty()
 

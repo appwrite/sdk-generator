@@ -276,7 +276,7 @@ class ClientIO extends ClientBase with ClientMixin {
     while (offset < size) {
       List<int> chunk = [];
       if (file.bytes != null) {
-        final end = min(offset + CHUNK_SIZE - 1, size - 1);
+        final end = min(offset + CHUNK_SIZE, size);
         chunk = file.bytes!.getRange(offset, end).toList();
       } else {
         raf!.setPositionSync(offset);
@@ -314,7 +314,9 @@ class ClientIO extends ClientBase with ClientMixin {
       callbackUrlScheme: callbackUrlScheme != null && _customSchemeAllowed
           ? callbackUrlScheme
           : "{{spec.title | caseLower}}-callback-" + config['project']!,
-      preferEphemeral: true,
+      options: const FlutterWebAuth2Options(
+        intentFlags: ephemeralIntentFlags,
+      ),
     ).then((value) async {
       Uri url = Uri.parse(value);
       final key = url.queryParameters['key'];
