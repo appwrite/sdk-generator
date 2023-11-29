@@ -1,8 +1,0 @@
-{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
-enum ErrorType {
-{% for error in spec.definitions.appwriteException.errorTypes %}
-  /// {{ error.message }}
-  {{ error.type|title|replace({'_': ''}) }},
-{% endfor %}
-}
-{% endif %}

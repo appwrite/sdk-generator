@@ -330,11 +330,6 @@ class Flutter extends Dart
                 'destination'   => '.travis.yml',
                 'template'      => 'flutter/.travis.yml.twig',
             ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/test/src/exception_test.dart',
-                'template'      => 'flutter/test/src/exception_test.dart.twig',
-            ],
         ];
     }
 }
