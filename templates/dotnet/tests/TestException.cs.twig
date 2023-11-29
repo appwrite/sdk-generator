@@ -1,0 +1,16 @@
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using {{spec.title | caseUcfirst}};
+
+[TestClass]
+public class TestException
+{
+    [TestMethod]
+    public void TestEnumValues()
+    {
+    {% for error in spec.definitions.appwriteException.errorTypes %}
+    Assert.AreEqual(ErrorType.{{ error.type|title|replace({'_': ''}) }}, "{{ error.type }}");
+    {% endfor %}
+}
+}
+{% endif %}

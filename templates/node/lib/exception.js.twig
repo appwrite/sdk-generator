@@ -7,4 +7,20 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
   }
 }
 
-module.exports = {{spec.title | caseUcfirst}}Exception;
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
+const ErrorType = {
+{% for error in spec.definitions.appwriteException.errorTypes %}
+  /**
+   * {{ error.message }}
+   */
+  {{ error.type|title|replace({'_': ''}) }}: "{{ error.type }}",
+{% endfor %}
+}
+{% endif %}
+
+module.exports = {
+  {{spec.title | caseUcfirst}}Exception,
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
+  ErrorType
+{% endif %}
+};

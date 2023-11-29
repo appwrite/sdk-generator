@@ -1,0 +1,12 @@
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
+import XCTest
+@testable import {{spec.title | caseUcfirst}}
+
+class ErrorTypeTests: XCTestCase {
+    func testErrorTypeValues() {
+    {% for error in spec.definitions.appwriteException.errorTypes %}
+    XCTAssertEqual(ErrorType.{{ error.type | caseCamel }}.rawValue, "{{ error.type }}")
+    {% endfor %}
+}
+}
+{% endif %}

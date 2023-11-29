@@ -18,4 +18,12 @@ void main() {
       expect(exception3.toString(), equals('{{spec.title | caseUcfirst}}Exception: ValidationError, Invalid request (400)'));
     });
   });
+
+  group('ErrorType Enum Test', () {
+  {% for key, value in testData.enumData %}
+  test('ErrorType.{{ key }} should have correct value', () {
+      expect(ErrorType.{{ error.type|title|replace({'_': ''}) }}.toString(), equals('ErrorType.{{ error.type }}'));
+    });
+  {% endfor %}
+  });
 }

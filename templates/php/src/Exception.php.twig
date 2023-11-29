@@ -44,3 +44,14 @@ class {{spec.title | caseUcfirst}}Exception extends Exception {
       return $this->response;
   }
 }
+
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
+class ErrorType {
+{% for error in spec.definitions.appwriteException.errorTypes %}
+    /**
+    * {{ error.message }}
+    */
+    const {{ error.type|title|replace({'_': ''}) }} = '{{ error.type }}';
+{% endfor %}
+}
+{% endif %}

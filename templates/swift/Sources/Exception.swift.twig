@@ -1,0 +1,8 @@
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
+enum ErrorType: String {
+{% for error in spec.definitions.appwriteException.errorTypes %}
+    /// {{ error.message }}
+    case {{ error.type | caseCamel }} = "{{ error.type }}"
+{% endfor %}
+}
+{% endif %}

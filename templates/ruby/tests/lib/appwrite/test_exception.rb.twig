@@ -1,0 +1,16 @@
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
+require 'test/unit'
+require_relative '../../../lib/{{ spec.title | caseSnake }}/exception'
+
+module {{spec.title | caseUcfirst}}
+class ErrorTypeTest < Test::Unit::TestCase
+
+    def test_error_type_values
+    {% for error in spec.definitions.appwriteException.errorTypes %}
+    assert_equal('{{ error.type }}', ErrorType::{{ error.type|title|replace({'_': ''}) }})
+    {% endfor %}
+    end
+    end
+end
+
+{% endif %}

@@ -555,7 +555,7 @@ class SDK
                 'name' => $this->language->getName(),
                 'params' => $this->language->getParams(),
             ],
-            'sdk' => $this->getParams(),
+            'sdk' => $this->getParams()
         ];
 
         foreach ($this->language->getFiles() as $file) {
@@ -601,6 +601,10 @@ class SDK
                 case 'definition':
                     foreach ($this->spec->getDefinitions() as $key => $definition) {
                         $params['definition'] = $definition;
+
+                        if (strpos($definition['name'], "Exception")) {
+                            continue;
+                        }
 
                         if ($this->exclude($file, $params)) {
                             continue;

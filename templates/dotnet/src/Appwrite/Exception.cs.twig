@@ -23,5 +23,15 @@ namespace {{spec.title | caseUcfirst}}
         {
         }
     }
-}
 
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
+    public enum ErrorType {
+    {% for error in spec.definitions.appwriteException.errorTypes %}
+        /// <summary>
+        /// {{ error.message }}
+        /// </summary>
+        {{ error.type|title|replace({'_': ''}) }},
+    {% endfor %}
+    }
+}
+{% endif %}

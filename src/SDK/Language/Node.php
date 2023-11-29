@@ -126,6 +126,11 @@ class Node extends JS
                 'destination'   => '.travis.yml',
                 'template'      => 'node/.travis.yml.twig',
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/tests/test_exception.js',
+                'template'      => 'node/tests/test_exception.js.twig',
+            ],
         ];
     }
 

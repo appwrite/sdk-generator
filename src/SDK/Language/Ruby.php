@@ -182,6 +182,11 @@ class Ruby extends Language
                 'destination'   => '/lib/{{ spec.title | caseDash }}/models/{{ definition.name | caseSnake }}.rb',
                 'template'      => 'ruby/lib/container/models/model.rb.twig',
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/lib/{{ spec.title | caseDash }}/test_exception.rb',
+                'template'      => 'ruby/tests/lib/appwrite/test_exception.rb.twig',
+            ],
         ];
     }
 

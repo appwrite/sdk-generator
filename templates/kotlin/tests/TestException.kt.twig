@@ -1,0 +1,17 @@
+{% if spec.definitions.appwriteException.errorTypes|length > 0 %}
+package tests
+
+import {{ sdk.namespace | caseDot }}.exceptions.ErrorType
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
+
+class TestException {
+
+    @Test
+    fun testEnumValues() {
+    {% for error in spec.definitions.appwriteException.errorTypes %}
+    assertEquals(ErrorType.{{ error.type|title|replace({'_': ''}) }}.value), "{{ error.type }}")
+    {% endfor %}
+}
+}
+{% endif %}
