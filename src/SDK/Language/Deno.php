@@ -112,8 +112,8 @@ class Deno extends JS
             case self::TYPE_BOOLEAN:
                 return 'boolean';
             case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    return $this->getTypeName($parameter['array']) . '[]';
+                if (!empty($parameter['items']['type'])) {
+                    return $this->getTypeName($parameter['items']) . '[]';
                 }
                 return 'string[]';
             case self::TYPE_OBJECT:

@@ -117,8 +117,8 @@ class Kotlin extends Language
             case self::TYPE_BOOLEAN:
                 return 'Boolean';
             case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    return 'List<' . $this->getTypeName($parameter['array']) . '>';
+                if (!empty($parameter['items']['type'])) {
+                    return 'List<' . $this->getTypeName($parameter['items']) . '>';
                 }
                 return 'List<Any>';
             case self::TYPE_OBJECT:

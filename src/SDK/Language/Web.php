@@ -179,8 +179,8 @@ class Web extends JS
             case self::TYPE_NUMBER:
                 return 'number';
             case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    return $this->getTypeName($parameter['array']) . '[]';
+                if (!empty($parameter['items']['type'])) {
+                    return $this->getTypeName($parameter['items']) . '[]';
                 }
                 return 'string[]';
             case self::TYPE_FILE:
