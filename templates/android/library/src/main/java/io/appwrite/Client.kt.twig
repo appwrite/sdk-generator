@@ -189,6 +189,18 @@ class Client @JvmOverloads constructor(
     }
 
     /**
+     * Set the user session.
+     * 
+     * @param session
+     * @return this
+     */
+    fun setSession(encodedSession: String): Client {
+        //this.addHeader()
+
+        return this
+    }
+
+    /**
     * Set realtime endpoint
     *
     * @param endpoint

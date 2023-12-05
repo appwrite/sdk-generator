@@ -91,6 +91,17 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
     setEndpoint(endpoint: string): Client;
 
     /**
+     * Set Session
+     *
+     * Set the session for the current user.
+     * 
+     * @param {string} encodedSession
+     *
+     * @returns {this}
+     */
+    setSession(encodedSession: string): Client;
+
+    /**
      * Set self signed.
      *
      * @param {bool} status

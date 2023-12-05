@@ -61,7 +61,7 @@ class Client {
      *
      * @param {string} endpoint
      *
-     * @return this
+     * @return {this}
      */
     setEndpoint(endpoint)
     {
@@ -79,7 +79,7 @@ class Client {
      *
      * @returns {this}
      */
-    setSession(encodedSession: string) {
+    setSession(encodedSession) {
         this.headers['x-fallback-cookies'] = JSON.stringify({ [`a_session_${this.config.project}`]: encodedSession });
 
         return this;
