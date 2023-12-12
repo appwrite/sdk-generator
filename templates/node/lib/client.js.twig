@@ -61,26 +61,11 @@ class Client {
      *
      * @param {string} endpoint
      *
-     * @return {this}
+     * @return this
      */
     setEndpoint(endpoint)
     {
         this.endpoint = endpoint;
-
-        return this;
-    }
-
-    /**
-     * Set Session
-     *
-     * Set the session for the current user.
-     * 
-     * @param {string} encodedSession
-     *
-     * @returns {this}
-     */
-    setSession(encodedSession) {
-        this.headers['x-fallback-cookies'] = JSON.stringify({ [`a_session_${this.config.project}`]: encodedSession });
 
         return this;
     }
