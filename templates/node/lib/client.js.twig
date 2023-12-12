@@ -1,6 +1,6 @@
 const os = require('os');
 const URL = require('url').URL;
-const axios = require('axios');
+const {fetch} = require('undici');
 const FormData = require('form-data');
 const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
 
@@ -92,7 +92,7 @@ class Client {
 
         let formData = null;
 
-        // Compute FormData for axios and appwrite.
+        // Compute FormData
         if (contentType.startsWith('multipart/form-data')) {
             const form = new FormData();
             
@@ -116,32 +116,45 @@ class Client {
             formData = form;
         }
 
-        let options = {
-            method: method.toUpperCase(),
-            url: this.endpoint + path,
-            params: (method.toUpperCase() === 'GET') ? params : {},
-            headers: headers,
-            data: (method.toUpperCase() === 'GET' || contentType.startsWith('multipart/form-data')) ? formData : params,
-            json: (contentType.startsWith('application/json')),
-            responseType: responseType
-        };
+        const url = this.endpoint + path;
+        const isGetMethod = method.toUpperCase() === "GET";
+        const isJson = contentType.startsWith("application/json");
+        const isMultipart = contentType.startsWith("multipart/form-data");
+    
+        let body = null;
+        if (!isGetMethod && !isMultipart) {
+          body = isJson ? JSON.stringify(params) : params;
+        } else if (!isGetMethod && isMultipart) {
+          body = formData;
+        }
+    
         try {
-            let response = await axios(options);
-            return response.data;
-        } catch(error) {
-            if('response' in error && error.response !== undefined) {
-                if(error.response && 'data' in error.response) {
-                    if (typeof(error.response.data) === 'string') {
-                        throw new {{spec.title | caseUcfirst}}Exception(error.response.data, error.response.status, '', error.response.data);
-                    } else {
-                        throw new {{spec.title | caseUcfirst}}Exception(error.response.data.message, error.response.status, error.response.data.type, error.response.data);
-                    }
-                } else {
-                    throw new {{spec.title | caseUcfirst}}Exception(error.response.statusText, error.response.status, error.response.data);
-                }
-            } else {
-                throw new {{spec.title | caseUcfirst}}Exception(error.message);
-            }
+          const response = await fetch(url, {
+            method: method.toUpperCase(),
+            headers: headers,
+            body: body,
+          });
+    
+          let data;
+          if (responseType === "json") {
+            data = await response.json();
+          } else {
+            data = await response.text();
+          }
+    
+          return data;
+        } catch (error) {
+          if (error.response) {
+            const errorData = await error.response.json();
+            throw new {{spec.title | caseUcfirst}}Exception(
+              errorData.message,
+              error.response.status,
+              errorData.type,
+              errorData
+            );
+          } else {
+            throw new {{spec.title | caseUcfirst}}Exception(error.message);
+          }
         }
     }
 
