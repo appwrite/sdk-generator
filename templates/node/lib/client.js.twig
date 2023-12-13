@@ -1,7 +1,6 @@
 const os = require('os');
 const URL = require('url').URL;
-const {fetch} = require('undici');
-const FormData = require('form-data');
+const {fetch, FormData} = require('undici');
 const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
 
 class Client {
@@ -71,8 +70,12 @@ class Client {
     }
 
     /**
+     * Sets a header for requests.
+     * 
      * @param {string} key
      * @param {string} value
+     * 
+     * @return this
      */
     addHeader(key, value) {
         this.headers[key.toLowerCase()] = value;
@@ -116,7 +119,7 @@ class Client {
             formData = form;
         }
 
-        const url = this.endpoint + path;
+        const url = new URL(path, this.endpoint).toString();
         const isGetMethod = method.toUpperCase() === "GET";
         const isJson = contentType.startsWith("application/json");
         const isMultipart = contentType.startsWith("multipart/form-data");
