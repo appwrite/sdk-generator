@@ -97,7 +97,7 @@ class Client {
     let body = undefined;
 
     if (method.toUpperCase() === "GET") {
-      url.search = new URLSearchParams(this.flatten(params)).toString();
+      url.search = new URLSearchParams(Client.flatten(params)).toString();
     } else if (headers["content-type"]?.toLowerCase().startsWith("multipart/form-data")) {
       delete headers["content-type"];
       const formData = new FormData();
