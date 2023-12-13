@@ -61,66 +61,66 @@ export class Client {
         return this;
     }
 
-    withoutHeader(key: string, headers: Payload): Payload {
-        return Object.keys(headers).reduce((acc: Payload, cv: string) => {
-            if (cv === 'content-type') return acc;
-            acc[cv] = headers[cv];
-            return acc;
-        }, {})
-    }
+    async call(method: string, path: string = "", headers: Payload = {}, params: Payload = {}) {
+        const url = new URL(path, this.endpoint);
 
-    async call(method: string, path: string = '', headers: Payload = {}, params: Payload = {}) {
-        headers = Object.assign({}, this.headers, headers);
+        let body: string | FormData | undefined = undefined;
 
-        let body;
-        const url = new URL(this.endpoint + path);
-        if (method.toUpperCase() === 'GET') {
+        if (method.toUpperCase() === "GET") {
             url.search = new URLSearchParams(this.flatten(params)).toString();
-            body = null;
-        } else if (headers['content-type'].toLowerCase().startsWith('multipart/form-data')) {
-            headers = this.withoutHeader('content-type', headers);
+        } else if (headers["content-type"]?.toLowerCase().startsWith("multipart/form-data")) {
+            delete headers["content-type"];
             const formData = new FormData();
-            const flatParams = this.flatten(params);
-            for (const key in flatParams) {
-                const value = flatParams[key];
 
-                if(value && value.type && value.type === 'file') {
+            const flatParams = this.flatten(params);
+
+            for (const [key, value] of flatParams.entries()) {
+                if (value && value.type && value.type === "file") {
                     formData.append(key, value.file, value.filename);
                 } else {
-                    formData.append(key, flatParams[key]);
+                    formData.append(key, value);
                 }
             }
+
             body = formData;
         } else {
             body = JSON.stringify(params);
         }
 
-        const options = {
-            method: method.toUpperCase(),
-            headers: headers,
-            body: body,
-        };
-
         try {
-            let response = await fetch(url.toString(), options);
-            const contentType = response.headers.get('content-type');
+            const response = await fetch(url.toString(), {
+                method,
+                headers,
+                body,
+            });
+            const contentType = response.headers.get("content-type");
 
-            if (contentType && contentType.includes('application/json')) {
+            if (contentType && contentType.includes("application/json")) {
                 if (response.status >= 400) {
-                    let res = await response.json();
-                    throw new {{ spec.title | caseUcfirst}}Exception(res.message, res.status, res.type ?? "", res);
+                    const json = await response.json();
+                    throw new {{ spec.title | caseUcfirst}}Exception(
+                        json.message,
+                        json.status,
+                        json.type ?? "",
+                        json
+                    );
                 }
 
                 return response.json();
             } else {
                 if (response.status >= 400) {
-                    let res = await response.text();
-                    throw new {{ spec.title | caseUcfirst}}Exception(res, response.status, "", null);
+                    const text = await response.text();
+                    throw new {{ spec.title | caseUcfirst}}Exception(text, response.status, "", null);
                 }
                 return response;
             }
-        } catch(error) {
-            throw new {{ spec.title | caseUcfirst}}Exception(error?.response?.message || error.message, error?.response?.code, error?.response?.type, error.response);
+        } catch (error) {
+            throw new {{ spec.title | caseUcfirst}}Exception(
+                error?.response?.message || error.message,
+                error?.response?.code,
+                error?.response?.type,
+                error.response
+            );
         }
     }
 

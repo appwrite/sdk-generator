@@ -1,6 +1,6 @@
 const os = require('os');
 const URL = require('url').URL;
-const {fetch, FormData} = require('undici');
+const {fetch, FormData, Agent} = require('undici');
 const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
 
 class Client {
@@ -83,81 +83,71 @@ class Client {
         return this;
     }
       
-    async call(method, path = '', headers = {}, params = {}, responseType = 'json') {
-        if(this.selfSigned) { // Allow self signed requests
-            process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
-        }
+    async call(method, path = "", headers = {}, params = {}) {
+        const url = new URL(path, this.endpoint);
 
+        let body = undefined;
 
-        headers = Object.assign({}, this.headers, headers);
+        if (method.toUpperCase() === "GET") {
+            url.search = new URLSearchParams(this.flatten(params)).toString();
+        } else if (headers["content-type"]?.toLowerCase().startsWith("multipart/form-data")) {
+            delete headers["content-type"];
+            const formData = new FormData();
 
-        let contentType = headers['content-type'].toLowerCase();
+            const flatParams = this.flatten(params);
 
-        let formData = null;
-
-        // Compute FormData
-        if (contentType.startsWith('multipart/form-data')) {
-            const form = new FormData();
-            
-            let flatParams = Client.flatten(params);
-            
-            for (const key in flatParams) {
-                const value = flatParams[key];
-
-                if(value && value.type && value.type === 'file') {
-                    form.append(key, value.file, { filename: value.filename });
+            for (const [key, value] of flatParams.entries()) {
+                if (value && value.type && value.type === "file") {
+                    formData.append(key, value.file, value.filename);
                 } else {
-                    form.append(key, flatParams[key]);
+                    formData.append(key, value);
                 }
             }
 
-            headers = {
-                ...headers,
-                ...form.getHeaders()
-            };
-
-            formData = form;
+            body = formData;
+        } else {
+            body = JSON.stringify(params);
         }
 
-        const url = new URL(path, this.endpoint).toString();
-        const isGetMethod = method.toUpperCase() === "GET";
-        const isJson = contentType.startsWith("application/json");
-        const isMultipart = contentType.startsWith("multipart/form-data");
-    
-        let body = null;
-        if (!isGetMethod && !isMultipart) {
-          body = isJson ? JSON.stringify(params) : params;
-        } else if (!isGetMethod && isMultipart) {
-          body = formData;
-        }
-    
         try {
-          const response = await fetch(url, {
-            method: method.toUpperCase(),
-            headers: headers,
-            body: body,
-          });
-    
-          let data;
-          if (responseType === "json") {
-            data = await response.json();
-          } else {
-            data = await response.text();
-          }
-    
-          return data;
+            const response = await fetch(url.toString(), {
+                method,
+                headers,
+                body,
+                dispatcher: new Agent({
+                    connect: {
+                        rejectUnauthorized: !this.selfSigned,
+                    },
+                })
+            });
+            const contentType = response.headers.get("content-type");
+
+            if (contentType && contentType.includes("application/json")) {
+                if (response.status >= 400) {
+                    const json = await response.json();
+                    throw new {{ spec.title | caseUcfirst}}Exception(
+                        json.message,
+                        json.status,
+                        json.type ?? "",
+                        json
+                    );
+                }
+
+                return response.json();
+            } else {
+                if (response.status >= 400) {
+                    const text = await response.text();
+                    throw new {{ spec.title | caseUcfirst}}Exception(text, response.status, "", null);
+                }
+                return response;
+            }
         } catch (error) {
-          if (error.response) {
-            const errorData = await error.response.json();
-            throw new {{spec.title | caseUcfirst}}Exception(
-              errorData.message,
-              error.response.status,
-              errorData.type,
-              errorData
+            throw new {{ spec.title | caseUcfirst}}Exception(
+                error?.response?.message || error.message,
+                error?.response?.code,
+                error?.response?.type,
+                error.response
             );
-          } else {
-            throw new {{spec.title | caseUcfirst}}Exception(error.message);
-          }
         }
     }
 

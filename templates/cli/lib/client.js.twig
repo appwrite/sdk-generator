@@ -1,10 +1,6 @@
 const os = require('os');
-const https = require("https");
-const axios = require("axios");
-const JSONbig = require("json-bigint")({ storeAsString: false });
-const FormData = require("form-data");
+const {fetch, FormData, Agent} = require("undici");
 const {{spec.title | caseUcfirst}}Exception = require("./exception.js");
-const { globalConfig } = require("./config.js");
 
 class Client {
   static CHUNK_SIZE = 5*1024*1024; // 5MB
@@ -94,84 +90,71 @@ class Client {
     return this;
   }
 
-  async call(
-    method,
-    path = "",
-    headers = {},
-    params = {},
-    responseType = "json"
-  ) {
-    headers = Object.assign({}, this.headers, headers);
+  async call(method, path = "", headers = {}, params = {}) {
+    const url = new URL(path, this.endpoint);
 
-    let contentType = headers["content-type"].toLowerCase();
+    let body = undefined;
 
-    let formData = null;
+    if (method.toUpperCase() === "GET") {
+      url.search = new URLSearchParams(this.flatten(params)).toString();
+    } else if (headers["content-type"]?.toLowerCase().startsWith("multipart/form-data")) {
+      delete headers["content-type"];
+      const formData = new FormData();
 
-    if (contentType.startsWith("multipart/form-data")) {
-      const form = new FormData();
+      const flatParams = this.flatten(params);
 
-      let flatParams = Client.flatten(params);
-
-      for (const key in flatParams) {
-        form.append(key, flatParams[key]);
-      }
-
-      headers = {
-        ...headers,
-        ...form.getHeaders(),
-      };
-
-      formData = form;
-    }
-
-    let options = {
-      method: method.toUpperCase(),
-      url: this.endpoint + path,
-      params: method.toUpperCase() === "GET" ? params : {},
-      headers: headers,
-      data:
-        method.toUpperCase() === "GET" || contentType.startsWith("multipart/form-data") ? formData : params,
-      json: contentType.startsWith("application/json"),
-      transformRequest: method.toUpperCase() === "GET" || contentType.startsWith("multipart/form-data") ? undefined : (data) =>  JSONbig.stringify(data),
-      transformResponse: [ (data) =>  data ? JSONbig.parse(data) : data ],
-      responseType: responseType,
-    };
-    if (this.selfSigned == true) {
-      // Allow self signed requests
-      options.httpsAgent = new https.Agent({ rejectUnauthorized: false });
-    }
-    try {
-      let response = await axios(options);
-      if (response.headers["set-cookie"]) {
-        globalConfig.setCookie(response.headers["set-cookie"][0]);
-      }
-      return response.data;
-    } catch (error) {
-      if ("response" in error && error.response !== undefined) {
-        if (error.response && "data" in error.response) {
-          if (typeof error.response.data === "string") {
-            throw new {{spec.title | caseUcfirst}}Exception(
-              error.response.data,
-              error.response.status,
-              error.response.data
-            );
-          } else {
-            throw new {{spec.title | caseUcfirst}}Exception(
-              error.response.data.message,
-              error.response.status,
-              error.response.data
-            );
-          }
+      for (const [key, value] of flatParams.entries()) {
+        if (value && value.type && value.type === "file") {
+          formData.append(key, value.file, value.filename);
         } else {
-          throw new {{spec.title | caseUcfirst}}Exception(
-            error.response.statusText,
-            error.response.status,
-            error.response.data
+          formData.append(key, value);
+        }
+      }
+
+      body = formData;
+    } else {
+      body = JSON.stringify(params);
+    }
+
+    try {
+      const response = await fetch(url.toString(), {
+        method,
+        headers,
+        body,
+        dispatcher: new Agent({
+          connect: {
+            rejectUnauthorized: !this.selfSigned,
+          },
+        })
+      });
+      const contentType = response.headers.get("content-type");
+
+      if (contentType && contentType.includes("application/json")) {
+        if (response.status >= 400) {
+          const json = await response.json();
+          throw new {{ spec.title | caseUcfirst}}Exception(
+            json.message,
+            json.status,
+            json.type ?? "",
+            json
           );
         }
+
+        return response.json();
       } else {
-        throw new {{spec.title | caseUcfirst}}Exception(error.message);
+        if (response.status >= 400) {
+          const text = await response.text();
+          throw new {{ spec.title | caseUcfirst}}Exception(text, response.status, "", null);
+        }
+        return response;
       }
+    } catch (error) {
+      throw new {{ spec.title | caseUcfirst}}Exception(
+          error?.response?.message || error.message,
+          error?.response?.code,
+          error?.response?.type,
+          error.response
+      );
     }
   }
 

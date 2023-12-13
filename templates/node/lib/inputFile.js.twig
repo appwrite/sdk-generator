@@ -18,11 +18,12 @@ class InputFile {
     return new InputFile(stream, filename, size);
   };
 
-  static fromBlob = async (blob, filename) => {
+  static fromBlob = async (blob: Blob, filename: string) => {
     const arrayBuffer = await blob.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     return InputFile.fromBuffer(buffer, filename);
   };
+
 
   static fromStream = (stream, filename, size) => {
     return new InputFile(stream, filename, size);
