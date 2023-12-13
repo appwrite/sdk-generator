@@ -21,7 +21,7 @@ export class InputFile {
 
     static fromBlob = async (blob: Blob, filename: string) => {
         const arrayBuffer = await blob.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        const buffer = new Uint8Array(arrayBuffer);
         return InputFile.fromBuffer(buffer, filename);
     };
 
