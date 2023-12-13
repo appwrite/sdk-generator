@@ -73,7 +73,7 @@ export class Client {
             delete headers["content-type"];
             const formData = new FormData();
 
-            const flatParams = this.flatten(params);
+            const flatParams = Client.flatten(params);
 
             for (const [key, value] of flatParams.entries()) {
                 if (value && value.type && value.type === "file") {
@@ -125,7 +125,7 @@ export class Client {
         }
     }
 
-    flatten(data: Payload, prefix = '') {
+    static flatten(data: Payload, prefix = '') {
         let output: Payload = {};
 
         for (const key in data) {
