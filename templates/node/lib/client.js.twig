@@ -84,6 +84,7 @@ class Client {
     }
       
     async call(method, path = "", headers = {}, params = {}) {
+        headers = {...this.headers, ...headers};
         const url = new URL(path, this.endpoint);
 
         let body = undefined;

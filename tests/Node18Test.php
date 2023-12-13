@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class Node16Test extends Base
+class Node18Test extends Base
 {
     protected string $sdkName = 'node.js';
     protected string $sdkPlatform = 'server';
@@ -15,7 +15,7 @@ class Node16Test extends Base
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:18-alpine npm install',
     ];
     protected string $command =
-    'docker run --network="mockapi" --rm -v $(pwd):/app -w /app node:16-alpine node tests/languages/node/test.js';
+    'docker run --network="mockapi" --rm -v $(pwd):/app -w /app node:18-alpine node tests/languages/node/test.js';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

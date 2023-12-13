@@ -62,6 +62,7 @@ export class Client {
     }
 
     async call(method: string, path: string = "", headers: Payload = {}, params: Payload = {}) {
+        headers = {...this.headers, ...headers};
         const url = new URL(path, this.endpoint);
 
         let body: string | FormData | undefined = undefined;
