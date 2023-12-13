@@ -69,9 +69,9 @@ abstract class Base extends TestCase
         'search("name", ["john"])',
         'isNull("name")',
         'isNotNull("name")',
-        'between("age", [50,100])',
-        'between("age", [50.5,100.5])',
-        'between("name", ["Anna","Brad"])',
+        'between("age", 50, 100)',
+        'between("age", 50.5, 100.5)',
+        'between("name", "Anna", "Brad")',
         'startsWith("name", ["Ann"])',
         'endsWith("name", ["nne"])',
         'select(["name","age"])',
@@ -115,6 +115,14 @@ abstract class Base extends TestCase
     {
         $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
         array_push($this->expectedOutput, $headers);
+
+        // Figure out if mock-server is running
+        $isMockAPIRunning = (strlen(exec('docker ps | grep mock-server')) > 0);
+
+        if (!$isMockAPIRunning) {
+            echo "Starting Mock API Server";
+            exec('cd ./mock-server && docker-compose up -d --force-recreate');
+        }
     }
 
     public function tearDown(): void
