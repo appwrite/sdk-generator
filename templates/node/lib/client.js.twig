@@ -85,7 +85,7 @@ class Client {
       
     async call(method, path = "", headers = {}, params = {}) {
         headers = {...this.headers, ...headers};
-        const url = new URL(path, this.endpoint);
+        const url = new URL(this.endpoint + path);
 
         let body = undefined;
 
@@ -97,7 +97,7 @@ class Client {
 
             const flatParams = Client.flatten(params);
 
-            for (const [key, value] of flatParams.entries()) {
+            for (const [key, value] of Object.entries(flatParams)) {
                 if (value && value.type && value.type === "file") {
                     formData.append(key, value.file, value.filename);
                 } else {
@@ -112,7 +112,7 @@ class Client {
 
         try {
             const response = await fetch(url.toString(), {
-                method,
+                method: method.toUpperCase(),
                 headers,
                 body,
                 dispatcher: new Agent({

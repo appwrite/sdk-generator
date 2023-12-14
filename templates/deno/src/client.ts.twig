@@ -63,7 +63,7 @@ export class Client {
 
     async call(method: string, path: string = "", headers: Payload = {}, params: Payload = {}) {
         headers = {...this.headers, ...headers};
-        const url = new URL(path, this.endpoint);
+        const url = new URL(this.endpoint + path);
 
         let body: string | FormData | undefined = undefined;
 
@@ -75,7 +75,7 @@ export class Client {
 
             const flatParams = Client.flatten(params);
 
-            for (const [key, value] of flatParams.entries()) {
+            for (const [key, value] of Object.entries(flatParams)) {
                 if (value && value.type && value.type === "file") {
                     formData.append(key, value.file, value.filename);
                 } else {
