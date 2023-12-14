@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class Node18Test extends Base
+class Node20Test extends Base
 {
     protected string $sdkName = 'node.js';
     protected string $sdkPlatform = 'server';
