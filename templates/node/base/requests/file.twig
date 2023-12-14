@@ -1,7 +1,8 @@
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
-        const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
+        const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
+        
         const apiHeaders = {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
@@ -28,117 +29,77 @@
 {% endif %}
 {% endfor %}
 
-        let currentChunk = Buffer.from('');
-        let currentChunkSize = 0;
-        let currentChunkStart = 0;
+        let currentChunk = 1;
+        let currentPosition = 0;
+        let uploadableChunk = new Uint8Array(client.CHUNK_SIZE);
+    
 
-        const selfClient = this.client;
-
-        async function uploadChunk(lastUpload = false) {
-            if(chunksUploaded - 1 >= currentChunkStart / client.CHUNK_SIZE) {
+        const uploadChunk = async (lastUpload = false) => {
+            if(currentChunk <= chunksUploaded) {
                 return;
             }
-            
-            const start = currentChunkStart;
-            const end = currentChunkStart + currentChunkSize - 1;
 
-            if(!lastUpload || currentChunkStart !== 0) {
+            const start = ((currentChunk - 1) * client.CHUNK_SIZE);
+            let end = start + currentPosition - 1;
+
+            if(!lastUpload || currentChunk !== 1) {
                 apiHeaders['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
+            }
+
+            let uploadableChunkTrimmed;
+            
+            if(currentPosition + 1 >= client.CHUNK_SIZE) {
+                uploadableChunkTrimmed = uploadableChunk;
+            } else {
+                uploadableChunkTrimmed = new Uint8Array(currentPosition);
+                for(let i = 0; i <= currentPosition; i++) {
+                    uploadableChunkTrimmed[i] = uploadableChunk[i];
+                }
             }
 
             if (id) {
                 apiHeaders['x-{{spec.title | caseLower }}-id'] = id;
             }
 
-            payload['{{ parameter.name }}'] = {
-                type: 'file',
-                file: currentChunk,
-                filename: {{ parameter.name }}.filename,
-                size: currentChunkSize
-            };
+            payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
 
-            response = await selfClient.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+            response = await this.client.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
             if (!id) {
                 id = response['$id'];
             }
-            
+
             if (onProgress !== null) {
                 onProgress({
                     $id: response['$id'],
-                    progress: Math.min((start+client.CHUNK_SIZE) * client.CHUNK_SIZE, size) / size * 100,
+                    progress: Math.min((currentChunk) * client.CHUNK_SIZE, size) / size * 100,
                     sizeUploaded: end+1,
                     chunksTotal: response['chunksTotal'],
                     chunksUploaded: response['chunksUploaded']
                 });
             }
 
-            currentChunkStart += client.CHUNK_SIZE;
+            uploadableChunk = new Uint8Array(client.CHUNK_SIZE);
+            currentChunk++;
+            currentPosition = 0;
         }
 
-        return await new Promise((resolve, reject) => {
-            const writeStream = new Stream.Writable();
-            writeStream._write = async (mainChunk, encoding, callback) => {
-                try {
-                    // Segment incoming chunk into up to 5MB chunks
-                    const mainChunkSize = Buffer.byteLength(mainChunk);
-                    const chunksCount = Math.ceil(mainChunkSize / client.CHUNK_SIZE);
-                    const chunks = [];
+        for await (const chunk of {{ parameter.name | caseCamel | escapeKeyword }}.stream) {
+            for(const b of chunk) {
+                uploadableChunk[currentPosition] = b;
 
-                    for(let i = 0; i < chunksCount; i++) {
-                        const chunk = mainChunk.slice(i * client.CHUNK_SIZE, (i + 1) * client.CHUNK_SIZE);
-                        chunks.push(chunk);
-                    }
-
-                    for (const chunk of chunks) {
-                        const chunkSize = Buffer.byteLength(chunk);
-
-                        if(chunkSize + currentChunkSize == client.CHUNK_SIZE) {
-                            // Upload chunk
-                            currentChunk = Buffer.concat([currentChunk, chunk]);
-                            currentChunkSize = Buffer.byteLength(currentChunk);
-                            await uploadChunk();
-                            currentChunk = Buffer.from('');
-                            currentChunkSize = 0;
-                        } else if(chunkSize + currentChunkSize > client.CHUNK_SIZE) {
-                            // Upload chunk, put rest into next chunk
-                            const bytesToUpload = client.CHUNK_SIZE - currentChunkSize;
-                            const newChunkSection = chunk.slice(0, bytesToUpload);
-                            currentChunk = Buffer.concat([currentChunk, newChunkSection]);
-                            currentChunkSize = Buffer.byteLength(currentChunk);
-                            await uploadChunk();
-                            currentChunk = chunk.slice(bytesToUpload, undefined);
-                            currentChunkSize = chunkSize - bytesToUpload;
-                        } else {
-                            // Append into current chunk
-                            currentChunk = Buffer.concat([currentChunk, chunk]);
-                            currentChunkSize = chunkSize + currentChunkSize;
-                        }
-                    }
-
-                    callback();
-                } catch (e) {
-                    callback(e);
+                currentPosition++;
+                if(currentPosition >= client.CHUNK_SIZE) {
+                    await uploadChunk();
+                    currentPosition = 0;
                 }
             }
+        }
 
-            writeStream.on("finish", async () => {
-                if(currentChunkSize > 0) {
-                    try {
-                        await uploadChunk(true);
-                    } catch (e) {
-                        reject(e);
-                    }
-                }
-                
-                resolve(response);
-            });
+        if (currentPosition > 0) { // Check if there's any remaining data for the last chunk
+            await uploadChunk(true);
+        }
 
-            writeStream.on("error", (err) => {
-                reject(err);
-            });
-            
-            {{ parameter.name | caseCamel | escapeKeyword }}.stream.pipe(writeStream);
-        });
+        return response;
 {% endif %}
 {% endfor %}

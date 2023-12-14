@@ -1,38 +1,37 @@
-const { Readable } = require('stream');
-const fs = require('fs');
+const { readFileSync } = require("fs");
+const { ReadableStream } = require("stream/web");
+
+const _bufferToString = (buffer) => {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(buffer);
+      controller.close();
+    },
+  });
+};
 
 class InputFile {
-  stream; // Content of file, readable stream
+  stream; // Content of file as a stream
   size; // Total final size of the file content
   filename; // File name
 
   static fromPath = (filePath, filename) => {
-    const stream = fs.createReadStream(filePath);
-    const { size } = fs.statSync(filePath);
+    const data = readFileSync(filePath);
+    const stream = _bufferToString(data);
+    const size = data.byteLength;
     return new InputFile(stream, filename, size);
   };
 
   static fromBuffer = (buffer, filename) => {
-    const stream = Readable.from(buffer);
-    const size = Buffer.byteLength(buffer);
-    return new InputFile(stream, filename, size);
-  };
-
-  static fromBlob = async (blob, filename) => {
-    const arrayBuffer = await blob.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    return InputFile.fromBuffer(buffer, filename);
-  };
-
-
-  static fromStream = (stream, filename, size) => {
+    const stream = _bufferToString(buffer);
+    const size = buffer.byteLength;
     return new InputFile(stream, filename, size);
   };
 
   static fromPlainText = (content, filename) => {
-    const buffer = Buffer.from(content, "utf-8");
-    const stream = Readable.from(buffer);
-    const size = Buffer.byteLength(buffer);
+    const buffer = new TextEncoder().encode(content);
+    const stream = _bufferToString(buffer);
+    const size = buffer.byteLength;
     return new InputFile(stream, filename, size);
   };
 
