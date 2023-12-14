@@ -5,6 +5,7 @@ const client = require('../client.js');
 const Stream = require('stream');
 const { promisify } = require('util');
 const fs = require('fs');
+const { File } = require('undici');
 
 class {{ service.name | caseUcfirst }} extends Service {
 
