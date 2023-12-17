@@ -63,17 +63,17 @@ namespace Appwrite
 
         public static string Between(string attribute, string start, string end)
         {
-            return AddQuery(attribute, "between", new List<string> { start, end });
+            return $"between(\"{attribute}\", \"{start}\", \"{end}\")";
         }
 
         public static string Between(string attribute, int start, int end)
         {
-            return AddQuery(attribute, "between", new List<int> { start, end });
+            return $"between(\"{attribute}\", {start}, {end})";
         }
 
         public static string Between(string attribute, double start, double end)
         {
-            return AddQuery(attribute, "between", new List<double> { start, end });
+            return $"between(\"{attribute}\", {start}, {end})";
         }
 
         public static string Select(List<string> attributes)
