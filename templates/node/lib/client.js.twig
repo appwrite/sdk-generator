@@ -122,15 +122,21 @@ class Client {
                 }),
             });
 
-            if (response.headers.get("content-type") === "application/json") {
-                const json = await response.json();
-                if (response.status >= 400) throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, json);
-                return json;
-            } else {
-                const text = await response.text();
-                if (response.status >= 400) throw new {{spec.title | caseUcfirst}}Exception(text, response.status, "", text);
-                return text;
+            const text = await response.text();
+            let json = undefined;
+            try {
+                json = JSON.parse(text);
+            } catch (error) {
+                if (response.status >= 400) {
+                    throw new {{spec.title | caseUcfirst}}Exception(text, response.status, "", text);
+                }
+                return response;
             }
+            if (response.status >= 400) {
+                throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, json);
+            }
+            return json;
+            
         } catch (error) {
             if (!(error instanceof {{spec.title | caseUcfirst}}Exception)) throw new {{spec.title | caseUcfirst}}Exception(error.message);
             throw error;
