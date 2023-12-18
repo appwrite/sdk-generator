@@ -112,7 +112,7 @@ class Client {
 
         try {
             const response = await fetch(url.toString(), {
-                method,
+                method: method.toUpperCase(),
                 headers,
                 body,
                 dispatcher: new Agent({
@@ -124,21 +124,15 @@ class Client {
 
             if (response.headers.get("content-type") === "application/json") {
                 const json = await response.json();
-                if (response.status >= 400) {
-                    throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, json);
-                }
+                if (response.status >= 400) throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, json);
                 return json;
             } else {
                 const text = await response.text();
-                if (response.status >= 400) {
-                    throw new {{spec.title | caseUcfirst}}Exception(text, response.status, "", text);
-                }
+                if (response.status >= 400) throw new {{spec.title | caseUcfirst}}Exception(text, response.status, "", text);
                 return text;
             }
         } catch (error) {
-            if (!("response" in error) || error.response === undefined) {
-                throw new {{spec.title | caseUcfirst}}Exception(error.message);
-            }
+            if (!(error instanceof {{spec.title | caseUcfirst}}Exception)) throw new {{spec.title | caseUcfirst}}Exception(error.message);
             throw error;
         }
     }
