@@ -212,6 +212,11 @@ class PHP extends Language
                 'destination'   => '/src/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
                 'template'      => 'php/src/Services/Service.php.twig',
             ],
+            [
+                'scope'         => 'enum',
+                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Enums/{{ enum.name | caseUcfirst }}.php',
+                'template'      => 'php/src/Enums/Enum.php.twig',
+            ],
         ];
     }
 
@@ -220,29 +225,24 @@ class PHP extends Language
      * @param array $nestedTypes
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
-        switch ($parameter['type']) {
-            case self::TYPE_STRING:
-                $type = 'string';
-                break;
-            case self::TYPE_BOOLEAN:
-                $type = 'bool';
-                break;
-            case self::TYPE_NUMBER:
-            case self::TYPE_INTEGER:
-                $type = 'int';
-                break;
-            case self::TYPE_ARRAY:
-            case self::TYPE_OBJECT:
-                $type = 'array';
-                break;
-            case self::TYPE_FILE:
-                $type = 'InputFile';
-                break;
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
         }
-
-        return $type . ' ';
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
+        }
+        return match ($parameter['type']) {
+            self::TYPE_STRING => 'string',
+            self::TYPE_BOOLEAN => 'bool',
+            self::TYPE_NUMBER,
+            self::TYPE_INTEGER => 'int',
+            self::TYPE_ARRAY,
+            self::TYPE_OBJECT => 'array',
+            self::TYPE_FILE => 'InputFile',
+            default => $parameter['type'],
+        };
     }
 
     /**
@@ -388,6 +388,13 @@ class PHP extends Language
             }),
             new TwigFilter('deviceInfo', function ($value) {
                 return php_uname('s') . '; ' . php_uname('v') . '; ' . php_uname('m');
+            }),
+            new TwigFilter('caseEnumKey', function (string $value) {
+                if (isset($this->getIdentifierOverrides()[$value])) {
+                    $value = $this->getIdentifierOverrides()[$value];
+                }
+                $value = \preg_replace('/[^a-zA-Z0-9]/', '', $value);
+                return $this->toUpperSnakeCase($value);
             }),
         ];
     }

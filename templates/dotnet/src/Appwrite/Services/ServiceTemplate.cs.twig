@@ -4,7 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+{% if spec.definitions is not empty %}
 using {{ spec.title | caseUcfirst }}.Models;
+{% endif %}
+{% if spec.enums is not empty %}
+using {{ spec.title | caseUcfirst }}.Enums;
+{% endif %}
 
 namespace {{ spec.title | caseUcfirst }}.Services
 {

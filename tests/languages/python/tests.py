@@ -8,9 +8,9 @@ from appwrite.query import Query
 from appwrite.permission import Permission
 from appwrite.role import Role
 from appwrite.id import ID
+from appwrite.enums.mock_type import MockType
 
 import os.path
-
 
 client = Client()
 foo = Foo(client)
@@ -73,6 +73,9 @@ print(response['result'])
 
 data = open('./tests/resources/large_file.mp4', 'rb').read()
 response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'large_file.mp4','video/mp4'))
+print(response['result'])
+
+response = general.enum(MockType.FIRST)
 print(response['result'])
 
 try:

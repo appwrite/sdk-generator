@@ -115,6 +115,11 @@ class Web extends JS
                 'destination'   => '.travis.yml',
                 'template'      => 'web/.travis.yml.twig',
             ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'src/enums/{{ enum.name | caseDash }}.ts',
+                'template'      => 'web/src/enums/enum.ts.twig',
+            ],
         ];
     }
 
@@ -174,12 +179,18 @@ class Web extends JS
 
     public function getTypeName(array $parameter, array $method = []): string
     {
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
+        }
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
+        }
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
                 return 'number';
             case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
+                if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
                     return $this->getTypeName($parameter['array']) . '[]';
                 }
                 return 'string[]';
@@ -200,15 +211,15 @@ class Web extends JS
                             return "Partial<Omit<Document, keyof Models.Document>>";
                         }
                 }
+                break;
         }
-
         return $parameter['type'];
     }
 
     protected function populateGenerics(string $model, array $spec, array &$generics, bool $skipFirst = false)
     {
         if (!$skipFirst && $spec['definitions'][$model]['additionalProperties']) {
-            $generics[] = $this->toUpperCaseWords($model);
+            $generics[] = $this->toPascalCase($model);
         }
 
         $properties = $spec['definitions'][$model]['properties'];
@@ -257,14 +268,14 @@ class Web extends JS
                 $ret .= 'Models.';
             }
 
-            $ret .= $this->toUpperCaseWords($method['responseModel']);
+            $ret .= $this->toPascalCase($method['responseModel']);
 
             $models = [];
 
             $this->populateGenerics($method['responseModel'], $spec, $models);
 
             $models = array_unique($models);
-            $models = array_filter($models, fn ($model) => $model != $this->toUpperCaseWords($method['responseModel']));
+            $models = array_filter($models, fn ($model) => $model != $this->toPascalCase($method['responseModel']));
 
             if (!empty($models)) {
                 $ret .= '<' . implode(', ', $models) . '>';
@@ -284,9 +295,9 @@ class Web extends JS
             $generics = [];
             $this->populateGenerics($property['sub_schema'], $spec, $generics);
 
-            $generics = array_filter($generics, fn ($model) => $model != $this->toUpperCaseWords($property['sub_schema']));
+            $generics = array_filter($generics, fn ($model) => $model != $this->toPascalCase($property['sub_schema']));
 
-            $ret .= $this->toUpperCaseWords($property['sub_schema']);
+            $ret .= $this->toPascalCase($property['sub_schema']);
             if (!empty($generics)) {
                 $ret .= '<' . implode(', ', $generics) . '>';
             }
@@ -329,6 +340,9 @@ class Web extends JS
                 }
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),
+            new TwigFilter('caseEnumKey', function ($value) {
+                return $this->toPascalCase($value);
+            }),
         ];
     }
 }

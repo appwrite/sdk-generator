@@ -5,6 +5,7 @@ import io.appwrite.Permission
 import io.appwrite.Role
 import io.appwrite.ID
 import io.appwrite.Query
+import io.appwrite.enums.MockType
 import io.appwrite.exceptions.AppwriteException
 import io.appwrite.extensions.fromJson
 import io.appwrite.extensions.toJson
@@ -73,6 +74,9 @@ class ServiceTest {
             val result = general.redirect()
             writeToFile((result as Map<String, Any>)["result"] as String)
 
+            mock = general.enum(MockType.FIRST)
+            writeToFile(mock.result)
+
             try {
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../resources/file.png"))
                 writeToFile(mock.result)
@@ -99,6 +103,9 @@ class ServiceTest {
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
+
+            mock = general.enum(MockType.FIRST)
+            writeToFile(mock.result)
 
             try {
                 general.error400()

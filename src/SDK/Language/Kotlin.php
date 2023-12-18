@@ -103,29 +103,26 @@ class Kotlin extends Language
      * @param $type
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-                return 'Long';
-            case self::TYPE_NUMBER:
-                return 'Double';
-            case self::TYPE_STRING:
-                return 'String';
-            case self::TYPE_FILE:
-                return 'InputFile';
-            case self::TYPE_BOOLEAN:
-                return 'Boolean';
-            case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    return 'List<' . $this->getTypeName($parameter['array']) . '>';
-                }
-                return 'List<Any>';
-            case self::TYPE_OBJECT:
-                return 'Any';
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
         }
-
-        return $parameter['type'];
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
+        }
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER => 'Long',
+            self::TYPE_NUMBER => 'Double',
+            self::TYPE_STRING => 'String',
+            self::TYPE_FILE => 'InputFile',
+            self::TYPE_BOOLEAN => 'Boolean',
+            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
+                ? 'List<' . $this->getTypeName($parameter['array']) . '>'
+                : 'List<Any>',
+            self::TYPE_OBJECT => 'Any',
+            default => $parameter['type'],
+        };
     }
 
     /**
@@ -419,6 +416,11 @@ class Kotlin extends Language
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ definition.name | caseUcfirst }}.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Model.kt.twig',
             ],
+            [
+                'scope'         => 'enum',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/enums/{{ enum.name | caseUcfirst }}.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/enums/Enum.kt.twig',
+            ],
         ];
     }
 
@@ -436,6 +438,13 @@ class Kotlin extends Language
             }),
             new TwigFilter('hasGenericType', function (string $model, array $spec) {
                 return $this->hasGenericType($model, $spec);
+            }),
+            new TwigFilter('caseEnumKey', function (string $value) {
+                if (isset($this->getIdentifierOverrides()[$value])) {
+                    $value = $this->getIdentifierOverrides()[$value];
+                }
+                $value = \preg_replace('/[^a-zA-Z0-9]/', '', $value);
+                return $this->toUpperSnakeCase($value);
             }),
         ];
     }
@@ -457,7 +466,7 @@ class Kotlin extends Language
             return 'Any';
         }
 
-        $ret = $this->toUpperCaseWords($method['responseModel']);
+        $ret = $this->toPascalCase($method['responseModel']);
 
         if ($this->hasGenericType($method['responseModel'], $spec)) {
             $ret .= '<' . $generic . '>';
@@ -469,15 +478,15 @@ class Kotlin extends Language
     protected function getModelType(array $definition, array $spec, string $generic = 'T'): string
     {
         if ($this->hasGenericType($definition['name'], $spec)) {
-            return $this->toUpperCaseWords($definition['name']) . '<' . $generic . '>';
+            return $this->toPascalCase($definition['name']) . '<' . $generic . '>';
         }
-        return $this->toUpperCaseWords($definition['name']);
+        return $this->toPascalCase($definition['name']);
     }
 
     protected function getPropertyType(array $property, array $spec, string $generic = 'T'): string
     {
         if (\array_key_exists('sub_schema', $property)) {
-            $type = $this->toUpperCaseWords($property['sub_schema']);
+            $type = $this->toPascalCase($property['sub_schema']);
 
             if ($this->hasGenericType($property['sub_schema'], $spec)) {
                 $type .= '<' . $generic . '>';

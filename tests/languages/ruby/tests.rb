@@ -1,6 +1,7 @@
 require_relative '../../sdks/ruby/lib/appwrite'
 
 include Appwrite
+include Appwrite::Enums
 
 client = Client.new
 client.set_self_signed(true)
@@ -81,6 +82,9 @@ begin
 rescue => e
     puts e
 end
+
+response = general.enum(mock_type: MockType::FIRST)
+puts response.result
 
 begin
     general.error400()

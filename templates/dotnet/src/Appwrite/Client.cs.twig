@@ -10,6 +10,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using {{ spec.title | caseUcfirst }}.Converters;
 using {{ spec.title | caseUcfirst }}.Extensions;
 using {{ spec.title | caseUcfirst }}.Models;
 
@@ -34,7 +35,8 @@ namespace {{ spec.title | caseUcfirst }}
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
             Converters = new List<JsonConverter>
             {
-                new StringEnumConverter()
+                new StringEnumConverter(new CamelCaseNamingStrategy()),
+                new ValueClassConverter()
             }
         };
 
@@ -44,7 +46,8 @@ namespace {{ spec.title | caseUcfirst }}
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
             Converters = new List<JsonConverter>
             {
-                new StringEnumConverter()
+                new StringEnumConverter(new CamelCaseNamingStrategy()),
+                new ValueClassConverter()
             }
         };
 
@@ -326,7 +329,7 @@ namespace {{ spec.title | caseUcfirst }}
                     parameters = new Dictionary<string, object?>()
                 );
                 var chunksUploaded = (long)current["chunksUploaded"];
-                offset = Math.Min(chunksUploaded * ChunkSize, size);
+                offset = chunksUploaded * ChunkSize;
             }
 
             while (offset < size)
@@ -342,7 +345,7 @@ namespace {{ spec.title | caseUcfirst }}
                     case "bytes":
                         buffer = ((byte[])input.Data)
                             .Skip((int)offset)
-                            .Take((int)Math.Min(size - offset, ChunkSize))
+                            .Take((int)Math.Min(size - offset, ChunkSize - 1))
                             .ToArray();
                         break;
                 }
