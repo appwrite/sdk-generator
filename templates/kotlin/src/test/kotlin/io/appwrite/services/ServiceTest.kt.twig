@@ -27,8 +27,10 @@ import io.mockk.every
 
 {% endif %}
 class {{service.name | caseUcfirst}}ServiceTest {
+{% if language.name == 'Android' %}
     @get:Rule
     val rule = InstantTaskExecutorRule()
+{% endif %}
 
     private lateinit var client: Client
     private lateinit var {{service.name | caseCamel}}: {{service.name | caseUcfirst}}
