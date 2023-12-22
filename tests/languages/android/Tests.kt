@@ -28,16 +28,19 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
 
+import io.mockk.mockk
+import io.mockk.every
+import com.github.ivanshafran.sharedpreferencesmock.SPMockBuilder
+import android.content.Context
+import android.content.pm.PackageInfo
+
 data class TestPayload(val response: String)
 
-@Config(manifest=Config.NONE)
-@RunWith(AndroidJUnit4::class)
 class ServiceTest {
 
     private val filename: String = "result.txt"
@@ -59,7 +62,16 @@ class ServiceTest {
     @Test
     @Throws(IOException::class)
     fun test() {
-        val client = Client(ApplicationProvider.getApplicationContext())
+        val contextMock = mockk<Context>()
+        val prefs = SPMockBuilder().createSharedPreferences()
+        val packageInfo = PackageInfo()
+        packageInfo.versionName = ""
+
+        every { contextMock.packageName } returns "io.appwrite"
+        every { contextMock.packageManager.getPackageInfo("io.appwrite", 0) } returns packageInfo
+        every { contextMock.getSharedPreferences(any(), any()) } returns prefs
+
+        val client = Client(contextMock)
             .setEndpointRealtime("wss://demo.appwrite.io/v1")
             .setProject("console")
             .addHeader("Origin", "http://localhost")

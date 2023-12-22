@@ -8,25 +8,45 @@ import io.mockk.mockkObject
 import io.mockk.spyk
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertIs
 
 {% if language.name == 'Android' %}
+import android.content.Context
+import android.content.pm.PackageInfo
+import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import {{ sdk.namespace | caseDot }}.WebAuthComponent
-import org.junit.runner.RunWith
+import com.github.ivanshafran.sharedpreferencesmock.SPMockBuilder
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.every
 
-@RunWith(AndroidJUnit4::class)
 {% endif %}
 class {{service.name | caseUcfirst}}ServiceTest {
+    @get:Rule
+    val rule = InstantTaskExecutorRule()
+
     private lateinit var client: Client
     private lateinit var {{service.name | caseCamel}}: {{service.name | caseUcfirst}}
 
     @Before
     fun setup() {
-        client = spyk(Client({% if language.name == 'Android' %}ApplicationProvider.getApplicationContext(){% endif %}))
+        {% if language.name == 'Android' %}
+        val contextMock = mockk<Context>()
+        val prefs = SPMockBuilder().createSharedPreferences()
+        val packageInfo = PackageInfo()
+        packageInfo.versionName = ""
+
+        every { contextMock.packageName } returns "io.appwrite"
+        every { contextMock.packageManager.getPackageInfo("io.appwrite", 0) } returns packageInfo
+        every { contextMock.getSharedPreferences(any(), any()) } returns prefs
+        {% endif %}
+
+        client = spyk(Client({% if language.name == 'Android' %}contextMock{% endif %}))
         {{service.name | caseCamel}} = {{service.name | caseUcfirst}}(client)
     }
 
@@ -50,6 +70,13 @@ class {{service.name | caseUcfirst}}ServiceTest {
 
         {%~ if method.type == 'webAuth' ~%}
             {%~ if language.name == 'Android' ~%}
+        mockkStatic(Uri::class)
+        val uriMock = mockk<Uri>()
+        every { uriMock.getQueryParameter("key") } returns "example"
+        every { uriMock.getQueryParameter("secret") } returns "example"
+        every { uriMock.host } returns "HOSTNAME"
+        every { Uri.parse(any()) } returns uriMock
+
         mockkObject(WebAuthComponent.Companion)
         coEvery { WebAuthComponent.Companion.authenticate(any(), any(), any(), any()) } answers {
             arg<((Result<String>) -> Unit)?>(3)?.invoke(Result.success("http://localhost/oauth?key=example&secret=example"))
