@@ -42,13 +42,13 @@ program
   .addCommand(init)
   .addCommand(deploy)
   .addCommand(logout)
+  .addCommand(flutter)
+  .addCommand(generate)
 {% endif %}
 {% for service in spec.services %}
   .addCommand({{ service.name | caseLower }})
 {% endfor %}
   .addCommand(client)
-  .addCommand(flutter)
-  .addCommand(generate)
   .parse(process.argv);
   
 process.stdout.columns = oldWidth;
