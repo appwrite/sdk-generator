@@ -25,7 +25,7 @@ class CLINode16Test extends Base
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
-        'POST:/v1/mock/tests/general/upload:passed', //large file
+        ...Base::UPLOAD_RESPONSES,
     ];
 
     public function getLanguage(): Language

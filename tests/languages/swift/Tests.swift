@@ -19,6 +19,7 @@ class Tests: XCTestCase {
     }
 
     func test() async throws {
+        do {
         let client = Client()
             .setProject("console")
             .addHeader(key: "Origin", value: "http://localhost")
@@ -48,19 +49,19 @@ class Tests: XCTestCase {
 
 
         // Bar Tests
-        mock = try await bar.get(xrequired: "string", xdefault: 123, z: ["string in array"])
+        mock = try await bar.get(required: "string", default: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await bar.post(xrequired: "string", xdefault: 123, z: ["string in array"])
+        mock = try await bar.post(required: "string", default: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await bar.put(xrequired: "string", xdefault: 123, z: ["string in array"])
+        mock = try await bar.put(required: "string", default: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await bar.patch(xrequired: "string", xdefault: 123, z: ["string in array"])
+        mock = try await bar.patch(required: "string", default: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await bar.delete(xrequired: "string", xdefault: 123, z: ["string in array"])
+        mock = try await bar.delete(required: "string", default: 123, z: ["string in array"])
         print(mock.result)
 
 
@@ -103,6 +104,9 @@ class Tests: XCTestCase {
         } catch {
             print(error.localizedDescription)
         }
+
+        mock = try await general.xenum(mockType: .first)
+        print(mock.result)
 
         do {
             try await general.error400()
@@ -164,5 +168,8 @@ class Tests: XCTestCase {
 
         mock = try await general.headers()
         print(mock.result)
+        } catch {
+            print(error.localizedDescription)
+        }
     }
 }

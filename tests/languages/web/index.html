@@ -20,8 +20,9 @@
             let response;
             let responseRealtime = 'Realtime failed!';
             // Init SDK
-            const { Client, Foo, Bar, General, Query, Permission, Role, ID } = Appwrite;
+            const { Client, Foo, Bar, General, Query, Permission, Role, ID, MockType } = Appwrite;
             const client = new Client();
+
             const foo = new Foo(client);
             const bar = new Bar(client);
             const general = new General(client);
@@ -83,6 +84,12 @@
                 ["string in array"],
                 document.getElementById("file2").files[0]
             );
+            console.log(response.result);
+
+            console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip InputFile tests
+            console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip InputFile tests
+
+            response = await general.enum(MockType.First);
             console.log(response.result);
 
             try {

@@ -170,7 +170,7 @@ module {{ spec.title | caseUcfirst }}
                 offset += @chunk_size
 
                 if defined? result['$id']
-                    headers['x-{{ spec.title }}-id'] = result['$id']
+                    headers['x-{{ spec.title | caseLower }}-id'] = result['$id']
                 end
 
                 on_progress.call({
