@@ -10,11 +10,11 @@ const chalk = require("chalk");
 const { version } = require("./package.json");
 const { commandDescriptions, cliConfig } = require("./lib/parser");
 const { client } = require("./lib/commands/generic");
-const { flutter } = require("./lib/commands/flutter");
 {% if sdk.test != "true" %}
 const { login, logout } = require("./lib/commands/generic");
 const { init } = require("./lib/commands/init");
 const { deploy } = require("./lib/commands/deploy");
+const { flutter } = require("./lib/commands/flutter");
 const { generate } = require("./lib/commands/generate");
 {% endif %}
 {% for service in spec.services %}
