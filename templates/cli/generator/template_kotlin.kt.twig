@@ -28,7 +28,7 @@ class %NAME%(
             "databaseId" to databaseId,
             "createdAt" to createdAt,
             "updatedAt" to updatedAt,
-            "permissions" to permissions.toMap(),
+            "permissions" to permissions as Any,
             %MAP_FIELDS%
         )
     }
