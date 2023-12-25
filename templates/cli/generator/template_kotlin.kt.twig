@@ -1,0 +1,35 @@
+class %NAME%(
+    val id: String,
+    val collectionId: String,
+    val databaseId: String,
+    val createdAt: String,
+    val updatedAt: String,
+    val permissions: Permissions,
+    %CONSTRUCTOR_PARAMETERS%
+) {
+    companion object {
+        fun from(map: Map<String, Any>): %NAME% {
+            return %NAME%(
+                id = map["$id"] as String,
+                collectionId = map["$collectionId"] as String,
+                databaseId = map["$databaseId"] as String,
+                createdAt = map["$createdAt"] as String,
+                updatedAt = map["$updatedAt"] as String,
+                permissions = map["$permissions"] as Permissions,
+                %CONSTRUCTOR_ARGUMENTS%
+            )
+        }
+    }
+
+    fun toMap(): Map<String, Any> {
+        return mapOf(
+            "id" to id,
+            "collectionId" to collectionId,
+            "databaseId" to databaseId,
+            "createdAt" to createdAt,
+            "updatedAt" to updatedAt,
+            "permissions" to permissions.toMap(),
+            %MAP_FIELDS%
+        )
+    }
+}

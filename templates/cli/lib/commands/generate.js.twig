@@ -11,7 +11,7 @@ const { toSnakeCase, toUpperCamelCase } = require("../utils");
 const generate = new Command('generate');
 
 generate
-    .argument('[language]', 'Language to generate models. Currently only `dart` and `ts` is supported.')
+    .argument('[language]', 'Language to generate models. Supports dart, swift, ts, kt,')
     .description("Generate model classes")
     .option('--modelPath <modelPath>', 'Path where the generated models are saved. By default it\'s saved to lib/models folder.')
     .option('--projectId <projectId>', 'Project ID to use to generate models for database. If not provided you will be requested to select.')
@@ -20,7 +20,7 @@ generate
         helpWidth: process.stdout.columns || 80
     })
     .action(actionRunner(async (language, options) => {
-        if (language === 'dart' || language === 'ts' || language === 'swift') {
+        if (language === 'dart' || language === 'ts' || language === 'swift' || language === 'kt') {
             generateModels({ ...options, language })
             return;
         }
@@ -89,6 +89,12 @@ const generateModels = async (options) => {
                     extension = '.swift';
                     template = fs.readFileSync(`${__dirname}/../../generator/template_swift.swift`, 'utf8');
                     data = generateSwiftClass(className, collection.attributes, template);
+                    filename = toUpperCamelCase(collection.$id) + extension;
+                    break;
+                case 'kt':
+                    extension = '.kt';
+                    template = fs.readFileSync(`${__dirname}/../../generator/template_kotlin.kt`, 'utf8');
+                    data = generateKotlinClass(className, collection.attributes, template);
                     filename = toUpperCamelCase(collection.$id) + extension;
                     break;
             }
@@ -232,6 +238,79 @@ function generateSwiftClass(name, attributes, template) {
         "%CONSTRUCTOR_PARAMETERS%": constructorParams,
         "%CONSTRUCTOR_ARGUMENTS%": constructorArgs,
         "%CONSTRUCTOR_ASSIGNMENTS%": constructorAssignments,
+        "%MAP_FIELDS%": mapFields,
+    }
+
+    for (let key in replaceMaps) {
+        template = template.replaceAll(key, replaceMaps[key]);
+    }
+
+    return template;
+}
+
+function generateKotlinClass(name, attributes, template) {
+    let imports = '';
+
+    const getType = (attribute) => {
+        switch (attribute.type) {
+            case 'string':
+            case 'email':
+            case 'url':
+            case 'enum':
+            case 'datetime':
+                return attribute.array ? 'List<String>' : 'String';
+            case 'boolean':
+                return attribute.array ? 'List<Boolean>' : 'Boolean';
+            case 'integer':
+                return attribute.array ? 'List<Int>' : 'Int';
+            case 'double':
+                return attribute.array ? 'List<Float>' : 'Float';
+            case 'relationship':
+                return attribute.array ? `List<${toUpperCamelCase(attribute.relatedCollection)}>` : toUpperCamelCase(attribute.relatedCollection);
+        }
+    }
+
+    const properties = attributes.map(attr => {
+        let property = `val ${attr.key}: ${getType(attr)}${(!attr.required) ? '?' : ''}`;
+        return property;
+    }).join(',\n    ');
+
+    const getFromMap = (attr) => {
+        if (attr.array) {
+            return `map["${attr.key}"] as List<${getType(attr)}>`;
+        }
+        return `map["${attr.key}"] as ${getType(attr)}`;
+    }
+
+    const constructorParams = attributes.map(attr => {
+        let out = '';
+        out += `val ${attr.key}: ${getType(attr)}`;
+        if (attr.default && attr.default !== null) {
+            out += ` = ${JSON.stringify(attr.default)}`;
+        }
+        return out;
+    }).join(',\n    ');
+
+    const constructorArgs = attributes.map(attr => {
+        return `${attr.key} = ${getFromMap(attr)}`;
+    }).join(',\n                ');
+
+    const mapFields = attributes.map(attr => {
+        let out = `"${attr.key}" to `;
+        if (attr.type === 'relationship') {
+            out += `${attr.key}?.map { it.toMap() }`;
+        } else {
+            out += attr.key;
+        }
+        return out;
+    }).join(',\n            ');
+
+    const replaceMaps = {
+        "%NAME%": name,
+        "%IMPORTS%": imports,
+        "%CONSTRUCTOR_PARAMETERS%": constructorParams,
+        "%CONSTRUCTOR_ARGUMENTS%": constructorArgs,
+        "%ATTRIBUTES%": properties,
         "%MAP_FIELDS%": mapFields,
     }
 
