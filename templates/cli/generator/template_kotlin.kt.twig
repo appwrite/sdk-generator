@@ -4,7 +4,7 @@ class %NAME%(
     val databaseId: String,
     val createdAt: String,
     val updatedAt: String,
-    val permissions: Permissions,
+    val permissions: List<Any>,
     %CONSTRUCTOR_PARAMETERS%
 ) {
     companion object {
@@ -15,7 +15,7 @@ class %NAME%(
                 databaseId = map["$databaseId"] as String,
                 createdAt = map["$createdAt"] as String,
                 updatedAt = map["$updatedAt"] as String,
-                permissions = map["$permissions"] as Permissions,
+                permissions = map["$permissions"] as List<Any>,
                 %CONSTRUCTOR_ARGUMENTS%
             )
         }

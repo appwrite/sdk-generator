@@ -4,7 +4,7 @@ public class %NAME% {
   public let databaseId: String
   public let createdAt: String
   public let updatedAt: String
-  public let permissions: Permissions
+  public let permissions: [Any]
   %ATTRIBUTES%
 
   init(
@@ -30,9 +30,9 @@ public class %NAME% {
         id: map["$id"] as! String,
         collectionId: map["$collectionId"] as! String,
         databaseId: map["$databaseId"] as! String,
-        createdAt: map["$id"] as! String,
-        updatedAt: map["$id"] as! String,
-        permissions: map["$id"] as! Permissions,
+        createdAt: map["$createdAt"] as! String,
+        updatedAt: map["$updatedAt"] as! String,
+        permissions: map["$permissions"] as! [Any],
         %CONSTRUCTOR_ARGUMENTS%
     )
   }
