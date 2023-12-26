@@ -83,7 +83,7 @@ class Client {
         return this;
     }
       
-    async call(method, path = "", headers = {}, params = {}) {
+    async call(method, path = "", headers = {}, params = {}, responseType = "json") {
         headers = {...this.headers, ...headers};
         const url = new URL(this.endpoint + path);
 
@@ -110,37 +110,46 @@ class Client {
             body = JSON.stringify(params);
         }
 
-        try {
-            const response = await fetch(url.toString(), {
-                method: method.toUpperCase(),
-                headers,
-                body,
-                dispatcher: new Agent({
-                    connect: {
-                        rejectUnauthorized: !this.selfSigned,
-                    },
-                }),
-            });
+      let response = undefined;
+      try {
+        response = await fetch(url.toString(), {
+            method: method.toUpperCase(),
+            headers,
+            body,
+            dispatcher: new Agent({
+                connect: {
+                    rejectUnauthorized: !this.selfSigned,
+                },
+            }),
+        });
+      } catch (error) {
+        throw new {{spec.title | caseUcfirst}}Exception(error.message);
+      }
 
-            const text = await response.text();
-            let json = undefined;
-            try {
-                json = JSON.parse(text);
-            } catch (error) {
-                if (response.status >= 400) {
-                    throw new {{spec.title | caseUcfirst}}Exception(text, response.status, "", text);
-                }
-                return response;
-            }
-            if (response.status >= 400) {
-                throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, json);
-            }
-            return json;
-            
+      if (response.status >= 400) {
+        const text = await response.text();
+        let json = undefined;
+        try {
+            json = JSON.parse(text);
         } catch (error) {
-            if (!(error instanceof {{spec.title | caseUcfirst}}Exception)) throw new {{spec.title | caseUcfirst}}Exception(error.message);
-            throw error;
+            throw new {{spec.title | caseUcfirst}}Exception(text, response.status, "", text);
         }
+        throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, json);
+      }
+
+      if (responseType === "arraybuffer") {
+        const data = await response.arrayBuffer();
+        return data;
+      }
+
+      const text = await response.text();
+      let json = undefined;
+      try {
+          json = JSON.parse(text);
+      } catch (error) {
+          return text;
+      }
+      return json;
     }
 
     static flatten(data, prefix = '') {
