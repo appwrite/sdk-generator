@@ -85,6 +85,27 @@ class InputFile {
    * @param {ReadableStream} stream
    * @param {string} filename
    * @param {number} size
+   * @returns {InputFile}
+   */
+  static fromStream = (stream, filename, size) => {
+    return new InputFile(stream, filename, size);
+  };
+
+  /**
+   * @param {Blob} blob
+   * @param {string} filename
+   * @returns {InputFile}
+   */
+  static fromBlob = (blob, filename) => {
+    const stream = blob.stream();
+    const size = blob.size;
+    return new InputFile(stream, filename, size);
+  };
+
+  /**
+   * @param {ReadableStream} stream
+   * @param {string} filename
+   * @param {number} size
    */
   constructor(stream, filename, size) {
     this.stream = stream;
