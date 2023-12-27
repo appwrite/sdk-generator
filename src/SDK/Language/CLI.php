@@ -181,6 +181,33 @@ class CLI extends Node
     }
 
     /**
+     * @param array $parameter
+     * @param array $nestedTypes
+     * @return string
+     */
+    public function getTypeName(array $parameter, array $spec = []): string
+    {
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
+        }
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
+        }
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER,
+            self::TYPE_NUMBER => 'number',
+            self::TYPE_STRING => 'string',
+            self::TYPE_FILE => 'string',
+            self::TYPE_BOOLEAN => 'boolean',
+            self::TYPE_OBJECT => 'object',
+            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
+                ? $this->getTypeName($parameter['array']) . '[]'
+                : 'string[]',
+            default => $parameter['type'],
+        };
+    }
+
+    /**
      * @param array $param
      * @return string
      */
