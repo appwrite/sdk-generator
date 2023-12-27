@@ -11,6 +11,29 @@ const { parse, actionRunner, parseInteger, parseBool, commandDescriptions, succe
 const { localConfig, globalConfig } = require("../config");
 const { File } = require('undici');
 
+/**
+ * @param {fs.ReadStream} readStream
+ * @returns {ReadableStream}
+ */
+function convertReadStreamToReadableStream(readStream) {
+  return new ReadableStream({
+    start(controller) {
+      readStream.on("data", (chunk) => {
+        controller.enqueue(chunk);
+      });
+      readStream.on("end", () => {
+        controller.close();
+      });
+      readStream.on("error", (err) => {
+        controller.error(err);
+      });
+    },
+    cancel() {
+      readStream.destroy();
+    },
+  });
+}
+
 const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description(commandDescriptions['{{ service.name | caseLower }}']).configureHelp({
     helpWidth: process.stdout.columns || 80
   })
