@@ -1,21 +1,21 @@
 class Permission:
 
     @staticmethod
-    def read(role) -> str:
+    def read(role: str) -> str:
         return f'read("{role}")'
 
     @staticmethod
-    def write(role) -> str:
+    def write(role: str) -> str:
         return f'write("{role}")'
 
     @staticmethod
-    def create(role) -> str:
+    def create(role: str) -> str:
         return f'create("{role}")'
 
     @staticmethod
-    def update(role) -> str:
+    def update(role: str) -> str:
         return f'update("{role}")'
 
     @staticmethod
-    def delete(role) -> str:
+    def delete(role: str) -> str:
         return f'delete("{role}")'

@@ -1,9 +1,9 @@
-from typing import Optional
+from typing import Optional, Any
 
 class {{spec.title | caseUcfirst}}Exception(Exception):
-    def __init__(self, message: str, code: int = 0, type: Optional[str] = None, response: Optional[dict] = None):
-        self.message = message
-        self.code = code
-        self.type = type
-        self.response = response
+    def __init__(self, message: str, code: int = 0, type: Optional[str] = None, response: Optional[Any] = None) -> None:
+        self.message: str = message
+        self.code: int = code
+        self.type: Optional[str] = type
+        self.response: Optional[Any] = response
         super().__init__(self.message)

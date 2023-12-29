@@ -1,15 +1,16 @@
+import io
 import requests
 import os
+from typing import Any, Dict, Optional, Union
 from .input_file import InputFile
 from .exception import {{spec.title | caseUcfirst}}Exception
-from typing import Optional
 
 class Client:
-    def __init__(self):
-        self._chunk_size = 5*1024*1024
-        self._self_signed = False
-        self._endpoint = '{{spec.endpoint}}'
-        self._global_headers = {
+    def __init__(self) -> None:
+        self._chunk_size: int = 5*1024*1024
+        self._self_signed: bool = False
+        self._endpoint: str = '{{spec.endpoint}}'
+        self._global_headers: Dict[str, str] = {
             'content-type': '',
             'user-agent' : '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${os.uname().sysname}; ${os.uname().version}; ${os.uname().machine})',
             'x-sdk-name': '{{ sdk.name }}',
@@ -21,20 +22,20 @@ class Client:
 {% endfor %}
         }
 
-    def set_self_signed(self, status: bool = True):
+    def set_self_signed(self, status: bool = True) -> 'Client':
         self._self_signed = status
         return self
 
-    def set_endpoint(self, endpoint: str):
+    def set_endpoint(self, endpoint: str) -> 'Client':
         self._endpoint = endpoint
         return self
 
-    def add_header(self, key: str, value: str):
+    def add_header(self, key: str, value: str) -> 'Client':
         self._global_headers[key.lower()] = value
         return self
 {% for header in spec.global.headers %}
 
-    def set_{{header.key | caseSnake}}(self, value: str):
+    def set_{{header.key | caseSnake}}(self, value: str) -> 'Client':
 {% if header.description %}
         """{{header.description}}"""
 
@@ -43,17 +44,19 @@ class Client:
         return self
 {% endfor %}
 
-    def call(self, method: str, path: str = '', headers: Optional[dict] = None, params: Optional[dict] = None):
+    def call(self, method: str, path: str = '', headers: Optional[Dict[str, str]] = None, params: Optional[Dict[str, Any]] = None) -> Union[Dict[str, Any], bytes]:
         if headers is None:
             headers = {}
 
         if params is None:
             params = {}
 
-        data = {}
-        json = {}
-        files = {}
-        stringify = False
+        params = {k: v for k, v in params.items() if v is not None}  # Remove None values from params dictionary
+
+        data: Dict[str, Any] = {}
+        json: Dict[str, Any] = {}
+        files: Dict[str, Any] = {}
+        stringify: bool = False
         
         headers = {**self._global_headers, **headers}
 
@@ -106,12 +109,12 @@ class Client:
     def chunked_upload(
         self,
         path: str,
-        headers: Optional[dict] = None,
-        params: Optional[dict] = None,
+        headers: Optional[Dict[str, str]] = None,
+        params: Optional[Dict[str, Any]] = None,
         param_name: str = '',
-        on_progress = None,
+        on_progress: Optional[Any] = None,
         upload_id: str = ''
-    ):
+    ) -> Dict[str, Any]:
         input_file = params[param_name]
 
         if input_file.source_type == 'path':
@@ -158,7 +161,7 @@ class Client:
                 input_file.data = input[offset:end]
 
             params[param_name] = input_file
-            headers["content-range"] = f'bytes {offset}-{min((offset + self._chunk_size) - 1, size)}/{size}'
+            headers["content-range"] = f'bytes {offset}-{min((offset + self._chunk_size) - 1, size - 1)}/{size}'
 
             result = self.call(
                 'post',
@@ -173,7 +176,7 @@ class Client:
                 headers["x-{{ spec.title | caseLower }}-id"] = result["$id"]
 
             if on_progress is not None:
-                end = min((((counter * self._chunk_size) + self._chunk_size) - 1), size)
+                end = min((((counter * self._chunk_size) + self._chunk_size) - 1), size - 1)
                 on_progress({
                     "$id": result["$id"],
                     "progress": min(offset, size)/size * 100,
@@ -186,8 +189,8 @@ class Client:
 
         return result
 
-    def flatten(self, data: dict, prefix: str = '', stringify: bool = False):
-        output = {}
+    def flatten(self, data: Union[Dict[str, Any], list], prefix: str = '', stringify: bool = False) -> Dict[str, Any]:
+        output: Dict[str, Any] = {}
         i = 0
 
         for key in data:
