@@ -1,13 +1,16 @@
+from __future__ import annotations
 from ..service import Service
 from ..exception import AppwriteException
+from typing import Any
 
 class {{ service.name | caseUcfirst }}(Service):
 
     def __init__(self, client):
         super({{ service.name | caseUcfirst }}, self).__init__(client)
+{% set typeMapping = {'string': 'str', 'integer': 'int', 'boolean': 'bool', 'object': 'dict', 'array': 'list', 'file': 'Any'} %}
 {% for method in service.methods %}
+    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{% if parameter.type == 'array' and parameter.items.type is not null %}{% set pythonType = 'list[' + typeMapping[parameter.items.type] + ']' %}{% elseif parameter.type is not null %}{% set pythonType = typeMapping[parameter.type] %}{% else %}{% set pythonType = 'Any' %}{% endif %}{{ parameter.name | escapeKeyword | caseSnake }}: {{ pythonType }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}):
 
-    def {{ method.name | caseSnake }}(self{% if method.parameters.all|length > 0 %}, {% endif %}{% for parameter in method.parameters.all %}{{ parameter.name | escapeKeyword | caseSnake }}{% if not parameter.required %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress = None{% endif %}):
 {% if method.title %}
         """{{ method.title }}"""
 

@@ -1,28 +1,28 @@
-from typing import List, Union
+from __future__ import annotations
 
 class Query:
     @staticmethod
-    def equal(attribute: str, value: Union[str, List[str]]) -> str:
+    def equal(attribute: str, value: str | list[str]) -> str:
         return Query.add_query(attribute, "equal", value)
 
     @staticmethod
-    def not_equal(attribute: str, value: Union[str, List[str]]) -> str:
+    def not_equal(attribute: str, value: str | list[str]) -> str:
         return Query.add_query(attribute, "notEqual", value)
     
     @staticmethod
-    def less_than(attribute: str, value: Union[str, List[str]]) -> str:
+    def less_than(attribute: str, value: str | list[str]) -> str:
         return Query.add_query(attribute, "lessThan", value)
     
     @staticmethod
-    def less_than_equal(attribute: str, value: Union[str, List[str]]) -> str:
+    def less_than_equal(attribute: str, value: str | list[str]) -> str:
         return Query.add_query(attribute, "lessThanEqual", value)
     
     @staticmethod
-    def greater_than(attribute: str, value: Union[str, List[str]]) -> str:
+    def greater_than(attribute: str, value: str | list[str]) -> str:
         return Query.add_query(attribute, "greaterThan", value)
     
     @staticmethod
-    def greater_than_equal(attribute: str, value: Union[str, List[str]]) -> str:
+    def greater_than_equal(attribute: str, value: str | list[str]) -> str:
         return Query.add_query(attribute, "greaterThanEqual", value)
 
     @staticmethod
@@ -34,7 +34,7 @@ class Query:
         return f'isNotNull("{attribute}")'
 
     @staticmethod
-    def between(attribute: str, start: Union[str, int], end: Union[str, int]) -> str:
+    def between(attribute: str, start: str | int, end: str | int) -> str:
         return f'between("{attribute}", {Query.parseValues(start)}, {Query.parseValues(end)})'
 
     @staticmethod
@@ -46,7 +46,7 @@ class Query:
         return Query.add_query(attribute, "endsWith", value)
 
     @staticmethod
-    def select(attributes: List[str]) -> str:
+    def select(attributes: list[str]) -> str:
         return f'select([{",".join(map(Query.parseValues, attributes))}])'
 
     @staticmethod
@@ -78,14 +78,14 @@ class Query:
         return f'offset({offset})'
 
     @staticmethod
-    def add_query(attribute: str, method: str, value: Union[str, List[str]]) -> str:
+    def add_query(attribute: str, method: str, value: str | list[str]) -> str:
         if isinstance(value, list):
             return f'{method}("{attribute}", [{",".join(map(Query.parseValues, value))}])'
         else:
             return f'{method}("{attribute}", [{Query.parseValues(value)}])'
 
     @staticmethod
-    def parseValues(value: Union[str, int, bool]) -> str:
+    def parseValues(value: str | int | bool) -> str:
         if isinstance(value, str):
             return f'"{value}"'
         elif isinstance(value, bool):

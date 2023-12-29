@@ -1,6 +1,6 @@
+from __future__ import annotations
 import os
 import mimetypes
-from typing import Optional
 
 class InputFile:
     @classmethod
@@ -8,15 +8,15 @@ class InputFile:
         instance: 'InputFile' = cls()
         instance.path: str = path
         instance.filename: str = os.path.basename(path)
-        instance.mime_type: Optional[str] = mimetypes.guess_type(path)[0]
+        instance.mime_type: str | None = mimetypes.guess_type(path)[0]
         instance.source_type: str = 'path'
         return instance
 
     @classmethod
-    def from_bytes(cls, bytes: bytes, filename: Optional[str] = None, mime_type: Optional[str] = None) -> 'InputFile':
+    def from_bytes(cls, bytes: bytes, filename: str | None = None, mime_type: str | None = None) -> 'InputFile':
         instance: 'InputFile' = cls()
         instance.data: bytes = bytes
-        instance.filename: Optional[str] = filename
-        instance.mime_type: Optional[str] = mime_type
+        instance.filename: str | None = filename
+        instance.mime_type: str | None = mime_type
         instance.source_type: str = 'bytes'
         return instance

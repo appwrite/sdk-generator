@@ -1,7 +1,7 @@
+from __future__ import annotations
 import io
 import requests
 import os
-from typing import Any, Dict, Optional, Union
 from .input_file import InputFile
 from .exception import {{spec.title | caseUcfirst}}Exception
 
@@ -10,7 +10,7 @@ class Client:
         self._chunk_size: int = 5*1024*1024
         self._self_signed: bool = False
         self._endpoint: str = '{{spec.endpoint}}'
-        self._global_headers: Dict[str, str] = {
+        self._global_headers: dict[str, str] = {
             'content-type': '',
             'user-agent' : '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${os.uname().sysname}; ${os.uname().version}; ${os.uname().machine})',
             'x-sdk-name': '{{ sdk.name }}',
@@ -44,18 +44,12 @@ class Client:
         return self
 {% endfor %}
 
-    def call(self, method: str, path: str = '', headers: Optional[Dict[str, str]] = None, params: Optional[Dict[str, Any]] = None) -> Union[Dict[str, Any], bytes]:
-        if headers is None:
-            headers = {}
-
-        if params is None:
-            params = {}
-
+    def call(self, method: str, path: str = '', headers: dict[str, str] = {}, params: dict[str, Any] = {}) -> dict[str, Any] | bytes:
         params = {k: v for k, v in params.items() if v is not None}  # Remove None values from params dictionary
 
-        data: Dict[str, Any] = {}
-        json: Dict[str, Any] = {}
-        files: Dict[str, Any] = {}
+        data: dict[str, Any] = {}
+        json: dict[str, Any] = {}
+        files: dict[str, Any] = {}
         stringify: bool = False
         
         headers = {**self._global_headers, **headers}
@@ -109,12 +103,12 @@ class Client:
     def chunked_upload(
         self,
         path: str,
-        headers: Optional[Dict[str, str]] = None,
-        params: Optional[Dict[str, Any]] = None,
+        headers: dict[str, str] = {},
+        params: dict[str, Any] = {},
         param_name: str = '',
-        on_progress: Optional[Any] = None,
+        on_progress: Any = None,
         upload_id: str = ''
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         input_file = params[param_name]
 
         if input_file.source_type == 'path':
@@ -189,8 +183,8 @@ class Client:
 
         return result
 
-    def flatten(self, data: Union[Dict[str, Any], list], prefix: str = '', stringify: bool = False) -> Dict[str, Any]:
-        output: Dict[str, Any] = {}
+    def flatten(self, data: Union[dict[str, Any], list], prefix: str = '', stringify: bool = False) -> dict[str, Any]:
+        output: dict[str, Any] = {}
         i = 0
 
         for key in data:

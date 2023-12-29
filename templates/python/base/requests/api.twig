@@ -1,8 +1,8 @@
-        return self.client.call('{{ method.method | caseLower }}', path, {
+        return self.client.call('{{ method.method | caseLower }}', path=api_path, headers={
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
 {% endfor %}
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
-        }, params)
+        }, params=params)
