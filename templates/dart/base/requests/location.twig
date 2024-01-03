@@ -10,5 +10,5 @@
 {% endif %}
         };
 
-        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, responseType: ResponseType.bytes);
+        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: apiPath, params: params, responseType: ResponseType.bytes);
         return res.data;

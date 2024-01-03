@@ -1,4 +1,4 @@
-        return await this.client.call('{{ method.method | caseLower }}', path, {
+        return await this.client.call('{{ method.method | caseLower }}', apiPath, {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}

@@ -34,7 +34,7 @@ module {{spec.title | caseUcfirst}}
             end
 
             def between(attribute, start, ending)
-                return add_query(attribute, "between", [start, ending])
+                return "between(\"#{attribute}\", #{parse_values(start)}, #{parse_values(ending)})"
             end
 
             def starts_with(attribute, value)
@@ -81,13 +81,13 @@ module {{spec.title | caseUcfirst}}
 
             def add_query(attribute, method, value)
                 if value.is_a?(Array)
-                    "#{method}(\"#{attribute}\", [#{value.map {|item| parseValues(item)}.join(',')}])"
+                    "#{method}(\"#{attribute}\", [#{value.map {|item| parse_values(item)}.join(',')}])"
                 else
-                   return "#{method}(\"#{attribute}\", [#{parseValues(value)}])"
+                   return "#{method}(\"#{attribute}\", [#{parse_values(value)}])"
 				end
             end
 
-            def parseValues(value)
+            def parse_values(value)
                 return value.is_a?(String) ? "\"#{value}\"" : value
             end
         end

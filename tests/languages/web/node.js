@@ -102,6 +102,7 @@ async function start() {
     console.log(Permission.create(Role.member('memberId')));
     console.log(Permission.update(Role.users('verified')));
     console.log(Permission.update(Role.user(ID.custom('userid'), 'unverified')));
+    console.log(Permission.create(Role.label('admin')));
 
 
     // ID helper tests

@@ -141,7 +141,7 @@ module {{ spec.title | caseUcfirst }}
                     params: {}
                 )
                 chunks_uploaded = current['chunksUploaded'].to_i
-                offset = [size, (chunks_uploaded * @chunk_size)].min
+                offset = chunks_uploaded * @chunk_size
             end
 
             while offset < size
@@ -158,7 +158,7 @@ module {{ spec.title | caseUcfirst }}
                     mime_type: input_file.mime_type
                 )
 
-                headers['content-range'] = "bytes #{offset}-#{[offset + @chunk_size - 1, size].min}/#{size}"
+                headers['content-range'] = "bytes #{offset}-#{[offset + @chunk_size - 1, size - 1].min}/#{size}"
 
                 result = call(
                     method: 'POST',

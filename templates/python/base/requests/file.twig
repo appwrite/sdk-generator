@@ -12,11 +12,11 @@
 {% endif %}
 {% endfor %}
 
-        return self.client.chunked_upload(path, {
+        return self.client.chunked_upload(api_path, {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
 {% endfor %}
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
-        }, params, param_name, on_progress, upload_id)
+        }, api_params, param_name, on_progress, upload_id)

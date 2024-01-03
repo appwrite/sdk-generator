@@ -144,6 +144,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/paginate.js',
+                'template'      => 'cli/lib/paginate.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/client.js',
                 'template'      => 'cli/lib/client.js.twig',
             ],

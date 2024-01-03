@@ -1,0 +1,149 @@
+<?php
+
+namespace Appwrite;
+
+use PHPUnit\Framework\TestCase;
+
+final class BasicFilterQueryTest {
+    public $description;
+    public $value;
+    public $expectedValues;
+
+    public function __construct(string $description, mixed $value, string $expectedValues) {
+        $this->description = $description;
+        $this->value = $value;
+        $this->expectedValues = $expectedValues;
+    }
+}
+
+final class QueryTest extends TestCase {
+    /**
+     * @var BasicFilterQueryTest[] $tests
+     */
+    private $tests;
+
+    function __construct(string $name)
+    {
+        parent::__construct($name);
+        $this->tests = array(
+            new BasicFilterQueryTest('with a string', 's', '["s"]'),
+            new BasicFilterQueryTest('with a integer', 1, '[1]'),
+            new BasicFilterQueryTest('with a double', 1.2, '[1.2]'),
+            new BasicFilterQueryTest('with a whole number double', 1.0, '[1]'),
+            new BasicFilterQueryTest('with a bool', false, '[false]'),
+            new BasicFilterQueryTest('with a list', ['a', 'b', 'c'], '["a","b","c"]'),
+        );
+    }
+
+    public function testBasicFilterEqual(): void {
+        foreach($this->tests as $test) {
+            $this->assertSame(
+                "equal(\"attr\", $test->expectedValues)",
+                Query::equal('attr', $test->value),
+                $test->description,
+            );
+        }
+    }
+
+    public function testBasicFilterNotEqual(): void {
+        foreach($this->tests as $test) {
+            $this->assertSame(
+                "notEqual(\"attr\", $test->expectedValues)",
+                Query::notEqual('attr', $test->value),
+                $test->description,
+            );
+        }
+    }
+
+    public function testBasicFilterLessThan(): void {
+        foreach($this->tests as $test) {
+            $this->assertSame(
+                "lessThan(\"attr\", $test->expectedValues)",
+                Query::lessThan('attr', $test->value),
+                $test->description,
+            );
+        }
+    }
+
+    public function testBasicFilterLessThanEqual(): void {
+        foreach($this->tests as $test) {
+            $this->assertSame(
+                "lessThanEqual(\"attr\", $test->expectedValues)",
+                Query::lessThanEqual('attr', $test->value),
+                $test->description,
+            );
+        }
+    }
+
+    public function testBasicFilterGreaterThan(): void {
+        foreach($this->tests as $test) {
+            $this->assertSame(
+                "greaterThan(\"attr\", $test->expectedValues)",
+                Query::greaterThan('attr', $test->value),
+                $test->description,
+            );
+        }
+    }
+
+    public function testBasicFilterGreaterThanEqual(): void {
+        foreach($this->tests as $test) {
+            $this->assertSame(
+                "greaterThanEqual(\"attr\", $test->expectedValues)",
+                Query::greaterThanEqual('attr', $test->value),
+                $test->description,
+            );
+        }
+    }
+
+    public function testSearch(): void {
+        $this->assertSame('search("attr", ["keyword1 keyword2"])', Query::search('attr', 'keyword1 keyword2'));
+    }
+
+    public function testIsNull(): void {
+        $this->assertSame('isNull("attr")', Query::isNull('attr'));
+    }
+
+    public function testIsNotNull(): void {
+        $this->assertSame('isNotNull("attr")', Query::isNotNull('attr'));
+    }
+
+    public function testBetweenWithIntegers(): void {
+        $this->assertSame('between("attr", 1, 2)', Query::between('attr', 1, 2));
+    }
+
+    public function testBetweenWithDoubles(): void {
+        $this->assertSame('between("attr", 1, 2)', Query::between('attr', 1.0, 2.0));
+    }
+
+    public function testBetweenWithStrings(): void {
+        $this->assertSame('between("attr", "a", "z")', Query::between('attr', 'a', 'z'));
+    }
+
+    public function testSelect(): void {
+        $this->assertSame('select(["attr1","attr2"])', Query::select(['attr1', 'attr2']));
+    }
+
+    public function testOrderAsc(): void {
+        $this->assertSame('orderAsc("attr")', Query::orderAsc('attr'));
+    }
+
+    public function testOrderDesc(): void {
+        $this->assertSame('orderDesc("attr")', Query::orderDesc('attr'));
+    }
+
+    public function testCursorBefore(): void {
+        $this->assertSame('cursorBefore("attr")', Query::cursorBefore('attr'));
+    }
+
+    public function testCursorAfter(): void {
+        $this->assertSame('cursorAfter("attr")', Query::cursorAfter('attr'));
+    }
+
+    public function testLimit(): void {
+        $this->assertSame('limit(1)', Query::limit(1));
+    }
+
+    public function testOffset(): void {
+        $this->assertSame('offset(1)', Query::offset(1));
+    }
+}

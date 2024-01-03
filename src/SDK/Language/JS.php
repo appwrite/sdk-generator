@@ -105,6 +105,7 @@ abstract class JS extends Language
             'while',
             'with',
             'yield',
+            'path'
         ];
     }
 

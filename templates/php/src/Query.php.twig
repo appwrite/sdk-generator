@@ -120,7 +120,10 @@ class Query
      */
     public static function between(string $attribute, $start, $end): string
     {
-        return self::addQuery($attribute, 'between', [$start, $end]);
+        $start = self::parseValues($start);
+        $end = self::parseValues($end);
+
+        return "between(\"{$attribute}\", {$start}, {$end})";
     }
 
     /**

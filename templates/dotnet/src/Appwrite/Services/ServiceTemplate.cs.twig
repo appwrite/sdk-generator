@@ -27,7 +27,7 @@ namespace {{ spec.title | caseUcfirst }}.Services
         /// </summary>
         public Task{% if method.type != "webAuth" %}<{{ utils.resultType(spec.title, method) }}>{% endif %} {{ method.name | caseUcfirst }}({{ utils.method_parameters(method.parameters, method.consumes) }})
         {
-            var path = "{{ method.path }}"{% if method.parameters.path | length == 0 %};{% endif %}
+            var apiPath = "{{ method.path }}"{% if method.parameters.path | length == 0 %};{% endif %}
 
 		{{~ include('dotnet/base/params.twig') }}
 

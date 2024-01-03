@@ -120,6 +120,7 @@ void main() async {
   print(Permission.create(Role.member('memberId')));
   print(Permission.update(Role.users('verified')));
   print(Permission.update(Role.user(ID.custom('userid'), 'unverified')));
+  print(Permission.create(Role.label('admin')));
 
   // ID helper tests
   print(ID.unique());

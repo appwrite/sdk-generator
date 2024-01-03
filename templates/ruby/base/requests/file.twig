@@ -7,9 +7,9 @@
 {% endif %}
 {% endfor %}
             @client.chunked_upload(
-                path: path,
-                headers: headers,
-                params: params,
+                path: api_path,
+                headers: api_headers,
+                params: api_params,
                 param_name: param_name,
                 id_param_name: id_param_name,
                 on_progress: on_progress,

@@ -29,10 +29,10 @@ func New{{ service.name | caseUcfirst }}(clt Client) *{{ service.name | caseUcfi
 func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({% if method.parameters.all|length > 0 %}{% for parameter in method.parameters.all %}{{ parameter.name | caseUcfirst }} {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}) (*ClientResponse, error) {
 {% if method.parameters.path|length > 0 %}
 	r := strings.NewReplacer({% for parameter in method.parameters.path %}"{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}", {{ parameter.name | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %})
-	path := r.Replace("{{ method.path }}")
+	apiPath := r.Replace("{{ method.path }}")
 
 {% else %}
-	path := "{{ method.path }}"
+	apiPath := "{{ method.path }}"
 	
 {% endif %}
 {{include('go/base/params.twig')}}

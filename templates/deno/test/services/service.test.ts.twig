@@ -1,0 +1,56 @@
+import {afterEach, describe, it as test} from "https://deno.land/std@0.204.0/testing/bdd.ts";
+import {restore, stub} from "https://deno.land/std@0.204.0/testing/mock.ts";
+import {assertEquals} from "https://deno.land/std@0.204.0/assert/assert_equals.ts";
+import { {{ service.name | caseUcfirst }} } from "../../src/services/{{ service.name | caseCamel }}.ts";
+import {Client} from "../../src/client.ts";
+import {InputFile} from "../../src/inputFile.ts"
+
+describe('{{ service.name | caseUcfirst }} service', () => {
+    const client = new Client();
+    const {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
+
+    afterEach(() => restore())
+
+    {% for method in service.methods ~%}
+    test('test method {{ method.name | caseCamel }}()', async () => {
+        {%~ if method.type == 'webAuth' %}
+        const data = '';
+        {%~ elseif method.type == 'location' %}
+        const data = new Uint8Array(0);
+        {%~ else %}
+            {%- if method.responseModel and method.responseModel != 'any' %}
+        const data = {
+            {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
+            '{{property.name | escapeDollarSign}}': {% if property.type == 'object' %}{}{% elseif property.type == 'array' %}[]{% elseif property.type == 'string' %}'{{property.example | escapeDollarSign}}'{% elseif property.type == 'boolean' %}true{% else %}{{property.example}}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
+        };
+            {%~ else %}
+        const data = '';
+            {%~ endif %}
+        {%~ endif %}
+
+        {%~ if method.type == 'location' %}
+        const stubbedFetch = stub(globalThis, 'fetch', () => Promise.resolve(new Response(data.buffer)));
+        {%~ elseif method.responseModel and method.responseModel != 'any' %}
+        const stubbedFetch = stub(globalThis, 'fetch', () => Promise.resolve(Response.json(data)));
+        {%~ else %}
+        const stubbedFetch = stub(globalThis, 'fetch', () => Promise.resolve(new Response(data)))
+        {%~ endif %}
+
+        const response = await {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
+            {% if parameter.type == 'object' %}{}{% elseif parameter.type == 'array' %}[]{% elseif parameter.type == 'file' %}InputFile.fromBuffer(new Uint8Array(0), 'image.png'){% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'string' %}'{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}'{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%},{%~ endfor ~%}
+        );
+
+        {%~ if method.type == 'location' %}
+        const buffer = await response.arrayBuffer();
+        assertEquals(buffer.byteLength, 0);
+        {%~ elseif not method.responseModel or method.responseModel == 'any' %}
+        const text = await response.text();
+        assertEquals(text, data);
+        {%~ else %}
+        assertEquals(response, data);
+        {%~ endif %}
+        stubbedFetch.restore();
+    });
+
+    {% endfor %}
+})

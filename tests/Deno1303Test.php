@@ -13,7 +13,7 @@ class Deno1303Test extends Base
     protected string $class = 'Appwrite\SDK\Language\Deno';
     protected array $build = [];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app denoland/deno:alpine-1.30.3 run --allow-net --allow-read tests/languages/deno/tests.ts';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app denoland/deno:alpine-1.30.3 run --allow-net --allow-read tests/languages/deno/tests.ts';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

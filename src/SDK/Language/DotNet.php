@@ -129,7 +129,8 @@ class DotNet extends Language
             'when',
             'where',
             'while',
-            'yield'
+            'yield',
+            'path'
         ];
     }
 

@@ -1,8 +1,8 @@
-        return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $path, [
+        return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $apiPath, [
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}' => ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
 {% for key, header in method.headers %}
             '{{ key }}' => '{{ header }}',
 {% endfor %}
-        ], $params);
+        ], $apiParams);

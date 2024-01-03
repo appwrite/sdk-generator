@@ -136,8 +136,9 @@ namespace AppwriteTests
             TestContext.WriteLine(Permission.Delete(Role.Team("teamId", "owner")));
             TestContext.WriteLine(Permission.Delete(Role.Team("teamId")));
             TestContext.WriteLine(Permission.Create(Role.Member("memberId")));
-            TestContext.WriteLine(Permission.Update(Role.Users("verified")));;
-            TestContext.WriteLine(Permission.Update(Role.User(ID.Custom("userid"), "unverified")));;
+            TestContext.WriteLine(Permission.Update(Role.Users("verified")));
+            TestContext.WriteLine(Permission.Update(Role.User(ID.Custom("userid"), "unverified")));
+            TestContext.WriteLine(Permission.Create(Role.Label("admin")));
 
             // ID helper tests
             TestContext.WriteLine(ID.Unique());

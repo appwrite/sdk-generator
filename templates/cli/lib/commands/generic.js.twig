@@ -82,6 +82,7 @@ const client = new Command("client")
                 }
 
                 let client = new Client().setEndpoint(endpoint);
+                client.setProject('console');
                 if (selfSigned || globalConfig.getSelfSigned()) {
                     client.setSelfSigned(true);
                 }

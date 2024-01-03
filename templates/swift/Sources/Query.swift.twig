@@ -33,15 +33,15 @@ public class Query {
     }
 
     public static func between(_ attribute: String, start: Int, end: Int) -> String {
-        buildQueryWhere(attribute, is: "between", to: [start, end])
+        "between(\"\(attribute)\", \(start), \(end))"
     }
 
     public static func between(_ attribute: String, start: Double, end: Double) -> String {
-        buildQueryWhere(attribute, is: "between", to: [start, end])
+        "between(\"\(attribute)\", \(start), \(end))"
     }
 
     public static func between(_ attribute: String, start: String, end: String) -> String {
-        buildQueryWhere(attribute, is: "between", to: [start, end])
+        "between(\"\(attribute)\", \"\(start)\", \"\(end)\")"
     }
 
     public static func startsWith(_ attribute: String, value: String) -> String {
