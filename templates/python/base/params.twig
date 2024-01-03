@@ -1,31 +1,31 @@
-        params = {}
+        api_params = {}
 {% if method.parameters.all | length %}
 {% for parameter in method.parameters.all  %}
-{% if parameter.required %}
+{% if parameter.required and not parameter.nullable %}
         if {{ parameter.name | escapeKeyword | caseSnake }} is None:
             raise {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | escapeKeyword | caseSnake }}"')
 
 {% endif %}
 {% endfor %}
 {% for parameter in method.parameters.path %}
-        path = path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | escapeKeyword | caseSnake }})
+        api_path = api_path.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | escapeKeyword | caseSnake }})
 {% endfor %}
 
 {% for parameter in method.parameters.query %}
-        params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+        api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 {% endfor %}
 {% for parameter in method.parameters.body %}
 {% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
-        params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
+        api_params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
 {% else %}
-        params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+        api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 {% endif %}
 {% endfor %}
 {% for parameter in method.parameters.formData %}
 {% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}
-        params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
+        api_params['{{ parameter.name }}'] = str({{ parameter.name | escapeKeyword | caseSnake }}).lower() if type({{ parameter.name | escapeKeyword | caseSnake }}) is bool else {{ parameter.name | escapeKeyword | caseSnake }}
 {% else %}
-        params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
+        api_params['{{ parameter.name }}'] = {{ parameter.name | escapeKeyword | caseSnake }}
 {% endif %}
 {% endfor %}
 {% endif %}

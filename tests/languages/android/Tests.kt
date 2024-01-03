@@ -152,11 +152,11 @@ class ServiceTest {
             delay(5000)
             writeToFile(realtimeResponse)
 
-            mock = general.setCookie()
-            writeToFile(mock.result)
+            // mock = general.setCookie()
+            // writeToFile(mock.result)
 
-            mock = general.getCookie()
-            writeToFile(mock.result)
+            // mock = general.getCookie()
+            // writeToFile(mock.result)
 
             general.empty()
 
@@ -192,6 +192,7 @@ class ServiceTest {
             writeToFile(Permission.create(Role.member("memberId")))
             writeToFile(Permission.update(Role.users("verified")))
             writeToFile(Permission.update(Role.user(ID.custom("userid"), "unverified")))
+            writeToFile(Permission.create(Role.label("admin")))
 
             // ID helper tests
             writeToFile(ID.unique())

@@ -2,7 +2,7 @@
 {% if parameter.type == 'file' %}
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
-        const headers = {
+        const apiHeaders = {
 {% for parameter in method.parameters.header %}
             '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
 {% endfor %}
@@ -20,7 +20,7 @@
 {% if parameter.isUploadID %}
         if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
-                response = await this.client.call('get', path + '/' + {{ parameter.name }}, headers);
+                response = await this.client.call('get', apiPath + '/' + {{ parameter.name }}, apiHeaders);
                 chunksUploaded = response.chunksUploaded;
             } catch(e) {
             }
@@ -40,20 +40,24 @@
             }
             
             const start = currentChunkStart;
-            const end = Math.min(((start + client.CHUNK_SIZE) - 1), size);
+            const end = currentChunkStart + currentChunkSize - 1;
 
             if(!lastUpload || currentChunkStart !== 0) {
-                headers['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
+                apiHeaders['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
             }
 
             if (id) {
-                headers['x-{{spec.title | caseLower }}-id'] = id;
+                apiHeaders['x-{{spec.title | caseLower }}-id'] = id;
             }
 
-            const stream = Stream.Readable.from(currentChunk);
-            payload['{{ parameter.name }}'] = { type: 'file', file: stream, filename: {{ parameter.name }}.filename };
+            payload['{{ parameter.name }}'] = {
+                type: 'file',
+                file: currentChunk,
+                filename: {{ parameter.name }}.filename,
+                size: currentChunkSize
+            };
 
-            response = await selfClient.call('{{ method.method | caseLower }}', path, headers, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+            response = await selfClient.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
             if (!id) {
                 id = response['$id'];
@@ -92,6 +96,7 @@
                         if(chunkSize + currentChunkSize == client.CHUNK_SIZE) {
                             // Upload chunk
                             currentChunk = Buffer.concat([currentChunk, chunk]);
+                            currentChunkSize = Buffer.byteLength(currentChunk);
                             await uploadChunk();
                             currentChunk = Buffer.from('');
                             currentChunkSize = 0;

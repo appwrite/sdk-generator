@@ -6,9 +6,9 @@
 {% endif %}
 {% endfor %}
         return try await client.chunkedUpload(
-            path: path,
-            headers: &headers,
-            params: &params,
+            path: apiPath,
+            headers: &apiHeaders,
+            params: &apiParams,
             paramName: paramName,
             idParamName: idParamName,
 {% if method.responseModel %}

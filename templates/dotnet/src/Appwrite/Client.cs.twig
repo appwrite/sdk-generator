@@ -354,7 +354,7 @@ namespace {{ spec.title | caseUcfirst }}
                 parameters[paramName] = content;
 
                 headers["Content-Range"] =
-                    $"bytes {offset}-{Math.Min(offset + ChunkSize - 1, size)}/{size}";
+                    $"bytes {offset}-{Math.Min(offset + ChunkSize - 1, size - 1)}/{size}";
 
                 result = await Call<Dictionary<string, object?>>(
                     method: "POST",
