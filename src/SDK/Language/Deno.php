@@ -181,13 +181,4 @@ class Deno extends JS
 
         return $output;
     }
-
-    public function getFilters(): array
-    {
-        return [
-            new TwigFilter('caseEnumKey', function (string $value) {
-                return $this->toPascalCase($value);
-            }),
-        ];
-    }
 }

@@ -14,7 +14,7 @@ class Node extends JS
 
     /**
      * @param array $parameter
-     * @param array $nestedTypes
+     * @param array $spec
      * @return string
      */
     public function getTypeName(array $parameter, array $spec = []): string
