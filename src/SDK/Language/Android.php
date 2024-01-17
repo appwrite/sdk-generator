@@ -132,6 +132,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/ActivityExtensions.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/extensions/ActivityExtensions.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/JsonExtensions.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/extensions/JsonExtensions.kt.twig',
             ],
@@ -147,6 +152,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/MessagingExtensions.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/extensions/MessagingExtensions.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/json/PreciseNumberAdapter.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/json/PreciseNumberAdapter.kt.twig',
             ],
@@ -154,6 +164,11 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/InputFile.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/models/InputFile.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/Notification.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/Notification.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -189,6 +204,11 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/Realtime.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/services/Realtime.kt.twig',
+            ],
+            [
+                'scope'        => 'default',
+                'destination'  => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/NotificationHandler.kt',
+                'template'     => '/android/library/src/main/java/io/appwrite/NotificationHandler.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -234,6 +254,16 @@ class Android extends Kotlin
                 'scope'         => 'copy',
                 'destination'   => '/library/.gitignore',
                 'template'      => '/android/library/.gitignore',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => 'library/src/main/java/io/appwrite/models/{{ definition.name | caseUcfirst }}.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/Model.kt.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'library/src/main/java/io/appwrite/enums/{{ enum.name | caseUcfirst }}.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/enums/Enum.kt.twig',
             ],
             // Config for project :example
             [
