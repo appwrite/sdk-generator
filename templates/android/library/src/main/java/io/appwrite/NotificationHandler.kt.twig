@@ -27,6 +27,8 @@ import kotlin.properties.Delegates
 class NotificationHandler : FirebaseMessagingService() {
 
     companion object {
+        internal const val TARGET_NOT_FOUND = "user_target_not_found"
+
         /**
          * Should the notification be automatically displayed if the app is in the foreground
          */
@@ -201,6 +203,11 @@ class NotificationHandler : FirebaseMessagingService() {
                 }
                 break
             } catch (ex: AppwriteException) {
+                if (ex.type == TARGET_NOT_FOUND) {
+                    globalPrefs.edit().remove("targetId").apply()
+                    targetId = ""
+                }
+
                 attempts--
 
                 if (attempts == 0) {
