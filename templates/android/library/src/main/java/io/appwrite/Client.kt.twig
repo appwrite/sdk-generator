@@ -46,7 +46,9 @@ class Client @JvmOverloads constructor(
 ) : CoroutineScope {
 
     companion object {
-        const val CHUNK_SIZE = 5*1024*1024; // 5MB
+        internal const val CHUNK_SIZE = 5*1024*1024; // 5MB
+        internal const val GLOBAL_PREFS = "{{ sdk.namespace | caseDot }}"
+        internal const val COOKIE_PREFS = "myCookie"
     }
 
     override val coroutineContext: CoroutineContext
@@ -66,7 +68,7 @@ class Client @JvmOverloads constructor(
     val config: MutableMap<String, String>
 
     private val cookieJar = CookieManager(
-        SharedPreferencesCookieStore(context, "myCookie"),
+        SharedPreferencesCookieStore(context, COOKIE_PREFS),
         CookiePolicy.ACCEPT_ALL
     )
 
