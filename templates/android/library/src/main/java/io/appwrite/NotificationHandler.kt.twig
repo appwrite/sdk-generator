@@ -29,6 +29,8 @@ class NotificationHandler : FirebaseMessagingService() {
     companion object {
         internal const val TARGET_NOT_FOUND = "user_target_not_found"
 
+        var client: Client? = null
+
         /**
          * Should the notification be automatically displayed if the app is in the foreground
          */
@@ -77,11 +79,9 @@ class NotificationHandler : FirebaseMessagingService() {
     private val job = Job()
     private val scope = CoroutineScope(job + Dispatchers.IO)
 
-    private val globalPrefs = getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE)
-    private val cookiePrefs = getSharedPreferences(Client.COOKIE_PREFS, Context.MODE_PRIVATE)
+    private lateinit var globalPrefs: SharedPreferences
 
-    private val client = Client(this)
-    private val account = Account(client)
+    private var cookiePrefs: SharedPreferences? = null
 
     init {
         displayIcon = resources.getIdentifier(
@@ -111,6 +111,19 @@ class NotificationHandler : FirebaseMessagingService() {
                 onNewToken(token)
             })
         }
+    override fun onCreate() {
+        super.onCreate()
+
+        Log.d(javaClass.name, "Initializing NotificationHandler")
+
+        globalPrefs = applicationContext.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE)
+
+        displayIcon = resources.getIdentifier(
+            "ic_launcher_foreground",
+            "drawable",
+            packageName
+        )
+    }
     }
 
     override fun onNewToken(token: String) {
