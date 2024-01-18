@@ -119,6 +119,10 @@ class NotificationHandler : FirebaseMessagingService() {
             packageName
         )
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        job.cancel()
     }
 
     override fun onNewToken(token: String) {
@@ -185,12 +189,18 @@ class NotificationHandler : FirebaseMessagingService() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        job.cancel()
-    }
-
     private suspend fun pushToken(token: String) {
+        if (client == null) {
+            return
+        }
+        if (account == null) {
+            account = Account(client!!)
+        }
+        if (cookiePrefs == null) {
+            cookiePrefs = client!!.cookiePrefs
+            cookiePrefs!!.registerOnSharedPreferenceChangeListener(listener)
+        }
+
         try {
             account.get()
         } catch (ex: AppwriteException) {
