@@ -91,7 +91,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             }
         }
 
-        val apiUrl = Uri.parse("${client.endPoint}${apiPath}?${apiQuery.joinToString("&")}")
+        val apiUrl = Uri.parse("${client.endpoint}${apiPath}?${apiQuery.joinToString("&")}")
         val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.config["project"]}"
 
         WebAuthComponent.authenticate(activity, apiUrl, callbackUrlScheme) {
@@ -109,12 +109,12 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             val cookie = Cookie.Builder()
                 .name(key)
                 .value(secret)
-                .domain(Uri.parse(client.endPoint).host!!)
+                .domain(Uri.parse(client.endpoint).host!!)
                 .httpOnly()
                 .build()
             
             client.http.cookieJar.saveFromResponse(
-                client.endPoint.toHttpUrl(),
+                client.endpoint.toHttpUrl(),
                 listOf(cookie)
             )
         }

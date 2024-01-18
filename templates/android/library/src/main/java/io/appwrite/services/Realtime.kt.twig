@@ -55,7 +55,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         val request = Request.Builder()
-            .url("${client.endPointRealtime}/realtime?$queryParamBuilder")
+            .url("${client.endpointRealtime}/realtime?$queryParamBuilder")
             .build()
 
         if (socket != null) {
