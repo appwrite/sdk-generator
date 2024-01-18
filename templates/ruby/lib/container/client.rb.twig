@@ -205,6 +205,8 @@ module {{ spec.title | caseUcfirst }}
             
             headers = @headers.merge(headers)
 
+            params.compact!
+
             @boundary = "----A30#3ad1"
             if method != "GET"
                 case headers[:'content-type']
