@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
-import {{ sdk.namespace | caseDot }}.{{ spec.title | caseLower }}.BuildConfig
 import {{ sdk.namespace | caseDot }}.cookies.stores.SharedPreferencesCookieStore
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
@@ -40,8 +39,8 @@ import kotlin.coroutines.resume
 
 class Client @JvmOverloads constructor(
     context: Context,
-    var endPoint: String = "{{spec.endpoint}}",
-    var endPointRealtime: String? = null,
+    var endpoint: String = "{{spec.endpoint}}",
+    var endpointRealtime: String? = null,
     private var selfSigned: Boolean = false
 ) : CoroutineScope {
 
@@ -163,7 +162,7 @@ class Client @JvmOverloads constructor(
             // Create an ssl socket factory with our all-trusting manager
             val sslSocketFactory: SSLSocketFactory = sslContext.socketFactory
             builder.sslSocketFactory(sslSocketFactory, trustAllCerts[0] as X509TrustManager)
-            builder.hostnameVerifier(HostnameVerifier { _, _ -> true })
+            builder.hostnameVerifier { _, _ -> true }
 
             http = builder.build()
         } catch (e: Exception) {
@@ -180,11 +179,11 @@ class Client @JvmOverloads constructor(
      *
      * @return this     
      */
-    fun setEndpoint(endPoint: String): Client {
-        this.endPoint = endPoint
+    fun setEndpoint(endpoint: String): Client {
+        this.endpoint = endpoint
 
-        if (this.endPointRealtime == null && endPoint.startsWith("http")) {
-            this.endPointRealtime = endPoint.replaceFirst("http", "ws")
+        if (this.endpointRealtime == null && endpoint.startsWith("http")) {
+            this.endpointRealtime = endpoint.replaceFirst("http", "ws")
         }
 
         return this
@@ -197,8 +196,8 @@ class Client @JvmOverloads constructor(
     *
     * @return this
     */
-    fun setEndpointRealtime(endPoint: String): Client {
-        this.endPointRealtime = endPoint
+    fun setEndpointRealtime(endpoint: String): Client {
+        this.endpointRealtime = endpoint
         return this
     }
 
@@ -240,7 +239,7 @@ class Client @JvmOverloads constructor(
             .addAll(headers.toHeaders())
             .build()
 
-        val httpBuilder = (endPoint + path).toHttpUrl().newBuilder()
+        val httpBuilder = (endpoint + path).toHttpUrl().newBuilder()
 
         if ("GET" == method) {
             filteredParams.forEach {
@@ -418,14 +417,14 @@ class Client @JvmOverloads constructor(
             )
 
             offset += CHUNK_SIZE
-            headers["x-{{ spec.title | caseLower }}-id"] = result!!["\$id"].toString()
+            headers["x-{{ spec.title | caseLower }}-id"] = result["\$id"].toString()
             onProgress?.invoke(
                 UploadProgress(
-                    id = result!!["\$id"].toString(),
+                    id = result["\$id"].toString(),
                     progress = offset.coerceAtMost(size).toDouble() / size * 100,
                     sizeUploaded = offset.coerceAtMost(size),
-                    chunksTotal = result!!["chunksTotal"].toString().toInt(),
-                    chunksUploaded = result!!["chunksUploaded"].toString().toInt(),
+                    chunksTotal = result["chunksTotal"].toString().toInt(),
+                    chunksUploaded = result["chunksUploaded"].toString().toInt(),
                 )
             )
         }
