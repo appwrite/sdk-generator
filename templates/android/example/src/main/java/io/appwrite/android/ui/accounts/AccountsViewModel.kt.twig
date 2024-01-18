@@ -41,8 +41,12 @@ class AccountsViewModel : ViewModel() {
     fun onSignup(email: Editable, password: Editable, name: Editable) {
         viewModelScope.launch {
             try {
-                val user =
-                    accountService.create(email.toString(), password.toString(), name.toString())
+                val user = accountService.create(
+                    ID.unique(),
+                    email.toString(),
+                    password.toString(),
+                    name.toString()
+                )
                 _response.postValue(Event(user.toJson()))
             } catch (e: {{ spec.title | caseUcfirst }}Exception) {
                 _error.postValue(Event(e))
@@ -56,7 +60,7 @@ class AccountsViewModel : ViewModel() {
             try {
                 accountService.createOAuth2Session(
                     activity,
-                    "facebook",
+                    Provider.FACEBOOK,
                     "appwrite-callback-6070749e6acd4://demo.appwrite.io/auth/oauth2/success",
                     "appwrite-callback-6070749e6acd4://demo.appwrite.io/auth/oauth2/failure"
                 )
