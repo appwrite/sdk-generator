@@ -26,9 +26,14 @@ android {
 
     compileSdkVersion(34)
 
+    buildFeatures {
+        buildConfig true
+    }
+
     defaultConfig {
         minSdkVersion(21)
         targetSdkVersion(34)
+        applicationId "{{ sdk.namespace | caseDot }}.{{ spec.title | caseDash }}"
         versionCode = 1
         versionName = "1.0"
         buildConfigField "String", "SDK_VERSION", "\"${PUBLISH_VERSION}\""
