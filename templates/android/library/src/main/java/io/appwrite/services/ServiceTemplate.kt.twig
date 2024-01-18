@@ -136,6 +136,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ if method.responseModel == 'any' %}
             it
         {%~ else %}
+            @Suppress("UNCHECKED_CAST")
             {{sdk.namespace | caseDot}}.models.{{ method.responseModel | caseUcfirst }}.from(map = it as Map<String, Any>{% if method.responseModel | hasGenericType(spec) %}, nestedType{% endif %})
         {%~ endif %}
         }
