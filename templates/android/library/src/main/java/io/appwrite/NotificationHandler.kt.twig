@@ -86,9 +86,25 @@ class NotificationHandler : FirebaseMessagingService() {
     private var account: Account? = null
 
 
+    private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+        Log.d(javaClass.name, "CookiePrefs changed")
+
+        FirebaseMessaging.getInstance().token.addOnCompleteListener(OnCompleteListener { task ->
+            Log.d(javaClass.name, "Fetching FCM registration token")
+
+            if (!task.isSuccessful) {
+                Log.w(javaClass.name, "Fetching FCM registration token failed", task.exception)
+                return@OnCompleteListener
             }
 
+            val token = task.result
+            if (token.isNullOrEmpty()) {
+                return@OnCompleteListener
+            }
 
+            onNewToken(token)
+        })
+    }
 
     override fun onCreate() {
         super.onCreate()
