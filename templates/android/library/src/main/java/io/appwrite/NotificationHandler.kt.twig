@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
@@ -22,6 +23,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.properties.Delegates
 
 class NotificationHandler : FirebaseMessagingService() {
@@ -85,6 +88,7 @@ class NotificationHandler : FirebaseMessagingService() {
 
     private var account: Account? = null
 
+    private val mutex = Mutex()
 
     private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
         Log.d(javaClass.name, "CookiePrefs changed")
@@ -126,13 +130,23 @@ class NotificationHandler : FirebaseMessagingService() {
     }
 
     override fun onNewToken(token: String) {
+        Log.d(javaClass.name, "FCM registration token: $token")
+
         scope.launch {
-            pushToken(token)
+            if (mutex.isLocked) {
+                return@launch
+            }
+
+            mutex.withLock {
+                pushToken(token)
+            }
         }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
+
+        Log.d(javaClass.name, "Message received!")
 
         // Fire callback before display so channel can be configured if needed
         onNotificationReceived(Notification(
@@ -202,8 +216,9 @@ class NotificationHandler : FirebaseMessagingService() {
         }
 
         try {
-            account.get()
+            account!!.get()
         } catch (ex: AppwriteException) {
+            Log.e(javaClass.name, "Failed to fetch account", ex)
             return
         }
 
@@ -213,13 +228,18 @@ class NotificationHandler : FirebaseMessagingService() {
         while (attempts > 0) {
             try {
                 if (targetId.isEmpty()) {
-                    val target = account.createPushTarget(ID.unique(), token)
+                    Log.d(javaClass.name, "Creating new push target")
+                    val target = account!!.createPushTarget(ID.unique(), token)
                     globalPrefs.edit().putString("targetId", target.id).apply()
                 } else {
-                    account.updatePushTarget(targetId, token)
+                    Log.d(javaClass.name, "Updating existing push target")
+                    account!!.updatePushTarget(targetId, token)
                 }
+                Log.d(javaClass.name, "Push token updated successfully")
                 break
             } catch (ex: AppwriteException) {
+                Log.e(javaClass.name, "Failed to push token", ex)
+
                 if (ex.type == TARGET_NOT_FOUND) {
                     globalPrefs.edit().remove("targetId").apply()
                     targetId = ""
