@@ -182,7 +182,6 @@ class NotificationHandler : FirebaseMessagingService() {
         job.cancel()
     }
 
-
     private suspend fun pushToken(token: String) {
         try {
             account.get()
@@ -190,7 +189,7 @@ class NotificationHandler : FirebaseMessagingService() {
             return
         }
 
-        val targetId = globalPrefs.getString("targetId", "") ?: ""
+        var targetId = globalPrefs.getString("targetId", "") ?: ""
 
         var attempts = 3
         while (attempts > 0) {
