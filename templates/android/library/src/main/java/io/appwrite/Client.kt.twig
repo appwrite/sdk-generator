@@ -6,7 +6,6 @@ import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import {{ sdk.namespace | caseDot }}.cookies.stores.SharedPreferencesCookieStore
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
-import {{ sdk.namespace | caseDot }}.extensions.fromJson
 import {{ sdk.namespace | caseDot }}.json.PreciseNumberAdapter
 import {{ sdk.namespace | caseDot }}.models.InputFile
 import {{ sdk.namespace | caseDot }}.models.UploadProgress
@@ -66,10 +65,12 @@ class Client @JvmOverloads constructor(
     
     val config: MutableMap<String, String>
 
-    private val cookieJar = CookieManager(
-        SharedPreferencesCookieStore(context, COOKIE_PREFS),
+    internal val cookiePrefs = context.getSharedPreferences(COOKIE_PREFS, Context.MODE_PRIVATE)
+
+    private val cookieJar = JavaNetCookieJar(CookieManager(
+        SharedPreferencesCookieStore(cookiePrefs),
         CookiePolicy.ACCEPT_ALL
-    )
+    ))
 
     private val appVersion by lazy {
         try {
@@ -132,7 +133,7 @@ class Client @JvmOverloads constructor(
 
         val builder = OkHttpClient()
             .newBuilder()
-            .cookieJar(JavaNetCookieJar(cookieJar))
+            .cookieJar(cookieJar)
 
         if (!selfSigned) {
             http = builder.build()
