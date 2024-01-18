@@ -32,7 +32,7 @@ module {{ spec.title | caseUcfirst }}
 
 {% endfor %}
 {% if definition.additionalProperties %}
-                    data: map.reject { |k,_| k.start_with?("$") }
+                    data: map
 {% endif %}
                 )
             end
