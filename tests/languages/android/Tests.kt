@@ -190,7 +190,7 @@ class ServiceTest {
             writeToFile(Query.offset(20).toString())
             writeToFile(Query.contains("title", ["Spider"]).toString())
             writeToFile(Query.contains("labels", ["first"]).toString())
-            writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990)))
+            writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))
