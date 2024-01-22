@@ -56,7 +56,7 @@ class Query(
 
         private fun parseValue(value: Any): List<Any> {
             return when (value) {
-                is List<*> -> value
+                is List<*> -> value as List<Any>
                 else -> listOf(value)
             }
         }
