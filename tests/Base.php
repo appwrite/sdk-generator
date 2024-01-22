@@ -81,12 +81,12 @@ abstract class Base extends TestCase
         '{ "method": "startsWith", "attribute": "name", "values": ["Ann"]}',
         '{ "method": "endsWith", "attribute": "name", "values": ["nne"]}',
         '{ "method": "select", "values": [["name", "age"]]}',
-        '{ "method": "orderAsc", "attribute": "title", "values": []}',
-        '{ "method": "orderDesc", "attribute": "title", "values": []}',
+        '{ "method": "orderAsc", "attribute": "title"}',
+        '{ "method": "orderDesc", "attribute": "title"}',
         '{ "method": "cursorAfter", "values": ["my_movie_id"]}',
         '{ "method": "cursorBefore", "values": ["my_movie_id"]}',
-        '{ "method": "limit", "attribute": "", "values": [50]}',
-        '{ "method": "offset", "attribute": "", "values": [20]}',
+        '{ "method": "limit", "values": [50]}',
+        '{ "method": "offset", "values": [20]}',
     ];
 
     protected const PERMISSION_HELPER_RESPONSES = [
