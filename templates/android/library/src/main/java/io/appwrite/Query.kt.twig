@@ -1,7 +1,9 @@
 package {{ sdk.namespace | caseDot }}
 
+import com.google.gson.Gson
+
 class Query(
-    val method: String
+    val method: String,
     val attribute: String? = null,
     val values: List<Any>? = null,
 ) {
@@ -52,7 +54,7 @@ class Query(
 
         fun or(queries: List<Query>) = Query("or", null, queries)
 
-        private fun parseValue(value: Any): Any {
+        private fun parseValue(value: Any): List<Any> {
             return when (value) {
                 is List<*> -> value
                 else -> listOf(value)
