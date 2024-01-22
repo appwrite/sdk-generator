@@ -14,13 +14,13 @@ class Query {
     final map = <String, dynamic>{
       'method': method,
     };
-    
-    if(values != null) {
-      map['values'] = values is List ? values : [values];
-    }
 
     if(attribute != null) {
       map['attribute'] = attribute;
+    }
+    
+    if(values != null) {
+      map['values'] = values is List ? values : [values];
     }
 
     return map;
