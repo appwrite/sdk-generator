@@ -87,6 +87,9 @@ abstract class Base extends TestCase
         '{ "method": "cursorBefore", "values": ["my_movie_id"]}',
         '{ "method": "limit", "values": [50]}',
         '{ "method": "offset", "values": [20]}',
+        '{ "method": "contains", "attribute": "title", "values": ["Spider"] }',
+        '{ "method": "contains", "attribute": "labels", "values": ["first"] }',
+        '{ "method": "or", "values": [{ "method": "equal", "attribute": "released", "values": [true] }, { "method": "lessThan", "attribute": "releasedYear", "values": [1990] }] }',
     ];
 
     protected const PERMISSION_HELPER_RESPONSES = [
