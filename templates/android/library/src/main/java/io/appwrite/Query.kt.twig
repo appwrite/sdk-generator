@@ -48,6 +48,10 @@ class Query(
 
         fun offset(offset: Int) = Query("offset", null, listOf(offset))
 
+        fun contains(attribute: String, value: Any) = Query("contains", attribute, parseValue(value))
+
+        fun or(queries: List<Query>) = Query("or", null, queries)
+
         private fun parseValue(value: Any): Any {
             return when (value) {
                 is List<*> -> value
