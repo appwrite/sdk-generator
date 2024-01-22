@@ -12,7 +12,7 @@ class InputFile:
         return instance
 
     @classmethod
-    def from_bytes(cls, bytes, filename = None, mime_type = None):
+    def from_bytes(cls, bytes, filename, mime_type = None):
         instance = cls()
         instance.data = bytes
         instance.filename = filename

@@ -37,8 +37,18 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/permission.test.ts',
+                'template'      => 'deno/test/permission.test.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/role.ts',
                 'template'      => 'deno/src/role.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/role.test.ts',
+                'template'      => 'deno/test/role.test.ts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -47,8 +57,18 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/id.test.ts',
+                'template'      => 'deno/test/id.test.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/query.ts',
                 'template'      => 'deno/src/query.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/query.test.ts',
+                'template'      => 'deno/test/query.test.ts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -74,6 +94,11 @@ class Deno extends JS
                 'scope'         => 'service',
                 'destination'   => '/src/services/{{service.name | caseDash}}.ts',
                 'template'      => 'deno/src/services/service.ts.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '/test/services/{{service.name | caseDash}}.test.ts',
+                'template'      => 'deno/test/services/service.test.ts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -180,14 +205,5 @@ class Deno extends JS
         }
 
         return $output;
-    }
-
-    public function getFilters(): array
-    {
-        return [
-            new TwigFilter('caseEnumKey', function (string $value) {
-                return $this->toPascalCase($value);
-            }),
-        ];
     }
 }

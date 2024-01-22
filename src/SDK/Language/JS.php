@@ -205,7 +205,7 @@ abstract class JS extends Language
     {
         return [
             new TwigFilter('caseEnumKey', function (string $value) {
-                return $this->toUpperSnakeCase($value);
+                return $this->toPascalCase($value);
             }),
         ];
     }

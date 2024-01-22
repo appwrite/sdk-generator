@@ -5,6 +5,7 @@ const client = require('../client.js');
 const Stream = require('stream');
 const { promisify } = require('util');
 const fs = require('fs');
+const { File } = require('undici');
 
 class {{ service.name | caseUcfirst }} extends Service {
 
@@ -25,6 +26,9 @@ class {{ service.name | caseUcfirst }} extends Service {
 {% for parameter in method.parameters.all %}
      * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
 {% endfor %}
+{% if 'multipart/form-data' in method.consumes %}
+     * @param {CallableFunction} onProgress
+{% endif %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {Promise}
      */
