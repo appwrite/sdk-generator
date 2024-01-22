@@ -100,6 +100,8 @@ class Client @JvmOverloads constructor(
         config = mutableMapOf()
         
         setSelfSigned(selfSigned)
+
+        NotificationHandler.client = this
     }
 
 {% for header in spec.global.headers %}

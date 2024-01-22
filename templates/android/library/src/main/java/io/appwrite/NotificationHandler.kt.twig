@@ -31,8 +31,7 @@ class NotificationHandler : FirebaseMessagingService() {
 
     companion object {
         internal const val TARGET_NOT_FOUND = "user_target_not_found"
-
-        var client: Client? = null
+        internal var client: Client? = null
 
         /**
          * Should the notification be automatically displayed if the app is in the foreground
