@@ -24,7 +24,25 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
     factory {{ definition.name | caseUcfirst | overrideIdentifier}}.fromMap(Map<String, dynamic> map) {
         return {{ definition.name | caseUcfirst | overrideIdentifier }}(
 {% for property in definition.properties %}
-            {{ property.name | escapeKeyword }}: {% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(p))){% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(map['{{property.name | escapeDollarSign }}']){% endif %}{% else %}map['{{property.name | escapeDollarSign }}']{% if property.type == "number" %}{% if not property.required %}?{% endif %}.toDouble(){% endif %}{% if property.type == "string" %}{% if not property.required %}?{% endif %}.toString(){% endif %}{% endif %},
+            {{ property.name | escapeKeyword }}:{{' '}}
+            {%- if property.sub_schema -%}
+                {%- if property.type == 'array' -%}
+                    List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(p)))
+                {%- else -%}
+                    {{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(map['{{property.name | escapeDollarSign }}'])
+                {%- endif -%}
+            {%- else -%}
+                map['{{property.name | escapeDollarSign }}']
+                {%- if property.type == "number" -%}
+                    {%- if not property.required %}?{% endif %}.toDouble()
+                {%- endif -%}
+                {%- if property.type == "string" -%}
+                    {%- if not property.required %}?{% endif %}.toString()
+                {%- endif -%}
+                {%- if property.type == "array" -%}
+                    {% if property.required %} ?? []{% endif %}
+                {%- endif -%}
+            {%- endif -%},
 {% endfor %}
 {% if definition.additionalProperties %}
             data: map,
