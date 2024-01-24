@@ -3,8 +3,10 @@ package {{ sdk.namespace | caseDot }}.android.ui.accounts
 import android.text.Editable
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.*
+import {{ sdk.namespace | caseDot }}.ID
 import {{ sdk.namespace | caseDot }}.android.utils.Client.client
 import {{ sdk.namespace | caseDot }}.android.utils.Event
+import {{ sdk.namespace | caseDot }}.enums.Provider
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.toJson
 import {{ sdk.namespace | caseDot }}.services.Account
