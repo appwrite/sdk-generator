@@ -35,7 +35,7 @@ class NotificationHandler : FirebaseMessagingService() {
         internal var providerId: String? = null
 
         /**
-         * Should the notification be automatically displayed if the app is in the foreground
+         * Should notifications be automatically displayed if the app is in the foreground
          */
         var displayForeground = true
 
@@ -136,7 +136,6 @@ class NotificationHandler : FirebaseMessagingService() {
             if (mutex.isLocked) {
                 return@launch
             }
-
             mutex.withLock {
                 pushToken(token)
             }
@@ -176,14 +175,19 @@ class NotificationHandler : FirebaseMessagingService() {
         }
 
         if (message.notification != null && displayForeground) {
-            val notification = NotificationCompat.Builder(this, "io.appwrite.notifications")
-                .setSmallIcon(displayIcon)
+            val builder = NotificationCompat.Builder(this, "io.appwrite.notifications")
                 .setContentTitle(message.notification?.title)
                 .setContentText(message.notification?.body)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setAutoCancel(autoCancel)
                 .setContentIntent(contentIntent)
-                .build()
+
+            if (displayIcon != 0) {
+                builder.setSmallIcon(displayIcon)
+            }
+
+            val notification = builder.build()
+
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val hasPermission = packageManager.checkPermission(
@@ -218,7 +222,7 @@ class NotificationHandler : FirebaseMessagingService() {
         try {
             account!!.get()
         } catch (ex: AppwriteException) {
-            Log.e(javaClass.name, "Failed to fetch account", ex)
+            Log.e(javaClass.name, "Failed to get account", ex)
             return
         }
 
