@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
@@ -18,20 +19,22 @@ import com.google.firebase.messaging.RemoteMessage
 import io.appwrite.exceptions.AppwriteException
 import io.appwrite.extensions.onNotificationReceived
 import io.appwrite.models.Notification
+import io.appwrite.models.User
 import io.appwrite.services.Account
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlin.properties.Delegates
 
 class NotificationHandler : FirebaseMessagingService() {
 
     companion object {
+        internal const val ACTION_CLIENT_INIT = "io.appwrite.ACTION_CLIENT_INIT"
         internal const val TARGET_NOT_FOUND = "user_target_not_found"
+
         internal var client: Client? = null
+        internal var account: Account? = null
         internal var providerId: String? = null
 
         /**
@@ -84,12 +87,6 @@ class NotificationHandler : FirebaseMessagingService() {
 
     private lateinit var globalPrefs: SharedPreferences
 
-    private var cookiePrefs: SharedPreferences? = null
-
-    private var account: Account? = null
-
-    private val mutex = Mutex()
-
     private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
         Log.d(javaClass.name, "CookiePrefs changed")
 
@@ -130,15 +127,21 @@ class NotificationHandler : FirebaseMessagingService() {
     override fun onCreate() {
         super.onCreate()
 
-        Log.d(javaClass.name, "Initializing NotificationHandler")
-
-        globalPrefs = applicationContext.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE)
+        globalPrefs = applicationContext.getSharedPreferences(
+            Client.GLOBAL_PREFS,
+            Context.MODE_PRIVATE
+        )
 
         displayIcon = resources.getIdentifier(
             "ic_launcher_foreground",
             "drawable",
             packageName
         )
+
+        if (client != null) {
+            // Make sure that the listener is registered if it was reclaimed since init
+            client?.cookiePrefs?.registerOnSharedPreferenceChangeListener(listener)
+        }
     }
 
     override fun onDestroy() {
@@ -150,12 +153,7 @@ class NotificationHandler : FirebaseMessagingService() {
         Log.d(javaClass.name, "FCM registration token: $token")
 
         scope.launch {
-            if (mutex.isLocked) {
-                return@launch
-            }
-            mutex.withLock {
-                pushToken(token)
-            }
+            pushToken(token)
         }
     }
 
