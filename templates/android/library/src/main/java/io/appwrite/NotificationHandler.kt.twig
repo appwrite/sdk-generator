@@ -21,21 +21,21 @@ import io.appwrite.extensions.onNotificationReceived
 import io.appwrite.models.Notification
 import io.appwrite.models.User
 import io.appwrite.services.Account
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.properties.Delegates
 
 class NotificationHandler : FirebaseMessagingService() {
 
     companion object {
         internal const val ACTION_CLIENT_INIT = "io.appwrite.ACTION_CLIENT_INIT"
-        internal const val TARGET_NOT_FOUND = "user_target_not_found"
 
         internal var client: Client? = null
         internal var account: Account? = null
         internal var providerId: String? = null
+
+        internal var cookieListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
 
         /**
          * Should notifications be automatically displayed if the app is in the foreground
@@ -82,30 +82,9 @@ class NotificationHandler : FirebaseMessagingService() {
         var channelImportance = NotificationManager.IMPORTANCE_DEFAULT
     }
 
-    private val job = Job()
-    private val scope = CoroutineScope(job + Dispatchers.IO)
+    private lateinit var mutex: Mutex
 
     private lateinit var globalPrefs: SharedPreferences
-
-    private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
-        Log.d(javaClass.name, "CookiePrefs changed")
-
-        FirebaseMessaging.getInstance().token.addOnCompleteListener(OnCompleteListener { task ->
-            Log.d(javaClass.name, "Fetching FCM registration token")
-
-            if (!task.isSuccessful) {
-                Log.w(javaClass.name, "Fetching FCM registration token failed", task.exception)
-                return@OnCompleteListener
-            }
-
-            val token = task.result
-            if (token.isNullOrEmpty()) {
-                return@OnCompleteListener
-            }
-
-            onNewToken(token)
-        })
-    }
 
     override fun getStartCommandIntent(originalIntent: Intent?): Intent {
         if (originalIntent?.action == ACTION_CLIENT_INIT) {
@@ -128,32 +107,49 @@ class NotificationHandler : FirebaseMessagingService() {
         super.onCreate()
 
         globalPrefs = applicationContext.getSharedPreferences(
-            Client.GLOBAL_PREFS,
-            Context.MODE_PRIVATE
+            Client.GLOBAL_PREFS, Context.MODE_PRIVATE
         )
 
         displayIcon = resources.getIdentifier(
-            "ic_launcher_foreground",
-            "drawable",
-            packageName
+            "ic_launcher_foreground", "drawable", packageName
         )
 
-        if (client != null) {
-            // Make sure that the listener is registered if it was reclaimed since init
-            client?.cookiePrefs?.registerOnSharedPreferenceChangeListener(listener)
-        }
-    }
+        mutex = Mutex()
 
-    override fun onDestroy() {
-        super.onDestroy()
-        job.cancel()
+        if (cookieListener == null) {
+            cookieListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+                Log.d(javaClass.name, "Shared preferences changed")
+
+                FirebaseMessaging.getInstance().token.addOnCompleteListener(OnCompleteListener { task ->
+                    if (!task.isSuccessful) {
+                        Log.w(
+                            javaClass.name, "Fetching FCM registration token failed", task.exception
+                        )
+                        return@OnCompleteListener
+                    }
+
+                    val token = task.result
+                    if (token.isNullOrEmpty()) {
+                        return@OnCompleteListener
+                    }
+
+                    onNewToken(token)
+                })
+            }
+        }
+
+        if (client != null) {
+            client?.cookiePrefs?.registerOnSharedPreferenceChangeListener(cookieListener)
+        }
     }
 
     override fun onNewToken(token: String) {
         Log.d(javaClass.name, "FCM registration token: $token")
 
-        scope.launch {
-            pushToken(token)
+        runBlocking {
+            mutex.withLock {
+                pushToken(token)
+            }
         }
     }
 
@@ -162,7 +158,7 @@ class NotificationHandler : FirebaseMessagingService() {
 
         Log.d(javaClass.name, "Message received!")
 
-        // Fire callback before display so channel can be configured if needed
+        // Fire callbacks before display so handler can be configured if needed
         onNotificationReceived(
             Notification(
                 title = message.notification?.title ?: "",
@@ -170,7 +166,7 @@ class NotificationHandler : FirebaseMessagingService() {
                 clickAction = message.notification?.clickAction ?: "",
                 color = message.notification?.color ?: "",
                 icon = message.notification?.icon ?: "",
-                imageURL = message.notification?.imageUrl.toString(),
+                imageURL = message.notification?.imageUrl?.toString() ?: "",
                 sound = message.notification?.sound ?: "",
                 data = message.data
             )
@@ -181,9 +177,7 @@ class NotificationHandler : FirebaseMessagingService() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                channelId,
-                channelName,
-                channelImportance
+                channelId, channelName, channelImportance
             ).apply {
                 description = channelDescription
             }
@@ -196,8 +190,7 @@ class NotificationHandler : FirebaseMessagingService() {
             val builder = NotificationCompat.Builder(this, "io.appwrite.notifications")
                 .setContentTitle(message.notification?.title)
                 .setContentText(message.notification?.body)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setAutoCancel(autoCancel)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT).setAutoCancel(autoCancel)
                 .setContentIntent(contentIntent)
 
             if (displayIcon != 0) {
@@ -206,7 +199,6 @@ class NotificationHandler : FirebaseMessagingService() {
 
             val notification = builder.build()
 
-
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val hasPermission = packageManager.checkPermission(
                     Manifest.permission.POST_NOTIFICATIONS,
@@ -214,10 +206,7 @@ class NotificationHandler : FirebaseMessagingService() {
                 ) == PackageManager.PERMISSION_GRANTED
 
                 if (!hasPermission) {
-                    Log.w(
-                        javaClass.name,
-                        "You need to add the POST_NOTIFICATIONS permission to your AndroidManifest.xml file"
-                    )
+                    Log.w(javaClass.name, "Permission denied")
                 }
             }
 
@@ -226,8 +215,6 @@ class NotificationHandler : FirebaseMessagingService() {
     }
 
     private fun onClientInit() {
-        Log.d(javaClass.name, "Client initialized")
-
         if (client == null) {
             Log.e(javaClass.name, "Client not initialized")
             return
@@ -236,7 +223,7 @@ class NotificationHandler : FirebaseMessagingService() {
             account = Account(client!!)
         }
 
-        client?.cookiePrefs?.registerOnSharedPreferenceChangeListener(listener)
+        client?.cookiePrefs?.registerOnSharedPreferenceChangeListener(cookieListener)
     }
 
     private suspend fun pushToken(token: String) {
@@ -249,25 +236,25 @@ class NotificationHandler : FirebaseMessagingService() {
         val currentUserId = globalPrefs.getString("userId", "") ?: ""
         var currentTargetId = globalPrefs.getString("targetId", "") ?: ""
 
-        if (token == currentToken) {
-            Log.d(javaClass.name, "New token matches current token, skipping push")
-            return
-        }
-
-        globalPrefs.edit().putString("fcmToken", token).apply()
-
         val user: User<Map<String, Any>>?
 
         try {
             user = account?.get()
         } catch (ex: AppwriteException) {
-            Log.w(javaClass.name, "Not logged in, skipping push", ex)
+            Log.w(javaClass.name, "Not logged in, skipping token push")
             return
         }
 
+        if (token == currentToken && user?.id == currentUserId) {
+            Log.d(javaClass.name, "Token and user matched, skipping push")
+            return
+        }
+
+        globalPrefs.edit().putString("fcmToken", token).apply()
+
         try {
             if (user?.id != currentUserId) {
-                Log.d(javaClass.name, "User changed, re-creating target")
+                Log.d(javaClass.name, "User changed")
 
                 if (currentTargetId.isNotEmpty()) {
                     account?.deletePushTarget(currentTargetId)
@@ -294,10 +281,6 @@ class NotificationHandler : FirebaseMessagingService() {
             }
         } catch (ex: AppwriteException) {
             Log.e(javaClass.name, "Failed to push token", ex)
-
-            if (ex.type == TARGET_NOT_FOUND) {
-                globalPrefs.edit().remove("targetId").apply()
-            }
         }
     }
 }

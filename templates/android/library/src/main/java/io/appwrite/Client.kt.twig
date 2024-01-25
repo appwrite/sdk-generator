@@ -59,7 +59,7 @@ class Client @JvmOverloads constructor(
         PreciseNumberAdapter()
     ).create()
 
-    lateinit var http: OkHttpClient
+    internal lateinit var http: OkHttpClient
 
     private val headers: MutableMap<String, String>
     
