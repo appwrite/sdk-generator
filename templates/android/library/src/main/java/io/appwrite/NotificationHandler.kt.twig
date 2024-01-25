@@ -255,41 +255,48 @@ class NotificationHandler : FirebaseMessagingService() {
         }
 
         globalPrefs.edit().putString("fcmToken", token).apply()
+
+        val user: User<Map<String, Any>>?
+
         try {
-            account!!.get()
+            user = account?.get()
         } catch (ex: AppwriteException) {
-            Log.e(javaClass.name, "Failed to get account", ex)
+            Log.w(javaClass.name, "Not logged in, skipping push", ex)
             return
         }
 
-        var targetId = globalPrefs.getString("targetId", "") ?: ""
+        try {
+            if (user?.id != currentUserId) {
+                Log.d(javaClass.name, "User changed, re-creating target")
 
-        var attempts = 3
-        while (attempts > 0) {
-            try {
-                if (targetId.isEmpty()) {
-                    Log.d(javaClass.name, "Creating new push target")
-                    val target = account!!.createPushTarget(ID.unique(), token, providerId)
-                    globalPrefs.edit().putString("targetId", target.id).apply()
-                } else {
-                    Log.d(javaClass.name, "Updating existing push target")
-                    account!!.updatePushTarget(targetId, token)
-                }
-                Log.d(javaClass.name, "Push token updated successfully")
-                break
-            } catch (ex: AppwriteException) {
-                Log.e(javaClass.name, "Failed to push token", ex)
-
-                if (ex.type == TARGET_NOT_FOUND) {
+                if (currentTargetId.isNotEmpty()) {
+                    account?.deletePushTarget(currentTargetId)
+                    currentTargetId = ""
                     globalPrefs.edit().remove("targetId").apply()
-                    targetId = ""
                 }
 
-                attempts--
+                globalPrefs.edit().putString("userId", user?.id ?: "").apply()
+            }
+        } catch (ex: AppwriteException) {
+            Log.e(javaClass.name, "Failed to delete existing target", ex)
+        }
 
-                if (attempts == 0) {
-                    Log.e(javaClass.name, "Failed to push token", ex)
-                }
+        try {
+            if (currentTargetId.isEmpty()) {
+                Log.d(javaClass.name, "Creating new push target")
+                val target = account!!.createPushTarget(ID.unique(), token, providerId)
+                globalPrefs.edit().putString("targetId", target.id).apply()
+                Log.d(javaClass.name, "Push token created successfully")
+            } else {
+                Log.d(javaClass.name, "Updating existing push target")
+                account!!.updatePushTarget(currentTargetId, token)
+                Log.d(javaClass.name, "Push token updated successfully")
+            }
+        } catch (ex: AppwriteException) {
+            Log.e(javaClass.name, "Failed to push token", ex)
+
+            if (ex.type == TARGET_NOT_FOUND) {
+                globalPrefs.edit().remove("targetId").apply()
             }
         }
     }
