@@ -102,6 +102,10 @@ class Client @JvmOverloads constructor(
         setSelfSigned(selfSigned)
 
         NotificationHandler.client = this
+
+        context.startService(Intent(context, NotificationHandler::class.java).apply {
+            action = NotificationHandler.ACTION_CLIENT_INIT
+        })
     }
 
 {% for header in spec.global.headers %}
