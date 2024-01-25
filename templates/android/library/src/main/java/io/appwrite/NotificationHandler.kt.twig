@@ -110,6 +110,23 @@ class NotificationHandler : FirebaseMessagingService() {
         })
     }
 
+    override fun getStartCommandIntent(originalIntent: Intent?): Intent {
+        if (originalIntent?.action == ACTION_CLIENT_INIT) {
+            return originalIntent
+        }
+
+        return super.getStartCommandIntent(originalIntent)
+    }
+
+    override fun handleIntent(intent: Intent?) {
+        if (intent?.action == ACTION_CLIENT_INIT) {
+            onClientInit()
+            return
+        }
+
+        super.handleIntent(intent)
+    }
+
     override fun onCreate() {
         super.onCreate()
 
