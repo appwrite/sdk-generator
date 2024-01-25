@@ -163,18 +163,21 @@ class NotificationHandler : FirebaseMessagingService() {
         Log.d(javaClass.name, "Message received!")
 
         // Fire callback before display so channel can be configured if needed
-        onNotificationReceived(Notification(
-            title = message.notification?.title ?: "",
-            body = message.notification?.body ?: "",
-            clickAction = message.notification?.clickAction ?: "",
-            color = message.notification?.color ?: "",
-            icon = message.notification?.icon ?: "",
-            imageURL = message.notification?.imageUrl.toString(),
-            sound = message.notification?.sound ?: "",
-            data = message.data
-        ))
+        onNotificationReceived(
+            Notification(
+                title = message.notification?.title ?: "",
+                body = message.notification?.body ?: "",
+                clickAction = message.notification?.clickAction ?: "",
+                color = message.notification?.color ?: "",
+                icon = message.notification?.icon ?: "",
+                imageURL = message.notification?.imageUrl.toString(),
+                sound = message.notification?.sound ?: "",
+                data = message.data
+            )
+        )
 
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -222,18 +225,36 @@ class NotificationHandler : FirebaseMessagingService() {
         }
     }
 
-    private suspend fun pushToken(token: String) {
+    private fun onClientInit() {
+        Log.d(javaClass.name, "Client initialized")
+
         if (client == null) {
+            Log.e(javaClass.name, "Client not initialized")
             return
         }
         if (account == null) {
             account = Account(client!!)
         }
-        if (cookiePrefs == null) {
-            cookiePrefs = client!!.cookiePrefs
-            cookiePrefs!!.registerOnSharedPreferenceChangeListener(listener)
+
+        client?.cookiePrefs?.registerOnSharedPreferenceChangeListener(listener)
+    }
+
+    private suspend fun pushToken(token: String) {
+        if (client == null) {
+            Log.w(javaClass.name, "Client not initialized, skipping push")
+            return
         }
 
+        val currentToken = globalPrefs.getString("fcmToken", "") ?: ""
+        val currentUserId = globalPrefs.getString("userId", "") ?: ""
+        var currentTargetId = globalPrefs.getString("targetId", "") ?: ""
+
+        if (token == currentToken) {
+            Log.d(javaClass.name, "New token matches current token, skipping push")
+            return
+        }
+
+        globalPrefs.edit().putString("fcmToken", token).apply()
         try {
             account!!.get()
         } catch (ex: AppwriteException) {
