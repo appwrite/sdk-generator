@@ -118,13 +118,9 @@ class NotificationHandler : FirebaseMessagingService() {
 
         if (cookieListener == null) {
             cookieListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
-                Log.d(javaClass.name, "Shared preferences changed")
-
                 FirebaseMessaging.getInstance().token.addOnCompleteListener(OnCompleteListener { task ->
                     if (!task.isSuccessful) {
-                        Log.w(
-                            javaClass.name, "Fetching FCM registration token failed", task.exception
-                        )
+                        Log.w(javaClass.name, "Fetching FCM registration token failed", task.exception)
                         return@OnCompleteListener
                     }
 
@@ -144,8 +140,6 @@ class NotificationHandler : FirebaseMessagingService() {
     }
 
     override fun onNewToken(token: String) {
-        Log.d(javaClass.name, "FCM registration token: $token")
-
         runBlocking {
             mutex.withLock {
                 pushToken(token)
@@ -155,8 +149,6 @@ class NotificationHandler : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
-
-        Log.d(javaClass.name, "Message received!")
 
         // Fire callbacks before display so handler can be configured if needed
         onNotificationReceived(
@@ -206,7 +198,7 @@ class NotificationHandler : FirebaseMessagingService() {
                 ) == PackageManager.PERMISSION_GRANTED
 
                 if (!hasPermission) {
-                    Log.w(javaClass.name, "Permission denied")
+                    Log.w(javaClass.name, "Permission denied, make sure you have requested the POST_NOTIFICATIONS permission")
                 }
             }
 
@@ -216,9 +208,9 @@ class NotificationHandler : FirebaseMessagingService() {
 
     private fun onClientInit() {
         if (client == null) {
-            Log.e(javaClass.name, "Client not initialized")
             return
         }
+
         if (account == null) {
             account = Account(client!!)
         }
@@ -228,7 +220,6 @@ class NotificationHandler : FirebaseMessagingService() {
 
     private suspend fun pushToken(token: String) {
         if (client == null) {
-            Log.w(javaClass.name, "Client not initialized, skipping push")
             return
         }
 
@@ -241,12 +232,10 @@ class NotificationHandler : FirebaseMessagingService() {
         try {
             user = account?.get()
         } catch (ex: AppwriteException) {
-            Log.w(javaClass.name, "Not logged in, skipping token push")
             return
         }
 
         if (token == currentToken && user?.id == currentUserId) {
-            Log.d(javaClass.name, "Token and user matched, skipping push")
             return
         }
 
@@ -254,8 +243,6 @@ class NotificationHandler : FirebaseMessagingService() {
 
         try {
             if (user?.id != currentUserId) {
-                Log.d(javaClass.name, "User changed")
-
                 if (currentTargetId.isNotEmpty()) {
                     account?.deletePushTarget(currentTargetId)
                     currentTargetId = ""
@@ -270,14 +257,10 @@ class NotificationHandler : FirebaseMessagingService() {
 
         try {
             if (currentTargetId.isEmpty()) {
-                Log.d(javaClass.name, "Creating new push target")
                 val target = account!!.createPushTarget(ID.unique(), token, providerId)
                 globalPrefs.edit().putString("targetId", target.id).apply()
-                Log.d(javaClass.name, "Push token created successfully")
             } else {
-                Log.d(javaClass.name, "Updating existing push target")
                 account!!.updatePushTarget(currentTargetId, token)
-                Log.d(javaClass.name, "Push token updated successfully")
             }
         } catch (ex: AppwriteException) {
             Log.e(javaClass.name, "Failed to push token", ex)
