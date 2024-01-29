@@ -1,4 +1,4 @@
-package io.appwrite
+package {{ sdk.namespace | caseDot }}
 
 import android.Manifest
 import android.app.NotificationChannel
@@ -16,11 +16,11 @@ import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import io.appwrite.exceptions.AppwriteException
-import io.appwrite.extensions.onNotificationReceived
-import io.appwrite.models.Notification
-import io.appwrite.models.User
-import io.appwrite.services.Account
+import {{ sdk.namespace | caseDot }}.exceptions.AppwriteException
+import {{ sdk.namespace | caseDot }}.extensions.onNotificationReceived
+import {{ sdk.namespace | caseDot }}.models.Notification
+import {{ sdk.namespace | caseDot }}.models.User
+import {{ sdk.namespace | caseDot }}.services.Account
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -29,7 +29,7 @@ import kotlin.properties.Delegates
 class NotificationHandler : FirebaseMessagingService() {
 
     companion object {
-        internal const val ACTION_CLIENT_INIT = "io.appwrite.ACTION_CLIENT_INIT"
+        internal const val ACTION_CLIENT_INIT = "{{ sdk.namespace | caseDot }}.ACTION_CLIENT_INIT"
 
         internal var client: Client? = null
         internal var account: Account? = null
@@ -61,7 +61,7 @@ class NotificationHandler : FirebaseMessagingService() {
          * The channel id to use for the notification
          */
         @RequiresApi(Build.VERSION_CODES.N)
-        var channelId = "io.appwrite.notifications"
+        var channelId = "{{ sdk.namespace | caseDot }}.notifications"
 
         /**
          * The channel name to use for the notification
@@ -179,7 +179,7 @@ class NotificationHandler : FirebaseMessagingService() {
         }
 
         if (message.notification != null && displayForeground) {
-            val builder = NotificationCompat.Builder(this, "io.appwrite.notifications")
+            val builder = NotificationCompat.Builder(this, "{{ sdk.namespace | caseDot }}.notifications")
                 .setContentTitle(message.notification?.title)
                 .setContentText(message.notification?.body)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT).setAutoCancel(autoCancel)
