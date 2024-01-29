@@ -7,19 +7,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 
-private fun AppCompatActivity.requestPermissionLauncher(
-    onGranted: () -> Unit,
-    onDenied: () -> Unit,
-) = registerForActivityResult(
-    ActivityResultContracts.RequestPermission(),
-) { isGranted: Boolean ->
-    if (isGranted) {
-        onGranted()
-    } else {
-        onDenied()
-    }
-}
-
 fun AppCompatActivity.requestNotificationPermission(
     onGranted: () -> Unit,
     onDenied: () -> Unit,
@@ -42,5 +29,18 @@ fun AppCompatActivity.requestNotificationPermission(
             onGranted,
             onDenied
         ).launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+}
+
+private fun AppCompatActivity.requestPermissionLauncher(
+    onGranted: () -> Unit,
+    onDenied: () -> Unit,
+) = registerForActivityResult(
+    ActivityResultContracts.RequestPermission(),
+) { isGranted: Boolean ->
+    if (isGranted) {
+        onGranted()
+    } else {
+        onDenied()
     }
 }
