@@ -2,95 +2,122 @@ require 'json'
 
 module {{spec.title | caseUcfirst}}
     class Query
+        def initialize(method, attribute = nil, values = nil)
+            @method = method
+            @attribute = attribute
+
+            if (values != nil)
+                if (values.is_a?(Array))
+                    @values = values
+                else
+                    @values = [values]
+                end
+            end
+        end
+
+        def to_json(*args)
+            query = {
+                "method" => @method
+            }
+
+            if (@attribute != nil)
+                query["attribute"] = @attribute
+            end
+
+            if (@values != nil)
+                query["values"] = @values
+            end
+
+            return query.to_json(*args)
+        end
+
+        def to_s
+            return self.to_json
+        end
+
         class << Query
             def equal(attribute, value)
-                return build_query("equal", attribute, value)
+                return Query.new("equal", attribute, value)
             end
 
             def not_equal(attribute, value)
-                return build_query("notEqual", attribute, value)
+                return Query.new("notEqual", attribute, value)
             end
 
             def less_than(attribute, value)
-                return build_query("lessThan", attribute, value)
+                return Query.new("lessThan", attribute, value)
             end
             
             def less_than_equal(attribute, value)
-                return build_query("lessThanEqual", attribute, value)
+                return Query.new("lessThanEqual", attribute, value)
             end
             
             def greater_than(attribute, value)
-                return build_query("greaterThan", attribute, value)
+                return Query.new("greaterThan", attribute, value)
             end
             
             def greater_than_equal(attribute, value)
-                return build_query("greaterThanEqual", attribute, value)
+                return Query.new("greaterThanEqual", attribute, value)
             end
 
             def is_null(attribute)
-                return build_query("isNull", attribute, nil)
+                return Query.new("isNull", attribute, nil)
             end
 
             def is_not_null(attribute)
-                return build_query("isNotNull", attribute, nil)
+                return Query.new("isNotNull", attribute, nil)
             end
 
             def between(attribute, start, ending)
-                return build_query("between", attribute, [start, ending])
+                return Query.new("between", attribute, [start, ending])
             end
 
             def starts_with(attribute, value)
-                return build_query("startsWith", attribute, value)
+                return Query.new("startsWith", attribute, value)
             end
 
             def ends_with(attribute, value)
-                return build_query("endsWith", attribute, value)
+                return Query.new("endsWith", attribute, value)
             end
 
             def select(attributes)
-                return build_query("select", attributes, nil)
+                return Query.new("select", nil, attributes)
             end
             
             def search(attribute, value)
-                return build_query("search", attribute, value)
+                return Query.new("search", attribute, value)
             end
 
             def order_asc(attribute)
-                return build_query("orderAsc", attribute, nil)
+                return Query.new("orderAsc", attribute, nil)
             end
 
             def order_desc(attribute)
-                return build_query("orderDesc", attribute, nil)
+                return Query.new("orderDesc", attribute, nil)
             end
 
             def cursor_before(id)
-                return build_query("cursorBefore", nil, id)
+                return Query.new("cursorBefore", nil, id)
             end
 
             def cursor_after(id)
-                return build_query("cursorAfter", nil, id)
+                return Query.new("cursorAfter", nil, id)
             end
 
             def limit(limit)
-                return build_query("limit", nil, limit)
+                return Query.new("limit", nil, limit)
             end
 
             def offset(offset)
-                return build_query("offset", nil, offset)
+                return Query.new("offset", nil, offset)
             end
 
-            private def build_query(method, attribute, values)
-                query = {:method => method}
+            def contains(attribute, value)
+                return Query.new("contains", attribute, value)
+            end
 
-                if (attribute != nil)
-                    query[:attribute] = attribute
-                end
-
-                if (values != nil)
-                    query[:values] = values
-                end
-
-                JSON.generate(query)
+            def or(queries)
+                return Query.new("or", nil, queries)
             end
         end
     end
