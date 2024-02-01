@@ -2,7 +2,7 @@ import json
 
 
 # Inherit from dict to allow for easy serialization
-class Query(dict):
+class Query():
     def __init__(self, method, attribute=None, values=None):
         self.method = method
 
@@ -16,6 +16,7 @@ class Query(dict):
         return json.dumps(
             self.__dict__,
             separators=(",", ":"),
+            default=lambda obj: obj.__dict__
         )
 
     @staticmethod
