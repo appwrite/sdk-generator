@@ -1,60 +1,64 @@
 package {{ sdk.namespace | caseDot }}
 
-class Query {
-  companion object {
-    fun equal(attribute: String, value: Any) = addQuery(attribute, "equal", value)
+import com.google.gson.Gson
 
-    fun notEqual(attribute: String, value: Any) = Query.addQuery(attribute, "notEqual", value)
+class Query(
+    val method: String,
+    val attribute: String? = null,
+    val values: List<Any>? = null,
+) {
+    override fun toString() = gson.toJson(this)
 
-    fun lessThan(attribute: String, value: Any) = Query.addQuery(attribute, "lessThan", value)
+    companion object {
+        private val gson = Gson()
 
-    fun lessThanEqual(attribute: String, value: Any) = Query.addQuery(attribute, "lessThanEqual", value)
+        fun equal(attribute: String, value: Any) = Query("equal", attribute, parseValue(value))
 
-    fun greaterThan(attribute: String, value: Any) = Query.addQuery(attribute, "greaterThan", value)
+        fun notEqual(attribute: String, value: Any) = Query("notEqual", attribute, listOf(value))
 
-    fun greaterThanEqual(attribute: String, value: Any) = Query.addQuery(attribute, "greaterThanEqual", value)
-    
-    fun search(attribute: String, value: String) = Query.addQuery(attribute, "search", value)
+        fun lessThan(attribute: String, value: Any) = Query("lessThan", attribute, listOf(value))
 
-    fun isNull(attribute: String) = "isNull(\"${attribute}\")"
+        fun lessThanEqual(attribute: String, value: Any) = Query("lessThanEqual", attribute, listOf(value))
 
-    fun isNotNull(attribute: String) = "isNotNull(\"${attribute}\")"
+        fun greaterThan(attribute: String, value: Any) = Query("greaterThan", attribute, listOf(value))
 
-    fun between(attribute: String, start: Int, end: Int) = "between(\"${attribute}\", ${parseValues(start)}, ${parseValues(end)})"
+        fun greaterThanEqual(attribute: String, value: Any) = Query("greaterThanEqual", attribute, listOf(value))
 
-    fun between(attribute: String, start: Double, end: Double) = "between(\"${attribute}\", ${parseValues(start)}, ${parseValues(end)})"
+        fun search(attribute: String, value: String) = Query("search", attribute, listOf(value))
 
-    fun between(attribute: String, start: String, end: String) = "between(\"${attribute}\", ${parseValues(start)}, ${parseValues(end)})"
+        fun isNull(attribute: String) = Query("isNull", attribute)
 
-    fun startsWith(attribute: String, value: String) = Query.addQuery(attribute, "startsWith", value)
+        fun isNotNull(attribute: String) = Query("isNotNull", attribute)
 
-    fun endsWith(attribute: String, value: String) = Query.addQuery(attribute, "endsWith", value)
+        fun between(attribute: String, start: Any, end: Any) = Query("between", attribute, listOf(start, end))
 
-    fun select(attributes: List<String>) = "select([${attributes.joinToString(",") { "\"$it\"" }}])"
+        fun startsWith(attribute: String, value: String) = Query("startsWith", attribute, listOf(value))
 
-    fun orderAsc(attribute: String) = "orderAsc(\"${attribute}\")"
+        fun endsWith(attribute: String, value: String) = Query("endsWith", attribute, listOf(value))
 
-    fun orderDesc(attribute: String) = "orderDesc(\"${attribute}\")"
+        fun select(attributes: List<String>) = Query("select", null, attributes)
 
-    fun cursorBefore(documentId: String) = "cursorBefore(\"${documentId}\")"
+        fun orderAsc(attribute: String) = Query("orderAsc", attribute)
 
-    fun cursorAfter(documentId: String) = "cursorAfter(\"${documentId}\")"
+        fun orderDesc(attribute: String) = Query("orderDesc", attribute)
 
-    fun limit(limit: Int) = "limit(${limit})"
+        fun cursorBefore(documentId: String) = Query("cursorBefore", null, listOf(documentId))
 
-    fun offset(offset: Int) = "offset(${offset})"
+        fun cursorAfter(documentId: String) = Query("cursorAfter", null, listOf(documentId))
 
-    private fun addQuery(attribute: String, method: String, value: Any): String {
-      return when (value) {
-        is List<*> -> "${method}(\"${attribute}\", [${value.map{it -> parseValues(it!!)}.joinToString(",")}])"
-    	  else -> "${method}(\"${attribute}\", [${Query.parseValues(value)}])"
-      }
+        fun limit(limit: Int) = Query("limit", null, listOf(limit))
+
+        fun offset(offset: Int) = Query("offset", null, listOf(offset))
+
+        fun contains(attribute: String, value: Any) = Query("contains", attribute, parseValue(value))
+
+        fun or(queries: List<Query>) = Query("or", null, queries)
+
+        private fun parseValue(value: Any): List<Any> {
+            return when (value) {
+                is List<*> -> value as List<Any>
+                else -> listOf(value)
+            }
+        }
     }
-    private fun parseValues(value: Any): String {
-      return when (value) {
-        is String -> "\"${value}\""
-    	  else -> "${value}"
-      }
-    }
-  }
 }

@@ -1,92 +1,91 @@
+import json
+
+
 class Query:
     @staticmethod
     def equal(attribute, value):
-        return Query.add_query(attribute, "equal", value)
+        return Query.__build_query("equal", attribute, value)
 
     @staticmethod
     def not_equal(attribute, value):
-        return Query.add_query(attribute, "notEqual", value)
-    
+        return Query.__build_query("notEqual", attribute, value)
+
     @staticmethod
     def less_than(attribute, value):
-        return Query.add_query(attribute, "lessThan", value)
-    
+        return Query.__build_query("lessThan", attribute, value)
+
     @staticmethod
     def less_than_equal(attribute, value):
-        return Query.add_query(attribute, "lessThanEqual", value)
-    
+        return Query.__build_query("lessThanEqual", attribute, value)
+
     @staticmethod
     def greater_than(attribute, value):
-        return Query.add_query(attribute, "greaterThan", value)
-    
+        return Query.__build_query("greaterThan", attribute, value)
+
     @staticmethod
     def greater_than_equal(attribute, value):
-        return Query.add_query(attribute, "greaterThanEqual", value)
+        return Query.__build_query("greaterThanEqual", attribute, value)
 
     @staticmethod
     def is_null(attribute):
-        return f'isNull("{attribute}")'
+        return Query.__build_query("isNull", attribute, None)
 
     @staticmethod
     def is_not_null(attribute):
-        return f'isNotNull("{attribute}")'
+        return Query.__build_query("isNotNull", attribute, None)
 
     @staticmethod
     def between(attribute, start, end):
-        return f'between("{attribute}", {Query.parseValues(start)}, {Query.parseValues(end)})'
+        return Query.__build_query("between", attribute, [start, end])
 
     @staticmethod
     def starts_with(attribute, value):
-        return Query.add_query(attribute, "startsWith", value)
+        return Query.__build_query("startsWith", attribute, value)
 
     @staticmethod
     def ends_with(attribute, value):
-        return Query.add_query(attribute, "endsWith", value)
+        return Query.__build_query("endsWith", attribute, value)
 
     @staticmethod
     def select(attributes):
-        return f'select([{",".join(map(Query.parseValues, attributes))}])'
+        return Query.__build_query("select", None, attributes)
 
     @staticmethod
     def search(attribute, value):
-        return Query.add_query(attribute, "search", value)
+        return Query.__build_query("search", attribute, value)
 
     @staticmethod
     def order_asc(attribute):
-        return f'orderAsc("{attribute}")'
+        return Query.__build_query("orderAsc", attribute, None)
 
     @staticmethod
     def order_desc(attribute):
-        return f'orderDesc("{attribute}")'
+        return Query.__build_query("orderDesc", attribute, None)
 
     @staticmethod
     def cursor_before(id):
-        return f'cursorBefore("{id}")'
+        return Query.__build_query("cursorBefore", None, id)
 
     @staticmethod
     def cursor_after(id):
-        return f'cursorAfter("{id}")'
+        return Query.__build_query("cursorAfter", None, id)
 
     @staticmethod
     def limit(limit):
-        return f'limit({limit})'
+        return Query.__build_query("limit", None, limit)
 
     @staticmethod
     def offset(offset):
-        return f'offset({offset})'
+        return Query.__build_query("offset", None, offset)
 
     @staticmethod
-    def add_query(attribute, method, value):
-        if type(value) == list:
-            return f'{method}("{attribute}", [{",".join(map(Query.parseValues, value))}])'
-        else:
-            return f'{method}("{attribute}", [{Query.parseValues(value)}])'
+    def __build_query(method, attribute=None, values=None):
+        query = {"method": method}
 
-    @staticmethod
-    def parseValues(value):
-        if type(value) == str:
-            return f'"{value}"'
-        elif type(value) == bool:
-            return str(value).lower()
-        else:
-            return str(value)
+        if attribute is not None:
+            query["attribute"] = attribute
+
+        if values is not None:
+            query["values"] = values
+
+        return json.dumps(query)

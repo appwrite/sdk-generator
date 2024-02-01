@@ -1,13 +1,13 @@
-function buildQuery(method, attributes, values) {
+function buildQuery(method, attribute, values) {
   const query = {
     method,
   };
 
-  if (attributes) {
-    query["attribute"] = attributes;
+  if (attribute !== undefined) {
+    query["attribute"] = attribute;
   }
 
-  if (values) {
+  if (values !== undefined) {
     query["values"] = values;
   }
 

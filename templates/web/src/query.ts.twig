@@ -6,18 +6,18 @@ type AttributesTypes = string | string[];
 
 function buildQuery(
   method: string,
-  attributes?: AttributesTypes,
+  attribute?: AttributesTypes,
   values?: QueryTypes | [QueryTypeSearchable, QueryTypeSearchable]
 ): string {
   const query = {
     method,
   };
 
-  if (attributes) {
-    query["attribute"] = attributes;
+  if (attribute !== undefined) {
+    query["attribute"] = attribute;
   }
 
-  if (values) {
+  if (values !== undefined) {
     query["values"] = values;
   }
 
