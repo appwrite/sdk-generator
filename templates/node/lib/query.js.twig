@@ -12,14 +12,6 @@ class Query {
     }
   }
 
-  toString() {
-    return JSON.stringify({
-      method: this.method,
-      attribute: this.attribute,
-      values: this.values
-    })
-  }
-
   static equal = (attribute, value) => new Query("equal", attribute, value)
 
   static notEqual = (attribute, value) =>
@@ -73,5 +65,13 @@ class Query {
     return new Query("or", undefined, queries)
   }
 }
+
+Query.prototype.toString = function () {
+  return JSON.stringify({
+    method: this.method,
+    attribute: this.attribute,
+    values: this.values
+  })
+} 
 
 module.exports = Query;
