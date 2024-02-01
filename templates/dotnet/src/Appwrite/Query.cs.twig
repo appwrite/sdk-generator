@@ -6,11 +6,24 @@ using Newtonsoft.Json;
 
 namespace Appwrite
 {
-    public static class Query
+    public class Query
     {
         public string method;
         public string? attribute;
         public object? values;
+
+        public Query(string method, string? attribute, object? values)
+        {
+            this.method = method;
+            this.attribute = attribute;
+
+            if (values == null || (values is IList)) {
+                this.values = values;
+            } else {
+                this.values = new List<object> { values };
+            }
+        }
+        
 
         override public string ToString()
         {
@@ -19,121 +32,110 @@ namespace Appwrite
 
         public static Query Equal(string attribute, object value)
         {
-            return BuildQuery("equal", attribute, value);
+            return new Query("equal", attribute, value);
         }
 
         public static Query NotEqual(string attribute, object value)
         {
-            return BuildQuery("notEqual", attribute, value);
+            return new Query("notEqual", attribute, value);
         }
 
         public static Query LessThan(string attribute, object value)
         {
-            return BuildQuery("lessThan", attribute, value);
+            return new Query("lessThan", attribute, value);
         }
 
         public static Query LessThanEqual(string attribute, object value)
         {
-            return BuildQuery("lessThanEqual", attribute, value);
+            return new Query("lessThanEqual", attribute, value);
         }
 
         public static Query GreaterThan(string attribute, object value)
         {
-            return BuildQuery("greaterThan", attribute, value);
+            return new Query("greaterThan", attribute, value);
         }
 
         public static Query GreaterThanEqual(string attribute, object value)
         {
-            return BuildQuery("greaterThanEqual", attribute, value);
+            return new Query("greaterThanEqual", attribute, value);
         }
 
         public static Query Search(string attribute, string value)
         {
-            return BuildQuery("search", attribute, value);
+            return new Query("search", attribute, value);
         }
 
         public static Query IsNull(string attribute)
         {
-            return BuildQuery("isNull", attribute, null);
+            return new Query("isNull", attribute, null);
         }
 
         public static Query IsNotNull(string attribute)
         {
-            return BuildQuery("isNotNull", attribute, null);
+            return new Query("isNotNull", attribute, null);
         }
 
         public static Query StartsWith(string attribute, string value)
         {
-            return BuildQuery("startsWith", attribute, value);
+            return new Query("startsWith", attribute, value);
         }
 
         public static Query EndsWith(string attribute, string value)
         {
-            return BuildQuery("endsWith", attribute, value);
+            return new Query("endsWith", attribute, value);
         }
 
         public static Query Between(string attribute, string start, string end)
         {
-            return BuildQuery("between", attribute, new List<string> { start, end });
+            return new Query("between", attribute, new List<string> { start, end });
         }
 
         public static Query Between(string attribute, int start, int end)
         {
-            return BuildQuery("between", attribute, new List<int> { start, end });
+            return new Query("between", attribute, new List<int> { start, end });
         }
 
         public static Query Between(string attribute, double start, double end)
         {
-            return BuildQuery("between", attribute, new List<double> { start, end });
+            return new Query("between", attribute, new List<double> { start, end });
         }
 
         public static Query Select(List<string> attributes)
         {
-            return BuildQuery("select", null, attributes);
+            return new Query("select", null, attributes);
         }
 
         public static Query CursorAfter(string documentId)
         {
-            return BuildQuery("cursorAfter", null, documentId);
+            return new Query("cursorAfter", null, documentId);
         }
 
         public static Query CursorBefore(string documentId) {
-            return BuildQuery("cursorBefore", null, documentId);
+            return new Query("cursorBefore", null, documentId);
         }
 
         public static Query OrderAsc(string attribute) {
-            return BuildQuery("orderAsc", attribute, null);
+            return new Query("orderAsc", attribute, null);
         }
 
         public static Query OrderDesc(string attribute) {
-            return BuildQuery("orderDesc", attribute, null);
+            return new Query("orderDesc", attribute, null);
         }
 
         public static Query Limit(int limit) {
-            return BuildQuery("limit", null, limit);
+            return new Query("limit", null, limit);
         }
 
         public static Query Offset(int offset) {
-            return BuildQuery("offset", null, offset);
+            return new Query("offset", null, offset);
+        }
+
+        public static Query Contains(string attribute, object value) {
+            return new Query("contains", attribute, value);
         }
 
         public static Query Or(List<Query> queries) {
-            return BuildQuery("or", null, queries);
-        }
-
-        private static BuildQuery(string method, string? attribute, object? value)
-        {
-            if (value != null && !(value is IList))
-            {
-                value = new List<object> { value };
-            }
-
-            return new Query
-            {
-                method = method,
-                attribute = attribute,
-                values = value
-            };
+            return new Query("or", null, queries);
         }
     }
 }
