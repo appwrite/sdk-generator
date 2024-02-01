@@ -1,74 +1,87 @@
+type QueryTypeSearchable = string | number;
 type QueryTypesSingle = string | number | boolean;
 export type QueryTypesList = string[] | number[] | boolean[];
 export type QueryTypes = QueryTypesSingle | QueryTypesList;
+type AttributesTypes = string | string[];
+
+function buildQuery(
+  method: string,
+  attributes?: AttributesTypes,
+  values?: QueryTypes | [QueryTypeSearchable, QueryTypeSearchable]
+): string {
+  const query = {
+    method,
+  };
+
+  if (attributes) {
+    query["attribute"] = attributes;
+  }
+
+  if (values) {
+    query["values"] = values;
+  }
+
+  return JSON.stringify(query);
+}
 
 export class Query {
   static equal = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "equal", value);
+    buildQuery("equal", attribute, value);
 
   static notEqual = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "notEqual", value);
+    buildQuery("notEqual", attribute, value);
 
   static lessThan = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "lessThan", value);
+    buildQuery("lessThan", attribute, value);
 
   static lessThanEqual = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "lessThanEqual", value);
+    buildQuery("lessThanEqual", attribute, value);
 
   static greaterThan = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "greaterThan", value);
+    buildQuery("greaterThan", attribute, value);
 
   static greaterThanEqual = (attribute: string, value: QueryTypes): string =>
-    Query.addQuery(attribute, "greaterThanEqual", value);
+    buildQuery("greaterThanEqual", attribute, value);
 
   static isNull = (attribute: string): string =>
-    `isNull("${attribute}")`;
+    buildQuery("isNull", attribute);
 
   static isNotNull = (attribute: string): string =>
-    `isNotNull("${attribute}")`;
+    buildQuery("isNotNull", attribute);
 
-  static between = (attribute: string, start: string|number, end: string|number): string =>
-    `between("${attribute}", ${Query.parseValues(start)}, ${Query.parseValues(end)})`;
+  static between = (
+    attribute: string,
+    start: QueryTypeSearchable,
+    end: QueryTypeSearchable
+  ) => buildQuery("between", attribute, [start, end]);
 
   static startsWith = (attribute: string, value: string): string =>
-    Query.addQuery(attribute, "startsWith", value);
+    buildQuery("startsWith", attribute, value);
 
   static endsWith = (attribute: string, value: string): string =>
-    Query.addQuery(attribute, "endsWith", value);
+    buildQuery("endsWith", attribute, value);
 
   static select = (attributes: string[]): string =>
-    `select([${attributes.map((attr: string) => `"${attr}"`).join(",")}])`;
+    buildQuery("select", attributes);
 
   static search = (attribute: string, value: string): string =>
-    Query.addQuery(attribute, "search", value);
+    buildQuery("search", attribute, value);
 
   static orderDesc = (attribute: string): string =>
-    `orderDesc("${attribute}")`;
+    buildQuery("orderDesc", attribute);
 
   static orderAsc = (attribute: string): string =>
-    `orderAsc("${attribute}")`;
+    buildQuery("orderAsc", attribute);
 
   static cursorAfter = (documentId: string): string =>
-    `cursorAfter("${documentId}")`;
+    buildQuery("cursorAfter", documentId);
 
   static cursorBefore = (documentId: string): string =>
-    `cursorBefore("${documentId}")`;
+    buildQuery("cursorBefore", documentId);
 
   static limit = (limit: number): string =>
-    `limit(${limit})`;
+    buildQuery("limit", undefined, limit);
 
   static offset = (offset: number): string =>
-    `offset(${offset})`;
-
-  private static addQuery = (attribute: string, method: string, value: QueryTypes): string =>
-    value instanceof Array
-      ? `${method}("${attribute}", [${value
-          .map((v: QueryTypesSingle) => Query.parseValues(v))
-          .join(",")}])`
-      : `${method}("${attribute}", [${Query.parseValues(value)}])`;
-
-  private static parseValues = (value: QueryTypes): string =>
-    typeof value === "string" || value instanceof String
-      ? `"${value}"`
-      : `${value}`;
+    buildQuery("offset", undefined, offset);
 }
