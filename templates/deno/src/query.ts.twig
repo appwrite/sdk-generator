@@ -1,87 +1,104 @@
-type QueryTypeSearchable = string | number;
 type QueryTypesSingle = string | number | boolean;
-export type QueryTypesList = string[] | number[] | boolean[];
+export type QueryTypesList = string[] | number[] | boolean[] | Query[];
 export type QueryTypes = QueryTypesSingle | QueryTypesList;
 type AttributesTypes = string | string[];
 
-function buildQuery(
-  method: string,
-  attribute?: AttributesTypes,
-  values?: QueryTypes | [QueryTypeSearchable, QueryTypeSearchable]
-): string {
-  const query = {
-    method,
-  };
-
-  if (attribute !== undefined) {
-    query["attribute"] = attribute;
-  }
-
-  if (values !== undefined) {
-    query["values"] = values;
-  }
-
-  return JSON.stringify(query);
-}
-
 export class Query {
-  static equal = (attribute: string, value: QueryTypes): string =>
-    buildQuery("equal", attribute, value);
+  method: string;
+  attribute: AttributesTypes | undefined;
+  values: QueryTypesList | undefined;
 
-  static notEqual = (attribute: string, value: QueryTypes): string =>
-    buildQuery("notEqual", attribute, value);
+  constructor(
+    method: string,
+    attribute?: AttributesTypes,
+    values?: QueryTypes
+  ) {
+    this.method = method;
+    this.attribute = attribute;
 
-  static lessThan = (attribute: string, value: QueryTypes): string =>
-    buildQuery("lessThan", attribute, value);
+    if (values !== undefined) {
+      if (Array.isArray(values)) {
+        this.values = values;
+      } else {
+        this.values = [values] as QueryTypesList;
+      }
+    }
+  }
 
-  static lessThanEqual = (attribute: string, value: QueryTypes): string =>
-    buildQuery("lessThanEqual", attribute, value);
+  toString(): string {
+    return JSON.stringify({
+      method: this.method,
+      attribute: this.attribute,
+      values: this.values,
+    });
+  }
 
-  static greaterThan = (attribute: string, value: QueryTypes): string =>
-    buildQuery("greaterThan", attribute, value);
+  static equal = (attribute: string, value: QueryTypes): Query =>
+    new Query("equal", attribute, value);
 
-  static greaterThanEqual = (attribute: string, value: QueryTypes): string =>
-    buildQuery("greaterThanEqual", attribute, value);
+  static notEqual = (attribute: string, value: QueryTypes): Query =>
+    new Query("notEqual", attribute, value);
 
-  static isNull = (attribute: string): string =>
-    buildQuery("isNull", attribute);
+  static lessThan = (attribute: string, value: QueryTypes): Query =>
+    new Query("lessThan", attribute, value);
 
-  static isNotNull = (attribute: string): string =>
-    buildQuery("isNotNull", attribute);
+  static lessThanEqual = (attribute: string, value: QueryTypes): Query =>
+    new Query("lessThanEqual", attribute, value);
+
+  static greaterThan = (attribute: string, value: QueryTypes): Query =>
+    new Query("greaterThan", attribute, value);
+
+  static greaterThanEqual = (attribute: string, value: QueryTypes): Query =>
+    new Query("greaterThanEqual", attribute, value);
+
+  static isNull = (attribute: string): Query => new Query("isNull", attribute);
+
+  static isNotNull = (attribute: string): Query =>
+    new Query("isNotNull", attribute);
 
   static between = (
     attribute: string,
-    start: QueryTypeSearchable,
-    end: QueryTypeSearchable
-  ) => buildQuery("between", attribute, [start, end]);
+    start: string | number,
+    end: string | number
+  ) => new Query("between", attribute, [start, end] as QueryTypesList);
 
-  static startsWith = (attribute: string, value: string): string =>
-    buildQuery("startsWith", attribute, value);
+  static startsWith = (attribute: string, value: string): Query =>
+    new Query("startsWith", attribute, value);
 
-  static endsWith = (attribute: string, value: string): string =>
-    buildQuery("endsWith", attribute, value);
+  static endsWith = (attribute: string, value: string): Query =>
+    new Query("endsWith", attribute, value);
 
-  static select = (attributes: string[]): string =>
-    buildQuery("select", attributes);
+  static select = (attributes: string[]): Query =>
+    new Query("select", undefined, attributes);
 
-  static search = (attribute: string, value: string): string =>
-    buildQuery("search", attribute, value);
+  static search = (attribute: string, value: string): Query =>
+    new Query("search", attribute, value);
 
-  static orderDesc = (attribute: string): string =>
-    buildQuery("orderDesc", attribute);
+  static orderDesc = (attribute: string): Query =>
+    new Query("orderDesc", attribute);
 
-  static orderAsc = (attribute: string): string =>
-    buildQuery("orderAsc", attribute);
+  static orderAsc = (attribute: string): Query =>
+    new Query("orderAsc", attribute);
 
-  static cursorAfter = (documentId: string): string =>
-    buildQuery("cursorAfter", documentId);
+  static cursorAfter = (documentId: string): Query =>
+    new Query("cursorAfter", undefined, documentId);
 
-  static cursorBefore = (documentId: string): string =>
-    buildQuery("cursorBefore", documentId);
+  static cursorBefore = (documentId: string): Query =>
+    new Query("cursorBefore", undefined, documentId);
 
-  static limit = (limit: number): string =>
-    buildQuery("limit", undefined, limit);
+  static limit = (limit: number): Query => new Query("limit", undefined, limit);
 
-  static offset = (offset: number): string =>
-    buildQuery("offset", undefined, offset);
+  static offset = (offset: number): Query =>
+    new Query("offset", undefined, offset);
+
+  static contains = (attribute: string, value: string[]): Query =>
+    new Query("contains", attribute, value);
+
+  static or = (...queries: Query[]) => {
+    return new Query(
+      "or",
+      undefined,
+      queries
+    );
+  };
 }

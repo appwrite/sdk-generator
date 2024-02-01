@@ -114,26 +114,26 @@ namespace AppwriteTests
             await general.Empty();
 
             // Query helper tests
-            TestContext.WriteLine(Query.Equal("released", new List<bool> { true }));
-            TestContext.WriteLine(Query.Equal("title", new List<string> { "Spiderman", "Dr. Strange" }));
-            TestContext.WriteLine(Query.NotEqual("title", "Spiderman"));
-            TestContext.WriteLine(Query.LessThan("releasedYear", 1990));
-            TestContext.WriteLine(Query.GreaterThan("releasedYear", 1990));
-            TestContext.WriteLine(Query.Search("name", "john"));
-            TestContext.WriteLine(Query.IsNull("name"));
-            TestContext.WriteLine(Query.IsNotNull("name"));
-            TestContext.WriteLine(Query.Between("age", 50, 100));
-            TestContext.WriteLine(Query.Between("age", 50.5, 100.5));
-            TestContext.WriteLine(Query.Between("name", "Anna", "Brad"));
-            TestContext.WriteLine(Query.StartsWith("name", "Ann"));
-            TestContext.WriteLine(Query.EndsWith("name", "nne"));
-            TestContext.WriteLine(Query.Select(new List<string> { "name", "age" }));
-            TestContext.WriteLine(Query.OrderAsc("title"));
-            TestContext.WriteLine(Query.OrderDesc("title"));
-            TestContext.WriteLine(Query.CursorAfter("my_movie_id"));
-            TestContext.WriteLine(Query.CursorBefore("my_movie_id"));
-            TestContext.WriteLine(Query.Limit(50));
-            TestContext.WriteLine(Query.Offset(20));
+            TestContext.WriteLine(Query.Equal("released", new List<bool> { true }).ToString());
+            TestContext.WriteLine(Query.Equal("title", new List<string> { "Spiderman", "Dr. Strange" }).ToString());
+            TestContext.WriteLine(Query.NotEqual("title", "Spiderman").ToString());
+            TestContext.WriteLine(Query.LessThan("releasedYear", 1990).ToString());
+            TestContext.WriteLine(Query.GreaterThan("releasedYear", 1990).ToString());
+            TestContext.WriteLine(Query.Search("name", "john").ToString());
+            TestContext.WriteLine(Query.IsNull("name").ToString());
+            TestContext.WriteLine(Query.IsNotNull("name").ToString());
+            TestContext.WriteLine(Query.Between("age", 50, 100).ToString());
+            TestContext.WriteLine(Query.Between("age", 50.5, 100.5).ToString());
+            TestContext.WriteLine(Query.Between("name", "Anna", "Brad").ToString());
+            TestContext.WriteLine(Query.StartsWith("name", "Ann").ToString());
+            TestContext.WriteLine(Query.EndsWith("name", "nne").ToString());
+            TestContext.WriteLine(Query.Select(new List<string> { "name", "age" }).ToString());
+            TestContext.WriteLine(Query.OrderAsc("title").ToString());
+            TestContext.WriteLine(Query.OrderDesc("title").ToString());
+            TestContext.WriteLine(Query.CursorAfter("my_movie_id").ToString());
+            TestContext.WriteLine(Query.CursorBefore("my_movie_id").ToString());
+            TestContext.WriteLine(Query.Limit(50).ToString());
+            TestContext.WriteLine(Query.Offset(20).ToString());
 
             // Permission & Roles helper tests
             TestContext.WriteLine(Permission.Read(Role.Any()));

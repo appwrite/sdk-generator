@@ -1,63 +1,77 @@
-function buildQuery(method, attribute, values) {
-  const query = {
-    method,
-  };
+class Query {
+  constructor(method, attribute, values) {
+    this.method = method
+    this.attribute = attribute
 
-  if (attribute !== undefined) {
-    query["attribute"] = attribute;
+    if (values !== undefined) {
+      if (Array.isArray(values)) {
+        this.values = values
+      } else {
+        this.values = [values]
+      }
+    }
   }
 
-  if (values !== undefined) {
-    query["values"] = values;
+  toString() {
+    return JSON.stringify({
+      method: this.method,
+      attribute: this.attribute,
+      values: this.values
+    })
   }
 
-  return JSON.stringify(query);
-}
-
-export class Query {
-  static equal = (attribute, value) => buildQuery("equal", attribute, value);
+  static equal = (attribute, value) => new Query("equal", attribute, value)
 
   static notEqual = (attribute, value) =>
-    buildQuery("notEqual", attribute, value);
+    new Query("notEqual", attribute, value)
 
   static lessThan = (attribute, value) =>
-    buildQuery("lessThan", attribute, value);
+    new Query("lessThan", attribute, value)
 
   static lessThanEqual = (attribute, value) =>
-    buildQuery("lessThanEqual", attribute, value);
+    new Query("lessThanEqual", attribute, value)
 
   static greaterThan = (attribute, value) =>
-    buildQuery("greaterThan", attribute, value);
+    new Query("greaterThan", attribute, value)
 
   static greaterThanEqual = (attribute, value) =>
-    buildQuery("greaterThanEqual", attribute, value);
+    new Query("greaterThanEqual", attribute, value)
 
-  static isNull = (attribute) => buildQuery("isNull", attribute);
+  static isNull = attribute => new Query("isNull", attribute)
 
-  static isNotNull = (attribute) => buildQuery("isNotNull", attribute);
+  static isNotNull = attribute => new Query("isNotNull", attribute)
 
   static between = (attribute, start, end) =>
-    buildQuery("between", attribute, [start, end]);
+    new Query("between", attribute, [start, end])
 
   static startsWith = (attribute, value) =>
-    buildQuery("startsWith", attribute, value);
+    new Query("startsWith", attribute, value)
 
   static endsWith = (attribute, value) =>
-    buildQuery("endsWith", attribute, value);
+    new Query("endsWith", attribute, value)
 
-  static select = (attributes) => buildQuery("select", attributes);
+  static select = attributes => new Query("select", undefined, attributes)
 
-  static search = (attribute, value) => buildQuery("search", attribute, value);
+  static search = (attribute, value) => new Query("search", attribute, value)
 
-  static orderDesc = (attribute) => buildQuery("orderDesc", attribute);
+  static orderDesc = attribute => new Query("orderDesc", attribute)
 
-  static orderAsc = (attribute) => buildQuery("orderAsc", attribute);
+  static orderAsc = attribute => new Query("orderAsc", attribute)
 
-  static cursorAfter = (documentId) => buildQuery("cursorAfter", documentId);
+  static cursorAfter = documentId => new Query("cursorAfter", undefined, documentId)
 
-  static cursorBefore = (documentId) => buildQuery("cursorBefore", documentId);
+  static cursorBefore = documentId => new Query("cursorBefore", undefined, documentId)
 
-  static limit = (limit) => buildQuery("limit", undefined, limit);
+  static limit = limit => new Query("limit", undefined, limit)
 
-  static offset = (offset) => buildQuery("offset", undefined, offset);
+  static offset = offset => new Query("offset", undefined, offset)
+
+  static contains = (attribute, value) =>
+    new Query("contains", attribute, value)
+
+  static or = (...queries) => {
+    return new Query("or", undefined, queries)
+  }
 }
+
+module.exports = Query;

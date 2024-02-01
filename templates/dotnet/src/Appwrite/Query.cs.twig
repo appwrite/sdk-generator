@@ -1,139 +1,139 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
+
 
 namespace Appwrite
 {
     public static class Query
     {
-        public static string Equal(string attribute, object value)
+        public string method;
+        public string? attribute;
+        public object? values;
+
+        override public string ToString()
         {
-            return AddQuery(attribute, "equal", value);
+            return JsonConvert.SerializeObject(this);
         }
 
-        public static string NotEqual(string attribute, object value)
+        public static Query Equal(string attribute, object value)
         {
-            return AddQuery(attribute, "notEqual", value);
+            return BuildQuery("equal", attribute, value);
         }
 
-        public static string LessThan(string attribute, object value)
+        public static Query NotEqual(string attribute, object value)
         {
-            return AddQuery(attribute, "lessThan", value);
+            return BuildQuery("notEqual", attribute, value);
         }
 
-        public static string LessThanEqual(string attribute, object value)
+        public static Query LessThan(string attribute, object value)
         {
-            return AddQuery(attribute, "lessThanEqual", value);
+            return BuildQuery("lessThan", attribute, value);
         }
 
-        public static string GreaterThan(string attribute, object value)
+        public static Query LessThanEqual(string attribute, object value)
         {
-            return AddQuery(attribute, "greaterThan", value);
+            return BuildQuery("lessThanEqual", attribute, value);
         }
 
-        public static string GreaterThanEqual(string attribute, object value)
+        public static Query GreaterThan(string attribute, object value)
         {
-            return AddQuery(attribute, "greaterThanEqual", value);
+            return BuildQuery("greaterThan", attribute, value);
         }
 
-        public static string Search(string attribute, string value)
+        public static Query GreaterThanEqual(string attribute, object value)
         {
-            return AddQuery(attribute, "search", value);
+            return BuildQuery("greaterThanEqual", attribute, value);
         }
 
-        public static string IsNull(string attribute)
+        public static Query Search(string attribute, string value)
         {
-            return $"isNull(\"{attribute}\")";
+            return BuildQuery("search", attribute, value);
         }
 
-        public static string IsNotNull(string attribute)
+        public static Query IsNull(string attribute)
         {
-            return $"isNotNull(\"{attribute}\")";
+            return BuildQuery("isNull", attribute, null);
         }
 
-        public static string StartsWith(string attribute, string value)
+        public static Query IsNotNull(string attribute)
         {
-            return AddQuery(attribute, "startsWith", value);
+            return BuildQuery("isNotNull", attribute, null);
         }
 
-        public static string EndsWith(string attribute, string value)
+        public static Query StartsWith(string attribute, string value)
         {
-            return AddQuery(attribute, "endsWith", value);
+            return BuildQuery("startsWith", attribute, value);
         }
 
-        public static string Between(string attribute, string start, string end)
+        public static Query EndsWith(string attribute, string value)
         {
-            return $"between(\"{attribute}\", {ParseValues(start)}, {ParseValues(end)})";
+            return BuildQuery("endsWith", attribute, value);
         }
 
-        public static string Between(string attribute, int start, int end)
+        public static Query Between(string attribute, string start, string end)
         {
-            return $"between(\"{attribute}\", {ParseValues(start)}, {ParseValues(end)})";
+            return BuildQuery("between", attribute, new List<string> { start, end });
         }
 
-        public static string Between(string attribute, double start, double end)
+        public static Query Between(string attribute, int start, int end)
         {
-            return $"between(\"{attribute}\", {ParseValues(start)}, {ParseValues(end)})";
+            return BuildQuery("between", attribute, new List<int> { start, end });
         }
 
-        public static string Select(List<string> attributes)
+        public static Query Between(string attribute, double start, double end)
         {
-            return $"select([{string.Join(",", attributes.Select(attribute => $"\"{attribute}\""))}])";
+            return BuildQuery("between", attribute, new List<double> { start, end });
         }
 
-        public static string CursorAfter(string documentId)
+        public static Query Select(List<string> attributes)
         {
-            return $"cursorAfter(\"{documentId}\")";
+            return BuildQuery("select", null, attributes);
         }
 
-        public static string CursorBefore(string documentId) {
-            return $"cursorBefore(\"{documentId}\")";
-        }
-
-        public static string OrderAsc(string attribute) {
-            return $"orderAsc(\"{attribute}\")";
-        }
-
-        public static string OrderDesc(string attribute) {
-            return $"orderDesc(\"{attribute}\")";
-        }
-
-        public static string Limit(int limit) {
-            return $"limit({limit})";
-        }
-
-        public static string Offset(int offset) {
-            return $"offset({offset})";
-        }
-
-        private static string AddQuery(string attribute, string method, object value)
+        public static Query CursorAfter(string documentId)
         {
-            if (value is IList list)
+            return BuildQuery("cursorAfter", null, documentId);
+        }
+
+        public static Query CursorBefore(string documentId) {
+            return BuildQuery("cursorBefore", null, documentId);
+        }
+
+        public static Query OrderAsc(string attribute) {
+            return BuildQuery("orderAsc", attribute, null);
+        }
+
+        public static Query OrderDesc(string attribute) {
+            return BuildQuery("orderDesc", attribute, null);
+        }
+
+        public static Query Limit(int limit) {
+            return BuildQuery("limit", null, limit);
+        }
+
+        public static Query Offset(int offset) {
+            return BuildQuery("offset", null, offset);
+        }
+
+        public static Query Or(List<Query> queries) {
+            return BuildQuery("or", null, queries);
+        }
+
+        private static BuildQuery(string method, string? attribute, object? value)
+        {
+            if (value != null && !(value is IList))
             {
-                var parsed = new List<object>();
-                foreach (var item in list)
-                {
-                    parsed.Add(ParseValues(item));
-                }
-                return $"{method}(\"{attribute}\", [{string.Join(",", parsed)}])";
+                value = new List<object> { value };
             }
-            else
-            {
-                return $"{method}(\"{attribute}\", [{ParseValues(value)}])";
-            }
-        }
 
-        private static string ParseValues(object value)
-        {
-            switch (value)
+            return new Query
             {
-                case string str:
-                    return $"\"{str}\"";
-                case bool boolean:
-                    return boolean.ToString().ToLower();
-                default:
-                    return value.ToString();
-            }
+                method = method,
+                attribute = attribute,
+                values = value
+            };
         }
     }
 }
