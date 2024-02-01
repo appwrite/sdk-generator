@@ -31,6 +31,7 @@ import { Payload, Client } from '../client.ts';
 import { InputFile } from '../inputFile.ts';
 import { AppwriteException } from '../exception.ts';
 import type { Models } from '../models.d.ts';
+import { Query } from '../query.ts';
 {% set added = [] %}
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}

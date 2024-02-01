@@ -25,6 +25,9 @@ class Node extends JS
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
+        if ($parameter['name'] === 'queries') {
+            return 'Query[]';
+        }
         return match ($parameter['type']) {
             self::TYPE_INTEGER,
             self::TYPE_NUMBER => 'number',

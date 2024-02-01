@@ -6,6 +6,7 @@ const Stream = require('stream');
 const { promisify } = require('util');
 const fs = require('fs');
 const { File } = require('undici');
+const Query = require('../query.js');
 
 class {{ service.name | caseUcfirst }} extends Service {
 
