@@ -1,91 +1,103 @@
 import json
 
 
-class Query:
+# Inherit from dict to allow for easy serialization
+class Query(dict):
+    def __init__(self, method, attribute=None, values=None):
+        self.method = method
+
+        if attribute is not None:
+            self.attribute = attribute
+
+        if values is not None:
+            self.values = values if isinstance(values, list) else [values]
+
+    def __str__(self):
+        return json.dumps(
+            self.__dict__,
+            separators=(",", ":"),
+        )
+
     @staticmethod
     def equal(attribute, value):
-        return Query.__build_query("equal", attribute, value)
+        return Query("equal", attribute, value)
 
     @staticmethod
     def not_equal(attribute, value):
-        return Query.__build_query("notEqual", attribute, value)
+        return Query("notEqual", attribute, value)
 
     @staticmethod
     def less_than(attribute, value):
-        return Query.__build_query("lessThan", attribute, value)
+        return Query("lessThan", attribute, value)
 
     @staticmethod
     def less_than_equal(attribute, value):
-        return Query.__build_query("lessThanEqual", attribute, value)
+        return Query("lessThanEqual", attribute, value)
 
     @staticmethod
     def greater_than(attribute, value):
-        return Query.__build_query("greaterThan", attribute, value)
+        return Query("greaterThan", attribute, value)
 
     @staticmethod
     def greater_than_equal(attribute, value):
-        return Query.__build_query("greaterThanEqual", attribute, value)
+        return Query("greaterThanEqual", attribute, value)
 
     @staticmethod
     def is_null(attribute):
-        return Query.__build_query("isNull", attribute, None)
+        return Query("isNull", attribute, None)
 
     @staticmethod
     def is_not_null(attribute):
-        return Query.__build_query("isNotNull", attribute, None)
+        return Query("isNotNull", attribute, None)
 
     @staticmethod
     def between(attribute, start, end):
-        return Query.__build_query("between", attribute, [start, end])
+        return Query("between", attribute, [start, end])
 
     @staticmethod
     def starts_with(attribute, value):
-        return Query.__build_query("startsWith", attribute, value)
+        return Query("startsWith", attribute, value)
 
     @staticmethod
     def ends_with(attribute, value):
-        return Query.__build_query("endsWith", attribute, value)
+        return Query("endsWith", attribute, value)
 
     @staticmethod
     def select(attributes):
-        return Query.__build_query("select", None, attributes)
+        return Query("select", None, attributes)
 
     @staticmethod
     def search(attribute, value):
-        return Query.__build_query("search", attribute, value)
+        return Query("search", attribute, value)
 
     @staticmethod
     def order_asc(attribute):
-        return Query.__build_query("orderAsc", attribute, None)
+        return Query("orderAsc", attribute, None)
 
     @staticmethod
     def order_desc(attribute):
-        return Query.__build_query("orderDesc", attribute, None)
+        return Query("orderDesc", attribute, None)
 
     @staticmethod
     def cursor_before(id):
-        return Query.__build_query("cursorBefore", None, id)
+        return Query("cursorBefore", None, id)
 
     @staticmethod
     def cursor_after(id):
-        return Query.__build_query("cursorAfter", None, id)
+        return Query("cursorAfter", None, id)
 
     @staticmethod
     def limit(limit):
-        return Query.__build_query("limit", None, limit)
+        return Query("limit", None, limit)
 
     @staticmethod
     def offset(offset):
-        return Query.__build_query("offset", None, offset)
+        return Query("offset", None, offset)
 
     @staticmethod
-    def __build_query(method, attribute=None, values=None):
-        query = {"method": method}
+    def contains(attribute, value):
+        return Query("contains", attribute, value)
 
-        if attribute is not None:
-            query["attribute"] = attribute
-
-        if values is not None:
-            query["values"] = values
-
-        return json.dumps(query)
+    @staticmethod
+    def or_queries(queries):
+        return Query("or", None, queries)
