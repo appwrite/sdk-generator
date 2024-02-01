@@ -130,6 +130,12 @@ echo Query::cursorAfter('my_movie_id') . "\n";
 echo Query::cursorBefore('my_movie_id') . "\n";
 echo Query::limit(50) . "\n";
 echo Query::offset(20) . "\n";
+echo Query::contains('title', 'Spider') . "\n";
+echo Query::contains('labels', 'first') . "\n";
+echo Query::or([
+    Query::equal('released', [true]),
+    Query::lessThan('releasedYear', 1990)
+]) . "\n";
 
 // Permission & Role helper tests
 echo Permission::read(Role::any()) . "\n";

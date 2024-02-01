@@ -2,23 +2,39 @@
 
 namespace {{ spec.title | caseUcfirst }};
 
-class Query
+class Query implements \JsonSerializable
 {
-    private static function buildQuery(string $method, ?mixed $attibute, ?mixed $values): string
+    protected string $method;
+    protected ?string $attribute;
+    protected ?array $values;
+
+    public function __construct(string $method, ?string $attribute = null, $values = null)
     {
-        $query = [
-            'method' => $method,
-        ];
-
-        if ($attibute) {
-            $query['attribute'] = $attibute;
+        $this->method = $method;
+        $this->attribute = $attribute;
+        
+        if (is_null($values) || is_array($values)) {
+            $this->values = $values;
+        } else {
+            $this->values = [$values];
         }
 
-        if ($values) {
-            $query['values'] = $values;
-        }
+    }
 
-        return json_encode($query);
+    public function __toString(): string
+    {
+        return json_encode($this->jsonSerialize());
+    }
+
+    public function jsonSerialize()
+    {
+        return array_filter([
+            'method' => $this->method,
+            'attribute' => $this->attribute,
+            'values' => $this->values,
+        ], function ($value) {
+            return !is_null($value);
+        });
     }
 
     /**
@@ -26,11 +42,11 @@ class Query
      *
      * @param string $attribute
      * @param mixed $value
-     * @return string
+     * @return Query
      */
-    public static function equal(string $attribute, $value): string
+    public static function equal(string $attribute, $value): Query
     {
-        return Query::buildQuery('equal', $attribute, $value);
+        return new Query('equal', $attribute, $value);
     }
 
     /**
@@ -38,11 +54,11 @@ class Query
      *
      * @param string $attribute
      * @param mixed $value
-     * @return string
+     * @return Query
      */
-    public static function notEqual(string $attribute, $value): string
+    public static function notEqual(string $attribute, $value): Query
     {
-        return Query::buildQuery('notEqual', $attribute, $value);
+        return new Query('notEqual', $attribute, $value);
     }
 
     /**
@@ -50,11 +66,11 @@ class Query
      *
      * @param string $attribute
      * @param mixed $value
-     * @return string
+     * @return Query
      */
-    public static function lessThan(string $attribute, $value): string
+    public static function lessThan(string $attribute, $value): Query
     {
-        return Query::buildQuery('lessThan', $attribute, $value);
+        return new Query('lessThan', $attribute, $value);
     }
 
     /**
@@ -62,11 +78,11 @@ class Query
      *
      * @param string $attribute
      * @param mixed $value
-     * @return string
+     * @return Query
      */
-    public static function lessThanEqual(string $attribute, $value): string
+    public static function lessThanEqual(string $attribute, $value): Query
     {
-        return Query::buildQuery('lessThanEqual', $attribute, $value);
+        return new Query('lessThanEqual', $attribute, $value);
     }
 
     /**
@@ -74,11 +90,11 @@ class Query
      *
      * @param string $attribute
      * @param mixed $value
-     * @return string
+     * @return Query
      */
-    public static function greaterThan(string $attribute, $value): string
+    public static function greaterThan(string $attribute, $value): Query
     {
-        return Query::buildQuery('greaterThan', $attribute, $value);
+        return new Query('greaterThan', $attribute, $value);
     }
 
     /**
@@ -86,11 +102,11 @@ class Query
      *
      * @param string $attribute
      * @param mixed $value
-     * @return string
+     * @return Query
      */
-    public static function greaterThanEqual(string $attribute, $value): string
+    public static function greaterThanEqual(string $attribute, $value): Query
     {
-        return Query::buildQuery('greaterThanEqual', $attribute, $value);
+        return new Query('greaterThanEqual', $attribute, $value);
     }
 
     /**
@@ -98,33 +114,33 @@ class Query
      *
      * @param string $attribute
      * @param string $value
-     * @return string
+     * @return Query
      */
-    public static function search(string $attribute, string $value): string
+    public static function search(string $attribute, string $value): Query
     {
-        return Query::buildQuery('search', $attribute, $value);
+        return new Query('search', $attribute, $value);
     }
 
     /**
      * Is Null
      *
      * @param string $attribute
-     * @return string
+     * @return Query
      */
-    public static function isNull(string $attribute): string
+    public static function isNull(string $attribute): Query
     {
-        return Query::buildQuery('isNull', $attribute, null);
+        return new Query('isNull', $attribute, null);
     }
 
     /**
      * Is Not Null
      *
      * @param string $attribute
-     * @return string
+     * @return Query
      */
-    public static function isNotNull(string $attribute): string
+    public static function isNotNull(string $attribute): Query
     {
-        return Query::buildQuery('isNotNull', $attribute, null);
+        return new Query('isNotNull', $attribute, null);
     }
 
     /**
@@ -133,11 +149,11 @@ class Query
      * @param string $attribute
      * @param string|int|float $start
      * @param string|int|float $end
-     * @return string
+     * @return Query
      */
-    public static function between(string $attribute, $start, $end): string
+    public static function between(string $attribute, $start, $end): Query
     {
-        return Query::buildQuery('between', $attribute, [$start, $end]);
+        return new Query('between', $attribute, [$start, $end]);
     }
 
     /**
@@ -145,11 +161,11 @@ class Query
      *
      * @param string $attribute
      * @param string $value
-     * @return string
+     * @return Query
      */
-    public static function startsWith(string $attribute, string $value): string
+    public static function startsWith(string $attribute, string $value): Query
     {
-        return Query::buildQuery('startsWith', $attribute, $value);
+        return new Query('startsWith', $attribute, $value);
     }
 
     /**
@@ -157,87 +173,110 @@ class Query
      *
      * @param string $attribute
      * @param string $value
-     * @return string
+     * @return Query
      */
-    public static function endsWith(string $attribute, string $value): string
+    public static function endsWith(string $attribute, string $value): Query
     {
-        return Query::buildQuery('endsWith', $attribute, $value);
+        return new Query('endsWith', $attribute, $value);
     }
 
     /**
      * Select
      *
      * @param array<string> $attributes
-     * @return string
+     * @return Query
      */
-    public static function select(array $attributes): string
+    public static function select(array $attributes): Query
     {
-        return Query::buildQuery('select', null, $attributes);
+        return new Query('select', null, $attributes);
     }
 
     /**
      * Cursor After
      *
      * @param string $documentId
-     * @return string
+     * @return Query
      */
-    public static function cursorAfter(string $documentId): string 
+    public static function cursorAfter(string $documentId): Query 
     {
-        return Query::buildQuery('cursorAfter', null, $documentId);
+        return new Query('cursorAfter', null, $documentId);
     }
 
     /**
      * Cursor Before
      *
      * @param string $documentId
-     * @return string
+     * @return Query
      */
-    public static function cursorBefore(string $documentId): string 
+    public static function cursorBefore(string $documentId): Query 
     {
-        return Query::buildQuery('cursorBefore', null, $documentId);
+        return new Query('cursorBefore', null, $documentId);
     }
 
     /**
      * Order Asc
      *
      * @param string $attribute
-     * @return string
+     * @return Query
      */
-    public static function orderAsc(string $attribute): string 
+    public static function orderAsc(string $attribute): Query 
     {
-        return Query::buildQuery('orderAsc', $attribute, null);
+        return new Query('orderAsc', $attribute, null);
     }
 
     /**
      * Order Desc
      *
      * @param string $attribute
-     * @return string
+     * @return Query
      */
-    public static function orderDesc(string $attribute): string 
+    public static function orderDesc(string $attribute): Query 
     {
-        return Query::buildQuery('orderDesc', $attribute, null);
+        return new Query('orderDesc', $attribute, null);
     }
 
     /**
      * Limit
      *
      * @param int $limit
-     * @return string
+     * @return Query
      */
-    public static function limit(int $limit): string 
+    public static function limit(int $limit): Query 
     {
-        return Query::buildQuery('limit', null, $limit);
+        return new Query('limit', null, $limit);
     }
 
     /**
      * Offset
      *
      * @param int $offset
-     * @return string
+     * @return Query
      */
-    public static function offset(int $offset): string 
+    public static function offset(int $offset): Query 
     {
-        return Query::buildQuery('offset', null, $offset);
+        return new Query('offset', null, $offset);
+    }
+
+    /**
+     * Contains
+     *
+     * @param string $attribute
+     * @param string $value
+     * @return Query
+     */
+    public static function contains(string $attribute, string $value): Query
+    {
+        return new Query('contains', $attribute, $value);
+    }
+
+    /**
+     * Or
+     *
+     * @param array<Query> $queries
+     * @return Query
+     */
+    public static function or(array $queries): Query
+    {
+        return new Query('or', null, $queries);
     }
 }
