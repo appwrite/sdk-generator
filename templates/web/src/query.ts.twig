@@ -91,7 +91,7 @@ export class Query {
   static offset = (offset: number): Query =>
     new Query("offset", undefined, offset);
 
-  static contains = (attribute: string, value: string[]): Query =>
+  static contains = (attribute: string, value: string | string[]): Query =>
     new Query("contains", attribute, value);
 
   static or = (...queries: Query[]) => {
