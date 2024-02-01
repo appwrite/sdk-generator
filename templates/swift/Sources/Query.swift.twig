@@ -1,104 +1,265 @@
-public class Query {
+import Foundation
 
-    public static func equal(_ attribute: String, value: Any) -> String {
-        buildQueryWhere(attribute, is: "equal", to: value)
+enum QueryValue: Encodable {
+    case string(String)
+    case int(Int)
+    case double(Double)
+    case bool(Bool)
+    case query(Query)
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .string(let value):
+            try container.encode(value)
+        case .int(let value):
+            try container.encode(value)
+        case .double(let value):
+            try container.encode(value)
+        case .bool(let value):
+            try container.encode(value)
+        case .query(let value):
+            try container.encode(value)
+        }
+    }
+}
+public struct Query : Encodable, CustomStringConvertible {
+    var method: String
+    var attribute: String?
+    var values: [QueryValue]?
+
+    init(method: String, attribute: String? = nil, values: Any? = nil) {
+        self.method = method
+        self.attribute = attribute
+        self.values = Query.convertToQueryValueArray(values)
     }
 
-    public static func notEqual(_ attribute: String, value: Any) -> String {
-        buildQueryWhere(attribute, is: "notEqual", to: value)
+    private static func convertToQueryValueArray(_ values: Any?) -> [QueryValue]? {
+        if (values is [QueryValue] || values == nil) {
+            return values as? [QueryValue]
+        } 
+
+        if (values is [String]) {
+            return (values as! [String]).map { QueryValue.string($0) }
+        }
+
+        if (values is [Int]) {
+            return (values as! [Int]).map { QueryValue.int($0) }
+        }
+
+        if (values is [Double]) {
+            return (values as! [Double]).map { QueryValue.double($0) }
+        }
+
+        if (values is [Bool]) {
+            return (values as! [Bool]).map { QueryValue.bool($0) }
+        }
+
+        if (values is [Query]) {
+            return (values as! [Query]).map { QueryValue.query($0) }
+        }
+
+        return nil
     }
 
-    public static func lessThan(_ attribute: String, value: Any) -> String {
-        buildQueryWhere(attribute, is: "lessThan", to: value)
+    enum CodingKeys: String, CodingKey {
+        case method
+        case attribute
+        case values
     }
 
-    public static func lessThanEqual(attribute: String, value: Any) -> String {
-        buildQueryWhere(attribute, is: "lessThanEqual", to: value)
-    }
-
-    public static func greaterThan(_ attribute: String, value: Any) -> String {
-        buildQueryWhere(attribute, is: "greaterThan", to: value)
-    }
-
-    public static func greaterThanEqual(_ attribute: String, value: Any) -> String {
-        buildQueryWhere(attribute, is: "greaterThanEqual", to: value)
-    }
-
-    public static func isNull(_ attribute: String) -> String {
-        "isNull(\"\(attribute)\")"
-    }
-
-    public static func isNotNull(_ attribute: String) -> String {
-        "isNotNull(\"\(attribute)\")"
-    }
-
-    public static func between(_ attribute: String, start: Int, end: Int) -> String {
-        "between(\"\(attribute)\", \(start), \(end))"
-    }
-
-    public static func between(_ attribute: String, start: Double, end: Double) -> String {
-        "between(\"\(attribute)\", \(start), \(end))"
-    }
-
-    public static func between(_ attribute: String, start: String, end: String) -> String {
-        "between(\"\(attribute)\", \"\(start)\", \"\(end)\")"
-    }
-
-    public static func startsWith(_ attribute: String, value: String) -> String {
-        buildQueryWhere(attribute, is: "startsWith", to: value)
-    }
-
-    public static func endsWith(_ attribute: String, value: String) -> String {
-        buildQueryWhere(attribute, is: "endsWith", to: value)
-    }
-
-    public static func select(_ attributes: [String]) -> String {
-        "select([\(attributes.map { "\"\($0)\"" }.joined(separator: ","))])"
-    }
-
-    public static func search(_ attribute: String, value: String) -> String {
-        buildQueryWhere(attribute, is: "search", to: value)
-    }
-
-    public static func orderAsc(_ attribute: String) -> String {
-        "orderAsc(\"\(attribute)\")"
-    }
-
-    public static func orderDesc(_ attribute: String) -> String {
-        "orderDesc(\"\(attribute)\")"
-    }
-
-    public static func cursorBefore(_ id: String) -> String {
-        "cursorBefore(\"\(id)\")"
-    }
-
-    public static func cursorAfter(_ id: String) -> String {
-        "cursorAfter(\"\(id)\")"
-    }
-
-    public static func limit(_ limit: Int) -> String {
-        "limit(\(limit))"
-    }
-
-    public static func offset(_ offset: Int) -> String {
-        "offset(\(offset))"
-    }
-
-    public static func buildQueryWhere(_ attribute: String, is method: String, to value: Any) -> String {
-        switch value {
-        case let value as Array<Any>:
-            return "\(method)(\"\(attribute)\", [\(value.map { parseValues($0) }.joined(separator: ",") )])"
-        default:
-            return "\(method)(\"\(attribute)\", [\(parseValues(value))])"
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(method, forKey: .method)
+        if (self.attribute != nil) {
+            try container.encode(attribute, forKey: .attribute)
+        }
+        if (values != nil) {
+            try container.encode(values, forKey: .values)
         }
     }
 
-    private static func parseValues(_ value: Any) -> String {
-        switch value {
-        case let value as String:
-            return "\"\(value)\""
-        default:
-            return "\(value)"
+    public var description: String {
+        do {
+            let data = try JSONEncoder().encode(self)
+            return String(data: data, encoding: .utf8) ?? ""
+        } catch {
+            return ""
         }
+
+    }
+
+    public static func equal(_ attribute: String, value: Any) -> Query {
+        return Query(
+            method: "equal",
+            attribute: attribute,
+            values: [value]
+        )
+    }
+
+    public static func notEqual(_ attribute: String, value: Any) -> Query {
+        return Query(
+            method: "notEqual",
+            attribute: attribute,
+            values: [value]
+        )
+    }
+
+    public static func lessThan(_ attribute: String, value: Any) -> Query {
+        return Query(
+            method: "lessThan",
+            attribute: attribute,
+            values: [value]
+        )
+    }
+
+    public static func lessThanEqual(attribute: String, value: Any) -> Query {
+        return Query(
+            method: "lessThanEqual",
+            attribute: attribute,
+            values: [value]
+        )
+    }
+
+    public static func greaterThan(_ attribute: String, value: Any) -> Query {
+        return Query(
+            method: "greaterThan",
+            attribute: attribute,
+            values: [value]
+        )
+    }
+
+    public static func greaterThanEqual(_ attribute: String, value: Any) -> Query {
+        return Query(
+            method: "greaterThanEqual",
+            attribute: attribute,
+            values: [value]
+        )
+    }
+
+    public static func isNull(_ attribute: String) -> Query {
+        return Query(
+            method: "isNull",
+            attribute: attribute
+        )
+    }
+
+    public static func isNotNull(_ attribute: String) -> Query {
+        return Query(
+            method: "isNotNull",
+            attribute: attribute
+        )
+    }
+
+    public static func between(_ attribute: String, start: Int, end: Int) -> Query {
+        return Query(
+            method: "between",
+            attribute: attribute,
+            values: [start, end]
+        )
+    }
+
+    public static func between(_ attribute: String, start: Double, end: Double) -> Query {
+        return Query(
+            method: "between",
+            attribute: attribute,
+            values: [start, end]
+        )
+    }
+
+    public static func between(_ attribute: String, start: String, end: String) -> Query {
+        return Query(
+            method: "between",
+            attribute: attribute,
+            values: [start, end]
+        )
+    }
+
+    public static func startsWith(_ attribute: String, value: String) -> Query {
+        return Query(
+            method: "startsWith",
+            attribute: attribute,
+            values: [value]
+        )
+    }
+
+    public static func endsWith(_ attribute: String, value: String) -> Query {
+        return Query(
+            method: "endsWith",
+            attribute: attribute,
+            values: [value]
+        )
+    }
+
+    public static func select(_ attributes: [String]) -> Query {
+        return Query(
+            method: "select",
+            values: attributes
+        )
+    }
+
+    public static func search(_ attribute: String, value: String) -> Query {
+        return Query(
+            method: "search",
+            attribute: attribute,
+            values: [value]
+        )
+    }
+
+    public static func orderAsc(_ attribute: String) -> Query {
+        return Query(
+            method: "orderAsc",
+            attribute: attribute
+        )
+    }
+
+    public static func orderDesc(_ attribute: String) -> Query {
+        return Query(
+            method: "orderDesc",
+            attribute: attribute
+        )
+    }
+
+    public static func cursorBefore(_ id: String) -> Query {
+       return Query(
+            method: "cursorBefore",
+            values: [id]
+        )
+    }
+
+    public static func cursorAfter(_ id: String) -> Query {
+         return Query(
+                method: "cursorAfter",
+                values: [id]
+          )
+    }
+
+    public static func limit(_ limit: Int) -> Query {
+        return Query(
+            method: "limit",
+            values: [limit]
+        )
+    }
+
+    public static func offset(_ offset: Int) -> Query {
+        return Query(
+            method: "offset",
+            values: [offset]
+        )
+    }
+
+    public static func contains(_ attribute: String, value: Any) -> Query {
+        return Query(
+            method: "contains",
+            attribute: attribute,
+            values: value
+        )
+    }
+
+    public static func or(_ queries: [Query]) -> Query {
+       return Query(
+            method: "or",
+            values: queries
+        )
     }
 }
