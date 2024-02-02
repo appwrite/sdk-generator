@@ -204,7 +204,30 @@ abstract class Base extends TestCase
 
         echo \implode("\n", $output);
 
-        $this->assertEquals([], \array_diff($this->expectedOutput, $output));
+        # Some languages deserialize JSON with sorted keys, other not.
+        # We use this custom assertion to normalise the lines with JSON before comparison.
+        $this->assertEqualsWithJsonLines($this->expectedOutput, $output);
+    }
+    
+    private function isJsonString(string $str) 
+    {
+        return \str_starts_with($str, '{');
+    }
+
+    private function assertEqualsWithJsonLines($expectedLines, $actualLines)
+    {
+        $this->assertEquals(\count($expectedLines), \count($actualLines));
+
+        for ($i = 0; $i <= 10; $i++) {
+            $expectedLine = $expectedLines[0];
+            $actualLine = $actualLines[0];
+
+            if ($this->isJsonString($expectedLine)) {
+                $this->assertEquals(\json_decode($expectedLine), \json_decode($actualLine));
+            } else {
+                $this->assertEquals($expectedLine, $actualLine);
+            }
+        }
     }
 
     private function rmdirRecursive($dir): void
