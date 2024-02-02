@@ -10,15 +10,16 @@ namespace Appwrite
     {
         public string method;
         public string? attribute;
-        public object? values;
+        public List<object>? values;
 
         public Query(string method, string? attribute, object? values)
         {
             this.method = method;
             this.attribute = attribute;
 
-            if (values == null || (values is IList)) {
-                this.values = values;
+            if (values == null || values is IList)
+            {
+                this.values = (List<object>?)values;
             } else {
                 this.values = new List<object> { values };
             }
