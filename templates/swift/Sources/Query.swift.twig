@@ -262,4 +262,11 @@ public struct Query : Encodable, CustomStringConvertible {
             values: queries
         )
     }
+
+    public static func and(_ queries: [Query]) -> Query {
+       return Query(
+            method: "and",
+            values: queries
+        )
+    }
 }

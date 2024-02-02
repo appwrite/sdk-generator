@@ -126,6 +126,10 @@ async function start() {
       Query.equal("released", true),
       Query.lessThan("releasedYear", 1990)
     ).toString());
+    console.log(Query.and(
+        Query.equal("released", false),
+        Query.greaterThan("releasedYear", 2015)
+    ).toString());
 
     // Permission & Role helper tests
     console.log(Permission.read(Role.any()));

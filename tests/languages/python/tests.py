@@ -118,13 +118,12 @@ print(str(Query.limit(50)))
 print(str(Query.offset(20)))
 print(str(Query.contains("title", "Spider")))
 print(str(Query.contains("labels", "first")))
-print(
-    str(
-        Query.or_queries(
-            [Query.equal("released", True), Query.less_than("releasedYear", 1990)]
-        )
-    )
-)
+print(str(Query.or_queries(
+    [Query.equal("released", True), Query.less_than("releasedYear", 1990)]
+)))
+print(str(Query.and_queries(
+    [Query.equal("released", False), Query.greater_than("releasedYear", 2015)]
+)))
 
 # Permission & Role helper tests
 print(Permission.read(Role.any()))

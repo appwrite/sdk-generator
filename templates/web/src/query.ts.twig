@@ -101,4 +101,12 @@ export class Query {
       queries
     );
   };
+
+  static and = (...queries: Query[]) => {
+    return new Query(
+      "and",
+      undefined,
+      queries
+    );
+  };
 }

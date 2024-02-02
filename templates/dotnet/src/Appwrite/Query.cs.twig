@@ -137,5 +137,9 @@ namespace Appwrite
         public static Query Or(List<Query> queries) {
             return new Query("or", null, queries);
         }
+
+        public static Query And(List<Query> queries) {
+            return new Query("and", null, queries);
+        }
     }
 }

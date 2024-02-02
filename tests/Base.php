@@ -90,6 +90,7 @@ abstract class Base extends TestCase
         '{"method":"contains","attribute":"title","values":["Spider"]}',
         '{"method":"contains","attribute":"labels","values":["first"]}',
         '{"method":"or","values":[{"method":"equal","attribute":"released","values":[true]},{"method":"lessThan","attribute":"releasedYear","values":[1990]}]}',
+        '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}'
     ];
 
     protected const PERMISSION_HELPER_RESPONSES = [

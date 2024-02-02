@@ -136,6 +136,10 @@ echo Query::or([
     Query::equal('released', [true]),
     Query::lessThan('releasedYear', 1990)
 ]) . "\n";
+echo Query::and([
+    Query::equal('released', [false]),
+    Query::greaterThan('releasedYear', 2015)
+]) . "\n";
 
 // Permission & Role helper tests
 echo Permission::read(Role::any()) . "\n";

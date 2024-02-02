@@ -142,6 +142,12 @@ namespace AppwriteTests
                     Query.LessThan("releasedYear", 1990)
                 }
             ).ToString());
+            TestContext.WriteLine(Query.And(
+                new List<Query> {
+                    Query.Equal("released", false),
+                    Query.GreaterThan("releasedYear", 2015)
+                }
+            ).ToString());
 
             // Permission & Roles helper tests
             TestContext.WriteLine(Permission.Read(Role.Any()));

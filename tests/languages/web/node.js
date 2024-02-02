@@ -99,8 +99,12 @@ async function start() {
     console.log(Query.contains("title", "Spider").toString());
     console.log(Query.contains("labels", "first").toString());
     console.log(Query.or(
-      Query.equal("released", true),
-      Query.lessThan("releasedYear", 1990)
+        Query.equal("released", true),
+        Query.lessThan("releasedYear", 1990)
+    ).toString());
+    console.log(Query.and(
+        Query.equal("released", false),
+        Query.greaterThan("releasedYear", 2015)
     ).toString());
 
     // Permission & Role helper tests

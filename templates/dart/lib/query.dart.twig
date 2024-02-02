@@ -85,6 +85,8 @@ class Query {
 
   static Query or(List<Query> queries) => Query._('or', null, queries);
 
+  static Query and(List<Query> queries) => Query._('and', null, queries);
+
   /// Specify which attributes should be returned by the API call.
   static Query select(List<String> attributes) =>
       Query._('select', null, attributes);

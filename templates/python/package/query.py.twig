@@ -102,3 +102,7 @@ class Query():
     @staticmethod
     def or_queries(queries):
         return Query("or", None, queries)
+
+    @staticmethod
+    def and_queries(queries):
+        return Query("and", None, queries)

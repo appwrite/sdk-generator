@@ -279,4 +279,15 @@ class Query implements \JsonSerializable
     {
         return new Query('or', null, $queries);
     }
+
+    /**
+     * And
+     *
+     * @param array<Query> $queries
+     * @return Query
+     */
+    public static function and(array $queries): Query
+    {
+        return new Query('and', null, $queries);
+    }
 }

@@ -165,6 +165,10 @@ void main() async {
     Query.equal("released", true),
     Query.lessThan("releasedYear", 1990)
   ]));
+   print(Query.and([
+    Query.equal("released", false),
+    Query.greaterThan("releasedYear", 2015)
+  ]));
 
   // Permission & Role helper tests
   print(Permission.read(Role.any()));

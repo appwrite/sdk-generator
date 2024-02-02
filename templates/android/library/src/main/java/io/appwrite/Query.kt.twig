@@ -54,6 +54,8 @@ class Query(
 
         fun or(queries: List<Query>) = Query("or", null, queries)
 
+        fun and(queries: List<Query>) = Query("and", null, queries)
+
         private fun parseValue(value: Any): List<Any> {
             return when (value) {
                 is List<*> -> value as List<Any>

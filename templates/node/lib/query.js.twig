@@ -64,6 +64,14 @@ class Query {
   static or = (...queries) => {
     return new Query("or", undefined, queries)
   }
+
+  static and = (...queries) => {
+    return new Query(
+      "and",
+      undefined,
+      queries
+    );
+  };
 }
 
 Query.prototype.toString = function () {
