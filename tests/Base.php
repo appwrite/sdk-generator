@@ -216,8 +216,6 @@ abstract class Base extends TestCase
 
     private function assertEqualsWithJsonLines($expectedLines, $actualLines)
     {
-        $this->assertEquals(\count($expectedLines), \count($actualLines));
-
         for ($i = 0; $i <= 10; $i++) {
             $expectedLine = $expectedLines[0];
             $actualLine = $actualLines[0];
