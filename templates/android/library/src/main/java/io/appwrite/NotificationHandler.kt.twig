@@ -31,6 +31,8 @@ class NotificationHandler : FirebaseMessagingService() {
     companion object {
         internal const val ACTION_CLIENT_INIT = "{{ sdk.namespace | caseDot }}.ACTION_CLIENT_INIT"
 
+        internal val httpClient = OkHttpClient()
+
         internal var client: Client? = null
         internal var account: Account? = null
         internal var providerId: String? = null
@@ -264,6 +266,55 @@ class NotificationHandler : FirebaseMessagingService() {
             }
         } catch (ex: AppwriteException) {
             Log.e(javaClass.name, "Failed to push token", ex)
+        }
+
+    private suspend inline fun <reified T> request(
+        method: String,
+        path: String,
+        headers: Map<String, String>,
+        body: RequestBody? = null
+    ): T? {
+        val headerBuilder = Headers.Builder()
+
+        for ((key, value) in client?.headers ?: mapOf()) {
+            headerBuilder.add(key, value)
+        }
+
+        for ((key, value) in headers) {
+            headerBuilder.add(key, value)
+        }
+
+        val request = Request.Builder()
+            .method(method, body)
+            .url(client?.endpoint + path)
+            .headers(headerBuilder.build())
+            .build()
+
+        try {
+            return suspendCancellableCoroutine {
+                httpClient
+                    .newCall(request)
+                    .enqueue(object : okhttp3.Callback {
+                        override fun onFailure(call: okhttp3.Call, e: IOException) {
+                            Log.e(javaClass.name, "Request failed", e)
+                            it.resumeWith(Result.failure(e))
+                        }
+                        override fun onResponse(
+                            call: okhttp3.Call,
+                            response: okhttp3.Response
+                        ) {
+                            if (response.isSuccessful) {
+                                val bodyString = response.body?.string()
+
+                                it.resumeWith(Result.success(bodyString?.fromJson()))
+                            } else {
+                                it.resumeWith(Result.failure(IOException("Request failed with code ${response.code}")))
+                            }
+                        }
+                    })
+            }
+        } catch (ex: IOException) {
+            return null
         }
     }
 }
