@@ -360,7 +360,7 @@ class Client {
             switch (headers['content-type']) {
                 case 'application/json':
                     if ('queries' in params && Array.isArray(params['queries'])) {
-                        params['queries'] = params['queries'].map(queries.toString());
+                        params['queries'] = params['queries'].map((query) => query.toString());
                     }
                     options.body = JSON.stringify(params);
                     break;
