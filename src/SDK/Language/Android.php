@@ -236,6 +236,11 @@ class Android extends Kotlin
                 'template'      => '/android/library/src/main/java/io/appwrite/cookies/InternalCookie.kt.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/cookies/ListenableCookieJar.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/cookies/ListenableCookieJar.kt.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/services/ServiceTemplate.kt.twig',
