@@ -16,19 +16,11 @@ module {{spec.title | caseUcfirst}}
         end
 
         def to_json(*args)
-            query = {
-                "method" => @method
-            }
-
-            if @attribute != nil
-                query["attribute"] = @attribute
-            end
-
-            if @values != nil
-                query["values"] = @values
-            end
-
-            return query.to_json(*args)
+            {
+                method: @method,
+                attribute: @attribute,
+                values: @values
+            }.compact.to_json(*args)
         end
 
         def to_s
