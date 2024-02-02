@@ -288,14 +288,20 @@ class NotificationHandler : FirebaseMessagingService() {
         globalPrefs.edit().putString("fcmToken", token).apply()
 
         try {
-            if (user?.id != currentUserId) {
+            if (existingCookies.isNotEmpty() && existingUser.id != newUser?.id) {
+                Log.d(javaClass.name, "User has changed")
                 if (currentTargetId.isNotEmpty()) {
-                    account?.deletePushTarget(currentTargetId)
-                    currentTargetId = ""
+                    Log.d(javaClass.name, "Deleting existing target")
+                    request<Unit>(
+                        "DELETE",
+                        "/account/targets/$currentTargetId/push",
+                        mapOf("cookie" to existingCookies.joinToString("; ") {
+                            cookieToString(it, true)
+                        })
+                    )
                     globalPrefs.edit().remove("targetId").apply()
+                    currentTargetId = ""
                 }
-
-                globalPrefs.edit().putString("userId", user?.id ?: "").apply()
             }
         } catch (ex: AppwriteException) {
             Log.e(javaClass.name, "Failed to delete existing target", ex)
