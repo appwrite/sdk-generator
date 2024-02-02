@@ -185,7 +185,7 @@ class Web extends JS
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
-        if ((!empty($parameter['name']) && $parameter['name']) === 'queries') {
+        if (!empty($parameter['name']) && $parameter['name'] === 'queries') {
             return 'Query[]';
         }
         switch ($parameter['type']) {
