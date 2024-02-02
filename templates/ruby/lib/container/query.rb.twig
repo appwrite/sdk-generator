@@ -121,7 +121,7 @@ module {{spec.title | caseUcfirst}}
             end
 
             def and(queries)
-                return Query.new("or", nil, queries)
+                return Query.new("and", nil, queries)
             end
         end
     end
