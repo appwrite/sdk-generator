@@ -16,14 +16,28 @@ import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import {{ sdk.namespace | caseDot }}.cookies.CookieListener
 import {{ sdk.namespace | caseDot }}.exceptions.AppwriteException
+import {{ sdk.namespace | caseDot }}.extensions.fromJson
 import {{ sdk.namespace | caseDot }}.extensions.onNotificationReceived
+import {{ sdk.namespace | caseDot }}.extensions.toJson
 import {{ sdk.namespace | caseDot }}.models.Notification
+import {{ sdk.namespace | caseDot }}.models.Target
 import {{ sdk.namespace | caseDot }}.models.User
 import {{ sdk.namespace | caseDot }}.services.Account
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import okhttp3.Cookie
+import okhttp3.Headers
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.internal.cookieToString
+import java.io.IOException
 import kotlin.properties.Delegates
 
 class NotificationHandler : FirebaseMessagingService() {
