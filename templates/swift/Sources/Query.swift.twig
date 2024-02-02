@@ -35,33 +35,34 @@ public struct Query : Encodable, CustomStringConvertible {
     }
 
     private static func convertToQueryValueArray(_ values: Any?) -> [QueryValue]? {
-        if (values is [QueryValue] || values == nil) {
-            return values as? [QueryValue]
-        } 
-
-        if (values is [String]) {
-            return (values as! [String]).map { QueryValue.string($0) }
+        switch values {
+        case let valueArray as [QueryValue]:
+            return valueArray
+        case let stringArray as [String]:
+            return stringArray.map { QueryValue.string($0) }
+        case let intArray as [Int]:
+            return intArray.map { QueryValue.int($0) }
+        case let doubleArray as [Double]:
+            return doubleArray.map { QueryValue.double($0) }
+        case let boolArray as [Bool]:
+            return boolArray.map { QueryValue.bool($0) }
+        case let queryArray as [Query]:
+            return queryArray.map { QueryValue.query($0) }
+        case let stringValue as String:
+            return [.string(stringValue)]
+        case let intValue as Int:
+            return [.int(intValue)]
+        case let doubleValue as Double:
+            return [.double(doubleValue)]
+        case let boolValue as Bool:
+            return [.bool(boolValue)]
+        case let queryValue as Query:
+            return [.query(queryValue)]
+        default:
+            return nil
         }
-
-        if (values is [Int]) {
-            return (values as! [Int]).map { QueryValue.int($0) }
-        }
-
-        if (values is [Double]) {
-            return (values as! [Double]).map { QueryValue.double($0) }
-        }
-
-        if (values is [Bool]) {
-            return (values as! [Bool]).map { QueryValue.bool($0) }
-        }
-
-        if (values is [Query]) {
-            return (values as! [Query]).map { QueryValue.query($0) }
-        }
-
-        return nil
     }
-
+  
     enum CodingKeys: String, CodingKey {
         case method
         case attribute
