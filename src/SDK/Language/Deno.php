@@ -140,7 +140,7 @@ class Deno extends JS
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
-        if ($parameter['name'] === 'queries') {
+        if ((!empty($parameter['name']) && $parameter['name']) === 'queries') {
             return 'Query[]';
         }
         return match ($parameter['type']) {
