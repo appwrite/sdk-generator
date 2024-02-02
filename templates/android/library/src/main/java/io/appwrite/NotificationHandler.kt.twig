@@ -353,6 +353,11 @@ class NotificationHandler : FirebaseMessagingService() {
             Log.e(javaClass.name, "Failed to push token", ex)
         }
 
+        existingCookies = emptyList()
+        newCookies = emptyList()
+        Log.d(javaClass.name, "Token pushed")
+    }
+
     private suspend inline fun <reified T> request(
         method: String,
         path: String,
