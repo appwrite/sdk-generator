@@ -7,6 +7,9 @@ module {{ spec.title | caseUcfirst }}
 {% for property in definition.properties %}
             attr_reader :{{ property.name | caseSnake | escapeKeyword }}
 {% endfor %}
+{% if definition.additionalProperties %}
+            attr_reader :data
+{% endif %}
 
             def initialize(
 {% for property in definition.properties %}
