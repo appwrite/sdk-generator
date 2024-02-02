@@ -233,18 +233,55 @@ class NotificationHandler : FirebaseMessagingService() {
         }
 
         val currentToken = globalPrefs.getString("fcmToken", "") ?: ""
-        val currentUserId = globalPrefs.getString("userId", "") ?: ""
         var currentTargetId = globalPrefs.getString("targetId", "") ?: ""
-
-        val user: User<Map<String, Any>>?
-
+        val existingUser: User<Map<String, Any>>?
         try {
-            user = account?.get()
+            existingUser = if (existingCookies.isEmpty() && newCookies.isNotEmpty()) {
+                request(
+                    "GET",
+                    "/account",
+                    mapOf("cookie" to newCookies.joinToString("; ") {
+                        cookieToString(it, true)
+                    })
+                )
+            } else if (existingCookies.isNotEmpty()) {
+                request(
+                    "GET",
+                    "/account",
+                    mapOf("cookie" to existingCookies.joinToString("; ") {
+                        cookieToString(it, true)
+                    })
+                )
+            } else {
+                account?.get()
+            }
         } catch (ex: AppwriteException) {
+            Log.d(javaClass.name, "No existing user")
             return
         }
 
-        if (token == currentToken && user?.id == currentUserId) {
+        if (existingUser == null) {
+            Log.d(javaClass.name, "No existing user")
+            return
+        }
+
+        var newUser: User<Map<String, Any>>? = null
+        if (newCookies.isNotEmpty()) {
+            newUser = request(
+                "GET",
+                "/account",
+                mapOf("cookie" to newCookies.joinToString("; ") {
+                    cookieToString(it, true)
+                })
+            )
+            Log.d(javaClass.name, "New user: ${newUser!!.id}")
+        }
+
+        if (
+            token == currentToken
+            && (existingCookies.isNotEmpty() && existingUser.id == newUser?.id)
+        ) {
+            Log.d(javaClass.name, "Token and user are the same")
             return
         }
 
