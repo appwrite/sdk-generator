@@ -208,8 +208,8 @@ abstract class Base extends TestCase
         # We use this custom assertion to normalise the lines with JSON before comparison.
         $this->assertEqualsWithJsonLines($this->expectedOutput, $output);
     }
-    
-    private function isJsonString(string $str) 
+
+    private function isJsonString(string $str)
     {
         return \str_starts_with($str, '{');
     }
