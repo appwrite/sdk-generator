@@ -1,4 +1,5 @@
 import { {{ spec.title | caseUcfirst}}Exception } from './exception.ts';
+import { Query } from './query.ts';
 
 export interface Payload {
     [key: string]: any;
@@ -85,9 +86,6 @@ export class Client {
 
             body = formData;
         } else {
-            if ('queries' in params && Array.isArray(params['queries'])) {
-                params['queries'] = params['queries'].map((query) => query.toString());
-            }
             body = JSON.stringify(params);
         }
 
@@ -128,21 +126,21 @@ export class Client {
         return json;
     }
 
-    static flatten(data: Payload, prefix = '') {
-        let output: Payload = {};
+    static flatten(data: Payload, prefix = ''): Payload {
+            let output: Payload = {};
 
-        for (const key in data) {
-            let value = data[key];
-            let finalKey = prefix ? prefix + '[' + key +']' : key;
+            for (const [key, value] of Object.entries(data)) {
+                let finalKey = prefix ? prefix + '[' + key +']' : key;
+                if (Array.isArray(value)) {
+                    output = { ...output, ...Client.flatten(value, finalKey) };
+                } else if (value instanceof Query) {
+                    output[finalKey] = JSON.stringify(value);
+                } else {
+                    output[finalKey] = value;
+                }
+            }
 
-            if (Array.isArray(value)) {
-                output = { ...output, ...Client.flatten(value, finalKey) }; // @todo: handle name collision here if needed
-            }
-            else {
-                output[finalKey] = value;
-            }
+            return output;
         }
-
-        return output;
     }
 }
