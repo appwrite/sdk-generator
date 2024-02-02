@@ -6,8 +6,8 @@ module {{spec.title | caseUcfirst}}
             @method = method
             @attribute = attribute
 
-            if (values != nil)
-                if (values.is_a?(Array))
+            if values != nil
+                if values.is_a?(Array)
                     @values = values
                 else
                     @values = [values]
@@ -20,11 +20,11 @@ module {{spec.title | caseUcfirst}}
                 "method" => @method
             }
 
-            if (@attribute != nil)
+            if @attribute != nil
                 query["attribute"] = @attribute
             end
 
-            if (@values != nil)
+            if @values != nil
                 query["values"] = @values
             end
 
