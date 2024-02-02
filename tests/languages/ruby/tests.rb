@@ -130,7 +130,7 @@ puts Query.offset(20)
 puts Query.contains("title", "Spider")
 puts Query.contains("labels", "first")
 puts Query.or([Query.equal("released", true), Query.less_than("releasedYear", 1990)])
-puts Query.and([Query.equal("released", true), Query.greater_than("releasedYear", 2015)])
+puts Query.and([Query.equal("released", false), Query.greater_than("releasedYear", 2015)])
 
 # Permission & Role helper tests
 puts Permission.read(Role.any())
