@@ -107,6 +107,9 @@ class Client {
 
             body = formData;
         } else {
+            if ('queries' in params && Array.isArray(params['queries'])) {
+                params['queries'] = params['queries'].map(queries.toString());
+            }
             body = JSON.stringify(params);
         }
 
