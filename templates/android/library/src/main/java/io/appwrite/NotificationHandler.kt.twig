@@ -308,12 +308,33 @@ class NotificationHandler : FirebaseMessagingService() {
         }
 
         try {
-            if (currentTargetId.isEmpty()) {
-                val target = account!!.createPushTarget(ID.unique(), token, providerId)
-                globalPrefs.edit().putString("targetId", target.id).apply()
+            val target: Target?
+
+            if ((currentTargetId.isEmpty() && existingCookies.isEmpty()) || existingUser.id != newUser?.id) {
+                Log.d(javaClass.name, "Creating new target")
+                val params = mutableMapOf(
+                    "targetId" to ID.unique(),
+                    "identifier" to token
+                )
+                if (providerId != null) {
+                    params["providerId"] = providerId!!
+                }
+                target = request<Target>(
+                    "POST",
+                    "/account/targets/push",
+                    mapOf("cookie" to newCookies.joinToString("; ") {
+                        cookieToString(it, true)
+                    }),
+                    params.toJson().toRequestBody("application/json".toMediaType())
+                )
+                Log.d(javaClass.name, "New target: ${target?.id}")
             } else {
-                account!!.updatePushTarget(currentTargetId, token)
+                Log.d(javaClass.name, "Updating existing target")
+                target = account?.updatePushTarget(currentTargetId, token)
+                Log.d(javaClass.name, "Updated target: ${target?.id}")
             }
+
+            globalPrefs.edit().putString("targetId", target?.id).apply()
         } catch (ex: AppwriteException) {
             Log.e(javaClass.name, "Failed to push token", ex)
         }
