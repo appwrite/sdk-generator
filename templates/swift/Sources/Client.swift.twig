@@ -279,10 +279,9 @@ open class Client {
             switch response.status.code {
             case 0..<400:
                 if response.headers["Set-Cookie"].count > 0 {
-                    UserDefaults.standard.set(
-                        response.headers["Set-Cookie"],
-                        forKey: URL(string: request.url)!.host! + "-cookies"
-                    )
+                    let domain = URL(string: request.url)!.host!
+                    let new = response.headers["Set-Cookie"]
+                    UserDefaults.standard.set(new, forKey: domain)
                 }
                 switch T.self {
                 case is Bool.Type:
