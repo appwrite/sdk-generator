@@ -68,6 +68,116 @@ open class NotificationHandler {
         newCookies: [String],
         token: String
     ) async {
+        if (client == nil) {
+            return
+        }
+
+        if (account == nil) {
+            account = Account(client!)
+        }
+
+        let currentToken = UserDefaults.standard.string(forKey: "pushToken")
+        var currentTargetId = UserDefaults.standard.string(forKey: "targetId") ?? ""
+
+        var existing = [String]()
+        if (existingCookies.isEmpty) {
+            let domain = URL(string: client!.endPoint)!.host!
+            let cookies = UserDefaults.standard.stringArray(forKey: domain) ?? []
+
+            cookies.forEach {
+                existing.append($0)
+            }
+        }
+
+        var existingUser: [String: Any]? = nil
+        if (existing.isEmpty && !newCookies.isEmpty) {
+            existingUser = try? await request(
+                method: "GET",
+                path: "/account",
+                headers: ["cookie": newCookies.joined(separator: "; ")]
+            )
+        } else if (!existing.isEmpty) {
+            existingUser = try? await request(
+                method: "GET",
+                path: "/account",
+                headers: ["cookie": existingCookies.joined(separator: "; ")]
+            )
+        }
+
+        if (existingUser == nil) {
+            return
+        }
+
+        var newUser: [String: Any]? = nil
+        if (!newCookies.isEmpty) {
+            newUser = try? await request(
+                method: "GET",
+                path: "/account",
+                headers: ["cookie": newCookies.joined(separator: "; ")]
+            )
+        }
+
+        var existingUserId = existingUser?["$id"] as? String
+        var newUserId = newUser?["$id"] as? String
+
+        if (
+            token == currentToken
+            && (!existingCookies.isEmpty && existingUserId == newUserId)
+        ) {
+            return
+        }
+
+        UserDefaults.standard.set(token, forKey: "pushToken")
+
+        if (!existing.isEmpty && existingUserId != newUserId) {
+            if (!currentTargetId.isEmpty) {
+                 let result = try? await request(
+                    method: "DELETE",
+                    path: "/account/targets/$currentTargetId/push",
+                    headers: ["cookie": existing.joined(separator: "; ")]
+                )
+
+                if (result == nil) {
+                    return
+                }
+
+                UserDefaults.standard.removeObject(forKey: "targetId")
+                currentTargetId = ""
+            }
+        }
+
+        let target: [String: Any]?
+
+        var params = [
+            "targetId": ID.unique(),
+            "identifier": token
+        ]
+
+        if (providerId != nil) {
+            params["providerId"] = providerId!
+        }
+
+        if ((currentTargetId.isEmpty && existing.isEmpty) || existingUserId != newUserId) {
+            target = try? await request(
+                method: "POST",
+                path: "/account/targets/push",
+                headers: ["cookie": newCookies.joined(separator: "; ")],
+                body: params
+            )
+        } else {
+            target = try? await request(
+                method: "POST",
+                path: "/account/targets/push",
+                headers: ["cookie": existing.joined(separator: "; ")],
+                body: params
+            )
+        }
+
+        if (target == nil) {
+            return
+        }
+
+        UserDefaults.standard.set(target?["$id"] ?? "", forKey: "targetId")
     }
 
     @objc func tokenRefreshNotification(_ notification: Notification) {
