@@ -62,20 +62,28 @@ open class NotificationHandler {
             }
         )
     }
-    }
 
-    public func handleToken(_ token: Data) {
-        if (fcmEnabled) {
-            FirebaseMessaging.Messaging.messaging().apnsToken = token
+    @objc func tokenRefreshNotification(_ notification: Notification) {
+        guard let token = notification.object as? String else {
+            return
         }
 
-        let identifier = String(data: token, encoding: .utf8) ?? ""
+        handleFCMToken(token)
+    }
 
+    public func handleAPNSToken(_ token: Data) {
+        if (fcmEnabled) {
+            FirebaseMessaging.Messaging.messaging().apnsToken = token
+        } else {
+        }
+    }
+
+    public func handleFCMToken(_ token: String) {
         Task {
             await self.updateTarget(
                 existingCookies: [],
                 newCookies: [],
-                token: identifier
+                token: token
             )
         }
     }
@@ -195,12 +203,6 @@ open class NotificationHandler {
         }
 
         UserDefaults.standard.set(target?["$id"] ?? "", forKey: "targetId")
-    }
-
-    @objc func tokenRefreshNotification(_ notification: Notification) {
-        if let refreshedToken = FirebaseMessaging.Messaging.messaging().fcmToken {
-            print("Got a fresh token: \(refreshedToken)")
-        }
     }
 
     private func request(
