@@ -142,8 +142,8 @@ open class NotificationHandler {
             )
         }
 
-        var existingUserId = existingUser?["$id"] as? String
-        var newUserId = newUser?["$id"] as? String
+        let existingUserId = existingUser?["$id"] as? String
+        let newUserId = newUser?["$id"] as? String
 
         if (
             token == currentToken
