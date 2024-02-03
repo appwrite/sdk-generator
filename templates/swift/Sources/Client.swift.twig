@@ -21,7 +21,7 @@ open class Client {
     open var endPointRealtime: String? = nil
 
     open var headers: [String: String] = [
-        "content-type": "",
+        "content-type": "application/json",
         "x-sdk-name": "{{ sdk.name }}",
         "x-sdk-platform": "{{ sdk.platform }}",
         "x-sdk-language": "{{ language.name | caseLower }}",
