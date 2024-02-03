@@ -46,7 +46,7 @@ extension ExampleView {
         
         func login() async {
             do {
-                let session = try await account.createEmailSession(
+                let session = try await account.createEmailPasswordSession(
                     email: username,
                     password: password
                 )
@@ -58,7 +58,7 @@ extension ExampleView {
         
         func loginWithFacebook() async {
             do {
-                _ = try await account.createOAuth2Session(provider: "facebook")
+                _ = try await account.createOAuth2Session(provider: .facebook)
 
                 self.response = "Success!"
             } catch {
