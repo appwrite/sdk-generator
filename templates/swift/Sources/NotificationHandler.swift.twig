@@ -4,10 +4,14 @@ import FirebaseCore
 import FirebaseMessaging
 import AsyncHTTPClient
 
+public enum Provider {
+    case fcm, apns
+}
+
 open class NotificationHandler {
     public static let shared = NotificationHandler()
 
-    public var fcmEnabled = true
+    public var provider: Provider = .apns
 
     internal var client: Client? = nil
     internal var account: Account? = nil
@@ -72,9 +76,18 @@ open class NotificationHandler {
     }
 
     public func handleAPNSToken(_ token: Data) {
-        if (fcmEnabled) {
+        switch (provider) {
+        case .fcm:
             FirebaseMessaging.Messaging.messaging().apnsToken = token
-        } else {
+        case .apns:
+            Task {
+                await self.updateTarget(
+                    existingCookies: [],
+                    newCookies: [],
+                    token: token.map { String(format: "%.2hhx", $0) }.joined()
+
+                )
+            }
         }
     }
 
