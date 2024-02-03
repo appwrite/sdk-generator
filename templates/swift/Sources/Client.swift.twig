@@ -165,6 +165,19 @@ open class Client {
     }
 
     ///
+    /// Set push provider ID.
+    ///
+    /// @param String endpoint
+    ///
+    /// @return this
+    ///
+    open func setPushProviderId(_ providerId: String) -> Client {
+        NotificationHandler.shared.providerId = providerId
+
+        return self
+    }
+
+    ///
     /// Add header
     ///
     /// @param String key
