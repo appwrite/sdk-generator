@@ -34,6 +34,16 @@ open class NotificationHandler {
             object: nil
         )
 
+        Client.cookieListener = { (existing, new) in
+            Task {
+                await self.updateTarget(
+                    existingCookies: existing,
+                    newCookies: new,
+                    token: UserDefaults.standard.string(forKey: "pushToken") ?? ""
+                )
+            }
+        }
+
         application.registerForRemoteNotifications()
     }
 
