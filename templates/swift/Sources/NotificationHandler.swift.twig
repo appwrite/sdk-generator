@@ -20,13 +20,6 @@ open class NotificationHandler {
 
         UNUserNotificationCenter.current().delegate = delegate
 
-        let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
-
-        UNUserNotificationCenter.current().requestAuthorization(
-            options: authOptions,
-            completionHandler: { _, _ in }
-        )
-
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(tokenRefreshNotification),
@@ -56,7 +49,19 @@ open class NotificationHandler {
             group.wait()
         }
 
-        application.registerForRemoteNotifications()
+        let options: UNAuthorizationOptions = [.alert, .badge, .sound]
+
+        UNUserNotificationCenter.current().requestAuthorization(
+            options: options,
+            completionHandler: { granted, error in
+                if (granted) {
+                    DispatchQueue.main.async {
+                        application.registerForRemoteNotifications()
+                    }
+                }
+            }
+        )
+    }
     }
 
     public func handleToken(_ token: Data) {
