@@ -35,13 +35,25 @@ open class NotificationHandler {
         )
 
         Client.cookieListener = { (existing, new) in
+            let group = DispatchGroup()
+
+            group.enter()
+
             Task {
+                guard let token = try? await FirebaseMessaging.Messaging.messaging().token() else {
+                     return
+                }
+
                 await self.updateTarget(
                     existingCookies: existing,
                     newCookies: new,
-                    token: UserDefaults.standard.string(forKey: "pushToken") ?? ""
+                    token: token
                 )
+
+                group.leave()
             }
+
+            group.wait()
         }
 
         application.registerForRemoteNotifications()
