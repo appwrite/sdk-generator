@@ -16,7 +16,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, AppwriteDelegate {
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
-        NotificationHandler.shared.handleToken(deviceToken)
+        NotificationHandler.shared.handleAPNSToken(deviceToken)
     }
 
     func application(
