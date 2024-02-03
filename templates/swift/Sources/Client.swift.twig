@@ -6,6 +6,8 @@ import Foundation
 import AsyncHTTPClient
 @_exported import {{spec.title | caseUcfirst}}Models
 
+typealias CookieListener = (_ existing: [String], _ new: [String]) -> Void
+
 let DASHDASH = "--"
 let CRLF = "\r\n"
 
@@ -31,19 +33,19 @@ open class Client {
         {%~ endfor %}
     ]
 
-    open var config: [String: String] = [:]
+    internal var config: [String: String] = [:]
 
-    open var selfSigned: Bool = false
+    internal var selfSigned: Bool = false
 
-    open var http: HTTPClient
+    internal var http: HTTPClient
 
-    private static let boundaryChars =
-        "abcdefghijklmnopqrstuvwxyz1234567890"
+    internal static var cookieListener: CookieListener? = nil
+
+    private static let boundaryChars = "abcdefghijklmnopqrstuvwxyz1234567890"
 
     private static let boundary = randomBoundary()
 
-    private static var eventLoopGroupProvider =
-        HTTPClient.EventLoopGroupProvider.createNew
+    private static var eventLoopGroupProvider = HTTPClient.EventLoopGroupProvider.singleton
 
     // MARK: Methods
 
@@ -280,7 +282,11 @@ open class Client {
             case 0..<400:
                 if response.headers["Set-Cookie"].count > 0 {
                     let domain = URL(string: request.url)!.host!
+                    let existing = UserDefaults.standard.stringArray(forKey: domain)
                     let new = response.headers["Set-Cookie"]
+
+                    Client.cookieListener?(existing ?? [], new)
+
                     UserDefaults.standard.set(new, forKey: domain)
                 }
                 switch T.self {
@@ -585,25 +591,5 @@ extension Client {
         #endif
 
         return device
-    }
-}
-
-extension Client {
-    public enum HTTPStatus: Int {
-      case unknown = -1
-      case ok = 200
-      case created = 201
-      case accepted = 202
-      case movedPermanently = 301
-      case found = 302
-      case badRequest = 400
-      case notAuthorized = 401
-      case paymentRequired = 402
-      case forbidden = 403
-      case notFound = 404
-      case methodNotAllowed = 405
-      case notAcceptable = 406
-      case internalServerError = 500
-      case notImplemented = 501
     }
 }
