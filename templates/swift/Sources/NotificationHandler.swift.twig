@@ -30,7 +30,7 @@ open class NotificationHandler {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(tokenRefreshNotification),
-            name: Notification.Name("kFIRMessagingRegistrationTokenRefreshNotification"),
+            name: Notification.Name.MessagingRegistrationTokenRefreshed,
             object: nil
         )
 
