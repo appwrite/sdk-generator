@@ -1,0 +1,76 @@
+import SwiftUI
+import JSONCodable
+import FirebaseCore
+import FirebaseMessaging
+import AsyncHTTPClient
+
+open class NotificationHandler {
+    public static let shared = NotificationHandler()
+
+    public var fcmEnabled = true
+
+    internal var client: Client? = nil
+    internal var account: Account? = nil
+    internal var providerId: String? = nil
+
+    public func setup(_ application: UIApplication, delegate: AppwriteDelegate) {
+        FirebaseApp.configure()
+
+        FirebaseMessaging.Messaging.messaging().delegate = delegate
+
+        UNUserNotificationCenter.current().delegate = delegate
+
+        let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
+
+        UNUserNotificationCenter.current().requestAuthorization(
+            options: authOptions,
+            completionHandler: { _, _ in }
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(tokenRefreshNotification),
+            name: Notification.Name("kFIRMessagingRegistrationTokenRefreshNotification"),
+            object: nil
+        )
+
+        application.registerForRemoteNotifications()
+    }
+
+    public func handleToken(_ token: Data) {
+        if (fcmEnabled) {
+            FirebaseMessaging.Messaging.messaging().apnsToken = token
+        }
+
+        let identifier = String(data: token, encoding: .utf8) ?? ""
+
+        Task {
+            await self.updateTarget(
+                existingCookies: [],
+                newCookies: [],
+                token: identifier
+            )
+        }
+    }
+
+    public func updateTarget(
+        existingCookies: [String],
+        newCookies: [String],
+        token: String
+    ) async {
+    }
+
+    @objc func tokenRefreshNotification(_ notification: Notification) {
+        if let refreshedToken = FirebaseMessaging.Messaging.messaging().fcmToken {
+            print("Got a fresh token: \(refreshedToken)")
+        }
+    }
+
+    private func request(
+        method: String,
+        path: String,
+        headers: [String: String],
+        body: [String: Any]? = nil
+    ) async throws -> [String: Any]? {
+    }
+}
