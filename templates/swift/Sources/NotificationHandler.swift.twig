@@ -72,5 +72,26 @@ open class NotificationHandler {
         headers: [String: String],
         body: [String: Any]? = nil
     ) async throws -> [String: Any]? {
+        var request = HTTPClientRequest(url: client!.endPoint + path)
+
+        request.method = .RAW(value: method)
+
+        for (key, value) in client!.headers.merging(headers, uniquingKeysWith: { $1 }) {
+            request.headers.add(name: key, value: value)
+        }
+
+        let json = try JSONSerialization.data(withJSONObject: body as Any, options: [])
+
+        request.body = .bytes(json)
+
+        let response = try await client!.http.execute(
+            request,
+            timeout: .seconds(30)
+        )
+
+        let data = try await response.body.collect(upTo: Int.max)
+        let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+
+        return dict
     }
 }
