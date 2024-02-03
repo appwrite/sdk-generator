@@ -196,6 +196,11 @@ class Apple extends Swift
                 'destination'   => '/example-swiftui/Tests macOS/Tests_macOS.swift',
                 'template'      => '/swift/example-swiftui/Tests macOS/Tests_macOS.swift',
             ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example-swiftui/GoogleService-Info.plist',
+                'template'      => '/swift/example-swiftui/GoogleService-Info.plist',
+            ],
             // Config for project example-uikit
             [
                 'scope'         => 'default',
@@ -286,6 +291,11 @@ class Apple extends Swift
                 'scope'         => 'default',
                 'destination'   => '/example-uikit/UIKitExampleUITests/UIKitExampleUITests.swift',
                 'template'      => '/swift/example-uikit/UIKitExampleUITests/UIKitExampleUITests.swift',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => '/example-uikit/GoogleService-Info.plist',
+                'template'      => '/swift/example-uikit/GoogleService-Info.plist',
             ],
         ]);
     }
