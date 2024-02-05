@@ -29,91 +29,91 @@ module {{spec.title | caseUcfirst}}
 
         class << Query
             def equal(attribute, value)
-                return Query.new("equal", attribute, value)
+                return Query.new("equal", attribute, value).to_s
             end
 
             def not_equal(attribute, value)
-                return Query.new("notEqual", attribute, value)
+                return Query.new("notEqual", attribute, value).to_s
             end
 
             def less_than(attribute, value)
-                return Query.new("lessThan", attribute, value)
+                return Query.new("lessThan", attribute, value).to_s
             end
             
             def less_than_equal(attribute, value)
-                return Query.new("lessThanEqual", attribute, value)
+                return Query.new("lessThanEqual", attribute, value).to_s
             end
             
             def greater_than(attribute, value)
-                return Query.new("greaterThan", attribute, value)
+                return Query.new("greaterThan", attribute, value).to_s
             end
             
             def greater_than_equal(attribute, value)
-                return Query.new("greaterThanEqual", attribute, value)
+                return Query.new("greaterThanEqual", attribute, value).to_s
             end
 
             def is_null(attribute)
-                return Query.new("isNull", attribute, nil)
+                return Query.new("isNull", attribute, nil).to_s
             end
 
             def is_not_null(attribute)
-                return Query.new("isNotNull", attribute, nil)
+                return Query.new("isNotNull", attribute, nil).to_s
             end
 
             def between(attribute, start, ending)
-                return Query.new("between", attribute, [start, ending])
+                return Query.new("between", attribute, [start, ending]).to_s
             end
 
             def starts_with(attribute, value)
-                return Query.new("startsWith", attribute, value)
+                return Query.new("startsWith", attribute, value).to_s
             end
 
             def ends_with(attribute, value)
-                return Query.new("endsWith", attribute, value)
+                return Query.new("endsWith", attribute, value).to_s
             end
 
             def select(attributes)
-                return Query.new("select", nil, attributes)
+                return Query.new("select", nil, attributes).to_s
             end
             
             def search(attribute, value)
-                return Query.new("search", attribute, value)
+                return Query.new("search", attribute, value).to_s
             end
 
             def order_asc(attribute)
-                return Query.new("orderAsc", attribute, nil)
+                return Query.new("orderAsc", attribute, nil).to_s
             end
 
             def order_desc(attribute)
-                return Query.new("orderDesc", attribute, nil)
+                return Query.new("orderDesc", attribute, nil).to_s
             end
 
             def cursor_before(id)
-                return Query.new("cursorBefore", nil, id)
+                return Query.new("cursorBefore", nil, id).to_s
             end
 
             def cursor_after(id)
-                return Query.new("cursorAfter", nil, id)
+                return Query.new("cursorAfter", nil, id).to_s
             end
 
             def limit(limit)
-                return Query.new("limit", nil, limit)
+                return Query.new("limit", nil, limit).to_s
             end
 
             def offset(offset)
-                return Query.new("offset", nil, offset)
+                return Query.new("offset", nil, offset).to_s
             end
 
             def contains(attribute, value)
-                return Query.new("contains", attribute, value)
+                return Query.new("contains", attribute, value).to_s
             end
 
             def or(queries)
-                return Query.new("or", nil, queries)
+                return Query.new("or", nil, queries).to_s
             end
 
             def and(queries)
-                return Query.new("and", nil, queries)
+                return Query.new("and", nil, queries).to_s
             end
         end
     end

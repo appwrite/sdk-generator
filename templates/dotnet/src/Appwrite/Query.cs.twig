@@ -24,123 +24,122 @@ namespace Appwrite
                 this.values = new List<object> { values };
             }
         }
-        
 
         override public string ToString()
         {
             return JsonConvert.SerializeObject(this);
         }
 
-        public static Query Equal(string attribute, object value)
+        public static string Equal(string attribute, object value)
         {
-            return new Query("equal", attribute, value);
+            return new Query("equal", attribute, value).ToString();
         }
 
-        public static Query NotEqual(string attribute, object value)
+        public static string NotEqual(string attribute, object value)
         {
-            return new Query("notEqual", attribute, value);
+            return new Query("notEqual", attribute, value).ToString();
         }
 
-        public static Query LessThan(string attribute, object value)
+        public static string LessThan(string attribute, object value)
         {
-            return new Query("lessThan", attribute, value);
+            return new Query("lessThan", attribute, value).ToString();
         }
 
-        public static Query LessThanEqual(string attribute, object value)
+        public static string LessThanEqual(string attribute, object value)
         {
-            return new Query("lessThanEqual", attribute, value);
+            return new Query("lessThanEqual", attribute, value).ToString();
         }
 
-        public static Query GreaterThan(string attribute, object value)
+        public static string GreaterThan(string attribute, object value)
         {
-            return new Query("greaterThan", attribute, value);
+            return new Query("greaterThan", attribute, value).ToString();
         }
 
-        public static Query GreaterThanEqual(string attribute, object value)
+        public static string GreaterThanEqual(string attribute, object value)
         {
-            return new Query("greaterThanEqual", attribute, value);
+            return new Query("greaterThanEqual", attribute, value).ToString();
         }
 
-        public static Query Search(string attribute, string value)
+        public static string Search(string attribute, string value)
         {
-            return new Query("search", attribute, value);
+            return new Query("search", attribute, value).ToString();
         }
 
-        public static Query IsNull(string attribute)
+        public static string IsNull(string attribute)
         {
-            return new Query("isNull", attribute, null);
+            return new Query("isNull", attribute, null).ToString();
         }
 
-        public static Query IsNotNull(string attribute)
+        public static string IsNotNull(string attribute)
         {
-            return new Query("isNotNull", attribute, null);
+            return new Query("isNotNull", attribute, null).ToString();
         }
 
-        public static Query StartsWith(string attribute, string value)
+        public static string StartsWith(string attribute, string value)
         {
-            return new Query("startsWith", attribute, value);
+            return new Query("startsWith", attribute, value).ToString();
         }
 
-        public static Query EndsWith(string attribute, string value)
+        public static string EndsWith(string attribute, string value)
         {
-            return new Query("endsWith", attribute, value);
+            return new Query("endsWith", attribute, value).ToString();
         }
 
-        public static Query Between(string attribute, string start, string end)
+        public static string Between(string attribute, string start, string end)
         {
-            return new Query("between", attribute, new List<string> { start, end });
+            return new Query("between", attribute, new List<string> { start, end }).ToString();
         }
 
-        public static Query Between(string attribute, int start, int end)
+        public static string Between(string attribute, int start, int end)
         {
-            return new Query("between", attribute, new List<int> { start, end });
+            return new Query("between", attribute, new List<int> { start, end }).ToString();
         }
 
-        public static Query Between(string attribute, double start, double end)
+        public static string Between(string attribute, double start, double end)
         {
-            return new Query("between", attribute, new List<double> { start, end });
+            return new Query("between", attribute, new List<double> { start, end }).ToString();
         }
 
-        public static Query Select(List<string> attributes)
+        public static string Select(List<string> attributes)
         {
-            return new Query("select", null, attributes);
+            return new Query("select", null, attributes).ToString();
         }
 
-        public static Query CursorAfter(string documentId)
+        public static string CursorAfter(string documentId)
         {
-            return new Query("cursorAfter", null, documentId);
+            return new Query("cursorAfter", null, documentId).ToString();
         }
 
-        public static Query CursorBefore(string documentId) {
-            return new Query("cursorBefore", null, documentId);
+        public static string CursorBefore(string documentId) {
+            return new Query("cursorBefore", null, documentId).ToString();
         }
 
-        public static Query OrderAsc(string attribute) {
-            return new Query("orderAsc", attribute, null);
+        public static string OrderAsc(string attribute) {
+            return new Query("orderAsc", attribute, null).ToString();
         }
 
-        public static Query OrderDesc(string attribute) {
-            return new Query("orderDesc", attribute, null);
+        public static string OrderDesc(string attribute) {
+            return new Query("orderDesc", attribute, null).ToString();
         }
 
-        public static Query Limit(int limit) {
-            return new Query("limit", null, limit);
+        public static string Limit(int limit) {
+            return new Query("limit", null, limit).ToString();
         }
 
-        public static Query Offset(int offset) {
-            return new Query("offset", null, offset);
+        public static string Offset(int offset) {
+            return new Query("offset", null, offset).ToString();
         }
 
-        public static Query Contains(string attribute, object value) {
-            return new Query("contains", attribute, value);
+        public static string Contains(string attribute, object value) {
+            return new Query("contains", attribute, value).ToString();
         }
 
-        public static Query Or(List<Query> queries) {
-            return new Query("or", null, queries);
+        public static string Or(List<Query> queries) {
+            return new Query("or", null, queries).ToString();
         }
 
-        public static Query And(List<Query> queries) {
-            return new Query("and", null, queries);
+        public static string And(List<Query> queries) {
+            return new Query("and", null, queries).ToString();
         }
     }
 }

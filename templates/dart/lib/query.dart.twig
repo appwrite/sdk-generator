@@ -33,89 +33,89 @@ class Query {
   /// [value] can be a single value or a list. If a list is used
   /// the query will return resources where [attribute] is equal
   /// to any of the values in the list.
-  static Query equal(String attribute, dynamic value) =>
-      Query._('equal', attribute, value);
+  static string equal(String attribute, dynamic value) =>
+      Query._('equal', attribute, value).toJson();
 
   /// Filter resources where [attribute] is not equal to [value].
-  static Query notEqual(String attribute, dynamic value) =>
-      Query._('notEqual', attribute, [value]);
+  static string notEqual(String attribute, dynamic value) =>
+      Query._('notEqual', attribute, [value]).toJson();
 
   /// Filter resources where [attribute] is less than [value].
-  static Query lessThan(String attribute, dynamic value) =>
-      Query._('lessThan', attribute, value);
+  static string lessThan(String attribute, dynamic value) =>
+      Query._('lessThan', attribute, value).toJson();
 
   /// Filter resources where [attribute] is less than or equal to [value].
-  static Query lessThanEqual(String attribute, dynamic value) =>
-      Query._('lessThanEqual', attribute, value);
+  static string lessThanEqual(String attribute, dynamic value) =>
+      Query._('lessThanEqual', attribute, value).toJson();
 
   /// Filter resources where [attribute] is greater than [value].
-  static Query greaterThan(String attribute, dynamic value) =>
-      Query._('greaterThan', attribute, value);
+  static string greaterThan(String attribute, dynamic value) =>
+      Query._('greaterThan', attribute, value).toJson();
 
   /// Filter resources where [attribute] is greater than or equal to [value].
-  static Query greaterThanEqual(String attribute, dynamic value) =>
-      Query._('greaterThanEqual', attribute, value);
+  static string greaterThanEqual(String attribute, dynamic value) =>
+      Query._('greaterThanEqual', attribute, value).toJson();
 
   /// Filter resources where by searching [attribute] for [value].
-  static Query search(String attribute, String value) =>
-      Query._('search', attribute, value);
+  static string search(String attribute, String value) =>
+      Query._('search', attribute, value).toJson();
 
   /// Filter resources where [attribute] is null.
-  static Query isNull(String attribute) => Query._('isNull', attribute);
+  static string isNull(String attribute) => Query._('isNull', attribute).toJson();
 
   /// Filter resources where [attribute] is not null.
-  static Query isNotNull(String attribute) => Query._('isNotNull', attribute);
+  static string isNotNull(String attribute) => Query._('isNotNull', attribute).toJson();
 
   /// Filter resources where [attribute] is between [start] and [end] (inclusive).
-  static Query between(String attribute, dynamic start, dynamic end) =>
-      Query._('between', attribute, [start, end]);
+  static string between(String attribute, dynamic start, dynamic end) =>
+      Query._('between', attribute, [start, end]).toJson();
 
   /// Filter resources where [attribute] starts with [value].
-  static Query startsWith(String attribute, String value) =>
-      Query._('startsWith', attribute, value);
+  static string startsWith(String attribute, String value) =>
+      Query._('startsWith', attribute, value).toJson();
 
   /// Filter resources where [attribute] ends with [value].
-  static Query endsWith(String attribute, String value) =>
-      Query._('endsWith', attribute, value);
+  static string endsWith(String attribute, String value) =>
+      Query._('endsWith', attribute, value).toJson();
 
   /// Filter resouorces where [attribute] contains [value]
   /// [value] can be a single value or a list.
-  static Query contains(String attribute, dynamic value) => 
-      Query._('contains', attribute, value);
+  static string contains(String attribute, dynamic value) =>
+      Query._('contains', attribute, value).toJson();
 
-  static Query or(List<Query> queries) => Query._('or', null, queries);
+  static string or(List<Query> queries) => Query._('or', null, queries).toJson();
 
-  static Query and(List<Query> queries) => Query._('and', null, queries);
+  static string and(List<Query> queries) => Query._('and', null, queries).toJson();
 
   /// Specify which attributes should be returned by the API call.
-  static Query select(List<String> attributes) =>
-      Query._('select', null, attributes);
+  static string select(List<String> attributes) =>
+      Query._('select', null, attributes).toJson();
 
   /// Sort results by [attribute] ascending.
-  static Query orderAsc(String attribute) => Query._('orderAsc', attribute);
+  static string orderAsc(String attribute) => Query._('orderAsc', attribute).toJson();
 
   /// Sort results by [attribute] descending.
-  static Query orderDesc(String attribute) => Query._('orderDesc', attribute);
+  static string orderDesc(String attribute) => Query._('orderDesc', attribute).toJson();
 
   /// Return results before [id].
   /// 
   /// Refer to the [Cursor Based Pagination]({{sdk.url}}/docs/pagination#cursor-pagination)
   /// docs for more information.
-  static Query cursorBefore(String id) => Query._('cursorBefore', null, id);
+  static string cursorBefore(String id) => Query._('cursorBefore', null, id).toJson();
 
   /// Return results after [id].
   /// 
   /// Refer to the [Cursor Based Pagination]({{sdk.url}}/docs/pagination#cursor-pagination)
   /// docs for more information.
-  static Query cursorAfter(String id) => Query._('cursorAfter', null, id);
+  static string cursorAfter(String id) => Query._('cursorAfter', null, id).toJson();
 
   /// Return only [limit] results.
-  static Query limit(int limit) => Query._('limit', null, limit);
+  static string limit(int limit) => Query._('limit', null, limit).toJson();
 
   /// Return results from [offset].
   /// 
   /// Refer to the [Offset Pagination]({{sdk.url}}/docs/pagination#offset-pagination)
   /// docs for more information.
-  static Query offset(int offset) => Query._('offset', null, offset);
+  static string offset(int offset) => Query._('offset', null, offset).toJson();
 
 }

@@ -21,88 +21,88 @@ class Query():
 
     @staticmethod
     def equal(attribute, value):
-        return Query("equal", attribute, value)
+        return str(Query("equal", attribute, value))
 
     @staticmethod
     def not_equal(attribute, value):
-        return Query("notEqual", attribute, value)
+        return str(Query("notEqual", attribute, value))
 
     @staticmethod
     def less_than(attribute, value):
-        return Query("lessThan", attribute, value)
+        return str(Query("lessThan", attribute, value))
 
     @staticmethod
     def less_than_equal(attribute, value):
-        return Query("lessThanEqual", attribute, value)
+        return str(Query("lessThanEqual", attribute, value))
 
     @staticmethod
     def greater_than(attribute, value):
-        return Query("greaterThan", attribute, value)
+        return str(Query("greaterThan", attribute, value))
 
     @staticmethod
     def greater_than_equal(attribute, value):
-        return Query("greaterThanEqual", attribute, value)
+        return str(Query("greaterThanEqual", attribute, value))
 
     @staticmethod
     def is_null(attribute):
-        return Query("isNull", attribute, None)
+        return str(Query("isNull", attribute, None))
 
     @staticmethod
     def is_not_null(attribute):
-        return Query("isNotNull", attribute, None)
+        return str(Query("isNotNull", attribute, None))
 
     @staticmethod
     def between(attribute, start, end):
-        return Query("between", attribute, [start, end])
+        return str(Query("between", attribute, [start, end]))
 
     @staticmethod
     def starts_with(attribute, value):
-        return Query("startsWith", attribute, value)
+        return str(Query("startsWith", attribute, value))
 
     @staticmethod
     def ends_with(attribute, value):
-        return Query("endsWith", attribute, value)
+        return str(Query("endsWith", attribute, value))
 
     @staticmethod
     def select(attributes):
-        return Query("select", None, attributes)
+        return str(Query("select", None, attributes))
 
     @staticmethod
     def search(attribute, value):
-        return Query("search", attribute, value)
+        return str(Query("search", attribute, value))
 
     @staticmethod
     def order_asc(attribute):
-        return Query("orderAsc", attribute, None)
+        return str(Query("orderAsc", attribute, None))
 
     @staticmethod
     def order_desc(attribute):
-        return Query("orderDesc", attribute, None)
+        return str(Query("orderDesc", attribute, None))
 
     @staticmethod
     def cursor_before(id):
-        return Query("cursorBefore", None, id)
+        return str(Query("cursorBefore", None, id))
 
     @staticmethod
     def cursor_after(id):
-        return Query("cursorAfter", None, id)
+        return str(Query("cursorAfter", None, id))
 
     @staticmethod
     def limit(limit):
-        return Query("limit", None, limit)
+        return str(Query("limit", None, limit))
 
     @staticmethod
     def offset(offset):
-        return Query("offset", None, offset)
+        return str(Query("offset", None, offset))
 
     @staticmethod
     def contains(attribute, value):
-        return Query("contains", attribute, value)
+        return str(Query("contains", attribute, value))
 
     @staticmethod
     def or_queries(queries):
-        return Query("or", None, queries)
+        return str(Query("or", None, queries))
 
     @staticmethod
     def and_queries(queries):
-        return Query("and", None, queries)
+        return str(Query("and", None, queries))
