@@ -1,8 +1,18 @@
-import SwiftUI
 import JSONCodable
 import FirebaseCore
 import FirebaseMessaging
 import AsyncHTTPClient
+
+#if os(iOS) || os(tvOS)
+import UIKit
+public typealias Application = UIApplication
+#elseif os(macOS)
+import AppKit
+public typealias Application = NSApplication
+#elseif os(watchOS)
+import WatchKit
+public typealias Application = WKApplication
+#endif
 
 public enum Provider {
     case fcm, apns
@@ -17,7 +27,7 @@ open class NotificationHandler {
     internal var providerId: String? = nil
 
     public func setup(
-        _ application: UIApplication,
+        _ application: Application,
         delegate: AppwriteDelegate,
         provider: Provider
     ) {
