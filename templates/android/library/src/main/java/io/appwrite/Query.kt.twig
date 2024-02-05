@@ -51,7 +51,7 @@ class Query(
 
         fun contains(attribute: String, value: Any) = Query("contains", attribute, parseValue(value)).toJson()
 
-        fun or(queries: List<string>): String {
+        fun or(queries: List<String>): String {
             val queryObjects = mutableListOf<Query>()
             for(query in queries) {
                 queryObjects.add(query.fromJson())
@@ -59,7 +59,7 @@ class Query(
             return Query("or", null, queryObjects).toJson()
         }
 
-        fun and(queries: List<string>): String {
+        fun and(queries: List<String>): String {
             val queryObjects = mutableListOf<Query>()
             for(query in queries) {
                 queryObjects.add(query.fromJson())
