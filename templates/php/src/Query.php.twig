@@ -275,7 +275,7 @@ class Query implements \JsonSerializable
      */
     public static function or(array $queries): string
     {
-        foreach (&$queries as &$query) {
+        foreach ($queries as &$query) {
             $query = \json_decode($query, true);
         }
         return new Query('or', null, $queries).__toString();
