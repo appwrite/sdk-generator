@@ -51,7 +51,8 @@ export class Query {
   static greaterThanEqual = (attribute: string, value: QueryTypes): string =>
     new Query("greaterThanEqual", attribute, value).toString();
 
-  static isNull = (attribute: string): string => new Query("isNull", attribute);
+  static isNull = (attribute: string): string =>
+    new Query("isNull", attribute).toString();
 
   static isNotNull = (attribute: string): string =>
     new Query("isNotNull", attribute).toString();
@@ -86,7 +87,8 @@ export class Query {
   static cursorBefore = (documentId: string): string =>
     new Query("cursorBefore", undefined, documentId).toString();
 
-  static limit = (limit: number): string => new Query("limit", undefined, limit).toString();
+  static limit = (limit: number): string =>
+    new Query("limit", undefined, limit).toString();
 
   static offset = (offset: number): string =>
     new Query("offset", undefined, offset).toString();
