@@ -24,9 +24,7 @@ import java.io.File
 /**
  * {{ service.description | raw | replace({"\n": "", "\r": ""}) }}
 **/
-class {{ service.name | caseUcfirst }} : Service {
-
-    public constructor (client: Client) : super(client) { }
+class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 
 {% for method in service.methods %}
     /**
@@ -93,7 +91,7 @@ class {{ service.name | caseUcfirst }} : Service {
             }
         }
 
-        val apiUrl = Uri.parse("${client.endPoint}${apiPath}?${apiQuery.joinToString("&")}")
+        val apiUrl = Uri.parse("${client.endpoint}${apiPath}?${apiQuery.joinToString("&")}")
         val callbackUrlScheme = "{{ spec.title | caseLower }}-callback-${client.config["project"]}"
 
         WebAuthComponent.authenticate(activity, apiUrl, callbackUrlScheme) {
@@ -111,12 +109,12 @@ class {{ service.name | caseUcfirst }} : Service {
             val cookie = Cookie.Builder()
                 .name(key)
                 .value(secret)
-                .domain(Uri.parse(client.endPoint).host!!)
+                .domain(Uri.parse(client.endpoint).host!!)
                 .httpOnly()
                 .build()
             
             client.http.cookieJar.saveFromResponse(
-                client.endPoint.toHttpUrl(),
+                client.endpoint.toHttpUrl(),
                 listOf(cookie)
             )
         }
@@ -138,6 +136,7 @@ class {{ service.name | caseUcfirst }} : Service {
         {%~ if method.responseModel == 'any' %}
             it
         {%~ else %}
+            @Suppress("UNCHECKED_CAST")
             {{sdk.namespace | caseDot}}.models.{{ method.responseModel | caseUcfirst }}.from(map = it as Map<String, Any>{% if method.responseModel | hasGenericType(spec) %}, nestedType{% endif %})
         {%~ endif %}
         }

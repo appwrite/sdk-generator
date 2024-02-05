@@ -1,0 +1,12 @@
+package {{ sdk.namespace | caseDot }}.models
+
+data class Notification(
+    val title: String = "",
+    val body: String = "",
+    val clickAction: String = "",
+    val color: String = "",
+    val icon: String = "",
+    val imageURL: String = "",
+    val sound: String = "",
+    val data: Map<String, String> = mapOf(),
+)
