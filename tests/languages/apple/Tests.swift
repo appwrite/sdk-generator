@@ -168,6 +168,16 @@ class Tests: XCTestCase {
         print(Query.cursorBefore("my_movie_id"))
         print(Query.limit(50))
         print(Query.offset(20))
+        print(Query.contains("title", value: "Spider"))
+        print(Query.contains("labels", value: "first"))
+        print(Query.or([
+            Query.equal("released", value: true),
+            Query.lessThan("releasedYear", value: 1990)
+        ]))
+        print(Query.and([
+            Query.equal("released", value: false),
+            Query.greaterThan("releasedYear", value: 2015)
+        ]))
 
         // Permission & Role helper tests
         print(Permission.read(Role.any()))

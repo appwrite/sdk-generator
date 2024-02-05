@@ -96,12 +96,12 @@ except AppwriteException as e:
 general.empty()
 
 # Query helper tests
-print(Query.equal('released', [True]))
-print(Query.equal('title', ['Spiderman', 'Dr. Strange']))
-print(Query.not_equal('title', 'Spiderman'))
-print(Query.less_than('releasedYear', 1990))
-print(Query.greater_than('releasedYear', 1990))
-print(Query.search('name', 'john'))
+print(Query.equal("released", [True]))
+print(Query.equal("title", ["Spiderman", "Dr. Strange"]))
+print(Query.not_equal("title", "Spiderman"))
+print(Query.less_than("releasedYear", 1990))
+print(Query.greater_than("releasedYear", 1990))
+print(Query.search("name", "john"))
 print(Query.is_null("name"))
 print(Query.is_not_null("name"))
 print(Query.between("age", 50, 100))
@@ -116,6 +116,14 @@ print(Query.cursor_after("my_movie_id"))
 print(Query.cursor_before("my_movie_id"))
 print(Query.limit(50))
 print(Query.offset(20))
+print(Query.contains("title", "Spider"))
+print(Query.contains("labels", "first"))
+print(Query.or_queries(
+    [Query.equal("released", True), Query.less_than("releasedYear", 1990)]
+))
+print(Query.and_queries(
+    [Query.equal("released", False), Query.greater_than("releasedYear", 2015)]
+))
 
 # Permission & Role helper tests
 print(Permission.read(Role.any()))
