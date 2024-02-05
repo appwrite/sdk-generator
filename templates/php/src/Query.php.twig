@@ -270,22 +270,28 @@ class Query implements \JsonSerializable
     /**
      * Or
      *
-     * @param array<Query> $queries
+     * @param array<string> $queries
      * @return string
      */
     public static function or(array $queries): string
     {
+        foreach (&$queries as &$query) {
+            $query = \json_decode($query, true);
+        }
         return new Query('or', null, $queries).__toString();
     }
 
     /**
      * And
      *
-     * @param array<Query> $queries
+     * @param array<string> $queries
      * @return string
      */
     public static function and(array $queries): string
     {
+        foreach ($queries as &$query) {
+            $query = \json_decode($query, true);
+        }
         return new Query('and', null, $queries).__toString();
     }
 }

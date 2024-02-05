@@ -51,21 +51,9 @@ class Query(
 
         fun contains(attribute: String, value: Any) = Query("contains", attribute, parseValue(value)).toJson()
 
-        fun or(queries: List<String>): String {
-            val queryObjects = mutableListOf<Query>()
-            for(query in queries) {
-                queryObjects.add(query.fromJson())
-            }
-            return Query("or", null, queryObjects).toJson()
-        }
+        fun or(queries: List<String>) = Query("or", null, queries.map { it.fromJson<Query>() }).toJson()
 
-        fun and(queries: List<String>): String {
-            val queryObjects = mutableListOf<Query>()
-            for(query in queries) {
-                queryObjects.add(query.fromJson())
-            }
-            return Query("and", null, queryObjects).toJson()
-        }
+        fun and(queries: List<String>) = Query("and", null, queries.map { it.fromJson<Query>() }).toJson()
 
         private fun parseValue(value: Any): List<Any> {
             return when (value) {

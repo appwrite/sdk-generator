@@ -78,14 +78,16 @@ class Query {
   static string endsWith(String attribute, String value) =>
       Query._('endsWith', attribute, value).toJson();
 
-  /// Filter resouorces where [attribute] contains [value]
+  /// Filter resources where [attribute] contains [value]
   /// [value] can be a single value or a list.
   static string contains(String attribute, dynamic value) =>
       Query._('contains', attribute, value).toJson();
 
-  static string or(List<Query> queries) => Query._('or', null, queries).toJson();
+  static string or(List<string> queries) =>
+    Query._('and', null, queries.map((query) => jsonDecode(query)).toList()).toJson();
 
-  static string and(List<Query> queries) => Query._('and', null, queries).toJson();
+  static string and(List<string> queries) =>
+      Query._('and', null, queries.map((query) => jsonDecode(query)).toList()).toJson();
 
   /// Specify which attributes should be returned by the API call.
   static string select(List<String> attributes) =>

@@ -1,11 +1,29 @@
 import Foundation
 
-enum QueryValue: Encodable {
+enum QueryValue: Codable {
     case string(String)
     case int(Int)
     case double(Double)
     case bool(Bool)
     case query(Query)
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        // Attempt to decode each type
+        if let stringValue = try? container.decode(String.self) {
+            self = .string(stringValue)
+        } else if let intValue = try? container.decode(Int.self) {
+            self = .int(intValue)
+        } else if let doubleValue = try? container.decode(Double.self) {
+            self = .double(doubleValue)
+        } else if let boolValue = try? container.decode(Bool.self) {
+            self = .bool(boolValue)
+        } else if let queryValue = try? container.decode(Query.self) {
+            self = .query(queryValue)
+        } else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "QueryValue cannot be decoded")
+        }
+    }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
@@ -24,7 +42,7 @@ enum QueryValue: Encodable {
     }
 }
 
-public struct Query : Encodable, CustomStringConvertible {
+public struct Query : Codable, CustomStringConvertible {
     var method: String
     var attribute: String?
     var values: [QueryValue]?
@@ -33,6 +51,14 @@ public struct Query : Encodable, CustomStringConvertible {
         self.method = method
         self.attribute = attribute
         self.values = Query.convertToQueryValueArray(values)
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        self.method = try container.decode(String.self, forKey: .method)
+        self.attribute = try container.decodeIfPresent(String.self, forKey: .attribute)
+        self.values = try container.decodeIfPresent([QueryValue].self, forKey: .values)
     }
 
     private static func convertToQueryValueArray(_ values: Any?) -> [QueryValue]? {
@@ -84,13 +110,11 @@ public struct Query : Encodable, CustomStringConvertible {
     }
 
     public var description: String {
-        do {
-            let data = try JSONEncoder().encode(self)
-
-            return String(data: data, encoding: .utf8) ?? ""
-        } catch {
+        guard let data = try? JSONEncoder().encode(self) else {
             return ""
         }
+
+        return String(data: data, encoding: .utf8) ?? ""
     }
 
     public static func equal(_ attribute: String, value: Any) -> String {
@@ -225,17 +249,17 @@ public struct Query : Encodable, CustomStringConvertible {
     }
 
     public static func cursorBefore(_ id: String) -> String {
-       return Query(
+        return Query(
             method: "cursorBefore",
             values: [id]
         ).description
     }
 
     public static func cursorAfter(_ id: String) -> String {
-         return Query(
-                method: "cursorAfter",
-                values: [id]
-          ).description
+        return Query(
+            method: "cursorAfter",
+            values: [id]
+        ).description
     }
 
     public static func limit(_ limit: Int) -> String {
@@ -260,17 +284,33 @@ public struct Query : Encodable, CustomStringConvertible {
         ).description
     }
 
-    public static func or(_ queries: [Query]) -> String {
-       return Query(
+    public static func or(_ queries: [String]) -> String {
+        let decoder = JSONDecoder()
+        let decodedQueries = queries.compactMap { queryStr -> Query? in
+            guard let data = queryStr.data(using: .utf8) else {
+                return nil
+            }
+            return try? decoder.decode(Query.self, from: data)
+        }
+
+        return Query(
             method: "or",
-            values: queries
+            values: decodedQueries
         ).description
     }
 
-    public static func and(_ queries: [Query]) -> String {
-       return Query(
+    public static func and(_ queries: [String]) -> String {
+        let decoder = JSONDecoder()
+        let decodedQueries = queries.compactMap { queryStr -> Query? in
+            guard let data = queryStr.data(using: .utf8) else {
+                return nil
+            }
+            return try? decoder.decode(Query.self, from: data)
+        }
+
+        return Query(
             method: "and",
-            values: queries
+            values: decodedQueries
         ).description
     }
 }

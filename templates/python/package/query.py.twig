@@ -101,8 +101,8 @@ class Query():
 
     @staticmethod
     def or_queries(queries):
-        return str(Query("or", None, queries))
+        return str(Query("or", None, [json.loads(query) for query in queries]))
 
     @staticmethod
     def and_queries(queries):
-        return str(Query("and", None, queries))
+        return str(Query("and", None, [json.loads(query) for query in queries]))

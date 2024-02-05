@@ -109,11 +109,11 @@ module {{spec.title | caseUcfirst}}
             end
 
             def or(queries)
-                return Query.new("or", nil, queries).to_s
+                return Query.new("or", nil, queries.map { |query| JSON.parse(query) }).to_s
             end
 
             def and(queries)
-                return Query.new("and", nil, queries).to_s
+                return Query.new("and", nil, queries.map { |query| JSON.parse(query) }).to_s
             end
         end
     end

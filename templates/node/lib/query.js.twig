@@ -73,10 +73,10 @@ class Query {
     new Query("contains", attribute, value).toString()
 
   static or = (...queries) =>
-    new Query("or", undefined, queries).toString()
+    new Query("or", undefined, queries.map((query) => JSON.parse(query))).toString()
 
   static and = (...queries) =>
-    new Query("and", undefined, queries).toString();
+    new Query("and", undefined, queries.map((query) => JSON.parse(query))).toString();
 }
 
 Query.prototype.toString = function () {

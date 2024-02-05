@@ -134,12 +134,12 @@ namespace Appwrite
             return new Query("contains", attribute, value).ToString();
         }
 
-        public static string Or(List<Query> queries) {
-            return new Query("or", null, queries).ToString();
+        public static string Or(List<string> queries) {
+            return new Query("or", null, queries.Select(q => JsonConvert.DeserializeObject<Query>(q)).ToList()).ToString();
         }
 
-        public static string And(List<Query> queries) {
-            return new Query("and", null, queries).ToString();
+        public static string And(List<string> queries) {
+            return new Query("and", null, queries.Select(q => JsonConvert.DeserializeObject<Query>(q)).ToList()).ToString();
         }
     }
 }
