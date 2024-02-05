@@ -341,8 +341,6 @@ open class Client {
                 type: type
             )
         }
-
-        return try await complete(with: response)
     }
 
     func chunkedUpload<T>(
