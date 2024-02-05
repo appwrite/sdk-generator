@@ -172,7 +172,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
             payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
 
-            response = await this.client.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+            response = await this.client.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% elseif method.type == 'webAuth' %}, 'location'{% endif %});
 
             if (!id) {
                 id = response['$id'];

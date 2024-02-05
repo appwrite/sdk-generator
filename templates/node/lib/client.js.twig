@@ -120,6 +120,7 @@ class Client {
             method: method.toUpperCase(),
             headers,
             body,
+            redirect: responseType === "location" ? "manual" : "follow",
             dispatcher: new Agent({
                 connect: {
                     rejectUnauthorized: !this.selfSigned,
