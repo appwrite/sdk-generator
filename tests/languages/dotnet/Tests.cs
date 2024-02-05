@@ -137,13 +137,13 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.Contains("title", "Spider"));
             TestContext.WriteLine(Query.Contains("labels", "first"));
             TestContext.WriteLine(Query.Or(
-                new List<Query> {
+                new List<string> {
                     Query.Equal("released", true),
                     Query.LessThan("releasedYear", 1990)
                 }
             ));
             TestContext.WriteLine(Query.And(
-                new List<Query> {
+                new List<string> {
                     Query.Equal("released", false),
                     Query.GreaterThan("releasedYear", 2015)
                 }
