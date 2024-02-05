@@ -33,91 +33,91 @@ class Query {
   /// [value] can be a single value or a list. If a list is used
   /// the query will return resources where [attribute] is equal
   /// to any of the values in the list.
-  static string equal(String attribute, dynamic value) =>
+  static String equal(String attribute, dynamic value) =>
       Query._('equal', attribute, value).toJson();
 
   /// Filter resources where [attribute] is not equal to [value].
-  static string notEqual(String attribute, dynamic value) =>
+  static String notEqual(String attribute, dynamic value) =>
       Query._('notEqual', attribute, [value]).toJson();
 
   /// Filter resources where [attribute] is less than [value].
-  static string lessThan(String attribute, dynamic value) =>
+  static String lessThan(String attribute, dynamic value) =>
       Query._('lessThan', attribute, value).toJson();
 
   /// Filter resources where [attribute] is less than or equal to [value].
-  static string lessThanEqual(String attribute, dynamic value) =>
+  static String lessThanEqual(String attribute, dynamic value) =>
       Query._('lessThanEqual', attribute, value).toJson();
 
   /// Filter resources where [attribute] is greater than [value].
-  static string greaterThan(String attribute, dynamic value) =>
+  static String greaterThan(String attribute, dynamic value) =>
       Query._('greaterThan', attribute, value).toJson();
 
   /// Filter resources where [attribute] is greater than or equal to [value].
-  static string greaterThanEqual(String attribute, dynamic value) =>
+  static String greaterThanEqual(String attribute, dynamic value) =>
       Query._('greaterThanEqual', attribute, value).toJson();
 
   /// Filter resources where by searching [attribute] for [value].
-  static string search(String attribute, String value) =>
+  static String search(String attribute, String value) =>
       Query._('search', attribute, value).toJson();
 
   /// Filter resources where [attribute] is null.
-  static string isNull(String attribute) => Query._('isNull', attribute).toJson();
+  static String isNull(String attribute) => Query._('isNull', attribute).toJson();
 
   /// Filter resources where [attribute] is not null.
-  static string isNotNull(String attribute) => Query._('isNotNull', attribute).toJson();
+  static String isNotNull(String attribute) => Query._('isNotNull', attribute).toJson();
 
   /// Filter resources where [attribute] is between [start] and [end] (inclusive).
-  static string between(String attribute, dynamic start, dynamic end) =>
+  static String between(String attribute, dynamic start, dynamic end) =>
       Query._('between', attribute, [start, end]).toJson();
 
   /// Filter resources where [attribute] starts with [value].
-  static string startsWith(String attribute, String value) =>
+  static String startsWith(String attribute, String value) =>
       Query._('startsWith', attribute, value).toJson();
 
   /// Filter resources where [attribute] ends with [value].
-  static string endsWith(String attribute, String value) =>
+  static String endsWith(String attribute, String value) =>
       Query._('endsWith', attribute, value).toJson();
 
   /// Filter resources where [attribute] contains [value]
   /// [value] can be a single value or a list.
-  static string contains(String attribute, dynamic value) =>
+  static String contains(String attribute, dynamic value) =>
       Query._('contains', attribute, value).toJson();
 
-  static string or(List<string> queries) =>
+  static String or(List<String> queries) =>
     Query._('and', null, queries.map((query) => jsonDecode(query)).toList()).toJson();
 
-  static string and(List<string> queries) =>
+  static String and(List<String> queries) =>
       Query._('and', null, queries.map((query) => jsonDecode(query)).toList()).toJson();
 
   /// Specify which attributes should be returned by the API call.
-  static string select(List<String> attributes) =>
+  static String select(List<String> attributes) =>
       Query._('select', null, attributes).toJson();
 
   /// Sort results by [attribute] ascending.
-  static string orderAsc(String attribute) => Query._('orderAsc', attribute).toJson();
+  static String orderAsc(String attribute) => Query._('orderAsc', attribute).toJson();
 
   /// Sort results by [attribute] descending.
-  static string orderDesc(String attribute) => Query._('orderDesc', attribute).toJson();
+  static String orderDesc(String attribute) => Query._('orderDesc', attribute).toJson();
 
   /// Return results before [id].
   /// 
   /// Refer to the [Cursor Based Pagination]({{sdk.url}}/docs/pagination#cursor-pagination)
   /// docs for more information.
-  static string cursorBefore(String id) => Query._('cursorBefore', null, id).toJson();
+  static String cursorBefore(String id) => Query._('cursorBefore', null, id).toJson();
 
   /// Return results after [id].
   /// 
   /// Refer to the [Cursor Based Pagination]({{sdk.url}}/docs/pagination#cursor-pagination)
   /// docs for more information.
-  static string cursorAfter(String id) => Query._('cursorAfter', null, id).toJson();
+  static String cursorAfter(String id) => Query._('cursorAfter', null, id).toJson();
 
   /// Return only [limit] results.
-  static string limit(int limit) => Query._('limit', null, limit).toJson();
+  static String limit(int limit) => Query._('limit', null, limit).toJson();
 
   /// Return results from [offset].
   /// 
   /// Refer to the [Offset Pagination]({{sdk.url}}/docs/pagination#offset-pagination)
   /// docs for more information.
-  static string offset(int offset) => Query._('offset', null, offset).toJson();
+  static String offset(int offset) => Query._('offset', null, offset).toJson();
 
 }
