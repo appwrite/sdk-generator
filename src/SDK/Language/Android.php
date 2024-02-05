@@ -353,11 +353,6 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => '/example/google-services.json',
-                'template'      => '/android/example/google-services.json',
-            ],
-            [
-                'scope'         => 'copy',
                 'destination'   => '/example/.gitignore',
                 'template'      => '/android/example/.gitignore',
             ],
