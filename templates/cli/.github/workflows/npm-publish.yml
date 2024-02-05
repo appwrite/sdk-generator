@@ -32,7 +32,7 @@ jobs:
           npm run mac-arm64
       - name: Publish NPM library
         run: |
-          if ${{ contains(github.event.release.tag_name, '-RC') }}; then
+          if ${{ contains(github.event.release.tag_name, '-rc') }}; then
             echo "Publishing Release Candidate ${{ github.event.release.tag_name}} to NPM"
             npm publish --tag next
           else

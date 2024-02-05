@@ -37,7 +37,7 @@ jobs:
         # Runs upload, and then closes & releases the repository
       - name: Publish Release Version to MavenCentral
         run: |
-          if ${{ endswith(github.event.release.tag_name, '-SNAPSHOT') }}; then
+          if ${{ contains(github.event.release.tag_name, '-rc') }}; then
             echo "Publising Snapshot Version ${{ github.event.release.tag_name}} to Snapshot repository"
             ./gradlew publishToSonatype
           else
