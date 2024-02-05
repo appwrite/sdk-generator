@@ -67,26 +67,30 @@ abstract class Base extends TestCase
     ];
 
     protected const QUERY_HELPER_RESPONSES = [
-        'equal("released", [true])',
-        'equal("title", ["Spiderman","Dr. Strange"])',
-        'notEqual("title", ["Spiderman"])',
-        'lessThan("releasedYear", [1990])',
-        'greaterThan("releasedYear", [1990])',
-        'search("name", ["john"])',
-        'isNull("name")',
-        'isNotNull("name")',
-        'between("age", 50, 100)',
-        'between("age", 50.5, 100.5)',
-        'between("name", "Anna", "Brad")',
-        'startsWith("name", ["Ann"])',
-        'endsWith("name", ["nne"])',
-        'select(["name","age"])',
-        'orderAsc("title")',
-        'orderDesc("title")',
-        'cursorAfter("my_movie_id")',
-        'cursorBefore("my_movie_id")',
-        'limit(50)',
-        'offset(20)',
+        '{"method":"equal","attribute":"released","values":[true]}',
+        '{"method":"equal","attribute":"title","values":["Spiderman","Dr. Strange"]}',
+        '{"method":"notEqual","attribute":"title","values":["Spiderman"]}',
+        '{"method":"lessThan","attribute":"releasedYear","values":[1990]}',
+        '{"method":"greaterThan","attribute":"releasedYear","values":[1990]}',
+        '{"method":"search","attribute":"name","values":["john"]}',
+        '{"method":"isNull","attribute":"name"}',
+        '{"method":"isNotNull","attribute":"name"}',
+        '{"method":"between","attribute":"age","values":[50,100]}',
+        '{"method":"between","attribute":"age","values":[50.5,100.5]}',
+        '{"method":"between","attribute":"name","values":["Anna","Brad"]}',
+        '{"method":"startsWith","attribute":"name","values":["Ann"]}',
+        '{"method":"endsWith","attribute":"name","values":["nne"]}',
+        '{"method":"select","values":["name","age"]}',
+        '{"method":"orderAsc","attribute":"title"}',
+        '{"method":"orderDesc","attribute":"title"}',
+        '{"method":"cursorAfter","values":["my_movie_id"]}',
+        '{"method":"cursorBefore","values":["my_movie_id"]}',
+        '{"method":"limit","values":[50]}',
+        '{"method":"offset","values":[20]}',
+        '{"method":"contains","attribute":"title","values":["Spider"]}',
+        '{"method":"contains","attribute":"labels","values":["first"]}',
+        '{"method":"or","values":[{"method":"equal","attribute":"released","values":[true]},{"method":"lessThan","attribute":"releasedYear","values":[1990]}]}',
+        '{"method":"and","values":[{"method":"equal","attribute":"released","values":[false]},{"method":"greaterThan","attribute":"releasedYear","values":[2015]}]}'
     ];
 
     protected const PERMISSION_HELPER_RESPONSES = [
@@ -200,7 +204,28 @@ abstract class Base extends TestCase
 
         echo \implode("\n", $output);
 
-        $this->assertEquals([], \array_diff($this->expectedOutput, $output));
+        # Some languages deserialize JSON with sorted keys, other not.
+        # We use this custom assertion to normalise the lines with JSON before comparison.
+        $this->assertEqualsWithJsonLines($this->expectedOutput, $output);
+    }
+
+    private function isJsonString(string $str)
+    {
+        return \str_starts_with($str, '{');
+    }
+
+    private function assertEqualsWithJsonLines($expectedLines, $actualLines)
+    {
+        for ($i = 0; $i <= 10; $i++) {
+            $expectedLine = $expectedLines[0];
+            $actualLine = $actualLines[0];
+
+            if ($this->isJsonString($expectedLine)) {
+                $this->assertEquals(\json_decode($expectedLine), \json_decode($actualLine));
+            } else {
+                $this->assertEquals($expectedLine, $actualLine);
+            }
+        }
     }
 
     private function rmdirRecursive($dir): void

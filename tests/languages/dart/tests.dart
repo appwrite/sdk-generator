@@ -125,6 +125,16 @@ void main() async {
   print(Query.cursorBefore("my_movie_id"));
   print(Query.limit(50));
   print(Query.offset(20));
+  print(Query.contains("title", "Spider"));
+  print(Query.contains("labels", "first"));
+  print(Query.or([
+    Query.equal("released", true),
+    Query.lessThan("releasedYear", 1990)
+  ]));
+  print(Query.and([
+    Query.equal("released", false),
+    Query.greaterThan("releasedYear", 2015)
+  ]));
 
   // Permission & Role helper tests
   print(Permission.read(Role.any()));

@@ -1,5 +1,6 @@
 const os = require('os');
 const URL = require('url').URL;
+const Query = require('./query.js');
 const {fetch, FormData, Agent} = require('undici');
 const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
 
@@ -107,6 +108,9 @@ class Client {
 
             body = formData;
         } else {
+            if ('queries' in params && Array.isArray(params['queries'])) {
+                params['queries'] = params['queries'].map((query) => query.toString());
+            }
             body = JSON.stringify(params);
         }
 
@@ -152,15 +156,16 @@ class Client {
       return json;
     }
 
-    static flatten(data, prefix = '') {
+    static flatten(data, prefix = "") {
         let output = {};
 
-        for (const key in data) {
-            let value = data[key];
-            let finalKey = prefix ? prefix + '[' + key +']' : key;
+        for (const [key, value] of Object.entries(data)) {
+            let finalKey = prefix ? prefix + "[" + key + "]" : key;
 
             if (Array.isArray(value)) {
-                output = Object.assign(output, Client.flatten(value, finalKey)); // @todo: handle name collision here if needed
+                output = { ...output, ...Client.flatten(value, finalKey) };
+            } else if (value instanceof Query) {
+                output[finalKey] = JSON.stringify(value);
             } else {
                 output[finalKey] = value;
             }

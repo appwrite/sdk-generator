@@ -134,6 +134,20 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.CursorBefore("my_movie_id"));
             TestContext.WriteLine(Query.Limit(50));
             TestContext.WriteLine(Query.Offset(20));
+            TestContext.WriteLine(Query.Contains("title", "Spider"));
+            TestContext.WriteLine(Query.Contains("labels", "first"));
+            TestContext.WriteLine(Query.Or(
+                new List<string> {
+                    Query.Equal("released", true),
+                    Query.LessThan("releasedYear", 1990)
+                }
+            ));
+            TestContext.WriteLine(Query.And(
+                new List<string> {
+                    Query.Equal("released", false),
+                    Query.GreaterThan("releasedYear", 2015)
+                }
+            ));
 
             // Permission & Roles helper tests
             TestContext.WriteLine(Permission.Read(Role.Any()));

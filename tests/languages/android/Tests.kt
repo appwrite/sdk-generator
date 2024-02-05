@@ -188,6 +188,10 @@ class ServiceTest {
             writeToFile(Query.cursorBefore("my_movie_id"))
             writeToFile(Query.limit(50))
             writeToFile(Query.offset(20))
+            writeToFile(Query.contains("title", listOf("Spider")))
+            writeToFile(Query.contains("labels", listOf("first")))
+            writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
+            writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))
