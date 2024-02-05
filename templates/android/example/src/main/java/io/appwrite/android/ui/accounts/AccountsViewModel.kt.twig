@@ -6,7 +6,7 @@ import androidx.lifecycle.*
 import {{ sdk.namespace | caseDot }}.ID
 import {{ sdk.namespace | caseDot }}.android.utils.Client.client
 import {{ sdk.namespace | caseDot }}.android.utils.Event
-import {{ sdk.namespace | caseDot }}.enums.Provider
+import {{ sdk.namespace | caseDot }}.enums.OAuthProvider
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.toJson
 import {{ sdk.namespace | caseDot }}.services.Account
@@ -65,7 +65,7 @@ class AccountsViewModel : ViewModel() {
             try {
                 accountService.createOAuth2Session(
                     activity,
-                    Provider.FACEBOOK,
+                    OAuthProvider.FACEBOOK,
                     "appwrite-callback-6070749e6acd4://demo.appwrite.io/auth/oauth2/success",
                     "appwrite-callback-6070749e6acd4://demo.appwrite.io/auth/oauth2/failure"
                 )
