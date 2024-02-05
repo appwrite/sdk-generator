@@ -146,6 +146,10 @@ class Client {
         return data;
       }
 
+      if (responseType === "location") {
+        return response.headers.get("location");
+      }
+
       const text = await response.text();
       let json = undefined;
       try {
