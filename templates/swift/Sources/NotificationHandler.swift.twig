@@ -11,13 +11,18 @@ public enum Provider {
 open class NotificationHandler {
     public static let shared = NotificationHandler()
 
-    public var provider: Provider = .apns
-
+    internal var provider: Provider = .apns
     internal var client: Client? = nil
     internal var account: Account? = nil
     internal var providerId: String? = nil
 
-    public func setup(_ application: UIApplication, delegate: AppwriteDelegate) {
+    public func setup(
+        _ application: UIApplication,
+        delegate: AppwriteDelegate,
+        provider: Provider
+    ) {
+        self.provider = provider
+
         FirebaseApp.configure()
 
         FirebaseMessaging.Messaging.messaging().delegate = delegate

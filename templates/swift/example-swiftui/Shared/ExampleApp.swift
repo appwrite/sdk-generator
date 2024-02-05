@@ -7,7 +7,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, AppwriteDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
-        NotificationHandler.shared.setup(application, delegate: self)
+        NotificationHandler.shared.setup(application, delegate: self, provider: .apns)
 
         return true
     }
