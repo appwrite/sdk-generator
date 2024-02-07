@@ -122,14 +122,14 @@ async function start() {
     console.log(Query.offset(20));
     console.log(Query.contains("title", "Spider"));
     console.log(Query.contains("labels", "first"));
-    console.log(Query.or(
+    console.log(Query.or([
       Query.equal("released", true),
       Query.lessThan("releasedYear", 1990)
-    ));
-    console.log(Query.and(
+    ]));
+    console.log(Query.and([
         Query.equal("released", false),
         Query.greaterThan("releasedYear", 2015)
-    ));
+    ]));
 
     // Permission & Role helper tests
     console.log(Permission.read(Role.any()));
