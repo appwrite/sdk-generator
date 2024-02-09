@@ -1,17 +1,17 @@
 export class {{ spec.title | caseUcfirst}}Exception {
-    message: String;
-    code: Number;
+    message: string;
+    code: number;
     response: any;
-    type: String;
+    type: string;
 
-    constructor(message: String, code: Number = 0, type: String = "", response: any = "") {
+    constructor(message: string, code: number = 0, type: string = "", response: any = "") {
         this.message = message;
         this.code = code;
         this.type = type;
         this.response = response;
     }
 
-    public toString(): String {
+    public toString(): string {
         return `${this.message} - ${this.code} - ${this.type} - ${JSON.stringify(this.response)}`;
     }
 }

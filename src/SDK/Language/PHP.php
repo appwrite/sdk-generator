@@ -179,8 +179,18 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/PermissionTest.php',
+                'template'      => 'php/tests/PermissionTest.php.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/Role.php',
                 'template'      => 'php/src/Role.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/RoleTest.php',
+                'template'      => 'php/tests/RoleTest.php.twig',
             ],
             [
                 'scope'         => 'default',
@@ -189,8 +199,18 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/IDTest.php',
+                'template'      => 'php/tests/IDTest.php.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/Query.php',
                 'template'      => 'php/src/Query.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/QueryTest.php',
+                'template'      => 'php/tests/QueryTest.php.twig',
             ],
             [
                 'scope'         => 'default',
@@ -211,6 +231,11 @@ class PHP extends Language
                 'scope'         => 'service',
                 'destination'   => '/src/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
                 'template'      => 'php/src/Services/Service.php.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '/tests/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}Test.php',
+                'template'      => 'php/tests/Services/ServiceTest.php.twig',
             ],
             [
                 'scope'         => 'enum',

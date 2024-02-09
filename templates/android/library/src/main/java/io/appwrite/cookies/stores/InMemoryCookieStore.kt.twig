@@ -6,10 +6,9 @@ import java.net.CookieStore
 import java.net.HttpCookie
 import java.net.URI
 import java.net.URISyntaxException
-import java.util.Collections
 import java.util.concurrent.locks.ReentrantLock
 
-open class InMemoryCookieStore(private val name: String) : CookieStore {
+open class InMemoryCookieStore : CookieStore {
 
     internal val uriIndex = mutableMapOf<URI, MutableList<HttpCookie>>()
     private val lock = ReentrantLock(false)
@@ -29,7 +28,7 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
         if (cookie == null) {
             Log.i(
                 javaClass.simpleName,
-                "tried to add null cookie in cookie store named $name. Doing nothing."
+                "Tried to add null cookie in cookie store. Doing nothing."
             )
             return
         }
@@ -37,7 +36,7 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
         if (uri == null) {
             Log.i(
                 javaClass.simpleName,
-                "tried to add null URI in cookie store named $name. Doing nothing."
+                "Tried to add null URI in cookie store. Doing nothing."
             )
             return
         }
@@ -89,7 +88,7 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
         if (cookie == null) {
             Log.i(
                 javaClass.simpleName,
-                "tried to remove null cookie from cookie store named $name. Doing nothing."
+                "Tried to remove null cookie from cookie store. Doing nothing."
             )
             return true
         }
@@ -97,7 +96,7 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
         if (uri == null) {
             Log.i(
                 javaClass.simpleName,
-                "tried to remove null URI from cookie store named $name. Doing nothing."
+                "Tried to remove null URI from cookie store. Doing nothing."
             )
             return true
         }
@@ -122,7 +121,7 @@ open class InMemoryCookieStore(private val name: String) : CookieStore {
         if (uri == null) {
             Log.i(
                 javaClass.simpleName,
-                "getting cookies from cookie store named $name for null URI results in empty list"
+                "Getting cookies from cookie store for null URI results in empty list"
             )
             return emptyList()
         }

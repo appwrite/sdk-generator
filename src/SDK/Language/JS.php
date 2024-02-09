@@ -131,7 +131,6 @@ abstract class JS extends Language
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
-
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
@@ -205,7 +204,7 @@ abstract class JS extends Language
     {
         return [
             new TwigFilter('caseEnumKey', function (string $value) {
-                return $this->toUpperSnakeCase($value);
+                return $this->toPascalCase($value);
             }),
         ];
     }

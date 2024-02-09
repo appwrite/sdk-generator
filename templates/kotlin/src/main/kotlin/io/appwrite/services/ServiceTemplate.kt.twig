@@ -19,9 +19,7 @@ import java.io.File
 /**
  * {{ service.description | raw | replace({"\n": "", "\r": ""}) }}
 **/
-class {{ service.name | caseUcfirst }} : Service {
-
-    public constructor (client: Client) : super(client) { }
+class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 
 {% for method in service.methods %}
     /**

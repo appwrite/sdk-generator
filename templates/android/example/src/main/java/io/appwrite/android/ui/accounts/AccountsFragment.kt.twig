@@ -34,34 +34,30 @@ class AccountsFragment : Fragment() {
         binding.login.setOnClickListener{
             viewModel.onLogin(binding.email.text, binding.password.text)
         }
-
         binding.signup.setOnClickListener{
             viewModel.onSignup(binding.email.text, binding.password.text, binding.name.text)
         }
-
         binding.getUser.setOnClickListener{
             viewModel.getUser()
         }
-
         binding.oAuth.setOnClickListener{
             viewModel.oAuthLogin(activity as ComponentActivity)
         }
-
         binding.logout.setOnClickListener{
             viewModel.logout()
         }
 
-        viewModel.error.observe(viewLifecycleOwner, Observer { event ->
-            event?.getContentIfNotHandled()?.let { // Only proceed if the event has never been handled
-                Toast.makeText(requireContext(), it.message , Toast.LENGTH_SHORT).show()
+        viewModel.error.observe(viewLifecycleOwner) { event ->
+            event?.getContentIfNotHandled()?.let {
+                Toast.makeText(requireContext(), it.message, Toast.LENGTH_SHORT).show()
             }
-        })
+        }
 
-        viewModel.response.observe(viewLifecycleOwner, Observer { event ->
+        viewModel.response.observe(viewLifecycleOwner) { event ->
             event?.getContentIfNotHandled()?.let {
                 binding.responseTV.setText(it)
             }
-        })
+        }
 
         return binding.root
     }

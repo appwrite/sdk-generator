@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class Node14Test extends Base
+class Node20Test extends Base
 {
     protected string $sdkName = 'node.js';
     protected string $sdkPlatform = 'server';
@@ -12,10 +12,10 @@ class Node14Test extends Base
     protected string $language = 'node';
     protected string $class = 'Appwrite\SDK\Language\Node';
     protected array $build = [
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:14-alpine npm install',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:20-alpine npm install',
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app node:14-alpine node tests/languages/node/test.js';
+    'docker run --network="mockapi" --rm -v $(pwd):/app -w /app node:20-alpine node tests/languages/node/test.js';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

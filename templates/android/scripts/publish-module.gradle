@@ -63,7 +63,8 @@ publishing {
                     configurations
                             .getByName("releaseCompileClasspath")
                             .resolvedConfiguration
-                            .firstLevelModuleDependencies.forEach {
+                            .firstLevelModuleDependencies
+                            .forEach {
                         def dependency = dependencies.appendNode("dependency")
                         dependency.appendNode("groupId", it.moduleGroup)
                         dependency.appendNode("artifactId", it.moduleName)

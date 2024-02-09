@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class Android11Java11Test extends Base
+class Android14Java17Test extends Base
 {
     protected string $sdkName = 'android';
     protected string $sdkPlatform = 'client';
@@ -17,7 +17,7 @@ class Android11Java11Test extends Base
         'chmod +x tests/sdks/android/gradlew',
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-30-jdk11 sh -c "./gradlew :library:testReleaseUnitTest --stacktrace -q && cat library/result.txt"';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-34-jdk17 sh -c "./gradlew :library:testReleaseUnitTest --stacktrace -q && cat library/result.txt"';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

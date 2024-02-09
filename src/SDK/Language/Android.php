@@ -132,6 +132,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/ActivityExtensions.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/extensions/ActivityExtensions.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/JsonExtensions.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/extensions/JsonExtensions.kt.twig',
             ],
@@ -147,6 +152,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/MessagingExtensions.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/extensions/MessagingExtensions.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/json/PreciseNumberAdapter.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/json/PreciseNumberAdapter.kt.twig',
             ],
@@ -154,6 +164,11 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/InputFile.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/models/InputFile.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/Notification.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/Notification.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -191,6 +206,11 @@ class Android extends Kotlin
                 'template'      => '/android/library/src/main/java/io/appwrite/services/Realtime.kt.twig',
             ],
             [
+                'scope'        => 'default',
+                'destination'  => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/NotificationHandler.kt',
+                'template'     => '/android/library/src/main/java/io/appwrite/NotificationHandler.kt.twig',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/cookies/Extensions.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/cookies/Extensions.kt.twig',
@@ -216,6 +236,11 @@ class Android extends Kotlin
                 'template'      => '/android/library/src/main/java/io/appwrite/cookies/InternalCookie.kt.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/cookies/ListenableCookieJar.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/cookies/ListenableCookieJar.kt.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/services/ServiceTemplate.kt.twig',
@@ -234,6 +259,16 @@ class Android extends Kotlin
                 'scope'         => 'copy',
                 'destination'   => '/library/.gitignore',
                 'template'      => '/android/library/.gitignore',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => 'library/src/main/java/io/appwrite/models/{{ definition.name | caseUcfirst }}.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/models/Model.kt.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'library/src/main/java/io/appwrite/enums/{{ enum.name | caseUcfirst }}.kt',
+                'template'      => '/android/library/src/main/java/io/appwrite/enums/Enum.kt.twig',
             ],
             // Config for project :example
             [
@@ -320,77 +355,6 @@ class Android extends Kotlin
                 'scope'         => 'copy',
                 'destination'   => '/example/.gitignore',
                 'template'      => '/android/example/.gitignore',
-            ],
-            // Config for project :example-java
-            [
-                'scope'         => 'default',
-                'destination'   => '/example-java/src/main/java/{{ sdk.namespace | caseSlash }}/example_java/MainActivity.java',
-                'template'      => '/android/example-java/src/main/java/io/appwrite/example_java/MainActivity.java.twig',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/drawable/ic_launcher_background.xml',
-                'template'      => '/android/example-java/src/main/res/drawable/ic_launcher_background.xml',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/drawable/ic_launcher_foreground.xml',
-                'template'      => '/android/example-java/src/main/res/drawable/ic_launcher_foreground.xml',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/layout/activity_main.xml',
-                'template'      => '/android/example-java/src/main/res/layout/activity_main.xml',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml',
-                'template'      => '/android/example-java/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/mipmap-anydpi-v26/ic_launcher.xml',
-                'template'      => '/android/example-java/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/values/colors.xml',
-                'template'      => '/android/example-java/src/main/res/values/colors.xml',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/values/strings.xml',
-                'template'      => '/android/example-java/src/main/res/values/strings.xml',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/values/themes.xml',
-                'template'      => '/android/example-java/src/main/res/values/themes.xml',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/AndroidManifest.xml',
-                'template'      => '/android/example-java/src/main/AndroidManifest.xml',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/example-java/build.gradle',
-                'template'      => '/android/example-java/build.gradle.twig',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/.gitignore',
-                'template'      => '/android/example-java/.gitignore',
-            ],
-            [
-                'scope'         => 'definition',
-                'destination'   => 'library/src/main/java/io/appwrite/models/{{ definition.name | caseUcfirst }}.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/models/Model.kt.twig',
-            ],
-            [
-                'scope'         => 'enum',
-                'destination'   => 'library/src/main/java/io/appwrite/enums/{{ enum.name | caseUcfirst }}.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/enums/Enum.kt.twig',
             ],
         ];
     }
