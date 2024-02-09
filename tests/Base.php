@@ -209,18 +209,15 @@ abstract class Base extends TestCase
         $this->assertEqualsWithJsonLines($this->expectedOutput, $output);
     }
 
-    private function isJsonString(string $str)
-    {
-        return \str_starts_with($str, '{');
-    }
-
     private function assertEqualsWithJsonLines($expectedLines, $actualLines)
     {
-        for ($i = 0; $i <= 10; $i++) {
-            $expectedLine = $expectedLines[0];
-            $actualLine = $actualLines[0];
+        for ($i = 0; $i <= \count($expectedLines); $i++) {
+            $this->assertArrayHasKey($i, $actualLines, "Missing line {$i}: {$expectedLines[$i]}");
+            
+            $expectedLine = $expectedLines[$i];
+            $actualLine = $actualLines[$i];
 
-            if ($this->isJsonString($expectedLine)) {
+            if (\str_starts_with($expectedLine, '{')) {
                 $this->assertEquals(\json_decode($expectedLine), \json_decode($actualLine));
             } else {
                 $this->assertEquals($expectedLine, $actualLine);
