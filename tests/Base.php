@@ -204,25 +204,19 @@ abstract class Base extends TestCase
 
         echo \implode("\n", $output);
 
-        # Some languages deserialize JSON with sorted keys, other not.
-        # We use this custom assertion to normalise the lines with JSON before comparison.
-        $this->assertEqualsWithJsonLines($this->expectedOutput, $output);
+        $this->assertEquals([], \array_diff(
+            $this->normalizeConsoleLines($output), 
+            $this->normalizeConsoleLines($this->expectedOutput)
+        ));
     }
 
-    private function assertEqualsWithJsonLines($expectedLines, $actualLines)
-    {
-        for ($i = 0; $i < \count($expectedLines); $i++) {
-            $this->assertArrayHasKey($i, $actualLines, "Missing line {$i}: {$expectedLines[$i]}");
-
-            $expectedLine = $expectedLines[$i];
-            $actualLine = $actualLines[$i];
-
-            if (\str_starts_with($expectedLine, '{')) {
-                $this->assertEquals(\json_decode($expectedLine), \json_decode($actualLine));
-            } else {
-                $this->assertEquals($expectedLine, $actualLine);
+    private function normalizeConsoleLines($lines) {
+        return \array_map(function (string $line) {
+            if (\str_starts_with($line, '{')) {
+                return \json_decode($line);
             }
-        }
+            return $line;
+        }, $lines);
     }
 
     private function rmdirRecursive($dir): void
