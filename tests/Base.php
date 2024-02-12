@@ -211,7 +211,7 @@ abstract class Base extends TestCase
 
     private function assertEqualsWithJsonLines($expectedLines, $actualLines)
     {
-        for ($i = 0; $i <= \count($expectedLines); $i++) {
+        for ($i = 0; $i < \count($expectedLines); $i++) {
             $this->assertArrayHasKey($i, $actualLines, "Missing line {$i}: {$expectedLines[$i]}");
             
             $expectedLine = $expectedLines[$i];
