@@ -205,12 +205,13 @@ abstract class Base extends TestCase
         echo \implode("\n", $output);
 
         $this->assertEquals([], \array_diff(
-            $this->normalizeConsoleLines($output), 
+            $this->normalizeConsoleLines($output),
             $this->normalizeConsoleLines($this->expectedOutput)
         ));
     }
 
-    private function normalizeConsoleLines($lines) {
+    private function normalizeConsoleLines($lines)
+    {
         return \array_map(function (string $line) {
             if (\str_starts_with($line, '{')) {
                 return \json_decode($line);
