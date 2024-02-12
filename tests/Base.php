@@ -213,7 +213,7 @@ abstract class Base extends TestCase
     {
         for ($i = 0; $i < \count($expectedLines); $i++) {
             $this->assertArrayHasKey($i, $actualLines, "Missing line {$i}: {$expectedLines[$i]}");
-            
+
             $expectedLine = $expectedLines[$i];
             $actualLine = $actualLines[$i];
 
