@@ -20,8 +20,9 @@ client = Client()
 
 result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{% if loop.first %} 
 {% endif %}
-    {% if parameter.required %}{{ parameter | paramExample }}{% if not loop.last %}, {% endif %}
+    {% if parameter.required %}{{ parameter.name | caseSnake }} = {{ parameter | paramExample }}{% if not loop.last %}, {% endif %}
 
-{% else %}{{ parameter | paramExample }}{% if not loop.last %}, {% endif %} # optional
+{% else %}{{ parameter.name | caseSnake }} = {{ parameter | paramExample }}{% if not loop.last %}, {% endif %} # optional
 {% endif %}{% endfor %}
 )
+

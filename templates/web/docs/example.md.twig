@@ -20,10 +20,10 @@ client
 {% if loop.first %}
 
     {% endif %}{% if parameter.required %}
-    {{ parameter | paramExample }}{% if not loop.last %}, {% endif %}
+    {{ parameter | paramExample }}{% if not loop.last %}, {% endif %} // {{parameter.name}}
     
     {% else %}
-    {{ parameter | paramExample }}{% if not loop.last %}, {% endif %} // optional
+    {{ parameter | paramExample }}{% if not loop.last %}, {% endif %} // {{parameter.name}} (optional)
     {% endif %}{% endfor %});
 
 {% if method.type == 'webAuth' %}{% elseif method.type == 'location' %}console.log(result); // Resource URL{% else %}promise.then(function (response) {

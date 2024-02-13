@@ -22,8 +22,8 @@ ${{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}($client{%
 
 $result = ${{ service.name | caseCamel }}->{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if loop.first %} 
 {% endif %}
-    {% if parameter.required %}{{ parameter | paramExample }}{% if not loop.last %}, {% endif %}
+    {% if parameter.required %}{{ parameter.name }}: {{ parameter | paramExample }}{% if not loop.last %}, {% endif %}
 
-{% else %}{{ parameter | paramExample }}{% if not loop.last %}, {% endif %} // optional
+{% else %}{{ parameter.name }}: {{ parameter | paramExample }}{% if not loop.last %}, {% endif %} // optional
 {% endif %}{% endfor %}
 );

@@ -26,10 +26,10 @@ Client client = new Client(context)
 
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
-    {{ parameter | paramExample }}{% if not loop.last %},{% endif %}
+    {{ parameter | paramExample }}{% if not loop.last %},{% endif %} // {{parameter.name}}
 
 {% else %}
-    {{ parameter | paramExample }}{% if not loop.last %},{% endif %} // optional
+    {{ parameter | paramExample }}{% if not loop.last %},{% endif %} // {{parameter.name}} (optional)
 {% endif %}
 {% if loop.last %}
     new CoroutineCallback<>((result, error) -> {

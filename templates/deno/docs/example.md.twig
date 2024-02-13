@@ -22,10 +22,10 @@ const promise = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% 
 {% if loop.first %}
 
     {% endif %}{% if parameter.required %}
-    {{ parameter | paramExample }}{% if not loop.last %}, {% endif %}
+    {{ parameter | paramExample }}{% if not loop.last %}, {% endif %} // {{parameter.name}}
     
     {% else %}
-    {{ parameter | paramExample }}{% if not loop.last %}, {% endif %} // optional
+    {{ parameter | paramExample }}{% if not loop.last %}, {% endif %} // {{parameter.name}} (optional)
     {% endif %}{% endfor %});
 
 promise.then(function (response) {
