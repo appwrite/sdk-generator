@@ -1,4 +1,4 @@
-import {{ '{' }} Client, {{service.name | caseUcfirst}} {{ '}' }} from "{{ language.params.npmPackage }}";
+import {{ '{' }} Client, {{service.name | caseUcfirst}} {{ '}' }} from "{{ spec.title | caseDash }}";
 
 const client = new Client();
 
