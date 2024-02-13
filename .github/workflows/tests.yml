@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         php-version: ['8.1']
-        sdk: [Android11Java8, Android11Java11, Android12Java8, Android12Java11, CLINode14, CLINode16, CLINode18, DartBeta, DartStable, Deno1193, Deno1303, DotNet60, DotNet70, FlutterStable, FlutterBeta, Go112, Go118, KotlinJava8, KotlinJava11, KotlinJava17, Node12, Node14, Node16, PHP74, PHP80, Python38, Python39, Python310, Ruby27, Ruby30, Ruby31, AppleSwift55, Swift55, WebChromium, WebNode]
+        sdk: [Android11Java8, Android11Java11, Android12Java8, Android12Java11, CLINode16, CLINode18, DartBeta, DartStable, Deno1193, Deno1303, DotNet60, DotNet70, FlutterStable, FlutterBeta, Go112, Go118, KotlinJava8, KotlinJava11, KotlinJava17, Node12, Node14, Node16, PHP74, PHP80, Python38, Python39, Python310, Ruby27, Ruby30, Ruby31, AppleSwift55, Swift55, WebChromium, WebNode]
 
     steps:
       - name: Checkout repository
