@@ -20,6 +20,8 @@ val {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client)
 {% if parameter.required %}
     {{parameter.name}} = {{ parameter | paramExample }}{% if not loop.last %},{% endif %}
 
+{% else %}
+    {{parameter.name}} = {{ parameter | paramExample }}{% if not loop.last %},{% endif %} // optional
 {% endif %}
 {% if loop.last %}
 )

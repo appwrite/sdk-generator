@@ -16,10 +16,17 @@ client
     .set{{header}}('{{node[header]['x-appwrite']['demo']}}') // {{node[header].description}}
 {% endfor %}
 {% endfor %};
-
 {% endif %}
 
-let promise = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
+const promise = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+{% if loop.first %}
+
+    {% endif %}{% if parameter.required %}
+    {{ parameter | paramExample }}{% if not loop.last %}, {% endif %}
+    
+    {% else %}
+    {{ parameter | paramExample }}{% if not loop.last %}, {% endif %} // optional
+    {% endif %}{% endfor %});
 
 promise.then(function (response) {
     console.log(response);

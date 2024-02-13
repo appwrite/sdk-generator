@@ -28,6 +28,8 @@ Client client = new Client(context)
 {% if parameter.required %}
     {{ parameter | paramExample }}{% if not loop.last %},{% endif %}
 
+{% else %}
+    {{ parameter | paramExample }}{% if not loop.last %},{% endif %} // optional
 {% endif %}
 {% if loop.last %}
     new CoroutineCallback<>((result, error) -> {

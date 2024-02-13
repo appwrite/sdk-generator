@@ -15,4 +15,6 @@ var {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client
 {% if method.method != 'delete' %}{% if method.type == 'location' %}byte[]{% else %}{{ method.responseModel | caseUcfirst | overrideIdentifier }}{% endif %} result = {% endif %}await {{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}({% if method.parameters.all | length == 0 %});{% endif %}
 {% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %},{% endif %}
 
-    {{ parameter.name }}: {{ parameter | paramExample }}{% endif %}{% endfor %}{% if method.parameters.all | length > 0 %});{% endif %}
+    {{ parameter.name }}: {{ parameter | paramExample }}{% if loop.last | length > 0 %});{% endif %}{% else %}
+    
+    {{ parameter.name }}: {{ parameter | paramExample }}{% if loop.last | length > 0 %});{% endif %} // optional{% endif %}{% endfor %}
