@@ -204,7 +204,16 @@ abstract class Base extends TestCase
 
         echo \implode("\n", $output);
 
-        $this->assertEquals([], \array_diff($this->expectedOutput, $output));
+        foreach ($this->expectedOutput as $index => $expected) {
+            if (\str_starts_with($expected, '{')) {
+                $this->assertEquals(
+                    \json_decode($expected, true),
+                    \json_decode($output[$index], true)
+                );
+            } else {
+                $this->assertEquals($expected, $output[$index]);
+            }
+        }
     }
 
     private function rmdirRecursive($dir): void
