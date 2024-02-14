@@ -5,7 +5,6 @@ enum QueryValue: Codable {
     case int(Int)
     case double(Double)
     case bool(Bool)
-    case query(Query)
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -18,8 +17,6 @@ enum QueryValue: Codable {
             self = .double(doubleValue)
         } else if let boolValue = try? container.decode(Bool.self) {
             self = .bool(boolValue)
-        } else if let queryValue = try? container.decode(Query.self) {
-            self = .query(queryValue)
         } else {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "QueryValue cannot be decoded")
         }
@@ -35,8 +32,6 @@ enum QueryValue: Codable {
         case .double(let value):
             try container.encode(value)
         case .bool(let value):
-            try container.encode(value)
-        case .query(let value):
             try container.encode(value)
         }
     }
@@ -66,15 +61,13 @@ public struct Query : Codable, CustomStringConvertible {
         case let valueArray as [QueryValue]:
             return valueArray
         case let stringArray as [String]:
-            return stringArray.map { QueryValue.string($0) }
+            return stringArray.map { .string($0) }
         case let intArray as [Int]:
-            return intArray.map { QueryValue.int($0) }
+            return intArray.map { .int($0) }
         case let doubleArray as [Double]:
-            return doubleArray.map { QueryValue.double($0) }
+            return doubleArray.map { .double($0) }
         case let boolArray as [Bool]:
-            return boolArray.map { QueryValue.bool($0) }
-        case let queryArray as [Query]:
-            return queryArray.map { QueryValue.query($0) }
+            return boolArray.map { .bool($0) }
         case let stringValue as String:
             return [.string(stringValue)]
         case let intValue as Int:
@@ -83,13 +76,11 @@ public struct Query : Codable, CustomStringConvertible {
             return [.double(doubleValue)]
         case let boolValue as Bool:
             return [.bool(boolValue)]
-        case let queryValue as Query:
-            return [.query(queryValue)]
         default:
             return nil
         }
     }
-  
+
     enum CodingKeys: String, CodingKey {
         case method
         case attribute
@@ -121,7 +112,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "equal",
             attribute: attribute,
-            values: [value]
+            values: Query.parseValue(value)
         ).description
     }
 
@@ -129,7 +120,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "notEqual",
             attribute: attribute,
-            values: [value]
+            values: Query.parseValue(value)
         ).description
     }
 
@@ -137,7 +128,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "lessThan",
             attribute: attribute,
-            values: [value]
+            values: Query.parseValue(value)
         ).description
     }
 
@@ -145,7 +136,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "lessThanEqual",
             attribute: attribute,
-            values: [value]
+            values: Query.parseValue(value)
         ).description
     }
 
@@ -153,7 +144,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "greaterThan",
             attribute: attribute,
-            values: [value]
+            values: Query.parseValue(value)
         ).description
     }
 
@@ -161,7 +152,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "greaterThanEqual",
             attribute: attribute,
-            values: [value]
+            values: Query.parseValue(value)
         ).description
     }
 
@@ -280,7 +271,7 @@ public struct Query : Codable, CustomStringConvertible {
         return Query(
             method: "contains",
             attribute: attribute,
-            values: value
+            values: Query.parseValue(value)
         ).description
     }
 
@@ -312,5 +303,13 @@ public struct Query : Codable, CustomStringConvertible {
             method: "and",
             values: decodedQueries
         ).description
+    }
+
+    private static func parseValue(_ value: Any) -> [Any] {
+        if let value = value as? [Any] {
+            return value
+        } else {
+            return [value]
+        }
     }
 }
