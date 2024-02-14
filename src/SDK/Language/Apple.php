@@ -246,16 +246,6 @@ class Apple extends Swift
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/WebSockets/WebSocketClientError.swift',
                 'template'      => '/swift/Sources/WebSockets/WebSocketClientError.swift.twig',
             ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/{{ spec.title | caseUcfirst }}Delegate.swift',
-                'template'      => '/swift/Sources/Delegate.swift.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/NotificationHandler.swift',
-                'template'      => '/swift/Sources/NotificationHandler.swift.twig',
-            ],
             // Config for project example-swiftui
             [
                 'scope'         => 'default',
