@@ -147,11 +147,6 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/json/PreciseNumberAdapter.kt',
-                'template'      => '/android/library/src/main/java/io/package/json/PreciseNumberAdapter.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/InputFile.kt',
                 'template'      => '/android/library/src/main/java/io/package/models/InputFile.kt.twig',
             ],
