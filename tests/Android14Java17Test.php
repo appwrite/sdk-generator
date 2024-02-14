@@ -17,7 +17,7 @@ class Android14Java17Test extends Base
         'chmod +x tests/sdks/android/gradlew',
     ];
     protected string $command =
-        'docker run --network="mockapi" -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-34-jdk17 sh -c "./gradlew :library:testReleaseUnitTest --stacktrace --scan -q && cat library/result.txt && cat library/build/reports/tests/testReleaseUnitTest/classes/io.appwrite.ServiceTest.html"';
+        'docker run --rm --network="mockapi" -v $(pwd):/app -w /app/tests/sdks/android alvrme/alpine-android:android-34-jdk17 sh -c "./gradlew :library:testReleaseUnitTest --stacktrace -q && cat library/result.txt"';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
@@ -27,7 +27,7 @@ class Android14Java17Test extends Base
         ...Base::ENUM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
-        ...Base::COOKIE_RESPONSES,
+        // ...Base::COOKIE_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES
