@@ -5,7 +5,7 @@ namespace Tests;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\Language\CLI;
 
-class CLINode14Test extends Base
+class CLINode18Test extends Base
 {
     protected string $sdkName = 'cli';
     protected string $sdkPlatform = 'server';
@@ -15,11 +15,11 @@ class CLINode14Test extends Base
     protected string $language = 'cli';
     protected string $class = 'Appwrite\SDK\Language\CLI';
     protected array $build = [
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli node:16-alpine npm install',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli node:18-alpine npm install',
         'cp tests/languages/cli/test.js tests/sdks/cli/test.js'
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/cli node:14-alpine node test.js';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/cli node:18-alpine node test.js';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
