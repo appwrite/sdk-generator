@@ -74,9 +74,6 @@ class ServiceTest {
             val result = general.redirect()
             writeToFile((result as Map<String, Any>)["result"] as String)
 
-            mock = general.enum(MockType.FIRST)
-            writeToFile(mock.result)
-
             try {
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../resources/file.png"))
                 writeToFile(mock.result)

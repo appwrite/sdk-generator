@@ -49,6 +49,10 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/enum:passed',
     ];
 
+    protected const UPLOAD_RESPONSE = [
+        'POST:/v1/mock/tests/general/upload:passed',
+    ];
+
     protected const UPLOAD_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
