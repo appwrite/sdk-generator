@@ -1,5 +1,6 @@
 package {{ sdk.namespace | caseDot }}.android.ui.accounts
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -9,7 +10,6 @@ import androidx.activity.ComponentActivity
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Observer
 import {{ sdk.namespace | caseDot }}.android.R
 import {{ sdk.namespace | caseDot }}.android.databinding.FragmentAccountBinding
 
@@ -31,11 +31,22 @@ class AccountsFragment : Fragment() {
             false
         )
         binding.lifecycleOwner = viewLifecycleOwner
+
         binding.login.setOnClickListener{
-            viewModel.onLogin(binding.email.text, binding.password.text)
+            viewModel.onLogin(
+                binding.email.text.toString(),
+                binding.password.text.toString(),
+                context
+                    ?.getSharedPreferences("example", Context.MODE_PRIVATE)
+                    ?.getString("fcmToken", null) ?: ""
+            )
         }
         binding.signup.setOnClickListener{
-            viewModel.onSignup(binding.email.text, binding.password.text, binding.name.text)
+            viewModel.onSignup(
+                binding.email.text.toString(),
+                binding.password.text.toString(),
+                binding.name.text.toString()
+            )
         }
         binding.getUser.setOnClickListener{
             viewModel.getUser()
