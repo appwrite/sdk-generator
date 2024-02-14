@@ -15,29 +15,43 @@ import kotlinx.coroutines.launch
 
 class AccountsViewModel : ViewModel() {
 
-    private val _error = MutableLiveData<Event<Exception>>().apply {
-        value = null
-    }
+    private val _error = MutableLiveData<Event<Exception>>().apply { value = null }
     val error: LiveData<Event<Exception>> = _error
 
-    private val _response = MutableLiveData<Event<String>>().apply {
-        value = null
-    }
+    private val _response = MutableLiveData<Event<String>>().apply { value = null }
     val response: LiveData<Event<String>> = _response
 
-    private val accountService by lazy {
-        Account(client)
+    private val _target = MutableLiveData<Event<Target>>().apply { value = null }
+    val target: LiveData<Event<Target>> = _target
+
+    private val account by lazy {
+        val account = Account(client)
+
+        MessagingService.account = account
+
+        account
     }
 
-    fun onLogin(email: Editable, password: Editable) {
+    fun onLogin(
+        email: String,
+        password: String,
+        token: String?,
+    ) {
         viewModelScope.launch {
             try {
-                val session = accountService.createEmailPasswordSession(
-                    email.toString(),
-                    password.toString()
+                val session = account.createEmailPasswordSession(
+                    email,
+                    password
                 )
+
+                if (token != null) {
+                    val target = account.createPushTarget(ID.unique(), token)
+
+                    _target.postValue(Event(target))
+                }
+
                 _response.postValue(Event(session.toJson()))
-            } catch (e: {{ spec.title | caseUcfirst }}Exception) {
+            } catch (e: AppwriteException) {
                 _error.postValue(Event(e))
             }
         }

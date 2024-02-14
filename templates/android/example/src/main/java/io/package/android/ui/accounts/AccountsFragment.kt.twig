@@ -70,6 +70,16 @@ class AccountsFragment : Fragment() {
             }
         }
 
+        viewModel.target.observe(viewLifecycleOwner) { event ->
+            event?.getContentIfNotHandled()?.let {
+                context
+                    ?.getSharedPreferences("example", Context.MODE_PRIVATE)
+                    ?.edit()
+                    ?.putString("targetId", it.id)
+                    ?.apply()
+            }
+        }
+
         return binding.root
     }
 }
