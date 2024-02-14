@@ -49,6 +49,10 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/enum:passed',
     ];
 
+    protected const UPLOAD_RESPONSE = [
+        'POST:/v1/mock/tests/general/upload:passed',
+    ];
+
     protected const UPLOAD_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
@@ -204,23 +208,14 @@ abstract class Base extends TestCase
 
         echo \implode("\n", $output);
 
-        # Some languages deserialize JSON with sorted keys, other not.
-        # We use this custom assertion to normalise the lines with JSON before comparison.
-        $this->assertEqualsWithJsonLines($this->expectedOutput, $output);
-    }
-
-    private function assertEqualsWithJsonLines($expectedLines, $actualLines)
-    {
-        for ($i = 0; $i < \count($expectedLines); $i++) {
-            $this->assertArrayHasKey($i, $actualLines, "Missing line {$i}: {$expectedLines[$i]}");
-
-            $expectedLine = $expectedLines[$i];
-            $actualLine = $actualLines[$i];
-
-            if (\str_starts_with($expectedLine, '{')) {
-                $this->assertEquals(\json_decode($expectedLine), \json_decode($actualLine));
+        foreach ($this->expectedOutput as $index => $expected) {
+            if (\str_starts_with($expected, '{')) {
+                $this->assertEquals(
+                    \json_decode($expected, true),
+                    \json_decode($output[$index], true)
+                );
             } else {
-                $this->assertEquals($expectedLine, $actualLine);
+                $this->assertEquals($expected, $output[$index]);
             }
         }
     }

@@ -17,10 +17,16 @@ namespace Appwrite
             this.method = method;
             this.attribute = attribute;
 
-            if (values == null || values is IList)
+            if (values is IList valuesList)
             {
-                this.values = (List<object>?)values;
-            } else {
+                this.values = new List<object>();
+                foreach (var value in valuesList)
+                {
+                    this.values.Add(value); // Automatically boxes if value is a value type
+                }
+            }
+            else if (values != null)
+            {
                 this.values = new List<object> { values };
             }
         }

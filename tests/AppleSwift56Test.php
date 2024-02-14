@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class AppleSwift55Test extends Base
+class AppleSwift56Test extends Base
 {
     protected string $sdkName = 'swift';
     protected string $sdkPlatform = 'client';
