@@ -196,18 +196,6 @@ class Client @JvmOverloads constructor(
     }
 
     /**
-    * Set push provider ID
-    *
-    * @param endpoint
-    *
-    * @return this
-    */
-    fun setPushProviderId(providerId: String): Client {
-        NotificationHandler.providerId = providerId
-        return this
-    }
-
-    /**
      * Add Header
      * 
      * @param key
