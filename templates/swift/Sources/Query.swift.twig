@@ -5,6 +5,7 @@ enum QueryValue: Codable {
     case int(Int)
     case double(Double)
     case bool(Bool)
+    case query(Query)
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -17,6 +18,8 @@ enum QueryValue: Codable {
             self = .double(doubleValue)
         } else if let boolValue = try? container.decode(Bool.self) {
             self = .bool(boolValue)
+        } else if let queryValue = try? container.decode(Query.self) {
+            self = .query(queryValue)
         } else {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "QueryValue cannot be decoded")
         }
@@ -32,6 +35,8 @@ enum QueryValue: Codable {
         case .double(let value):
             try container.encode(value)
         case .bool(let value):
+            try container.encode(value)
+        case .query(let value):
             try container.encode(value)
         }
     }
@@ -68,6 +73,8 @@ public struct Query : Codable, CustomStringConvertible {
             return doubleArray.map { .double($0) }
         case let boolArray as [Bool]:
             return boolArray.map { .bool($0) }
+        case let queryArray as [Query]:
+            return queryArray.map { .query($0) }
         case let stringValue as String:
             return [.string(stringValue)]
         case let intValue as Int:
@@ -76,6 +83,8 @@ public struct Query : Codable, CustomStringConvertible {
             return [.double(doubleValue)]
         case let boolValue as Bool:
             return [.bool(boolValue)]
+        case let queryValue as Query:
+            return [.query(queryValue)]
         default:
             return nil
         }
