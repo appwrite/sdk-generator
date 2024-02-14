@@ -1,15 +1,15 @@
 package {{ sdk.namespace | caseDot }}.json
 
+import com.google.gson.Gson
 import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonToken.*
 import com.google.gson.stream.JsonWriter
-import {{ sdk.namespace | caseDot }}.extensions.gson
 import java.io.IOException
 
 internal class PreciseNumberAdapter : TypeAdapter<Any?>() {
 
-    private val delegate = gson.getAdapter(Any::class.java)
+    private val delegate = Gson().getAdapter(Any::class.java)
 
     @Throws(IOException::class)
     override fun write(out: JsonWriter?, value: Any?) {
