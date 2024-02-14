@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class Swift55Test extends Base
+class Swift56Test extends Base
 {
     protected string $sdkName = 'swift';
     protected string $sdkPlatform = 'server';
@@ -16,7 +16,7 @@ class Swift55Test extends Base
         'cp tests/languages/swift/Tests.swift tests/sdks/swift/Tests/AppwriteTests/Tests.swift',
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/swift swiftarm/swift:5.5.2-focal-multi-arch swift test';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/swift swift:5.6 swift test';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

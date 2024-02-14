@@ -33,7 +33,7 @@ class Apple extends Swift
             [
                 'scope'         => 'default',
                 'destination'   => 'Package.swift',
-                'template'      => 'swift/Package.swift.twig',
+                'template'      => 'apple/Package.swift.twig',
             ],
             [
                 'scope'         => 'method',
