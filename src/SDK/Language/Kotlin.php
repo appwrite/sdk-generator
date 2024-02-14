@@ -368,7 +368,7 @@ class Kotlin extends Language
             [
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/coroutines/Callback.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/coroutines/Callback.kt.twig',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/coroutines/Callback.kt.twig',
             ],
             [
                 'scope'         => 'default',

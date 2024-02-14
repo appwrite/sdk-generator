@@ -2,6 +2,7 @@ package {{ sdk.namespace | caseDot }}.services
 
 import android.net.Uri
 import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.Service
 {% if spec.definitions is not empty %}
 import {{ sdk.namespace | caseDot }}.models.*
 {% endif %}
