@@ -70,7 +70,6 @@
     }
 {% endif %}
 {% endfor %}
-
 {% if method.type == 'location' %}
     payload['project'] = localConfig.getProject().projectId
     payload['key'] = globalConfig.getKey();
