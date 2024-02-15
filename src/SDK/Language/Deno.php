@@ -134,11 +134,10 @@ class Deno extends JS
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
-        if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
-        }
         if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+            return \implode(' | ', \array_map(function ($value) {
+                return "\"$value\"";
+            }, $parameter['enumValues']));
         }
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'number',

@@ -15,7 +15,6 @@ use Twig\TemplateWrapper;
 use Twig\TwigFilter;
 use MatthiasMullie\Minify;
 use Twig_Error_Loader;
-use Twig_Error_Runtime;
 use Twig_Error_Syntax;
 
 class SDK
@@ -545,7 +544,7 @@ class SDK
                 'contactURL' => $this->spec->getContactURL(),
                 'contactEmail' => $this->spec->getContactEmail(),
                 'services' => $this->spec->getServices(),
-                'enums' => $this->spec->getEnumNames(),
+                'enums' => $this->spec->getEnums(),
                 'definitions' => $this->spec->getDefinitions(),
                 'global' => [
                     'headers' => $this->spec->getGlobalHeaders(),
@@ -636,24 +635,10 @@ class SDK
                     }
                     break;
                 case 'enum':
-                    foreach ($this->spec->getServices() as $key => $service) {
-                        $methods = $this->spec->getMethods($key);
+                    foreach ($this->spec->getEnums() as $key => $enum) {
+                        $params['enum'] = $enum;
 
-                        foreach ($methods as $method) {
-                            $parameters = $method['parameters']['all'];
-
-                            foreach ($parameters as $parameter) {
-                                    // Check if the enum field is defined
-                                if (isset($parameter['enumValues'])) {
-                                    $params['enum'] = [
-                                        'name' =>  $parameter['enumName'] ?? $parameter['name'],
-                                        'enum' => $parameter['enumValues'],
-                                        'keys' => $parameter['enumKeys'],
-                                    ];
-                                    $this->render($template, $destination, $block, $params, $minify);
-                                }
-                            }
-                        }
+                        $this->render($template, $destination, $block, $params, $minify);
                     }
                     break;
             }

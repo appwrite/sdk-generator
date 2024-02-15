@@ -357,7 +357,7 @@ class Swagger2 extends Spec
     /**
      * @return array
      */
-    public function getEnumNames(): array
+    public function getEnums(): array
     {
         $list = [];
 
@@ -365,13 +365,20 @@ class Swagger2 extends Spec
             foreach ($this->getMethods($key) as $method) {
                 if (isset($method['parameters']) && is_array($method['parameters'])) {
                     foreach ($method['parameters']['all'] as $parameter) {
-                        if (isset($parameter['enumValues'])) {
-                            $list[] = $parameter['enumName'] ?? $parameter['name'];
+                        $enumName = $parameter['enumName'] ?? $parameter['name'];
+
+                        if (isset($parameter['enumValues']) && !\in_array($enumName, $list)) {
+                            $list[$enumName] = [
+                                'name' => $enumName,
+                                'enum' => $parameter['enumValues'],
+                                'keys' => $parameter['enumKeys'],
+                            ];
                         }
                     }
                 }
             }
         }
-        return  \array_values(\array_unique($list));
+
+        return \array_values($list);
     }
 }

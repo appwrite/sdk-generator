@@ -166,9 +166,9 @@ abstract class Spec extends ArrayObject
     }
 
     /**
-     * Get EnumNames
+     * Get Enums
      *
      * @return array
      */
-    abstract public function getEnumNames();
+    abstract public function getEnums();
 }

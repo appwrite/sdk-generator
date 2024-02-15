@@ -49,7 +49,7 @@ async function start() {
     console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip file upload test on Node.js
     console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip big file upload test on Node.js
 
-    response = await general.enum(MockType.First);
+    response = await general.enum(MockType.FIRST);
     console.log(response.result);
 
     try {

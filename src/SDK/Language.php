@@ -98,12 +98,21 @@ abstract class Language
         return lcfirst($str);
     }
 
-    protected function toSnakeCase($str): string
-    {
-        $str = \preg_replace('/([a-z])([A-Z])/', '$1 $2', $str);
-        $str = \explode(' ', $str);
-        $str = \implode('_', $str);
-        return \strtolower($str);
+    function toSnakeCase($string) {
+        // Replace alternative character sets
+        $string = iconv('UTF-8', 'ASCII//TRANSLIT', $string);
+
+        // Replace seperating characters with underscores
+        // Includes: spaces, dashes, apostrophes, periods and slashes
+        $string = preg_replace('/[ \'.\/-]/', '_', $string);
+
+        // Seperate camelCase with underscores
+        $string = preg_replace_callback('/([a-z])([^a-z_])/', function($matches) {
+            return $matches[1] . '_' . strtolower($matches[2]);
+        }, $string);
+
+        // Remove ignorable characters
+        return preg_replace('/[^a-z0-9_]/', '', strtolower($string));
     }
 
     protected function toUpperSnakeCase($str): string

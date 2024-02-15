@@ -125,11 +125,10 @@ abstract class JS extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
-        if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
-        }
         if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+            return \implode(' | ', \array_map(function ($value) {
+                return "\"$value\"";
+            }, $parameter['enumValues']));
         }
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
@@ -204,7 +203,7 @@ abstract class JS extends Language
     {
         return [
             new TwigFilter('caseEnumKey', function (string $value) {
-                return $this->toPascalCase($value);
+                return $this->toUpperSnakeCase($value);
             }),
         ];
     }
