@@ -37,9 +37,9 @@ try {
     }
 
     // Leave the platform you want uncommented
- //   $platform = 'client';
-    // $platform = 'console';
-     $platform = 'server';
+//    $platform = 'client';
+     $platform = 'console';
+    // $platform = 'server';
 
     $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/1.5.x/app/config/specs/swagger2-latest-{$platform}.json");
 
@@ -127,7 +127,7 @@ try {
     $sdk  = new SDK(new Node(), new Swagger2($spec));
 
     $sdk
-        ->setName('luke-node-appwrite-enums')
+        ->setName('NAME')
         ->setDescription('Repo description goes here')
         ->setShortDescription('Repo short description goes here')
         ->setURL('https://example.com')
