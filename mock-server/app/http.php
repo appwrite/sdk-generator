@@ -82,18 +82,6 @@ App::get('/v1/mock/tests/foo')
     ->action(function ($x, $y, $z) {
     });
 
-// Version Route for CLI
-App::get('/v1/health/version')
-    ->desc('Get version')
-    ->groups(['api', 'health'])
-    ->label('scope', 'public')
-    ->label('sdk.response.code', Response::STATUS_CODE_OK)
-    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
-    ->inject('response')
-    ->action(function (UtopiaSwooleResponse $response) {
-        $response->json([ 'version' => '1.0.0' ]);
-    });
-
 App::post('/v1/mock/tests/foo')
     ->desc('Post Foo')
     ->groups(['mock'])

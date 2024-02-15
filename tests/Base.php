@@ -128,14 +128,20 @@ abstract class Base extends TestCase
     public function setUp(): void
     {
         $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
-        array_push($this->expectedOutput, $headers);
+
+        $this->expectedOutput[] = $headers;
 
         // Figure out if mock-server is running
-        $isMockAPIRunning = (strlen(exec('docker ps | grep mock-server')) > 0);
+        $isMockAPIRunning = \strlen(\exec('docker ps | grep mock-server')) > 0;
 
         if (!$isMockAPIRunning) {
             echo "Starting Mock API Server";
-            exec('cd ./mock-server && docker-compose up -d --force-recreate');
+
+            \exec('
+                cd ./mock-server && \
+                docker-compose build && \
+                docker compose up -d --force-recreate
+            ');
         }
     }
 
