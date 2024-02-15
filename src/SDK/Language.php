@@ -98,7 +98,8 @@ abstract class Language
         return lcfirst($str);
     }
 
-    protected function toSnakeCase($str): string {
+    protected function toSnakeCase($str): string 
+    {
         // Replace alternative character sets
         $str = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
 
