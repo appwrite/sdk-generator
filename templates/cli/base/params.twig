@@ -34,6 +34,12 @@
             file: 'code.tar.gz'
         }, files);
 
+    let archivePath = fs.realpathSync('code.tar.gz')
+    if (typeof archivePath !== 'undefined') {
+        payload['{{ parameter.name }}'] = archivePath;
+       {{ parameter.name | caseCamel | escapeKeyword }} = archivePath;
+    }
+
 {% endif %}
     const filePath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
     const nodeStream = fs.createReadStream(filePath);
