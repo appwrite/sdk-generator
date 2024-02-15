@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class Deno1193Test extends Base
+class Deno1404Test extends Base
 {
     protected string $sdkName = 'deno';
     protected string $sdkPlatform = 'server';
@@ -13,7 +13,7 @@ class Deno1193Test extends Base
     protected string $class = 'Appwrite\SDK\Language\Deno';
     protected array $build = [];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app denoland/deno:alpine-1.19.3 run --allow-net --allow-read tests/languages/deno/tests.ts';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app denoland/deno:alpine-1.40.4 run --allow-net --allow-read tests/languages/deno/tests.ts';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
