@@ -7,6 +7,9 @@ module {{ spec.title | caseUcfirst }}
 {% for property in definition.properties %}
             attr_reader :{{ property.name | caseSnake | escapeKeyword }}
 {% endfor %}
+{% if definition.additionalProperties %}
+            attr_reader :data
+{% endif %}
 
             def initialize(
 {% for property in definition.properties %}
@@ -32,7 +35,7 @@ module {{ spec.title | caseUcfirst }}
 
 {% endfor %}
 {% if definition.additionalProperties %}
-                    data: map["data"]
+                    data: map
 {% endif %}
                 )
             end
