@@ -22,7 +22,6 @@ services:
 
 networks:
   mockapi:
-    name: mockapi
 
 volumes:
   mockapi-cache:
