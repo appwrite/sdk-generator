@@ -203,6 +203,11 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/OS.swift',
+                'template'      => '/apple/Sources/OS.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/OAuth/WebAuthComponent.swift',
                 'template'      => '/swift/Sources/OAuth/WebAuthComponent.swift.twig',
             ],
