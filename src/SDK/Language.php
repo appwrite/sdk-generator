@@ -98,7 +98,7 @@ abstract class Language
         return lcfirst($str);
     }
 
-    protected function toSnakeCase($str): string 
+    protected function toSnakeCase($str): string
     {
         // Replace alternative character sets
         $str = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
@@ -108,7 +108,7 @@ abstract class Language
         $str = preg_replace('/[ \'.\/-]/', '_', $str);
 
         // Seperate camelCase with underscores
-        $str = preg_replace_callback('/([a-z])([^a-z_])/', function($matches) {
+        $str = preg_replace_callback('/([a-z])([^a-z_])/', function ($matches) {
             return $matches[1] . '_' . strtolower($matches[2]);
         }, $str);
 
