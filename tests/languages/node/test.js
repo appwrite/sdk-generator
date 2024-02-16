@@ -76,7 +76,7 @@ async function start() {
     response = await general.upload('string', 123, ['string in array'], appwrite.InputFile.fromBuffer(buffer, 'large_file.mp4'))
     console.log(response.result);
 
-    response = await general.enum(MockType.FIRST);
+    response = await general.enum(MockType.First);
     console.log(response.result);
 
     try {

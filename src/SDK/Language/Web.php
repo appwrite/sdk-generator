@@ -179,10 +179,11 @@ class Web extends JS
 
     public function getTypeName(array $parameter, array $method = []): string
     {
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
+        }
         if (!empty($parameter['enumValues'])) {
-            return \implode(' | ', \array_map(function ($value) {
-                return "\"$value\"";
-            }, $parameter['enumValues']));
+            return \ucfirst($parameter['name']);
         }
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
@@ -340,7 +341,7 @@ class Web extends JS
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),
             new TwigFilter('caseEnumKey', function ($value) {
-                return $this->toUpperSnakeCase($value);
+                return $this->toPascalCase($value);
             }),
         ];
     }

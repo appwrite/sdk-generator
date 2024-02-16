@@ -110,7 +110,7 @@ async function start() {
   // @ts-ignore
   console.log(response.result);
 
-  response = await general.enum(appwrite.MockType.FIRST);
+  response = await general.enum(appwrite.MockType.First);
   // @ts-ignore
   console.log(response.result);
 
