@@ -37,7 +37,7 @@ function convertReadStreamToReadableStream(readStream) {
 
 const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description(commandDescriptions['{{ service.name | caseLower }}']).configureHelp({
     helpWidth: process.stdout.columns || 80
-  })
+})
 
 {% for method in service.methods %}
 /**
@@ -51,7 +51,7 @@ const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower 
  * @property {CallableFunction} onProgress
 {% endif %}
 {% if method.type == 'location' %}
-* @property {string} destination
+ * @property {string} destination
 {% endif %}
  */
 
@@ -60,18 +60,15 @@ const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower 
  */
 const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}, {% endfor %}parseOutput = true, sdk = undefined{% if 'multipart/form-data' in method.consumes %}, onProgress = () => {}{% endif %}{% if method.type == 'location' %}, destination{% endif %}}) => {
     let client = !sdk ? await {% if service.name == "projects" %}sdkForConsole(){% else %}sdkForProject(){% endif %} : sdk;
-    
     let apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
 {{ include ('cli/base/params.twig') }}
 {% if 'multipart/form-data' in method.consumes %}
-{{ include ('cli/base/requests/file.twig') }}
-{% else %}
+{{ include ('cli/base/requests/file.twig') }}{% else %}
 {{ include('cli/base/requests/api.twig') }}
 {% endif %}
 }
 
 {% endfor %}
-
 {% for method in service.methods %}
 {{service.name | caseLower }}
     .command(`{{ method.name | caseCamel }}`)
@@ -87,11 +84,10 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
     .action(actionRunner({{ service.name | caseLower }}{{ method.name | caseUcfirst }}))
 
 {% endfor %}
-
 module.exports = {
     {{ service.name | caseLower }},
 {% for method in service.methods %}
     {{ service.name | caseLower }}{{ method.name | caseUcfirst }}{% if not loop.last %},{% endif %}
-    
+
 {% endfor %}
 };

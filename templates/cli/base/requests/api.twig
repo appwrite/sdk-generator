@@ -1,5 +1,5 @@
     let response = undefined;
-    
+
     response = await client.call('{{ method.method | caseLower }}', apiPath, {
 {% for parameter in method.parameters.header %}
         '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
@@ -11,8 +11,8 @@
 
 {% if method.type == 'location' %}
     fs.writeFileSync(destination, response);
+
 {% endif %}
-    
     if (parseOutput) {
         parse(response)
         success()
