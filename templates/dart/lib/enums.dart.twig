@@ -2,5 +2,5 @@
 library {{ language.params.packageName }}.enums;
 
 {% for enum in spec.enums %}
-part 'src/enums/{{enum | caseSnake}}.dart';
+part 'src/enums/{{enum.name | caseSnake}}.dart';
 {% endfor %}
