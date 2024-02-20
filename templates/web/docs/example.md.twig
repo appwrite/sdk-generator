@@ -1,4 +1,4 @@
-import {{ '{' }} Client, {{service.name | caseUcfirst}} {{ '}' }} from "{{ language.params.npmPackage }}";
+import {{ '{' }} Client, {{service.name | caseUcfirst}} {{ '}' }} from "{{ spec.title | caseDash }}";
 
 const client = new Client();
 
@@ -16,7 +16,15 @@ client
 {% endif %}
 {% if method.type == 'webAuth' %}// Go to OAuth provider login page
 {% endif %}
-{% if method.type == 'webAuth' %}{% elseif method.type == 'location' %}const result = {% else %}const promise = {% endif %}{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
+{% if method.type == 'webAuth' %}{% elseif method.type == 'location' %}const result = {% else %}const promise = {% endif %}{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
+{% if loop.first %}
+
+    {% endif %}{% if parameter.required %}
+    {{ parameter | paramExample }}{% if not loop.last %}, {% endif %} // {{parameter.name}}
+    
+    {% else %}
+    {{ parameter | paramExample }}{% if not loop.last %}, {% endif %} // {{parameter.name}} (optional)
+    {% endif %}{% endfor %});
 
 {% if method.type == 'webAuth' %}{% elseif method.type == 'location' %}console.log(result); // Resource URL{% else %}promise.then(function (response) {
     console.log(response); // Success

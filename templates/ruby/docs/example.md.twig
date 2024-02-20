@@ -12,6 +12,13 @@ client = Client.new
 
 {{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}.new(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{parameter.name | caseSnake}}:{{ parameter | paramExample }}{% endfor %}{% endif %})
 
-response = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{parameter.name|caseSnake}}: {% if parameter.type == 'file' %}{{ parameter | paramExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% endif %}{% endfor %})
+response = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{% if loop.first %}
+
+{% endif %}
+    {% if parameter.required %}{{parameter.name|caseSnake}}: {% if parameter.type == 'file' %}{{ parameter | paramExample }}{% else %}{{ parameter | paramExample }}{% if not loop.last %}, {% endif %}{% endif %}
+
+{% else %}{{parameter.name|caseSnake}}: {% if parameter.type == 'file' %}{{ parameter | paramExample }}{% else %}{{ parameter | paramExample }}{% if not loop.last %}, {% endif %} # optional
+{% endif %}
+{% endif %}{% endfor %})
 
 puts response.inspect

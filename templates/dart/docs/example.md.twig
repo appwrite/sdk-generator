@@ -23,6 +23,8 @@ void main() { // Init SDK
 {% endif %}
 {% if parameter.required %}
     {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }},
+{% else %}
+    {{ parameter.name | caseCamel | overrideIdentifier }}: {{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }}, // optional
 {% endif %}
 {% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %});
 
