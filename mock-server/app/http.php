@@ -45,13 +45,23 @@ $http
     ->set([
         'worker_num' => $workerNumber,
         'open_http2_protocol' => true,
-        // 'document_root' => __DIR__.'/../public',
-        // 'enable_static_handler' => true,
         'http_compression' => true,
         'http_compression_level' => 6,
         'package_max_length' => $payloadSize,
         'buffer_output_size' => $payloadSize,
     ]);
+
+// Version Route for CLI
+App::get('/v1/health/version')
+    ->desc('Get version')
+    ->groups(['api', 'health'])
+    ->label('scope', 'public')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->json([ 'version' => '1.0.0' ]);
+    });
 
 // Mock Routes
 App::get('/v1/mock/tests/foo')
@@ -70,18 +80,6 @@ App::get('/v1/mock/tests/foo')
     ->param('y', '', new Integer(true), 'Sample numeric param')
     ->param('z', null, new ArrayList(new Text(256), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Sample array param')
     ->action(function ($x, $y, $z) {
-    });
-
-// Version Route for CLI
-App::get('/v1/health/version')
-    ->desc('Get version')
-    ->groups(['api', 'health'])
-    ->label('scope', 'public')
-    ->label('sdk.response.code', Response::STATUS_CODE_OK)
-    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
-    ->inject('response')
-    ->action(function (UtopiaSwooleResponse $response) {
-        $response->json([ 'version' => '1.0.0' ]);
     });
 
 App::post('/v1/mock/tests/foo')

@@ -17,7 +17,7 @@ struct ExampleView: View {
                 .aspectRatio(contentMode: .fit)
                 .frame(height: 200)
 
-            TextField("", text: $viewModel.response)
+            TextField("", text: $viewModel.response, axis: .vertical)
                 .padding()
 
             Button("Login") {

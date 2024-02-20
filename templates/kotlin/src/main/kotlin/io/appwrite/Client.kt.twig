@@ -1,10 +1,8 @@
 package {{ sdk.namespace | caseDot }}
 
-import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
-import {{ sdk.namespace | caseDot }}.json.PreciseNumberAdapter
+import {{ sdk.namespace | caseDot }}.extensions.toJson
 import {{ sdk.namespace | caseDot }}.models.InputFile
 import {{ sdk.namespace | caseDot }}.models.UploadProgress
 import kotlinx.coroutines.CoroutineScope
@@ -46,11 +44,6 @@ class Client @JvmOverloads constructor(
         get() = Dispatchers.Main + job
 
     private val job = Job()
-
-    private val gson = GsonBuilder().registerTypeAdapter(
-        object : TypeToken<Map<String, Any>>(){}.type,
-        PreciseNumberAdapter()
-    ).create()
 
     lateinit var http: OkHttpClient
 
@@ -252,7 +245,8 @@ class Client @JvmOverloads constructor(
             }
             builder.build()
         } else {
-            gson.toJson(filteredParams)
+            filteredParams
+                .toJson()
                 .toRequestBody("application/json".toMediaType())
         }
 
@@ -422,10 +416,8 @@ class Client @JvmOverloads constructor(
                         .use(BufferedReader::readText)
                         
                     val error = if (response.headers["content-type"]?.contains("application/json") == true) {
-                        val map = gson.fromJson<Map<String, Any>>(
-                            body,
-                            object : TypeToken<Map<String, Any>>(){}.type
-                        )
+                        val map = body.fromJson<Map<String, Any>>()
+
                         {{ spec.title | caseUcfirst }}Exception(
                             map["message"] as? String ?: "", 
                             (map["code"] as Number).toInt(),
@@ -464,10 +456,7 @@ class Client @JvmOverloads constructor(
                     it.resume(true as T)
                     return
                 }
-                val map = gson.fromJson<Map<String, Any>>(
-                    body,
-                    object : TypeToken<Map<String, Any>>(){}.type
-                )
+                val map = body.fromJson<Map<String, Any>>()
                 it.resume(
                     converter?.invoke(map) ?: map as T
                 )

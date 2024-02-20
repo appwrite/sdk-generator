@@ -53,8 +53,6 @@ open class Client {
         http = Client.createHTTP()
         addUserAgentHeader()
         addOriginHeader()
-
-        NotificationHandler.shared.client = self
     }
 
     private static func createHTTP(
@@ -88,7 +86,6 @@ open class Client {
                 decompression: .enabled(limit: .none)
             )
         )
-
     }
 
     deinit {
@@ -161,19 +158,6 @@ open class Client {
     ///
     open func setEndpointRealtime(_ endPoint: String) -> Client {
         self.endPointRealtime = endPoint
-
-        return self
-    }
-
-    ///
-    /// Set push provider ID.
-    ///
-    /// @param String endpoint
-    ///
-    /// @return this
-    ///
-    open func setPushProviderId(_ providerId: String) -> Client {
-        NotificationHandler.shared.providerId = providerId
 
         return self
     }

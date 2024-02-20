@@ -49,6 +49,10 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/enum:passed',
     ];
 
+    protected const UPLOAD_RESPONSE = [
+        'POST:/v1/mock/tests/general/upload:passed',
+    ];
+
     protected const UPLOAD_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
@@ -124,14 +128,20 @@ abstract class Base extends TestCase
     public function setUp(): void
     {
         $headers = "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
-        array_push($this->expectedOutput, $headers);
+
+        $this->expectedOutput[] = $headers;
 
         // Figure out if mock-server is running
-        $isMockAPIRunning = (strlen(exec('docker ps | grep mock-server')) > 0);
+        $isMockAPIRunning = \strlen(\exec('docker ps | grep mock-server')) > 0;
 
         if (!$isMockAPIRunning) {
             echo "Starting Mock API Server";
-            exec('cd ./mock-server && docker-compose up -d --force-recreate');
+
+            \exec('
+                cd ./mock-server && \
+                docker-compose build && \
+                docker compose up -d --force-recreate
+            ');
         }
     }
 
@@ -204,26 +214,14 @@ abstract class Base extends TestCase
 
         echo \implode("\n", $output);
 
-        # Some languages deserialize JSON with sorted keys, other not.
-        # We use this custom assertion to normalise the lines with JSON before comparison.
-        $this->assertEqualsWithJsonLines($this->expectedOutput, $output);
-    }
-
-    private function isJsonString(string $str)
-    {
-        return \str_starts_with($str, '{');
-    }
-
-    private function assertEqualsWithJsonLines($expectedLines, $actualLines)
-    {
-        for ($i = 0; $i <= 10; $i++) {
-            $expectedLine = $expectedLines[0];
-            $actualLine = $actualLines[0];
-
-            if ($this->isJsonString($expectedLine)) {
-                $this->assertEquals(\json_decode($expectedLine), \json_decode($actualLine));
+        foreach ($this->expectedOutput as $index => $expected) {
+            if (\str_starts_with($expected, '{')) {
+                $this->assertEquals(
+                    \json_decode($expected, true),
+                    \json_decode($output[$index], true)
+                );
             } else {
-                $this->assertEquals($expectedLine, $actualLine);
+                $this->assertEquals($expected, $output[$index]);
             }
         }
     }

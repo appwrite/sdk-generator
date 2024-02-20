@@ -17,7 +17,7 @@ require_relative '{{ spec.title | caseSnake }}/models/{{ defintion.name | caseSn
 {% endfor %}
 
 {% for enum in spec.enums %}
-require_relative '{{ spec.title | caseSnake }}/enums/{{ enum | caseSnake }}'
+require_relative '{{ spec.title | caseSnake }}/enums/{{ enum.name | caseSnake }}'
 {% endfor %}
 
 {% for service in spec.services %}

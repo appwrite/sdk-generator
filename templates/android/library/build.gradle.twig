@@ -65,9 +65,6 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor")
     implementation("com.google.code.gson:gson:2.10.1")
 
-    api(platform("com.google.firebase:firebase-bom:32.7.0"))
-    api("com.google.firebase:firebase-messaging")
-
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-common-java8:2.7.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
@@ -79,7 +76,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("androidx.test.ext:junit-ktx:1.1.5")
     testImplementation("androidx.test:core-ktx:1.5.0")
-    testImplementation("org.robolectric:robolectric:4.5.1")
+    testImplementation("org.robolectric:robolectric:4.11.1")
     testApi("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.1")
 }
 

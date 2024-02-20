@@ -368,7 +368,7 @@ class Kotlin extends Language
             [
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/coroutines/Callback.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/coroutines/Callback.kt.twig',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/coroutines/Callback.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -385,11 +385,6 @@ class Kotlin extends Language
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/TypeExtensions.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/extensions/TypeExtensions.kt.twig',
                 'minify'        => false,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/json/PreciseNumberAdapter.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/json/PreciseNumberAdapter.kt.twig',
             ],
             [
                 'scope'         => 'default',

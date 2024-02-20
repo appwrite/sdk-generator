@@ -254,4 +254,12 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
 {% endfor %}
   }
 {% endfor %}
+{% for enum in spec.enums %}
+  export const {{ enum.name | caseUcfirst }}: Readonly<{
+{% for value in enum.enum %}
+{% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+    {{ key | caseEnumKey }}: '{{ value }}',
+{% endfor %}
+  }>
+{% endfor %}
 }

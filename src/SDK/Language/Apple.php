@@ -33,7 +33,7 @@ class Apple extends Swift
             [
                 'scope'         => 'default',
                 'destination'   => 'Package.swift',
-                'template'      => 'swift/Package.swift.twig',
+                'template'      => 'apple/Package.swift.twig',
             ],
             [
                 'scope'         => 'method',
@@ -203,6 +203,11 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/OS.swift',
+                'template'      => '/apple/Sources/OS.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/OAuth/WebAuthComponent.swift',
                 'template'      => '/swift/Sources/OAuth/WebAuthComponent.swift.twig',
             ],
@@ -245,16 +250,6 @@ class Apple extends Swift
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/WebSockets/WebSocketClientError.swift',
                 'template'      => '/swift/Sources/WebSockets/WebSocketClientError.swift.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/{{ spec.title | caseUcfirst }}Delegate.swift',
-                'template'      => '/swift/Sources/Delegate.swift.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/NotificationHandler.swift',
-                'template'      => '/swift/Sources/NotificationHandler.swift.twig',
             ],
             // Config for project example-swiftui
             [
@@ -386,6 +381,21 @@ class Apple extends Swift
                 'scope'         => 'default',
                 'destination'   => '/example-swiftui/Tests macOS/Tests_macOS.swift',
                 'template'      => '/swift/example-swiftui/Tests macOS/Tests_macOS.swift',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-swiftui/test (iOS).entitlements',
+                'template'      => '/swift/example-swiftui/test (iOS).entitlements',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-swiftui/test (tvOS).entitlements',
+                'template'      => '/swift/example-swiftui/test (tvOS).entitlements',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-swiftui/test (watchOS).entitlements',
+                'template'      => '/swift/example-swiftui/test (watchOS).entitlements',
             ],
             // Config for project example-uikit
             [
