@@ -382,6 +382,21 @@ class Apple extends Swift
                 'destination'   => '/example-swiftui/Tests macOS/Tests_macOS.swift',
                 'template'      => '/swift/example-swiftui/Tests macOS/Tests_macOS.swift',
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-swiftui/test (iOS).entitlements',
+                'template'      => '/swift/example-swiftui/test (iOS).entitlements',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-swiftui/test (tvOS).entitlements',
+                'template'      => '/swift/example-swiftui/test (tvOS).entitlements',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example-swiftui/test (watchOS).entitlements',
+                'template'      => '/swift/example-swiftui/test (watchOS).entitlements',
+            ],
             // Config for project example-uikit
             [
                 'scope'         => 'default',
