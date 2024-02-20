@@ -1,6 +1,6 @@
 const { exec, execSync } = require('child_process');
 
-execSync("node index client --endpoint 'https://qa.appwrite.org/v1' --projectId console --key=35y3h5h345 --selfSigned true", { stdio: 'inherit' });
+execSync("node index client --endpoint 'http://mockapi/v1' --projectId console --key=35y3h5h345 --selfSigned true", { stdio: 'inherit' });
 
 var output;
 console.log('\nTest Started');

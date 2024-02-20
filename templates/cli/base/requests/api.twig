@@ -1,0 +1,21 @@
+    let response = undefined;
+
+    response = await client.call('{{ method.method | caseLower }}', apiPath, {
+{% for parameter in method.parameters.header %}
+        '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+        '{{ key }}': '{{ header }}',
+{% endfor %}
+    }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+
+{% if method.type == 'location' %}
+    fs.writeFileSync(destination, response);
+
+{% endif %}
+    if (parseOutput) {
+        parse(response)
+        success()
+    }
+    
+    return response;
