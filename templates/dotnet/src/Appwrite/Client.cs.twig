@@ -54,7 +54,7 @@ namespace {{ spec.title | caseUcfirst }}
         public Client(
             string endpoint = "{{spec.endpoint}}",
             bool selfSigned = false,
-            HttpClient? http = null
+            HttpClient? http = null,
             HttpClient? httpForRedirect = null)
         {
             _endpoint = endpoint;
@@ -261,7 +261,7 @@ namespace {{ spec.title | caseUcfirst }}
             Dictionary<string, object?> parameters,
             Func<Dictionary<string, object>, T>? convert = null) where T : class
         {
-            var request = this.PrepareRequest(method, path, headers, parameters)
+            var request = this.PrepareRequest(method, path, headers, parameters);
 
             var response = await _http.SendAsync(request);
             var code = (int)response.StatusCode;
