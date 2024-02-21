@@ -187,7 +187,9 @@ class ClientIO extends ClientBase with ClientMixin {
 
   @override
   Future<String?> webAuth(Uri url) async {
-    final response = await _httpClient.get(url, followRedirects: false);
+    final request = http.Request('GET', url);
+    request.followRedirects = false;
+    final response = await _httpClient.send(request);
     return response.headers['location'];
   }
 
