@@ -1,4 +1,4 @@
-            return _client.Call<string>(
+            return _client.Redirect(
                 method: "{{ method.method | caseUpper }}",
                 path: apiPath,
                 headers: apiHeaders,
