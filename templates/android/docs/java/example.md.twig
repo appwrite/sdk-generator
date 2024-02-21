@@ -39,7 +39,7 @@ Client client = new Client(context)
         return;
     }
 
-    Log.d("Appwrite", result.toString());
+    Log.d("{{ spec.title | caseUcfirst }}", result.toString());
 }));{% endif %}
 
 {% for parameter in method.parameters.all %}
@@ -52,16 +52,18 @@ Client client = new Client(context)
     {{ name }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
     {%~ else %}
     {{ parameter | paramExample }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
-    {%~ endif -%}
+    {%~ endif %}
     {%~ if loop.last %}
+
     new CoroutineCallback<>((result, error) -> {
         if (error != null) {
             error.printStackTrace();
             return;
         }
 
-        Log.d("Appwrite", result.toString());
+        Log.d("{{ spec.title | caseUcfirst }}", result.toString());
     })
 );
-{%- endif %}
+{% endif %}
+
 {% endfor %}

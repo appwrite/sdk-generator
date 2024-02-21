@@ -12,7 +12,7 @@ from {{ spec.title | caseSnake }}.input_file import InputFile
 {% set name = parameter.name %}
 {% endif %}
 {% if name not in added %}
-from {{ spec.title | caseUcfirst }}.enums import {{parameter.enumName | caseUcfirst}}
+from {{ spec.title | caseSnake }}.enums import {{parameter.enumName | caseUcfirst}}
 {% set added = added|merge([name]) %}
 {% endif %}
 {% endif %}
@@ -20,21 +20,22 @@ from {{ spec.title | caseUcfirst }}.enums import {{parameter.enumName | caseUcfi
 {% endfor %}
 
 client = Client()
-
 {% if method.auth|length > 0 %}
-(client
-  .set_endpoint('https://cloud.appwrite.io/v1') # Your API Endpoint
+client.set_endpoint('https://cloud.appwrite.io/v1') # Your API Endpoint
 {% for node in method.auth %}
 {% for key,header in node|keys %}
-  .set_{{header | caseSnake}}('{{node[header]['x-appwrite']['demo']}}') # {{node[header].description}}
+client.set_{{header | caseSnake}}('{{node[header]['x-appwrite']['demo']}}') # {{node[header].description}}
 {% endfor %}
-{% endfor %})
+{% endfor %}
 
 {% endif %}
 {{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}(client)
 
-result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}(
+result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% if method.parameters.all | length == 0 %}){% endif %}
+
     {%~ for parameter in method.parameters.all %}
-    {{ parameter.name | caseSnake }} = {% if parameter.enumValues | length > 0 %}{{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% if not parameter.required %} # (optional){% endif %}{% endif %}
-    {%~ endfor -%}
-)
+    {{ parameter.name | caseSnake }} = {% if parameter.enumValues | length > 0 %}{{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
+
+    {%~ endfor %}
+{% if method.parameters.all | length > 0 %})
+{% endif %}

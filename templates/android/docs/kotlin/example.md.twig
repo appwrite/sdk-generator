@@ -36,6 +36,7 @@ val {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client)
 {% if method.type == 'webAuth' %}
 {% elseif method.type == 'location' %}
 val result = {%~ else %}val response = {% endif %}{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %}){% endif %}
+
     {%~ for parameter in method.parameters.all %}
     {%~ if parameter.enumValues is not empty -%}
     {%~ if parameter.enumName is not empty -%}
@@ -46,6 +47,7 @@ val result = {%~ else %}val response = {% endif %}{{ service.name | caseCamel }}
     {{ parameter.name }} = {{ name }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }},{% if not parameter.required %} // (optional){% endif %}
     {%~ else %}
     {{ parameter.name }} = {{ parameter | paramExample }}, {% if not parameter.required %}// (optional){% endif %}
-    {%~ endif -%}
-)
-{% endfor %}
+    {%~ endif %}
+
+    {%~ endfor %}
+{% if method.parameters.all | length > 0  %}){% endif %}

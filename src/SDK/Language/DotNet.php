@@ -256,7 +256,11 @@ class DotNet extends Language
                     if (\str_ends_with($example, ']')) {
                         $example = \substr($example, 0, -1);
                     }
-                    $output .= 'new List<' . $this->getTypeName($param['array']) . '> {' . $example . '}';
+                    if (!empty($example)) {
+                        $output .= 'new List<' . $this->getTypeName($param['array']) . '>() {' . $example . '}';
+                    } else {
+                        $output .= 'new List<' . $this->getTypeName($param['array']) . '>()';
+                    }
                     break;
             }
         } else {
