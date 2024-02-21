@@ -129,13 +129,13 @@ namespace {{ spec.title | caseUcfirst }}
             return this;
         }
 
-        private Task<HttpRequestMessage> PrepareRequest(
+        private HttpRequestMessage PrepareRequest(
             string method,
             string path,
             Dictionary<string, string> headers,
             Dictionary<string, object?> parameters)
         {
-             var methodGet = "GET".Equals(method, StringComparison.OrdinalIgnoreCase);
+            var methodGet = "GET".Equals(method, StringComparison.OrdinalIgnoreCase);
 
             var queryString = methodGet ?
                 "?" + parameters.ToQueryString() :
@@ -223,7 +223,7 @@ namespace {{ spec.title | caseUcfirst }}
             Dictionary<string, string> headers,
             Dictionary<string, object?> parameters)
         {
-            var request = await this.PrepareRequest(method, path, headers, parameters);
+            var request = this.PrepareRequest(method, path, headers, parameters);
 
             var response = await _httpForRedirect.SendAsync(request);
             var code = (int)response.StatusCode;
