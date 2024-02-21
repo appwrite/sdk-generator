@@ -108,9 +108,6 @@ class Client {
 
             body = formData;
         } else {
-            if ('queries' in params && Array.isArray(params['queries'])) {
-                params['queries'] = params['queries'].map((query) => query.toString());
-            }
             body = JSON.stringify(params);
         }
 
@@ -169,8 +166,6 @@ class Client {
 
             if (Array.isArray(value)) {
                 output = { ...output, ...Client.flatten(value, finalKey) };
-            } else if (value instanceof Query) {
-                output[finalKey] = JSON.stringify(value);
             } else {
                 output[finalKey] = value;
             }

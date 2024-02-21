@@ -138,8 +138,6 @@ export class Client {
             let finalKey = prefix ? prefix + '[' + key +']' : key;
             if (Array.isArray(value)) {
                 output = { ...output, ...Client.flatten(value, finalKey) };
-            } else if (value instanceof Query) {
-                output[finalKey] = JSON.stringify(value);
             } else {
                 output[finalKey] = value;
             }
