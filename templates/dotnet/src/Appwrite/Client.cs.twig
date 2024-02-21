@@ -63,7 +63,7 @@ namespace {{ spec.title | caseUcfirst }}
             _httpForRedirect = httpForRedirect ?? new HttpClient(
                 new HttpClientHandler(){
                     AllowAutoRedirect = false
-                })
+                });
 
             _headers = new Dictionary<string, string>()
             {
