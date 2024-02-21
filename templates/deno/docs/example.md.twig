@@ -12,11 +12,7 @@ const client = new Client()
 
 const {{ service.name | caseCamel }} = new {{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %});
 
-{% if method.type == 'location' %}
-const result =
-{% elseif method.type != 'webAuth' %}
-const response = await
-{% endif -%}
+{% if method.type == 'location' %}const result = {% elseif method.type != 'webAuth' %}const response = await {% endif -%}
 {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %});{% endif %}
 
 {%~ for parameter in method.parameters.all %}
