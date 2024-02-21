@@ -26,6 +26,8 @@ class {{ service.name | caseUcfirst }} extends Service {
 {{ include('dart/base/requests/file.twig') }}
 {% elseif method.type == 'location' %}
 {{ include('dart/base/requests/location.twig') }}
+{% elseif method.type == 'webAuth' %}
+{{ include('dart/base/requests/oauth.twig') }}
 {% else %}
 {{ include('dart/base/requests/api.twig') }}
 {% endif %}

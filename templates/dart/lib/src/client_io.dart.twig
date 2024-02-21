@@ -186,6 +186,12 @@ class ClientIO extends ClientBase with ClientMixin {
   }
 
   @override
+  Future<String?> webAuth(Uri url) async {
+    final response = await _httpClient.get(url, followRedirects: false);
+    return response.headers['location'];
+  }
+
+  @override
   Future<Response> call(
     HttpMethod method, {
     String path = '',
