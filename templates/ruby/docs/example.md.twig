@@ -23,6 +23,10 @@ client = Client.new
 
 {{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}.new(client)
 
-response = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{parameter.name|caseSnake}}: {% if parameter.type == 'file' %}{{ parameter | paramExample }}{% else %}{% if parameter.enumValues | length > 0%}{{ parameter.enumName }}::{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample }}{% endif %}{% endif %}{% endif %}{% endfor %})
+response = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}(
+    {%~ for parameter in method.parameters.all -%}
+    {{ parameter.name | caseSnake }}: {% if parameter.enumValues | length > 0%}{{ parameter.enumName }}::{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% if not parameter.required %} # (optional){% endif %}{% endif %}
+    {%~ endfor -%}
+)
 
 puts response.inspect

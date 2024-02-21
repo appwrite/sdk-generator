@@ -41,8 +41,7 @@ Client client = new Client()
 }));{% endif %}
 
 {% for parameter in method.parameters.all %}
-{% if parameter.required %}
-    {% if parameter.enumValues | length > 0%}{{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %}
+    {% if parameter.enumValues | length > 0%}{{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else%}{{ parameter | paramExample }}{% endif %}{% if not loop.last %}, // {{ parameter.name }}{% if not parameter.required %} (optional){% endif %}{% endif %}
 
 {% endif %}
 {% if loop.last %}

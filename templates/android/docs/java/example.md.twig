@@ -43,17 +43,15 @@ Client client = new Client(context)
 }));{% endif %}
 
 {% for parameter in method.parameters.all %}
-    {%~ if parameter.required -%}
     {%~ if parameter.enumValues is not empty -%}
     {%~ if parameter.enumName is not empty -%}
     {%~ set name = parameter.enumName -%}
     {%~ else -%}
     {%~ set name = parameter.name -%}
     {%~ endif %}
-    {{ name }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }},
+    {{ name }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
     {%~ else %}
-    {{ parameter | paramExample }},
-    {%~ endif -%}
+    {{ parameter | paramExample }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
     {%~ endif -%}
     {%~ if loop.last %}
     new CoroutineCallback<>((result, error) -> {

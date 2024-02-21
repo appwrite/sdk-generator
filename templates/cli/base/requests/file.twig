@@ -1,6 +1,5 @@
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
-
     const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
     
     const apiHeaders = {

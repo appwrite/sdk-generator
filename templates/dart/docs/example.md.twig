@@ -17,14 +17,11 @@ void main() { // Init SDK
 {% endfor %}  ;
 
 {% endif %}
-  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}
-{% if loop.first %}
-
-{% endif %}
-{% if parameter.required %}
-    {{ parameter.name | caseCamel | overrideIdentifier }}:{% if parameter.enumValues | length > 0 %} {{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseCamel | replace({'-': ''}) }}{% else %}{{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }} {% endif %},
-{% endif %}
-{% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %});
+  Future result = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}(
+    {%~ for parameter in method.parameters.all %}
+    {{ parameter.name | caseCamel | overrideIdentifier }}:{% if parameter.enumValues | length > 0 %} {{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseCamel | replace({'-': ''}) }}{% else %}{{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }} {% endif %},{% if not parameter.required %} // optional{% endif %}
+    {%~ endfor %}
+  );
 
   result
     .then((response) {

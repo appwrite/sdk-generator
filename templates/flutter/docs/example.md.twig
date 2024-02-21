@@ -22,9 +22,7 @@ void main() { // Init SDK
 {% if loop.first %}
 
 {% endif %}
-{% if parameter.required %}
-    {{ parameter.name | caseCamel | overrideIdentifier}}:{% if parameter.enumValues | length > 0%} {{parameter.enumName}}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}.value{% else %}{{ parameter | paramExample}} {% endif %},
-{% endif %}
+    {{ parameter.name | caseCamel | overrideIdentifier}}:{% if parameter.enumValues | length > 0%} {{parameter.enumName}}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }} {% endif %},{% if not parameter.required %} // optional{% endif %}
 {% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %}).then((bytes) {
     final file = File('path_to_file/filename.ext');
     file.writeAsBytesSync(bytes)
@@ -40,7 +38,7 @@ FutureBuilder(
 
 {% endif %}
 {% if parameter.required %}
-    {{ parameter.name | caseCamel | overrideIdentifier}}:{% if parameter.enumValues | length > 0%} {{parameter.enumName}}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}.value{% else %}{{ parameter | paramExample}} {% endif %},
+    {{ parameter.name | caseCamel | overrideIdentifier}}:{% if parameter.enumValues | length > 0%} {{parameter.enumName}}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}.value{% else %}{{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }} {% endif %},{% if not parameter.required %} // optional{% endif %}
 {% endif %}
 {% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %}
 ), //works for both public file and private file, for private files you need to be logged in
@@ -58,7 +56,7 @@ FutureBuilder(
 
 {% endif %}
 {% if parameter.required %}
-    {{ parameter.name | caseCamel | overrideIdentifier}}:{% if parameter.enumValues | length > 0%} {{parameter.enumName}}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}.value{% else %}{{ parameter | paramExample}} {% endif %},
+    {{ parameter.name | caseCamel | overrideIdentifier}}:{% if parameter.enumValues | length > 0%} {{parameter.enumName}}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}.value{% else %}{{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }} {% endif %},{% if not parameter.required %} // optional{% endif %}
 {% endif %}
 {% endfor %}{% if method.parameters.all | length > 0 %}  {% endif %});
 
