@@ -34,6 +34,7 @@ open class Client {
     internal var selfSigned: Bool = false
 
     internal var http: HTTPClient
+
     internal var httpForRedirect: HTTPClient
 
     private static let boundaryChars = "abcdefghijklmnopqrstuvwxyz1234567890"
@@ -47,14 +48,13 @@ open class Client {
     public init() {
         http = Client.createHTTP()
         httpForRedirect = Client.createHTTP(redirectConfiguration: .disallow)
-
         addUserAgentHeader()
         addOriginHeader()
     }
 
     private static func createHTTP(
         selfSigned: Bool = false,
-        redirectConfiguration: RedirectConfiguration = .follow(max: 5, allowCycles: false),
+        redirectConfiguration: HTTPClient.Configuration.RedirectConfiguration = .follow(max: 5, allowCycles: false),
         connectTimeout: TimeAmount = .seconds(30),
         readTimeout: TimeAmount = .seconds(30)
     ) -> HTTPClient {
@@ -73,7 +73,7 @@ open class Client {
             eventLoopGroupProvider: eventLoopGroupProvider,
             configuration: HTTPClient.Configuration(
                 tlsConfiguration: tls,
-                redirectConfiguration,
+                redirectConfiguration: redirectConfiguration,
                 timeout: timeout,
                 decompression: .enabled(limit: .none)
             )
@@ -209,7 +209,7 @@ open class Client {
         sink: ((ByteBuffer) -> Void)? = nil,
         converter: ((Any) -> T)? = nil
     ) async throws -> T {
-        var request = prepareRequest(
+        let request = try prepareRequest(
             method: method,
             path: path,
             headers: headers,
@@ -235,7 +235,7 @@ open class Client {
         headers: [String: String] = [:],
         params: [String: Any?] = [:]
     ) async throws -> String? {
-        let request = prepareRequest(
+        let request = try prepareRequest(
             method: method,
             path: path,
             headers: headers,
@@ -276,7 +276,7 @@ open class Client {
         path: String = "",
         headers: [String: String] = [:],
         params: [String: Any?] = [:]
-    ) -> HTTPClientRequest {
+    ) throws -> HTTPClientRequest {
         let validParams = params.filter { $0.value != nil }
 
         let queryParameters = method == "GET" && !validParams.isEmpty
