@@ -30,9 +30,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ for parameter in method.parameters.all %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
     {%~ endfor %}
-    {%~ if method.type != "webAuth" %}
      * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
-    {%~ endif %}
      */
     {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
     @JvmOverloads
@@ -64,6 +62,8 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         )
         {%~ if method.type == 'location' %}
             {{~ include('kotlin/base/requests/location.twig') }}
+        {%~ elseif method.type == 'webAuth' %}
+            {{~ include('kotlin/base/requests/oauth.twig') }}
         {%~ else %}
         val apiHeaders = mutableMapOf(
         {%~ for key, header in method.headers %}

@@ -447,7 +447,7 @@ class Kotlin extends Language
     protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
     {
         if ($method['type'] === 'webAuth') {
-            return 'Bool';
+            return 'String';
         }
         if ($method['type'] === 'location') {
             return 'ByteArray';
