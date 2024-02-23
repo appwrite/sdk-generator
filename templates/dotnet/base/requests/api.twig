@@ -1,5 +1,5 @@
 {% import 'dotnet/base/utils.twig' as utils %}
-            return _client.Call{% if method.type != 'webAuth' %}<{{ utils.resultType(spec.title, method) }}>{% endif %}(
+            return _client.Call<{{ utils.resultType(spec.title, method) }}>(
                 method: "{{ method.method | caseUpper }}",
                 path: apiPath,
                 headers: apiHeaders,
