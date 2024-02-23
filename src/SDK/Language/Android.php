@@ -343,4 +343,12 @@ class Android extends Kotlin
             ],
         ];
     }
+
+    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
+    {
+        if ($method['type'] === 'webAuth') {
+            return 'Bool';
+        }
+        return parent::getReturnType($method, $spec, $namespace, $generic);
+    }
 }
