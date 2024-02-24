@@ -398,7 +398,7 @@ class PHP extends Language
 
     protected function getReturn(array $method): string
     {
-        if (($method['emptyResponse'] ?? true) || $method['type'] === 'location') {
+        if (($method['emptyResponse'] ?? true) || $method['type'] === 'location' || $method['type'] === 'webAuth') {
             return 'string';
         }
 

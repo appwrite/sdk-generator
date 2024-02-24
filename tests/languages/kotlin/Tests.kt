@@ -124,6 +124,15 @@ class ServiceTest {
 
             general.empty()
 
+            val url = general.oauth2(
+                clientId = "clientId",
+                scopes = listOf("test"),
+                state = "123456",
+                success = "https://localhost",
+                failure = "https://localhost",
+            )
+            writeToFile(url)
+
             // Query helper tests
             writeToFile(Query.equal("released", listOf(true)))
             writeToFile(Query.equal("title", listOf("Spiderman", "Dr. Strange")))

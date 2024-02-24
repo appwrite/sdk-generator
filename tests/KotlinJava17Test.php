@@ -17,7 +17,7 @@ class KotlinJava17Test extends Base
         'chmod +x tests/sdks/kotlin/gradlew',
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:17-jdk-slim sh -c "./gradlew test -q && cat result.txt"';
+        'docker run --network="mockapi" -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:17-jdk-slim sh -c "./gradlew test -q && cat result.txt"';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
@@ -26,6 +26,7 @@ class KotlinJava17Test extends Base
         ...Base::UPLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
+        ...Base::OAUTH_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES

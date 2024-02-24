@@ -49,15 +49,15 @@ class {{ service.name | caseUcfirst }} extends Service
     {
         $apiPath = str_replace([{% for parameter in method.parameters.path %}'{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}], [{% for parameter in method.parameters.path %}${{ parameter.name | caseCamel | escapeKeyword }}{% if not loop.last %}, {% endif %}{% endfor %}], '{{ method.path }}');
 
-{{ include('php/base/params.twig') }}
-{% if 'multipart/form-data' in method.consumes %}
-{{ include('php/base/requests/file.twig') }}
-{% else %}
-{{ include('php/base/requests/api.twig') }}
-{% endif %}
+        {{~ include('php/base/params.twig') -}}
+        {%~ if 'multipart/form-data' in method.consumes %}
+        {{~ include('php/base/requests/file.twig') }}
+        {%~ else %}
+        {{~ include('php/base/requests/api.twig') }}
+        {%~ endif %}
     }
-{% if not loop.last %}
+        {%~ if not loop.last %}
 
-{% endif %}
-{% endfor %}
+        {%~ endif %}
+        {%~ endfor %}
 }

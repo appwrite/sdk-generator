@@ -22,6 +22,9 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     /// @throws Exception
     /// @return array
     ///
+    {%~ if method.type == "webAuth" %}
+    @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+    {%~ endif %}
     open func {{ method.name | caseCamel | overrideIdentifier }}{% if method.responseModel | hasGenericType(spec) %}<T>{% endif %}(
         {%~ for parameter in method.parameters.all %}
         {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes or method.responseModel | hasGenericType(spec) %},{% endif %}
@@ -35,6 +38,11 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         {%~ endif %}
     ) async throws -> {{ method | returnType(spec) | raw }} {
         {{~ include('swift/base/params.twig') }}
+        {%~ if method.type == 'webAuth' %}
+        {{~ include('apple/base/requests/oauth.twig') }}
+        {%~ elseif method.type == 'location' %}
+        {{~ include('swift/base/requests/location.twig')}}
+        {%~ else %}
         {%~ if method.headers | length <= 0 %}
         let apiHeaders: [String: String] = [:]
         {%~ else %}
@@ -48,11 +56,6 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         ]
         {%~ endif %}
 
-        {%~ if method.type == 'webAuth' %}
-        {{~ include('swift/base/requests/oauth.twig') }}
-        {%~ elseif method.type == 'location' %}
-        {{~ include('swift/base/requests/location.twig')}}
-        {%~ else %}
         {%~ if method.responseModel %}
         let converter: (Any) -> {{ method | returnType(spec) | raw }} = { response in
             {%~ if method.responseModel == 'any' %}
@@ -85,6 +88,9 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     /// @throws Exception
     /// @return array
     ///
+    {%~ if method.type == "webAuth" %}
+    @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+    {%~ endif %}
     open func {{ method.name | caseCamel }}(
         {%~ for parameter in method.parameters.all %}
         {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}

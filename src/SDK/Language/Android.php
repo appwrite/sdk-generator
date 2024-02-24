@@ -182,11 +182,6 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/OS.kt',
-                'template'      => '/android/library/src/main/java/io/package/OS.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/Realtime.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/Realtime.kt.twig',
             ],
@@ -342,5 +337,13 @@ class Android extends Kotlin
                 'template'      => '/android/example/.gitignore',
             ],
         ];
+    }
+
+    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
+    {
+        if ($method['type'] === 'webAuth') {
+            return 'Bool';
+        }
+        return parent::getReturnType($method, $spec, $namespace, $generic);
     }
 }

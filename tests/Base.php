@@ -36,6 +36,10 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/redirect/done:passed',
     ];
 
+    protected const OAUTH_RESPONSES = [
+        'https://localhost?code=abcdef&state=123456',
+    ];
+
     protected const DOWNLOAD_RESPONSES = [
         'GET:/v1/mock/tests/general/download:passed',
     ];
@@ -215,6 +219,7 @@ abstract class Base extends TestCase
         echo \implode("\n", $output);
 
         foreach ($this->expectedOutput as $index => $expected) {
+            // HACK: Swift does not guarantee the order of the JSON parameters
             if (\str_starts_with($expected, '{')) {
                 $this->assertEquals(
                     \json_decode($expected, true),

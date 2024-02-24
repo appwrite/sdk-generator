@@ -183,7 +183,7 @@ class Apple extends Swift
             [
                 'scope'         => 'service',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.swift',
-                'template'      => 'swift/Sources/Services/Service.swift.twig',
+                'template'      => 'apple/Sources/Services/Service.swift.twig',
             ],
             [
                 'scope'         => 'definition',
@@ -200,11 +200,6 @@ class Apple extends Swift
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Client.swift',
                 'template'      => '/apple/Sources/Client.swift.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/OS.swift',
-                'template'      => '/apple/Sources/OS.swift.twig',
             ],
             [
                 'scope'         => 'default',
@@ -489,5 +484,13 @@ class Apple extends Swift
                 'template'      => '/swift/example-uikit/UIKitExampleUITests/UIKitExampleUITests.swift',
             ],
         ];
+    }
+
+    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
+    {
+        if ($method['type'] === 'webAuth') {
+            return 'Bool';
+        }
+        return parent::getReturnType($method, $spec, $namespace, $generic);
     }
 }

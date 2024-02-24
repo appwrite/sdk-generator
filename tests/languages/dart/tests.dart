@@ -104,6 +104,15 @@ void main() async {
 
   await general.empty();
 
+  final url = await general.oauth2(
+      clientId: 'clientId',
+      scopes: ['test'],
+      state: '123456',
+      success: 'https://localhost',
+      failure: 'https://localhost'
+  );
+  print(url);
+
   // Query helper tests
   print(Query.equal('released', [true]));
   print(Query.equal('title', ['Spiderman', 'Dr. Strange']));

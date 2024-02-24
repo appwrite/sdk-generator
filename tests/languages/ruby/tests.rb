@@ -106,6 +106,15 @@ end
 
 general.empty()
 
+url = general.oauth2(
+    client_id: 'clientId',
+    scopes: ['test'],
+    state: '123456',
+    success: 'https://localhost',
+    failure: 'https://localhost'
+)
+puts url
+
 # Query helper tests
 puts Query.equal('released', [true])
 puts Query.equal('title', ['Spiderman', 'Dr. Strange'])

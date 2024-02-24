@@ -128,6 +128,15 @@ class Tests: XCTestCase {
 
         try! await general.empty()
 
+        let url = try? await general.oauth2(
+            clientId: "clientId",
+            scopes: ["test"],
+            state: "123456",
+            success: "https://localhost",
+            failure: "https://localhost"
+        )
+        print(url!)
+
         // Query helper tests
         print(Query.equal("released", value: [true]))
         print(Query.equal("title", value: ["Spiderman", "Dr. Strange"]))

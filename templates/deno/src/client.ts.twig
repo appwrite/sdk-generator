@@ -1,5 +1,4 @@
 import { {{ spec.title | caseUcfirst}}Exception } from './exception.ts';
-import { Query } from './query.ts';
 
 export interface Payload {
     [key: string]: any;
@@ -92,6 +91,7 @@ export class Client {
         let response = undefined;
         try {
             response = await fetch(url.toString(), {
+                redirect: responseType === "location" ? "manual" : "follow",
                 method: method.toUpperCase(),
                 headers,
                 body
@@ -116,6 +116,10 @@ export class Client {
             return data;
         }
 
+        if (responseType === "location") {
+            return response.headers.get("location");
+        }
+
         const text = await response.text();
         let json = undefined;
         try {
@@ -133,8 +137,6 @@ export class Client {
             let finalKey = prefix ? prefix + '[' + key +']' : key;
             if (Array.isArray(value)) {
                 output = { ...output, ...Client.flatten(value, finalKey) };
-            } else if (value instanceof Query) {
-                output[finalKey] = JSON.stringify(value);
             } else {
                 output[finalKey] = value;
             }

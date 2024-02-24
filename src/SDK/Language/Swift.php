@@ -480,7 +480,7 @@ class Swift extends Language
     protected function getReturnType(array $method, array $spec, string $generic): string
     {
         if ($method['type'] === 'webAuth') {
-            return 'Bool';
+            return 'String?';
         }
         if ($method['type'] === 'location') {
             return 'ByteBuffer';

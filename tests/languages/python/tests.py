@@ -95,6 +95,15 @@ except AppwriteException as e:
 
 general.empty()
 
+url = general.oauth2(
+    'clientId',
+    ['test'],
+    '123456',
+    'https://localhost',
+    'https://localhost'
+)
+print(url)
+
 # Query helper tests
 print(Query.equal("released", [True]))
 print(Query.equal("title", ["Spiderman", "Dr. Strange"]))

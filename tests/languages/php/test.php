@@ -109,6 +109,15 @@ try {
 
 $general->empty();
 
+$url = $general->oauth2(
+    'clientId',
+    ['test'],
+    '123456',
+    'https://localhost',
+    'https://localhost'
+);
+echo $url . "\n";
+
 // Query helper tests
 echo Query::equal('released', [true]) . "\n";
 echo Query::equal('title', ['Spiderman', 'Dr. Strange']) . "\n";

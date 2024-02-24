@@ -113,6 +113,15 @@ namespace AppwriteTests
 
             await general.Empty();
 
+            var url = await general.Oauth2(
+                clientId: "clientId",
+                scopes: new List<string>() {"test"},
+                state: "123456",
+                success: "https://localhost",
+                failure: "https://localhost"
+            );
+            TestContext.WriteLine(url);
+
             // Query helper tests
             TestContext.WriteLine(Query.Equal("released", new List<bool> { true }));
             TestContext.WriteLine(Query.Equal("title", new List<string> { "Spiderman", "Dr. Strange" }));
