@@ -6,8 +6,6 @@ import Foundation
 import AsyncHTTPClient
 @_exported import {{spec.title | caseUcfirst}}Models
 
-typealias CookieListener = (_ existing: [String], _ new: [String]) -> Void
-
 let DASHDASH = "--"
 let CRLF = "\r\n"
 
@@ -39,7 +37,6 @@ open class Client {
 
     internal var http: HTTPClient
 
-    internal static var cookieListener: CookieListener? = nil
 
     private static let boundaryChars = "abcdefghijklmnopqrstuvwxyz1234567890"
 
@@ -287,8 +284,6 @@ open class Client {
                 let domain = URL(string: request.url)!.host!
                 let existing = UserDefaults.standard.stringArray(forKey: domain)
                 let new = response.headers["Set-Cookie"]
-
-                Client.cookieListener?(existing ?? [], new)
 
                 UserDefaults.standard.set(new, forKey: domain)
             }

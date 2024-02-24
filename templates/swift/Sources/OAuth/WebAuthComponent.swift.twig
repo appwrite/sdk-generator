@@ -95,8 +95,6 @@ public class WebAuthComponent {
         let existing = UserDefaults.standard.stringArray(forKey: domain)
         let new = [cookie]
 
-        Client.cookieListener?(existing ?? [], new)
-
         UserDefaults.standard.set(new, forKey: domain)
 
         WebAuthComponent.onCallback(
