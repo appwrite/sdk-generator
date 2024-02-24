@@ -134,6 +134,9 @@ async function start() {
 
   await general.empty();
 
+  const url = await general.oauth2('clientId', 'https://localhost', ['test'], '123456')
+  console.log(url)
+
   // Query helper tests
   console.log(Query.equal("released", [true]));
   console.log(Query.equal("title", ["Spiderman", "Dr. Strange"]));
