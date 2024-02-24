@@ -127,7 +127,11 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% if parameter.isUploadID %}
         if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
-                response = await this.client.call('get', apiPath + '/' + {{ parameter.name }}, apiHeaders);
+                response = await this.client.call(
+                    'get',
+                    apiPath + '/' + {{ parameter.name }},
+                    apiHeaders
+                );
                 chunksUploaded = response.chunksUploaded;
             } catch(e) {
             }
@@ -214,14 +218,20 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endif %}
 {% endfor %}
 {% else %}
-        return await this.client.call('{{ method.method | caseLower }}', apiPath, {
-{% for parameter in method.parameters.header %}
-            '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
-            '{{ key }}': '{{ header }}',
-{% endfor %}
-        }, payload);
+        return await this.client.call(
+            '{{ method.method | caseLower }}',
+            apiPath,
+            {
+            {%~ for parameter in method.parameters.header %}
+                '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+            {%~ endfor %}
+            {% for key, header in method.headers %}
+                '{{ key }}': '{{ header }}',
+            {%~ endfor %}
+            },
+            payload,
+            {% if method.type == 'location' %}'arraybuffer'{% elseif method.type == 'webAuth' %}'location'{% else %}'json'{% endif %}
+        );
 {% endif %}
     }
 {% endfor %}
