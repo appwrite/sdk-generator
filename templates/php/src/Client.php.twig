@@ -122,12 +122,9 @@ class Client
      */
     public function call($method, $path = '', $headers = array(), array $params = array(), ?string $responseType = null)
     {
-        $headers            = array_merge($this->headers, $headers);
-        $ch                 = curl_init($this->endpoint . $path . (($method == self::METHOD_GET && !empty($params)) ? '?' . http_build_query($params) : ''));
-        $responseHeaders    = [];
-        $responseStatus     = -1;
-        $responseType       = '';
-        $responseBody       = '';
+        $headers = array_merge($this->headers, $headers);
+        $ch = curl_init($this->endpoint . $path . (($method == self::METHOD_GET && !empty($params)) ? '?' . http_build_query($params) : ''));
+        $responseHeaders = [];
 
         switch ($headers['content-type']) {
             case 'application/json':
@@ -152,7 +149,7 @@ class Client
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_USERAGENT, php_uname('s') . '-' . php_uname('r') . ':{{ language.name | caseLower }}-' . phpversion());
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $responseType === 'location' ? false : true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $responseType !== 'location');
         curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($curl, $header) use (&$responseHeaders) {
             $len = strlen($header);
             $header = explode(':', strtolower($header), 2);

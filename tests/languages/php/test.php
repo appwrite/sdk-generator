@@ -110,7 +110,7 @@ try {
 $general->empty();
 
 $url = $general->oauth2('clientId', 'https://localhost', ['test'], '123456');
-echo $url;
+echo $url . "\n";
 
 // Query helper tests
 echo Query::equal('released', [true]) . "\n";
