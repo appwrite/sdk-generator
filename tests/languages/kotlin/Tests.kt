@@ -124,19 +124,14 @@ class ServiceTest {
 
             general.empty()
 
-            try {
-                val url = general.oauth2(
-                    clientId = "clientId",
-                    scopes = listOf("test"),
-                    state = "123456",
-                    success = "https://localhost",
-                    failure = "https://localhost",
-                )
-                writeToFile(url)
-            } catch(e: Exception) {
-                writeToFile("Was exception")
-                writeToFile(e.message)
-            }
+            val url = general.oauth2(
+                clientId = "clientId",
+                scopes = listOf("test"),
+                state = "123456",
+                success = "https://localhost",
+                failure = "https://localhost",
+            )
+            writeToFile(url)
 
             // Query helper tests
             writeToFile(Query.equal("released", listOf(true)))
