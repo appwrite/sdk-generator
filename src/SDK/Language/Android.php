@@ -182,11 +182,6 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/OS.kt',
-                'template'      => '/android/library/src/main/java/io/package/OS.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/Realtime.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/Realtime.kt.twig',
             ],
