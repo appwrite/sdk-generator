@@ -106,9 +106,10 @@ void main() async {
 
   final url = await general.oauth2(
       clientId: 'clientId',
-      redirectUri: 'https://localhost',
       scopes: ['test'],
-      state: '123456'
+      state: '123456',
+      success: 'https://localhost',
+      failure: 'https://localhost'
   );
   print(url);
 

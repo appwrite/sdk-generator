@@ -109,7 +109,13 @@ try {
 
 $general->empty();
 
-$url = $general->oauth2('clientId', 'https://localhost', ['test'], '123456');
+$url = $general->oauth2(
+    'clientId',
+    ['test'],
+    '123456',
+    'https://localhost',
+    'https://localhost'
+);
 echo $url . "\n";
 
 // Query helper tests

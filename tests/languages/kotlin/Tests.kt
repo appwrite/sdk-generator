@@ -127,12 +127,14 @@ class ServiceTest {
             try {
                 val url = general.oauth2(
                     clientId = "clientId",
-                    redirectUri = "https://localhost",
                     scopes = listOf("test"),
-                    state = "123456"
+                    state = "123456",
+                    success = "https://localhost",
+                    failure = "https://localhost",
                 )
                 writeToFile(url)
             } catch(e: Exception) {
+                writeToFile("Was exception")
                 writeToFile(e.message)
             }
 

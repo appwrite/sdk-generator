@@ -1823,14 +1823,6 @@
             "in": "query"
           },
           {
-            "name": "redirectUri",
-            "description": "OAuth2 Redirect URI",
-            "required": true,
-            "type": "string",
-            "x-example": "http://localhost:8000/auth/callback",
-            "in": "query"
-          },
-          {
             "name": "scopes",
             "description": "OAuth2 scope list",
             "required": true,
@@ -1848,6 +1840,22 @@
             "required": true,
             "type": "string",
             "x-example": "state",
+            "in": "query"
+          },
+          {
+            "name": "success",
+            "description": "OAuth2 success redirect URI",
+            "required": true,
+            "type": "string",
+            "x-example": "http://localhost:8000/auth/callback",
+            "in": "query"
+          },
+          {
+            "name": "failure",
+            "description": "OAuth2 failure redirect URI",
+            "required": true,
+            "type": "string",
+            "x-example": "http://localhost:8000/auth/callback",
             "in": "query"
           }
         ]

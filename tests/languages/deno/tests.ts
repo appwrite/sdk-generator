@@ -134,7 +134,13 @@ async function start() {
 
   await general.empty();
 
-  const url = await general.oauth2('clientId', 'https://localhost', ['test'], '123456')
+  const url = await general.oauth2(
+      'clientId',
+      ['test'],
+      '123456',
+      'https://localhost',
+      'https://localhost'
+  )
   console.log(url)
 
   // Query helper tests

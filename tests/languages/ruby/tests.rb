@@ -108,9 +108,10 @@ general.empty()
 
 url = general.oauth2(
     client_id: 'clientId',
-    redirect_uri: 'https://localhost',
     scopes: ['test'],
-    state: '123456'
+    state: '123456',
+    success: 'https://localhost',
+    failure: 'https://localhost'
 )
 puts url
 

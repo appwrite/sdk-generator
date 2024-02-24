@@ -115,9 +115,10 @@ namespace AppwriteTests
 
             var url = await general.Oauth2(
                 clientId: "clientId",
-                redirectUri: "https://localhost",
                 scopes: new List<string>() {"test"},
-                state: "123456"
+                state: "123456",
+                success: "https://localhost",
+                failure: "https://localhost"
             );
             TestContext.WriteLine(url);
 

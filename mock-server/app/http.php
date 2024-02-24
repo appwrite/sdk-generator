@@ -564,12 +564,13 @@ App::get('/v1/mock/tests/general/oauth2')
     ->label('sdk.namespace', 'general')
     ->label('sdk.method', 'oauth2')
     ->param('clientId', '', new Text(100), 'OAuth2 Client ID.')
-    ->param('redirectUri', '', new Host(['localhost']), 'OAuth2 Redirect URI.') // Important to deny an open redirect attack
     ->param('scopes', [], new ArrayList(new Text(100)), 'OAuth2 scope list.')
     ->param('state', '', new Text(1024), 'OAuth2 state.')
+    ->param('success', '', new Text(1024), 'OAuth2 success redirect URI.')
+    ->param('failure', '', new Text(1024), 'OAuth2 failure redirect URI.')
     ->inject('response')
-    ->action(function (string $client_id, string $redirectURI, array $scopes, string $state, UtopiaSwooleResponse $response) {
-        $response->redirect($redirectURI . '?' . \http_build_query(['code' => 'abcdef', 'state' => $state]));
+    ->action(function (string $clientId, array $scopes, string $state, string $success, string $failure, UtopiaSwooleResponse $response) {
+        $response->redirect($success . '?' . \http_build_query(['code' => 'abcdef', 'state' => $state]));
     });
 
 App::get('/v1/mock/tests/general/oauth2/token')
