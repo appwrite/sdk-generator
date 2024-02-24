@@ -134,7 +134,7 @@ class Tests: XCTestCase {
             scopes: ["test"],
             state: "123456"
         )
-        print(url)
+        print(url!)
 
         // Query helper tests
         print(Query.equal("released", value: [true]))
