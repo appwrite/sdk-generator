@@ -113,7 +113,7 @@ namespace AppwriteTests
 
             await general.Empty();
 
-            var url = general.oauth2(
+            var url = await general.Oauth2(
                 clientId: "clientId",
                 redirectUri: "https://localhost",
                 scopes: new List<string>() {"test"},
