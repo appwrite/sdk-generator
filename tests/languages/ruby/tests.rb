@@ -106,7 +106,12 @@ end
 
 general.empty()
 
-url = general.oauth2('clientId', 'https://localhost', ['test'], '123456')
+url = general.oauth2(
+    client_id: 'clientId',
+    redirect_uri: 'https://localhost',
+    scopes: ['test'],
+    state: '123456'
+)
 puts url
 
 # Query helper tests
