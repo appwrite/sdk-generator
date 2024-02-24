@@ -128,8 +128,13 @@ class Tests: XCTestCase {
 
         try! await general.empty()
 
-        let url = try? await general.oauth2("clientId", "https://localhost", ["test"], "123456")
-         print(url)
+        let url = try? await general.oauth2(
+            clientId: "clientId",
+            redirectUri: "https://localhost",
+            scopes: ["test"],
+            state: "123456"
+        )
+        print(url)
 
         // Query helper tests
         print(Query.equal("released", value: [true]))
