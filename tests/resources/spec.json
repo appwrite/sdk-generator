@@ -1762,6 +1762,96 @@
           }
         ]
       }
+    },
+    "\/mock\/tests\/general\/oauth2": {
+      "get": {
+        "summary": "OAuth2",
+        "operationId": "generalOAuth2",
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "text\/plain"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "OAuth 2",
+        "responses": {
+          "301": {
+            "description": "No content"
+          }
+        },
+        "x-appwrite": {
+          "method": "oauth2",
+          "weight": 265,
+          "cookies": false,
+          "type": "webAuth",
+          "demo": "general\/oauth2.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a oauth2 request.",
+          "rate-limit": 10,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "clientId",
+            "description": "OAuth2 Client ID",
+            "required": true,
+            "type": "string",
+            "x-example": "12345",
+            "in": "query"
+          },
+          {
+            "name": "redirectUri",
+            "description": "OAuth2 Redirect URI",
+            "required": true,
+            "type": "string",
+            "x-example": "http://localhost:8000/auth/callback",
+            "in": "query"
+          },
+          {
+            "name": "scopes",
+            "description": "OAuth2 scope list",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "x-example": "[]",
+            "in": "query"
+          },
+          {
+            "name": "state",
+            "description": "OAuth2 state",
+            "required": true,
+            "type": "string",
+            "x-example": "state",
+            "in": "query"
+          }
+        ]
+      }
     }
   },
   "tags": [
