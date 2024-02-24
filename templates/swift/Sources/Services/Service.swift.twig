@@ -35,11 +35,6 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         {%~ endif %}
     ) async throws -> {{ method | returnType(spec) | raw }} {
         {{~ include('swift/base/params.twig') }}
-        {%~ if method.type == 'webAuth' %}
-        {{~ include('swift/base/requests/oauth.twig') }}
-        {%~ elseif method.type == 'location' %}
-        {{~ include('swift/base/requests/location.twig')}}
-        {%~ else %}
         {%~ if method.headers | length <= 0 %}
         let apiHeaders: [String: String] = [:]
         {%~ else %}
@@ -53,6 +48,11 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         ]
         {%~ endif %}
 
+        {%~ if method.type == 'webAuth' %}
+        {{~ include('swift/base/requests/oauth.twig') }}
+        {%~ elseif method.type == 'location' %}
+        {{~ include('swift/base/requests/location.twig')}}
+        {%~ else %}
         {%~ if method.responseModel %}
         let converter: (Any) -> {{ method | returnType(spec) | raw }} = { response in
             {%~ if method.responseModel == 'any' %}
