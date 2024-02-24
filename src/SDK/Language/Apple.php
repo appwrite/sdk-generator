@@ -183,7 +183,7 @@ class Apple extends Swift
             [
                 'scope'         => 'service',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.swift',
-                'template'      => 'swift/Sources/Services/Service.swift.twig',
+                'template'      => 'apple/Sources/Services/Service.swift.twig',
             ],
             [
                 'scope'         => 'definition',

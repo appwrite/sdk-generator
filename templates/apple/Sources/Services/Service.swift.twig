@@ -39,7 +39,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     ) async throws -> {{ method | returnType(spec) | raw }} {
         {{~ include('swift/base/params.twig') }}
         {%~ if method.type == 'webAuth' %}
-        {{~ include('swift/base/requests/oauth.twig') }}
+        {{~ include('apple/base/requests/oauth.twig') }}
         {%~ elseif method.type == 'location' %}
         {{~ include('swift/base/requests/location.twig')}}
         {%~ else %}
