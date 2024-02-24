@@ -57,16 +57,16 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
         {%~ endfor %}
         )
-        {%~ if method.type == 'location' %}
-            {{~ include('kotlin/base/requests/location.twig') }}
-        {%~ elseif method.type == 'webAuth' %}
-            {{~ include('kotlin/base/requests/oauth.twig') }}
-        {%~ else %}
         val apiHeaders = mutableMapOf(
         {%~ for key, header in method.headers %}
             "{{ key }}" to "{{ header }}",
         {%~ endfor %}
         )
+        {%~ if method.type == 'location' %}
+            {{~ include('kotlin/base/requests/location.twig') }}
+        {%~ elseif method.type == 'webAuth' %}
+            {{~ include('kotlin/base/requests/oauth.twig') }}
+        {%~ else %}
         {%~ if method.responseModel %}
         val converter: (Any) -> {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} = {
         {%~ if method.responseModel == 'any' %}
