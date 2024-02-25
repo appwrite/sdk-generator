@@ -1,4 +1,4 @@
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
 import Foundation
 import UIKit
 
@@ -91,8 +91,12 @@ public extension UIDevice {
             case "AppleTV5,3":                                    return "Apple TV (4th generation)"
             case "AppleTV6,2":                                    return "Apple TV 4K (1st generation)"
             case "AppleTV11,1":                                   return "Apple TV 4K (2nd generation)"
-            case "i386", "x86_64": return "Simulator \(mapToDevice(identifier: ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "tvOS"))"
-            default: return identifier
+            case "i386", "x86_64":                                return "Simulator \(mapToDevice(identifier: ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "tvOS"))"
+            default:                                              return identifier
+            #elseif os(visionOS)
+            case "RealityDevice14,1":                             return "Apple Vision Pro"
+            case "i386", "x86_64":                                return "Simulator \(mapToDevice(identifier: ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "visionOS"))"
+            default:                                              return identifier
             #endif
             }
         }
