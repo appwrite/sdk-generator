@@ -154,7 +154,7 @@ class Client {
 
     let cookies = response.headers.getSetCookie();
     if (cookies && cookies.length > 0) {
-      let cookieString = globalConfig.getCookie();
+      let cookieString = "";
       cookies.forEach((cookie) => {
           cookieString += cookie.split(";")[0] + ";";
       });        
