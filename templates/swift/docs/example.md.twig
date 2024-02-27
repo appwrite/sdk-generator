@@ -1,5 +1,5 @@
 import Appwrite
-{% for parameter in method.parameters.all | filter((parameter) => parameter.required) %}
+{% for parameter in method.parameters.all %}
 {% if parameter.enumValues | length > 0 %}
 import AppwriteEnums
 {% endif %}

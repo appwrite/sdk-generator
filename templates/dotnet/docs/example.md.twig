@@ -1,9 +1,11 @@
 using {{ spec.title | caseUcfirst }};
-using {{ spec.title | caseUcfirst }}.Services;
-using {{ spec.title | caseUcfirst }}.Models;
-{% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}{% endif %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues | length > 0 %}
 using {{ spec.title | caseUcfirst }}.Enums;
-{% endif %}{% endfor %}
+{% endif %}
+{% endfor %}
+using {{ spec.title | caseUcfirst }}.Models;
+using {{ spec.title | caseUcfirst }}.Services;
 
 Client client = new Client()
 {% if method.auth|length > 0 %}

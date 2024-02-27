@@ -34,8 +34,8 @@ val client = Client(context)
 val {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client)
 
 {% if method.type == 'webAuth' %}
-{% elseif method.type == 'location' %}
-val result = {%~ else %}val response = {% endif %}{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %}){% endif %}
+{% else %}
+val result = {% endif %}{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %}){% endif %}
 
     {%~ for parameter in method.parameters.all %}
     {%~ if parameter.enumValues is not empty -%}
