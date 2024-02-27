@@ -1,7 +1,9 @@
 using {{ spec.title | caseUcfirst }};
+{% set addedEnum = false %}
 {% for parameter in method.parameters.all %}
-{% if parameter.enumValues | length > 0 %}
+{% if parameter.enumValues | length > 0 and not addedEnum %}
 using {{ spec.title | caseUcfirst }}.Enums;
+{% set addedEnum = true %}
 {% endif %}
 {% endfor %}
 using {{ spec.title | caseUcfirst }}.Models;

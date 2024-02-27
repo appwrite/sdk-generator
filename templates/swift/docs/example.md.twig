@@ -1,7 +1,9 @@
-import Appwrite
+import {{ spec.title | caseUcfirst }}
+{% set addedEnum = false %}
 {% for parameter in method.parameters.all %}
-{% if parameter.enumValues | length > 0 %}
-import AppwriteEnums
+{% if parameter.enumValues | length > 0 and not addedEnum %}
+import {{ spec.title | caseUcfirst }}Enums
+{% set addedEnum = true %}
 {% endif %}
 {% endfor %}
 
