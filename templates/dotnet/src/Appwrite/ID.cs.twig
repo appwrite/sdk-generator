@@ -2,9 +2,30 @@ namespace {{ spec.title | caseUcfirst }}
 {
     public static class ID
     {
-        public static string Unique()
+        static string UniqID()
         {
-            return "unique()";
+            var now = DateTime.UtcNow;
+            var secondsSinceEpoch = (long)(now - new DateTime(1970, 1, 1)).TotalSeconds;
+            var msecs = (now - new DateTime(1970, 1, 1)).TotalMilliseconds - secondsSinceEpoch * 1000;
+            var microsecondsPart = (long)(msecs * 1000); // Convert milliseconds to microseconds
+
+            // Convert to hexadecimal
+            var hexTimestamp = secondsSinceEpoch.ToString("x") + microsecondsPart.ToString("x").PadLeft(5, '0');
+            return hexTimestamp;
+        }
+
+        public static string Unique(int padding = 5)
+        {
+            var baseId = UniqID();
+            var randomPadding = "";
+
+            for (int i = 0; i < padding; i++)
+            {
+                var randomHexDigit = random.Next(0, 16).ToString("x");
+                randomPadding += randomHexDigit;
+            }
+
+            return baseId + randomPadding;
         }
 
         public static string Custom(string id)

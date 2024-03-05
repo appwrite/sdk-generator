@@ -1,10 +1,30 @@
 package {{ sdk.namespace | caseDot }}
 
+import java.time.Instant
+import kotlin.math.floor
+import kotlin.random.Random
+
+fun uniqid(): String {
+    val currentTimestamp = Instant.now().toEpochMilli() / 1000.0
+    val secondsPart = floor(currentTimestamp).toLong()
+    val microsecondsPart = ((currentTimestamp - secondsPart) * 1_000_000).toLong()
+
+    // Convert both parts to hexadecimal format
+    val hexTimestamp = "%08x%05x".format(secondsPart, microsecondsPart)
+    return hexTimestamp
+}
+
 class ID {
     companion object {
         fun custom(id: String): String
             = id
-        fun unique(): String
-            = "unique()"
+        fun unique(padding: Int = 5): String {
+            val baseId = uniqid()
+            val randomPadding = (1..padding)
+                .map { Random.nextInt(0, 16).toString(16) }
+                .joinToString("")
+
+            return baseId + randomPadding
+        }
     }
 }

@@ -1,8 +1,21 @@
+from datetime import datetime
+import random
+
 class ID:
+    @staticmethod
+    def uniqid():
+        now = datetime.now()
+        seconds_since_epoch = int(now.timestamp())
+        microseconds_part = now.microsecond
+        hex_timestamp = f'{seconds_since_epoch:08x}{microseconds_part:05x}'
+        return hex_timestamp
+
     @staticmethod
     def custom(id):
         return id
 
     @staticmethod
-    def unique():
-        return 'unique()'
+    def unique(padding = 5):
+      base_id = uniqid()
+        random_padding = ''.join(random.choice('0123456789abcdef') for _ in range(padding))
+        return base_id + random_padding

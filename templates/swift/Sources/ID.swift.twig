@@ -1,9 +1,21 @@
+import Foundation
+
+func uniqid() -> String {
+    let now = Date()
+    let secondsSinceEpoch = Int(now.timeIntervalSince1970)
+    let microsecondsPart = Int((now.timeIntervalSince1970 - Double(secondsSinceEpoch)) * 1_000_000)
+    let hexTimestamp = String(format: "%08x%05x", secondsSinceEpoch, microsecondsPart)
+    return hexTimestamp
+}
+
 public class ID {
     public static func custom(_ id: String) -> String {
         return id
     }
 
-    public static func unique() -> String {
-        return "unique()"
+    public static func unique(padding: Int = 5) -> String {
+        let baseId = uniqid()
+        let randomPadding = (1...padding).map { _ in String(format: "%x", Int.random(in: 0..<16)) }.joined()
+        return baseId + randomPadding
     }
 }

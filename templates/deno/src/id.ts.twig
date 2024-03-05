@@ -1,9 +1,28 @@
 export class ID {
+    function uniqid(): string {
+        const now = new Date();
+        const secondsSinceEpoch = Math.floor(now.getTime() / 1000);
+        const msecs = now.getTime() - secondsSinceEpoch * 1000;
+        const microsecondsPart = msecs * 1000; // Convert milliseconds to microseconds
+
+        // Convert to hexadecimal
+        const hexTimestamp = secondsSinceEpoch.toString(16) + microsecondsPart.toString(16).padStart(5, '0');
+        return hexTimestamp;
+    }
+
     public static custom(id: string): string {
         return id
     }
-    
-    public static unique(): string {
-        return 'unique()'
+
+    public static unique(padding: number = 5): string {
+        const baseId = uniqid();
+        let randomPadding = '';
+
+        for (let i = 0; i < padding; i++) {
+            const randomHexDigit = Math.floor(Math.random() * 16).toString(16);
+            randomPadding += randomHexDigit;
+        }
+
+        return baseId + randomPadding;
     }
 }

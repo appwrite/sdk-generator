@@ -1,11 +1,24 @@
+require 'securerandom'
+
+def uniqid
+  now = Time.now
+  seconds_since_epoch = now.to_i
+  microseconds_part = now.usec
+  hex_timestamp = "%08x%05x" % [seconds_since_epoch, microseconds_part]
+  hex_timestamp
+end
+
 module {{spec.title | caseUcfirst}}
     class ID
         def self.custom(id)
             id
         end
-        
-        def self.unique
-            'unique()'
+
+        def self.unique_id(padding=5)
+            base_id = uniqid
+            random_padding = SecureRandom.hex(padding / 2)
+            random_padding = random_padding[0...padding]
+            base_id + random_padding
         end
     end
 end
