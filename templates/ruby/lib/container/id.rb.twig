@@ -14,7 +14,7 @@ module {{spec.title | caseUcfirst}}
             id
         end
 
-        def self.unique_id(padding=5)
+        def self.unique(padding=5)
             base_id = uniqid
             random_padding = SecureRandom.hex(padding / 2)
             random_padding = random_padding[0...padding]

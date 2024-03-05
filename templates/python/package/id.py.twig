@@ -16,6 +16,6 @@ class ID:
 
     @staticmethod
     def unique(padding = 5):
-      base_id = uniqid()
+        base_id = uniqid()
         random_padding = ''.join(random.choice('0123456789abcdef') for _ in range(padding))
         return base_id + random_padding

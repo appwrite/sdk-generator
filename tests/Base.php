@@ -212,7 +212,14 @@ abstract class Base extends TestCase
         $this->assertGreaterThanOrEqual(count($this->expectedOutput), count($output));
 
         foreach ($this->expectedOutput as $i => $row) {
-            $this->assertEquals($output[$i], $row);
+            // Check we are generating ID's correctly
+            if ($row == 'unique()') {
+                $this->assertNotEmpty($output[$i]);
+                $this->assertIsString($output[$i]);
+                $this->assertNotEquals($output[$i], 'unique()');
+            } else {
+                $this->assertEquals($output[$i], $row);
+            }
         }
     }
 

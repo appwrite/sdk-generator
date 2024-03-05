@@ -1,5 +1,5 @@
 class ID {
-    static function uniqid() {
+    static uniqid = () => {
         const now = new Date();
         const secondsSinceEpoch = Math.floor(now.getTime() / 1000);
         const msecs = now.getTime() - secondsSinceEpoch * 1000;
@@ -11,7 +11,7 @@ class ID {
     }
 
     static unique = (padding = 7) => {
-        const baseId = uniqid();
+        const baseId = ID.uniqid();
         let randomPadding = '';
 
         for (let i = 0; i < padding; i++) {
