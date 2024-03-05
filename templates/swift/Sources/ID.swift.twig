@@ -13,7 +13,7 @@ public class ID {
         return id
     }
 
-    public static func unique(padding: Int = 5) -> String {
+    public static func unique(padding: Int = 7) -> String {
         let baseId = uniqid()
         let randomPadding = (1...padding).map { _ in String(format: "%x", Int.random(in: 0..<16)) }.joined()
         return baseId + randomPadding

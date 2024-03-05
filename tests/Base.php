@@ -216,7 +216,7 @@ abstract class Base extends TestCase
             if ($row == 'unique()') {
                 $this->assertNotEmpty($output[$i]);
                 $this->assertIsString($output[$i]);
-                $this->assertEquals(18, strlen($output[$i]));
+                $this->assertEquals(20, strlen($output[$i]));
                 $this->assertNotEquals($output[$i], 'unique()');
             } else {
                 $this->assertEquals($output[$i], $row);

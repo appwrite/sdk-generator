@@ -16,7 +16,7 @@ namespace {{ spec.title | caseUcfirst }}
             return hexTimestamp;
         }
 
-        public static string Unique(int padding = 5)
+        public static string Unique(int padding = 7)
         {
             var random = new Random();
             var baseId = UniqID();

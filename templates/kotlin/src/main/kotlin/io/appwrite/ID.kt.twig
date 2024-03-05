@@ -18,7 +18,7 @@ class ID {
     companion object {
         fun custom(id: String): String
             = id
-        fun unique(padding: Int = 5): String {
+        fun unique(padding: Int = 7): String {
             val baseId = uniqid()
             val randomPadding = (1..padding)
                 .map { Random.nextInt(0, 16).toString(16) }
