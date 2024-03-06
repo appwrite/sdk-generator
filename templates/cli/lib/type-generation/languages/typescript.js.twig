@@ -2,7 +2,7 @@
 const { AttributeType } = require('../attributes');
 const { Language } = require("./language");
 
-export class TypeScript extends Language {
+class TypeScript extends Language {
     /**
    * @param {Attribute} attribute
    */
@@ -54,3 +54,5 @@ export type <%= toPascalCase(collection.key) %> = {
     return "./generated/appwrite.d.ts";
   }
 }
+
+module.exports = { TypeScript };

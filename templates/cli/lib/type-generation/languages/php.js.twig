@@ -2,7 +2,7 @@
 const { AttributeType } = require('../attributes');
 const { Language } = require("./language");
 
-export class PHP extends Language {
+class PHP extends Language {
   /**
    * @param {Attribute} attribute
    */
@@ -56,3 +56,5 @@ class <%= toPascalCase(collection.key) %> extends Document {
     return "./generated/Appwrite.php";
   }
 }
+
+module.exports = { PHP };

@@ -1,6 +1,6 @@
 /** @typedef {import('../attributes').Attribute} Attribute */
 
-export class Language {
+class Language {
   constructor() {
     if (new.target === Language) {
       throw new TypeError("Abstract classes can't be instantiated.");
@@ -91,3 +91,5 @@ export class Language {
     throw new TypeError("Stub.");
   }
 }
+
+module.exports = { Language };
