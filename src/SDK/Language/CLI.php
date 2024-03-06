@@ -129,8 +129,8 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/type-generation/languages/langauge.js',
-                'template'      => 'cli/lib/type-generation/languages/langauge.js.twig',
+                'destination'   => 'lib/type-generation/languages/language.js',
+                'template'      => 'cli/lib/type-generation/languages/language.js.twig',
             ],
             [
                 'scope'         => 'default',
