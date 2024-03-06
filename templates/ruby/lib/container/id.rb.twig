@@ -1,6 +1,8 @@
 require 'securerandom'
 
-def uniqid
+// Generate a unique ID based on timestamp
+// Recreated from https://www.php.net/manual/en/function.uniqid.php
+def uniqueId
   now = Time.now
   seconds_since_epoch = now.to_i
   microseconds_part = now.usec
@@ -15,7 +17,7 @@ module {{spec.title | caseUcfirst}}
         end
 
         def self.unique(padding=7)
-            base_id = uniqid
+            base_id = uniqueId
             random_padding = SecureRandom.hex(padding)
             random_padding = random_padding[0...padding]
             base_id + random_padding

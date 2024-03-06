@@ -2,8 +2,10 @@ from datetime import datetime
 import random
 
 class ID:
+    // Generate a unique ID based on timestamp
+    // Recreated from https://www.php.net/manual/en/function.uniqid.php
     @staticmethod
-    def uniqid():
+    def __uniqueId():
         now = datetime.now()
         seconds_since_epoch = int(now.timestamp())
         microseconds_part = now.microsecond
@@ -14,8 +16,10 @@ class ID:
     def custom(id):
         return id
 
+    // Generate a unique ID with padding to have a longer ID
+    // Recreated from https://github.com/utopia-php/database/blob/main/src/Database/ID.php#L13
     @staticmethod
     def unique(padding = 7):
-        base_id = ID.uniqid()
+        base_id = ID.__uniqueId()
         random_padding = ''.join(random.choice('0123456789abcdef') for _ in range(padding))
         return base_id + random_padding

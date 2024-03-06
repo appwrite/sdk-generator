@@ -6,7 +6,7 @@ class ID {
 
   // Generate a unique ID based on timestamp
   // Recreated from https://www.php.net/manual/en/function.uniqid.php
-  static String _uniqid() {
+  static String _uniqueId() {
     final now = DateTime.now();
     final secondsSinceEpoch = (now.millisecondsSinceEpoch / 1000).floor();
     final msecs = now.microsecondsSinceEpoch - secondsSinceEpoch * 1000000;
@@ -17,7 +17,7 @@ class ID {
   // Generate a unique ID with padding to have a longer ID
   // Recreated from https://github.com/utopia-php/database/blob/main/src/Database/ID.php#L13
   static String unique({int padding = 7}) {
-    String id = _uniqid();
+    String id = _uniqueId();
 
     if (padding > 0) {
       StringBuffer sb = StringBuffer();
