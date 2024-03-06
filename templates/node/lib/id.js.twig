@@ -1,7 +1,7 @@
 class ID {
     // Generate an hex ID based on timestamp
     // Recreated from https://www.php.net/manual/en/function.uniqid.php
-    static #uniqueId = () => {
+    static #hexTimestamp = () => {
         const now = new Date();
         const secondsSinceEpoch = Math.floor(now.getTime() / 1000);
         const msecs = now.getTime() - secondsSinceEpoch * 1000;
