@@ -4,9 +4,9 @@ namespace {{ spec.title | caseUcfirst }}
 {
     public static class ID
     {
-        // Generate a unique ID based on timestamp
+        // Generate an hex ID based on timestamp
         // Recreated from https://www.php.net/manual/en/function.uniqid.php
-        private static string uniqueId()
+        private static string hexTimestamp()
         {
             var now = DateTime.UtcNow;
             var secondsSinceEpoch = (long)(now - new DateTime(1970, 1, 1)).TotalSeconds;
@@ -23,7 +23,7 @@ namespace {{ spec.title | caseUcfirst }}
         public static string Unique(int padding = 7)
         {
             var random = new Random();
-            var baseId = uniqueId();
+            var baseId = hexTimestamp();
             var randomPadding = "";
 
             for (int i = 0; i < padding; i++)

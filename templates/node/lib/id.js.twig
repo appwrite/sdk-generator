@@ -1,5 +1,5 @@
 class ID {
-    // Generate a unique ID based on timestamp
+    // Generate an hex ID based on timestamp
     // Recreated from https://www.php.net/manual/en/function.uniqid.php
     static #uniqueId = () => {
         const now = new Date();
@@ -15,7 +15,7 @@ class ID {
     // Generate a unique ID with padding to have a longer ID
     // Recreated from https://github.com/utopia-php/database/blob/main/src/Database/ID.php#L13
     static unique = (padding = 7) => {
-        const baseId = ID.#uniqueId();
+        const baseId = ID.#hexTimestamp();
         let randomPadding = '';
 
         for (let i = 0; i < padding; i++) {
