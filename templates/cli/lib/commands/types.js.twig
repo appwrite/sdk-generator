@@ -1,0 +1,76 @@
+const { PHP } = require("../type-generation/languages/php");
+const { TypeScript } = require("../type-generation/languages/typescript");
+
+const fs = require("fs");
+const path = require("path");
+const { Command, Option } = require("commander");
+const { localConfig } = require("../config");
+const { success, log, actionRunner } = require("../parser");
+const ejs = require("ejs");
+
+const typesLanguageOption = new Option(
+  "-l, --language <language>",
+  "The language of the types"
+)
+  .choices(["ts", "php"])
+  .default("auto");
+
+const typesOutputOption = new Option(
+  "-o, --output <output>",
+  "The output path of the types"
+).default("auto");
+
+const languages = {
+  ts: new TypeScript(),
+  php: new PHP(),
+};
+
+function detectLanguage() {
+  if (fs.existsSync(path.join(process.cwd(), "package.json"))) {
+    return "ts";
+  }
+  if (fs.existsSync(path.join(process.cwd(), "composer.json"))) {
+    return "php";
+  }
+  throw new Error("Could not detect language, please specify with -l");
+}
+
+const typesCommand = actionRunner(async (options) => {
+  let { language, output } = options;
+
+  if (language === "auto") {
+    language = detectLanguage();
+    log(`Detected language: ${language}`);
+  }
+
+  const generator = languages[language];
+
+  if (output === "auto") {
+    output = generator.getOutputPath();
+    log(`Using default output path: ${output}`);
+  }
+
+  const collections = localConfig.getCollections();
+
+  const templateContent = generator.getTemplate();
+  const templater = ejs.compile(templateContent);
+  const typesContent = templater({ collections });
+
+  const outputDir = path.dirname(output);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  fs.writeFileSync(output, typesContent);
+  log(`Types written to ${output}`);
+
+  success();
+});
+
+const types = new Command("types")
+  .description("Generate types for your Appwrite project")
+  .addOption(typesLanguageOption)
+  .addOption(typesOutputOption)
+  .action(actionRunner(typesCommand));
+
+export { types };

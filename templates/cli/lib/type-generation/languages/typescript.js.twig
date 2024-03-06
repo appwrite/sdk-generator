@@ -1,0 +1,56 @@
+/** @typedef {import('../attributes').Attribute} Attribute */
+const { AttributeType } = require('../attributes');
+const { Language } = require("./language");
+
+export class TypeScript extends Language {
+    /**
+   * @param {Attribute} attribute
+   */
+  static getType(attribute) {
+    let type = ""
+    switch (attribute.type) {
+      case AttributeType.STRING:
+      case AttributeType.EMAIL:
+      case AttributeType.DATETIME:
+      case AttributeType.ENUM:
+        type = "string";
+        break;
+      case AttributeType.INTEGER:
+        type = "number";
+        break;
+      case AttributeType.FLOAT:
+        type = "number";
+        break;
+      case AttributeType.BOOLEAN:
+        type = "boolean";
+        break;
+      case AttributeType.RELATIONSHIP:
+        type = "any";
+      default:
+        throw new Error(`Unknown attribute type: ${attribute.type}`);
+    }
+    if (attribute.array) {
+      type += "[]";
+    }
+    if (attribute.required) {
+      type += "|null";
+    }
+    return type;
+  }
+
+  static getTemplate() {
+    return `
+<% for (const collection of collections.attributes ){ %>
+export type <%= toPascalCase(collection.key) %> = {
+  <% for (const attribute of collection.attributes) {  %>
+  <%= toCamelCase(attribute.key) %>: <%= getType(attribute) %>;
+  <% } %>
+}
+
+<% } %>`;
+  }
+
+  static getOutputPath() {
+    return "./generated/appwrite.d.ts";
+  }
+}

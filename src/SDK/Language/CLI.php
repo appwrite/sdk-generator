@@ -124,6 +124,26 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/type-generation/attributes.js',
+                'template'      => 'cli/lib/type-generation/attributes.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/langauge.js',
+                'template'      => 'cli/lib/type-generation/languages/langauge.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/php.js',
+                'template'      => 'cli/lib/type-generation/languages/php.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/typescript.js',
+                'template'      => 'cli/lib/type-generation/languages/typescript.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/questions.js',
                 'template'      => 'cli/lib/questions.js.twig',
             ],
@@ -176,6 +196,11 @@ class CLI extends Node
                 'scope'         => 'default',
                 'destination'   => 'lib/commands/generic.js',
                 'template'      => 'cli/lib/commands/generic.js.twig',
+            ], 
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/commands/types.js',
+                'template'      => 'cli/lib/commands/types.js.twig',
             ]
         ];
     }
