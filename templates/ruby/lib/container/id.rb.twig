@@ -1,7 +1,7 @@
 require 'securerandom'
 
-// Generate a unique ID based on timestamp
-// Recreated from https://www.php.net/manual/en/function.uniqid.php
+#Generate a unique ID based on timestamp
+#Recreated from https://www.php.net/manual/en/function.uniqid.php
 def uniqueId
   now = Time.now
   seconds_since_epoch = now.to_i
@@ -16,6 +16,8 @@ module {{spec.title | caseUcfirst}}
             id
         end
 
+        # Generate a unique ID with padding to have a longer ID
+        # Recreated from https://github.com/utopia-php/database/blob/main/src/Database/ID.php#L13
         def self.unique(padding=7)
             base_id = uniqueId
             random_padding = SecureRandom.hex(padding)
