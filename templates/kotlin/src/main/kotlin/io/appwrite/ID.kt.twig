@@ -9,8 +9,8 @@ class ID {
     // Recreated from https://www.php.net/manual/en/function.uniqid.php
     private fun hexTimestamp(): String {
         val now = Instant.now().toEpochMilli() / 1000.0
-        val secondsSinceEpoch = floor(currentTimestamp).toLong()
-        val millisecondsSinceEpoch = ((currentTimestamp - secondsPart) * 1_000_000).toLong()
+        val secondsSinceEpoch = floor(now).toLong()
+        val millisecondsSinceEpoch = ((now - secondsSinceEpoch) * 1_000_000).toLong()
 
         // Convert both parts to hexadecimal format
         val hexTimestamp = "%08x%05x".format(secondsSinceEpoch, millisecondsSinceEpoch)
@@ -22,7 +22,7 @@ class ID {
             = id
         // Generate a unique ID with padding to have a longer ID
         fun unique(padding: Int = 7): String {
-            val baseId = hexTimestamp()
+            val baseId = ID.hexTimestamp()
             val randomPadding = (1..padding)
                 .map { Random.nextInt(0, 16).toString(16) }
                 .joinToString("")
