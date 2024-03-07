@@ -1,0 +1,189 @@
+package {{ sdk.namespace | caseDot }}
+
+import org.junit.Test
+import kotlin.test.assertEquals
+
+internal class BasicFilterQueryTest(
+    val description: String,
+    val value: Any,
+    val expectedValues: String
+)
+
+class QueryTest {
+    private val tests = listOf(
+        BasicFilterQueryTest(
+            "with a string",
+            "s",
+            "[\"s\"]"
+        ),
+        BasicFilterQueryTest(
+            "with an integer",
+            1,
+            "[1]"
+        ),
+        BasicFilterQueryTest(
+            "with a double",
+            1.2,
+            "[1.2]"
+        ),
+        BasicFilterQueryTest(
+            "with a whole number double",
+            1.0,
+            "[1.0]"
+        ),
+        BasicFilterQueryTest(
+            "with a bool",
+            false,
+            "[false]"
+        ),
+        BasicFilterQueryTest(
+            "with a list",
+            listOf("a", "b", "c"),
+            "[\"a\",\"b\",\"c\"]"
+        ),
+    )
+
+    @Test
+    fun basicFilterEqual() {
+        for (t in tests) {
+            assertEquals(
+                "equal(\"attr\", ${t.expectedValues})",
+                Query.equal("attr", t.value),
+                t.description
+            )
+        }
+    }
+
+    @Test
+    fun basicFilterNotEqual() {
+        for (t in tests) {
+            assertEquals(
+                "notEqual(\"attr\", ${t.expectedValues})",
+                Query.notEqual("attr", t.value),
+                t.description
+            )
+        }
+    }
+
+    @Test
+    fun basicFilterLessThan() {
+        for (t in tests) {
+            assertEquals(
+                "lessThan(\"attr\", ${t.expectedValues})",
+                Query.lessThan("attr", t.value),
+                t.description
+            )
+        }
+    }
+
+    @Test
+    fun basicFilterLessThanEqual() {
+        for (t in tests) {
+            assertEquals(
+                "lessThanEqual(\"attr\", ${t.expectedValues})",
+                Query.lessThanEqual("attr", t.value),
+                t.description
+            )
+        }
+    }
+
+    @Test
+    fun basicFilterGreaterThan() {
+        for (t in tests) {
+            assertEquals(
+                "greaterThan(\"attr\", ${t.expectedValues})",
+                Query.greaterThan("attr", t.value),
+                t.description
+            )
+        }
+    }
+
+    @Test
+    fun basicFilterGreaterThanEqual() {
+        for (t in tests) {
+            assertEquals(
+                "greaterThanEqual(\"attr\", ${t.expectedValues})",
+                Query.greaterThanEqual("attr", t.value),
+                t.description
+            )
+        }
+    }
+
+    @Test
+    fun searchReturnsSearch() = assertEquals(
+        "search(\"attr\", [\"keyword1 keyword2\"])",
+        Query.search("attr", "keyword1 keyword2")
+    )
+
+    @Test
+    fun isNullReturnsIsNull() = assertEquals(
+        "isNull(\"attr\")",
+        Query.isNull("attr")
+    )
+
+    @Test
+    fun isNotNullReturnsIsNotNull() = assertEquals(
+        "isNotNull(\"attr\")",
+        Query.isNotNull("attr")
+    )
+
+    @Test
+    fun betweenWithIntegers() = assertEquals(
+        "between(\"attr\", 1, 2)",
+        Query.between("attr", 1, 2)
+    )
+
+    @Test
+    fun betweenWithDoubles() = assertEquals(
+        "between(\"attr\", 1.0, 2.0)",
+        Query.between("attr", 1.0, 2.0)
+    )
+
+    @Test
+    fun betweenWithStrings() = assertEquals(
+        "between(\"attr\", \"a\", \"z\")",
+        Query.between("attr", "a", "z")
+    )
+
+    @Test
+    fun selectReturnsSelect() = assertEquals(
+        "select([\"attr1\",\"attr2\"])",
+        Query.select(listOf("attr1", "attr2"))
+    )
+
+    @Test
+    fun orderAscReturnsOrderAsc() = assertEquals(
+        "orderAsc(\"attr\")",
+        Query.orderAsc("attr")
+    )
+
+    @Test
+    fun orderDescReturnsOrderDesc() = assertEquals(
+        "orderDesc(\"attr\")",
+        Query.orderDesc("attr")
+    )
+
+    @Test
+    fun cursorBeforeReturnsCursorBefore() = assertEquals(
+        "cursorBefore(\"attr\")",
+        Query.cursorBefore("attr")
+    )
+
+    @Test
+    fun cursorAfterReturnsCursorAfter() = assertEquals(
+        "cursorAfter(\"attr\")",
+        Query.cursorAfter("attr")
+    )
+
+    @Test
+    fun limitReturnsLimit() = assertEquals(
+        "limit(1)",
+        Query.limit(1)
+    )
+
+    @Test
+    fun offsetReturnsOffset() = assertEquals(
+        "offset(1)",
+        Query.offset(1)
+    )
+}

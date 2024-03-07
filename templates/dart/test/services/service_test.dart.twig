@@ -101,7 +101,8 @@ void main() {
 
         {%- if method.type == 'location' ~%}
             expect(response, isA<Uint8List>());
-        {%~ endif ~%}{%~ if method.responseModel and method.responseModel != 'any' ~%}
+        {%~ endif ~%}
+        {%~ if method.responseModel and method.responseModel != 'any' ~%}
             expect(response, isA<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>());
         {%~ endif ~%}
         });

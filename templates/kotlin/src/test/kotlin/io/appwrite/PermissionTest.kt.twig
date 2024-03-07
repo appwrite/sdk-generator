@@ -1,0 +1,21 @@
+package {{ sdk.namespace | caseDot }}
+
+import org.junit.Test
+import kotlin.test.assertEquals
+
+class PermissionTest {
+    @Test
+    fun readReturnsRead() = assertEquals("read(\"any\")", Permission.read(Role.any()))
+
+    @Test
+    fun writeReturnsWrite() = assertEquals("write(\"any\")", Permission.write(Role.any()))
+
+    @Test
+    fun createReturnsCreate() = assertEquals("create(\"any\")", Permission.create(Role.any()))
+
+    @Test
+    fun updateReturnsUpdate() = assertEquals("update(\"any\")", Permission.update(Role.any()))
+
+    @Test
+    fun deleteReturnsDelete() = assertEquals("delete(\"any\")", Permission.delete(Role.any()))
+}

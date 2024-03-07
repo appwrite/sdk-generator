@@ -108,22 +108,42 @@ class Android extends Kotlin
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Permission.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/Permission.kt.twig',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Permission.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/PermissionTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/PermissionTest.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Role.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/Role.kt.twig',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Role.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/RoleTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/RoleTest.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/ID.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/ID.kt.twig',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/ID.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/IDTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/IDTest.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Query.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/Query.kt.twig',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Query.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/QueryTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/QueryTest.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -177,6 +197,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Response.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Response.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/views/CallbackActivity.kt',
                 'template'      => '/android/library/src/main/java/io/appwrite/views/CallbackActivity.kt.twig',
             ],
@@ -224,6 +249,16 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/AndroidManifest.xml',
                 'template'      => '/android/library/src/main/AndroidManifest.xml.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/services/{{ service.name | caseUcfirst }}ServiceTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/services/ServiceTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/cookies/CookiesTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/cookies/CookiesTest.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -385,7 +420,12 @@ class Android extends Kotlin
             [
                 'scope'         => 'definition',
                 'destination'   => 'library/src/main/java/io/appwrite/models/{{ definition.name | caseUcfirst }}.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/models/Model.kt.twig',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Model.kt.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => 'library/src/test/java/io/appwrite/models/{{ definition.name | caseUcfirst }}Test.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/models/ModelTest.kt.twig',
             ],
         ];
     }

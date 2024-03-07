@@ -1,0 +1,28 @@
+package {{ sdk.namespace | caseDot }}.models
+
+import org.junit.Test
+import kotlin.test.assertEquals
+
+class {{definition.name | caseUcfirst}}Test {
+
+    @Test
+    fun method() {
+        val model = {{ definition.name | caseUcfirst | overrideIdentifier }}{% if definition.name | hasGenericType(spec) %}<Any>{% endif %}(
+{% for property in definition.properties %}
+            {{ property.name | escapeKeyword | removeDollarSign }} = {% if property.type == 'array' %}listOf(){% elseif property.type == 'object' and (property.sub_schema == 'prefs' or property.sub_schema == 'preferences') %}Preferences(data = mapOf<String, Any>()){% elseif property.type == 'object' %}mapOf<String, Any>(){% elseif property.type == 'string' %}"{{property['x-example'] | escapeDollarSign}}"{% elseif property.type == 'boolean' %}true{% elseif property.type == 'number' %}{{property['x-example'] | number_format(1)}}{% else %}{{property['x-example']}}{% endif %},
+{% endfor %}
+{% if definition.additionalProperties %}
+            data = mapOf<String, Any>(),
+{% endif %}
+        )
+        val map = model.toMap()
+        val result = {{ definition.name | caseUcfirst | overrideIdentifier }}.from(map{% if definition.name | hasGenericType(spec) %}, Any::class.java{% endif %})
+
+{% for property in definition.properties %}
+        assertEquals(
+            {% if property.type == 'array' %}listOf(){% elseif property.type == 'object' and (property.sub_schema == 'prefs' or property.sub_schema == 'preferences') %}mapOf("data" to mapOf<String, Any>()){% elseif property.type == 'object' %}mapOf<String, Any>(){% elseif property.type == 'string' %}"{{property['x-example'] | escapeDollarSign}}"{% elseif property.type == 'boolean' %}true{% elseif property.type == 'number' %}{{property['x-example'] | number_format(1)}}{% else %}{{property['x-example']}}{% endif %},
+            result.{{ property.name | escapeKeyword | removeDollarSign }}{% if property.type == 'object' and (property.sub_schema == 'prefs' or property.sub_schema == 'preferences') %}.data{% endif %}
+        )
+{% endfor %}
+    }
+}
