@@ -52,7 +52,7 @@ class LanguageMeta {
   }
 
   /**
-   * Should types be generated in a single file? 
+   * Returns true if the language uses a single file for all types.
    *
    * @returns {boolean}
    */
@@ -82,19 +82,39 @@ class LanguageMeta {
   }
 }
 
+const existsFiles = (...files) =>
+  files.some((file) => fs.existsSync(path.join(process.cwd(), file)));
+
 /**
  * @returns {string}
  */
 function detectLanguage() {
-  if (
-    fs.existsSync(path.join(process.cwd(), "package.json")) ||
-    fs.existsSync(path.join(process.cwd(), "tsconfig.json")) ||
-    fs.existsSync(path.join(process.cwd(), "deno.json"))
-  ) {
+  if (existsFiles("package.json", "tsconfig.json", "deno.json")) {
     return "ts";
   }
-  if (fs.existsSync(path.join(process.cwd(), "composer.json"))) {
+  if (existsFiles("composer.json")) {
     return "php";
+  }
+  if (existsFiles("requirements.txt", "Pipfile", "pyproject.toml")) {
+    return "python";
+  }
+  if (existsFiles("Gemfile", "Rakefile")) {
+    return "ruby";
+  }
+  if (existsFiles("build.gradle.kts")) {
+    return "kotlin";
+  }
+  if (existsFiles("build.gradle", "pom.xml")) {
+    return "java";
+  }
+  if (existsFiles("*.csproj")) {
+    return "dotnet";
+  }
+  if (existsFiles("Package.swift")) {
+    return "swift";
+  }
+  if (existsFiles("pubspec.yaml")) {
+    return "dart";
   }
   throw new Error("Could not detect language, please specify with -l");
 }

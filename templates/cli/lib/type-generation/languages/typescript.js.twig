@@ -58,14 +58,12 @@ class TypeScript extends LanguageMeta {
 
   getTemplate() {
     return `import { Models } from '${this._getAppwriteDependency()}';
-
 <% for (const collection of collections) { %>
 export type <%- toPascalCase(collection.name) %> = Models.Document & {
 <% for (const attribute of collection.attributes) { -%>
   <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>;
 <% } -%>
 }
-
 <% } %>`;
   }
 

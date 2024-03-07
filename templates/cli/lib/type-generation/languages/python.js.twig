@@ -42,14 +42,13 @@ class Python extends LanguageMeta {
   getTemplate() {
     return `import typing
 
-
 <% for (const collection of collections) { %>
 class <%- toPascalCase(collection.name) %>(typing.TypedDict):
 <% for (const attribute of collection.attributes) { -%>
     <%- toSnakeCase(attribute.key) %>: <%- getType(attribute) %>
 <% } -%>
 
-<% } %>`;
+<% } -%>`;
   }
 
   getFileName(_) {

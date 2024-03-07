@@ -2,55 +2,52 @@
 const { AttributeType } = require('../attribute');
 const { LanguageMeta } = require("./language");
 
-class PHP extends LanguageMeta {
+class Kotlin extends LanguageMeta {
   getType(attribute) {
-    let type = ""
+    let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
       case AttributeType.EMAIL:
       case AttributeType.DATETIME:
       case AttributeType.ENUM:
-        type = "string";
+        type = "String";
         break;
       case AttributeType.INTEGER:
-        type = "int";
+        type = "Int";
         break;
       case AttributeType.FLOAT:
-        type = "float";
+        type = "Float";
         break;
       case AttributeType.BOOLEAN:
-        type = "bool";
+        type = "Boolean";
         break;
       case AttributeType.RELATIONSHIP:
-        type = "mixed";
+        type = "Map<String, Any>";
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
     }
     if (attribute.array) {
-      type += "[]";
+      type = "List<" + type + ">";
     }
     if (attribute.required) {
-      type += "|null";
+      type += "?";
     }
     return type;
   }
 
   getTemplate() {
-    return `<?php
-namespace Appwrite\\Models;
-
-use Appwrite\\Models\\Document;
-
-class <%- toPascalCase(collection.name) %> extends Document {
-<% for (const attribute of collection.attributes ){ -%>
-  public <%- getType(attribute) %> $<%- toCamelCase(attribute.key) %>;
+    return `package io.appwrite.models
+    
+data class <%- toPascalCase(collection.name) %>(
+<% for (const attribute of collection.attributes) { -%>
+    val <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>,
 <% } -%>
-}`;
+)`;
   }
 
   getFileName(collection) {
-    return LanguageMeta.toPascalCase(collection.name) + ".php";
+    return LanguageMeta.toPascalCase(collection.name) + ".kt";
   }
 }
 
-module.exports = { PHP };
+module.exports = { Kotlin };

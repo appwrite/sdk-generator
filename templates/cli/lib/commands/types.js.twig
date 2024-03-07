@@ -8,6 +8,8 @@ const { success, log, actionRunner } = require("../parser");
 const { PHP } = require("../type-generation/languages/php");
 const { TypeScript } = require("../type-generation/languages/typescript");
 const { Python } = require("../type-generation/languages/python");
+const { Kotlin } = require("../type-generation/languages/kotlin");
+const { Swift } = require("../type-generation/languages/swift");
 
 /**
  * @param {string} language
@@ -21,8 +23,12 @@ function createLanguageMeta(language) {
       return new PHP();
     case "python":
       return new Python();
+    case "kotlin":
+      return new Kotlin();
+    case "swift":
+      return new Swift();
     default:
-      throw new Error(`Unknown language: ${language}`);
+      throw new Error(`Language '${language}' is not supported`);
   }
 }
 
@@ -43,7 +49,7 @@ const typesLanguageOption = new Option(
   "-l, --language <language>",
   "The language of the types"
 )
-  .choices(["ts", "php", "python"])
+  .choices(["ts", "php", "python", "kotlin", "swift"])
   .default("auto");
 
 const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
@@ -60,7 +66,7 @@ const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
     fs.mkdirSync(outputDirectory, { recursive: true });
   }
 
-  if (!fs.statSync("appwrite.json").isFile()) {
+  if (!fs.existsSync("appwrite.json")) {
     throw new Error("appwrite.json not found in current directory");
   }
 

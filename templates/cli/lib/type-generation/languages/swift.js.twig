@@ -2,55 +2,58 @@
 const { AttributeType } = require('../attribute');
 const { LanguageMeta } = require("./language");
 
-class PHP extends LanguageMeta {
+class Swift extends LanguageMeta {
   getType(attribute) {
-    let type = ""
+    let type = "";
     switch (attribute.type) {
       case AttributeType.STRING:
       case AttributeType.EMAIL:
       case AttributeType.DATETIME:
       case AttributeType.ENUM:
-        type = "string";
+        type = "String";
         break;
       case AttributeType.INTEGER:
-        type = "int";
+        type = "Int";
         break;
       case AttributeType.FLOAT:
-        type = "float";
+        type = "Double";
         break;
       case AttributeType.BOOLEAN:
-        type = "bool";
+        type = "Bool";
         break;
       case AttributeType.RELATIONSHIP:
-        type = "mixed";
+        return "Map<String, Any>";
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
     }
     if (attribute.array) {
-      type += "[]";
+      type = "[" + type + "]";
     }
     if (attribute.required) {
-      type += "|null";
+      type += "?";
     }
     return type;
   }
 
   getTemplate() {
-    return `<?php
-namespace Appwrite\\Models;
+    return `import Foundation
+import Codable
 
-use Appwrite\\Models\\Document;
-
-class <%- toPascalCase(collection.name) %> extends Document {
-<% for (const attribute of collection.attributes ){ -%>
-  public <%- getType(attribute) %> $<%- toCamelCase(attribute.key) %>;
+public class <%- toPascalCase(collection.name) %>: Codable {
+<% for (const attribute of collection.attributes) { -%>
+    public var <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>
+<% } %>
+    enum CodingKeys: String, CodingKey {
+<% for (const attribute of collection.attributes) { -%>
+        case <%- toCamelCase(attribute.key) %>
 <% } -%>
+    }
 }`;
   }
 
   getFileName(collection) {
-    return LanguageMeta.toPascalCase(collection.name) + ".php";
+    return LanguageMeta.toPascalCase(collection.name) + ".swift";
   }
 }
 
-module.exports = { PHP };
+module.exports = { Swift };
