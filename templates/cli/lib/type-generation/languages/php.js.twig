@@ -43,7 +43,7 @@ use Appwrite\\Models\\Document;
 
 class <%- toPascalCase(collection.name) %> extends Document {
   <%_ for (const attribute of collection.attributes ){ -%>
-  public <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>;
+  public <%= toCamelCase(attribute.key) %>: <%= getType(attribute) %>;
   <%_ } %>
 }`;
   }
