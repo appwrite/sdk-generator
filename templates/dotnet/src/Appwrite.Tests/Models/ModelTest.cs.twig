@@ -1,0 +1,33 @@
+{% import 'dotnet/base/utils.twig' as utils -%}
+using NUnit.Framework;
+using System.Collections.Generic;
+
+using Appwrite.Models;
+
+namespace Appwrite.Tests.Models;
+
+public class {{ definition.name | caseUcfirst }}Test
+{
+    [Test]
+    public void TestSerialization()
+    {
+        var model = new {{ definition.name | caseUcfirst | overrideIdentifier }}(
+{% for property in definition.properties %}
+            {{ property.name | escapeKeyword | removeDollarSign }}: {% if property.type == 'array' %}new {{ utils.sub_schema(property) }}(){% elseif property.type == 'object' and (property.sub_schema == 'prefs' or property.sub_schema == 'preferences') %}new Preferences(new Dictionary<string, object>()){% elseif property.type == 'object' %}new Dictionary<string, object>(){% elseif property.type == 'string' %}"{{property['x-example']}}"{% elseif property.type == 'boolean' %}true{% elseif property.type == 'number' %}{{property['x-example'] | number_format(1)}}{% else %}{{property['x-example']}}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+{% endfor %}
+{% if definition.additionalProperties %}
+            data: new Dictionary<string, object>()
+{% endif %}
+        );
+
+        var map = model.ToMap();
+        var result = {{ definition.name | caseUcfirst | overrideIdentifier }}.From(map);
+
+{% for property in definition.properties %}
+        Assert.That(
+            result.{{ property.name | caseUcfirst | escapeKeyword | removeDollarSign }}{% if property.type == 'object' and (property.sub_schema == 'prefs' or property.sub_schema == 'preferences') %}.Data{% endif %},
+            Is.EqualTo({% if property.type == 'array' %}new {{ utils.sub_schema(property) }}(){% elseif property.type == 'object' and (property.sub_schema == 'prefs' or property.sub_schema == 'preferences') %}new Dictionary<string, object> { {"data", new Dictionary<string, object>()} }{% elseif property.type == 'object' %}new Dictionary<string, object>(){% elseif property.type == 'string' %}"{{property['x-example']}}"{% elseif property.type == 'boolean' %}true{% elseif property.type == 'number' %}{{property['x-example'] | number_format(1)}}{% else %}{{property['x-example']}}{% endif %})
+        );
+{% endfor %}
+    }
+}

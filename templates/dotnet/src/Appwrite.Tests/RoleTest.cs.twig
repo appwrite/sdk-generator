@@ -1,0 +1,66 @@
+using NUnit.Framework;
+
+namespace Appwrite.Tests;
+
+public class RoleTest
+{
+    [Test]
+    public void TestAny()
+    {
+        Assert.That(Role.Any(), Is.EqualTo("any"));
+    }
+
+    [Test]
+    public void TestUserWithoutStatus()
+    {
+        Assert.That(Role.User("custom"), Is.EqualTo("user:custom"));
+    }
+
+    [Test]
+    public void TestUserWithStatus()
+    {
+        Assert.That(Role.User("custom", "verified"), Is.EqualTo("user:custom/verified"));
+    }
+
+    [Test]
+    public void TestUsersWithoutStatus()
+    {
+        Assert.That(Role.Users(), Is.EqualTo("users"));
+    }
+
+    [Test]
+    public void TestUsersWithStatus()
+    {
+        Assert.That(Role.Users("verified"), Is.EqualTo("users/verified"));
+    }
+
+    [Test]
+    public void TestGuests()
+    {
+        Assert.That(Role.Guests(), Is.EqualTo("guests"));
+    }
+
+    [Test]
+    public void TestTeamWithoutRole()
+    {
+        Assert.That(Role.Team("custom"), Is.EqualTo("team:custom"));
+    }
+
+    [Test]
+    public void TestTeamWithRole()
+    {
+        Assert.That(Role.Team("custom", "owner"), Is.EqualTo("team:custom/owner"));
+    }
+
+    [Test]
+    public void TestMember()
+    {
+        Assert.That(Role.Member("custom"), Is.EqualTo("member:custom"));
+    }
+
+    [Test]
+    public void TestLabel()
+    {
+        Assert.That(Role.Label("admin"), Is.EqualTo("label:admin"));
+    }
+}

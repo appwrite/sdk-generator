@@ -1,0 +1,80 @@
+{% import 'dotnet/base/utils.twig' as utils %}
+
+using Moq;
+using Moq.Protected;
+using Newtonsoft.Json;
+using NUnit.Framework;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
+using System.IO;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Appwrite.Services;
+
+namespace Appwrite.Tests.Services;
+
+public class {{ service.name | caseUcfirst }}ServiceTest {
+    private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
+    private readonly {{ service.name | caseUcfirst }} _{{ service.name | caseCamel }};
+
+    public {{ service.name | caseUcfirst }}ServiceTest()
+    {
+        _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
+        var client = new HttpClient(_httpMessageHandlerMock.Object);
+        _{{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(new Client(http: client));
+    }
+
+{% for method in service.methods %}
+    [Test]
+    public async Task Test{{ method.name | caseUcfirst }}() {
+        {%~ if method.type == 'webAuth' -%}
+        {%~ elseif method.type == 'location' -%}
+        var data = new byte[]{};
+        {%- else -%}
+            {%~ if method.responseModel and method.responseModel != 'any' ~%}
+        var data = new Dictionary<string, object> {
+            {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
+            {"{{property.name}}", {% if property.type == 'object' %}new Dictionary<string, object>(){% elseif property.type == 'array' %}new List<string>(){% elseif property.type == 'string' %}"{{property.example | escapeDollarSign}}"{% elseif property.type == 'boolean' %}true{% else %}{{property.example}}{% endif %}},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
+
+        };
+            {%~ else ~%}
+        var data = "";
+            {%- endif -%}
+        {% endif %}
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Returns(() =>
+            {
+                var response = new HttpResponseMessage
+                {
+                    {%~ if method.type == 'location' %}
+                    Content = new StreamContent(new MemoryStream(data)) { Headers = { {"Content-Type", "application/octet-stream"} } },
+                    {%~ elseif method.type == 'webAuth' %}
+                    Content = new StringContent(""),
+                    {%~ else %}
+                    Content = new StringContent(JsonConvert.SerializeObject(data), Encoding.UTF8, "application/json"),
+                    {%~ endif %}
+                    StatusCode = HttpStatusCode.OK,
+                };
+
+                return Task.FromResult(response);
+            });
+
+            {% if method.type != 'webAuth' %}var response = {% endif %}await _{{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
+                {{parameter.name | escapeKeyword | caseCamel}}: {% if parameter.type == 'object' %}new Dictionary<string, object>(){% elseif parameter.type == 'array' %}new List<string>(){% elseif parameter.type == 'file' %}Appwrite.Models.InputFile.FromBytes(new byte[]{}, "input.png", "image/png"){% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'string' %}"{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}"{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%}{% if not loop.last %},{% endif %}{%~ endfor ~%}
+            );
+
+        {%~ if method.type == 'location' ~%}
+            Assert.That(response, Is.InstanceOf<byte[]>());
+        {%~ elseif method.responseModel and method.responseModel != 'any' %}
+            Assert.That(response, Is.InstanceOf<Appwrite.{{ utils.resultType(spec.title, method) }}>());
+        {%~ endif ~%}
+    }
+
+{% endfor %}
+}
