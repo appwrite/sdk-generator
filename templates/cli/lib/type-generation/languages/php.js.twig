@@ -42,10 +42,10 @@ namespace Appwrite\\Models;
 use Appwrite\\Models\\Document;
 
 class <%- toPascalCase(collection.name) %> extends Document {
-  <%_ for (const attribute of collection.attributes ){ -%>
-  public <%= getType(attribute) %> $<%= toCamelCase(attribute.key) %>;
+<% for (const attribute of collection.attributes ){ %>
+  public <%- getType(attribute) %> $<%- toCamelCase(attribute.key) %>;
 
-  <%_ } %->
+<% } %>
 }`;
   }
 
