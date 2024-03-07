@@ -8,12 +8,12 @@ class ID {
         const microsecondsPart = msecs * 1000; // Convert milliseconds to microseconds
 
         // Convert to hexadecimal
-        const hexTimestamp = secondsSinceEpoch.toString(16) + microsecondsPart.toString(16).padStart(5, '0');
+        const hexTimestamp = secondsSinceEpoch.toString(16)
+            + microsecondsPart.toString(16).padStart(5, '0');
         return hexTimestamp;
     }
 
     // Generate a unique ID with padding to have a longer ID
-    // Recreated from https://github.com/utopia-php/database/blob/main/src/Database/ID.php#L13
     static unique = (padding = 7) => {
         const baseId = ID.#hexTimestamp();
         let randomPadding = '';

@@ -1,23 +1,22 @@
 require 'securerandom'
 
-#Generate an hex ID based on timestamp
-#Recreated from https://www.php.net/manual/en/function.uniqid.php
-def hex_timestamp
-  now = Time.now
-  seconds_since_epoch = now.to_i
-  microseconds_part = now.usec
-  hex_timestamp = "%08x%05x" % [seconds_since_epoch, microseconds_part]
-  hex_timestamp
-end
-
 module {{spec.title | caseUcfirst}}
     class ID
+        #Generate an hex ID based on timestamp
+        #Recreated from https://www.php.net/manual/en/function.uniqid.php
+        private def hex_timestamp
+            now = Time.now
+            seconds_since_epoch = now.to_i
+            microseconds_part = now.usec
+            hex_timestamp = "%08x%05x" % [seconds_since_epoch, microseconds_part]
+            hex_timestamp
+        end
+
         def self.custom(id)
             id
         end
 
         # Generate a unique ID with padding to have a longer ID
-        # Recreated from https://github.com/utopia-php/database/blob/main/src/Database/ID.php#L13
         def self.unique(padding=7)
             base_id = hex_timestamp
             random_padding = SecureRandom.hex(padding)

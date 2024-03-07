@@ -17,9 +17,9 @@ class ID:
         return id
 
     # Generate a unique ID with padding to have a longer ID
-    # Recreated from https://github.com/utopia-php/database/blob/main/src/Database/ID.php#L13
     @staticmethod
     def unique(padding = 7):
         base_id = ID.__hex_timestamp()
-        random_padding = ''.join(random.choice('0123456789abcdef') for _ in range(padding))
+        random_bytes = os.urandom(ceil(padding / 2))
+        random_padding = random_bytes.hex()[:padding]
         return base_id + random_padding

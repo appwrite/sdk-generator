@@ -6,24 +6,25 @@ namespace {{ spec.title | caseUcfirst }}
     {
         // Generate an hex ID based on timestamp
         // Recreated from https://www.php.net/manual/en/function.uniqid.php
-        private static string hexTimestamp()
+        private static string HexTimestamp()
         {
             var now = DateTime.UtcNow;
-            var secondsSinceEpoch = (long)(now - new DateTime(1970, 1, 1)).TotalSeconds;
-            var msecs = (now - new DateTime(1970, 1, 1)).TotalMilliseconds - secondsSinceEpoch * 1000;
+            var epoch = (now - new DateTime(1970, 1, 1));
+            var secondsSinceEpoch = (long)epoch.TotalSeconds;
+            var msecs = epoch.TotalMilliseconds - secondsSinceEpoch * 1000;
             var microsecondsPart = (long)(msecs * 1000); // Convert milliseconds to microseconds
 
             // Convert to hexadecimal
-            var hexTimestamp = secondsSinceEpoch.ToString("x") + microsecondsPart.ToString("x").PadLeft(5, '0');
+            var hexTimestamp = secondsSinceEpoch.ToString("x")
+                + microsecondsPart.ToString("x").PadLeft(5, '0');
             return hexTimestamp;
         }
 
         // Generate a unique ID with padding to have a longer ID
-        // Recreated from https://github.com/utopia-php/database/blob/main/src/Database/ID.php#L13
         public static string Unique(int padding = 7)
         {
             var random = new Random();
-            var baseId = hexTimestamp();
+            var baseId = HexTimestamp();
             var randomPadding = "";
 
             for (int i = 0; i < padding; i++)

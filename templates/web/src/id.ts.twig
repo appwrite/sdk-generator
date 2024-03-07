@@ -1,21 +1,21 @@
-// Generate an hex ID based on timestamp
-// Recreated from https://www.php.net/manual/en/function.uniqid.php
-function hexTimestamp(): string {
-  const now = new Date();
-  const secondsSinceEpoch = Math.floor(now.getTime() / 1000); // Get Unix Timestamp
-  const microsecondsPart = now.getMilliseconds() * 1000; // Convert milliseconds to microseconds
-  const hexTimestamp = `${secondsSinceEpoch.toString(16)}${microsecondsPart.toString(16).padStart(5, '0')}`;
-  return hexTimestamp;
-}
-
 export class ID {
+    // Generate an hex ID based on timestamp
+    // Recreated from https://www.php.net/manual/en/function.uniqid.php
+    function #hexTimestamp(): string {
+        const now = new Date();
+        const secondsSinceEpoch = Math.floor(now.getTime() / 1000); // Get Unix Timestamp
+        const microsecondsPart = now.getMilliseconds() * 1000; // Convert milliseconds to microseconds
+        const hexTimestamp = secondsSinceEpoch.toString(16)
+            + microsecondsPart.toString(16).padStart(5, '0');
+        return hexTimestamp;
+    }
+
     public static custom(id: string): string {
         return id
     }
 
     public static unique(padding: number = 7): string {
         // Generate a unique ID with padding to have a longer ID
-        // Recreated from https://github.com/utopia-php/database/blob/main/src/Database/ID.php#L13
         const baseId = hexTimestamp();
         let randomPadding = '';
         for (let i = 0; i < padding; i++) {

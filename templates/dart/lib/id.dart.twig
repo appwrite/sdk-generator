@@ -15,7 +15,6 @@ class ID {
   }
 
   // Generate a unique ID with padding to have a longer ID
-  // Recreated from https://github.com/utopia-php/database/blob/main/src/Database/ID.php#L13
   static String unique({int padding = 7}) {
     String id = _hexTimestamp();
 

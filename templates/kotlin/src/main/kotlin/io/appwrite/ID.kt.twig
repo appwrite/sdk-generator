@@ -4,24 +4,23 @@ import java.time.Instant
 import kotlin.math.floor
 import kotlin.random.Random
 
-// Generate an hex ID based on timestamp
-// Recreated from https://www.php.net/manual/en/function.uniqid.php
-private fun hexTimestamp(): String {
-    val currentTimestamp = Instant.now().toEpochMilli() / 1000.0
-    val secondsPart = floor(currentTimestamp).toLong()
-    val microsecondsPart = ((currentTimestamp - secondsPart) * 1_000_000).toLong()
-
-    // Convert both parts to hexadecimal format
-    val hexTimestamp = "%08x%05x".format(secondsPart, microsecondsPart)
-    return hexTimestamp
-}
-
 class ID {
+    // Generate an hex ID based on timestamp
+    // Recreated from https://www.php.net/manual/en/function.uniqid.php
+    private fun hexTimestamp(): String {
+        val now = Instant.now().toEpochMilli() / 1000.0
+        val secondsSinceEpoch = floor(currentTimestamp).toLong()
+        val millisecondsSinceEpoch = ((currentTimestamp - secondsPart) * 1_000_000).toLong()
+
+        // Convert both parts to hexadecimal format
+        val hexTimestamp = "%08x%05x".format(secondsSinceEpoch, millisecondsSinceEpoch)
+        return hexTimestamp
+    }
+
     companion object {
         fun custom(id: String): String
             = id
         // Generate a unique ID with padding to have a longer ID
-        // Recreated from https://github.com/utopia-php/database/blob/main/src/Database/ID.php#L13
         fun unique(padding: Int = 7): String {
             val baseId = hexTimestamp()
             val randomPadding = (1..padding)
