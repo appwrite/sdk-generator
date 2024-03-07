@@ -124,8 +124,13 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/type-generation/attributes.js',
-                'template'      => 'cli/lib/type-generation/attributes.js.twig',
+                'destination'   => 'lib/type-generation/attribute.js',
+                'template'      => 'cli/lib/type-generation/attribute.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/collection.js',
+                'template'      => 'cli/lib/type-generation/collection.js.twig',
             ],
             [
                 'scope'         => 'default',

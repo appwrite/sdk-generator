@@ -1,12 +1,40 @@
+const ejs = require("ejs");
+const fs = require("fs");
+const path = require("path");
+const { LanguageMeta, detectLanguage } = require("../type-generation/languages/language");
+const { Command, Option, Argument } = require("commander");
+const { localConfig } = require("../config");
+const { success, log, actionRunner } = require("../parser");
 const { PHP } = require("../type-generation/languages/php");
 const { TypeScript } = require("../type-generation/languages/typescript");
 
-const fs = require("fs");
-const path = require("path");
-const { Command, Option } = require("commander");
-const { localConfig } = require("../config");
-const { success, log, actionRunner } = require("../parser");
-const ejs = require("ejs");
+/**
+ * @param {string} language
+ * @returns {import("../type-generation/languages/language").LanguageMeta}
+ */
+function createLanguageMeta(language) {
+  switch (language) {
+    case "ts":
+      return new TypeScript();
+    case "php":
+      return new PHP();
+    default:
+      throw new Error(`Unknown language: ${language}`);
+  }
+}
+
+const templateHelpers = {
+  toPascalCase: LanguageMeta.toPascalCase,
+  toCamelCase: LanguageMeta.toCamelCase,
+  toSnakeCase: LanguageMeta.toSnakeCase,
+  toKebabCase: LanguageMeta.toKebabCase,
+  toUpperSnakeCase: LanguageMeta.toUpperSnakeCase
+}
+
+const typesOutputArgument = new Argument(
+  "<output-directory>",
+  "The directory to write the types to"
+);
 
 const typesLanguageOption = new Option(
   "-l, --language <language>",
@@ -15,62 +43,69 @@ const typesLanguageOption = new Option(
   .choices(["ts", "php"])
   .default("auto");
 
-const typesOutputOption = new Option(
-  "-o, --output <output>",
-  "The output path of the types"
-).default("auto");
-
-const languages = {
-  ts: new TypeScript(),
-  php: new PHP(),
-};
-
-function detectLanguage() {
-  if (fs.existsSync(path.join(process.cwd(), "package.json"))) {
-    return "ts";
-  }
-  if (fs.existsSync(path.join(process.cwd(), "composer.json"))) {
-    return "php";
-  }
-  throw new Error("Could not detect language, please specify with -l");
-}
-
-const typesCommand = actionRunner(async (options) => {
-  let { language, output } = options;
-
+const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
   if (language === "auto") {
     language = detectLanguage();
     log(`Detected language: ${language}`);
   }
 
-  const generator = languages[language];
+  const meta = createLanguageMeta(language);
 
-  if (output === "auto") {
-    output = generator.getOutputPath();
-    log(`Using default output path: ${output}`);
+  const outputDirectory = path.resolve(rawOutputDirectory);
+  if (!fs.existsSync(outputDirectory)) {
+    log(`Directory: ${outputDirectory} does not exist, creating...`);
+    fs.mkdirSync(outputDirectory, { recursive: true });
+  }
+
+  if (!fs.statSync("appwrite.json").isFile()) {
+    throw new Error("appwrite.json not found in current directory");
   }
 
   const collections = localConfig.getCollections();
-
-  const templateContent = generator.getTemplate();
-  const templater = ejs.compile(templateContent);
-  const typesContent = templater({ collections });
-
-  const outputDir = path.dirname(output);
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+  if (collections.length === 0) {
+    throw new Error("No collections found in appwrite.json");
   }
 
-  fs.writeFileSync(output, typesContent);
-  log(`Types written to ${output}`);
+  log(`Found ${collections.length} collections: ${collections.map(c => c.name).join(", ")}`);
 
+  const totalAttributes = collections.reduce((count, collection) => count + collection.attributes.length, 0);
+  log(`Found ${totalAttributes} attributes across all collections`);
+
+  const templater = ejs.compile(meta.getTemplate());
+
+  if (meta.isSingleFile()) {
+    const content = templater({
+      collections,
+      ...templateHelpers,
+      getType: meta.getType
+    });
+
+    const destination = path.join(outputDirectory, meta.getFileName());
+
+    fs.writeFileSync(destination, content);
+    log(`Added types to ${destination}`);
+  } else {
+    for (const collection of collections) {
+      const content = templater({
+        collection,
+        ...templateHelpers,
+        getType: meta.getType
+      });
+  
+      const destination = path.join(outputDirectory, meta.getFileName(collection));
+  
+      fs.writeFileSync(destination, content);
+      log(`Added types for ${collection.name} to ${destination}`);
+    }
+  }
+  
   success();
 });
 
 const types = new Command("types")
   .description("Generate types for your Appwrite project")
+  .addArgument(typesOutputArgument)
   .addOption(typesLanguageOption)
-  .addOption(typesOutputOption)
   .action(actionRunner(typesCommand));
 
 module.exports = { types };

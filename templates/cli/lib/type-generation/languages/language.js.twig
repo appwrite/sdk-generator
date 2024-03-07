@@ -1,63 +1,43 @@
-/** @typedef {import('../attributes').Attribute} Attribute */
+/** @typedef {import('../attribute').Attribute} Attribute */
+/** @typedef {import('../collection').Collection} Collection */
 
-class Language {
+const fs = require("fs");
+const path = require("path");
+
+class LanguageMeta {
   constructor() {
-    if (new.target === Language) {
+    if (new.target === LanguageMeta) {
       throw new TypeError("Abstract classes can't be instantiated.");
     }
   }
 
-  /**
-   * @param {string} string
-   * @returns {string}
-   */
   static toKebabCase(string) {
     return string
-      .split("")
-      .map((letter) => {
-        if (/[A-Z]/.test(letter)) {
-          return ` ${letter.toLowerCase()}`;
-        }
-        return letter;
-      })
-      .join("")
-      .trim()
-      .replace(/[_\s]+/g, "-");
+      .replace(/[^a-zA-Z0-9\s-_]/g, "") // Remove invalid characters
+      .replace(/([a-z])([A-Z])/g, "$1-$2") // Add hyphen between camelCase
+      .replace(/([A-Z])([A-Z][a-z])/g, "$1-$2") // Add hyphen between PascalCase
+      .replace(/[_\s]+/g, "-") // Replace spaces and underscores with hyphens
+      .replace(/^-+|-+$/g, "") // Remove leading and trailing hyphens
+      .replace(/--+/g, "-") // Replace multiple hyphens with a single hyphen
+      .toLowerCase();
   }
 
-  /**
-   * @param {string} string
-   * @returns {string}
-   */
   static toSnakeCase(string) {
     return this.toKebabCase(string).replace(/-/g, "_");
   }
 
-  /**
-   * @param {string} string
-   * @returns {string}
-   */
   static toUpperSnakeCase(string) {
     return this.toSnakeCase(string).toUpperCase();
   }
 
-  /**
-   * @param {string} string
-   * @returns {string}
-   */
-  static toPascalCase(string) {
-    return this.toKebabCase(string)
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join("");
+  static toCamelCase(string) {
+    return this.toKebabCase(string).replace(/-([a-z])/g, (g) =>
+      g[1].toUpperCase()
+    );
   }
 
-  /**
-   * @param {string} string
-   * @returns {string}
-   */
-  static toCamelCase(string) {
-    return this.toPascalCase(string).charAt(0).toLowerCase() + string.slice(1);
+  static toPascalCase(string) {
+    return this.toCamelCase(string).replace(/^./, (g) => g.toUpperCase());
   }
 
   /**
@@ -67,29 +47,56 @@ class Language {
    * @param {Attribute} attribute
    * @return {string}
    */
-  static getType(attribute) {
+  getType(attribute) {
     throw new TypeError("Stub.");
   }
 
   /**
+   * Should types be generated in a single file? 
+   *
+   * @returns {boolean}
+   */
+  isSingleFile() {
+    return false;
+  }
+
+  /**
    * Get the EJS template used to generate the types for this language.
-   * 
+   *
    * @abstract
    * @returns {string}
    */
-  static getTemplate() {
+  getTemplate() {
     throw new TypeError("Stub.");
   }
 
   /**
    * Get the file extension used by files of this language.
-   * 
+   *
    * @abstract
+   * @param {Collection|undefined} collection
    * @returns {string}
    */
-  static getOutputPath() {
+  getFileName(collection) {
     throw new TypeError("Stub.");
   }
 }
 
-module.exports = { Language };
+/**
+ * @returns {string}
+ */
+function detectLanguage() {
+  if (
+    fs.existsSync(path.join(process.cwd(), "package.json")) ||
+    fs.existsSync(path.join(process.cwd(), "tsconfig.json")) ||
+    fs.existsSync(path.join(process.cwd(), "deno.json"))
+  ) {
+    return "ts";
+  }
+  if (fs.existsSync(path.join(process.cwd(), "composer.json"))) {
+    return "php";
+  }
+  throw new Error("Could not detect language, please specify with -l");
+}
+
+module.exports = { LanguageMeta, detectLanguage };

@@ -1,12 +1,12 @@
-/** @typedef {import('../attributes').Attribute} Attribute */
-const { AttributeType } = require('../attributes');
-const { Language } = require("./language");
+/** @typedef {import('../attribute').Attribute} Attribute */
+const fs = require("fs");
+const path = require("path");
 
-class TypeScript extends Language {
-    /**
-   * @param {Attribute} attribute
-   */
-  static getType(attribute) {
+const { AttributeType } = require('../attribute');
+const { LanguageMeta } = require("./language");
+
+class TypeScript extends LanguageMeta {
+  getType(attribute) {
     let type = ""
     switch (attribute.type) {
       case AttributeType.STRING:
@@ -33,25 +33,56 @@ class TypeScript extends Language {
       type += "[]";
     }
     if (attribute.required) {
-      type += "|null";
+      type += " | null";
     }
     return type;
   }
 
-  static getTemplate() {
-    return `
-<% for (const collection of collections.attributes ){ %>
-export type <%= toPascalCase(collection.key) %> = {
-  <% for (const attribute of collection.attributes) {  %>
-  <%= toCamelCase(attribute.key) %>: <%= getType(attribute) %>;
-  <% } %>
-}
-
-<% } %>`;
+  isSingleFile() {
+    return true;
   }
 
-  static getOutputPath() {
-    return "./generated/appwrite.d.ts";
+  _usingNodeAppwrite() {
+    if (fs.existsSync(path.resolve(process.cwd(), 'package.json'))) {
+
+      return 
+    }
+    if (fs.existsSync(path.resolve(process.cwd(), 'deno.json'))) {
+      const denoJsonRaw = fs.readFileSync(path.resolve(process.cwd(), 'deno.json'));
+      const denoJson = JSON.parse(denoJsonRaw.toString('utf-8'));
+      return denoJson.dependencies['appwrite'] ? true : false;
+    }
+  }
+
+  _getAppwriteDependency() {
+    if (fs.existsSync(path.resolve(process.cwd(), 'package.json'))) {
+      const packageJsonRaw = fs.readFileSync(path.resolve(process.cwd(), 'package.json'));
+      const packageJson = JSON.parse(packageJsonRaw.toString('utf-8'));
+      return packageJson.dependencies['node-appwrite'] ? 'node-appwrite' : 'appwrite';
+    }
+
+    if (fs.existsSync(path.resolve(process.cwd(), 'deno.json'))) {
+      return "https://deno.land/x/appwrite/mod.ts"
+    }
+
+    return "appwrite";
+  }
+
+  getTemplate() {
+    return `import { Models } from '${this._getAppwriteDependency()}';
+
+<% for (const collection of collections) { -%>
+export type <%- toPascalCase(collection.name) %> = Models.Document & {
+  <%_ for (const attribute of collection.attributes) {  -%>
+  <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>;
+  <%_ } -%>
+}
+
+<% } -%>`;
+  }
+
+  getFileName(_) {
+    return "appwrite.d.ts";
   }
 }
 

@@ -1,12 +1,9 @@
-/** @typedef {import('../attributes').Attribute} Attribute */
-const { AttributeType } = require('../attributes');
-const { Language } = require("./language");
+/** @typedef {import('../attribute').Attribute} Attribute */
+const { AttributeType } = require('../attribute');
+const { LanguageMeta } = require("./language");
 
-class PHP extends Language {
-  /**
-   * @param {Attribute} attribute
-   */
-  static getType(attribute) {
+class PHP extends LanguageMeta {
+  getType(attribute) {
     let type = ""
     switch (attribute.type) {
       case AttributeType.STRING:
@@ -38,22 +35,23 @@ class PHP extends Language {
     return type;
   }
 
-  static getTemplate() {
+
+
+  getTemplate() {
     return `<?php
-namespace Appwrite;
+namespace Appwrite\\Models;
 
-<% for (const collection of collections.attributes ){ %>
-class <%= toPascalCase(collection.key) %> extends Document {
-  <% for (const attribute of collection.attributes ){ %>
-  public <%= toCamelCase(attribute.key) %>: <%= getType(attribute) %>;
-  <% } %>
-}
+use Appwrite\\Models\\Document;
 
-<% } %>`;
+class <%- toPascalCase(collection.name) %> extends Document {
+  <%_ for (const attribute of collection.attributes ){ -%>
+  public <%- toCamelCase(attribute.key) %>: <%- getType(attribute) %>;
+  <%_ } %>
+}`;
   }
 
-  static getOutputPath() {
-    return "./generated/Appwrite.php";
+  getFileName(collection) {
+    return LanguageMeta.toPascalCase(collection.name) + ".php";
   }
 }
 
