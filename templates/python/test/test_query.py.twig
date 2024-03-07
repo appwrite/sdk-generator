@@ -1,0 +1,110 @@
+import unittest
+
+from appwrite.query import Query
+
+
+class BasicFilterQueryTest:
+    def __init__(self, description: str, value, expected_values: str):
+        self.description = description
+        self.value = value
+        self.expected_values = expected_values
+
+
+tests = [
+    BasicFilterQueryTest('with a string', 's', '["s"]'),
+    BasicFilterQueryTest('with an integer', 1, '[1]'),
+    BasicFilterQueryTest('with a double', 1.2, '[1.2]'),
+    BasicFilterQueryTest('with a whole number double', 1.0, '[1.0]'),
+    BasicFilterQueryTest('with a bool', False, '[false]'),
+    BasicFilterQueryTest('with a list', ['a', 'b', 'c'], '["a","b","c"]'),
+]
+
+
+class TestQueryMethods(unittest.TestCase):
+
+    def test_equal(self):
+        for t in tests:
+            self.assertEqual(
+                Query.equal('attr', t.value),
+                f'equal("attr", {t.expected_values})',
+                t.description
+            )
+
+    def test_not_equal(self):
+        for t in tests:
+            self.assertEqual(
+                Query.not_equal('attr', t.value),
+                f'notEqual("attr", {t.expected_values})',
+                t.description
+            )
+
+    def test_less_than(self):
+        for t in tests:
+            self.assertEqual(
+                Query.less_than('attr', t.value),
+                f'lessThan("attr", {t.expected_values})',
+                t.description
+            )
+
+    def test_less_than_equal(self):
+        for t in tests:
+            self.assertEqual(
+                Query.less_than_equal('attr', t.value),
+                f'lessThanEqual("attr", {t.expected_values})',
+                t.description
+            )
+
+    def test_greater_than(self):
+        for t in tests:
+            self.assertEqual(
+                Query.greater_than('attr', t.value),
+                f'greaterThan("attr", {t.expected_values})',
+                t.description
+            )
+
+    def test_greater_than_equal(self):
+        for t in tests:
+            self.assertEqual(
+                Query.greater_than_equal('attr', t.value),
+                f'greaterThanEqual("attr", {t.expected_values})',
+                t.description
+            )
+
+    def test_search(self):
+        self.assertEqual(Query.search('attr', 'keyword1 keyword2'), 'search("attr", ["keyword1 keyword2"])')
+
+    def test_is_null(self):
+        self.assertEqual(Query.is_null('attr'), 'isNull("attr")')
+
+    def test_is_not_null(self):
+        self.assertEqual(Query.is_not_null('attr'), 'isNotNull("attr")')
+
+    def test_between_with_integers(self):
+        self.assertEqual(Query.between('attr', 1, 2), 'between("attr", 1, 2)')
+
+    def test_between_with_doubles(self):
+        self.assertEqual(Query.between('attr', 1.0, 2.0), 'between("attr", 1.0, 2.0)')
+
+    def test_between_with_strings(self):
+        self.assertEqual(Query.between('attr', 'a', 'z'), 'between("attr", "a" "z")')
+
+    def test_select(self):
+        self.assertEqual(Query.select(['attr1', 'attr2']), 'select(["attr1","attr2"])')
+
+    def test_order_asc(self):
+        self.assertEqual(Query.order_asc('attr'), 'orderAsc("attr")')
+
+    def test_order_desc(self):
+        self.assertEqual(Query.order_desc('attr'), 'orderDesc("attr")')
+
+    def test_cursor_before(self):
+        self.assertEqual(Query.cursor_before('custom'), 'cursorBefore("custom")')
+
+    def test_cursor_after(self):
+        self.assertEqual(Query.cursor_after('custom'), 'cursorAfter("custom")')
+
+    def test_limit(self):
+        self.assertEqual(Query.limit(1), 'limit(1)')
+
+    def test_offset(self):
+        self.assertEqual(Query.offset(1), 'offset(1)')
