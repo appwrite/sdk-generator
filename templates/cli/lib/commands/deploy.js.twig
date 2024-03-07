@@ -52,7 +52,7 @@ const awaitPools = {
         const { total } = await databasesListAttributes({
             databaseId,
             collectionId,
-            queries: ['limit(1)'],
+            queries: [JSON.stringify({ method: 'limit', values: [1] })],
             parseOutput: false
         });
 
@@ -83,7 +83,7 @@ const awaitPools = {
         const { total } = await databasesListIndexes({
             databaseId,
             collectionId,
-            queries: ['limit(100)'],
+            queries: [JSON.stringify({ method: 'limit', values: [1] })],
             parseOutput: false
         });
 
@@ -302,7 +302,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
 
             const { total } = await functionsListVariables({
                 functionId: func['$id'],
-                queries: ['limit(1)'],
+                queries: [JSON.stringify({ method: 'limit', values: [1] })],
                 parseOutput: false
             });
 
