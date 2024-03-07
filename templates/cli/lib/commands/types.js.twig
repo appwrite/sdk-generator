@@ -43,7 +43,7 @@ const typesLanguageOption = new Option(
   "-l, --language <language>",
   "The language of the types"
 )
-  .choices(["ts", "php"])
+  .choices(["ts", "php", "python"])
   .default("auto");
 
 const typesCommand = actionRunner(async (rawOutputDirectory, {language}) => {
