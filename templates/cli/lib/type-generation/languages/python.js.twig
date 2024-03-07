@@ -45,7 +45,7 @@ class Python extends LanguageMeta {
 <% for (const collection of collections) { -%>
 class <%= toPascalCase(collection.name) %>(typing.TypedDict):
     <%_ for (const attribute of collection.attributes) { -%>
-    <%= attribute.name %>: <%= getType(attribute) %>
+    <%= toSnakeCase(attribute.key) %>: <%= getType(attribute) %>
     <% } -%>
 <% } -%>`;
   }
