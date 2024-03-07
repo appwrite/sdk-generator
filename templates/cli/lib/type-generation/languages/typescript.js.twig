@@ -42,18 +42,6 @@ class TypeScript extends LanguageMeta {
     return true;
   }
 
-  _usingNodeAppwrite() {
-    if (fs.existsSync(path.resolve(process.cwd(), 'package.json'))) {
-
-      return 
-    }
-    if (fs.existsSync(path.resolve(process.cwd(), 'deno.json'))) {
-      const denoJsonRaw = fs.readFileSync(path.resolve(process.cwd(), 'deno.json'));
-      const denoJson = JSON.parse(denoJsonRaw.toString('utf-8'));
-      return denoJson.dependencies['appwrite'] ? true : false;
-    }
-  }
-
   _getAppwriteDependency() {
     if (fs.existsSync(path.resolve(process.cwd(), 'package.json'))) {
       const packageJsonRaw = fs.readFileSync(path.resolve(process.cwd(), 'package.json'));

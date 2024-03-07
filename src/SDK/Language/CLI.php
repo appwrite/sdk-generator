@@ -149,6 +149,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/python.js',
+                'template'      => 'cli/lib/type-generation/languages/python.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/questions.js',
                 'template'      => 'cli/lib/questions.js.twig',
             ],

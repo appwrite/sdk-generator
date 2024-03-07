@@ -7,6 +7,7 @@ const { localConfig } = require("../config");
 const { success, log, actionRunner } = require("../parser");
 const { PHP } = require("../type-generation/languages/php");
 const { TypeScript } = require("../type-generation/languages/typescript");
+const { Python } = require("../type-generation/languages/python");
 
 /**
  * @param {string} language
@@ -18,6 +19,8 @@ function createLanguageMeta(language) {
       return new TypeScript();
     case "php":
       return new PHP();
+    case "python":
+      return new Python();
     default:
       throw new Error(`Unknown language: ${language}`);
   }
