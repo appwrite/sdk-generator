@@ -5,7 +5,7 @@
                 params: api_params,
                 {%~ if method.type == "webAuth" %}
                 response_type: "location"
-                {%~ elseif method.responseModel is defined and method.responseModel != 'any' %}
+                {%~ elseif method.responseModel and method.responseModel != 'any' %}
                 response_type: Models::{{ method.responseModel | caseUcfirst }}
                 {%~ endif %}
             )
