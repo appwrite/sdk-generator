@@ -4,6 +4,9 @@ const { LanguageMeta } = require("./language");
 
 class PHP extends LanguageMeta {
   getType(attribute) {
+    if (attribute.array) {
+      return "array";
+    }
     let type = ""
     switch (attribute.type) {
       case AttributeType.STRING:
@@ -25,9 +28,6 @@ class PHP extends LanguageMeta {
         type = "mixed";
       default:
         throw new Error(`Unknown attribute type: ${attribute.type}`);
-    }
-    if (attribute.array) {
-      type += "[]";
     }
     if (attribute.required) {
       type += "|null";
