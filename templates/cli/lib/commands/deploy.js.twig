@@ -52,7 +52,7 @@ const awaitPools = {
         const { total } = await databasesListAttributes({
             databaseId,
             collectionId,
-            queries: ['limit(1)'],
+            queries: [JSON.stringify({ method: 'limit', values: [1] })],
             parseOutput: false
         });
 
@@ -83,7 +83,7 @@ const awaitPools = {
         const { total } = await databasesListIndexes({
             databaseId,
             collectionId,
-            queries: ['limit(100)'],
+            queries: [JSON.stringify({ method: 'limit', values: [1] })],
             parseOutput: false
         });
 
@@ -103,6 +103,35 @@ const awaitPools = {
         return await awaitPools.wipeIndexes(
             databaseId,
             collectionId,
+            iteration + 1
+        );
+    },
+    wipeVariables: async (functionId, iteration = 1) => {
+        if (iteration > poolMaxDebounces) {
+            return false;
+        }
+
+        const { total } = await functionsListVariables({
+            functionId,
+            queries: ['limit(1)'],
+            parseOutput: false
+        });
+
+        if (total === 0) {
+            return true;
+        }
+
+        let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+        if (steps > 1 && iteration === 1) {
+            poolMaxDebounces *= steps;
+
+            log('Found a large number of variables, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
+
+        return await awaitPools.wipeVariables(
+            functionId,
             iteration + 1
         );
     },
@@ -302,7 +331,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
 
             const { total } = await functionsListVariables({
                 functionId: func['$id'],
-                queries: ['limit(1)'],
+                queries: [JSON.stringify({ method: 'limit', values: [1] })],
                 parseOutput: false
             });
 
@@ -310,7 +339,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
 
             if (total === 0) {
                 deployVariables = true;
-            } else if (remoteVariables.length > 0 && !yes) {
+            } else if (total > 0 && !yes) {
                 const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
                 deployVariables = variableAnswers.override.toLowerCase() === "yes";
             }
@@ -320,13 +349,23 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             } else {
                 log(`Deploying variables for ${func.name} ( ${func['$id']} )`);
 
-                await Promise.all(remoteVariables.map(async remoteVariable => {
+                const { variables } = await paginate(functionsListVariables, {
+                    functionId: func['$id'],
+                    parseOutput: false
+                }, 100, 'variables');
+    
+                await Promise.all(variables.map(async variable => {
                     await functionsDeleteVariable({
                         functionId: func['$id'],
-                        variableId: remoteVariable['$id'],
+                        variableId: variable['$id'],
                         parseOutput: false
                     });
                 }));
+    
+                let result = await awaitPools.wipeVariables(func['$id']);
+                if (!result) {
+                    throw new Error("Variable deletion timed out.");
+                }
 
                 // Deploy local variables
                 await Promise.all(Object.keys(func.variables).map(async localVariableKey => {

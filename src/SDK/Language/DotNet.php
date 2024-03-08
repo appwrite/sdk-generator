@@ -152,10 +152,10 @@ class DotNet extends Language
     public function getTypeName(array $parameter, array $spec = []): string
     {
         if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
+            return 'Appwrite.Enums.' . \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+            return 'Appwrite.Enums.' . \ucfirst($parameter['name']);
         }
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'long',
