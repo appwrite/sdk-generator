@@ -100,16 +100,17 @@ class Kotlin extends Language
     }
 
     /**
-     * @param $type
+     * @param array $parameter
+     * @param array $spec
      * @return string
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
         if (isset($parameter['enumName'])) {
-            return \ucfirst($parameter['enumName']);
+            return 'io.appwrite.enums.' . \ucfirst($parameter['enumName']);
         }
         if (!empty($parameter['enumValues'])) {
-            return \ucfirst($parameter['name']);
+            return 'io.appwrite.enums.' . \ucfirst($parameter['name']);
         }
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'Long',
