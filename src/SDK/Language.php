@@ -41,7 +41,7 @@ abstract class Language
      * @param array $parameter
      * @return string
      */
-    abstract public function getTypeName(array $parameter): string;
+    abstract public function getTypeName(array $parameter, array $spec = []): string;
 
     /**
      * @param array $param
@@ -84,7 +84,7 @@ abstract class Language
         return [];
     }
 
-    protected function toUpperCaseWords(string $value): string
+    protected function toPascalCase(string $value): string
     {
         return ucfirst($this->toCamelCase($value));
     }
@@ -96,5 +96,18 @@ abstract class Language
         $str = ucwords($str);
         $str = str_replace(" ", "", $str);
         return lcfirst($str);
+    }
+
+    protected function toSnakeCase($str): string
+    {
+        $str = \preg_replace('/([a-z])([A-Z])/', '$1 $2', $str);
+        $str = \explode(' ', $str);
+        $str = \implode('_', $str);
+        return \strtolower($str);
+    }
+
+    protected function toUpperSnakeCase($str): string
+    {
+        return \strtoupper($this->toSnakeCase($str));
     }
 }

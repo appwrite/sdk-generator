@@ -20,8 +20,8 @@ class {{ service.name | caseUcfirst }} extends Service {
 {%~ if method.description %}
 {{ method.description|dartComment }}
 {% endif %}
-    {% if method.type == 'webAuth' %}Future{% elseif method.type == 'location' %}Future<Uint8List>{% else %}{% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters.all, method.consumes) }}) async {
-        {% if method.parameters.path | length > 0 %}final{% else %}const{% endif %} String apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | overrideIdentifier }}){% endfor %};
+    {% if method.type == 'webAuth' %}Future{% elseif method.type == 'location' %}Future<Uint8List>{% else %}{% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel | overrideIdentifier }}({{ _self.method_parameters(method.parameters.all, method.consumes) }}) async {
+        {% if method.parameters.path | length > 0 %}final{% else %}const{% endif %} String apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | overrideIdentifier }}{% if parameter.enumValues | length > 0  %}.value{% endif %}){% endfor %};
 
 {% if 'multipart/form-data' in method.consumes %}
 {{ include('flutter/base/requests/file.twig') }}

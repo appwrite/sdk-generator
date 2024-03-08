@@ -14,25 +14,29 @@ class Node extends JS
 
     /**
      * @param array $parameter
-     * @param array $nestedTypes
+     * @param array $spec
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-            case self::TYPE_NUMBER:
-                return 'number';
-            case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    return $this->getTypeName($parameter['array']) . '[]';
-                }
-                return 'string[]';
-            case self::TYPE_FILE:
-                return 'InputFile';
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
         }
-
-        return $parameter['type'];
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
+        }
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER,
+            self::TYPE_NUMBER => 'number',
+            self::TYPE_STRING => 'string',
+            self::TYPE_FILE => 'InputFile',
+            self::TYPE_BOOLEAN => 'boolean',
+            self::TYPE_OBJECT => 'object',
+            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
+                ? $this->getTypeName($parameter['array']) . '[]'
+                : 'string[]',
+            default => $parameter['type'],
+        };
     }
 
     /**
@@ -125,6 +129,11 @@ class Node extends JS
                 'scope'         => 'default',
                 'destination'   => '.travis.yml',
                 'template'      => 'node/.travis.yml.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'lib/enums/{{ enum.name | caseDash }}.js',
+                'template'      => 'node/lib/enums/enum.js.twig',
             ],
         ];
     }

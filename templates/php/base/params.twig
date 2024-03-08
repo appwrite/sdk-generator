@@ -11,13 +11,11 @@
         if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
             $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
         }
-
 {% endfor %}
 {% for parameter in method.parameters.body %}
         if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
             $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
         }
-
 {% endfor %}
 {% for parameter in method.parameters.formData %}
         if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {

@@ -46,8 +46,8 @@ describe('Query', () => {
         for (const t of tests) {
             test(t.description, () =>
                 assertEquals(
-                    Query.equal("attr", t.value),
-                    `equal("attr", ${t.expectedValues})`,
+                    Query.equal("attr", t.value).toString(),
+                    `{"method":"equal","attribute":"attr","values":${t.expectedValues}}`,
                 )
             )
         }
@@ -57,8 +57,8 @@ describe('Query', () => {
         for (const t of tests) {
             test(t.description, () =>
                 assertEquals(
-                    Query.notEqual("attr", t.value),
-                    `notEqual("attr", ${t.expectedValues})`,
+                    Query.notEqual("attr", t.value).toString(),
+                    `{"method":"notEqual","attribute":"attr","values":${t.expectedValues}}`,
                 )
             )
         }
@@ -68,8 +68,8 @@ describe('Query', () => {
         for (const t of tests) {
             test(t.description, () =>
                 assertEquals(
-                    Query.lessThan("attr", t.value),
-                    `lessThan("attr", ${t.expectedValues})`,
+                    Query.lessThan("attr", t.value).toString(),
+                    `{"method":"lessThan","attribute":"attr","values":${t.expectedValues}}`,
                 )
             )
         }
@@ -79,8 +79,8 @@ describe('Query', () => {
         for (const t of tests) {
             test(t.description, () =>
                 assertEquals(
-                    Query.lessThanEqual("attr", t.value),
-                    `lessThanEqual("attr", ${t.expectedValues})`,
+                    Query.lessThanEqual("attr", t.value).toString(),
+                    `{"method":"lessThanEqual","attribute":"attr","values":${t.expectedValues}}`,
                 )
             )
         }
@@ -90,8 +90,8 @@ describe('Query', () => {
         for (const t of tests) {
             test(t.description, () =>
                 assertEquals(
-                    Query.greaterThan("attr", t.value),
-                    `greaterThan("attr", ${t.expectedValues})`,
+                    Query.greaterThan("attr", t.value).toString(),
+                    `{"method":"greaterThan","attribute":"attr","values":${t.expectedValues}}`,
                 )
             )
         }
@@ -101,75 +101,75 @@ describe('Query', () => {
         for (const t of tests) {
             test(t.description, () =>
                 assertEquals(
-                    Query.greaterThanEqual("attr", t.value),
-                    `greaterThanEqual("attr", ${t.expectedValues})`,
+                    Query.greaterThanEqual("attr", t.value).toString(),
+                    `{"method":"greaterThanEqual","attribute":"attr","values":${t.expectedValues}}`,
                 )
             )
         }
     });
 
     test('search', () => assertEquals(
-        Query.search('attr', 'keyword1 keyword2'),
-        'search("attr", ["keyword1 keyword2"])',
+        Query.search('attr', 'keyword1 keyword2').toString(),
+        '{"method":"search","attribute":"attr","values":["keyword1 keyword2"]}',
     ));
 
     test('isNull', () => assertEquals(
-        Query.isNull('attr'),
-        'isNull("attr")',
+        Query.isNull('attr').toString(),
+        `{"method":"isNull","attribute":"attr","values":[]}`,
     ));
 
     test('isNotNull', () => assertEquals(
-        Query.isNotNull('attr'),
-        'isNotNull("attr")',
+        Query.isNotNull('attr').toString(),
+        `{"method":"isNotNull","attribute":"attr","values":[]}`,
     ));
 
     describe('between', () => {
         test('with integers', () => assertEquals(
-            Query.between('attr', 1, 2),
-            'between("attr", 1, 2)'
+            Query.between('attr', 1, 2).toString(),
+            `{"method":"between","attribute":"attr","values":[1,2]}`,
         ));
         test('with doubles', () => assertEquals(
-            Query.between('attr', 1.2, 2.2),
-            'between("attr", 1.2, 2.2)'
+            Query.between('attr', 1.2, 2.2).toString(),
+            `{"method":"between","attribute":"attr","values":[1.2,2.2]}`,
         ));
         test('with strings', () => assertEquals(
-            Query.between('attr', "a", "z"),
-            'between("attr", "a", "z")'
+            Query.between('attr', "a", "z").toString(),
+            `{"method":"between","attribute":"attr","values":["a","z"]}`,
         ));
     });
 
     test('select', () => assertEquals(
-        Query.select(['attr1', 'attr2']),
-        'select(["attr1","attr2"])',
+        Query.select(['attr1', 'attr2']).toString(),
+        `{"method":"select","attribute":["attr1","attr2"]}`,
     ));
 
     test('orderAsc', () => assertEquals(
-        Query.orderAsc('attr'),
-        'orderAsc("attr")',
+        Query.orderAsc('attr').toString(),
+        `{"method":"orderAsc","attribute":"attr"}`,
     ));
 
     test('orderDesc', () => assertEquals(
-        Query.orderDesc('attr'),
-        'orderDesc("attr")',
+        Query.orderDesc('attr').toString(),
+        `{"method":"orderDesc","attribute":"attr"}`,
     ));
 
     test('cursorBefore', () => assertEquals(
-        Query.cursorBefore('attr'),
-        'cursorBefore("attr")',
+        Query.cursorBefore('attr').toString(),
+        `{"method":"cursorBefore","attribute":"attr"}`,
     ));
 
     test('cursorAfter', () => assertEquals(
-        Query.cursorAfter('attr'),
-        'cursorAfter("attr")',
+        Query.cursorAfter('attr').toString(),
+        `{"method":"cursorAfter","attribute":"attr"}`,
     ));
 
     test('limit', () => assertEquals(
-        Query.limit(1),
-        'limit(1)'
+        Query.limit(1).toString(),
+        `{"method":"limit","values":[1]}`,
     ));
 
     test('offset', () => assertEquals(
-        Query.offset(1),
-        'offset(1)'
+        Query.offset(1).toString(),
+        `{"method":"offset","values":[1]}`,
     ));
 })

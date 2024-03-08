@@ -1,8 +1,7 @@
 const os = require('os');
 const URL = require('url').URL;
-const https = require("https");
-const axios = require('axios');
-const FormData = require('form-data');
+const Query = require('./query.js');
+const {fetch, FormData, Agent} = require('undici');
 const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
 
 class Client {
@@ -18,24 +17,24 @@ class Client {
             'x-sdk-platform': '{{ sdk.platform }}',
             'x-sdk-language': '{{ language.name | caseLower }}',
             'x-sdk-version': '{{ sdk.version }}',
-{% for key,header in spec.global.defaultHeaders %}
+            {%~ for key,header in spec.global.defaultHeaders %}
             '{{key}}' : '{{header}}',
-{% endfor %}
+            {%~ endfor %}
         };
         this.selfSigned = false;
     }
 
-{% for header in spec.global.headers %}
+    {%~ for header in spec.global.headers %}
     /**
      * Set {{header.key | caseUcfirst}}
      *
-{% if header.description %}
+    {%~ if header.description %}
      * {{header.description}}
      *
-{% endif %}
+    {%~ endif %}
      * @param {string} {{header.key | caseLower}}
      *
-     * @return self
+     * @return Client
      */
     set{{header.key | caseUcfirst}}({{header.key | caseLower}}) {
         this.addHeader('{{header.name}}', {{header.key | caseLower}});
@@ -43,7 +42,7 @@ class Client {
         return this;
     }
 
-{% endfor %}
+    {%~ endfor %}
     /**
      * Set self signed.
      *
@@ -72,8 +71,12 @@ class Client {
     }
 
     /**
+     * Sets a header for requests.
+     * 
      * @param {string} key
      * @param {string} value
+     * 
+     * @return this
      */
     addHeader(key, value) {
         this.headers[key.toLowerCase()] = value;
@@ -81,79 +84,88 @@ class Client {
         return this;
     }
       
-    async call(method, path = '', headers = {}, params = {}, responseType = 'json') {
-        headers = Object.assign({}, this.headers, headers);
+    async call(method, path = "", headers = {}, params = {}, responseType = "json") {
+        headers = {...this.headers, ...headers};
+        const url = new URL(this.endpoint + path);
 
-        let contentType = headers['content-type'].toLowerCase();
+        let body = undefined;
 
-        let formData = null;
+        if (method.toUpperCase() === "GET") {
+            url.search = new URLSearchParams(Client.flatten(params)).toString();
+        } else if (headers["content-type"]?.toLowerCase().startsWith("multipart/form-data")) {
+            delete headers["content-type"];
+            const formData = new FormData();
 
-        // Compute FormData for axios and appwrite.
-        if (contentType.startsWith('multipart/form-data')) {
-            const form = new FormData();
-            
-            let flatParams = Client.flatten(params);
-            
-            for (const key in flatParams) {
-                const value = flatParams[key];
+            const flatParams = Client.flatten(params);
 
-                if(value && value.type && value.type === 'file') {
-                    form.append(key, value.file, { filename: value.filename });
+            for (const [key, value] of Object.entries(flatParams)) {
+                if (value && value.type && value.type === "file") {
+                    formData.append(key, value.file, value.filename);
                 } else {
-                    form.append(key, flatParams[key]);
+                    formData.append(key, value);
                 }
             }
 
-            headers = {
-                ...headers,
-                ...form.getHeaders()
-            };
-
-            formData = form;
+            body = formData;
+        } else {
+            body = JSON.stringify(params);
         }
 
-        let options = {
+      let response = undefined;
+      try {
+        response = await fetch(url.toString(), {
             method: method.toUpperCase(),
-            url: this.endpoint + path,
-            params: (method.toUpperCase() === 'GET') ? params : {},
-            headers: headers,
-            data: (method.toUpperCase() === 'GET' || contentType.startsWith('multipart/form-data')) ? formData : params,
-            json: (contentType.startsWith('application/json')),
-            responseType: responseType
-        };
-        if (this.selfSigned) {
-            // Allow self signed requests
-            options.httpsAgent = new https.Agent({ rejectUnauthorized: false });
-        }
+            headers,
+            body,
+            redirect: responseType === "location" ? "manual" : "follow",
+            dispatcher: new Agent({
+                connect: {
+                    rejectUnauthorized: !this.selfSigned,
+                },
+            }),
+        });
+      } catch (error) {
+        throw new {{spec.title | caseUcfirst}}Exception(error.message);
+      }
+
+      if (response.status >= 400) {
+        const text = await response.text();
+        let json = undefined;
         try {
-            let response = await axios(options);
-            return response.data;
-        } catch(error) {
-            if('response' in error && error.response !== undefined) {
-                if(error.response && 'data' in error.response) {
-                    if (typeof(error.response.data) === 'string') {
-                        throw new {{spec.title | caseUcfirst}}Exception(error.response.data, error.response.status, '', error.response.data);
-                    } else {
-                        throw new {{spec.title | caseUcfirst}}Exception(error.response.data.message, error.response.status, error.response.data.type, error.response.data);
-                    }
-                } else {
-                    throw new {{spec.title | caseUcfirst}}Exception(error.response.statusText, error.response.status, error.response.data);
-                }
-            } else {
-                throw new {{spec.title | caseUcfirst}}Exception(error.message);
-            }
+            json = JSON.parse(text);
+        } catch (error) {
+            throw new {{spec.title | caseUcfirst}}Exception(text, response.status, "", text);
         }
+        throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, json);
+      }
+
+      if (responseType === "arraybuffer") {
+        const data = await response.arrayBuffer();
+        return data;
+      }
+
+      if (responseType === "location") {
+        return response.headers.get("location");
+      }
+
+      const text = await response.text();
+      let json = undefined;
+      try {
+          json = JSON.parse(text);
+      } catch (error) {
+          return text;
+      }
+      return json;
     }
 
-    static flatten(data, prefix = '') {
+    static flatten(data, prefix = "") {
         let output = {};
 
-        for (const key in data) {
-            let value = data[key];
-            let finalKey = prefix ? prefix + '[' + key +']' : key;
+        for (const [key, value] of Object.entries(data)) {
+            let finalKey = prefix ? prefix + "[" + key + "]" : key;
 
             if (Array.isArray(value)) {
-                output = Object.assign(output, Client.flatten(value, finalKey)); // @todo: handle name collision here if needed
+                output = { ...output, ...Client.flatten(value, finalKey) };
             } else {
                 output[finalKey] = value;
             }

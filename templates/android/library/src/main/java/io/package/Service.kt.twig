@@ -1,0 +1,5 @@
+package {{ sdk.namespace | caseDot }}
+
+import {{ sdk.namespace | caseDot }}.Client
+
+abstract class Service(val client: Client)

@@ -1,7 +1,12 @@
 package {{ sdk.namespace | caseDot }}.services
 
 import {{ sdk.namespace | caseDot }}.Client
+{% if spec.definitions is not empty %}
 import {{ sdk.namespace | caseDot }}.models.*
+{% endif %}
+{% if spec.enums is not empty %}
+import {{ sdk.namespace | caseDot }}.enums.*
+{% endif %}
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.classOf
 import okhttp3.Cookie
@@ -14,9 +19,7 @@ import java.io.File
 /**
  * {{ service.description | raw | replace({"\n": "", "\r": ""}) }}
 **/
-class {{ service.name | caseUcfirst }} : Service {
-
-    public constructor (client: Client) : super(client) { }
+class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 
 {% for method in service.methods %}
     /**
@@ -27,18 +30,13 @@ class {{ service.name | caseUcfirst }} : Service {
     {%~ for parameter in method.parameters.all %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
     {%~ endfor %}
-    {%~ if method.type != "webAuth" %}
      * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
-    {%~ endif %}
      */
     {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
     @JvmOverloads
     {%~ endif %}
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun {% if method.responseModel | hasGenericType(spec) %}{{ '<T>' | raw }} {% endif %}{{ method.name | caseCamel }}(
-        {%~ if method.type == "webAuth" %}
-        activity: ComponentActivity,
-        {%~ endif %}
         {%~ for parameter in method.parameters.all %}
         {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required or parameter.nullable %}? = null{% endif %},
         {%~ endfor %}
@@ -51,7 +49,7 @@ class {{ service.name | caseUcfirst }} : Service {
     ): {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} {
         val apiPath = "{{ method.path }}"
         {%~ for parameter in method.parameters.path %}
-            .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }})
+            .replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel }}{% if parameter.enumValues is not empty %}.value{% endif %})
         {%~ endfor %}
 
         val apiParams = mutableMapOf<String, Any?>(
@@ -59,14 +57,16 @@ class {{ service.name | caseUcfirst }} : Service {
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
         {%~ endfor %}
         )
-        {%~ if method.type == 'location' %}
-            {{~ include('kotlin/base/requests/location.twig') }}
-        {%~ else %}
         val apiHeaders = mutableMapOf(
         {%~ for key, header in method.headers %}
             "{{ key }}" to "{{ header }}",
         {%~ endfor %}
         )
+        {%~ if method.type == 'location' %}
+            {{~ include('kotlin/base/requests/location.twig') }}
+        {%~ elseif method.type == 'webAuth' %}
+            {{~ include('kotlin/base/requests/oauth.twig') }}
+        {%~ else %}
         {%~ if method.responseModel %}
         val converter: (Any) -> {{ method | returnType(spec, sdk.namespace | caseDot) | raw }} = {
         {%~ if method.responseModel == 'any' %}
