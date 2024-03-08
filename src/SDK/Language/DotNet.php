@@ -145,6 +145,15 @@ class DotNet extends Language
         ];
     }
 
+    public function getPropertyOverrides(): array
+    {
+        return [
+            'provider' => [
+                'Provider' => 'MessagingProvider',
+            ],
+        ];
+    }
+
     /**
      * @param array $parameter
      * @return string
@@ -427,6 +436,12 @@ class DotNet extends Language
             }, ['is_safe' => ['html']]),
             new TwigFilter('caseEnumKey', function (string $value) {
                 return $this->toPascalCase($value);
+            }),
+            new TwigFilter('overrideProperty', function (string $property, string $class) {
+                if (isset($this->getPropertyOverrides()[$class][$property])) {
+                    return $this->getPropertyOverrides()[$class][$property];
+                }
+                return $property;
             }),
         ];
     }
