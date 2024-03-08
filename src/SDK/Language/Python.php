@@ -186,6 +186,11 @@ class Python extends Language
                 'template' => 'python/package/encoders/value_class_encoder.py.twig',
             ],
             [
+                'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/encoders/__init__.py',
+                'template' => 'python/package/encoders/__init__.py.twig',
+            ],
+            [
                 'scope' => 'service',
                 'destination' => '{{ spec.title | caseSnake}}/services/{{service.name | caseSnake}}.py',
                 'template' => 'python/package/services/service.py.twig',
@@ -204,6 +209,11 @@ class Python extends Language
                 'scope' => 'enum',
                 'destination' => '{{ spec.title | caseSnake}}/enums/{{ enum.name | caseSnake }}.py',
                 'template' => 'python/package/enums/enum.py.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/enums/__init__.py',
+                'template' => 'python/package/enums/__init__.py.twig',
             ],
         ];
     }
