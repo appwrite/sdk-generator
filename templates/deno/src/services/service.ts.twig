@@ -222,21 +222,21 @@ export class {{ service.name | caseUcfirst }} extends Service {
             '{{ method.method | caseLower }}',
             apiPath,
             {
-{% for parameter in method.parameters.header %}
+                {%~ for parameter in method.parameters.header -%}
                 '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
+                {%~ endfor -%}
+                {%~ for key, header in method.headers %}
                 '{{ key }}': '{{ header }}',
-{% endfor %}
+                {%~ endfor %}
             },
             payload,
-{% if method.type == 'location' %}
+            {%~ if method.type == 'location' %}
             'arraybuffer'
-{% elseif method.type == 'webAuth' %}
+            {%~ elseif method.type == 'webAuth' %}
             'location'
-{% else %}
+            {%~ else %}
             'json'
-{% endif %}
+            {%~ endif %}
         );
 {% endif %}
     }
