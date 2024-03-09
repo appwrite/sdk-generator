@@ -7,7 +7,12 @@ with open("README.md", "r", encoding="utf-8") as readme_file_desc:
     
 setuptools.setup(
   name = '{{spec.title | caseSnake}}',
-  packages = ['{{spec.title | caseSnake}}', '{{spec.title | caseSnake}}/services'],
+  packages = [
+    '{{spec.title | caseSnake}}',
+    '{{spec.title | caseSnake}}/services',
+    '{{spec.title | caseSnake}}/encoders',
+    '{{spec.title | caseSnake}}/enums',
+  ],
   version = '{{sdk.version}}',
   license='{{spec.licenseName}}',
   description = '{{sdk.shortDescription}}',
