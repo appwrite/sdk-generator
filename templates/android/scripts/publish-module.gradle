@@ -8,7 +8,6 @@ tasks.register("sourcesJar", Jar) {
 
 tasks.register("javadoc", Javadoc) {
     source = android.sourceSets.getByName("main").java.srcDirs
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
     setDestinationDir(file("../javadoc/"))
     failOnError false
 }
@@ -17,6 +16,10 @@ tasks.register("javadocJar", Jar) {
     dependsOn(javadoc)
     archiveClassifier.set("javadoc")
     from(javadoc)
+}
+
+afterEvaluate {
+    tasks.javadoc.classpath += files(project.android.getBootClasspath())
 }
 
 publishing {
