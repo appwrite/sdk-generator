@@ -20,8 +20,4 @@ if (typeof globalThis.EdgeRuntime !== "string") {
   if (typeof globalThis.URL === "undefined") {
     globalThis.URL = require("url").URL;
   }
-
-  if (typeof globalThis.ReadableStream === "undefined") {
-    globalThis.ReadableStream = require("stream/web").ReadableStream;
-  }
 }
