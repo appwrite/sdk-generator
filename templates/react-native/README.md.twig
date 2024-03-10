@@ -22,26 +22,10 @@
 
 ## Installation
 
-### NPM
-
-To install via [NPM](https://www.npmjs.com/):
+To install
 
 ```bash
-npm install {{ language.params.npmPackage }} --save
-```
-
-If you're using a bundler (like [Rollup](https://rollupjs.org/) or [webpack](https://webpack.js.org/)), you can import the {{ spec.title }} module when you need it:
-
-```js
-import {{ '{' }} Client, Account {{ '}' }} from "{{ language.params.npmPackage }}";
-```
-
-### CDN
-
-To install with a CDN (content delivery network) add the following scripts to the bottom of your <body> tag, but before you use any {{ spec.title }} services:
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/{{ language.params.npmPackage }}@{{sdk.version}}"></script>
+npm install react-native-appwrite react-native-fs react-native-url-polyfill --save
 ```
 
 {% if sdk.gettingStarted %}
