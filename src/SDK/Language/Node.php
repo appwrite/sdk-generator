@@ -72,6 +72,11 @@ class Node extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/fetch-polyfill.js',
+                'template'      => 'node/lib/fetch-polyfill.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/id.js',
                 'template'      => 'node/lib/id.js.twig',
             ],

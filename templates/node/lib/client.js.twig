@@ -1,7 +1,8 @@
 const os = require('os');
 const URL = require('url').URL;
 const Query = require('./query.js');
-const {fetch, FormData, Agent} = require('undici');
+const { fetch, FormData, dispatcher } = require('./fetch-polyfill.js');
+
 const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
 
 class Client {
@@ -118,11 +119,7 @@ class Client {
             headers,
             body,
             redirect: responseType === "location" ? "manual" : "follow",
-            dispatcher: new Agent({
-                connect: {
-                    rejectUnauthorized: !this.selfSigned,
-                },
-            }),
+            dispatcher: dispatcher(this.selfSigned),
         });
       } catch (error) {
         throw new {{spec.title | caseUcfirst}}Exception(error.message);
