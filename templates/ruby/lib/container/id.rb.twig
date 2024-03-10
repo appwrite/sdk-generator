@@ -14,11 +14,9 @@ module {{spec.title | caseUcfirst}}
             base_id + random_padding
         end
 
-        private
-
         #Generate an hex ID based on timestamp
         #Recreated from https://www.php.net/manual/en/function.uniqid.php
-        def self.hex_timestamp
+        private_class_method def self.hex_timestamp
             now = Time.now
             sec = now.to_i
             usec = now.usec
