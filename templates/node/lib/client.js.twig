@@ -21,7 +21,7 @@ if (typeof globalThis.EdgeRuntime !== "string") {
 }
 
 class Client {
-    static CHUNK_SIZE = 5*1024*1024; // 5MB
+    CHUNK_SIZE = 5*1024*1024; // 5MB
     
     constructor() {
         this.fetch = globalThis.fetch;
