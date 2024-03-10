@@ -225,6 +225,11 @@ abstract class Base extends TestCase
                     \json_decode($expected, true),
                     \json_decode($output[$index], true)
                 );
+            } elseif ($expected == 'unique()') {
+                $this->assertNotEmpty($output[$index]);
+                $this->assertIsString($output[$index]);
+                $this->assertEquals(20, strlen($output[$index]));
+                $this->assertNotEquals($output[$index], 'unique()');
             } else {
                 $this->assertEquals($expected, $output[$index]);
             }
