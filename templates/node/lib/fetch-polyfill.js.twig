@@ -22,18 +22,25 @@ if (typeof globalThis.EdgeRuntime !== 'string') {
     });
 }
 
-function buildNodeUserAgent() {
-    const os = require('os');
-    return `{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }} (${os.type()}; ${os.version()}; ${os.arch()})`;
+function buildUserAgent() {
+    const base = `{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }}`;
+
+    if (typeof globalThis.EdgeRuntime === 'string') {
+        return `${base} (${globalThis.EdgeRuntime}; Edge)`;
+    }
+
+    try {
+        const os = require('os');
+        return `${base} (${os.type()}; ${os.version()}; ${os.arch()})`;
+    } catch {
+        return base;
+    }
 }
-
-const USER_AGENT = typeof globalThis.EdgeRuntime === 'string' ? `{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }}` : buildNodeUserAgent();
-
 
 module.exports = {
     fetch,
     FormData,
     File,
     dispatcher,
-    USER_AGENT
+    USER_AGENT: buildUserAgent(),
 }
