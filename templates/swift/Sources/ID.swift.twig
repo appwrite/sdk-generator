@@ -5,9 +5,9 @@ public class ID {
     // Recreated from https://www.php.net/manual/en/function.uniqid.php
     private static func hexTimestamp() -> String {
         let now = Date()
-        let secondsSinceEpoch = Int(now.timeIntervalSince1970)
-        let microsecondsPart = Int((now.timeIntervalSince1970 - Double(secondsSinceEpoch)) * 1_000_000)
-        let hexTimestamp = String(format: "%08x%05x", secondsSinceEpoch, microsecondsPart)
+        let secs = Int(now.timeIntervalSince1970)
+        let usec = Int((now.timeIntervalSince1970 - Double(secs)) * 1_000_000)
+        let hexTimestamp = String(format: "%08x%05x", secs, usec)
         return hexTimestamp
     }
 

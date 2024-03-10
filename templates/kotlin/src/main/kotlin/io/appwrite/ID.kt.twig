@@ -9,12 +9,12 @@ class ID {
         // Generate an hex ID based on timestamp
         // Recreated from https://www.php.net/manual/en/function.uniqid.php
         private fun hexTimestamp(): String {
-            val now = Instant.now().toEpochMilli() / 1000.0
-            val secondsSinceEpoch = floor(now).toLong()
-            val msecs = ((now - secondsSinceEpoch) * 1_000_000).toLong()
+            val now = Instant.now()
+            val sec = now.epochSecond
+            val millis = now.toEpochMilli() % 1000
 
-            // Convert both parts to hexadecimal format
-            val hexTimestamp = "%08x%05x".format(secondsSinceEpoch, msecs)
+            val hexTimestamp = "%08x%03x".format(sec, millis)
+
             return hexTimestamp
         }
 

@@ -10,11 +10,11 @@ class ID {
         // Recreated from https://www.php.net/manual/en/function.uniqid.php
         private fun hexTimestamp(): String {
             val now = Instant.now().toEpochMilli() / 1000.0
-            val secondsSinceEpoch = floor(now).toLong()
-            val msecs = ((now - secondsSinceEpoch) * 1_000_000).toLong()
+            val sec = floor(now).toLong()
+            val usec = ((now - sec) * 1_000_000).toLong()
 
             // Convert both parts to hexadecimal format
-            val hexTimestamp = "%08x%05x".format(secondsSinceEpoch, msecs)
+            val hexTimestamp = "%08x%05x".format(sec, usec)
             return hexTimestamp
         }
 

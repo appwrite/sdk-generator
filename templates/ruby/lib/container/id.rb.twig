@@ -20,9 +20,9 @@ module {{spec.title | caseUcfirst}}
         #Recreated from https://www.php.net/manual/en/function.uniqid.php
         def self.hex_timestamp
             now = Time.now
-            seconds_since_epoch = now.to_i
-            microseconds_part = now.usec
-            hex_timestamp = "%08x%05x" % [seconds_since_epoch, microseconds_part]
+            sec = now.to_i
+            usec = now.usec
+            hex_timestamp = "%08x%05x" % [sec, usec]
             hex_timestamp
         end
     end

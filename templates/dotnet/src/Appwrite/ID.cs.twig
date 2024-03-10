@@ -10,13 +10,12 @@ namespace {{ spec.title | caseUcfirst }}
         {
             var now = DateTime.UtcNow;
             var epoch = (now - new DateTime(1970, 1, 1));
-            var secondsSinceEpoch = (long)epoch.TotalSeconds;
-            var msecs = epoch.TotalMilliseconds - secondsSinceEpoch * 1000;
-            var microsecondsPart = (long)(msecs * 1000); // Convert milliseconds to microseconds
-
+            var sec = (long)epoch.TotalSeconds;
+            var usec = epoch.TotalMilliseconds - secondsSinceEpoch * 1000000;
+    
             // Convert to hexadecimal
-            var hexTimestamp = secondsSinceEpoch.ToString("x")
-                + microsecondsPart.ToString("x").PadLeft(5, '0');
+            var hexTimestamp = sec.ToString("x")
+                + usec.ToString("x").PadLeft(5, '0');
             return hexTimestamp;
         }
 

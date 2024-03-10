@@ -8,9 +8,9 @@ class ID:
     @staticmethod
     def __hex_timestamp():
         now = datetime.now()
-        seconds_since_epoch = int(now.timestamp())
-        microseconds_part = now.microsecond
-        hex_timestamp = f'{seconds_since_epoch:08x}{microseconds_part:05x}'
+        sec = int(now.timestamp())
+        usec = now.microsecond
+        hex_timestamp = f'{sec:08x}{usec:05x}'
         return hex_timestamp
 
     @staticmethod

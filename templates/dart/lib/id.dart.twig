@@ -8,10 +8,10 @@ class ID {
   // Recreated from https://www.php.net/manual/en/function.uniqid.php
   static String _hexTimestamp() {
     final now = DateTime.now();
-    final secondsSinceEpoch = (now.millisecondsSinceEpoch / 1000).floor();
-    final msecs = now.microsecondsSinceEpoch - secondsSinceEpoch * 1000000;
-    return secondsSinceEpoch.toRadixString(16) +
-        msecs.toRadixString(16).padLeft(5, '0');
+    final sec = (now.millisecondsSinceEpoch / 1000).floor();
+    final usec = now.microsecondsSinceEpoch - secondsSinceEpoch * 1000000;
+    return sec.toRadixString(16) +
+        usec.toRadixString(16).padLeft(5, '0');
   }
 
   // Generate a unique ID with padding to have a longer ID

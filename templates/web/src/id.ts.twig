@@ -3,10 +3,11 @@ export class ID {
     // Recreated from https://www.php.net/manual/en/function.uniqid.php
     static #hexTimestamp(): string {
         const now = new Date();
-        const secondsSinceEpoch = Math.floor(now.getTime() / 1000); // Get Unix Timestamp
-        const microsecondsPart = now.getMilliseconds() * 1000; // Convert milliseconds to microseconds
-        const hexTimestamp = secondsSinceEpoch.toString(16)
-            + microsecondsPart.toString(16).padStart(5, '0');
+        const sec = Math.floor(now.getTime() / 1000);
+        const usec = now.getMilliseconds() * 1000;
+
+        // Convert to hexadecimal
+        const hexTimestamp = sec.toString(16) + usec.toString(16).padStart(5, '0');
         return hexTimestamp;
     }
 
