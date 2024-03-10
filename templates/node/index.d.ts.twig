@@ -106,7 +106,7 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
      *
      * @return {this}
      */
-    setFetch(customFetch: any): Client;
+    setFetch((resource: any, options?: any) => Promise<any>): Client;
 {% for header in spec.global.headers %}
 
     /**

@@ -13,10 +13,10 @@ const dispatcher = typeof Agent === "undefined"
 let USER_AGENT = `{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }}`;
 if (typeof globalThis.EdgeRuntime !== "string") {
     try {
-    const os = require("os");
-    USER_AGENT = `${USER_AGENT} (${os.type()}; ${os.version()}; ${os.arch()})`;
+        const os = require("os");
+        USER_AGENT = `${USER_AGENT} (${os.type()}; ${os.version()}; ${os.arch()})`;
     } catch {
-    USER_AGENT = `${USER_AGENT} (${globalThis.EdgeRuntime}; Edge)`;
+        USER_AGENT = `${USER_AGENT} (${globalThis.EdgeRuntime}; Edge)`;
     }
 }
 
@@ -90,7 +90,7 @@ class Client {
     /**
      * Set fetch implementation.
      *
-     * @param {any} customFetch
+     * @param {(resource: any, options?: any) => Promise<any>} customFetch
      *
      * @return this;
      */

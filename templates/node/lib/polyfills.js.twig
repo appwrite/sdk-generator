@@ -1,8 +1,6 @@
 function polyfillPackage(name, package) {
   if (typeof globalThis.EdgeRuntime !== "string" && !(name in globalThis)) {
-    try {
-      globalThis[name] = require(package)[name];
-    } catch {}
+    globalThis[name] = require(package)[name];
   }
 }
 
