@@ -1,7 +1,7 @@
 const os = require('os');
 const URL = require('url').URL;
 const Query = require('./query.js');
-const { fetch as nativeFetch, FormData, dispatcher } = require('./fetch-polyfill.js');
+const { fetch: nativeFetch, FormData, dispatcher } = require('./fetch-polyfill.js');
 const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
 
 class Client {
