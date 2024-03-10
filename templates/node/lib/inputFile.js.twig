@@ -1,8 +1,3 @@
-let ReadableStream = globalThis.ReadableStream;
-if (typeof globalThis.EdgeRuntime === "string") {
-  ReadableStream = require("streams/web").ReadableStream;
-}
-
 let fs = {
   createReadStream: () => {
     throw new TypeError("fs.createReadStream is not available");
@@ -11,7 +6,10 @@ let fs = {
     throw new TypeError("fs.statSync is not available");
   },
 }
+let ReadableStream = globalThis.ReadableStream;
+
 if (typeof globalThis.EdgeRuntime === "string") {
+  ReadableStream = require("streams/web").ReadableStream;
   fs = require("fs");
 }
 

@@ -1,49 +1,12 @@
-
-let fetch = globalThis.fetch;
-if (typeof globalThis.EdgeRuntime !== "string") {
-  fetch = require("undici").fetch;
-}
-
-let FormData = globalThis.FormData;
-if (typeof globalThis.EdgeRuntime !== "string") {
-  FormData = require("undici").FormData;
-}
-
-let File = globalThis.File;
-if (typeof globalThis.EdgeRuntime !== "string") {
-  File = require("undici").File;
-}
-
-let dispatcher = (_selfSigned) => undefined;
-if (typeof globalThis.EdgeRuntime !== "string") {
-  const Agent = require("undici").Agent;
-  dispatcher = (selfSigned) =>
-    new Agent({
-      connect: {
-        rejectUnauthorized: !selfSigned,
-      },
-    });
-}
-
-function buildUserAgent() {
-  const base = `{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }}`;
-
-  if (typeof globalThis.EdgeRuntime !== "string") {
+function polyfillPackage(name, package) {
+  if (typeof globalThis.EdgeRuntime !== "string" && !(name in globalThis)) {
     try {
-      const os = require("os");
-      return `${base} (${os.type()}; ${os.version()}; ${os.arch()})`;
-    } catch {
-      return base;
-    }
+      globalThis[name] = require(package)[name];
+    } catch {}
   }
-
-  return `${base} (${globalThis.EdgeRuntime}; Edge)`;
 }
 
-module.exports = {
-  fetch,
-  FormData,
-  File,
-  dispatcher,
-  USER_AGENT: buildUserAgent(),
-};
+polyfillPackage("fetch", "undici");
+polyfillPackage("FormData", "undici");
+polyfillPackage("File", "undici");
+polyfillPackage("Agent", "undici");

@@ -1,13 +1,33 @@
+require('./fetch-polyfill.js');
+
 const URL = require('url').URL;
 const Query = require('./query.js');
-const { fetch: nativeFetch, FormData, dispatcher, USER_AGENT } = require('./fetch-polyfill.js');
 const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
+
+const dispatcher = typeof Agent === "undefined"
+    ? (_selfSigned) => undefined
+    : (selfSigned) => new Agent({
+        connect: {
+            rejectUnauthorized: !selfSigned,
+        },
+    });
+
+
+let USER_AGENT = `{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }}`;
+if (typeof globalThis.EdgeRuntime !== "string") {
+    try {
+    const os = require("os");
+    USER_AGENT = `${USER_AGENT} (${os.type()}; ${os.version()}; ${os.arch()})`;
+    } catch {
+    USER_AGENT = `${USER_AGENT} (${globalThis.EdgeRuntime}; Edge)`;
+    }
+}
 
 class Client {
     static CHUNK_SIZE = 5*1024*1024; // 5MB
     
     constructor() {
-        this.fetch = nativeFetch;
+        this.fetch = globalThis.fetch;
         this.endpoint = '{{spec.endpoint}}';
         this.headers = {
             'accept-encoding': '*',
