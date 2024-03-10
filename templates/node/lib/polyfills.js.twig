@@ -1,12 +1,25 @@
-function polyfillPackage(name, package) {
-  if (typeof globalThis.EdgeRuntime !== "string" && !(name in globalThis)) {
-    globalThis[name] = require(package)[name];
+if (typeof globalThis.EdgeRuntime !== "string") {
+  if (typeof globalThis.fetch === "undefined") {
+    globalThis.fetch = require("undici").fetch;
+  }
+
+  if (typeof globalThis.FormData === "undefined") {
+    globalThis.FormData = require("undici").FormData;
+  }
+
+  if (typeof globalThis.FormData === "undefined") {
+    globalThis.File = require("undici").File;
+  }
+
+  if (typeof globalThis.ReadableStream === "undefined") {
+    globalThis.ReadableStream = require("stream/web").ReadableStream;
+  }
+
+  if (typeof globalThis.URL === "undefined") {
+    globalThis.URL = require("url").URL;
+  }
+
+  if (typeof globalThis.ReadableStream === "undefined") {
+    globalThis.ReadableStream = require("stream/web").ReadableStream;
   }
 }
-
-polyfillPackage("URL", "url");
-polyfillPackage("fetch", "undici");
-polyfillPackage("FormData", "undici");
-polyfillPackage("File", "undici");
-polyfillPackage("Agent", "undici");
-polyfillPackage("ReadableStream", "stream/web");
