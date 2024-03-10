@@ -93,7 +93,7 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
     /**
      * Set self signed.
      *
-     * @param {bool} status
+     * @param {boolean} status
      *
      * @return {this}
      */
@@ -106,7 +106,7 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
      *
      * @return {this}
      */
-    setFetch((resource: any, options?: any) => Promise<any>): Client;
+    setFetch(customFetch: (resource: any, options?: any) => Promise<any>): Client;
 {% for header in spec.global.headers %}
 
     /**

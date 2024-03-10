@@ -1,8 +1,7 @@
 const { ReadableStream } = require("./ponyfills.js");
-const fs = require("fs");
 
 /**
- * @param {fs.ReadStream} readStream
+ * @param {NodeJS.ReadStream} readStream
  * @returns {ReadableStream}
  */
 function convertReadStreamToReadableStream(readStream) {
@@ -53,9 +52,9 @@ class InputFile {
    * @returns {InputFile}
    */
   static fromPath = (filePath, filename) => {
-    const nodeStream = fs.createReadStream(filePath);
+    const nodeStream = require("fs").createReadStream(filePath);
     const stream = convertReadStreamToReadableStream(nodeStream);
-    const size = fs.statSync(filePath).size;
+    const size = require("fs").statSync(filePath).size;
     return new InputFile(stream, filename, size);
   };
 
