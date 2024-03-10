@@ -11,7 +11,7 @@ class ID {
         private fun hexTimestamp(): String {
             val now = Instant.now()
             val sec = now.epochSecond
-            val millis = now.toEpochMilli() % 1000
+            val usec = System.nanoTime() / 1000
 
             val hexTimestamp = "%08x%05x".format(sec, millis)
 

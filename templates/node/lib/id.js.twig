@@ -4,10 +4,10 @@ class ID {
     static #hexTimestamp = () => {
         const now = new Date();
         const sec = Math.floor(now.getTime() / 1000);
-        const usec = now.getMilliseconds() * 1000;
+        const msec = now.getMilliseconds();
 
         // Convert to hexadecimal
-        const hexTimestamp = sec.toString(16) + usec.toString(16).padStart(5, '0');
+        const hexTimestamp = sec.toString(16) + msec.toString(16).padStart(5, '0');
         return hexTimestamp;
     }
 

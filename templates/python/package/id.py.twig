@@ -9,7 +9,7 @@ class ID:
     def __hex_timestamp():
         now = datetime.now()
         sec = int(now.timestamp())
-        usec = now.microsecond
+        usec = (now.microsecond % 1000)
         hex_timestamp = f'{sec:08x}{usec:05x}'
         return hex_timestamp
 

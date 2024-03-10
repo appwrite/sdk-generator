@@ -9,7 +9,7 @@ class ID {
   static String _hexTimestamp() {
     final now = DateTime.now();
     final sec = (now.millisecondsSinceEpoch / 1000).floor();
-    final usec = now.microsecondsSinceEpoch - sec * 1000000;
+    final usec = (now.microsecondsSinceEpoch - sec) * 1000000;
     return sec.toRadixString(16) +
         usec.toRadixString(16).padLeft(5, '0');
   }
