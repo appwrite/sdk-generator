@@ -1,4 +1,6 @@
 if (typeof globalThis.EdgeRuntime !== "string") {
+  globalThis.Agent = require("undici").Agent;
+
   if (typeof globalThis.fetch === "undefined") {
     globalThis.fetch = require("undici").fetch;
   }
