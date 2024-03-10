@@ -72,8 +72,8 @@ class Node extends JS
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/polyfills.js',
-                'template'      => 'node/lib/polyfills.js.twig',
+                'destination'   => 'lib/ponyfills.js',
+                'template'      => 'node/lib/ponyfills.js.twig',
             ],
             [
                 'scope'         => 'default',

@@ -1,0 +1,34 @@
+const ponyfills = {
+  Agent: globalThis.Agent,
+  fetch: globalThis.fetch,
+  FormData: globalThis.FormData,
+  File: globalThis.File,
+  ReadableStream: globalThis.ReadableStream,
+  URL: globalThis.URL
+}
+
+if (typeof globalThis.EdgeRuntime !== "string") {
+  ponyfills.Agent = require("undici").Agent;
+
+  if (typeof ponyfills.fetch === "undefined") {
+    ponyfills.fetch = require("undici").fetch;
+  }
+
+  if (typeof ponyfills.FormData === "undefined") {
+    ponyfills.FormData = require("undici").FormData;
+  }
+
+  if (typeof ponyfills.FormData === "undefined") {
+    ponyfills.File = require("undici").File;
+  }
+
+  if (typeof ponyfills.ReadableStream === "undefined") {
+    ponyfills.ReadableStream = require("stream/web").ReadableStream;
+  }
+
+  if (typeof ponyfills.URL === "undefined") {
+    ponyfills.URL = require("url").URL;
+  }
+}
+
+module.exports = ponyfills;

@@ -1,4 +1,4 @@
-require('./polyfills.js');
+const { Agent, fetch: nativeFetch, FormData, URL } = require('./ponyfills.js');
 const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
 
 const dispatcher = typeof Agent === "undefined"
@@ -24,7 +24,7 @@ class Client {
     CHUNK_SIZE = 5*1024*1024; // 5MB
     
     constructor() {
-        this.fetch = globalThis.fetch;
+        this.fetch = nativeFetch;
         this.endpoint = '{{spec.endpoint}}';
         this.headers = {
             'accept-encoding': '*',
