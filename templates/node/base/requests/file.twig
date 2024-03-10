@@ -31,7 +31,7 @@
 
         let currentChunk = 1;
         let currentPosition = 0;
-        let uploadableChunk = new Uint8Array(client.CHUNK_SIZE);
+        let uploadableChunk = new Uint8Array(this.client.CHUNK_SIZE);
     
 
         const uploadChunk = async (lastUpload = false) => {
@@ -39,7 +39,7 @@
                 return;
             }
 
-            const start = ((currentChunk - 1) * client.CHUNK_SIZE);
+            const start = ((currentChunk - 1) * this.client.CHUNK_SIZE);
             let end = start + currentPosition - 1;
 
             if(!lastUpload || currentChunk !== 1) {
@@ -48,7 +48,7 @@
 
             let uploadableChunkTrimmed;
             
-            if(currentPosition + 1 >= client.CHUNK_SIZE) {
+            if(currentPosition + 1 >= this.client.CHUNK_SIZE) {
                 uploadableChunkTrimmed = uploadableChunk;
             } else {
                 uploadableChunkTrimmed = new Uint8Array(currentPosition);
@@ -72,14 +72,14 @@
             if (onProgress !== null) {
                 onProgress({
                     $id: response['$id'],
-                    progress: Math.min((currentChunk) * client.CHUNK_SIZE, size) / size * 100,
+                    progress: Math.min((currentChunk) * this.client.CHUNK_SIZE, size) / size * 100,
                     sizeUploaded: end+1,
                     chunksTotal: response['chunksTotal'],
                     chunksUploaded: response['chunksUploaded']
                 });
             }
 
-            uploadableChunk = new Uint8Array(client.CHUNK_SIZE);
+            uploadableChunk = new Uint8Array(this.client.CHUNK_SIZE);
             currentChunk++;
             currentPosition = 0;
         }
@@ -89,7 +89,7 @@
                 uploadableChunk[currentPosition] = b;
 
                 currentPosition++;
-                if(currentPosition >= client.CHUNK_SIZE) {
+                if(currentPosition >= this.client.CHUNK_SIZE) {
                     await uploadChunk();
                     currentPosition = 0;
                 }

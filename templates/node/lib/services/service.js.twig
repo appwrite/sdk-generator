@@ -1,9 +1,5 @@
 const Service = require('../service.js');
 const {{spec.title | caseUcfirst}}Exception = require('../exception.js');
-const client = require('../client.js');
-const Stream = require('stream');
-const { promisify } = require('util');
-const Query = require('../query.js');
 const { File } = require('../fetch-polyfill.js');
 
 class {{ service.name | caseUcfirst }} extends Service {
