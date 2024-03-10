@@ -1,6 +1,3 @@
-// Provides polyfills for fetch, FormData and File
-// If the globalThis version is not available, use the undici implementation
-
 const fetch = typeof globalThis.fetch === 'undefined' 
     ? require('undici').fetch
     : globalThis.fetch;
@@ -12,10 +9,6 @@ const FormData = typeof globalThis.FormData === 'undefined'
 const File = typeof globalThis.File === 'undefined' 
     ? require('undici').File
     : globalThis.File;
-
-
-// dispatcher is a parameter of undici fetch.
-// It can't be used with edge runtimes.
 
 /** @type {(selfSigned: boolean) => import('undici').Agent|undefined} */
 let dispatcher = (_selfSigned) => undefined;
@@ -29,9 +22,18 @@ if (typeof globalThis.EdgeRuntime !== 'string') {
     });
 }
 
+function buildNodeUserAgent() {
+    const os = require('os');
+    return `{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }} (${os.type()}; ${os.version()}; ${os.arch()})`;
+}
+
+const USER_AGENT = typeof globalThis.EdgeRuntime === 'string' ? `{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }}` : buildNodeUserAgent();
+
+
 module.exports = {
     fetch,
     FormData,
     File,
-    dispatcher
+    dispatcher,
+    USER_AGENT
 }

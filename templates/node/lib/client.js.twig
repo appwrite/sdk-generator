@@ -1,7 +1,6 @@
-const os = require('os');
 const URL = require('url').URL;
 const Query = require('./query.js');
-const { fetch: nativeFetch, FormData, dispatcher } = require('./fetch-polyfill.js');
+const { fetch: nativeFetch, FormData, dispatcher, USER_AGENT } = require('./fetch-polyfill.js');
 const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
 
 class Client {
@@ -13,7 +12,7 @@ class Client {
         this.headers = {
             'accept-encoding': '*',
             'content-type': '',
-            'user-agent' : `{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }} (${os.type()}; ${os.version()}; ${os.arch()})`,
+            'user-agent' : USER_AGENT,
             'x-sdk-name': '{{ sdk.name }}',
             'x-sdk-platform': '{{ sdk.platform }}',
             'x-sdk-language': '{{ language.name | caseLower }}',
