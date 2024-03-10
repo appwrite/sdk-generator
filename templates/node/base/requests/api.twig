@@ -5,4 +5,4 @@
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
-        }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+        }, payload{% if method.type == 'location' %}, 'arraybuffer'{% elseif method.type == 'webAuth' %}, 'location'{% endif %});

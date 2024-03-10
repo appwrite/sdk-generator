@@ -78,6 +78,14 @@ class ClientBrowser extends ClientBase with ClientMixin {
   }
 
   @override
+  Future<String?> webAuth(Uri url) async {
+    final request = http.Request('GET', url);
+    request.followRedirects = false;
+    final response = await _httpClient.send(request);
+    return response.headers['location'];
+  }
+
+  @override
   Future<Response> chunkedUpload({
     required String path,
     required Map<String, dynamic> params,

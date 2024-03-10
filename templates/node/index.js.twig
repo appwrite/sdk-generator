@@ -8,6 +8,9 @@ const {{spec.title | caseUcfirst}}Exception = require('./lib/exception.js');
 {% for service in spec.services %}
 const {{service.name | caseUcfirst}} = require('./lib/services/{{service.name | caseDash}}.js');
 {% endfor %}
+{% for enum in spec.enums %}
+const {{enum.name | caseUcfirst}} = require("./lib/enums/{{enum.name | caseDash}}.js");
+{% endfor %}
 
 module.exports = {
     Client,
@@ -19,5 +22,7 @@ module.exports = {
     {{spec.title | caseUcfirst}}Exception,
 {% for service in spec.services %}
     {{service.name | caseUcfirst}},
+{% endfor %}{% for enum in spec.enums %}
+    {{ enum.name | caseUcfirst }},
 {% endfor %}
 };

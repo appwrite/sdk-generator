@@ -10,8 +10,8 @@ const paginate = async (action, args = {}, limit = 100, wrapper = '') => {
         const response = await action({
             ...args,
             queries: [
-                `limit(${limit})`,
-                `offset(${offset})`
+                JSON.stringify({ method: 'limit', values: [limit] }),
+                JSON.stringify({ method: 'offset', values: [offset] })
             ]
         });
 

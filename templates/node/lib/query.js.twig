@@ -1,72 +1,90 @@
 class Query {
+  constructor(method, attribute, values) {
+    this.method = method
+    this.attribute = attribute
+
+    if (values !== undefined) {
+      if (Array.isArray(values)) {
+        this.values = values
+      } else {
+        this.values = [values]
+      }
+    }
+  }
+
   static equal = (attribute, value) =>
-    Query.addQuery(attribute, "equal", value);
+    new Query("equal", attribute, value).toString()
 
   static notEqual = (attribute, value) =>
-    Query.addQuery(attribute, "notEqual", value);
+    new Query("notEqual", attribute, value).toString()
 
   static lessThan = (attribute, value) =>
-    Query.addQuery(attribute, "lessThan", value);
+    new Query("lessThan", attribute, value).toString()
 
   static lessThanEqual = (attribute, value) =>
-    Query.addQuery(attribute, "lessThanEqual", value);
+    new Query("lessThanEqual", attribute, value).toString()
 
   static greaterThan = (attribute, value) =>
-    Query.addQuery(attribute, "greaterThan", value);
+    new Query("greaterThan", attribute, value).toString()
 
   static greaterThanEqual = (attribute, value) =>
-    Query.addQuery(attribute, "greaterThanEqual", value);
+    new Query("greaterThanEqual", attribute, value).toString()
 
-  static isNull = (attribute) =>
-    `isNull("${attribute}")`;
+  static isNull = attribute =>
+    new Query("isNull", attribute).toString()
 
-  static isNotNull = (attribute) =>
-    `isNotNull("${attribute}")`;
+  static isNotNull = attribute =>
+    new Query("isNotNull", attribute).toString()
 
   static between = (attribute, start, end) =>
-    `between("${attribute}", ${Query.parseValues(start)}, ${Query.parseValues(end)})`
+    new Query("between", attribute, [start, end]).toString()
 
   static startsWith = (attribute, value) =>
-    Query.addQuery(attribute, "startsWith", value);
+    new Query("startsWith", attribute, value).toString()
 
   static endsWith = (attribute, value) =>
-    Query.addQuery(attribute, "endsWith", value);
+    new Query("endsWith", attribute, value).toString()
 
-  static select = (attributes) =>
-    `select([${attributes.map((attr) => `"${attr}"`).join(",")}])`;
+  static select = attributes =>
+    new Query("select", undefined, attributes).toString()
 
   static search = (attribute, value) =>
-    Query.addQuery(attribute, "search", value);
+    new Query("search", attribute, value).toString()
 
-  static orderDesc = (attribute) =>
-    `orderDesc("${attribute}")`;
+  static orderDesc = attribute =>
+    new Query("orderDesc", attribute).toString()
 
-  static orderAsc = (attribute) =>
-    `orderAsc("${attribute}")`;
+  static orderAsc = attribute =>
+    new Query("orderAsc", attribute).toString()
 
-  static cursorAfter = (documentId) =>
-    `cursorAfter("${documentId}")`;
+  static cursorAfter = documentId =>
+    new Query("cursorAfter", undefined, documentId).toString()
 
-  static cursorBefore = (documentId) =>
-    `cursorBefore("${documentId}")`;
+  static cursorBefore = documentId =>
+    new Query("cursorBefore", undefined, documentId).toString()
 
-  static limit = (limit) =>
-    `limit(${limit})`;
+  static limit = limit =>
+    new Query("limit", undefined, limit).toString()
 
-  static offset = (offset) =>
-    `offset(${offset})`;
+  static offset = offset =>
+    new Query("offset", undefined, offset).toString()
 
-  static addQuery = (attribute, method, value) =>
-    value instanceof Array
-      ? `${method}("${attribute}", [${value
-          .map((v) => Query.parseValues(v))
-          .join(",")}])`
-      : `${method}("${attribute}", [${Query.parseValues(value)}])`;
+  static contains = (attribute, value) =>
+    new Query("contains", attribute, value).toString()
 
-  static parseValues = (value) =>
-    typeof value === "string" || value instanceof String
-      ? `"${value}"`
-      : `${value}`;
+  static or = (queries) =>
+    new Query("or", undefined, queries.map((query) => JSON.parse(query))).toString()
+
+  static and = (queries) =>
+    new Query("and", undefined, queries.map((query) => JSON.parse(query))).toString();
 }
+
+Query.prototype.toString = function () {
+  return JSON.stringify({
+    method: this.method,
+    attribute: this.attribute,
+    values: this.values
+  })
+} 
 
 module.exports = Query;
