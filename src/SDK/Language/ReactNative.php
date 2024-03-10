@@ -112,8 +112,8 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '.travis.yml',
-                'template'      => 'react-native/.travis.yml.twig',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'react-native/.github/workflows/publish.yml.twig',
             ],
             [
                 'scope'         => 'enum',
