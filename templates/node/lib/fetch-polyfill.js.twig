@@ -1,25 +1,20 @@
-const fetch =
-  typeof globalThis.EdgeRuntime !== "string" &&
-  typeof globalThis.fetch === "undefined"
-    ? require("undici").fetch
-    : globalThis.fetch;
 
-const FormData =
-  typeof globalThis.EdgeRuntime !== "string" &&
-  typeof globalThis.EdgeRuntime !== "string" &&
-  typeof globalThis.FormData === "undefined"
-    ? require("undici").FormData
-    : globalThis.FormData;
+let fetch = globalThis.fetch;
+if (typeof globalThis.EdgeRuntime !== "string") {
+  fetch = require("undici").fetch;
+}
 
-const File =
-  typeof globalThis.EdgeRuntime !== "string" &&
-  typeof globalThis.File === "undefined"
-    ? require("undici").File
-    : globalThis.File;
+let FormData = globalThis.FormData;
+if (typeof globalThis.EdgeRuntime !== "string") {
+  FormData = require("undici").FormData;
+}
 
-/** @type {(selfSigned: boolean) => import('undici').Agent|undefined} */
+let File = globalThis.File;
+if (typeof globalThis.EdgeRuntime !== "string") {
+  File = require("undici").File;
+}
+
 let dispatcher = (_selfSigned) => undefined;
-
 if (typeof globalThis.EdgeRuntime !== "string") {
   const Agent = require("undici").Agent;
   dispatcher = (selfSigned) =>

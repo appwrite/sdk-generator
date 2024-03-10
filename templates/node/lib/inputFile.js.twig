@@ -1,15 +1,19 @@
-const { ReadableStream } = require("stream/web");
+let ReadableStream = globalThis.ReadableStream;
+if (typeof globalThis.EdgeRuntime === "string") {
+  ReadableStream = require("streams/web").ReadableStream;
+}
 
-const fs = typeof globalThis.EdgeRuntime !== "string"
-  ? require("fs")
-  : {
-    createReadStream: () => {
-      throw new TypeError("fs.createReadStream is not available in the browser");
-    },
-    statSync: () => {
-      throw new TypeError("fs.statSync is not available in the browser");
-    },
-  };
+let fs = {
+  createReadStream: () => {
+    throw new TypeError("fs.createReadStream is not available");
+  },
+  statSync: () => {
+    throw new TypeError("fs.statSync is not available");
+  },
+}
+if (typeof globalThis.EdgeRuntime === "string") {
+  fs = require("fs");
+}
 
 /**
  * @param {fs.ReadStream} readStream
