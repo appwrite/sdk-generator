@@ -9,7 +9,7 @@ public class {{ definition | modelType(spec) | raw }} {
 
     {%~ for property in definition.properties %}
     /// {{ property.description }}
-    public let {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not property.required %}?{% endif %}
+    public let {{ property.name | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not property.required %}?{% endif %}
 
 
     {%~ endfor %}
@@ -20,7 +20,7 @@ public class {{ definition | modelType(spec) | raw }} {
 
     init(
         {%~ for property in definition.properties %}
-        {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw  }}{% if not property.required %}?{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+        {{ property.name | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw  }}{% if not property.required %}?{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
@@ -28,7 +28,7 @@ public class {{ definition | modelType(spec) | raw }} {
         {%~ endif %}
     ) {
         {%~ for property in definition.properties %}
-        self.{{ property.name | escapeKeyword | removeDollarSign }} = {{ property.name | escapeKeyword | removeDollarSign }}
+        self.{{ property.name | escapeSwiftKeyword | removeDollarSign }} = {{ property.name | escapeSwiftKeyword | removeDollarSign }}
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
         self.data = data
@@ -38,7 +38,7 @@ public class {{ definition | modelType(spec) | raw }} {
     public func toMap() -> [String: Any] {
         return [
             {%~ for property in definition.properties %}
-            "{{ property.name | escapeKeyword }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeKeyword | removeDollarSign}}.map { $0.toMap() }{% else %}{{property.name | escapeKeyword | removeDollarSign}}.toMap(){% endif %}{% else %}{{property.name | escapeKeyword | removeDollarSign}}{% endif %} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            "{{ property.name | escapeSwiftKeyword }}": {% if property.sub_schema %}{% if property.type == 'array' %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.map { $0.toMap() }{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}.toMap(){% endif %}{% else %}{{property.name | escapeSwiftKeyword | removeDollarSign}}{% endif %} as Any{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
@@ -50,7 +50,7 @@ public class {{ definition | modelType(spec) | raw }} {
     public static func from(map: [String: Any] ) -> {{ definition.name | caseUcfirst }} {
         return {{ definition.name | caseUcfirst }}(
             {%~ for property in definition.properties %}
-            {{ property.name | escapeKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}(map["{{property.name }}"] as! [[String: Any]]).map { {{property.sub_schema | caseUcfirst}}.from(map: $0) }{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]){% endif %}{% else %}map["{{property.name }}"] as{% if property.required %}!{% else %}?{% endif %} {{ property | propertyType(spec) | raw }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            {{ property.name | escapeSwiftKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}(map["{{property.name }}"] as! [[String: Any]]).map { {{property.sub_schema | caseUcfirst}}.from(map: $0) }{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"] as! [String: Any]){% endif %}{% else %}map["{{property.name }}"] as{% if property.required %}!{% else %}?{% endif %} {{ property | propertyType(spec) | raw }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}

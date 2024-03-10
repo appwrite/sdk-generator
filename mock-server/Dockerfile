@@ -14,8 +14,9 @@ RUN composer install --ignore-platform-reqs --optimize-autoloader \
     --no-plugins --no-scripts --prefer-dist \
     `if [ "$TESTING" != "true" ]; then echo "--no-dev"; fi`
 
-FROM phpswoole/swoole:4.8.7-php8.1-alpine as final
-RUN ["apk", "add", "docker"]
+FROM phpswoole/swoole:5.1.2-php8.3-alpine as final
+
+RUN apk add docker
 
 ENV _APP_REDIS_HOST=redis \
     _APP_REDIS_PORT=6379

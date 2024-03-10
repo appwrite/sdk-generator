@@ -3,7 +3,9 @@
                 path: api_path,
                 headers: api_headers,
                 params: api_params,
-{% if method.responseModel and method.responseModel != 'any' %}
-                response_type: Models::{{method.responseModel | caseUcfirst}}
-{% endif %}
+                {%~ if method.type == "webAuth" %}
+                response_type: "location"
+                {%~ elseif method.responseModel and method.responseModel != 'any' %}
+                response_type: Models::{{ method.responseModel | caseUcfirst }}
+                {%~ endif %}
             )

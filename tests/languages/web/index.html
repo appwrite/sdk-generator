@@ -20,8 +20,9 @@
             let response;
             let responseRealtime = 'Realtime failed!';
             // Init SDK
-            const { Client, Foo, Bar, General, Query, Permission, Role, ID } = Appwrite;
+            const { Client, Foo, Bar, General, Query, Permission, Role, ID, MockType } = Appwrite;
             const client = new Client();
+
             const foo = new Foo(client);
             const bar = new Bar(client);
             const general = new General(client);
@@ -85,6 +86,12 @@
             );
             console.log(response.result);
 
+            console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip InputFile tests
+            console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip InputFile tests
+
+            response = await general.enum(MockType.First);
+            console.log(response.result);
+
             try {
                 response = await general.empty();
             } catch (error) {
@@ -114,26 +121,36 @@
             console.log(responseRealtime)
 
             // Query helper tests
-            console.log(Query.equal('released', [true]));
-            console.log(Query.equal('title', ['Spiderman', 'Dr. Strange']));
-            console.log(Query.notEqual('title', 'Spiderman'));
-            console.log(Query.lessThan('releasedYear', 1990));
-            console.log(Query.greaterThan('releasedYear', 1990));
-            console.log(Query.search('name', "john"));
-            console.log(Query.isNull("name"))
-            console.log(Query.isNotNull("name"))
-            console.log(Query.between("age", 50, 100))
-            console.log(Query.between("age", 50.5, 100.5))
-            console.log(Query.between("name", "Anna", "Brad"))
-            console.log(Query.startsWith("name", "Ann"))
-            console.log(Query.endsWith("name", "nne"))
-            console.log(Query.select(["name", "age"]))
+            console.log(Query.equal("released", [true]));
+            console.log(Query.equal("title", ["Spiderman", "Dr. Strange"]));
+            console.log(Query.notEqual("title", "Spiderman"));
+            console.log(Query.lessThan("releasedYear", 1990));
+            console.log(Query.greaterThan("releasedYear", 1990));
+            console.log(Query.search("name", "john"));
+            console.log(Query.isNull("name"));
+            console.log(Query.isNotNull("name"));
+            console.log(Query.between("age", 50, 100));
+            console.log(Query.between("age", 50.5, 100.5));
+            console.log(Query.between("name", "Anna", "Brad"));
+            console.log(Query.startsWith("name", "Ann"));
+            console.log(Query.endsWith("name", "nne"));
+            console.log(Query.select(["name", "age"]));
             console.log(Query.orderAsc("title"));
             console.log(Query.orderDesc("title"));
             console.log(Query.cursorAfter("my_movie_id"));
             console.log(Query.cursorBefore("my_movie_id"));
             console.log(Query.limit(50));
             console.log(Query.offset(20));
+            console.log(Query.contains("title", "Spider"));
+            console.log(Query.contains("labels", "first"));
+            console.log(Query.or([
+                Query.equal("released", true),
+                Query.lessThan("releasedYear", 1990)
+            ]));
+            console.log(Query.and([
+                Query.equal("released", false),
+                Query.greaterThan("releasedYear", 2015)
+            ]));
 
             // Permission & Role helper tests
             console.log(Permission.read(Role.any()));

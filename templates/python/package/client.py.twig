@@ -1,8 +1,10 @@
 import io
-import requests
+import json
 import os
+import requests
 from .input_file import InputFile
 from .exception import {{spec.title | caseUcfirst}}Exception
+from .encoders.value_class_encoder import ValueClassEncoder
 
 class Client:
     def __init__(self):
@@ -43,7 +45,7 @@ class Client:
         return self
 {% endfor %}
 
-    def call(self, method, path='', headers=None, params=None):
+    def call(self, method, path='', headers=None, params=None, response_type='json'):
         if headers is None:
             headers = {}
 
@@ -53,7 +55,6 @@ class Client:
         params = {k: v for k, v in params.items() if v is not None}  # Remove None values from params dictionary
 
         data = {}
-        json = {}
         files = {}
         stringify = False
         
@@ -64,8 +65,7 @@ class Client:
             params = {}
 
         if headers['content-type'].startswith('application/json'):
-            json = data
-            data = {}
+            data = json.dumps(data, cls=ValueClassEncoder)
 
         if headers['content-type'].startswith('multipart/form-data'):
             del headers['content-type']
@@ -74,22 +74,27 @@ class Client:
                 if isinstance(data[key], InputFile):
                     files[key] = (data[key].filename, data[key].data)
                     del data[key]
+            data = self.flatten(data, stringify=stringify)
+
         response = None
         try:
             response = requests.request(  # call method dynamically https://stackoverflow.com/a/4246075/2299554
                 method=method,
                 url=self._endpoint + path,
                 params=self.flatten(params, stringify=stringify),
-                data=self.flatten(data),
-                json=json,
+                data=data,
                 files=files,
                 headers=headers,
                 verify=(not self._self_signed),
+                allow_redirects=False if response_type == 'location' else True
             )
 
             response.raise_for_status()
 
             content_type = response.headers['Content-Type']
+
+            if response_type == 'location':
+                return response.headers.get('Location')
 
             if content_type.startswith('application/json'):
                 return response.json()

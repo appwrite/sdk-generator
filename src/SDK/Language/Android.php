@@ -103,122 +103,122 @@ class Android extends Kotlin
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Client.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/Client.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/Client.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Permission.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/Permission.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/Permission.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Role.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/Role.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/Role.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/ID.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/ID.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/ID.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Query.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/Query.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/Query.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.title | caseUcfirst}}Exception.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/exceptions/Exception.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/exceptions/Exception.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/JsonExtensions.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/extensions/JsonExtensions.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/extensions/JsonExtensions.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/TypeExtensions.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/extensions/TypeExtensions.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/extensions/TypeExtensions.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/extensions/CollectionExtensions.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/extensions/CollectionExtensions.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/json/PreciseNumberAdapter.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/json/PreciseNumberAdapter.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/extensions/CollectionExtensions.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/InputFile.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/models/InputFile.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/models/InputFile.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/RealtimeModels.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/models/RealtimeModels.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/models/RealtimeModels.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/UploadProgress.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/models/UploadProgress.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/models/UploadProgress.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/WebAuthComponent.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/WebAuthComponent.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/WebAuthComponent.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/KeepAliveService.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/KeepAliveService.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/KeepAliveService.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/views/CallbackActivity.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/views/CallbackActivity.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/views/CallbackActivity.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/Service.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/services/Service.kt.twig',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Service.kt',
+                'template'      => '/android/library/src/main/java/io/package/Service.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/Realtime.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/services/Realtime.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/services/Realtime.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/cookies/Extensions.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/cookies/Extensions.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/cookies/Extensions.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/coroutines/Callback.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/coroutines/Callback.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/coroutines/Callback.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/cookies/stores/InMemoryCookieStore.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/cookies/stores/InMemoryCookieStore.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/cookies/stores/InMemoryCookieStore.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/cookies/stores/SharedPreferencesCookieStore.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/cookies/stores/SharedPreferencesCookieStore.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/cookies/stores/SharedPreferencesCookieStore.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/cookies/InternalCookie.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/cookies/InternalCookie.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/cookies/InternalCookie.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/cookies/ListenableCookieJar.kt',
+                'template'      => '/android/library/src/main/java/io/package/cookies/ListenableCookieJar.kt.twig',
             ],
             [
                 'scope'         => 'service',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/services/ServiceTemplate.kt.twig',
+                'template'      => '/android/library/src/main/java/io/package/services/Service.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -235,31 +235,46 @@ class Android extends Kotlin
                 'destination'   => '/library/.gitignore',
                 'template'      => '/android/library/.gitignore',
             ],
+            [
+                'scope'         => 'definition',
+                'destination'   => 'library/src/main/java/{{ sdk.namespace | caseSlash }}/models/{{ definition.name | caseUcfirst }}.kt',
+                'template'      => '/android/library/src/main/java/io/package/models/Model.kt.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'library/src/main/java/{{ sdk.namespace | caseSlash }}/enums/{{ enum.name | caseUcfirst }}.kt',
+                'template'      => '/android/library/src/main/java/io/package/enums/Enum.kt.twig',
+            ],
             // Config for project :example
             [
                 'scope'         => 'default',
                 'destination'   => '/example/src/main/java/{{ sdk.namespace | caseSlash }}/android/MainActivity.kt',
-                'template'      => '/android/example/src/main/java/io/appwrite/android/MainActivity.kt.twig',
+                'template'      => '/android/example/src/main/java/io/package/android/MainActivity.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/example/src/main/java/{{ sdk.namespace | caseSlash }}/android/ui/accounts/AccountsFragment.kt',
-                'template'      => '/android/example/src/main/java/io/appwrite/android/ui/accounts/AccountsFragment.kt.twig',
+                'template'      => '/android/example/src/main/java/io/package/android/ui/accounts/AccountsFragment.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/example/src/main/java/{{ sdk.namespace | caseSlash }}/android/ui/accounts/AccountsViewModel.kt',
-                'template'      => '/android/example/src/main/java/io/appwrite/android/ui/accounts/AccountsViewModel.kt.twig',
+                'template'      => '/android/example/src/main/java/io/package/android/ui/accounts/AccountsViewModel.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/example/src/main/java/{{ sdk.namespace | caseSlash }}/android/utils/Client.kt',
-                'template'      => '/android/example/src/main/java/io/appwrite/android/utils/Client.kt.twig',
+                'template'      => '/android/example/src/main/java/io/package/android/utils/Client.kt.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/example/src/main/java/{{ sdk.namespace | caseSlash }}/android/utils/Event.kt',
-                'template'      => '/android/example/src/main/java/io/appwrite/android/utils/Event.kt.twig',
+                'template'      => '/android/example/src/main/java/io/package/android/utils/Event.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/example/src/main/java/{{ sdk.namespace | caseSlash }}/android/services/MessagingService.kt',
+                'template'      => '/android/example/src/main/java/io/package/android/services/MessagingService.kt.twig',
             ],
             [
                 'scope'         => 'copy',
@@ -321,72 +336,14 @@ class Android extends Kotlin
                 'destination'   => '/example/.gitignore',
                 'template'      => '/android/example/.gitignore',
             ],
-            // Config for project :example-java
-            [
-                'scope'         => 'default',
-                'destination'   => '/example-java/src/main/java/{{ sdk.namespace | caseSlash }}/example_java/MainActivity.java',
-                'template'      => '/android/example-java/src/main/java/io/appwrite/example_java/MainActivity.java.twig',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/drawable/ic_launcher_background.xml',
-                'template'      => '/android/example-java/src/main/res/drawable/ic_launcher_background.xml',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/drawable/ic_launcher_foreground.xml',
-                'template'      => '/android/example-java/src/main/res/drawable/ic_launcher_foreground.xml',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/layout/activity_main.xml',
-                'template'      => '/android/example-java/src/main/res/layout/activity_main.xml',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml',
-                'template'      => '/android/example-java/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/mipmap-anydpi-v26/ic_launcher.xml',
-                'template'      => '/android/example-java/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/values/colors.xml',
-                'template'      => '/android/example-java/src/main/res/values/colors.xml',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/values/strings.xml',
-                'template'      => '/android/example-java/src/main/res/values/strings.xml',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/res/values/themes.xml',
-                'template'      => '/android/example-java/src/main/res/values/themes.xml',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/src/main/AndroidManifest.xml',
-                'template'      => '/android/example-java/src/main/AndroidManifest.xml',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/example-java/build.gradle',
-                'template'      => '/android/example-java/build.gradle.twig',
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => '/example-java/.gitignore',
-                'template'      => '/android/example-java/.gitignore',
-            ],
-            [
-                'scope'         => 'definition',
-                'destination'   => 'library/src/main/java/io/appwrite/models/{{ definition.name | caseUcfirst }}.kt',
-                'template'      => '/android/library/src/main/java/io/appwrite/models/Model.kt.twig',
-            ],
         ];
+    }
+
+    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
+    {
+        if ($method['type'] === 'webAuth') {
+            return 'Bool';
+        }
+        return parent::getReturnType($method, $spec, $namespace, $generic);
     }
 }

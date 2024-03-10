@@ -1,7 +1,7 @@
 
 const appwrite = require('../../sdks/node/index');
 const InputFile = require('../../sdks/node/lib/inputFile');
-const fs = require('fs');
+const fs = require('fs').promises;
 
 async function start() {
     var response;
@@ -10,9 +10,12 @@ async function start() {
     let Query = appwrite.Query;
     let Role = appwrite.Role;
     let ID = appwrite.ID;
+    let MockType = appwrite.MockType;
 
     // Init SDK
-    let client = new appwrite.Client();
+    let client = new appwrite.Client()
+        .addHeader("Origin", "http://localhost")
+        .setSelfSigned(true);
 
     let foo = new appwrite.Foo(client);
     let bar = new appwrite.Bar(client);
@@ -65,6 +68,17 @@ async function start() {
     response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../resources/large_file.mp4', 'large_file.mp4'));
     console.log(response.result);
 
+    let buffer= await fs.readFile('./tests/resources/file.png');
+    response = await general.upload('string', 123, ['string in array'], appwrite.InputFile.fromBuffer(buffer, 'file.png'))
+    console.log(response.result);
+
+    buffer = await fs.readFile('./tests/resources/large_file.mp4');
+    response = await general.upload('string', 123, ['string in array'], appwrite.InputFile.fromBuffer(buffer, 'large_file.mp4'))
+    console.log(response.result);
+
+    response = await general.enum(MockType.First);
+    console.log(response.result);
+
     try {
         response = await general.error400();
     } catch(error) {
@@ -85,27 +99,46 @@ async function start() {
 
     await general.empty();
 
+    const url = await general.oauth2(
+        'clientId',
+        ['test'],
+        '123456',
+        'https://localhost',
+        'https://localhost'
+    )
+    console.log(url)
+
     // Query helper tests
-    console.log(Query.equal('released', [true]));
-    console.log(Query.equal('title', ['Spiderman', 'Dr. Strange']));
-    console.log(Query.notEqual('title', 'Spiderman'));
-    console.log(Query.lessThan('releasedYear', 1990));
-    console.log(Query.greaterThan('releasedYear', 1990));
-    console.log(Query.search('name', "john"));
-    console.log(Query.isNull("name"))
-    console.log(Query.isNotNull("name"))
-    console.log(Query.between("age", 50, 100))
-    console.log(Query.between("age", 50.5, 100.5))
-    console.log(Query.between("name", "Anna", "Brad"))
-    console.log(Query.startsWith("name", "Ann"))
-    console.log(Query.endsWith("name", "nne"))
-    console.log(Query.select(["name", "age"]))
+    console.log(Query.equal("released", [true]));
+    console.log(Query.equal("title", ["Spiderman", "Dr. Strange"]));
+    console.log(Query.notEqual("title", "Spiderman"));
+    console.log(Query.lessThan("releasedYear", 1990));
+    console.log(Query.greaterThan("releasedYear", 1990));
+    console.log(Query.search("name", "john"));
+    console.log(Query.isNull("name"));
+    console.log(Query.isNotNull("name"));
+    console.log(Query.between("age", 50, 100));
+    console.log(Query.between("age", 50.5, 100.5));
+    console.log(Query.between("name", "Anna", "Brad"));
+    console.log(Query.startsWith("name", "Ann"));
+    console.log(Query.endsWith("name", "nne"));
+    console.log(Query.select(["name", "age"]));
     console.log(Query.orderAsc("title"));
     console.log(Query.orderDesc("title"));
     console.log(Query.cursorAfter("my_movie_id"));
     console.log(Query.cursorBefore("my_movie_id"));
     console.log(Query.limit(50));
     console.log(Query.offset(20));
+    console.log(Query.contains("title", "Spider"));
+    console.log(Query.contains("labels", "first"));
+    console.log(Query.or([
+      Query.equal("released", true),
+      Query.lessThan("releasedYear", 1990)
+    ]));
+    console.log(Query.and([
+        Query.equal("released", false),
+        Query.greaterThan("releasedYear", 2015)
+    ]));
 
     // Permission & Role helper tests
     console.log(Permission.read(Role.any()));

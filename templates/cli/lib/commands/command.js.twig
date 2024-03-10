@@ -9,210 +9,66 @@ const { Command } = require('commander');
 const { sdkForProject, sdkForConsole } = require('../sdks')
 const { parse, actionRunner, parseInteger, parseBool, commandDescriptions, success, log } = require('../parser')
 const { localConfig, globalConfig } = require("../config");
+const { File } = require('undici');
+const { ReadableStream } = require('stream/web');
+
+/**
+ * @param {fs.ReadStream} readStream
+ * @returns {ReadableStream}
+ */
+function convertReadStreamToReadableStream(readStream) {
+  return new ReadableStream({
+    start(controller) {
+      readStream.on("data", (chunk) => {
+        controller.enqueue(chunk);
+      });
+      readStream.on("end", () => {
+        controller.close();
+      });
+      readStream.on("error", (err) => {
+        controller.error(err);
+      });
+    },
+    cancel() {
+      readStream.destroy();
+    },
+  });
+}
 
 const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description(commandDescriptions['{{ service.name | caseLower }}']).configureHelp({
     helpWidth: process.stdout.columns || 80
-  })
+})
 
 {% for method in service.methods %}
-const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}, {% endfor %}parseOutput = true, sdk = undefined{% if 'multipart/form-data' in method.consumes %}, onProgress = () => {}{% endif %}{% if method.type == 'location' %}, destination{% endif %}}) => {
+/**
+ * @typedef {Object} {{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}RequestParams
 {% for parameter in method.parameters.all %}
-    /* @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} */
+ * @property {{ "{" }}{{ parameter | typeName }}{{ "}" }} {{ parameter.name | caseCamel | escapeKeyword }} {{ parameter.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}
 {% endfor %}
+ * @property {boolean} parseOutput
+ * @property {libClient | undefined} sdk
+{% if 'multipart/form-data' in method.consumes %}
+ * @property {CallableFunction} onProgress
+{% endif %}
+{% if method.type == 'location' %}
+ * @property {string} destination
+{% endif %}
+ */
 
+/**
+ * @param {{ "{" }}{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}RequestParams{{ "}" }} params
+ */
+const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}, {% endfor %}parseOutput = true, sdk = undefined{% if 'multipart/form-data' in method.consumes %}, onProgress = () => {}{% endif %}{% if method.type == 'location' %}, destination{% endif %}}) => {
     let client = !sdk ? await {% if service.name == "projects" %}sdkForConsole(){% else %}sdkForProject(){% endif %} : sdk;
     let apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-    let payload = {};
-{% if method.parameters.query|length > 0 %}
-
-    /** Query Params */
-{% endif %}
-{% for parameter in method.parameters.query %}
-    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
-    }
-{% endfor %}
-{% if method.parameters.body|length > 0 %}
-    
-    /** Body Params */
-{% endif %}
-{% for parameter in method.parameters.body %}
-{% if parameter.type == 'file' and method.packaging %}
-    let folderPath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
-    if (!fs.lstatSync(folderPath).isDirectory())
-        throw new Error('The path is not a directory.');
-    
-    const ignorer = ignore();
-
-    const func = localConfig.getFunction(functionId);
-
-    if(func.ignore) {
-        ignorer.add(func.ignore);
-        log('Ignoring files using configuration from appwrite.json');
-    } else if(fs.existsSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore'))) {
-        ignorer.add(fs.readFileSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore')).toString());
-        log('Ignoring files in .gitignore');
-    }
-    
-    const files = getAllFiles({{ parameter.name | caseCamel | escapeKeyword }}).map((file) => pathLib.relative({{ parameter.name | caseCamel | escapeKeyword }}, file)).filter((file) => !ignorer.ignores(file));
-
-    await tar
-        .create({
-            gzip: true,
-            sync: true,
-            cwd: folderPath,
-            file: 'code.tar.gz'
-        }, files);
-    let archivePath = fs.realpathSync('code.tar.gz')
-    if (typeof archivePath !== 'undefined') {
-        payload['{{ parameter.name }}'] = archivePath;
-        {{ parameter.name }} = archivePath;
-    }
-
-{% elseif parameter.type == 'file' %}
-    let filePath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
-    if (typeof filePath !== 'undefined') {
-        payload['{{ parameter.name }}'] = filePath;
-    }
-
-{% elseif parameter.type == 'object' %}
-    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-        payload['{{ parameter.name }}'] = JSON.parse({{ parameter.name | caseCamel | escapeKeyword}});
-    }
-
-{% else %}
-{% if parameter.type == 'array' %}
-    {{ parameter.name | caseCamel | escapeKeyword}} = {{ parameter.name | caseCamel | escapeKeyword}} === true ? [] : {{ parameter.name | caseCamel | escapeKeyword}};
-{% endif %}
-
-    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword}}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" ) %}.toString(){% endif %};
-    }
-
-{% endif %}
-{% endfor %}
-{% if method.type == 'location' %}
-    payload['project'] = localConfig.getProject().projectId
-    payload['key'] = globalConfig.getKey();
-    const queryParams = new URLSearchParams(payload);
-    apiPath = `${globalConfig.getEndpoint()}${apiPath}?${queryParams.toString()}`;
-
-    const response = await client.call('{{ method.method | caseLower }}', apiPath, {
-{% for parameter in method.parameters.header %}
-        '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
-        '{{ key }}': '{{ header }}',
-{% endfor %}
-    }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
-
-    fs.writeFileSync(destination, response);
-
-    if (parseOutput) { 
-        log(`File stored in ${destination}`)
-        success()
-    }
-{% else %}
-    let response = undefined;
+{{ include ('cli/base/params.twig') }}
 {% if 'multipart/form-data' in method.consumes %}
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
-    const { size: size } = await promisify(fs.stat)({{ parameter.name | caseCamel | escapeKeyword }});
-
-    if (size <= libClient.CHUNK_SIZE) {
-        payload['{{ parameter.name }}'] = fs.createReadStream(payload['{{ parameter.name }}']);
-
-        response = await client.call('{{ method.method | caseLower }}', apiPath, {
-{% for parameter in method.parameters.header %}
-            '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
-            '{{ key }}': '{{ header }}',
-{% endfor %}
-        }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %}){% if method.packaging %}.catch(err => {
-            fs.unlinkSync(archivePath);
-            throw err
-        });{% endif %}
-
-    } else {
-        const streamFilePath = payload['{{ parameter.name }}'];
-
-        const apiHeaders = {
-{% for parameter in method.parameters.header %}
-            '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
-            '{{ key }}': '{{ header }}',
-{% endfor %}
-        };
-
-        let offset = 0;
-{% for parameter in method.parameters.all %}
-{% if parameter.isUploadID %}
-        if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
-            try {
-                response = await client.call('get', apiPath + '/' + {{ parameter.name }}, apiHeaders);
-                offset = response.chunksUploaded * libClient.CHUNK_SIZE;
-            } catch(e) {
-            }
-        }
-{% endif %}
-{% endfor %}
-
-        while (offset < size) {
-            let end = Math.min(offset + libClient.CHUNK_SIZE - 1, size - 1);
-
-            apiHeaders['content-range'] = 'bytes ' + offset + '-' + end + '/' + size;
-            if (response && response.$id) {
-                apiHeaders['x-{{spec.title | caseLower }}-id'] = response.$id;
-            }
-
-            const stream = fs.createReadStream(streamFilePath, {
-                start: offset,
-                end
-            });
-            payload['{{ parameter.name }}'] = stream;
-            response = await client.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
-
-            if (onProgress) {
-                onProgress({
-                    $id: response.$id,
-                    progress: ( offset / size ) * 100,
-                    sizeUploaded: offset,
-                    chunksTotal: response.chunksTotal,
-                    chunksUploaded: response.chunksUploaded
-                });
-            }
-            offset += libClient.CHUNK_SIZE;
-        }
-    }
-{% endif %}
-{% endfor %}
-{% else %}
-    response = await client.call('{{ method.method | caseLower }}', apiPath, {
-{% for parameter in method.parameters.header %}
-        '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
-        '{{ key }}': '{{ header }}',
-{% endfor %}
-    }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
-{% endif %}
-{% if method.packaging %}
-
-    fs.unlinkSync(archivePath);
-{% endif %}
-    
-    if (parseOutput) {
-        parse(response)
-        success()
-    }
-    return response;
+{{ include ('cli/base/requests/file.twig') }}{% else %}
+{{ include('cli/base/requests/api.twig') }}
 {% endif %}
 }
 
 {% endfor %}
-
 {% for method in service.methods %}
 {{service.name | caseLower }}
     .command(`{{ method.name | caseCamel }}`)
@@ -228,7 +84,6 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {
     .action(actionRunner({{ service.name | caseLower }}{{ method.name | caseUcfirst }}))
 
 {% endfor %}
-
 module.exports = {
     {{ service.name | caseLower }},
 {% for method in service.methods %}

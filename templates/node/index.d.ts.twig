@@ -250,8 +250,16 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {Promise}
      */
-    {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'location' %}Buffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}{% if method.method == 'delete' %}string{% else %}any{% endif %}{% endif %}{% endif %}>;
+    {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}): Promise<{% if method.type == 'webAuth' %}string{% elseif method.type == 'location' %}ArrayBuffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}{% if method.method == 'delete' %}string{% else %}any{% endif %}{% endif %}{% endif %}>;
 {% endfor %}
   }
+{% endfor %}
+{% for enum in spec.enums %}
+  export const {{ enum.name | caseUcfirst }}: Readonly<{
+{% for value in enum.enum %}
+{% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+    {{ key | caseEnumKey }}: '{{ value }}',
+{% endfor %}
+  }>
 {% endfor %}
 }

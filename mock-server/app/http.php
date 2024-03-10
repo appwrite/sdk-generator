@@ -6,6 +6,7 @@ if (\file_exists(__DIR__ . '/../vendor/autoload.php')) {
     require_once __DIR__ . '/../vendor/autoload.php';
 }
 
+use Swoole\Constant;
 use Utopia\App;
 use Utopia\Database\Document;
 use Utopia\Database\Helpers\ID;
@@ -37,21 +38,34 @@ const APP_PLATFORM_CLIENT = 'client';
 const APP_PLATFORM_CONSOLE = 'console';
 const APP_STORAGE_CACHE = '/storage/cache';
 
-$http = new Server("0.0.0.0", App::getEnv('PORT', 80));
+$http = new Server(
+    host: '0.0.0.0',
+    port: App::getEnv('PORT', 80),
+    mode: SWOOLE_PROCESS
+);
 $payloadSize = 6 * (1024 * 1024); // 6MB
 $workerNumber = swoole_cpu_num() * intval(App::getEnv('_APP_WORKER_PER_CORE', 6));
 
-$http
-    ->set([
-        'worker_num' => $workerNumber,
-        'open_http2_protocol' => true,
-        // 'document_root' => __DIR__.'/../public',
-        // 'enable_static_handler' => true,
-        'http_compression' => true,
-        'http_compression_level' => 6,
-        'package_max_length' => $payloadSize,
-        'buffer_output_size' => $payloadSize,
-    ]);
+$http->set([
+    'worker_num' => $workerNumber,
+    'open_http2_protocol' => true,
+    'http_compression' => true,
+    'http_compression_level' => 6,
+    'package_max_length' => $payloadSize,
+    'buffer_output_size' => $payloadSize,
+]);
+
+// Version Route for CLI
+App::get('/v1/health/version')
+    ->desc('Get version')
+    ->groups(['api', 'health'])
+    ->label('scope', 'public')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->json([ 'version' => '1.0.0' ]);
+    });
 
 // Mock Routes
 App::get('/v1/mock/tests/foo')
@@ -389,7 +403,6 @@ App::get('/v1/mock/tests/general/redirect')
     ->label('sdk.mock', true)
     ->inject('response')
     ->action(function (UtopiaSwooleResponse $response) {
-
         $response->redirect('/v1/mock/tests/general/redirect/done');
     });
 
@@ -423,7 +436,6 @@ App::get('/v1/mock/tests/general/set-cookie')
     ->inject('response')
     ->inject('request')
     ->action(function (UtopiaSwooleResponse $response, Request $request) {
-
         $response->addCookie('cookieName', 'cookieValue', \time() + 31536000, '/', $request->getHostname(), true, true);
     });
 
@@ -441,7 +453,6 @@ App::get('/v1/mock/tests/general/get-cookie')
     ->label('sdk.mock', true)
     ->inject('request')
     ->action(function (Request $request) {
-
         if ($request->getCookie('cookieName', '') !== 'cookieValue') {
             throw new Exception(Exception::GENERAL_MOCK, 'Missing cookie value');
         }
@@ -460,7 +471,6 @@ App::get('/v1/mock/tests/general/empty')
     ->label('sdk.mock', true)
     ->inject('response')
     ->action(function (UtopiaSwooleResponse $response) {
-
         $response->noContent();
     });
 
@@ -550,14 +560,17 @@ App::get('/v1/mock/tests/general/oauth2')
     ->label('scope', 'public')
     ->label('docs', false)
     ->label('sdk.mock', true)
-    ->param('client_id', '', new Text(100), 'OAuth2 Client ID.')
-    ->param('redirect_uri', '', new Host(['localhost']), 'OAuth2 Redirect URI.') // Important to deny an open redirect attack
-    ->param('scope', '', new Text(100), 'OAuth2 scope list.')
+    ->label('sdk.methodType', 'webAuth')
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'oauth2')
+    ->param('clientId', '', new Text(100), 'OAuth2 Client ID.')
+    ->param('scopes', [], new ArrayList(new Text(100)), 'OAuth2 scope list.')
     ->param('state', '', new Text(1024), 'OAuth2 state.')
+    ->param('success', '', new Text(1024), 'OAuth2 success redirect URI.')
+    ->param('failure', '', new Text(1024), 'OAuth2 failure redirect URI.')
     ->inject('response')
-    ->action(function (string $client_id, string $redirectURI, string $scope, string $state, UtopiaSwooleResponse $response) {
-
-        $response->redirect($redirectURI . '?' . \http_build_query(['code' => 'abcdef', 'state' => $state]));
+    ->action(function (string $clientId, array $scopes, string $state, string $success, string $failure, UtopiaSwooleResponse $response) {
+        $response->redirect($success . '?' . \http_build_query(['code' => 'abcdef', 'state' => $state]));
     });
 
 App::get('/v1/mock/tests/general/oauth2/token')
@@ -566,6 +579,7 @@ App::get('/v1/mock/tests/general/oauth2/token')
     ->label('scope', 'public')
     ->label('docs', false)
     ->label('sdk.mock', true)
+    ->label('sdk.methodType', 'webAuth')
     ->param('client_id', '', new Text(100), 'OAuth2 Client ID.')
     ->param('client_secret', '', new Text(100), 'OAuth2 scope list.')
     ->param('grant_type', 'authorization_code', new WhiteList(['refresh_token', 'authorization_code']), 'OAuth2 Grant Type.', true)
@@ -574,7 +588,6 @@ App::get('/v1/mock/tests/general/oauth2/token')
     ->param('refresh_token', '', new Text(100), 'OAuth2 refresh token.', true)
     ->inject('response')
     ->action(function (string $client_id, string $client_secret, string $grantType, string $redirectURI, string $code, string $refreshToken, UtopiaSwooleResponse $response) {
-
         if ($client_id != '1') {
             throw new Exception(Exception::GENERAL_MOCK, 'Invalid client ID');
         }
@@ -614,7 +627,6 @@ App::get('/v1/mock/tests/general/oauth2/user')
     ->param('token', '', new Text(100), 'OAuth2 Access Token.')
     ->inject('response')
     ->action(function (string $token, UtopiaSwooleResponse $response) {
-
         if ($token != '123456') {
             throw new Exception(Exception::GENERAL_MOCK, 'Invalid token');
         }
@@ -751,32 +763,27 @@ App::error()
         ['utopia', 'error', 'request', 'response']
     );
 
-$http->on(
-    'start',
-    function (Server $http) use ($payloadSize) {
-        Console::success('Server started successfully (max payload is ' . number_format($payloadSize) . ' bytes)');
-        Console::info("Master pid {$http->master_pid}, manager pid {$http->manager_pid}");
-        // listen ctrl + c
-        Process::signal(
-            2,
-            function () use ($http) {
-                Console::log('Stop by Ctrl+C');
-                $http->shutdown();
-            }
-        );
-    }
-);
+$http->on(Constant::EVENT_START, function (Server $http) use ($payloadSize) {
+    Console::success('Server started successfully (max payload is ' . number_format($payloadSize) . ' bytes)');
+    Console::info("Master pid {$http->master_pid}, manager pid {$http->manager_pid}");
 
-$http->on(
-    'request',
-    function (SwooleRequest $swooleRequest, SwooleResponse $swooleResponse) {
-        $request = new Request($swooleRequest);
-        $response = new UtopiaSwooleResponse($swooleResponse);
+    // Listen for ctrl + c
+    Process::signal(
+        2,
+        function () use ($http) {
+            Console::log('Stop by Ctrl+C');
+            $http->shutdown();
+        }
+    );
+});
 
-        $app = new App('UTC');
+$http->on(Constant::EVENT_REQUEST, function (SwooleRequest $swooleRequest, SwooleResponse $swooleResponse) {
+    $request = new Request($swooleRequest);
+    $response = new UtopiaSwooleResponse($swooleResponse);
 
-        $app->run($request, $response);
-    }
-);
+    $app = new App('UTC');
+
+    $app->run($request, $response);
+});
 
 $http->start();
