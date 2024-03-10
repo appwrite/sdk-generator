@@ -98,6 +98,15 @@ declare module "{{ language.params.npmPackage|caseDash }}" {
      * @return {this}
      */
     setSelfSigned(status?: boolean): Client;
+
+    /**
+     * Set fetch implementation.
+     *
+     * @param {any} customFetch
+     *
+     * @return {this}
+     */
+    setFetch(customFetch: any): Client;
 {% for header in spec.global.headers %}
 
     /**

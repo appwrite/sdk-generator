@@ -1,13 +1,14 @@
 const os = require('os');
 const URL = require('url').URL;
 const Query = require('./query.js');
-const { fetch, FormData, dispatcher } = require('./fetch-polyfill.js');
+const { fetch as nativeFetch, FormData, dispatcher } = require('./fetch-polyfill.js');
 const {{spec.title | caseUcfirst}}Exception = require('./exception.js');
 
 class Client {
     static CHUNK_SIZE = 5*1024*1024; // 5MB
     
     constructor() {
+        this.fetch = nativeFetch;
         this.endpoint = '{{spec.endpoint}}';
         this.headers = {
             'accept-encoding': '*',
@@ -71,6 +72,20 @@ class Client {
     }
 
     /**
+     * Set fetch implementation.
+     *
+     * @param {any} customFetch
+     *
+     * @return this;
+     */
+    setFetch(customFetch)
+    {
+        this.fetch = customFetch;
+
+        return this;
+    }
+
+    /**
      * Sets a header for requests.
      * 
      * @param {string} key
@@ -113,7 +128,7 @@ class Client {
 
       let response = undefined;
       try {
-        response = await fetch(url.toString(), {
+        response = await this.fetch(url.toString(), {
             method: method.toUpperCase(),
             headers,
             body,
