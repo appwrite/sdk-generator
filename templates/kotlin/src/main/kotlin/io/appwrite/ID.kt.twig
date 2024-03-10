@@ -13,7 +13,7 @@ class ID {
             val sec = now.epochSecond
             val millis = now.toEpochMilli() % 1000
 
-            val hexTimestamp = "%08x%03x".format(sec, millis)
+            val hexTimestamp = "%08x%05x".format(sec, millis)
 
             return hexTimestamp
         }

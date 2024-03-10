@@ -11,11 +11,10 @@ namespace {{ spec.title | caseUcfirst }}
             var now = DateTime.UtcNow;
             var epoch = (now - new DateTime(1970, 1, 1));
             var sec = (long)epoch.TotalSeconds;
-            var usec = epoch.TotalMilliseconds - secondsSinceEpoch * 1000000;
-    
+            var usec = (long)(epoch.TotalMilliseconds % 1000); // Corrected calculation for milliseconds
+
             // Convert to hexadecimal
-            var hexTimestamp = sec.ToString("x")
-                + usec.ToString("x").PadLeft(5, '0');
+            var hexTimestamp = sec.ToString("x") + usec.ToString("x").PadLeft(5, '0');
             return hexTimestamp;
         }
 
