@@ -11,10 +11,10 @@ class ID {
         private fun hexTimestamp(): String {
             val now = Instant.now()
             val sec = now.epochSecond
-            val usec = System.nanoTime() / 1000
+            val usec = (System.nanoTime() / 1000) % 1000
 
-            // Convert both parts to hexadecimal format
             val hexTimestamp = "%08x%05x".format(sec, usec)
+
             return hexTimestamp
         }
 
