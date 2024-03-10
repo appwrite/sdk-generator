@@ -6,6 +6,7 @@ function polyfillPackage(name, package) {
   }
 }
 
+polyfillPackage("URL", "url");
 polyfillPackage("fetch", "undici");
 polyfillPackage("FormData", "undici");
 polyfillPackage("File", "undici");

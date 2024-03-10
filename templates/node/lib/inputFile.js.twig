@@ -1,17 +1,4 @@
-let fs = {
-  createReadStream: () => {
-    throw new TypeError("fs.createReadStream is not available");
-  },
-  statSync: () => {
-    throw new TypeError("fs.statSync is not available");
-  },
-}
-let ReadableStream = globalThis.ReadableStream;
-
-if (typeof globalThis.EdgeRuntime === "string") {
-  ReadableStream = require("streams/web").ReadableStream;
-  fs = require("fs");
-}
+require("./polyfills.js");
 
 /**
  * @param {fs.ReadStream} readStream
