@@ -144,8 +144,8 @@ class Client {
                     const formData = new FormData();
 
                     for (const [key, value] of Object.entries(params)) {
-                        if (value.type === 'file') {
-                            formData.append(key, value.blob, value.name);
+                        if (value instanceof File) {
+                            formData.append(key, value, value.name);
                         } else if (Array.isArray(value)) {
                             for (const nestedValue of value) {
                                 formData.append(`${key}[]`, nestedValue);
@@ -168,33 +168,30 @@ class Client {
         const file = Object.values(originalPayload).find((value) => value instanceof File);
 
         if (file.size <= Client.CHUNK_SIZE) {
-            // Using the original payload directly if the file is within the single chunk size limit
             return await this.call(method, url, headers, originalPayload);
         }
 
         let start = 0;
         let response = null;
 
-        while (start < blob.size) {
+        while (start < file.size) {
             let end = start + Client.CHUNK_SIZE; // Prepare end for the next chunk
             if (end >= file.size) {
                 end = file.size; // Adjust for the last chunk to include the last byte
             }
 
             headers['content-range'] = `bytes ${start}-${end-1}/${file.size}`;
-            const chunk = file.slice(start, end); // Slice the blob for the current chunk
+            const chunk = file.slice(start, end);
 
-            // Clone the original payload and update the file field with the current chunk
-            let payload = { ...originalPayload, file: new File([chunk], name)};
+            let payload = { ...originalPayload, file: new File([chunk], file.name)};
 
             response = await this.call(method, url, headers, payload);
 
             if (response && response.$id) {
-                // Updating the ID header for subsequent chunks after the first successful upload
                 headers['x-{{spec.title | caseLower }}-id'] = response.$id;
             }
 
-            start = end; // Prepare start for the next chunk
+            start = end;
         }
 
         return response;
