@@ -154,7 +154,7 @@ class Node extends Web
             [
                 'scope'         => 'default',
                 'destination'   => 'LICENSE',
-                'template'      => 'web/LICENSE.twig',
+                'template'      => 'node/LICENSE.twig',
             ],
             [
                 'scope'         => 'default',
