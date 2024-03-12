@@ -1,4 +1,4 @@
-import { fetch, FormData } from 'node-fetch-native';
+import { fetch, FormData, File } from 'node-fetch-native';
 import { Models } from './models';
 
 type Payload = {
@@ -165,9 +165,9 @@ class Client {
     }
 
     async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: Payload = {}) {
-        const { name, blob } = Object.values(originalPayload).find((value) => value.type === 'file');
+        const file = Object.values(originalPayload).find((value) => value instanceof File);
 
-        if (blob.size <= Client.CHUNK_SIZE) {
+        if (file.size <= Client.CHUNK_SIZE) {
             // Using the original payload directly if the file is within the single chunk size limit
             return await this.call(method, url, headers, originalPayload);
         }
@@ -177,15 +177,15 @@ class Client {
 
         while (start < blob.size) {
             let end = start + Client.CHUNK_SIZE; // Prepare end for the next chunk
-            if (end >= blob.size) {
-                end = blob.size; // Adjust for the last chunk to include the last byte
+            if (end >= file.size) {
+                end = file.size; // Adjust for the last chunk to include the last byte
             }
 
-            headers['content-range'] = `bytes ${start}-${end-1}/${blob.size}`;
-            const chunk = blob.slice(start, end); // Slice the blob for the current chunk
+            headers['content-range'] = `bytes ${start}-${end-1}/${file.size}`;
+            const chunk = file.slice(start, end); // Slice the blob for the current chunk
 
             // Clone the original payload and update the file field with the current chunk
-            let payload = { ...originalPayload, file: { type: 'file', blob: chunk, name } };
+            let payload = { ...originalPayload, file: new File([chunk], name)};
 
             response = await this.call(method, url, headers, payload);
 

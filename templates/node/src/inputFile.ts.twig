@@ -1,38 +1,19 @@
-import { type ReadableStream } from "node:stream/web";
-import { arrayBuffer as streamToArrayBuffer } from 'node:stream/consumers';
-import { Blob } from 'node-fetch-native';
-import {
-  realpathSync,
-  readFileSync
-} from 'node:fs'
+import { File, Blob } from 'node-fetch-native';
 
 export class InputFile {
-  type = 'file' as const;
-  blob: Blob;
-  name: string;
-
-  constructor (blob: Blob, name: string) {
-    this.blob = blob;
-    this.name = name;
+  static fromBuffer(parts: ArrayBuffer | Blob | Buffer | string, name: string): File {
+    return new File([parts], name);
   }
 
-  static fromBuffer(parts: ArrayBuffer | Blob | Buffer | string, name: string): InputFile {
-    const blob = new Blob([parts]);
-    return new InputFile(blob, name);
-  }
+  static fromPath(path: string, name: string): File {
+    const { realpathSync, readFileSync } = require('fs');
 
-  static fromPath(path: string, name: string): InputFile {
     const realPath = realpathSync(path)
     const contents = readFileSync(realPath)
     return this.fromBuffer(contents, name);
   }
 
-  static async fromStream(stream: ReadableStream<Uint8Array>, name: string): Promise<InputFile> {
-    const arrayBuffer = await streamToArrayBuffer(stream)
-    return this.fromBuffer(arrayBuffer, name);
-  }
-
-  static fromPlainText(content: string, name: string): InputFile {
+  static fromPlainText(content: string, name: string): File {
     const arrayBytes = new TextEncoder().encode(content);
     return this.fromBuffer(arrayBytes, name);
   }

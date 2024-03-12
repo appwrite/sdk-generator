@@ -30,7 +30,7 @@ class Node extends Web
                 }
                 return 'string[]';
             case self::TYPE_FILE:
-                return "{ type: 'file', blob: Blob, name: string }";
+                return "File";
             case self::TYPE_OBJECT:
                 if (empty($method)) {
                     return $parameter['type'];
