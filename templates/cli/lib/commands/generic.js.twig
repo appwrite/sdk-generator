@@ -6,7 +6,7 @@ const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, log, parse } = require("../parser");
 {% if sdk.test != "true" %}
 const { questionsLogin } = require("../questions");
-const { accountCreateEmailSession, accountDeleteSession } = require("./account");
+const { accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
 
 const login = new Command("login")
     .description(commandDescriptions['login'])
@@ -18,7 +18,7 @@ const login = new Command("login")
 
         let client = await sdkForConsole(false);
 
-        await accountCreateEmailSession({
+        await accountCreateEmailPasswordSession({
             email: answers.email,
             password: answers.password,
             parseOutput: false,
