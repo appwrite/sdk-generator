@@ -17,7 +17,7 @@ class Node16Test extends Base
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:16-alpine npm run build'
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app -e NODE_DEBUG=http node:16-alpine node tests/sdks/node/test.js';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app -e node:16-alpine node tests/sdks/node/test.js';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
