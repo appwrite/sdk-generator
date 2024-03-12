@@ -1,0 +1,260 @@
+import { fetch, FormData } from 'node-fetch-native';
+import { Models } from './models';
+
+type Payload = {
+    [key: string]: any;
+}
+
+type Headers = {
+    [key: string]: string;
+}
+
+class {{spec.title | caseUcfirst}}Exception extends Error {
+    code: number;
+    response: string;
+    type: string;
+    constructor(message: string, code: number = 0, type: string = '', response: string = '') {
+        super(message);
+        this.name = '{{spec.title | caseUcfirst}}Exception';
+        this.message = message;
+        this.code = code;
+        this.type = type;
+        this.response = response;
+    }
+}
+
+class Client {
+    static CHUNK_SIZE = 1024 * 1024 * 5;
+
+    config = {
+        endpoint: '{{ spec.endpoint }}',
+        endpointRealtime: '',
+        selfSigned: false,
+{% for header in spec.global.headers %}
+        {{ header.key | caseLower }}: '',
+{% endfor %}
+    };
+    headers: Headers = {
+        'x-sdk-name': '{{ sdk.name }}',
+        'x-sdk-platform': '{{ sdk.platform }}',
+        'x-sdk-language': '{{ language.name | caseLower }}',
+        'x-sdk-version': '{{ sdk.version }}',
+{% for key,header in spec.global.defaultHeaders %}
+        '{{key}}': '{{header}}',
+{% endfor %}
+    };
+
+    /**
+     * Set Endpoint
+     *
+     * Your project endpoint
+     *
+     * @param {string} endpoint
+     *
+     * @returns {this}
+     */
+    setEndpoint(endpoint: string): this {
+        this.config.endpoint = endpoint;
+        this.config.endpointRealtime = this.config.endpointRealtime || this.config.endpoint.replace('https://', 'wss://').replace('http://', 'ws://');
+
+        return this;
+    }
+
+    /**
+     * Set Realtime Endpoint
+     *
+     * @param {string} endpointRealtime
+     *
+     * @returns {this}
+     */
+    setEndpointRealtime(endpointRealtime: string): this {
+        this.config.endpointRealtime = endpointRealtime;
+
+        return this;
+    }
+
+    /**
+     * Set self-signed
+     *
+     * @param {boolean} selfSigned
+     *
+     * @returns {this}
+     */
+    setSelfSigned(selfSigned: boolean): this {
+        this.config.selfSigned = selfSigned;
+
+        return this;
+    }
+
+    /**
+     * Add header
+     *
+     * @param {string} header
+     * @param {string} value
+     *
+     * @returns {this}
+     */
+    addHeader(header: string, value: string): this {
+        this.headers[header.toLowerCase()] = value;
+
+        return this;
+    }
+
+{% for header in spec.global.headers %}
+    /**
+     * Set {{header.key | caseUcfirst}}
+     *
+{% if header.description %}
+{{header.description|comment2}}
+     *
+{% endif %}
+     * @param value string
+     *
+     * @return {this}
+     */
+    set{{header.key | caseUcfirst}}(value: string): this {
+        this.headers['{{header.name}}'] = value;
+        this.config.{{ header.key | caseLower }} = value;
+        return this;
+    }
+
+{% endfor %}
+
+    prepareRequest(method: string, url: URL, headers: Headers = {}, params: Payload = {}): { uri: string, options: RequestInit } {
+        method = method.toUpperCase();
+
+        headers = Object.assign({}, this.headers, headers);
+
+        let options: RequestInit = {
+            method,
+            headers,
+            credentials: 'include'
+        };
+
+        if (method === 'GET') {
+            for (const [key, value] of Object.entries(Client.flatten(params))) {
+                url.searchParams.append(key, value);
+            }
+        } else {
+            switch (headers['content-type']) {
+                case 'application/json':
+                    options.body = JSON.stringify(params);
+                    break;
+
+                case 'multipart/form-data':
+                    const formData = new FormData();
+
+                    for (const [key, value] of Object.entries(params)) {
+                        if (value.type === 'file') {
+                            formData.append(key, value.blob, value.name);
+                        } else if (Array.isArray(value)) {
+                            for (const nestedValue of value) {
+                                formData.append(`${key}[]`, nestedValue);
+                            }
+                        } else {
+                            formData.append(key, value);
+                        }
+                    }
+
+                    options.body = formData;
+                    delete headers['content-type'];
+                    break;
+            }
+        }
+
+        return { uri: url.toString(), options };
+    }
+
+    async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: Payload = {}) {
+        const { name, blob } = Object.values(originalPayload).find((value) => value.type === 'file');
+
+        if (blob.size <= Client.CHUNK_SIZE) {
+            // Using the original payload directly if the file is within the single chunk size limit
+            return await this.call(method, url, headers, originalPayload);
+        }
+
+        let start = 0;
+        let response = null;
+
+        while (start < blob.size) {
+            let end = start + Client.CHUNK_SIZE; // Prepare end for the next chunk
+            if (end >= blob.size) {
+                end = blob.size; // Adjust for the last chunk to include the last byte
+            }
+
+            headers['content-range'] = `bytes ${start}-${end-1}/${blob.size}`;
+            const chunk = blob.slice(start, end); // Slice the blob for the current chunk
+
+            // Clone the original payload and update the file field with the current chunk
+            let payload = { ...originalPayload, file: { type: 'file', blob: chunk, name } };
+
+            response = await this.call(method, url, headers, payload);
+
+            if (response && response.$id) {
+                // Updating the ID header for subsequent chunks after the first successful upload
+                headers['x-{{spec.title | caseLower }}-id'] = response.$id;
+            }
+
+            start = end; // Prepare start for the next chunk
+        }
+
+        return response;
+    }
+
+    async redirect(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<string> {
+        const { uri, options } = this.prepareRequest(method, url, headers, params);
+        
+        const response = await fetch(uri, {
+            ...options,
+            redirect: 'manual'
+        });
+
+        if (response.status !== 301 && response.status !== 302) {
+            throw new {{spec.title | caseUcfirst}}Exception('Invalid redirect', response.status);
+        }
+
+        return response.headers.get('location') || '';
+    }
+
+    async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<any> {
+        const { uri, options } = this.prepareRequest(method, url, headers, params);
+
+        let data: any = null;
+
+        const response = await fetch(uri, options);
+
+        if (response.headers.get('content-type')?.includes('application/json')) {
+            data = await response.json();
+        } else {
+            data = {
+                message: await response.text()
+            };
+        }
+
+        if (400 <= response.status) {
+            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, data);
+        }
+
+        return data;
+    }
+
+    static flatten(data: Payload, prefix = ''): Payload {
+        let output: Payload = {};
+
+        for (const [key, value] of Object.entries(data)) {
+            let finalKey = prefix ? prefix + '[' + key +']' : key;
+            if (Array.isArray(value)) {
+                output = { ...output, ...Client.flatten(value, finalKey) };
+            } else {
+                output[finalKey] = value;
+            }
+        }
+
+        return output;
+    }
+}
+
+export { Client, {{spec.title | caseUcfirst}}Exception };
+export { Query } from './query';
+export type { Models, Payload };
+export type { QueryTypes, QueryTypesList } from './query';

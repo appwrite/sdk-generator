@@ -1,6 +1,5 @@
 
-const appwrite = require('../../sdks/node/index');
-const InputFile = require('../../sdks/node/lib/inputFile');
+const appwrite = require('./dist/index.js');
 const fs = require('fs').promises;
 
 async function start() {
@@ -11,6 +10,7 @@ async function start() {
     let Role = appwrite.Role;
     let ID = appwrite.ID;
     let MockType = appwrite.MockType;
+    let InputFile = appwrite.InputFile;
 
     // Init SDK
     let client = new appwrite.Client()
@@ -69,11 +69,11 @@ async function start() {
     console.log(response.result);
 
     let buffer= await fs.readFile('./tests/resources/file.png');
-    response = await general.upload('string', 123, ['string in array'], appwrite.InputFile.fromBuffer(buffer, 'file.png'))
+    response = await general.upload('string', 123, ['string in array'], InputFile.fromBuffer(buffer, 'file.png'))
     console.log(response.result);
 
     buffer = await fs.readFile('./tests/resources/large_file.mp4');
-    response = await general.upload('string', 123, ['string in array'], appwrite.InputFile.fromBuffer(buffer, 'large_file.mp4'))
+    response = await general.upload('string', 123, ['string in array'], InputFile.fromBuffer(buffer, 'large_file.mp4'))
     console.log(response.result);
 
     response = await general.enum(MockType.First);

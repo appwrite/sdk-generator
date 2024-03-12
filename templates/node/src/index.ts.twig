@@ -1,0 +1,12 @@
+export { Client, Query, {{spec.title | caseUcfirst}}Exception } from './client';
+{% for service in spec.services %}
+export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseDash}}';
+{% endfor %}
+export type { QueryTypes, QueryTypesList } from './query';
+export { Permission } from './permission';
+export { Role } from './role';
+export { InputFile } from './inputFile';
+export { ID } from './id';
+{% for enum in spec.enums %}
+export { {{ enum.name | caseUcfirst  }} } from './enums/{{enum.name | caseDash}}';
+{% endfor %}

@@ -1,19 +1,35 @@
 {
-  "name": "{{ language.params.npmPackage|caseDash }}",
+  "name": "{{ language.params.npmPackage }}",
   "homepage": "{{ spec.contactURL }}",
   "description": "{{ sdk.shortDescription }}",
   "version": "{{ sdk.version }}",
   "license": "{{ sdk.license }}",
-  "main": "./index.js",
-  "types": "./index.d.ts",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsup"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "{{ sdk.gitURL }}"
+    "url": ""
   },
   "devDependencies": {
-    "@types/node": "^18.16.1"
+    "@types/node": "20.11.25",
+    "playwright": "1.15.0",
+    "tsup": "7.2.0",
+    "tslib": "2.6.2",
+    "typescript": "5.4.2"
   },
   "dependencies": {
-    "undici": "^5.28.2"
+    "node-fetch-native": "1.6.2",
+    "fetch-blob": "2.1.2"
   }
 }

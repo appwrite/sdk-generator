@@ -1,0 +1,98 @@
+import { {{ spec.title | caseUcfirst}}Exception, Client, type Payload } from '../client';
+import type { Models } from '../models';
+{% set added = [] %}
+{% for method in service.methods %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues is not empty %}
+{% if parameter.enumName is not empty %}
+{% set name = parameter.enumName %}
+{% else %}
+{% set name = parameter.name %}
+{% endif %}
+{% if name not in added %}
+import { {{ name | caseUcfirst }} } from '../enums/{{ name | caseDash }}';
+{% set added = added|merge([name]) %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+export class {{ service.name | caseUcfirst }} {
+    client: Client;
+
+    constructor(client: Client) {
+        this.client = client;
+    }
+
+    {%~ for method in service.methods %}
+    /**
+     * {{ method.title }}
+     *
+    {%~ if method.description %}
+     * {{ method.description }}
+    {%~ endif %}
+     *
+    {%~ for parameter in method.parameters.all %}
+     * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
+    {%~ endfor %}
+     * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
+     * @returns Promise<{{ method | getReturn(spec) | raw }}>
+     */
+    {% if method.type != 'location' %}async {% endif %}{{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}): {{ method | getReturn(spec) | raw }} {
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.required %}
+        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
+            throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
+        }
+        {%~ endif %}
+        {%~ endfor %}
+        const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
+        const payload: Payload = {};
+        {%~ for parameter in method.parameters.query %}
+        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+        }
+        {%~ endfor %}
+        {%~ for parameter in method.parameters.body %}
+        if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+        }
+        {%~ endfor %}
+        const uri = new URL(this.client.config.endpoint + apiPath);
+
+        const apiHeaders: { [header: string]: string } = {
+            {%~ for parameter in method.parameters.header %}
+            '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
+            {%~ endfor %}
+            {%~ for key, header in method.headers %}
+            '{{ key }}': '{{ header }}',
+            {%~ endfor %}
+        }
+
+        {%~ if method.type == 'webAuth' %}
+        return await this.client.redirect(
+            '{{ method.method | caseLower }}',
+            uri,
+            apiHeaders,
+            payload
+        );
+        {%~ elseif method.type == 'location' %}
+        return uri;
+        {%~ elseif 'multipart/form-data' in method.consumes %}
+        return await this.client.chunkedUpload(
+            '{{ method.method | caseLower }}',
+            uri,
+            apiHeaders,
+            payload
+        );
+        {%~ else %}
+        return await this.client.call(
+            '{{ method.method | caseLower }}',
+            uri,
+            apiHeaders,
+            payload
+        );
+        {%~ endif %}
+    }
+    {%~ endfor %}
+}
