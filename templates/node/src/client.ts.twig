@@ -30,18 +30,18 @@ class Client {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
         selfSigned: false,
-{% for header in spec.global.headers %}
+        {%~ for header in spec.global.headers %}
         {{ header.key | caseLower }}: '',
-{% endfor %}
+        {%~ endfor %}
     };
     headers: Headers = {
         'x-sdk-name': '{{ sdk.name }}',
         'x-sdk-platform': '{{ sdk.platform }}',
         'x-sdk-language': '{{ language.name | caseLower }}',
         'x-sdk-version': '{{ sdk.version }}',
-{% for key,header in spec.global.defaultHeaders %}
+        {%~ for key,header in spec.global.defaultHeaders %}
         '{{key}}': '{{header}}',
-{% endfor %}
+        {%~ endfor %}
     };
 
     /**
@@ -100,14 +100,14 @@ class Client {
         return this;
     }
 
-{% for header in spec.global.headers %}
+    {%~ for header in spec.global.headers %}
     /**
      * Set {{header.key | caseUcfirst}}
      *
-{% if header.description %}
-{{header.description|comment2}}
+    {%~ if header.description %}
+     * {{header.description}}
      *
-{% endif %}
+    {%~ endif %}
      * @param value string
      *
      * @return {this}
@@ -117,8 +117,7 @@ class Client {
         this.config.{{ header.key | caseLower }} = value;
         return this;
     }
-
-{% endfor %}
+    {%~ endfor %}
 
     prepareRequest(method: string, url: URL, headers: Headers = {}, params: Payload = {}): { uri: string, options: RequestInit } {
         method = method.toUpperCase();
@@ -216,7 +215,7 @@ class Client {
         return response.headers.get('location') || '';
     }
 
-    async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<any> {
+    async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}, responseType = 'json'): Promise<any> {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
 
         let data: any = null;
@@ -225,6 +224,8 @@ class Client {
 
         if (response.headers.get('content-type')?.includes('application/json')) {
             data = await response.json();
+        } else if (responseType === 'arrayBuffer') {
+            data = await response.arrayBuffer();
         } else {
             data = {
                 message: await response.text()

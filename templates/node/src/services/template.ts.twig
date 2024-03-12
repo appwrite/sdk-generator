@@ -36,9 +36,9 @@ export class {{ service.name | caseUcfirst }} {
      * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
     {%~ endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
-     * @returns {{ method | getReturn(spec) | raw }}
+     * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
      */
-    {% if method.type != 'location' %}async {% endif %}{{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}): {{ method | getReturn(spec) | raw }} {
+    async {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}): {{ method | getReturn(spec) | raw }} {
         {%~ for parameter in method.parameters.all %}
         {%~ if parameter.required %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
@@ -76,8 +76,6 @@ export class {{ service.name | caseUcfirst }} {
             apiHeaders,
             payload
         );
-        {%~ elseif method.type == 'location' %}
-        return uri;
         {%~ elseif 'multipart/form-data' in method.consumes %}
         return await this.client.chunkedUpload(
             '{{ method.method | caseLower }}',
@@ -90,7 +88,8 @@ export class {{ service.name | caseUcfirst }} {
             '{{ method.method | caseLower }}',
             uri,
             apiHeaders,
-            payload
+            payload,
+            {%~ if method.type == 'location' %}'arrayBuffer'{% endif %}
         );
         {%~ endif %}
     }

@@ -55,8 +55,10 @@ class Node extends Web
     {
         if ($method['type'] === 'webAuth') {
             return 'Promise<string>';
-        } elseif ($method['type'] === 'location') {
-            return 'URL';
+        }
+
+        if ($method['type'] === 'location') {
+            return 'Promise<ArrayBuffer>';
         }
 
         if (array_key_exists('responseModel', $method) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {
