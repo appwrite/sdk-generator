@@ -36,7 +36,7 @@ export class {{ service.name | caseUcfirst }} {
      * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
     {%~ endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
-     * @returns Promise<{{ method | getReturn(spec) | raw }}>
+     * @returns {{ method | getReturn(spec) | raw }}
      */
     {% if method.type != 'location' %}async {% endif %}{{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}): {{ method | getReturn(spec) | raw }} {
         {%~ for parameter in method.parameters.all %}
