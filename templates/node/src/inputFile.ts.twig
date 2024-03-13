@@ -1,4 +1,4 @@
-import { Blob, File } from "node-fetch-native";
+import { File } from "node-fetch-native";
 import { realpathSync, readFileSync } from "fs";
 
 export class InputFile {
@@ -6,8 +6,7 @@ export class InputFile {
     parts: ArrayBuffer | Blob | Buffer | string,
     name: string
   ): File {
-    const blob = new Blob([parts]);
-    return new File([blob], name);
+    return new File([parts], name);
   }
 
   static fromPath(path: string, name: string): File {
