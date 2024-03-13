@@ -1,9 +1,10 @@
 import { File } from "node-fetch-native";
 import { realpathSync, readFileSync } from "fs";
+import type { BinaryLike } from "crypto";
 
 export class InputFile {
   static fromBuffer(
-    parts: ArrayBuffer | Blob | Buffer | string,
+    parts: Blob | BinaryLike,
     name: string
   ): File {
     return new File([parts], name);
