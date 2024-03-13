@@ -89,7 +89,9 @@ export class {{ service.name | caseUcfirst }} {
             uri,
             apiHeaders,
             payload,
-            {%~ if method.type == 'location' %}'arrayBuffer'{% endif %}
+            {%~ if method.type == 'location' %}
+            'arrayBuffer'
+            {%~ endif %}
         );
         {%~ endif %}
     }

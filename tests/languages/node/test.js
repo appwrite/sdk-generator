@@ -1,25 +1,28 @@
-
-const appwrite = require('./dist/index.js');
-const fs = require('fs').promises;
+const { 
+    Client, 
+    Permission,
+    Query,
+    Role,
+    ID,
+    MockType,
+    InputFile,
+    Foo,
+    Bar,
+    General
+} = require('./dist/index.js');
+const { readFile} = require('fs/promises');
 
 async function start() {
-    var response;
-
-    let Permission = appwrite.Permission;
-    let Query = appwrite.Query;
-    let Role = appwrite.Role;
-    let ID = appwrite.ID;
-    let MockType = appwrite.MockType;
-    let InputFile = appwrite.InputFile;
+    let response;
 
     // Init SDK
-    let client = new appwrite.Client()
+    const client = new Client()
         .addHeader("Origin", "http://localhost")
         .setSelfSigned(true);
 
-    let foo = new appwrite.Foo(client);
-    let bar = new appwrite.Bar(client);
-    let general = new appwrite.General(client);
+    const foo = new Foo(client);
+    const bar = new Bar(client);
+    const general = new General(client);
 
     client.addHeader('Origin', 'http://localhost');
 
@@ -68,12 +71,12 @@ async function start() {
     response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../resources/large_file.mp4', 'large_file.mp4'));
     console.log(response.result);
 
-    let buffer= await fs.readFile('./tests/resources/file.png');
-    response = await general.upload('string', 123, ['string in array'], InputFile.fromBuffer(buffer, 'file.png'))
+    const smallBuffer = await readFile('./tests/resources/file.png');
+    response = await general.upload('string', 123, ['string in array'], InputFile.fromBuffer(smallBuffer, 'file.png'))
     console.log(response.result);
 
-    buffer = await fs.readFile('./tests/resources/large_file.mp4');
-    response = await general.upload('string', 123, ['string in array'], InputFile.fromBuffer(buffer, 'large_file.mp4'))
+    const largeBuffer = await readFile('./tests/resources/large_file.mp4');
+    response = await general.upload('string', 123, ['string in array'], InputFile.fromBuffer(largeBuffer, 'large_file.mp4'))
     console.log(response.result);
 
     response = await general.enum(MockType.First);

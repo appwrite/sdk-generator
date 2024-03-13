@@ -1,15 +1,18 @@
-import { File, Blob } from 'node-fetch-native';
+import { Blob, File } from "node-fetch-native";
+import { realpathSync, readFileSync } from "fs";
 
 export class InputFile {
-  static fromBuffer(parts: ArrayBuffer | Blob | Buffer | string, name: string): File {
-    return new File([parts], name);
+  static fromBuffer(
+    parts: ArrayBuffer | Blob | Buffer | string,
+    name: string
+  ): File {
+    const blob = new Blob([parts]);
+    return new File([blob], name);
   }
 
   static fromPath(path: string, name: string): File {
-    const { realpathSync, readFileSync } = require('fs');
-
-    const realPath = realpathSync(path)
-    const contents = readFileSync(realPath)
+    const realPath = realpathSync(path);
+    const contents = readFileSync(realPath);
     return this.fromBuffer(contents, name);
   }
 
