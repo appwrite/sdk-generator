@@ -5,7 +5,6 @@ export { {{service.name | caseUcfirst}} } from './services/{{service.name | case
 export type { QueryTypes, QueryTypesList } from './query';
 export { Permission } from './permission';
 export { Role } from './role';
-export { InputFile } from './inputFile';
 export { ID } from './id';
 {% for enum in spec.enums %}
 export { {{ enum.name | caseUcfirst  }} } from './enums/{{enum.name | caseDash}}';

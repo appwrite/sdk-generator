@@ -5,12 +5,12 @@ const {
     Role,
     ID,
     MockType,
-    InputFile,
     Foo,
     Bar,
     General
 } = require('./dist/index.js');
-const { readFile} = require('fs/promises');
+const { InputFile } = require('./dist/inputFile.js');
+const { readFile } = require('fs/promises');
 
 async function start() {
     let response;
