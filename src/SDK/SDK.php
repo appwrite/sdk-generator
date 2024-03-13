@@ -101,7 +101,7 @@ class SDK
             return strtoupper((string)$value);
         }));
         $this->twig->addFilter(new TwigFilter('caseUcfirst', function ($value) {
-            return ucfirst($this->helperCamelCase($value));
+            return $this->language->toPascalCase($value);
         }));
         $this->twig->addFilter(new TwigFilter('caseUcwords', function ($value) {
             return ucwords($value, " -_");
@@ -110,26 +110,19 @@ class SDK
             return lcfirst((string)$value);
         }));
         $this->twig->addFilter(new TwigFilter('caseCamel', function ($value) {
-            return $this->helperCamelCase($value);
+            return $this->language->toCamelCase($value);
         }));
         $this->twig->addFilter(new TwigFilter('caseDash', function ($value) {
-            return str_replace([' ', '_'], '-', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', $value)));
+            return $this->language->toKebabCase($value);
         }));
         $this->twig->addFilter(new TwigFilter('caseSlash', function ($value) {
-            return str_replace([' ', '_'], '/', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', $value)));
+            return $this->language->toSlashCase($value);
         }));
         $this->twig->addFilter(new TwigFilter('caseDot', function ($value) {
-            return str_replace([' ', '_'], '.', strtolower(preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1.', $value)));
+            return $this->language->toDotCase($value);
         }));
         $this->twig->addFilter(new TwigFilter('caseSnake', function ($value) {
-            preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $value, $matches);
-            $ret = $matches[0];
-            foreach ($ret as &$match) {
-                $match = $match == strtoupper($match)
-                    ? strtolower($match)
-                    : lcfirst($match);
-            }
-            return implode('_', $ret);
+            return $this->language->toSnakeCase($value);
         }));
         $this->twig->addFilter(new TwigFilter('caseJson', function ($value) {
             return (is_array($value)) ? json_encode($value) : $value;
@@ -804,23 +797,5 @@ class SDK
                     throw new Exception('No minifier found for ' . $ext . ' file');
             }
         }
-    }
-
-    /**
-     * @param string|null $str
-     * @return string
-     */
-    protected function helperCamelCase(?string $str): string
-    {
-        if ($str == null) {
-            return '';
-        }
-        $str = preg_replace('/[^a-z0-9' . implode("", []) . ']+/i', ' ', $str);
-        $str = trim($str);
-        $str = ucwords($str);
-        $str = str_replace(" ", "", $str);
-        $str = lcfirst($str);
-
-        return $str;
     }
 }

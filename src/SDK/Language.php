@@ -2,6 +2,8 @@
 
 namespace Appwrite\SDK;
 
+use Normalizer;
+
 abstract class Language
 {
     public const TYPE_INTEGER = 'integer';
@@ -84,48 +86,56 @@ abstract class Language
         return [];
     }
 
-    protected function toPascalCase(string $value): string
-    {
-        return \ucfirst($this->toCamelCase($value));
+    function toSnakeCase(string $str): string {
+        // Replace alternative character sets
+        $str = Normalizer::normalize($str, Normalizer::FORM_D);
+    
+        // Replace seperating characters with underscores
+        // Includes: spaces, dashes, apostrophes, periods and slashes
+        $str = preg_replace('/[ \'.\/-]/', '_', $str);
+    
+        // Seperate camelCase with underscores
+        $str = preg_replace_callback('/([a-z])([^a-z_])/', function ($matches) {
+            return $matches[1] . '_' . strtolower($matches[2]);
+        }, $str);
+    
+        // Remove ignorable characters
+        return preg_replace('/[^a-z0-9_]/', '', strtolower($str));
     }
 
-    protected function toCamelCase($str): string
+    function toUpperSnakeCase(string $str): string
     {
-        // Normalize the string to decompose accented characters
-        $str = \Normalizer::normalize($str, \Normalizer::FORM_D);
-
-        // Remove accents and other residual non-ASCII characters
-        $str = \preg_replace('/\p{M}/u', '', $str);
-
-        $str = \preg_replace('/[^a-zA-Z0-9]+/', ' ', $str);
-        $str = \trim($str);
-        $str = \ucwords($str);
-        $str = \str_replace(' ', '', $str);
-        $str = \lcfirst($str);
-
-        return $str;
+        $str = $this->toSnakeCase($str);
+        return \strtoupper($str);
     }
 
-    protected function toSnakeCase($str): string
+    function toKebabCase(string $str): string
     {
-        // Normalize the string to decompose accented characters
-        $str = \Normalizer::normalize($str, \Normalizer::FORM_D);
-
-        // Remove accents and other residual non-ASCII characters
-        $str = \preg_replace('/\p{M}/u', '', $str);
-
-        // Remove apostrophes before replacing non-word characters with underscores
-        $str = \str_replace("'", '', $str);
-        $str = \preg_replace('/[^a-zA-Z0-9]+/', '_', $str);
-        $str = \preg_replace('/_+/', '_', $str);
-        $str = \trim($str, '_');
-        $str = \strtolower($str);
-
-        return $str;
+        $str = $this->toSnakeCase($str);
+        return str_replace('_', '-', $str);
     }
 
-    protected function toUpperSnakeCase($str): string
+    function toDotCase(string $str): string
     {
-        return \strtoupper($this->toSnakeCase($str));
+        $str = $this->toSnakeCase($str);
+        return str_replace('_', '.', $str);
+    }
+
+    function toSlashCase(string $str): string
+    {
+        $str = $this->toSnakeCase($str);
+        return str_replace('_', '/', $str);
+    }
+
+    function toPascalCase(string $value): string
+    {
+        $str = $this->toSnakeCase($value);
+        return str_replace(' ', '', ucwords(str_replace('_', ' ', $str)));
+    }
+
+    function toCamelCase(string $str): string
+    {
+        $str = $this->toPascalCase($str);
+        return lcfirst($str);
     }
 }

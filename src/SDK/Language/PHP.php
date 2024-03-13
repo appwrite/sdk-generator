@@ -418,7 +418,6 @@ class PHP extends Language
                 if (isset($this->getIdentifierOverrides()[$value])) {
                     $value = $this->getIdentifierOverrides()[$value];
                 }
-                $value = \preg_replace('/[^a-zA-Z0-9]/', '', $value);
                 return $this->toUpperSnakeCase($value);
             }),
         ];
