@@ -124,6 +124,51 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/type-generation/attribute.js',
+                'template'      => 'cli/lib/type-generation/attribute.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/collection.js',
+                'template'      => 'cli/lib/type-generation/collection.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/language.js',
+                'template'      => 'cli/lib/type-generation/languages/language.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/php.js',
+                'template'      => 'cli/lib/type-generation/languages/php.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/typescript.js',
+                'template'      => 'cli/lib/type-generation/languages/typescript.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/python.js',
+                'template'      => 'cli/lib/type-generation/languages/python.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/kotlin.js',
+                'template'      => 'cli/lib/type-generation/languages/kotlin.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/swift.js',
+                'template'      => 'cli/lib/type-generation/languages/swift.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/type-generation/languages/java.js',
+                'template'      => 'cli/lib/type-generation/languages/java.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/questions.js',
                 'template'      => 'cli/lib/questions.js.twig',
             ],
@@ -176,6 +221,11 @@ class CLI extends Node
                 'scope'         => 'default',
                 'destination'   => 'lib/commands/generic.js',
                 'template'      => 'cli/lib/commands/generic.js.twig',
+            ], 
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/commands/types.js',
+                'template'      => 'cli/lib/commands/types.js.twig',
             ]
         ];
     }
