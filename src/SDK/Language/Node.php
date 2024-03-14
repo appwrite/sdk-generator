@@ -67,8 +67,18 @@ class Node extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/permission.test.js',
+                'template'      => 'node/test/permission.test.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/role.js',
                 'template'      => 'node/lib/role.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/role.test.js',
+                'template'      => 'node/test/role.test.js.twig',
             ],
             [
                 'scope'         => 'default',
@@ -77,8 +87,18 @@ class Node extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/id.test.js',
+                'template'      => 'node/test/id.test.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/query.js',
                 'template'      => 'node/lib/query.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/query.test.js',
+                'template'      => 'node/test/query.test.js.twig',
             ],
             [
                 'scope'         => 'default',
@@ -94,6 +114,11 @@ class Node extends JS
                 'scope'         => 'service',
                 'destination'   => '/lib/services/{{service.name | caseDash}}.js',
                 'template'      => 'node/lib/services/service.js.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => '/test/services/{{service.name | caseDash}}.test.js',
+                'template'      => 'node/test/services/service.test.js.twig',
             ],
             [
                 'scope'         => 'default',
