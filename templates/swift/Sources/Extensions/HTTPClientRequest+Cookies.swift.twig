@@ -17,7 +17,7 @@ extension HTTPClientRequest {
 
 extension HTTPHeaders {
     public mutating func addDomainCookies(for domain: String) {
-        guard let cookies = UserDefaults.standard.stringArray(forKey: "\(domain)-cookies") else {
+        guard let cookies = UserDefaults.standard.stringArray(forKey: domain) else {
             return
         }
         for cookie in cookies {

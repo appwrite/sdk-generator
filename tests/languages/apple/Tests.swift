@@ -4,6 +4,7 @@ import Foundation
 import FoundationNetworking
 #endif
 import Appwrite
+import AppwriteEnums
 import AsyncHTTPClient
 import NIO
 
@@ -58,19 +59,19 @@ class Tests: XCTestCase {
 
 
         // Bar Tests
-        mock = try await bar.get(xrequired: "string", xdefault: 123, z: ["string in array"])
+        mock = try await bar.get(required: "string", default: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await bar.post(xrequired: "string", xdefault: 123, z: ["string in array"])
+        mock = try await bar.post(required: "string", default: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await bar.put(xrequired: "string", xdefault: 123, z: ["string in array"])
+        mock = try await bar.put(required: "string", default: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await bar.patch(xrequired: "string", xdefault: 123, z: ["string in array"])
+        mock = try await bar.patch(required: "string", default: 123, z: ["string in array"])
         print(mock.result)
 
-        mock = try await bar.delete(xrequired: "string", xdefault: 123, z: ["string in array"])
+        mock = try await bar.delete(required: "string", default: 123, z: ["string in array"])
         print(mock.result)
 
 
@@ -113,6 +114,9 @@ class Tests: XCTestCase {
         } catch {
             print(error.localizedDescription)
         }
+
+        mock = try await general.xenum(mockType: .first)
+        print(mock.result)
 
         do {
             try await general.error400()
@@ -164,6 +168,16 @@ class Tests: XCTestCase {
         print(Query.cursorBefore("my_movie_id"))
         print(Query.limit(50))
         print(Query.offset(20))
+        print(Query.contains("title", value: "Spider"))
+        print(Query.contains("labels", value: "first"))
+        print(Query.or([
+            Query.equal("released", value: true),
+            Query.lessThan("releasedYear", value: 1990)
+        ]))
+        print(Query.and([
+            Query.equal("released", value: false),
+            Query.greaterThan("releasedYear", value: 2015)
+        ]))
 
         // Permission & Role helper tests
         print(Permission.read(Role.any()))

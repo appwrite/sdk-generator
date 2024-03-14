@@ -1,6 +1,6 @@
 {% import 'dotnet/base/utils.twig' as utils %}
             {%~ for parameter in method.parameters.path %}
-                .Replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }}){% if loop.last %};{% endif %}
+                .Replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }}{% if parameter.enumValues is not empty %}.Value{% endif %}){% if loop.last %};{% endif %}
 
             {%~ endfor %}
 

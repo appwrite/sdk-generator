@@ -1,11 +1,6 @@
-        let query = "?\(client.parametersToQueryString(params: apiParams))"
-        let url = URL(string: client.endPoint + apiPath + query)!
-        let callbackScheme = "appwrite-callback-\(client.config["project"] ?? "")"
-
-        try await withCheckedThrowingContinuation { continuation in
-            WebAuthComponent.authenticate(url: url, callbackScheme: callbackScheme) { result in
-                continuation.resume(with: result)
-            }
-        }
-        
-        return true
+        return try await client.redirect(
+            method: "{{ method.method | caseUpper }}",
+            path: apiPath,
+            headers: apiHeaders,
+            params: apiParams
+        )

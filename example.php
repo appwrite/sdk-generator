@@ -37,11 +37,11 @@ try {
     }
 
     // Leave the platform you want uncommented
-    $platform = 'client';
-    // $platform = 'console';
+//    $platform = 'client';
+     $platform = 'console';
     // $platform = 'server';
 
-    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/master/app/config/specs/swagger2-latest-{$platform}.json");
+    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/feat-rc-sdks/app/config/specs/swagger2-latest-{$platform}.json");
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -68,7 +68,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.5.0',
         ])
     ;
 
@@ -93,7 +93,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.5.0',
         ])
     ;
 
@@ -117,7 +117,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.5.0',
         ])
     ;
 
@@ -140,7 +140,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.5.0',
         ])
     ;
 
@@ -208,7 +208,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.5.0',
         ])
     ;
 
@@ -231,7 +231,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.5.0',
         ])
     ;
 
@@ -259,7 +259,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.5.0',
         ])
     ;
 
@@ -286,7 +286,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.5.0',
         ])
     ;
 
@@ -311,7 +311,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.5.0',
         ])
     ;
 
@@ -336,11 +336,11 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.5.0',
         ])
     ;
 
-    $sdk->generate(__DIR__ . '/examples/swift-server');
+    $sdk->generate(__DIR__ . '/examples/swift');
 
     // Swift (Client)
     $sdk  = new SDK(new Apple(), new Swagger2($spec));
@@ -360,7 +360,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.5.0',
         ])
     ;
 
@@ -384,7 +384,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.2.0',
+            'X-Appwrite-Response-Format' => '1.5.0',
         ])
     ;
 

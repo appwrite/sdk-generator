@@ -52,11 +52,8 @@ $ wget -q {{ sdk.url }}/cli/install.sh  -O - | /bin/bash
 
 ### MacOS via [Homebrew](https://brew.sh)
 ```bash
-$ brew tap {{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }} https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}
-$ brew update
-$ brew install --HEAD {{ language.params.executableName }} 
+$ brew install {{ language.params.executableName }} 
 ```
-> Please note that `--HEAD` will be removed with official release.
 
 ### Windows
 Via Powershell

@@ -23,10 +23,10 @@ class Python38Test extends Base
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
-        ...Base::LARGE_FILE_RESPONSES,
-        ...Base::LARGE_FILE_RESPONSES,
-        ...Base::LARGE_FILE_RESPONSES,
+        ...Base::UPLOAD_RESPONSES,
+        ...Base::ENUM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
+        ...Base::OAUTH_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES

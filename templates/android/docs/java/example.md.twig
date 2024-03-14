@@ -4,40 +4,66 @@ import {{ sdk.namespace | caseDot }}.coroutines.CoroutineCallback;
 import {{ sdk.namespace | caseDot }}.models.InputFile;
 {% endif %}
 import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }};
+{% set added = [] %}
+{% for parameter in method.parameters.all %}
+{% if method == parameter.required %}
+{% if parameter.enumValues is not empty %}
+{% if parameter.enumName is not empty %}
+{% set name = parameter.enumName %}
+{% else %}
+{% set name = parameter.name %}
+{% endif %}
+{% if name not in added %}
+import {{ sdk.namespace | caseDot }}.enums.{{ name | caseUcfirst }};
+{% set added = added|merge([name]) %}
+{% endif %}
+{% endif %}
+{% endif %}
+{% endfor %}
 
 Client client = new Client(context)
-{% if method.auth|length > 0 %}
+    {%~ if method.auth|length > 0 %}
     .setEndpoint("https://cloud.appwrite.io/v1") // Your API Endpoint
-{% for node in method.auth %}
-{% for key,header in node|keys %}
-    .set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo']}}"){% if loop.last %};{% endif %} // {{node[header].description}}
-{% endfor %}{% endfor %}{% endif %}
+    {%~ for node in method.auth %}
+    {%~ for key,header in node|keys %}
+    .set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo']}}"){% if loop.last %};{% endif %} // {{ node[header].description }}
+    {%~ endfor %}
+    {%~ endfor %}
+    {%~ endif %}
 
 {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
 
 {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %}new CoroutineCallback<>((result, error) -> {
-   if (error != null)
+    if (error != null) {
         error.printStackTrace();
         return;
     }
 
-    Log.d("Appwrite", result.toString());
+    Log.d("{{ spec.title | caseUcfirst }}", result.toString());
 }));{% endif %}
 
 {% for parameter in method.parameters.all %}
-{% if parameter.required %}
-    {{ parameter | paramExample }}{% if not loop.last %},{% endif %}
+    {%~ if parameter.enumValues is not empty -%}
+    {%~ if parameter.enumName is not empty -%}
+    {%~ set name = parameter.enumName -%}
+    {%~ else -%}
+    {%~ set name = parameter.name -%}
+    {%~ endif %}
+    {{ name }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
+    {%~ else %}
+    {{ parameter | paramExample }}, // {{ parameter.name }} {% if not parameter.required %}(optional){% endif %}
+    {%~ endif %}
+    {%~ if loop.last %}
 
-{% endif %}
-{% if loop.last %}
     new CoroutineCallback<>((result, error) -> {
         if (error != null) {
             error.printStackTrace();
             return;
         }
 
-        Log.d("Appwrite", result.toString());
+        Log.d("{{ spec.title | caseUcfirst }}", result.toString());
     })
 );
 {% endif %}
+
 {% endfor %}

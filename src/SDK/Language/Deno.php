@@ -2,6 +2,8 @@
 
 namespace Appwrite\SDK\Language;
 
+use Twig\TwigFilter;
+
 class Deno extends JS
 {
     /**
@@ -35,8 +37,18 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/permission.test.ts',
+                'template'      => 'deno/test/permission.test.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/role.ts',
                 'template'      => 'deno/src/role.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/role.test.ts',
+                'template'      => 'deno/test/role.test.ts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -45,8 +57,18 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'test/id.test.ts',
+                'template'      => 'deno/test/id.test.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/query.ts',
                 'template'      => 'deno/src/query.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/query.test.ts',
+                'template'      => 'deno/test/query.test.ts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -74,6 +96,11 @@ class Deno extends JS
                 'template'      => 'deno/src/services/service.ts.twig',
             ],
             [
+                'scope'         => 'service',
+                'destination'   => '/test/services/{{service.name | caseDash}}.test.ts',
+                'template'      => 'deno/test/services/service.test.ts.twig',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'deno/README.md.twig',
@@ -93,6 +120,11 @@ class Deno extends JS
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'deno/docs/example.md.twig',
             ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'src/enums/{{ enum.name | caseDash }}.ts',
+                'template'      => 'deno/src/enums/enum.ts.twig',
+            ],
         ];
     }
 
@@ -100,27 +132,25 @@ class Deno extends JS
      * @param array $parameter
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-                return 'number';
-            case self::TYPE_STRING:
-                return 'string';
-            case self::TYPE_FILE:
-                return 'InputFile';
-            case self::TYPE_BOOLEAN:
-                return 'boolean';
-            case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    return $this->getTypeName($parameter['array']) . '[]';
-                }
-                return 'string[]';
-            case self::TYPE_OBJECT:
-                return 'object';
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
         }
-
-        return $parameter['type'];
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
+        }
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER => 'number',
+            self::TYPE_STRING => 'string',
+            self::TYPE_FILE => 'InputFile',
+            self::TYPE_BOOLEAN => 'boolean',
+            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
+                ? $this->getTypeName($parameter['array']) . '[]'
+                : 'string[]',
+            self::TYPE_OBJECT => 'object',
+            default => $parameter['type']
+        };
     }
 
     /**
