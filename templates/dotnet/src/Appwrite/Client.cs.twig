@@ -10,6 +10,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using {{ spec.title | caseUcfirst }}.Converters;
 using {{ spec.title | caseUcfirst }}.Extensions;
 using {{ spec.title | caseUcfirst }}.Models;
 
@@ -21,6 +22,7 @@ namespace {{ spec.title | caseUcfirst }}
         public Dictionary<string, string> Config => _config;
 
         private HttpClient _http;
+        private HttpClient _httpForRedirect;
         private readonly Dictionary<string, string> _headers;
         private readonly Dictionary<string, string> _config;
         private string _endpoint;
@@ -34,7 +36,8 @@ namespace {{ spec.title | caseUcfirst }}
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
             Converters = new List<JsonConverter>
             {
-                new StringEnumConverter()
+                new StringEnumConverter(new CamelCaseNamingStrategy()),
+                new ValueClassConverter()
             }
         };
 
@@ -44,17 +47,25 @@ namespace {{ spec.title | caseUcfirst }}
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
             Converters = new List<JsonConverter>
             {
-                new StringEnumConverter()
+                new StringEnumConverter(new CamelCaseNamingStrategy()),
+                new ValueClassConverter()
             }
         };
 
         public Client(
             string endpoint = "{{spec.endpoint}}",
             bool selfSigned = false,
-            HttpClient? http = null)
+            HttpClient? http = null,
+            HttpClient? httpForRedirect = null)
         {
             _endpoint = endpoint;
             _http = http ?? new HttpClient();
+            
+            _httpForRedirect = httpForRedirect ?? new HttpClient(
+                new HttpClientHandler(){
+                    AllowAutoRedirect = false
+                });
+
             _headers = new Dictionary<string, string>()
             {
                 { "content-type", "application/json" },
@@ -119,21 +130,11 @@ namespace {{ spec.title | caseUcfirst }}
             return this;
         }
 
-        public Task<Dictionary<string, object?>> Call(
+        private HttpRequestMessage PrepareRequest(
             string method,
             string path,
             Dictionary<string, string> headers,
             Dictionary<string, object?> parameters)
-        {
-            return Call<Dictionary<string, object?>>(method, path, headers, parameters);
-        }
-
-        public async Task<T> Call<T>(
-            string method,
-            string path,
-            Dictionary<string, string> headers,
-            Dictionary<string, object?> parameters,
-            Func<Dictionary<string, object>, T>? convert = null) where T : class
         {
             var methodGet = "GET".Equals(method, StringComparison.OrdinalIgnoreCase);
 
@@ -214,14 +215,63 @@ namespace {{ spec.title | caseUcfirst }}
                 }
             }
 
+            return request;
+        }
+
+        public async Task<String> Redirect(
+            string method,
+            string path, 
+            Dictionary<string, string> headers,
+            Dictionary<string, object?> parameters)
+        {
+            var request = this.PrepareRequest(method, path, headers, parameters);
+
+            var response = await _httpForRedirect.SendAsync(request);
+            var code = (int)response.StatusCode;
+
+            if (code >= 400) {
+                var message = await response.Content.ReadAsStringAsync();
+
+                var contentType = response.Content.Headers
+                    .GetValues("Content-Type")
+                    .FirstOrDefault() ?? string.Empty;
+
+                if (contentType.Contains("application/json")) {
+                    message = JObject.Parse(message)["message"]!.ToString();
+                }
+
+                throw new {{spec.title | caseUcfirst}}Exception(message, code);
+            }
+
+            return response.Headers.Location.OriginalString;
+        }
+
+        public Task<Dictionary<string, object?>> Call(
+            string method,
+            string path,
+            Dictionary<string, string> headers,
+            Dictionary<string, object?> parameters)
+        {
+            return Call<Dictionary<string, object?>>(method, path, headers, parameters);
+        }
+
+        public async Task<T> Call<T>(
+            string method,
+            string path,
+            Dictionary<string, string> headers,
+            Dictionary<string, object?> parameters,
+            Func<Dictionary<string, object>, T>? convert = null) where T : class
+        {
+            var request = this.PrepareRequest(method, path, headers, parameters);
+
             var response = await _http.SendAsync(request);
             var code = (int)response.StatusCode;
+
             var contentType = response.Content.Headers
                 .GetValues("Content-Type")
                 .FirstOrDefault() ?? string.Empty;
 
             var isJson = contentType.Contains("application/json");
-            var isBytes = contentType.Contains("application/octet-stream");
 
             if (code >= 400) {
                 var message = await response.Content.ReadAsStringAsync();
@@ -248,13 +298,9 @@ namespace {{ spec.title | caseUcfirst }}
 
                 return (dict as T)!;
             }
-            else if (isBytes)
-            {
-                return ((await response.Content.ReadAsByteArrayAsync()) as T)!;
-            }
             else
             {
-                return default!;
+                return ((await response.Content.ReadAsByteArrayAsync()) as T)!;
             }
         }
 
@@ -326,7 +372,7 @@ namespace {{ spec.title | caseUcfirst }}
                     parameters = new Dictionary<string, object?>()
                 );
                 var chunksUploaded = (long)current["chunksUploaded"];
-                offset = Math.Min(chunksUploaded * ChunkSize, size);
+                offset = chunksUploaded * ChunkSize;
             }
 
             while (offset < size)
@@ -342,7 +388,7 @@ namespace {{ spec.title | caseUcfirst }}
                     case "bytes":
                         buffer = ((byte[])input.Data)
                             .Skip((int)offset)
-                            .Take((int)Math.Min(size - offset, ChunkSize))
+                            .Take((int)Math.Min(size - offset, ChunkSize - 1))
                             .ToArray();
                         break;
                 }

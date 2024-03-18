@@ -1,0 +1,41 @@
+<?php
+
+namespace {{ spec.title | caseUcfirst }}\Enums;
+
+use JsonSerializable;
+
+class {{ enum.name | caseUcfirst | overrideIdentifier }} implements JsonSerializable
+{
+    {%~ for value in enum.enum %}
+    {%~ set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+    private static {{ enum.name | caseUcfirst }} ${{ key | caseEnumKey }};
+    {%~ endfor %}
+
+    private string $value;
+
+    private function __construct(string $value)
+    {
+        $this->value = $value;
+    }
+
+    public function __toString(): string
+    {
+        return $this->value;
+    }
+
+    public function jsonSerialize(): string
+    {
+        return $this->value;
+    }
+
+{% for value in enum.enum %}
+{% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+    public static function {{ key | caseEnumKey }}(): {{ enum.name | caseUcfirst | overrideIdentifier}}
+    {
+        if (!isset(self::${{ key | caseEnumKey }})) {
+            self::${{ key | caseEnumKey }} = new {{ enum.name | caseUcfirst | overrideIdentifier }}('{{ value }}');
+        }
+        return self::${{ key | caseEnumKey }};
+    }
+{% endfor %}
+}

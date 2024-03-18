@@ -2,6 +2,7 @@ const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
+const { paginate } = require('../paginate');
 const { questionsDeployBuckets, questionsDeployTeams, questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
@@ -37,113 +38,192 @@ const {
     teamsCreate
 } = require("./teams");
 
-const POOL_DEBOUNCE = 2000; // in milliseconds
-const POOL_MAX_DEBOUNCES = 30;
+const STEP_SIZE = 100;      // Resources
+const POOL_DEBOUNCE = 2000; // Milliseconds
+
+let poolMaxDebounces = 30;
 
 const awaitPools = {
     wipeAttributes: async (databaseId, collectionId, iteration = 1) => {
-        if (iteration > POOL_MAX_DEBOUNCES) {
+        if (iteration > poolMaxDebounces) {
             return false;
         }
 
-        // TODO: Pagination?
-        const { attributes: remoteAttributes } = await databasesListAttributes({
+        const { total } = await databasesListAttributes({
             databaseId,
             collectionId,
-            queries: ['limit(100)'],
+            queries: [JSON.stringify({ method: 'limit', values: [1] })],
             parseOutput: false
         });
 
-        if (remoteAttributes.length <= 0) {
+        if (total === 0) {
             return true;
         }
 
+        let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+        if (steps > 1 && iteration === 1) {
+            poolMaxDebounces *= steps;
+
+            log('Found a large number of attributes, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+        }
+
         await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
-        return await awaitPools.wipeAttributes(databaseId, collectionId, iteration + 1);
+
+        return await awaitPools.wipeAttributes(
+            databaseId,
+            collectionId,
+            iteration + 1
+        );
     },
     wipeIndexes: async (databaseId, collectionId, iteration = 1) => {
-        if (iteration > POOL_MAX_DEBOUNCES) {
+        if (iteration > poolMaxDebounces) {
             return false;
         }
 
-        // TODO: Pagination?
-        const { indexes: remoteIndexes } = await databasesListIndexes({
+        const { total } = await databasesListIndexes({
             databaseId,
             collectionId,
-            queries: ['limit(100)'],
+            queries: [JSON.stringify({ method: 'limit', values: [1] })],
             parseOutput: false
         });
 
-        if (remoteIndexes.length <= 0) {
+        if (total === 0) {
             return true;
         }
 
+        let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+        if (steps > 1 && iteration === 1) {
+            poolMaxDebounces *= steps;
+
+            log('Found a large number of indexes, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+        }
+
         await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
-        return await awaitPools.wipeIndexes(databaseId, collectionId, iteration + 1);
+
+        return await awaitPools.wipeIndexes(
+            databaseId,
+            collectionId,
+            iteration + 1
+        );
+    },
+    wipeVariables: async (functionId, iteration = 1) => {
+        if (iteration > poolMaxDebounces) {
+            return false;
+        }
+
+        const { total } = await functionsListVariables({
+            functionId,
+            queries: ['limit(1)'],
+            parseOutput: false
+        });
+
+        if (total === 0) {
+            return true;
+        }
+
+        let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+        if (steps > 1 && iteration === 1) {
+            poolMaxDebounces *= steps;
+
+            log('Found a large number of variables, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
+
+        return await awaitPools.wipeVariables(
+            functionId,
+            iteration + 1
+        );
     },
     expectAttributes: async (databaseId, collectionId, attributeKeys, iteration = 1) => {
-        if (iteration > POOL_MAX_DEBOUNCES) {
+        if (iteration > poolMaxDebounces) {
             return false;
         }
 
-        // TODO: Pagination?
-        const { attributes: remoteAttributes } = await databasesListAttributes({
+        let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
+        if (steps > 1 && iteration === 1) {
+            poolMaxDebounces *= steps;
+
+            log('Creating a large number of attributes, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+        }
+
+        const { attributes } = await paginate(databasesListAttributes, {
             databaseId,
             collectionId,
-            queries: ['limit(100)'],
             parseOutput: false
-        });
+        }, 100, 'attributes');
 
-        const readyAttributeKeys = remoteAttributes.filter((attribute) => {
-            if (attributeKeys.includes(attribute.key)) {
-                if (['stuck', 'failed'].includes(attribute.status)) {
-                    throw new Error(`Attribute '${attribute.key}' failed!`);
+        const ready = attributes
+            .filter(attribute => {
+                if (attributeKeys.includes(attribute.key)) {
+                    if (['stuck', 'failed'].includes(attribute.status)) {
+                        throw new Error(`Attribute '${attribute.key}' failed!`);
+                    }
+
+                    return attribute.status === 'available';
                 }
 
-                return attribute.status === 'available';
-            }
+                return false;
+            })
+            .map(attribute => attribute.key);
 
-            return false;
-        }).map(attribute => attribute.key);
-
-        if (readyAttributeKeys.length >= attributeKeys.length) {
+        if (ready.length === attributeKeys.length) {
             return true;
         }
 
         await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
-        return await awaitPools.expectAttributes(databaseId, collectionId, attributeKeys, iteration + 1);
+
+        return await awaitPools.expectAttributes(
+            databaseId,
+            collectionId,
+            attributeKeys,
+            iteration + 1
+        );
     },
     expectIndexes: async (databaseId, collectionId, indexKeys, iteration = 1) => {
-        if (iteration > POOL_MAX_DEBOUNCES) {
+        if (iteration > poolMaxDebounces) {
             return false;
         }
 
-        // TODO: Pagination?
-        const { indexes: remoteIndexes } = await databasesListIndexes({
+        let steps = Math.max(1, Math.ceil(indexKeys.length / STEP_SIZE));
+        if (steps > 1 && iteration === 1) {
+            poolMaxDebounces *= steps;
+
+            log('Creating a large number of indexes, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+        }
+
+        const { indexes } = await paginate(databasesListIndexes, {
             databaseId,
             collectionId,
-            queries: ['limit(100)'],
             parseOutput: false
-        });
+        }, 100, 'indexes');
 
-        const readyIndexKeys = remoteIndexes.filter((index) => {
-            if (indexKeys.includes(index.key)) {
-                if (['stuck', 'failed'].includes(index.status)) {
-                    throw new Error(`Index '${index.key}' failed!`);
+        const ready = indexes
+            .filter((index) => {
+                if (indexKeys.includes(index.key)) {
+                    if (['stuck', 'failed'].includes(index.status)) {
+                        throw new Error(`Index '${index.key}' failed!`);
+                    }
+
+                    return index.status === 'available';
                 }
 
-                return index.status === 'available';
-            }
+                return false;
+            })
+            .map(index => index.key);
 
-            return false;
-        }).map(index => index.key);
-
-        if (readyIndexKeys.length >= indexKeys.length) {
+        if (ready.length >= indexKeys.length) {
             return true;
         }
 
         await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
-        return await awaitPools.expectIndexes(databaseId, collectionId, indexKeys, iteration + 1);
+
+        return await awaitPools.expectIndexes(
+            databaseId,
+            collectionId,
+            indexKeys,
+            iteration + 1
+        );
     },
 }
 
@@ -249,19 +329,19 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
         if (func.variables) {
             // Delete existing variables
 
-            // TODO: Pagination?
-            const { variables: remoteVariables } = await functionsListVariables({
+            const { total } = await functionsListVariables({
                 functionId: func['$id'],
-                queries: ['limit(100)'],
+                queries: [JSON.stringify({ method: 'limit', values: [1] })],
                 parseOutput: false
             });
 
             let deployVariables = yes;
-            if (remoteVariables.length == 0) {
+
+            if (total === 0) {
                 deployVariables = true;
-            } else if (remoteVariables.length > 0 && !yes) {
+            } else if (total > 0 && !yes) {
                 const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
-                deployVariables = variableAnswers.override === "YES";
+                deployVariables = variableAnswers.override.toLowerCase() === "yes";
             }
 
             if (!deployVariables) {
@@ -269,13 +349,23 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             } else {
                 log(`Deploying variables for ${func.name} ( ${func['$id']} )`);
 
-                await Promise.all(remoteVariables.map(async remoteVariable => {
+                const { variables } = await paginate(functionsListVariables, {
+                    functionId: func['$id'],
+                    parseOutput: false
+                }, 100, 'variables');
+    
+                await Promise.all(variables.map(async variable => {
                     await functionsDeleteVariable({
                         functionId: func['$id'],
-                        variableId: remoteVariable['$id'],
+                        variableId: variable['$id'],
                         parseOutput: false
                     });
                 }));
+    
+                let result = await awaitPools.wipeVariables(func['$id']);
+                if (!result) {
+                    throw new Error("Variable deletion timed out.");
+                }
 
                 // Deploy local variables
                 await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
@@ -291,7 +381,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
 
         // Create tag
         if (!func.entrypoint) {
-            answers = await inquirer.prompt(questionsGetEntrypoint)
+            const answers = await inquirer.prompt(questionsGetEntrypoint)
             func.entrypoint = answers.entrypoint;
             localConfig.updateFunction(func['$id'], func);
         }
@@ -473,22 +563,27 @@ const deployCollection = async ({ all, yes } = {}) => {
                 databaseId: collection.databaseId,
                 parseOutput: false,
             });
+
             databaseId = database.$id;
 
-            await databasesUpdate({
-                databaseId: collection.databaseId,
-                name: localDatabase.name ?? collection.databaseId,
-                parseOutput: false
-            })
+            if (database.name !== (localDatabase.name ?? collection.databaseId)) {
+                await databasesUpdate({
+                    databaseId: collection.databaseId,
+                    name: localDatabase.name ?? collection.databaseId,
+                    parseOutput: false
+                })
 
-            success(`Updated ${localDatabase.name} ( ${collection.databaseId} )`);
+                success(`Updated ${localDatabase.name} ( ${collection.databaseId} )`);
+            }
         } catch (err) {
             log(`Database ${collection.databaseId} not found. Creating it now...`);
+
             const database = await databasesCreate({
                 databaseId: collection.databaseId,
                 name: localDatabase.name ?? collection.databaseId,
                 parseOutput: false,
             });
+
             databaseId = database.$id;
         }
 
@@ -498,11 +593,12 @@ const deployCollection = async ({ all, yes } = {}) => {
                 collectionId: collection['$id'],
                 parseOutput: false,
             })
+
             log(`Collection ${collection.name} ( ${collection['$id']} ) already exists.`);
 
             if (!yes) {
-                answers = await inquirer.prompt(questionsDeployCollections[1])
-                if (answers.override !== "YES") {
+                const answers = await inquirer.prompt(questionsDeployCollections[1])
+                if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${collection.name} ( ${collection['$id']} )`);
                     continue;
                 }
@@ -510,15 +606,13 @@ const deployCollection = async ({ all, yes } = {}) => {
 
             log(`Deleting indexes and attributes ... `);
 
-            // TODO: Pagination?
-            const { indexes: remoteIndexes } = await databasesListIndexes({
+            const { indexes } = await paginate(databasesListIndexes, {
                 databaseId,
                 collectionId: collection['$id'],
-                queries: ['limit(100)'],
                 parseOutput: false
-            });
+            }, 100, 'indexes');
 
-            await Promise.all(remoteIndexes.map(async index => {
+            await Promise.all(indexes.map(async index => {
                 await databasesDeleteIndex({
                     databaseId,
                     collectionId: collection['$id'],
@@ -527,20 +621,18 @@ const deployCollection = async ({ all, yes } = {}) => {
                 });
             }));
 
-            const deleteIndexesPoolStatus = await awaitPools.wipeIndexes(databaseId, collection['$id']);
-            if (!deleteIndexesPoolStatus) {
-                throw new Error("Index deletion did not finish for too long.");
+            let result = await awaitPools.wipeIndexes(databaseId, collection['$id']);
+            if (!result) {
+                throw new Error("Index deletion timed out.");
             }
 
-            // TODO: Pagination?
-            const { attributes: remoteAttributes } = await databasesListAttributes({
+            const { attributes } = await paginate(databasesListAttributes, {
                 databaseId,
                 collectionId: collection['$id'],
-                queries: ['limit(100)'],
                 parseOutput: false
-            });
+            }, 100, 'attributes');
 
-            await Promise.all(remoteAttributes.map(async attribute => {
+            await Promise.all(attributes.map(async attribute => {
                 await databasesDeleteAttribute({
                     databaseId,
                     collectionId: collection['$id'],
@@ -551,7 +643,7 @@ const deployCollection = async ({ all, yes } = {}) => {
 
             const deleteAttributesPoolStatus = await awaitPools.wipeAttributes(databaseId, collection['$id']);
             if (!deleteAttributesPoolStatus) {
-                throw new Error("Attribute deletion did not finish for too long.");
+                throw new Error("Attribute deletion timed out.");
             }
 
             await databasesUpdateCollection({
@@ -581,20 +673,26 @@ const deployCollection = async ({ all, yes } = {}) => {
         }
 
         // Create all non-relationship attributes first
-        const nonRelationshipAttributes = collection.attributes.filter(attribute => attribute.type !== 'relationship');
-        await Promise.all(nonRelationshipAttributes.map(attribute => {
+        const attributes = collection.attributes.filter(attribute => attribute.type !== 'relationship');
+
+        await Promise.all(attributes.map(attribute => {
             return createAttribute(databaseId, collection['$id'], attribute);
         }));
 
-        const nonRelationshipAttributeKeys = nonRelationshipAttributes.map(attribute => attribute.key);
-        const createPoolStatus = await awaitPools.expectAttributes(databaseId, collection['$id'], nonRelationshipAttributeKeys);
-        if (!createPoolStatus) {
-            throw new Error("Attribute creation did not finish for too long.");
+        let result = await awaitPools.expectAttributes(
+            databaseId,
+            collection['$id'],
+            attributes.map(attribute => attribute.key)
+        );
+
+        if (!result) {
+            throw new Error("Attribute creation timed out.");
         }
 
-        success(`Created ${nonRelationshipAttributeKeys.length} non-relationship attributes`);
+        success(`Created ${attributes.length} non-relationship attributes`);
 
         log(`Creating indexes ...`)
+
         await Promise.all(collection.indexes.map(async index => {
             await databasesCreateIndex({
                 databaseId,
@@ -607,10 +705,14 @@ const deployCollection = async ({ all, yes } = {}) => {
             });
         }));
 
-        const indexKeys = collection.indexes.map(attribute => attribute.key);
-        const indexPoolStatus = await awaitPools.expectIndexes(databaseId, collection['$id'], indexKeys);
-        if (!indexPoolStatus) {
-            throw new Error("Index creation did not finish for too long.");
+        result = await awaitPools.expectIndexes(
+            databaseId,
+            collection['$id'],
+            collection.indexes.map(attribute => attribute.key)
+        );
+
+        if (!result) {
+            throw new Error("Index creation timed out.");
         }
 
         success(`Created ${collection.indexes.length} indexes`);
@@ -620,23 +722,31 @@ const deployCollection = async ({ all, yes } = {}) => {
 
     // Create the relationship attributes
     for (let collection of collections) {
-        const relationshipAttributes = collection.attributes.filter(attribute => attribute.type === 'relationship' && attribute.side === 'parent');
+        const relationships = collection.attributes.filter(attribute =>
+            attribute.type === 'relationship' && attribute.side === 'parent'
+        );
 
-        if (relationshipAttributes.length === 0) continue;
+        if (relationships.length === 0) {
+            continue;
+        }
 
         log(`Deploying relationships for collection ${collection.name} ( ${collection['$id']} )`);
 
-        await Promise.all(relationshipAttributes.map(attribute => {
+        await Promise.all(relationships.map(attribute => {
             return createAttribute(collection['databaseId'], collection['$id'], attribute);
         }));
 
-        const nonRelationshipAttributeKeys = relationshipAttributes.map(attribute => attribute.key);
-        const createPoolStatus = await awaitPools.expectAttributes(collection['databaseId'], collection['$id'], nonRelationshipAttributeKeys);
-        if (!createPoolStatus) {
-            throw new Error("Attribute creation did not finish for too long.");
+        let result = await awaitPools.expectAttributes(
+            collection['databaseId'],
+            collection['$id'],
+            relationships.map(attribute => attribute.key)
+        );
+
+        if (!result) {
+            throw new Error("Attribute creation timed out.");
         }
 
-        success(`Created ${nonRelationshipAttributeKeys.length} relationship attributes`);
+        success(`Created ${relationships.length} relationship attributes`);
     }
 }
 
@@ -654,7 +764,7 @@ const deployBucket = async ({ all, yes } = {}) => {
     }
 
     if (bucketIds.length === 0) {
-        let answers = await inquirer.prompt(questionsDeployBuckets[0])
+        const answers = await inquirer.prompt(questionsDeployBuckets[0])
         bucketIds.push(...answers.buckets);
     }
 
@@ -676,8 +786,8 @@ const deployBucket = async ({ all, yes } = {}) => {
             log(`Bucket ${bucket.name} ( ${bucket['$id']} ) already exists.`);
 
             if (!yes) {
-                answers = await inquirer.prompt(questionsDeployBuckets[1])
-                if (answers.override !== "YES") {
+                const answers = await inquirer.prompt(questionsDeployBuckets[1])
+                if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${bucket.name} ( ${bucket['$id']} )`);
                     continue;
                 }
@@ -741,7 +851,7 @@ const deployTeam = async ({ all, yes } = {}) => {
     }
 
     if (teamIds.length === 0) {
-        let answers = await inquirer.prompt(questionsDeployTeams[0])
+        const answers = await inquirer.prompt(questionsDeployTeams[0])
         teamIds.push(...answers.teams);
     }
 
@@ -763,8 +873,8 @@ const deployTeam = async ({ all, yes } = {}) => {
             log(`Team ${team.name} ( ${team['$id']} ) already exists.`);
 
             if (!yes) {
-                answers = await inquirer.prompt(questionsDeployTeams[1])
-                if (answers.override !== "YES") {
+                const answers = await inquirer.prompt(questionsDeployTeams[1])
+                if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${team.name} ( ${team['$id']} )`);
                     continue;
                 }
@@ -808,7 +918,7 @@ deploy
 deploy
     .command("collection")
     .description("Deploy collections in the current project.")
-    .option(`--all`, `Flag to deploy all functions`)
+    .option(`--all`, `Flag to deploy all collections`)
     .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(deployCollection));
 

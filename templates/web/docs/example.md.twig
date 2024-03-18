@@ -1,25 +1,26 @@
-import {{ '{' }} Client, {{service.name | caseUcfirst}} {{ '}' }} from "{{ language.params.npmPackage }}";
+import { Client, {{ service.name | caseUcfirst }}{% for parameter in method.parameters.all %}{% if parameter.enumValues | length > 0%}, {{ parameter.enumName | caseUcfirst}}{% endif %}{% endfor %} } from "{{ language.params.npmPackage }}";
 
-const client = new Client();
+const client = new Client()
+    {%~ if method.auth|length > 0 %}
+    .setEndpoint('https://cloud.appwrite.io/v1') // Your API Endpoint
+    {%~ for node in method.auth %}
+    {%~ for key,header in node|keys %}
+    .set{{header}}('{{node[header]['x-appwrite']['demo']}}'){% if loop.last %};{% endif%} // {{node[header].description}}
+    {%~ endfor %}
+    {%~ endfor %}
+    {%~ endif %}
 
 const {{ service.name | caseCamel }} = new {{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %});
 
-{% if method.auth|length > 0 %}
-client
-    .setEndpoint('https://cloud.appwrite.io/v1') // Your API Endpoint
-{% for node in method.auth %}
-{% for key,header in node|keys %}
-    .set{{header}}('{{node[header]['x-appwrite']['demo']}}') // {{node[header].description}}
-{% endfor %}
-{% endfor %};
+{% if method.type == 'location' %}const result = {% elseif method.type != 'webAuth' %}const result = await {% endif %}{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %});{% endif %}
 
-{% endif %}
-{% if method.type == 'webAuth' %}// Go to OAuth provider login page
-{% endif %}
-{% if method.type == 'webAuth' %}{% elseif method.type == 'location' %}const result = {% else %}const promise = {% endif %}{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
+    {%~ for parameter in method.parameters.all %}
+    {% if parameter.enumValues | length > 0 %}{{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %} // {{ parameter.name }}{% if not parameter.required %} (optional){% endif %}
 
-{% if method.type == 'webAuth' %}{% elseif method.type == 'location' %}console.log(result); // Resource URL{% else %}promise.then(function (response) {
-    console.log(response); // Success
-}, function (error) {
-    console.log(error); // Failure
-});{% endif %}
+    {%~ endfor %}
+{% if method.parameters.all | length > 0 %});
+{% endif %}
+
+{% if method.type != 'webAuth' %}
+console.log({% if method.type == 'location' %}result{% else %}response{% endif %});
+{% endif %}

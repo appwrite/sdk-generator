@@ -309,13 +309,12 @@ const questionsDeployCollections = [
             if (collections.length === 0) {
                 throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
             }
-            let choices = collections.map((collection, idx) => {
+            return collections.map(collection => {
                 return {
                     name: `${collection.name} (${collection['databaseId']} - ${collection['$id']})`,
                     value: `${collection['databaseId']}|${collection['$id']}`
                 }
-            })
-            return choices;
+            });
         }
     },
     {
@@ -335,13 +334,12 @@ const questionsDeployBuckets = [
             if (buckets.length === 0) {
                 throw new Error("No buckets found in the current directory. Run `appwrite init bucket` to fetch all your buckets.");
             }
-            let choices = buckets.map((bucket, idx) => {
+            return buckets.map(bucket => {
                 return {
                     name: `${bucket.name} (${bucket['$id']})`,
                     value: bucket.$id
                 }
-            })
-            return choices;
+            });
         }
     },
     {
@@ -359,7 +357,7 @@ const questionsGetEntrypoint = [
         default: null,
         validate(value) {
             if (!value) {
-                return "Please enter your enrtypoint";
+                return "Please enter your entrypoint";
             }
             return true;
         }
@@ -376,13 +374,12 @@ const questionsDeployTeams = [
             if (teams.length === 0) {
                 throw new Error("No teams found in the current directory. Run `appwrite init team` to fetch all your teams.");
             }
-            let choices = teams.map((team, idx) => {
+            return teams.map(team => {
                 return {
                     name: `${team.name} (${team['$id']})`,
                     value: team.$id
                 }
-            })
-            return choices;
+            });
         }
     },
     {

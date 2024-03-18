@@ -1,8 +1,12 @@
 import '../lib/packageName.dart';
 import '../lib/models.dart';
+import '../lib/enums.dart';
+import '../lib/src/input_file.dart';
+
+import 'dart:io';
 
 void main() async {
-  Client client = Client();
+  Client client = Client().setSelfSigned();
   Foo foo = Foo(client);
   Bar bar = Bar(client);
   General general = General(client);
@@ -51,15 +55,27 @@ void main() async {
   final res = await general.redirect();
   print(res['result']);
 
-  var file = InputFile.fromPath(path: '../../resources/file.png',
-      filename: 'file.png');
-  response = await general.upload(
-      x: 'string', y: 123, z: ['string in array'], file: file);
+  var file = InputFile.fromPath(path: '../../resources/file.png', filename: 'file.png');
+  response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
   file = InputFile.fromPath(path: '../../resources/large_file.mp4', filename: 'large_file.mp4');
-  response = await general.upload(
-      x: 'string', y: 123, z: ['string in array'], file: file);
+  response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
+  print(response.result);
+
+  var resource = File.fromUri(Uri.parse('../../resources/file.png'));
+  var bytes = await resource.readAsBytes();
+  file = InputFile.fromBytes(bytes: bytes, filename: 'file.png');
+  response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
+  print(response.result);
+
+  resource = File.fromUri(Uri.parse('../../resources/large_file.mp4'));
+  bytes = await resource.readAsBytes();
+  file = InputFile.fromBytes(bytes: bytes, filename: 'large_file.mp4');
+  response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
+  print(response.result);
+
+  response = await general.xenum(mockType: MockType.first);
   print(response.result);
 
   try {
@@ -88,6 +104,15 @@ void main() async {
 
   await general.empty();
 
+  final url = await general.oauth2(
+      clientId: 'clientId',
+      scopes: ['test'],
+      state: '123456',
+      success: 'https://localhost',
+      failure: 'https://localhost'
+  );
+  print(url);
+
   // Query helper tests
   print(Query.equal('released', [true]));
   print(Query.equal('title', ['Spiderman', 'Dr. Strange']));
@@ -109,6 +134,16 @@ void main() async {
   print(Query.cursorBefore("my_movie_id"));
   print(Query.limit(50));
   print(Query.offset(20));
+  print(Query.contains("title", "Spider"));
+  print(Query.contains("labels", "first"));
+  print(Query.or([
+    Query.equal("released", true),
+    Query.lessThan("releasedYear", 1990)
+  ]));
+  print(Query.and([
+    Query.equal("released", false),
+    Query.greaterThan("releasedYear", 2015)
+  ]));
 
   // Permission & Role helper tests
   print(Permission.read(Role.any()));

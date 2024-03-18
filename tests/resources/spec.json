@@ -1,93 +1,131 @@
 {
   "swagger": "2.0",
   "info": {
-    "version": "0.15.3",
+    "version": "1.4.2",
     "title": "Appwrite",
-    "description": "Appwrite backend as a service cuts up to 70% of the time and costs required for building a modern application. We abstract and simplify common development tasks behind a REST APIs, to help you develop your app in a fast and secure way. For full API documentation and tutorials go to [https://appwrite.io/docs](https://appwrite.io/docs)",
-    "termsOfService": "https://appwrite.io/policy/terms",
+    "description": "Appwrite backend as a service cuts up to 70% of the time and costs required for building a modern application. We abstract and simplify common development tasks behind a REST APIs, to help you develop your app in a fast and secure way. For full API documentation and tutorials go to [https:\/\/appwrite.io\/docs](https:\/\/appwrite.io\/docs)",
+    "termsOfService": "https:\/\/appwrite.io\/policy\/terms",
     "contact": {
       "name": "Appwrite Team",
-      "url": "https://appwrite.io/support",
+      "url": "https:\/\/appwrite.io\/support",
       "email": "team@appwrite.io"
     },
     "license": {
       "name": "BSD-3-Clause",
-      "url": "https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE"
+      "url": "https:\/\/raw.githubusercontent.com\/appwrite\/appwrite\/master\/LICENSE"
     }
   },
-  "host": "stage.appwrite.io",
+  "host": "mockapi",
   "basePath": "/v1",
-  "schemes": ["https"],
-  "consumes": ["application/json", "multipart/form-data"],
-  "produces": ["application/json"],
+  "schemes": ["http"],
+  "consumes": [
+    "application/json",
+    "multipart/form-data"
+  ],
+  "produces": [
+    "application/json"
+  ],
   "securityDefinitions": {
     "Project": {
       "type": "apiKey",
       "name": "X-Appwrite-Project",
       "description": "Your project ID",
       "in": "header",
-      "x-appwrite": { "demo": "5df5acd0d48c2" }
+      "x-appwrite": {
+        "demo": "5df5acd0d48c2"
+      }
     },
     "Key": {
       "type": "apiKey",
       "name": "X-Appwrite-Key",
       "description": "Your secret API key",
       "in": "header",
-      "x-appwrite": { "demo": "919c2d18fb5d4...a2ae413da83346ad2" }
+      "x-appwrite": {
+        "demo": "919c2d18fb5d4...a2ae413da83346ad2"
+      }
     },
     "JWT": {
       "type": "apiKey",
       "name": "X-Appwrite-JWT",
       "description": "Your secret JSON Web Token",
       "in": "header",
-      "x-appwrite": { "demo": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ..." }
+      "x-appwrite": {
+        "demo": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ..."
+      }
     },
     "Locale": {
       "type": "apiKey",
       "name": "X-Appwrite-Locale",
       "description": "",
       "in": "header",
-      "x-appwrite": { "demo": "en" }
+      "x-appwrite": {
+        "demo": "en"
+      }
     },
     "Mode": {
       "type": "apiKey",
       "name": "X-Appwrite-Mode",
       "description": "",
       "in": "header",
-      "x-appwrite": { "demo": "" }
+      "x-appwrite": {
+        "demo": ""
+      }
     }
   },
   "paths": {
-    "/mock/tests/bar": {
+    "\/mock\/tests\/bar": {
       "get": {
         "summary": "Get Bar",
         "operationId": "barGet",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["bar"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "bar"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "get",
-          "weight": 232,
+          "weight": 270,
           "cookies": false,
           "type": "",
-          "demo": "bar/get.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a get request.",
+          "demo": "bar\/get.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a get request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
         "parameters": [
           {
             "name": "required",
@@ -111,7 +149,9 @@
             "required": true,
             "type": "array",
             "collectionFormat": "multi",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "in": "query"
           }
         ]
@@ -119,32 +159,55 @@
       "post": {
         "summary": "Post Bar",
         "operationId": "barPost",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["bar"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "bar"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "post",
-          "weight": 233,
+          "weight": 271,
           "cookies": false,
           "type": "",
-          "demo": "bar/post.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a post request.",
+          "demo": "bar\/post.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a post request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "\/mock\/tests\/bar",
+          "offline-key": "{required}",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
         "parameters": [
           {
             "name": "payload",
@@ -169,10 +232,16 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": { "type": "string" }
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
-              "required": ["required", "default", "z"]
+              "required": [
+                "required",
+                "default",
+                "z"
+              ]
             }
           }
         ]
@@ -180,32 +249,55 @@
       "put": {
         "summary": "Put Bar",
         "operationId": "barPut",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["bar"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "bar"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "put",
-          "weight": 235,
+          "weight": 273,
           "cookies": false,
           "type": "",
-          "demo": "bar/put.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a put request.",
+          "demo": "bar\/put.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a put request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
         "parameters": [
           {
             "name": "payload",
@@ -230,10 +322,16 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": { "type": "string" }
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
-              "required": ["required", "default", "z"]
+              "required": [
+                "required",
+                "default",
+                "z"
+              ]
             }
           }
         ]
@@ -241,32 +339,55 @@
       "patch": {
         "summary": "Patch Bar",
         "operationId": "barPatch",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["bar"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "bar"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "patch",
-          "weight": 234,
+          "weight": 272,
           "cookies": false,
           "type": "",
-          "demo": "bar/patch.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a patch request.",
+          "demo": "bar\/patch.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a patch request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
         "parameters": [
           {
             "name": "payload",
@@ -291,10 +412,16 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": { "type": "string" }
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
-              "required": ["required", "default", "z"]
+              "required": [
+                "required",
+                "default",
+                "z"
+              ]
             }
           }
         ]
@@ -302,32 +429,55 @@
       "delete": {
         "summary": "Delete Bar",
         "operationId": "barDelete",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["bar"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "bar"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "delete",
-          "weight": 236,
+          "weight": 274,
           "cookies": false,
           "type": "",
-          "demo": "bar/delete.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a delete request.",
+          "demo": "bar\/delete.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a delete request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
         "parameters": [
           {
             "name": "payload",
@@ -352,45 +502,74 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": { "type": "string" }
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
-              "required": ["required", "default", "z"]
+              "required": [
+                "required",
+                "default",
+                "z"
+              ]
             }
           }
         ]
       }
     },
-    "/mock/tests/foo": {
+    "\/mock\/tests\/foo": {
       "get": {
         "summary": "Get Foo",
         "operationId": "fooGet",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["foo"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "foo"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "get",
-          "weight": 227,
+          "weight": 265,
           "cookies": false,
           "type": "",
-          "demo": "foo/get.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a get request.",
+          "demo": "foo\/get.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a get request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
         "parameters": [
           {
             "name": "x",
@@ -414,7 +593,9 @@
             "required": true,
             "type": "array",
             "collectionFormat": "multi",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "in": "query"
           }
         ]
@@ -422,32 +603,55 @@
       "post": {
         "summary": "Post Foo",
         "operationId": "fooPost",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["foo"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "foo"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "post",
-          "weight": 228,
+          "weight": 266,
           "cookies": false,
           "type": "",
-          "demo": "foo/post.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a post request.",
+          "demo": "foo\/post.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a post request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
         "parameters": [
           {
             "name": "payload",
@@ -472,10 +676,16 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": { "type": "string" }
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
-              "required": ["x", "y", "z"]
+              "required": [
+                "x",
+                "y",
+                "z"
+              ]
             }
           }
         ]
@@ -483,32 +693,55 @@
       "put": {
         "summary": "Put Foo",
         "operationId": "fooPut",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["foo"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "foo"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "put",
-          "weight": 230,
+          "weight": 268,
           "cookies": false,
           "type": "",
-          "demo": "foo/put.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a put request.",
+          "demo": "foo\/put.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a put request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
         "parameters": [
           {
             "name": "payload",
@@ -533,10 +766,16 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": { "type": "string" }
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
-              "required": ["x", "y", "z"]
+              "required": [
+                "x",
+                "y",
+                "z"
+              ]
             }
           }
         ]
@@ -544,32 +783,55 @@
       "patch": {
         "summary": "Patch Foo",
         "operationId": "fooPatch",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["foo"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "foo"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "patch",
-          "weight": 229,
+          "weight": 267,
           "cookies": false,
           "type": "",
-          "demo": "foo/patch.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a patch request.",
+          "demo": "foo\/patch.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a patch request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
         "parameters": [
           {
             "name": "payload",
@@ -594,10 +856,16 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": { "type": "string" }
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
-              "required": ["x", "y", "z"]
+              "required": [
+                "x",
+                "y",
+                "z"
+              ]
             }
           }
         ]
@@ -605,32 +873,55 @@
       "delete": {
         "summary": "Delete Foo",
         "operationId": "fooDelete",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["foo"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "foo"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "delete",
-          "weight": 231,
+          "weight": 269,
           "cookies": false,
           "type": "",
-          "demo": "foo/delete.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a delete request.",
+          "demo": "foo\/delete.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a delete request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
         "parameters": [
           {
             "name": "payload",
@@ -655,352 +946,785 @@
                   "description": "Sample array param",
                   "default": null,
                   "x-example": null,
-                  "items": { "type": "string" }
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
-              "required": ["x", "y", "z"]
+              "required": [
+                "x",
+                "y",
+                "z"
+              ]
             }
           }
         ]
       }
     },
-    "/mock/tests/general/400-error": {
+    "\/mock\/tests\/general\/400-error": {
       "get": {
         "summary": "400 Error",
         "operationId": "generalError400",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["general"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
         "description": "",
         "responses": {
           "400": {
             "description": "Error",
-            "schema": { "$ref": "#/definitions/error" }
+            "schema": {
+              "$ref": "#\/definitions\/error"
+            }
           }
         },
         "x-appwrite": {
           "method": "error400",
-          "weight": 245,
+          "weight": 285,
           "cookies": false,
           "type": "",
-          "demo": "general/error400.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a 400 failed request.",
+          "demo": "general\/error400.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a 400 failed request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }]
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ]
       }
     },
-    "/mock/tests/general/500-error": {
+    "\/mock\/tests\/general\/500-error": {
       "get": {
         "summary": "500 Error",
         "operationId": "generalError500",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["general"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
         "description": "",
         "responses": {
           "500": {
             "description": "Error",
-            "schema": { "$ref": "#/definitions/error" }
+            "schema": {
+              "$ref": "#\/definitions\/error"
+            }
           }
         },
         "x-appwrite": {
           "method": "error500",
-          "weight": 246,
+          "weight": 286,
           "cookies": false,
           "type": "",
-          "demo": "general/error500.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a 500 failed request.",
+          "demo": "general\/error500.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a 500 failed request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }]
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ]
       }
     },
-    "/mock/tests/general/502-error": {
+    "\/mock\/tests\/general\/502-error": {
       "get": {
         "summary": "502 Error",
         "operationId": "generalError502",
-        "consumes": ["application/json"],
-        "produces": ["text/plain"],
-        "tags": ["general"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "text\/plain"
+        ],
+        "tags": [
+          "general"
+        ],
         "description": "",
         "responses": {
           "502": {
             "description": "Any",
-            "schema": { "$ref": "#/definitions/any" }
+            "schema": {
+              "$ref": "#\/definitions\/any"
+            }
           }
         },
         "x-appwrite": {
           "method": "error502",
-          "weight": 247,
+          "weight": 287,
           "cookies": false,
           "type": "",
-          "demo": "general/error502.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a 502 bad gateway.",
+          "demo": "general\/error502.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a 502 bad gateway.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client"],
+          "platforms": [
+            "client"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [] }]
+        "security": [
+          {
+            "Project": []
+          }
+        ]
       }
     },
-    "/mock/tests/general/download": {
+    "\/mock\/tests\/general\/download": {
       "get": {
         "summary": "Download File",
         "operationId": "generalDownload",
-        "consumes": ["application/json"],
-        "produces": ["*/*"],
-        "tags": ["general"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "*\/*"
+        ],
+        "tags": [
+          "general"
+        ],
         "description": "",
         "responses": {
-          "200": { "description": "File", "schema": { "type": "file" } }
+          "200": {
+            "description": "File",
+            "schema": {
+              "type": "file"
+            }
+          }
         },
         "x-appwrite": {
           "method": "download",
-          "weight": 237,
+          "weight": 276,
           "cookies": false,
           "type": "location",
-          "demo": "general/download.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a file download request.",
+          "demo": "general\/download.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a file download request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }]
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ]
       }
     },
-    "/mock/tests/general/empty": {
+    "\/mock\/tests\/general\/empty": {
       "get": {
         "summary": "Empty Response",
         "operationId": "generalEmpty",
-        "consumes": ["application/json"],
+        "consumes": [
+          "application\/json"
+        ],
         "produces": [],
-        "tags": ["general"],
+        "tags": [
+          "general"
+        ],
         "description": "",
-        "responses": { "204": { "description": "No content" } },
+        "responses": {
+          "204": {
+            "description": "No content"
+          }
+        },
         "x-appwrite": {
           "method": "empty",
-          "weight": 243,
+          "weight": 282,
           "cookies": false,
           "type": "",
-          "demo": "general/empty.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock an empty response.",
+          "demo": "general\/empty.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock an empty response.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }]
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ]
       }
     },
-    "/mock/tests/general/get-cookie": {
-      "get": {
-        "summary": "Get Cookie",
-        "operationId": "generalGetCookie",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["general"],
+    "\/mock\/tests\/general\/enum": {
+      "post": {
+        "summary": "Enum Test",
+        "operationId": "generalEnum",
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
+          },
+          "500": {
+            "description": "File",
+            "schema": {
+              "type": "file"
+            }
+          }
+        },
+        "x-appwrite": {
+          "method": "enum",
+          "weight": 284,
+          "cookies": false,
+          "type": "",
+          "demo": "general\/enum.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock an enum parameter.",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payload",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "mockType": {
+                  "type": "string",
+                  "description": "Sample string param",
+                  "default": null,
+                  "x-example": "first",
+                  "enum": [
+                    "first",
+                    "second",
+                    "third"
+                  ],
+                  "x-enum-name": null,
+                  "x-enum-keys": []
+                }
+              },
+              "required": [
+                "mockType"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "\/mock\/tests\/general\/get-cookie": {
+      "get": {
+        "summary": "Get Cookie",
+        "operationId": "generalGetCookie",
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "getCookie",
-          "weight": 242,
+          "weight": 281,
           "cookies": false,
           "type": "",
-          "demo": "general/get-cookie.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a cookie response.",
+          "demo": "general\/get-cookie.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a cookie response.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }]
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ]
       }
     },
-    "/mock/tests/general/headers": {
+    "\/mock\/tests\/general\/headers": {
       "get": {
         "summary": "Get headers",
         "operationId": "generalHeaders",
-        "consumes": ["application/json"],
+        "consumes": [
+          "application\/json"
+        ],
         "produces": [],
-        "tags": ["general"],
+        "tags": [
+          "general"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "headers",
-          "weight": 244,
+          "weight": 275,
           "cookies": false,
           "type": "",
-          "demo": "general/headers.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterReturn headers from the request",
+          "demo": "general\/headers.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterReturn headers from the request",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }]
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ]
       }
     },
-    "/mock/tests/general/redirect": {
+    "\/mock\/tests\/general\/nullable": {
+      "post": {
+        "summary": "Nullable Test",
+        "operationId": "generalNullable",
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [],
+        "tags": [
+          "general"
+        ],
+        "description": "",
+        "responses": {
+          "500": {
+            "description": "File",
+            "schema": {
+              "type": "file"
+            }
+          }
+        },
+        "x-appwrite": {
+          "method": "nullable",
+          "weight": 283,
+          "cookies": false,
+          "type": "",
+          "demo": "general\/nullable.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a nullable parameter.",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "payload",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "required": {
+                  "type": "string",
+                  "description": "Sample string param",
+                  "default": null,
+                  "x-example": "[REQUIRED]"
+                },
+                "nullable": {
+                  "type": "string",
+                  "description": "Sample string param",
+                  "default": null,
+                  "x-example": "[NULLABLE]",
+                  "x-nullable": true
+                },
+                "optional": {
+                  "type": "string",
+                  "description": "Sample string param",
+                  "default": "",
+                  "x-example": "[OPTIONAL]"
+                }
+              },
+              "required": [
+                "required",
+                "nullable"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "\/mock\/tests\/general\/redirect": {
       "get": {
         "summary": "Redirect",
         "operationId": "generalRedirect",
-        "consumes": ["application/json"],
-        "produces": ["text/html"],
-        "tags": ["general"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "text\/html"
+        ],
+        "tags": [
+          "general"
+        ],
         "description": "",
-        "responses": { "301": { "description": "No content" } },
+        "responses": {
+          "301": {
+            "description": "No content"
+          }
+        },
         "x-appwrite": {
           "method": "redirect",
-          "weight": 239,
+          "weight": 278,
           "cookies": false,
           "type": "",
-          "demo": "general/redirect.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a redirect request.",
+          "demo": "general\/redirect.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a redirect request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }]
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ]
       }
     },
-    "/mock/tests/general/redirect/done": {
+    "\/mock\/tests\/general\/redirect\/done": {
       "get": {
         "summary": "Redirected",
         "operationId": "generalRedirected",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["general"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "redirected",
-          "weight": 240,
+          "weight": 279,
           "cookies": false,
           "type": "",
-          "demo": "general/redirected.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a redirected request.",
+          "demo": "general\/redirected.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a redirected request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }]
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ]
       }
     },
-    "/mock/tests/general/set-cookie": {
+    "\/mock\/tests\/general\/set-cookie": {
       "get": {
         "summary": "Set Cookie",
         "operationId": "generalSetCookie",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["general"],
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "setCookie",
-          "weight": 241,
+          "weight": 280,
           "cookies": false,
           "type": "",
-          "demo": "general/set-cookie.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a set cookie request.",
+          "demo": "general\/set-cookie.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a set cookie request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }]
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ]
       }
     },
-    "/mock/tests/general/upload": {
+    "\/mock\/tests\/general\/upload": {
       "post": {
         "summary": "Upload File",
         "operationId": "generalUpload",
-        "consumes": ["multipart/form-data"],
-        "produces": ["application/json"],
-        "tags": ["general"],
+        "consumes": [
+          "multipart\/form-data"
+        ],
+        "produces": [
+          "application\/json"
+        ],
+        "tags": [
+          "general"
+        ],
         "description": "",
         "responses": {
           "200": {
             "description": "Mock",
-            "schema": { "$ref": "#/definitions/mock" }
+            "schema": {
+              "$ref": "#\/definitions\/mock"
+            }
           }
         },
         "x-appwrite": {
           "method": "upload",
-          "weight": 238,
+          "weight": 277,
           "cookies": false,
           "type": "",
-          "demo": "general/upload.md",
-          "edit": "https://github.com/appwrite/appwrite/edit/masterMock a file upload request.",
+          "demo": "general\/upload.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a file upload request.",
           "rate-limit": 0,
           "rate-time": 3600,
           "rate-key": "url:{url},ip:{ip}",
           "scope": "public",
-          "platforms": ["client", "server", "server"],
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
           "packaging": false,
-          "auth": { "Project": [] }
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
         },
-        "security": [{ "Project": [], "Key": [], "JWT": [] }],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
         "parameters": [
           {
             "name": "x",
@@ -1024,7 +1748,9 @@
             "required": true,
             "type": "array",
             "collectionFormat": "multi",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "in": "formData"
           },
           {
@@ -1033,6 +1759,104 @@
             "required": true,
             "type": "file",
             "in": "formData"
+          }
+        ]
+      }
+    },
+    "\/mock\/tests\/general\/oauth2": {
+      "get": {
+        "summary": "OAuth2",
+        "operationId": "generalOAuth2",
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "text\/plain"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "OAuth 2",
+        "responses": {
+          "301": {
+            "description": "No content"
+          }
+        },
+        "x-appwrite": {
+          "method": "oauth2",
+          "weight": 265,
+          "cookies": false,
+          "type": "webAuth",
+          "demo": "general\/oauth2.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a oauth2 request.",
+          "rate-limit": 10,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "clientId",
+            "description": "OAuth2 Client ID",
+            "required": true,
+            "type": "string",
+            "x-example": "12345",
+            "in": "query"
+          },
+          {
+            "name": "scopes",
+            "description": "OAuth2 scope list",
+            "required": true,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string"
+            },
+            "x-example": "[]",
+            "in": "query"
+          },
+          {
+            "name": "state",
+            "description": "OAuth2 state",
+            "required": true,
+            "type": "string",
+            "x-example": "state",
+            "in": "query"
+          },
+          {
+            "name": "success",
+            "description": "OAuth2 success redirect URI",
+            "required": true,
+            "type": "string",
+            "x-example": "http://localhost:8000/auth/callback",
+            "in": "query"
+          },
+          {
+            "name": "failure",
+            "description": "OAuth2 failure redirect URI",
+            "required": true,
+            "type": "string",
+            "x-example": "http://localhost:8000/auth/callback",
+            "in": "query"
           }
         ]
       }
@@ -1052,7 +1876,9 @@
     {
       "name": "databases",
       "description": "The Databases service allows you to create structured collections of documents, query and filter lists of documents",
-      "x-globalAttributes": ["databaseId"]
+      "x-globalAttributes": [
+        "databaseId"
+      ]
     },
     {
       "name": "locale",
@@ -1066,6 +1892,11 @@
     },
     {
       "name": "projects",
+      "description": "The Project service allows you to manage all the projects in your Appwrite server.",
+      "x-globalAttributes": []
+    },
+    {
+      "name": "project",
       "description": "The Project service allows you to manage all the projects in your Appwrite server.",
       "x-globalAttributes": []
     },
@@ -1087,6 +1918,26 @@
     {
       "name": "functions",
       "description": "The Functions Service allows you view, create and manage your Cloud Functions.",
+      "x-globalAttributes": []
+    },
+    {
+      "name": "proxy",
+      "description": "The Proxy Service allows you to configure actions for your domains beyond DNS configuration.",
+      "x-globalAttributes": []
+    },
+    {
+      "name": "graphql",
+      "description": "The GraphQL API allows you to query and mutate your Appwrite server using GraphQL.",
+      "x-globalAttributes": []
+    },
+    {
+      "name": "console",
+      "description": "The Console service allows you to interact with console relevant informations.",
+      "x-globalAttributes": []
+    },
+    {
+      "name": "migrations",
+      "description": "The Migrations service allows you to migrate third-party data to your Appwrite project.",
       "x-globalAttributes": []
     }
   ],
@@ -1112,7 +1963,7 @@
         },
         "type": {
           "type": "string",
-          "description": "Error type. You can learn more about all the error types at https://appwrite.io/docs/error-codes#errorTypes",
+          "description": "Error type. You can learn more about all the error types at https:\/\/appwrite.io\/docs\/error-codes#errorTypes",
           "x-example": "not_found"
         },
         "version": {
@@ -1121,7 +1972,12 @@
           "x-example": "1.0"
         }
       },
-      "required": ["message", "code", "type", "version"]
+      "required": [
+        "message",
+        "code",
+        "type",
+        "version"
+      ]
     },
     "mock": {
       "description": "Mock",
@@ -1133,11 +1989,13 @@
           "x-example": "Success"
         }
       },
-      "required": ["result"]
+      "required": [
+        "result"
+      ]
     }
   },
   "externalDocs": {
     "description": "Full API docs, specs and tutorials",
-    "url": "https://appwrite.io/docs"
+    "url": "https:\/\/appwrite.io\/docs"
   }
 }

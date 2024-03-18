@@ -1,11 +1,53 @@
 type QueryTypesSingle = string | number | boolean;
-export type QueryTypesList = string[] | number[] | boolean[];
+export type QueryTypesList = string[] | number[] | boolean[] | Query[];
 export type QueryTypes = QueryTypesSingle | QueryTypesList;
+type AttributesTypes = string | string[];
 
 /**
  * Helper class to generate query strings.
  */
 export class Query {
+  method: string;
+  attribute: AttributesTypes | undefined;
+  values: QueryTypesList | undefined;
+
+  /**
+   * Constructor for Query class.
+   *
+   * @param {string} method
+   * @param {AttributesTypes} attribute
+   * @param {QueryTypes} values
+   */
+  constructor(
+    method: string,
+    attribute?: AttributesTypes,
+    values?: QueryTypes
+  ) {
+    this.method = method;
+    this.attribute = attribute;
+
+    if (values !== undefined) {
+      if (Array.isArray(values)) {
+        this.values = values;
+      } else {
+        this.values = [values] as QueryTypesList;
+      }
+    }
+  }
+
+  /**
+   * Convert the query object to a JSON string.
+   *
+   * @returns {string}
+   */
+  toString(): string {
+    return JSON.stringify({
+      method: this.method,
+      attribute: this.attribute,
+      values: this.values,
+    });
+  }
+
   /**
    * Filter resources where attribute is equal to value.
    *
@@ -14,7 +56,7 @@ export class Query {
    * @returns {string}
    */
   static equal = (attribute: string, value: QueryTypes): string =>
-      Query.addQuery(attribute, "equal", value);
+    new Query("equal", attribute, value).toString();
 
   /**
    * Filter resources where attribute is not equal to value.
@@ -24,7 +66,7 @@ export class Query {
    * @returns {string}
    */
   static notEqual = (attribute: string, value: QueryTypes): string =>
-      Query.addQuery(attribute, "notEqual", value);
+    new Query("notEqual", attribute, value).toString();
 
   /**
    * Filter resources where attribute is less than value.
@@ -34,7 +76,7 @@ export class Query {
    * @returns {string}
    */
   static lessThan = (attribute: string, value: QueryTypes): string =>
-      Query.addQuery(attribute, "lessThan", value);
+    new Query("lessThan", attribute, value).toString();
 
   /**
    * Filter resources where attribute is less than or equal to value.
@@ -44,7 +86,7 @@ export class Query {
    * @returns {string}
    */
   static lessThanEqual = (attribute: string, value: QueryTypes): string =>
-      Query.addQuery(attribute, "lessThanEqual", value);
+    new Query("lessThanEqual", attribute, value).toString();
 
   /**
    * Filter resources where attribute is greater than value.
@@ -54,7 +96,7 @@ export class Query {
    * @returns {string}
    */
   static greaterThan = (attribute: string, value: QueryTypes): string =>
-      Query.addQuery(attribute, "greaterThan", value);
+    new Query("greaterThan", attribute, value).toString();
 
   /**
    * Filter resources where attribute is greater than or equal to value.
@@ -64,7 +106,7 @@ export class Query {
    * @returns {string}
    */
   static greaterThanEqual = (attribute: string, value: QueryTypes): string =>
-      Query.addQuery(attribute, "greaterThanEqual", value);
+    new Query("greaterThanEqual", attribute, value).toString();
 
   /**
    * Filter resources where attribute is null.
@@ -73,7 +115,7 @@ export class Query {
    * @returns {string}
    */
   static isNull = (attribute: string): string =>
-      `isNull("${attribute}")`;
+    new Query("isNull", attribute).toString();
 
   /**
    * Filter resources where attribute is not null.
@@ -82,18 +124,18 @@ export class Query {
    * @returns {string}
    */
   static isNotNull = (attribute: string): string =>
-      `isNotNull("${attribute}")`;
+    new Query("isNotNull", attribute).toString();
 
   /**
    * Filter resources where attribute is between start and end (inclusive).
    *
    * @param {string} attribute
-   * @param {string|number} start
-   * @param {string|number} end
+   * @param {string | number} start
+   * @param {string | number} end
    * @returns {string}
    */
-  static between = (attribute: string, start: string|number, end: string|number): string =>
-      `between("${attribute}", ${Query.parseValues(start)}, ${Query.parseValues(end)})`;
+  static between = (attribute: string, start: string | number, end: string | number): string =>
+    new Query("between", attribute, [start, end] as QueryTypesList).toString();
 
   /**
    * Filter resources where attribute starts with value.
@@ -103,7 +145,7 @@ export class Query {
    * @returns {string}
    */
   static startsWith = (attribute: string, value: string): string =>
-      Query.addQuery(attribute, "startsWith", value);
+    new Query("startsWith", attribute, value).toString();
 
   /**
    * Filter resources where attribute ends with value.
@@ -113,7 +155,7 @@ export class Query {
    * @returns {string}
    */
   static endsWith = (attribute: string, value: string): string =>
-      Query.addQuery(attribute, "endsWith", value);
+    new Query("endsWith", attribute, value).toString();
 
   /**
    * Specify which attributes should be returned by the API call.
@@ -122,7 +164,7 @@ export class Query {
    * @returns {string}
    */
   static select = (attributes: string[]): string =>
-      `select([${attributes.map((attr: string) => `"${attr}"`).join(",")}])`;
+    new Query("select", undefined, attributes).toString();
 
   /**
    * Filter resources by searching attribute for value.
@@ -133,7 +175,7 @@ export class Query {
    * @returns {string}
    */
   static search = (attribute: string, value: string): string =>
-      Query.addQuery(attribute, "search", value);
+    new Query("search", attribute, value).toString();
 
   /**
    * Sort results by attribute descending.
@@ -142,7 +184,7 @@ export class Query {
    * @returns {string}
    */
   static orderDesc = (attribute: string): string =>
-      `orderDesc("${attribute}")`;
+    new Query("orderDesc", attribute).toString();
 
   /**
    * Sort results by attribute ascending.
@@ -151,7 +193,7 @@ export class Query {
    * @returns {string}
    */
   static orderAsc = (attribute: string): string =>
-      `orderAsc("${attribute}")`;
+    new Query("orderAsc", attribute).toString();
 
   /**
    * Return results after documentId.
@@ -160,7 +202,7 @@ export class Query {
    * @returns {string}
    */
   static cursorAfter = (documentId: string): string =>
-      `cursorAfter("${documentId}")`;
+    new Query("cursorAfter", undefined, documentId).toString();
 
   /**
    * Return results before documentId.
@@ -169,7 +211,7 @@ export class Query {
    * @returns {string}
    */
   static cursorBefore = (documentId: string): string =>
-      `cursorBefore("${documentId}")`;
+    new Query("cursorBefore", undefined, documentId).toString();
 
   /**
    * Return only limit results.
@@ -178,7 +220,7 @@ export class Query {
    * @returns {string}
    */
   static limit = (limit: number): string =>
-      `limit(${limit})`;
+    new Query("limit", undefined, limit).toString();
 
   /**
    * Filter resources by skipping the first offset results.
@@ -187,33 +229,33 @@ export class Query {
    * @returns {string}
    */
   static offset = (offset: number): string =>
-      `offset(${offset})`;
+    new Query("offset", undefined, offset).toString();
 
   /**
-   * Helper function to construct query strings.
+   * Filter resources where attribute contains the specified value.
    *
    * @param {string} attribute
-   * @param {string} method
-   * @param {QueryTypes} value
+   * @param {string | string[]} value
    * @returns {string}
-   * @private
    */
-  private static addQuery = (attribute: string, method: string, value: QueryTypes): string =>
-      value instanceof Array
-          ? `${method}("${attribute}", [${value
-              .map((v: QueryTypesSingle) => Query.parseValues(v))
-              .join(",")}])`
-          : `${method}("${attribute}", [${Query.parseValues(value)}])`;
+  static contains = (attribute: string, value: string | string[]): string =>
+    new Query("contains", attribute, value).toString();
 
   /**
-   * Helper function to parse query values.
+   * Combine multiple queries using logical OR operator.
    *
-   * @param {QueryTypes} value
+   * @param {string[]} queries
    * @returns {string}
-   * @private
    */
-  private static parseValues = (value: QueryTypes): string =>
-      typeof value === "string" || value instanceof String
-          ? `"${value}"`
-          : `${value}`;
+  static or = (queries: string[]) =>
+    new Query("or", undefined, queries.map((query) => JSON.parse(query))).toString();
+
+  /**
+   * Combine multiple queries using logical AND operator.
+   *
+   * @param {string[]} queries
+   * @returns {string}
+   */
+  static and = (queries: string[]) =>
+    new Query("and", undefined, queries.map((query) => JSON.parse(query))).toString();
 }

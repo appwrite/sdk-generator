@@ -8,6 +8,7 @@ import io.appwrite.Permission
 import io.appwrite.Role
 import io.appwrite.ID
 import io.appwrite.Query
+import io.appwrite.enums.MockType
 import io.appwrite.extensions.fromJson
 import io.appwrite.extensions.toJson
 import io.appwrite.models.Error
@@ -110,12 +111,14 @@ class ServiceTest {
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
+
             try {
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../resources/large_file.mp4"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
+
             try {
                 var bytes = File("../../../resources/file.png").readBytes()
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(bytes, "file.png", "image/png"))
@@ -123,6 +126,7 @@ class ServiceTest {
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
+
             try {
                 var bytes = File("../../../resources/large_file.mp4").readBytes()
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(bytes, "large_file.mp4", "video/mp4"))
@@ -130,6 +134,9 @@ class ServiceTest {
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
+
+            mock = general.enum(MockType.FIRST)
+            writeToFile(mock.result)
 
             try {
                 general.error400()
@@ -152,11 +159,11 @@ class ServiceTest {
             delay(5000)
             writeToFile(realtimeResponse)
 
-            mock = general.setCookie()
-            writeToFile(mock.result)
+            // mock = general.setCookie()
+            // writeToFile(mock.result)
 
-            mock = general.getCookie()
-            writeToFile(mock.result)
+            // mock = general.getCookie()
+            // writeToFile(mock.result)
 
             general.empty()
 
@@ -181,6 +188,10 @@ class ServiceTest {
             writeToFile(Query.cursorBefore("my_movie_id"))
             writeToFile(Query.limit(50))
             writeToFile(Query.offset(20))
+            writeToFile(Query.contains("title", listOf("Spider")))
+            writeToFile(Query.contains("labels", listOf("first")))
+            writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
+            writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))

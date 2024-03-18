@@ -7,7 +7,12 @@ with open("README.md", "r", encoding="utf-8") as readme_file_desc:
     
 setuptools.setup(
   name = '{{spec.title | caseSnake}}',
-  packages = ['{{spec.title | caseSnake}}', '{{spec.title | caseSnake}}/services'],
+  packages = [
+    '{{spec.title | caseSnake}}',
+    '{{spec.title | caseSnake}}/services',
+    '{{spec.title | caseSnake}}/encoders',
+    '{{spec.title | caseSnake}}/enums',
+  ],
   version = '{{sdk.version}}',
   license='{{spec.licenseName}}',
   description = '{{sdk.shortDescription}}',
@@ -19,10 +24,9 @@ setuptools.setup(
   maintainer_email = '{{spec.contactEmail}}',
   url = '{{spec.contactURL}}',
   download_url='https://github.com/{{sdk.gitUserName}}/{{sdk.gitRepoName}}/archive/{{sdk.version}}.tar.gz',
-  # keywords = ['SOME', 'MEANINGFULL', 'KEYWORDS'],
   install_requires=[
-          'requests',
-      ],
+    'requests',
+  ],
   classifiers=[
     'Development Status :: 5 - Production/Stable',
     'Intended Audience :: Developers',

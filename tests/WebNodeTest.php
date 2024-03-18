@@ -19,13 +19,14 @@ class WebNodeTest extends Base
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal npm run build',
     ];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web node:18-alpine node node.js';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/web node:18-alpine node node.js';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
-        ...Base::LARGE_FILE_RESPONSES,
+        ...Base::UPLOAD_RESPONSES,
+        ...Base::ENUM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,

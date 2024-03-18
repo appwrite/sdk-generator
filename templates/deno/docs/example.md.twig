@@ -1,28 +1,23 @@
-import * as sdk from "https://deno.land/x/{{ spec.title | caseDash }}/mod.ts";
-{# {% if method.consumes[0] == 'multipart/form-data' %}
-const fs = require('fs');
-{% endif %} #}
+import { Client, {{ service.name | caseUcfirst }}{% for parameter in method.parameters.all %}{% if parameter.enumValues | length > 0%}, {{ parameter.enumName | caseUcfirst}}{% endif %}{% endfor %} } from "https://deno.land/x/{{ spec.title | caseDash }}/mod.ts";
 
-// Init SDK
-let client = new sdk.Client();
-
-let {{ service.name | caseCamel }} = new sdk.{{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %});
-
-{% if method.auth|length > 0 %}
-client
+const client = new Client()
+    {%~ if method.auth|length > 0 %}
     .setEndpoint('https://cloud.appwrite.io/v1') // Your API Endpoint
-{% for node in method.auth %}
-{% for key,header in node|keys %}
-    .set{{header}}('{{node[header]['x-appwrite']['demo']}}') // {{node[header].description}}
-{% endfor %}
-{% endfor %};
+    {%~ for node in method.auth %}
+    {%~ for key,header in node|keys %}
+    .set{{header}}('{{node[header]['x-appwrite']['demo']}}'){% if loop.last %};{% endif%} // {{node[header].description}}
+    {%~ endfor %}
+    {%~ endfor %}
+    {%~ endif %}
 
+const {{ service.name | caseCamel }} = new {{service.name | caseUcfirst}}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %});
+
+{% if method.type == 'location' %}const result = {% elseif method.type != 'webAuth' %}const response = await {% endif -%}
+{{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %});{% endif %}
+
+{%~ for parameter in method.parameters.all %}
+    {% if parameter.enumValues | length > 0 %}{{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %} // {{ parameter.name }}{% if not parameter.required %} (optional){% endif %}
+
+{%~ endfor %}
+{% if method.parameters.all | length > 0 %});
 {% endif %}
-
-let promise = {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %});
-
-promise.then(function (response) {
-    console.log(response);
-}, function (error) {
-    console.log(error);
-});

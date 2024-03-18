@@ -1,0 +1,21 @@
+{
+    "name": "utopia/mock-server",
+    "description": "Mock server for appwrite/sdk-generator",
+    "autoload": {
+        "psr-4": {
+            "Utopia\\MockServer\\": "src/"
+        }
+    },
+    "require": {
+        "utopia-php/framework": "0.33.*",
+        "utopia-php/database": "0.48.*",
+        "utopia-php/cli": "0.16.*",
+        "utopia-php/swoole": "0.8.*"
+    },
+    "require-dev": {
+        "swoole/ide-helper": "5.1.2"
+    },
+    "platform": {
+        "php": "8.2"
+    }
+}

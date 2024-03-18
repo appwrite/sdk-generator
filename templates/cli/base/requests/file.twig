@@ -1,0 +1,115 @@
+{% for parameter in method.parameters.all %}
+{% if parameter.type == 'file' %}
+    const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
+    
+    const apiHeaders = {
+{% for parameter in method.parameters.header %}
+        '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
+{% endfor %}
+{% for key, header in method.headers %}
+        '{{ key }}': '{{ header }}',
+{% endfor %}
+    };
+
+    let id = undefined;
+    let response = undefined;
+
+    let chunksUploaded = 0;
+{% for parameter in method.parameters.all %}
+{% if parameter.isUploadID %}
+
+    if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
+        try {
+            response = await client.call('get', apiPath + '/' + {{ parameter.name }}, apiHeaders);
+            chunksUploaded = response.chunksUploaded;
+        } catch(e) {
+        }
+    }
+{% endif %}
+{% endfor %}
+
+    let currentChunk = 1;
+    let currentPosition = 0;
+    let uploadableChunk = new Uint8Array(client.CHUNK_SIZE);
+
+    const uploadChunk = async (lastUpload = false) => {
+        if(currentChunk <= chunksUploaded) {
+            return;
+        }
+
+        const start = ((currentChunk - 1) * client.CHUNK_SIZE);
+        let end = start + currentPosition - 1;
+
+        if(!lastUpload || currentChunk !== 1) {
+            apiHeaders['content-range'] = 'bytes ' + start + '-' + end + '/' + size;
+        }
+
+        let uploadableChunkTrimmed;
+        
+        if(currentPosition + 1 >= client.CHUNK_SIZE) {
+            uploadableChunkTrimmed = uploadableChunk;
+        } else {
+            uploadableChunkTrimmed = new Uint8Array(currentPosition);
+            for(let i = 0; i <= currentPosition; i++) {
+                uploadableChunkTrimmed[i] = uploadableChunk[i];
+            }
+        }
+
+        if (id) {
+            apiHeaders['x-{{spec.title | caseLower }}-id'] = id;
+        }
+
+        payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
+
+        response = await client.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
+
+        if (!id) {
+            id = response['$id'];
+        }
+
+        if (onProgress !== null) {
+            onProgress({
+                $id: response['$id'],
+                progress: Math.min((currentChunk) * client.CHUNK_SIZE, size) / size * 100,
+                sizeUploaded: end+1,
+                chunksTotal: response['chunksTotal'],
+                chunksUploaded: response['chunksUploaded']
+            });
+        }
+
+        uploadableChunk = new Uint8Array(client.CHUNK_SIZE);
+        currentChunk++;
+        currentPosition = 0;
+    }
+
+    for await (const chunk of {{ parameter.name | caseCamel | escapeKeyword }}.stream) {
+        for(const b of chunk) {
+            uploadableChunk[currentPosition] = b;
+
+            currentPosition++;
+            if(currentPosition >= client.CHUNK_SIZE) {
+                await uploadChunk();
+                currentPosition = 0;
+            }
+        }
+    }
+
+    if (currentPosition > 0) { // Check if there's any remaining data for the last chunk
+        await uploadChunk(true);
+    }
+
+{% if method.packaging %}
+    fs.unlinkSync(filePath);
+{% endif %}
+{% if method.type == 'location' %}
+    fs.writeFileSync(destination, response);
+{% endif %}
+            
+    if (parseOutput) {
+        parse(response)
+        success()
+    }
+
+    return response;
+{% endif %}
+{% endfor %}
