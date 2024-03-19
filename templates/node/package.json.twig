@@ -1,5 +1,5 @@
 {
-  "name": "{{ language.params.npmPackage }}",
+  "name": "{{ language.params.npmPackage | caseDash }}",
   "homepage": "{{ spec.contactURL }}",
   "description": "{{ sdk.shortDescription }}",
   "version": "{{ sdk.version }}",
@@ -35,7 +35,7 @@
   "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "{{ sdk.gitURL }}"
   },
   "devDependencies": {
     "@types/node": "20.11.25",
