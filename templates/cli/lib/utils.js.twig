@@ -14,6 +14,13 @@ function getAllFiles(folder) {
     return files;
 }
 
+const checkDeployConditions = (localConfig) => {
+    if (Object.keys(localConfig.data).length === 0) {
+        throw new Error("No appwrite.json file found in the current directory. This command must be run in the folder holding your appwrite.json file. Please run this command again in the folder containing your appwrite.json file, or run appwrite init project.");
+    }
+}
+
 module.exports = {
-    getAllFiles
+    getAllFiles,
+    checkDeployConditions
 };

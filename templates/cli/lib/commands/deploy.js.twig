@@ -37,6 +37,7 @@ const {
     teamsUpdate,
     teamsCreate
 } = require("./teams");
+const { checkDeployConditions } = require('../utils');
 
 const STEP_SIZE = 100;      // Resources
 const POOL_DEBOUNCE = 2000; // Milliseconds
@@ -245,6 +246,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
         functionIds.push(functionId);
     } else if (all) {
         const functions = localConfig.getFunctions();
+        checkDeployConditions(localConfig);
         if (functions.length === 0) {
             throw new Error("No functions found in the current directory.");
         }
@@ -535,6 +537,7 @@ const deployCollection = async ({ all, yes } = {}) => {
     const collections = [];
 
     if (all) {
+        checkDeployConditions(localConfig);
         if (localConfig.getCollections().length === 0) {
             throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
         }
@@ -757,9 +760,7 @@ const deployBucket = async ({ all, yes } = {}) => {
     const configBuckets = localConfig.getBuckets();
 
     if (all) {
-        if (configBuckets.length === 0) {
-            throw new Error("No buckets found in the current directory. Run `appwrite init bucket` to fetch all your buckets.");
-        }
+        checkDeployConditions(localConfig);
         bucketIds.push(...configBuckets.map((b) => b.$id));
     }
 
@@ -844,9 +845,7 @@ const deployTeam = async ({ all, yes } = {}) => {
     const configTeams = localConfig.getTeams();
 
     if (all) {
-        if (configTeams.length === 0) {
-            throw new Error("No teams found in the current directory. Run `appwrite init team` to fetch all your teams.");
-        }
+        checkDeployConditions(localConfig);
         teamIds.push(...configTeams.map((t) => t.$id));
     }
 
