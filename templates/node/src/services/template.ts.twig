@@ -38,7 +38,7 @@ export class {{ service.name | caseUcfirst }} {
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
      */
-    async {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}): {{ method | getReturn(spec) | raw }} {
+    async {{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): {{ method | getReturn(spec) | raw }} {
         {%~ for parameter in method.parameters.all %}
         {%~ if parameter.required %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
@@ -81,7 +81,8 @@ export class {{ service.name | caseUcfirst }} {
             '{{ method.method | caseLower }}',
             uri,
             apiHeaders,
-            payload
+            payload,
+            onProgress
         );
         {%~ else %}
         return await this.client.call(

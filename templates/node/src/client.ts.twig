@@ -5,6 +5,14 @@ type Payload = {
     [key: string]: any;
 }
 
+type UploadProgress = {
+    $id: string;
+    progress: number;
+    sizeUploaded: number;
+    chunksTotal: number;
+    chunksUploaded: number;
+}
+
 type Headers = {
     [key: string]: string;
 }
@@ -164,7 +172,7 @@ class Client {
         return { uri: url.toString(), options };
     }
 
-    async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: Payload = {}) {
+    async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: Payload = {}, onProgress: (progress: UploadProgress) => {}) {
         const file = Object.values(originalPayload).find((value) => value instanceof File);
 
         if (file.size <= Client.CHUNK_SIZE) {
@@ -186,6 +194,16 @@ class Client {
             let payload = { ...originalPayload, file: new File([chunk], file.name)};
 
             response = await this.call(method, url, headers, payload);
+
+            if (onProgress && typeof onProgress === 'function') {
+                onProgress({
+                    $id: response.$id,
+                    progress: Math.round((end / file.size) * 100),
+                    sizeUploaded: end,
+                    chunksTotal: Math.ceil(file.size / Client.CHUNK_SIZE),
+                    chunksUploaded: Math.ceil(end / Client.CHUNK_SIZE)
+                });
+            }
 
             if (response && response.$id) {
                 headers['x-{{spec.title | caseLower }}-id'] = response.$id;
@@ -254,5 +272,5 @@ class Client {
 
 export { Client, {{spec.title | caseUcfirst}}Exception };
 export { Query } from './query';
-export type { Models, Payload };
+export type { Models, Payload, UploadProgress };
 export type { QueryTypes, QueryTypesList } from './query';
