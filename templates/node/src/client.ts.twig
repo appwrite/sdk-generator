@@ -36,7 +36,6 @@ class Client {
 
     config = {
         endpoint: '{{ spec.endpoint }}',
-        endpointRealtime: '',
         selfSigned: false,
         {%~ for header in spec.global.headers %}
         {{ header.key | caseLower }}: '',
@@ -64,20 +63,6 @@ class Client {
      */
     setEndpoint(endpoint: string): this {
         this.config.endpoint = endpoint;
-        this.config.endpointRealtime = this.config.endpointRealtime || this.config.endpoint.replace('https://', 'wss://').replace('http://', 'ws://');
-
-        return this;
-    }
-
-    /**
-     * Set Realtime Endpoint
-     *
-     * @param {string} endpointRealtime
-     *
-     * @returns {this}
-     */
-    setEndpointRealtime(endpointRealtime: string): this {
-        this.config.endpointRealtime = endpointRealtime;
 
         return this;
     }
