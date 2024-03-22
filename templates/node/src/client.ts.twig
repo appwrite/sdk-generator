@@ -47,6 +47,7 @@ class Client {
         'x-sdk-platform': '{{ sdk.platform }}',
         'x-sdk-language': '{{ language.name | caseLower }}',
         'x-sdk-version': '{{ sdk.version }}',
+        'user-agent' : '{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }}',
         {%~ for key,header in spec.global.defaultHeaders %}
         '{{key}}': '{{header}}',
         {%~ endfor %}
