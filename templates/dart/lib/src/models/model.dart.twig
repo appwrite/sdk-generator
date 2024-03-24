@@ -1,5 +1,5 @@
 {% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>{% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier }}{% endif %}{% else %}{% if property.type == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
-part of {{ language.params.packageName }}.models;
+part of '../../models.dart';
 
 /// {{ definition.description }}
 class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model {
