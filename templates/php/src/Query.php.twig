@@ -262,7 +262,7 @@ class Query implements \JsonSerializable
      * @param string $value
      * @return string
      */
-    public static function contains(string $attribute, string $value): string
+    public static function contains(string $attribute, array $value): string
     {
         return (new Query('contains', $attribute, $value))->__toString();
     }
