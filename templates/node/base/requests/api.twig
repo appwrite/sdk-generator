@@ -1,8 +1,0 @@
-        return await this.client.call('{{ method.method | caseLower }}', apiPath, {
-{% for parameter in method.parameters.header %}
-            '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
-            '{{ key }}': '{{ header }}',
-{% endfor %}
-        }, payload{% if method.type == 'location' %}, 'arraybuffer'{% elseif method.type == 'webAuth' %}, 'location'{% endif %});
