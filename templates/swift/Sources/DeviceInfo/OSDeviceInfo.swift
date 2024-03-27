@@ -2,7 +2,7 @@ import Foundation
 
 class OSDeviceInfo {
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(tvOS) || os(visionOS)
     var iOSInfo: IOSDeviceInfo?
     #elseif os(watchOS)
     var watchOSInfo: WatchOSDeviceInfo?
@@ -15,7 +15,7 @@ class OSDeviceInfo {
     #endif
 
     init() {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(tvOS) || os(visionOS)
         self.iOSInfo = IOSDeviceInfo()
         #elseif os(watchOS)
         self.watchOSInfo = WatchOSDeviceInfo()

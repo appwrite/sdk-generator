@@ -10,7 +10,7 @@ import SwiftUI
 /// Used to authenticate with external OAuth2 providers. Launches browser windows and handles
 /// suspension until the user completes the process or otherwise returns to the app.
 ///
-@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
+@available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, visionOS 1.0, *)
 public class WebAuthComponent {
 
 #if canImport(SwiftUI)

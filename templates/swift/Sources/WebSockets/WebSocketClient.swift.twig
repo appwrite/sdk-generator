@@ -246,7 +246,9 @@ public class WebSocketClient {
         
         let basicUpgrader = NIOWebSocketClientUpgrader(
             requestKey: self.frameKey,
-            upgradePipelineHandler: self.upgradePipelineHandler
+            upgradePipelineHandler: { channel, response in
+                self.upgradePipelineHandler(channel: channel, response: response)
+            }
         )
         
         let config: NIOHTTPClientUpgradeConfiguration = (upgraders: [basicUpgrader], completionHandler: { context in

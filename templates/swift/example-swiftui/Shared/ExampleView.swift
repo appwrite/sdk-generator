@@ -49,7 +49,7 @@ struct ExampleView: View {
             ImagePicker.present()
         }
         #endif
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         .sheet(isPresented: $viewModel.isShowPhotoLibrary) {
             ImagePicker(selectedImage: $imageToUpload)
         }

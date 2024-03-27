@@ -16,7 +16,7 @@ class FlutterBetaTest extends Base
         'cp tests/languages/flutter/tests.dart tests/sdks/flutter/test/appwrite_test.dart',
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/flutter --env PUB_CACHE=vendor cirrusci/flutter:beta sh -c "flutter pub get && flutter test test/appwrite_test.dart"';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/flutter fischerscode/flutter-sudo:beta sh -c "sudo chown -R flutter:flutter . && flutter pub get && flutter test test/appwrite_test.dart"';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
