@@ -1,4 +1,4 @@
-import { {{ spec.title | caseUcfirst}}Exception, Client, type Payload } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, Client, type Payload, UploadProgress } from '../client';
 import type { Models } from '../models';
 {% set added = [] %}
 {% for method in service.methods %}

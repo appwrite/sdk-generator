@@ -158,7 +158,7 @@ class Client {
         return { uri: url.toString(), options };
     }
 
-    async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: Payload = {}, onProgress: (progress: UploadProgress) => {}) {
+    async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: Payload = {}, onProgress: (progress: UploadProgress) => void) {
         const file = Object.values(originalPayload).find((value) => value instanceof File);
 
         if (file.size <= Client.CHUNK_SIZE) {
