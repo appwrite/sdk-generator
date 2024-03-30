@@ -1,4 +1,11 @@
-import Appwrite
+import {{ spec.title | caseUcfirst }}
+{% set addedEnum = false %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues | length > 0 and not addedEnum %}
+import {{ spec.title | caseUcfirst }}Enums
+{% set addedEnum = true %}
+{% endif %}
+{% endfor %}
 
 let client = Client()
 {% if method.auth|length > 0 %}
@@ -12,11 +19,11 @@ let client = Client()
 
 let {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %})
 
-let {% if method.type == 'webAuth' %}success{% elseif method.type == 'location' %}byteBuffer{% elseif method.responseModel | length == 0 %}result{% else %}{{ method.responseModel | caseCamel | escapeKeyword }}{% endif %} = try await {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | filter((param) => param.required) | length == 0 %}){{ '\n' }}{% endif %}
+let {% if method.type == 'webAuth' %}success{% elseif method.type == 'location' %}bytes{% elseif method.responseModel | length == 0 %}result{% else %}{{ method.responseModel | caseCamel | escapeSwiftKeyword }}{% endif %} = try await {{ service.name | caseCamel }}.{{ method.name | caseCamel }}({% if method.parameters.all | length == 0 %}){{ '\n' }}{% endif %}
 
-{% for parameter in method.parameters.all | filter((parameter) => parameter.required) %}
-    {{parameter.name}}: {{ parameter | paramExample | escapeKeyword }}{% if not loop.last %},{% endif %}
-{% if loop.last %}
+    {%~ for parameter in method.parameters.all %}
+    {{ parameter.name }}: {% if parameter.enumValues | length > 0 %}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
+    {%~ if loop.last %}
 
 )
 {% endif %}

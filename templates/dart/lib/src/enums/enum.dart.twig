@@ -1,0 +1,17 @@
+part of '../../enums.dart';
+
+enum {{ enum.name | caseUcfirst | overrideIdentifier }} {
+    {%~ for value in enum.enum %}
+    {%~ set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
+    {{ key | caseEnumKey }}(value: '{{ value }}'){% if not loop.last %},{% else %};{% endif %}
+
+    {%~ endfor %}
+
+    const {{ enum.name | caseUcfirst | overrideIdentifier }}({
+        required this.value
+    });
+
+    final String value;
+
+    String toJson() => value;
+}

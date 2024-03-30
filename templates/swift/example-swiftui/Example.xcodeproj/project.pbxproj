@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 52;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -26,6 +26,11 @@
 		1D54699029932DF900AAB591 /* ExampleViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D34C2522702E4A000D1DA8D /* ExampleViewModel.swift */; };
 		1D54699129932DF900AAB591 /* ExampleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D34C2542702E4B500D1DA8D /* ExampleView.swift */; };
 		1D54699229932E0500AAB591 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4B115883E8645C18835765B2 /* Assets.xcassets */; };
+		1DB1714C2B84402E00318590 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 1DB1714B2B84402E00318590 /* FirebaseMessaging */; };
+		1DB1714E2B84403C00318590 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 1DB1714D2B84403C00318590 /* FirebaseMessaging */; };
+		1DB171502B84404500318590 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 1DB1714F2B84404500318590 /* FirebaseMessaging */; };
+		1DB171522B84404E00318590 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 1DB171512B84404E00318590 /* FirebaseMessaging */; };
+		1DB171592B8458B700318590 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1DB171582B8458B600318590 /* GoogleService-Info.plist */; };
 		1DBB414827E87CA000ECF86F /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 1DBB414727E87CA000ECF86F /* Appwrite */; };
 		1DBB414A27E87CA800ECF86F /* Appwrite in Frameworks */ = {isa = PBXBuildFile; productRef = 1DBB414927E87CA800ECF86F /* Appwrite */; };
 		2358B1EE270AC9DC0016EFBA /* ExampleViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D34C2522702E4A000D1DA8D /* ExampleViewModel.swift */; };
@@ -82,6 +87,10 @@
 		1D43900726FC8B2500C71E3E /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
 		1D54695829932D3500AAB591 /* test (watchOS).app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "test (watchOS).app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1D54697429932D3700AAB591 /* Test watchOS.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Test watchOS.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1DB171552B8457B100318590 /* test (iOS).entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "test (iOS).entitlements"; sourceTree = "<group>"; };
+		1DB171582B8458B600318590 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		1DB1715A2B845EAB00318590 /* test (tvOS).entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "test (tvOS).entitlements"; sourceTree = "<group>"; };
+		1DB1715B2B845EB800318590 /* test (watchOS).entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "test (watchOS).entitlements"; sourceTree = "<group>"; };
 		1DBB414627E87BDB00ECF86F /* apple */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = apple; path = ../../../examples/apple; sourceTree = "<group>"; };
 		23DDF5922709A457006EFAFA /* ImagePicker+iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImagePicker+iOS.swift"; sourceTree = "<group>"; };
 		23DDF5942709A46A006EFAFA /* ImagePicker+macOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImagePicker+macOS.swift"; sourceTree = "<group>"; };
@@ -106,6 +115,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1DB171502B84404500318590 /* FirebaseMessaging in Frameworks */,
 				1D0647F92991E16D00ADFADC /* Appwrite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -121,6 +131,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1DB171522B84404E00318590 /* FirebaseMessaging in Frameworks */,
 				1D54698A29932D9100AAB591 /* Appwrite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -150,6 +161,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1DB1714E2B84403C00318590 /* FirebaseMessaging in Frameworks */,
 				1DBB414A27E87CA800ECF86F /* Appwrite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -158,6 +170,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1DB1714C2B84402E00318590 /* FirebaseMessaging in Frameworks */,
 				1DBB414827E87CA000ECF86F /* Appwrite in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -205,6 +218,10 @@
 		4B1152396B94D0F596CEBB52 = {
 			isa = PBXGroup;
 			children = (
+				1DB1715B2B845EB800318590 /* test (watchOS).entitlements */,
+				1DB1715A2B845EAB00318590 /* test (tvOS).entitlements */,
+				1DB171582B8458B600318590 /* GoogleService-Info.plist */,
+				1DB171552B8457B100318590 /* test (iOS).entitlements */,
 				1DBB414527E87BDB00ECF86F /* Packages */,
 				4B115B49441350FF784C7745 /* Products */,
 				4B11566FD1E1FA1ABD88E438 /* Shared */,
@@ -302,6 +319,7 @@
 			name = "test (tvOS)";
 			packageProductDependencies = (
 				1D0647F82991E16D00ADFADC /* Appwrite */,
+				1DB1714F2B84404500318590 /* FirebaseMessaging */,
 			);
 			productName = Test;
 			productReference = 1D0647BD2991E01C00ADFADC /* test (tvOS).app */;
@@ -340,6 +358,7 @@
 			name = "test (watchOS)";
 			packageProductDependencies = (
 				1D54698929932D9100AAB591 /* Appwrite */,
+				1DB171512B84404E00318590 /* FirebaseMessaging */,
 			);
 			productName = "test Watch App";
 			productReference = 1D54695829932D3500AAB591 /* test (watchOS).app */;
@@ -378,6 +397,7 @@
 			name = "test (iOS)";
 			packageProductDependencies = (
 				1DBB414727E87CA000ECF86F /* Appwrite */,
+				1DB1714B2B84402E00318590 /* FirebaseMessaging */,
 			);
 			productName = "test (iOS)";
 			productReference = 4B115DA4916DAA4E8F13734F /* test.app */;
@@ -398,6 +418,7 @@
 			name = "test (macOS)";
 			packageProductDependencies = (
 				1DBB414927E87CA800ECF86F /* Appwrite */,
+				1DB1714D2B84403C00318590 /* FirebaseMessaging */,
 			);
 			productName = "test (macOS)";
 			productReference = 4B11505C9899942E695B59FF /* test.app */;
@@ -478,6 +499,9 @@
 				en,
 			);
 			mainGroup = 4B1152396B94D0F596CEBB52;
+			packageReferences = (
+				1DB171482B84400300318590 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			productRefGroup = 4B115B49441350FF784C7745 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -545,6 +569,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4B1157C67CF5E569FBCB65DD /* Assets.xcassets in Resources */,
+				1DB171592B8458B700318590 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -671,6 +696,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_ENTITLEMENTS = "test (tvOS).entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -698,6 +724,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_ENTITLEMENTS = "test (tvOS).entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -767,6 +794,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_ENTITLEMENTS = "test (watchOS).entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -796,6 +824,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_ENTITLEMENTS = "test (watchOS).entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -901,7 +930,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = macOS/macOS.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = GWZ23QTYB5;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = macOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -911,6 +943,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.appwrite.mac;
 				PRODUCT_NAME = test;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
 			};
@@ -921,14 +954,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "test (iOS).entitlements";
+				DEVELOPMENT_TEAM = GWZ23QTYB5;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.appwrite.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.appwrite.ios-example";
 				PRODUCT_NAME = test;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
@@ -959,14 +994,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "test (iOS).entitlements";
+				DEVELOPMENT_TEAM = GWZ23QTYB5;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.appwrite.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.appwrite.ios-example";
 				PRODUCT_NAME = test;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
@@ -980,7 +1017,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = macOS/macOS.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = GWZ23QTYB5;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = macOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -990,6 +1030,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.appwrite.mac;
 				PRODUCT_NAME = test;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
 			};
@@ -1209,6 +1250,17 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		1DB171482B84400300318590 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 10.21.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		1D0647F82991E16D00ADFADC /* Appwrite */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -1217,6 +1269,26 @@
 		1D54698929932D9100AAB591 /* Appwrite */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Appwrite;
+		};
+		1DB1714B2B84402E00318590 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1DB171482B84400300318590 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		1DB1714D2B84403C00318590 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1DB171482B84400300318590 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		1DB1714F2B84404500318590 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1DB171482B84400300318590 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		1DB171512B84404E00318590 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1DB171482B84400300318590 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
 		};
 		1DBB414727E87CA000ECF86F /* Appwrite */ = {
 			isa = XCSwiftPackageProductDependency;

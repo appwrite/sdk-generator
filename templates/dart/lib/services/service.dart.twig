@@ -1,4 +1,4 @@
-part of {{ language.params.packageName }};
+part of '../{{ language.params.packageName }}.dart';
 {% macro parameter(parameter) %}{% if parameter.required %}required {% endif %}{{ parameter | typeName }}{% if not parameter.required or parameter.nullable %}?{% endif %} {{ parameter.name | caseCamel | overrideIdentifier }}{% endmacro %}
 {% macro method_parameters(parameters, consumes) %}
 {% if parameters|length > 0 %}{{ '{' }}{% for parameter in parameters %}{{ _self.parameter(parameter) }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in consumes %}, Function(UploadProgress)? onProgress{% endif %}{{ '}' }}{% endif %}
@@ -19,13 +19,15 @@ class {{ service.name | caseUcfirst }} extends Service {
 {%~ if method.description %}
 {{ method.description | dartComment }}
 {% endif %}
-    {% if method.type == 'location' %}Future<Uint8List>{% else %}{% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel }}({{ _self.method_parameters(method.parameters.all, method.consumes) }}) async {
-        final String apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | overrideIdentifier }}){% endfor %};
+    {% if method.type == 'location' %}Future<Uint8List>{% else %}{% if method.responseModel and method.responseModel != 'any' %}Future<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>{% else %}Future{% endif %}{% endif %} {{ method.name | caseCamel | overrideIdentifier }}({{ _self.method_parameters(method.parameters.all, method.consumes) }}) async {
+        final String apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replaceAll('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | overrideIdentifier }}{% if parameter.enumValues | length > 0  %}.value{% endif %}){% endfor %};
 
 {% if 'multipart/form-data' in method.consumes %}
 {{ include('dart/base/requests/file.twig') }}
 {% elseif method.type == 'location' %}
 {{ include('dart/base/requests/location.twig') }}
+{% elseif method.type == 'webAuth' %}
+{{ include('dart/base/requests/oauth.twig') }}
 {% else %}
 {{ include('dart/base/requests/api.twig') }}
 {% endif %}

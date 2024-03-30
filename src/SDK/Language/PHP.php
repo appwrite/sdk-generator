@@ -179,8 +179,18 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/PermissionTest.php',
+                'template'      => 'php/tests/PermissionTest.php.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/Role.php',
                 'template'      => 'php/src/Role.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/RoleTest.php',
+                'template'      => 'php/tests/RoleTest.php.twig',
             ],
             [
                 'scope'         => 'default',
@@ -189,8 +199,18 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/IDTest.php',
+                'template'      => 'php/tests/IDTest.php.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/{{ spec.title | caseUcfirst}}/Query.php',
                 'template'      => 'php/src/Query.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/QueryTest.php',
+                'template'      => 'php/tests/QueryTest.php.twig',
             ],
             [
                 'scope'         => 'default',
@@ -212,6 +232,16 @@ class PHP extends Language
                 'destination'   => '/src/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
                 'template'      => 'php/src/Services/Service.php.twig',
             ],
+            [
+                'scope'         => 'service',
+                'destination'   => '/tests/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}Test.php',
+                'template'      => 'php/tests/Services/ServiceTest.php.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Enums/{{ enum.name | caseUcfirst }}.php',
+                'template'      => 'php/src/Enums/Enum.php.twig',
+            ],
         ];
     }
 
@@ -220,29 +250,24 @@ class PHP extends Language
      * @param array $nestedTypes
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
-        switch ($parameter['type']) {
-            case self::TYPE_STRING:
-                $type = 'string';
-                break;
-            case self::TYPE_BOOLEAN:
-                $type = 'bool';
-                break;
-            case self::TYPE_NUMBER:
-            case self::TYPE_INTEGER:
-                $type = 'int';
-                break;
-            case self::TYPE_ARRAY:
-            case self::TYPE_OBJECT:
-                $type = 'array';
-                break;
-            case self::TYPE_FILE:
-                $type = 'InputFile';
-                break;
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
         }
-
-        return $type . ' ';
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
+        }
+        return match ($parameter['type']) {
+            self::TYPE_STRING => 'string',
+            self::TYPE_BOOLEAN => 'bool',
+            self::TYPE_NUMBER,
+            self::TYPE_INTEGER => 'int',
+            self::TYPE_ARRAY,
+            self::TYPE_OBJECT => 'array',
+            self::TYPE_FILE => 'InputFile',
+            default => $parameter['type'],
+        };
     }
 
     /**
@@ -373,7 +398,7 @@ class PHP extends Language
 
     protected function getReturn(array $method): string
     {
-        if (($method['emptyResponse'] ?? true) || $method['type'] === 'location') {
+        if (($method['emptyResponse'] ?? true) || $method['type'] === 'location' || $method['type'] === 'webAuth') {
             return 'string';
         }
 
@@ -388,6 +413,13 @@ class PHP extends Language
             }),
             new TwigFilter('deviceInfo', function ($value) {
                 return php_uname('s') . '; ' . php_uname('v') . '; ' . php_uname('m');
+            }),
+            new TwigFilter('caseEnumKey', function (string $value) {
+                if (isset($this->getIdentifierOverrides()[$value])) {
+                    $value = $this->getIdentifierOverrides()[$value];
+                }
+                $value = \preg_replace('/[^a-zA-Z0-9]/', '', $value);
+                return $this->toUpperSnakeCase($value);
             }),
         ];
     }

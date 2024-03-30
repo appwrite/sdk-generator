@@ -1,5 +1,5 @@
 {% macro sub_schema(property) %}{% if property.sub_schema %}{% if property.type == 'array' %}List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>{% else %}{{property.sub_schema | caseUcfirst | overrideIdentifier}}{% endif %}{% else %}{{property | typeName}}{% endif %}{% if not property.required %}?{% endif %}{% endmacro %}
-{% macro property_name(definition, property) %}{{ property.name | caseUcfirst | removeDollarSign | escapeKeyword}}{% endmacro %}
+{% macro property_name(definition, property) %}{{ property.name | caseUcfirst | removeDollarSign | escapeKeyword }}{% endmacro %}
 
 using System;
 using System.Linq;
@@ -14,7 +14,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
     {
         {%~ for property in definition.properties %}
         [JsonProperty("{{ property.name }}")]
-        public {{ _self.sub_schema(property) }} {{ _self.property_name(definition, property) }} { get; private set; }
+        public {{ _self.sub_schema(property) }} {{ _self.property_name(definition, property) | overrideProperty(definition.name) }} { get; private set; }
 
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
@@ -31,7 +31,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
             {%~ endif %}
         ) {
             {%~ for property in definition.properties %}
-            {{ _self.property_name(definition, property) }} = {{ property.name | caseCamel | escapeKeyword }};
+            {{ _self.property_name(definition, property) | overrideProperty(definition.name) }} = {{ property.name | caseCamel | escapeKeyword }};
             {%~ endfor %}
             {%~ if definition.additionalProperties %}
             Data = data;
@@ -51,7 +51,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
         public Dictionary<string, object?> ToMap() => new Dictionary<string, object?>()
         {
             {%~ for property in definition.properties %}
-            { "{{ property.name }}", {% if property.sub_schema %}{% if property.type == 'array' %}{{ _self.property_name(definition, property) }}.Select(it => it.ToMap()){% else %}{{ _self.property_name(definition, property) }}.ToMap(){% endif %}{% else %}{{ _self.property_name(definition, property) }}{% endif %}{{ ' }' }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
+            { "{{ property.name }}", {% if property.sub_schema %}{% if property.type == 'array' %}{{ _self.property_name(definition, property) | overrideProperty(definition.name) }}.Select(it => it.ToMap()){% else %}{{ _self.property_name(definition, property) | overrideProperty(definition.name) }}.ToMap(){% endif %}{% else %}{{ _self.property_name(definition, property) | overrideProperty(definition.name) }}{% endif %}{{ ' }' }}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
             {%~ endfor %}
             {%~ if definition.additionalProperties %}

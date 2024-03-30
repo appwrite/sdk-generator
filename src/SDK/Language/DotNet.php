@@ -145,33 +145,39 @@ class DotNet extends Language
         ];
     }
 
+    public function getPropertyOverrides(): array
+    {
+        return [
+            'provider' => [
+                'Provider' => 'MessagingProvider',
+            ],
+        ];
+    }
+
     /**
      * @param array $parameter
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-                return 'long';
-            case self::TYPE_NUMBER:
-                return 'double';
-            case self::TYPE_STRING:
-                return 'string';
-            case self::TYPE_FILE:
-                return 'InputFile';
-            case self::TYPE_BOOLEAN:
-                return 'bool';
-            case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    return 'List<' . $this->getTypeName($parameter['array']) . '>';
-                }
-                return 'List<object>';
-            case self::TYPE_OBJECT:
-                return 'object';
+        if (isset($parameter['enumName'])) {
+            return 'Appwrite.Enums.' . \ucfirst($parameter['enumName']);
         }
-
-        return $parameter['type'];
+        if (!empty($parameter['enumValues'])) {
+            return 'Appwrite.Enums.' . \ucfirst($parameter['name']);
+        }
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER => 'long',
+            self::TYPE_NUMBER => 'double',
+            self::TYPE_STRING => 'string',
+            self::TYPE_BOOLEAN => 'bool',
+            self::TYPE_FILE => 'InputFile',
+            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
+                ? 'List<' . $this->getTypeName($parameter['array']) . '>'
+                : 'List<object>',
+            self::TYPE_OBJECT => 'object',
+            default => $parameter['type']
+        };
     }
 
     /**
@@ -259,7 +265,11 @@ class DotNet extends Language
                     if (\str_ends_with($example, ']')) {
                         $example = \substr($example, 0, -1);
                     }
-                    $output .= 'new List<' . $this->getTypeName($param['array']) . '> {' . $example . '}';
+                    if (!empty($example)) {
+                        $output .= 'new List<' . $this->getTypeName($param['array']) . '>() {' . $example . '}';
+                    } else {
+                        $output .= 'new List<' . $this->getTypeName($param['array']) . '>()';
+                    }
                     break;
             }
         } else {
@@ -363,6 +373,11 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Converters/ValueClassConverter.cs',
+                'template'      => 'dotnet/src/Appwrite/Converters/ValueClassConverter.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Extensions/Extensions.cs',
                 'template'      => 'dotnet/src/Appwrite/Extensions/Extensions.cs.twig',
             ],
@@ -395,6 +410,16 @@ class DotNet extends Language
                 'scope'         => 'definition',
                 'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
                 'template'      => 'dotnet/src/Appwrite/Models/Model.cs.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
+                'template'      => 'dotnet/src/Appwrite/Enums/Enum.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Enums/IEnum.cs',
+                'template'      => 'dotnet/src/Appwrite/Enums/IEnum.cs.twig',
             ]
         ];
     }
@@ -408,7 +433,16 @@ class DotNet extends Language
                     $value[$key] = "        /// " . wordwrap($line, 75, "\n        /// ");
                 }
                 return implode("\n", $value);
-            }, ['is_safe' => ['html']])
+            }, ['is_safe' => ['html']]),
+            new TwigFilter('caseEnumKey', function (string $value) {
+                return $this->toPascalCase($value);
+            }),
+            new TwigFilter('overrideProperty', function (string $property, string $class) {
+                if (isset($this->getPropertyOverrides()[$class][$property])) {
+                    return $this->getPropertyOverrides()[$class][$property];
+                }
+                return $property;
+            }),
         ];
     }
 }

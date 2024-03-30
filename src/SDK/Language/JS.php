@@ -3,6 +3,7 @@
 namespace Appwrite\SDK\Language;
 
 use Appwrite\SDK\Language;
+use Twig\TwigFilter;
 
 abstract class JS extends Language
 {
@@ -122,14 +123,20 @@ abstract class JS extends Language
      * @param array $nestedTypes
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
+        }
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
+        }
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
                 return 'number';
             case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
+                if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
                     return $this->getTypeName($parameter['array']) . '[]';
                 }
                 return 'string[]';
@@ -191,5 +198,14 @@ abstract class JS extends Language
         }
 
         return $output;
+    }
+
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('caseEnumKey', function (string $value) {
+                return $this->toPascalCase($value);
+            }),
+        ];
     }
 }

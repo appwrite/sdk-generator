@@ -1,10 +1,27 @@
 import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.coroutines.CoroutineCallback
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
 import {{ sdk.namespace | caseDot }}.models.InputFile
 {% endif %}
 import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }}
+{% set added = [] %}
+{% for parameter in method.parameters.all %}
+{% if method == parameter.required %}
+{% if parameter.enumValues is not empty %}
+{% if parameter.enumName is not empty %}
+{% set name = parameter.enumName %}
+{% else %}
+{% set name = parameter.name %}
+{% endif %}
+{% if name not in added %}
+import {{ sdk.namespace | caseDot }}.enums.{{ name | caseUcfirst }}
+{% set added = added|merge([name]) %}
+{% endif %}
+{% endif %}
+{% endif %}
+{% endfor %}
 
-val client = Client(context)
+val client = Client()
 {% if method.auth|length > 0 %}
     .setEndpoint("https://cloud.appwrite.io/v1") // Your API Endpoint
 {% for node in method.auth %}
@@ -18,8 +35,10 @@ val {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client)
 
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
-    {{parameter.name}} = {{ parameter | paramExample }}{% if not loop.last %},{% endif %}
+    {{parameter.name}} = {% if parameter.enumValues | length > 0 %} {{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %}
 
+{% else %}
+    {{parameter.name}} = {{ parameter | paramExample }}{% if not loop.last %},{% endif %} // optional
 {% endif %}
 {% if loop.last %}
 )

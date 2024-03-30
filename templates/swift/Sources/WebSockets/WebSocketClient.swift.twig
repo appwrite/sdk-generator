@@ -246,7 +246,9 @@ public class WebSocketClient {
         
         let basicUpgrader = NIOWebSocketClientUpgrader(
             requestKey: self.frameKey,
-            upgradePipelineHandler: self.upgradePipelineHandler
+            upgradePipelineHandler: { channel, response in
+                self.upgradePipelineHandler(channel: channel, response: response)
+            }
         )
         
         let config: NIOHTTPClientUpgradeConfiguration = (upgraders: [basicUpgrader], completionHandler: { context in
@@ -267,7 +269,7 @@ public class WebSocketClient {
         }
     }
 
-    private func upgradePipelineHandler(channel: Channel, response: HTTPResponseHead) -> EventLoopFuture<Void> {
+    @Sendable private func upgradePipelineHandler(channel: Channel, response: HTTPResponseHead) -> EventLoopFuture<Void> {
         let handler = MessageHandler(client: self)
         
         if response.status == .switchingProtocols {

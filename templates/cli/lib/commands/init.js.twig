@@ -10,6 +10,7 @@ const { databasesGet, databasesListCollections, databasesList } = require("./dat
 const { storageListBuckets } = require("./storage");
 const { sdkForConsole } = require("../sdks");
 const { localConfig } = require("../config");
+const { paginate } = require("../paginate");
 const { questionsInitProject, questionsInitFunction, questionsInitCollection } = require("../questions");
 const { success, log, actionRunner, commandDescriptions } = require("../parser");
 
@@ -24,11 +25,11 @@ const init = new Command("init")
 
 const initProject = async () => {
     let response = {}
-    let answers = await inquirer.prompt(questionsInitProject)
+    const answers = await inquirer.prompt(questionsInitProject)
     if (!answers.project) process.exit(1)
 
     let sdk = await sdkForConsole();
-    if (answers.start == "new") {
+    if (answers.start === "new") {
         response = await teamsCreate({
             teamId: 'unique()',
             name: answers.project,
@@ -53,8 +54,8 @@ const initProject = async () => {
 
 const initFunction = async () => {
     // TODO: Add CI/CD support (ID, name, runtime)
-    let answers = await inquirer.prompt(questionsInitFunction)
-    let functionFolder = path.join(process.cwd(), 'functions');
+    const answers = await inquirer.prompt(questionsInitFunction)
+    const functionFolder = path.join(process.cwd(), 'functions');
 
     if (!fs.existsSync(functionFolder)) {
         fs.mkdirSync(functionFolder, {
@@ -92,7 +93,7 @@ const initFunction = async () => {
     let gitPullCommands = `git sparse-checkout add ${answers.runtime.id}`;
 
     /* Force use CMD as powershell does not support && */
-    if (process.platform == 'win32') {
+    if (process.platform === 'win32') {
         gitInitCommands = 'cmd /c "' + gitInitCommands + '"';
         gitPullCommands = 'cmd /c "' + gitPullCommands + '"';
     }
@@ -187,15 +188,12 @@ const initCollection = async ({ all, databaseId } = {}) => {
 
         localConfig.addDatabase(database);
 
-        // TODO: Pagination?
-        let response = await databasesListCollections({
+        const { collections, total } = await paginate(databasesListCollections, {
             databaseId,
-            queries: ['limit(100)'],
             parseOutput: false
-        })
+        }, 100, 'collections');
 
-        let collections = response.collections;
-        log(`Found ${collections.length} collections`);
+        log(`Found ${total} collections`);
 
         collections.forEach(async collection => {
             log(`Fetching ${collection.name} ...`);
@@ -211,13 +209,8 @@ const initCollection = async ({ all, databaseId } = {}) => {
 }
 
 const initBucket = async () => {
-    // TODO: Pagination?
-    let response = await storageListBuckets({
-        queries: ['limit(100)'],
-        parseOutput: false
-    })
+    const { buckets } = await paginate(storageListBuckets, { parseOutput: false }, 100, 'buckets');
 
-    let buckets = response.buckets;
     log(`Found ${buckets.length} buckets`);
 
     buckets.forEach(async bucket => {
@@ -229,13 +222,8 @@ const initBucket = async () => {
 }
 
 const initTeam = async () => {
-    // TODO: Pagination?
-    let response = await teamsList({
-        queries: ['limit(100)'],
-        parseOutput: false
-    })
+    const { teams } = await paginate(teamsList, { parseOutput: false }, 100, 'teams');
 
-    let teams = response.teams;
     log(`Found ${teams.length} teams`);
 
     teams.forEach(async team => {

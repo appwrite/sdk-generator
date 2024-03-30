@@ -17,16 +17,16 @@ class KotlinJava8Test extends Base
         'chmod +x tests/sdks/kotlin/gradlew',
     ];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:8-jdk-slim sh -c "./gradlew test -q && cat result.txt"';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/kotlin openjdk:8-jdk-slim sh -c "./gradlew test -q && cat result.txt"';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
-        ...Base::LARGE_FILE_RESPONSES,
-        ...Base::LARGE_FILE_RESPONSES,
-        ...Base::LARGE_FILE_RESPONSES,
+        ...Base::UPLOAD_RESPONSES,
+        ...Base::ENUM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
+        ...Base::OAUTH_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES

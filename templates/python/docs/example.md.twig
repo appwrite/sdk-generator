@@ -2,20 +2,40 @@ from {{ spec.title | caseSnake }}.client import Client
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
 from {{ spec.title | caseSnake }}.input_file import InputFile
 {% endif %}
-from {{ spec.title | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
+{% set added = [] %}
+{% for parameter in method.parameters.all %}
+{% if method == parameter.required %}
+{% if parameter.enumValues is not empty %}
+{% if parameter.enumName is not empty %}
+{% set name = parameter.enumName %}
+{% else %}
+{% set name = parameter.name %}
+{% endif %}
+{% if name not in added %}
+from {{ spec.title | caseSnake }}.enums import {{parameter.enumName | caseUcfirst}}
+{% set added = added|merge([name]) %}
+{% endif %}
+{% endif %}
+{% endif %}
+{% endfor %}
 
 client = Client()
-
 {% if method.auth|length > 0 %}
-(client
-  .set_endpoint('https://cloud.appwrite.io/v1') # Your API Endpoint
+client.set_endpoint('https://cloud.appwrite.io/v1') # Your API Endpoint
 {% for node in method.auth %}
 {% for key,header in node|keys %}
-  .set_{{header | caseSnake}}('{{node[header]['x-appwrite']['demo']}}') # {{node[header].description}}
+client.set_{{header | caseSnake}}('{{node[header]['x-appwrite']['demo']}}') # {{node[header].description}}
 {% endfor %}
-{% endfor %})
+{% endfor %}
 
 {% endif %}
-{{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}(client{% if service.globalParams | length %}{% for parameter in service.globalParams %}, {{ parameter | paramExample }}{% endfor %}{% endif %})
+{{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}(client)
 
-result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endif %}{% endfor %})
+result = {{ service.name | caseSnake }}.{{ method.name | caseSnake }}({% if method.parameters.all | length == 0 %}){% endif %}
+
+    {%~ for parameter in method.parameters.all %}
+    {{ parameter.name | caseSnake }} = {% if parameter.enumValues | length > 0 %}{{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
+
+    {%~ endfor %}
+{% if method.parameters.all | length > 0 %})
+{% endif %}
