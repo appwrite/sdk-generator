@@ -1,4 +1,4 @@
-import { fetch as defaultFetch, FormData, File } from 'node-fetch-native';
+import { fetch, FormData, File } from 'node-fetch-native';
 import { Models } from './models';
 
 type Payload = {
@@ -31,22 +31,8 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
     }
 }
 
-function getUserAgent(): string {
-    const base = '{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }}';
-
-    // @ts-ignore
-    if (typeof globalThis.EdgeRuntime !== 'string') {
-        const {type, version, arch} = require('os');
-        return base + `(${type()}\\${version()}\\${arch()})`
-    }
-
-    return base + `(Edge\${globalThis.EdgeRuntime})`;
-}
-
 class Client {
     static CHUNK_SIZE = 1024 * 1024 * 5;
-
-    fetch = defaultFetch;
 
     config = {
         endpoint: '{{ spec.endpoint }}',
@@ -60,7 +46,7 @@ class Client {
         'x-sdk-platform': '{{ sdk.platform }}',
         'x-sdk-language': '{{ language.name | caseLower }}',
         'x-sdk-version': '{{ sdk.version }}',
-        'user-agent' : getUserAgent(),
+        'user-agent' : '{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }}',
         {%~ for key,header in spec.global.defaultHeaders %}
         '{{key}}': '{{header}}',
         {%~ endfor %}
@@ -81,8 +67,15 @@ class Client {
         return this;
     }
 
-    setFetch(fetch: any): this {
-        this.fetch = fetch;
+    /**
+     * Set self-signed
+     *
+     * @param {boolean} selfSigned
+     *
+     * @returns {this}
+     */
+    setSelfSigned(selfSigned: boolean): this {
+        this.config.selfSigned = selfSigned;
 
         return this;
     }
@@ -211,7 +204,7 @@ class Client {
     async redirect(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<string> {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
         
-        const response = await this.fetch(uri, {
+        const response = await fetch(uri, {
             ...options,
             redirect: 'manual'
         });
@@ -228,7 +221,7 @@ class Client {
 
         let data: any = null;
 
-        const response = await this.fetch(uri, options);
+        const response = await fetch(uri, options);
 
         if (response.headers.get('content-type')?.includes('application/json')) {
             data = await response.json();
