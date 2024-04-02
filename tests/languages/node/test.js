@@ -18,7 +18,6 @@ async function start() {
     // Init SDK
     const client = new Client()
         .addHeader("Origin", "http://localhost")
-        .setSelfSigned(true);
 
     const foo = new Foo(client);
     const bar = new Bar(client);

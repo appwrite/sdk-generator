@@ -1,6 +1,6 @@
-import { defineConfig } from 'tsup'
+const { defineConfig } = require("tsup");
 
-export default defineConfig({
+module.exports = defineConfig({
   entry: ["src/**/*.ts"],
   sourcemap: true,
   clean: true,
@@ -11,9 +11,8 @@ export default defineConfig({
   outExtension({ format }) {
     return {
       cjs: '.js',
-      esm: '.mjs'
     }[format]
   },
   target: "node16",
-  format: ['cjs', 'esm']
+  format: ['cjs']
 })

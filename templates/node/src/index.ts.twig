@@ -10,3 +10,4 @@ export { ID } from './id';
 {% for enum in spec.enums %}
 export { {{ enum.name | caseUcfirst  }} } from './enums/{{enum.name | caseDash}}';
 {% endfor %}
+export { InputFile } from './inputFile';

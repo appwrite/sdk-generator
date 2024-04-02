@@ -1,19 +1,28 @@
 import { File } from "node-fetch-native";
-import { realpathSync, readFileSync } from "fs";
-import type { BinaryLike } from "crypto";
+import { BinaryLike } from "crypto";
 
 export class InputFile {
+  static fromBlob(blob: Blob, name: string): File {
+    return new File([blob], name);
+  }
+
   static fromBuffer(
-    parts: Blob | BinaryLike,
+    parts: BinaryLike,
     name: string
   ): File {
     return new File([parts], name);
   }
 
   static fromPath(path: string, name: string): File {
-    const realPath = realpathSync(path);
-    const contents = readFileSync(realPath);
-    return this.fromBuffer(contents, name);
+    // @ts-ignore
+    if (typeof globalThis.EdgeRuntime !== 'string') {
+      const { realpathSync, readFileSync } = require('fs');
+      const realPath = realpathSync(path);
+      const contents = readFileSync(realPath);
+      return this.fromBuffer(contents, name);
+    }
+
+    throw new Error('node:fs is not available in edge runtimes');
   }
 
   static fromPlainText(content: string, name: string): File {
