@@ -7,9 +7,9 @@ const {
     MockType,
     Foo,
     Bar,
-    General
+    General,
+    InputFile
 } = require('./dist/index.js');
-const { InputFile } = require('./dist/inputFile.js');
 const { readFile } = require('fs/promises');
 
 async function start() {
