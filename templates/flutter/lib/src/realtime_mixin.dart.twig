@@ -100,19 +100,19 @@ mixin RealtimeMixin {
         }
       });
     } catch (e) {
-      if (e is AppwriteException) {
+      if (e is {{spec.title | caseUcfirst}}Exception) {
         rethrow;
       }
       if (e is WebSocketChannelException) {
-        throw AppwriteException(e.message);
+        throw {{spec.title | caseUcfirst}}Exception(e.message);
       }
-      throw AppwriteException(e.toString());
+      throw {{spec.title | caseUcfirst}}Exception(e.toString());
     }
   }
 
   Uri _prepareUri() {
     if (client.endPointRealtime == null) {
-      throw AppwriteException(
+      throw {{spec.title | caseUcfirst}}Exception(
           "Please set endPointRealtime to connect to realtime server");
     }
     var uri = Uri.parse(client.endPointRealtime!);
