@@ -31,6 +31,33 @@ class {{spec.title | caseUcfirst}}Exception extends Error {
     }
 }
 
+function getUserAgent() {
+    let ua = '{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }}';
+
+    // `process` is a global in Node.js, but not fully available in all runtimes.
+    const platform: string[] = [];
+    if (typeof process !== 'undefined') {
+        if (typeof process.platform === 'string') platform.push(process.platform);
+        if (typeof process.arch === 'string') platform.push(process.arch);
+    } 
+    if (platform.length > 0) {
+        ua += ` (${platform.join('; ')})`;
+    }
+
+    // `navigator.userAgent` is available in Node.js 21 and later.
+    // It's also part of the WinterCG spec, so many edge runtimes provide it.
+    // https://common-min-api.proposal.wintercg.org/#requirements-for-navigatoruseragent
+    if (typeof navigator !== 'undefined' && typeof navigator.userAgent === 'string') {
+        ua += ` ${navigator.userAgent}`;
+        
+    // Older Node.js versions don't have `navigator.userAgent`, so we have to use `process.version`.
+    } else if (typeof process !== 'undefined') {
+        ua += ` Node.js/${process.version}`;
+    }
+
+    return ua;
+}
+
 class Client {
     static CHUNK_SIZE = 1024 * 1024 * 5;
 
@@ -46,7 +73,7 @@ class Client {
         'x-sdk-platform': '{{ sdk.platform }}',
         'x-sdk-language': '{{ language.name | caseLower }}',
         'x-sdk-version': '{{ sdk.version }}',
-        'user-agent' : '{{spec.title | caseUcfirst}}{{language.name | caseUcfirst}}SDK/{{ sdk.version }}',
+        'user-agent' : getUserAgent(),
         {%~ for key,header in spec.global.defaultHeaders %}
         '{{key}}': '{{header}}',
         {%~ endfor %}
