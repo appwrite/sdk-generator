@@ -84,11 +84,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
         }
 {% endif %}
 {% if method.type == 'webAuth' %}
-        if (typeof window !== 'undefined' && window?.location) {
-            window.location.href = uri.toString();
-        } else {
-            return uri;
-        }
+        throw new {{ spec.title | caseUcfirst}}Exception('Not yet supported');
 {% elseif method.type == 'location' %}
         return uri;
 {% else %}
