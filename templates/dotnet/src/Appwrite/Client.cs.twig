@@ -232,9 +232,11 @@ namespace {{ spec.title | caseUcfirst }}
             if (code >= 400) {
                 var message = await response.Content.ReadAsStringAsync();
 
-                var contentType = response.Content.Headers
-                    .GetValues("Content-Type")
-                    .FirstOrDefault() ?? string.Empty;
+                string contentType = string.Empty;
+                if (response.Content.Headers.TryGetValues("Content-Type", out var contentTypes))
+                {
+                    contentType = contentTypes.FirstOrDefault() ?? string.Empty;
+                }
 
                 if (contentType.Contains("application/json")) {
                     message = JObject.Parse(message)["message"]!.ToString();
@@ -267,9 +269,11 @@ namespace {{ spec.title | caseUcfirst }}
             var response = await _http.SendAsync(request);
             var code = (int)response.StatusCode;
 
-            var contentType = response.Content.Headers
-                .GetValues("Content-Type")
-                .FirstOrDefault() ?? string.Empty;
+            string contentType = string.Empty;
+            if (response.Content.Headers.TryGetValues("Content-Type", out var contentTypes))
+            {
+                contentType = contentTypes.FirstOrDefault() ?? string.Empty;
+            }
 
             var isJson = contentType.Contains("application/json");
 
