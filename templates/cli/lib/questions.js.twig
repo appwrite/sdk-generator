@@ -416,13 +416,12 @@ const questionsListFactors = [
                 {
                     name: `Phone (SMS)`,
                     value: 'phone'
+                },
+                {
+                    name: `Recovery code`,
+                    value: 'recoveryCode'
                 }
             ].filter((ch) => factors[ch.value] === true);
-
-            choices.push({
-                name: `Recovery code`,
-                value: 'recoveryCode'
-            });
 
             return choices;
         }
