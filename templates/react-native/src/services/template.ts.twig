@@ -137,7 +137,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 apiHeaders['x-{{spec.title | caseLower }}-id'] = response.$id;
             }
 
-            let chunk = await FileSystem.readAsStringAsync(file.uri, {
+            let chunk = await FileSystem.readAsStringAsync({{ parameter.name | caseCamel | escapeKeyword }}.uri, {
                 encoding: FileSystem.EncodingType.Base64,
                 position: offset,
                 length: Service.CHUNK_SIZE

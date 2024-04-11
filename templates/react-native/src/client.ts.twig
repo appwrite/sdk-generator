@@ -224,6 +224,7 @@ class Client {
                 }
 
                 this.realtime.url = url;
+                // @ts-ignore
                 this.realtime.socket = new WebSocket(url, undefined, {
                     headers: {
                         Origin: `{{ spec.title | caseLower }}-${Platform.OS}://${this.config.platform}`
