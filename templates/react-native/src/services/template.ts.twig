@@ -84,7 +84,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
         }
 {% endif %}
 {% if method.type == 'webAuth' %}
-        throw new {{ spec.title | caseUcfirst}}Exception('Not yet supported');
+        return uri;
 {% elseif method.type == 'location' %}
         return uri;
 {% else %}
