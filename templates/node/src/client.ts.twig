@@ -1,4 +1,5 @@
-import { fetch, FormData, File } from 'node-fetch-native';
+import { fetch, FormData, File } from 'node-fetch-native-with-agent';
+import { createAgent } from 'node-fetch-native-with-agent/agent';
 import { Models } from './models';
 
 type Payload = {
@@ -49,7 +50,7 @@ function getUserAgent() {
     // https://common-min-api.proposal.wintercg.org/#requirements-for-navigatoruseragent
     if (typeof navigator !== 'undefined' && typeof navigator.userAgent === 'string') {
         ua += ` ${navigator.userAgent}`;
-        
+
     // Older Node.js versions don't have `navigator.userAgent`, so we have to use `process.version`.
     } else if (typeof process !== 'undefined') {
         ua += ` Node.js/${process.version}`;
@@ -60,6 +61,8 @@ function getUserAgent() {
 
 class Client {
     static CHUNK_SIZE = 1024 * 1024 * 5;
+
+    fetch = nodeFetch;
 
     config = {
         endpoint: '{{ spec.endpoint }}',
@@ -102,6 +105,10 @@ class Client {
      * @returns {this}
      */
     setSelfSigned(selfSigned: boolean): this {
+        if (typeof globalThis.EdgeRuntime !== 'undefined') {
+            console.warn('setSelfSigned is not supported in edge runtimes.');
+        }
+
         this.config.selfSigned = selfSigned;
 
         return this;
@@ -148,7 +155,8 @@ class Client {
         let options: RequestInit = {
             method,
             headers,
-            credentials: 'include'
+            credentials: 'include',
+            ...createAgent({ rejectUnauthorized: !this.config.selfSigned }),
         };
 
         if (method === 'GET') {
