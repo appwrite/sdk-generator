@@ -53,8 +53,12 @@ function getUserAgent() {
         // @ts-ignore
         ua += ` ${navigator.userAgent}`;
 
+    // @ts-ignore
+    } else if (typeof globalThis.EdgeRuntime === 'string') {
+        ua += ` EdgeRuntime`;
+
     // Older Node.js versions don't have `navigator.userAgent`, so we have to use `process.version`.
-    } else if (typeof process !== 'undefined') {
+    } else if (typeof process !== 'undefined' && typeof process.version === 'string') {
         ua += ` Node.js/${process.version}`;
     }
 
