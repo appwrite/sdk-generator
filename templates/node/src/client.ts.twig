@@ -48,7 +48,9 @@ function getUserAgent() {
     // `navigator.userAgent` is available in Node.js 21 and later.
     // It's also part of the WinterCG spec, so many edge runtimes provide it.
     // https://common-min-api.proposal.wintercg.org/#requirements-for-navigatoruseragent
+    // @ts-ignore
     if (typeof navigator !== 'undefined' && typeof navigator.userAgent === 'string') {
+        // @ts-ignore
         ua += ` ${navigator.userAgent}`;
 
     // Older Node.js versions don't have `navigator.userAgent`, so we have to use `process.version`.
@@ -61,8 +63,6 @@ function getUserAgent() {
 
 class Client {
     static CHUNK_SIZE = 1024 * 1024 * 5;
-
-    fetch = nodeFetch;
 
     config = {
         endpoint: '{{ spec.endpoint }}',
@@ -105,6 +105,7 @@ class Client {
      * @returns {this}
      */
     setSelfSigned(selfSigned: boolean): this {
+        // @ts-ignore
         if (typeof globalThis.EdgeRuntime !== 'undefined') {
             console.warn('setSelfSigned is not supported in edge runtimes.');
         }
