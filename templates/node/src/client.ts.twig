@@ -161,7 +161,7 @@ class Client {
             method,
             headers,
             credentials: 'include',
-            ...createAgent({ rejectUnauthorized: !this.config.selfSigned }),
+            ...createAgent(this.config.endpoint, { rejectUnauthorized: !this.config.selfSigned }),
         };
 
         if (method === 'GET') {
