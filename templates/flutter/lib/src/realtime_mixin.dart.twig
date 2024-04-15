@@ -25,6 +25,7 @@ mixin RealtimeMixin {
   Map<int, RealtimeSubscription> _subscriptions = {};
   bool _notifyDone = true;
   StreamSubscription? _websocketSubscription;
+  bool _creatingSocket = false;
 
   Future<dynamic> _closeConnection() async {
     await _websocketSubscription?.cancel();
@@ -33,12 +34,15 @@ mixin RealtimeMixin {
   }
 
   _createSocket() async {
+    if(_creatingSocket) return;
+    _creatingSocket = true;
     final uri = _prepareUri();
     if (_websok == null) {
       _websok = await getWebSocket(uri);
       _lastUrl = uri.toString();
     } else {
       if (_lastUrl == uri.toString() && _websok?.closeCode == null) {
+        _creatingSocket = false;
         return;
       }
       _notifyDone = false;
@@ -107,6 +111,8 @@ mixin RealtimeMixin {
         throw AppwriteException(e.message);
       }
       throw AppwriteException(e.toString());
+    } finally {
+      _creatingSocket = false;
     }
   }
 
