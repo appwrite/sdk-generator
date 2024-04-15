@@ -160,7 +160,6 @@ class Client {
         let options: RequestInit = {
             method,
             headers,
-            credentials: 'include',
             ...createAgent(this.config.endpoint, { rejectUnauthorized: !this.config.selfSigned }),
         };
 
