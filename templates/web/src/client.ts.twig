@@ -188,7 +188,7 @@ class Client {
         createSocket: () => {
             if (this.realtime.channels.size < 1) {
                 this.realtime.reconnect = false;
-                this.realtime.socket.close();
+                this.realtime.socket?.close();
                 return;
             }
 
