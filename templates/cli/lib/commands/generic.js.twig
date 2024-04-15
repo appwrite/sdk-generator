@@ -5,8 +5,8 @@ const { sdkForConsole } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, log, parse } = require("../parser");
 {% if sdk.test != "true" %}
-const { questionsLogin } = require("../questions");
-const { accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
+const { questionsLogin, questionsListFactors, questionsMfaChallenge } = require("../questions");
+const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
 
 const login = new Command("login")
     .description(commandDescriptions['login'])
@@ -25,7 +25,44 @@ const login = new Command("login")
             sdk: client
         })
 
-        success()
+        client.setCookie(globalConfig.getCookie());
+
+        let account;
+
+        try {
+            account = await accountGet({
+                sdk: client,
+                parseOutput: false
+            });
+        } catch(error) {
+            if (error.response === 'user_more_factors_required') {
+                const { factor } = await inquirer.prompt(questionsListFactors);
+
+                const challenge = await accountCreateMfaChallenge({
+                    factor,
+                    parseOutput: false,
+                    sdk: client
+                });
+
+                const { otp } = await inquirer.prompt(questionsMfaChallenge);
+
+                await accountUpdateMfaChallenge({
+                    challengeId: challenge.$id,
+                    otp,
+                    parseOutput: false,
+                    sdk: client
+                });
+
+                account = await accountGet({
+                    sdk: client,
+                    parseOutput: false
+                });
+            } else {
+                throw error;
+            }
+        }
+
+        success("Signed in as user with ID: " + account.$id);
     }));
 
 const logout = new Command("logout")
