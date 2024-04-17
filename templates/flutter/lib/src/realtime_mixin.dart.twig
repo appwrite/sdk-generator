@@ -88,7 +88,7 @@ mixin RealtimeMixin {
             break;
         }
       }, onDone: () {
-        if (!_notifyDone) return;
+        if (!_notifyDone || _creatingSocket) return;
         for (var subscription in _subscriptions.values) {
           subscription.close();
         }
