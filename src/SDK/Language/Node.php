@@ -92,6 +92,60 @@ class Node extends Web
         return 'Promise<{}>';
     }
 
+        /**
+     * @param array $param
+     * @return string
+     */
+    public function getParamExample(array $param): string
+    {
+        $type       = $param['type'] ?? '';
+        $example    = $param['example'] ?? '';
+
+        $output = '';
+
+        if (empty($example) && $example !== 0 && $example !== false) {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                case self::TYPE_BOOLEAN:
+                    $output .= 'null';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "''";
+                    break;
+                case self::TYPE_ARRAY:
+                    $output .= '[]';
+                    break;
+                case self::TYPE_OBJECT:
+                    $output .= '{}';
+                    break;
+                case self::TYPE_FILE:
+                    $output .= "InputFile.fromPath('/path/to/file', 'filename')";
+                    break;
+            }
+        } else {
+            switch ($type) {
+                case self::TYPE_NUMBER:
+                case self::TYPE_INTEGER:
+                case self::TYPE_ARRAY:
+                case self::TYPE_OBJECT:
+                    $output .= $example;
+                    break;
+                case self::TYPE_BOOLEAN:
+                    $output .= ($example) ? 'true' : 'false';
+                    break;
+                case self::TYPE_STRING:
+                    $output .= "'{$example}'";
+                    break;
+                case self::TYPE_FILE:
+                    $output .= "InputFile.fromPath('/path/to/file', 'filename')";
+                    break;
+            }
+        }
+
+        return $output;
+    }
+
     /**
      * @return array
      */
