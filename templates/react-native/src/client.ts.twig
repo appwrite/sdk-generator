@@ -348,7 +348,6 @@ class Client {
     async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<any> {
         method = method.toUpperCase();
 
-
         headers = Object.assign({}, this.headers, headers);
         headers.Origin = `{{ spec.title | caseLower }}-${Platform.OS}://${this.config.platform}`
 
