@@ -23,6 +23,8 @@ open class Realtime : Service {
 
     private func createSocket() {
         guard activeChannels.count > 0 else {
+            reconnect = false
+            closeSocket()
             return
         }
 
