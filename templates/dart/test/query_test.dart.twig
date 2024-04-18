@@ -7,10 +7,10 @@ import 'package:test/test.dart';
 import 'package:flutter_test/flutter_test.dart';
 {% endif %}
 
-class BasicFilterQueryTest<V> {
+class BasicFilterQueryTest<V, E> {
   final String description;
   final V value;
-  final List<V> expectedValues;
+  final E expectedValues;
 
   BasicFilterQueryTest({
     required this.description,
@@ -26,37 +26,36 @@ extension StringJSON on String {
 void main() {
   group('basic filter tests', () {
     final tests = [
-      BasicFilterQueryTest<String>(
+      BasicFilterQueryTest<String, List<String>>(
         description: 'with a string',
         value: 's',
         expectedValues: ['s'],
       ),
-      BasicFilterQueryTest<int>(
+      BasicFilterQueryTest<int, List<int>>(
         description: 'with an integer',
         value: 1,
         expectedValues: [1],
       ),
-      BasicFilterQueryTest<double>(
+      BasicFilterQueryTest<double, List<double>>(
         description: 'with a double',
         value: 1.2,
         expectedValues: [1.2],
       ),
-      BasicFilterQueryTest<double>(
+      BasicFilterQueryTest<double, List<double>>(
         description: 'with a whole number double',
         value: 1.0,
         expectedValues: [1.0],
       ),
-      BasicFilterQueryTest<bool>(
+      BasicFilterQueryTest<bool, List<bool>>(
         description: 'with a bool',
         value: false,
         expectedValues: [false],
       ),
-      // FIXME: seems to be not working for now... bug?
-      // BasicFilterQueryTest<List<String>>(
-      //   description: 'with a list',
-      //   value: ['a', 'b', 'c'],
-      //   expectedValues: [['a', 'b', 'c']],
-      // ),
+      BasicFilterQueryTest<List<String>, List<String>>(
+        description: 'with a list',
+        value: ['a', 'b', 'c'],
+        expectedValues: ['a', 'b', 'c'],
+      ),
     ];
 
     group('equal()', () {
