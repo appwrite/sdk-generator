@@ -44,6 +44,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
     private fun createSocket() {
         if (activeChannels.isEmpty()) {
+            reconnect = false
+            closeSocket()
             return
         }
 
