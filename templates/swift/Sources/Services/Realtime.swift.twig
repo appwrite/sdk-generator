@@ -137,7 +137,7 @@ open class Realtime : Service {
             let subsWithChannel = activeSubscriptions.filter { callback in
                 return callback.value.channels.contains(channel)
             }
-            return subsWithChannel.isEmpty
+            return !subsWithChannel.isEmpty
         }
     }
 }
