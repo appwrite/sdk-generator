@@ -7,7 +7,10 @@ jobs:
     - stage: NPM RC Release
       if: tag =~ /-(rc|RC)/
       node_js: "14.16"
-      script: echo "Deploying RC to NPM..."
+      script:
+        - npm install
+        - npm run build
+        - echo "Deploying RC to NPM..."
       deploy:
         provider: npm
         email: $NPM_EMAIL
@@ -16,10 +19,14 @@ jobs:
     - stage: NPM Release
       if: not tag =~ /-(rc|RC)/
       node_js: "14.16"
-      script: echo "Deploying to NPM..."
+      script:
+        - npm install
+        - npm run build
+        - echo "Deploying to NPM..."
       deploy:
         provider: npm
         email: $NPM_EMAIL
         api_key: $NPM_API_KEY
+        skip_cleanup: true
         on:
           tags: true

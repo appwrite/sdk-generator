@@ -1,9 +1,0 @@
-const {{ enum.name | caseUcfirst | overrideIdentifier }} = Object.freeze({
-{% for value in enum.enum %}
-{% set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
-    {{ key | caseEnumKey }}: '{{value}}' {% if not loop.last %},{% endif %}
-
-{% endfor %}
-});
-
-module.exports = {{ enum.name | caseUcfirst | overrideIdentifier }};

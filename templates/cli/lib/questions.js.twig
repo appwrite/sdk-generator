@@ -1,6 +1,9 @@
 const { localConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { functionsListRuntimes } = require('./commands/functions');
+const { accountListMfaFactors } = require("./commands/account");
+const { sdkForConsole } = require("./sdks");
+
 const { databasesList } = require('./commands/databases');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
@@ -387,7 +390,57 @@ const questionsDeployTeams = [
         name: "override",
         message: 'Are you sure you want to override this team? This can lead to loss of data! Type "YES" to confirm.'
     },
-]
+];
+
+const questionsListFactors = [
+    {
+        type: "list",
+        name: "factor",
+        message: "Your account is protected by multiple factors. Which factor would you like to use to authenticate?",
+        choices: async () => {
+            let client = await sdkForConsole(false);
+            const factors = await accountListMfaFactors({
+                sdk: client,
+                parseOutput: false
+            });
+                
+            const choices = [
+                {
+                    name: `TOTP (Time-based One-time Password)`,
+                    value: 'totp'
+                },
+                {
+                    name: `E-mail`,
+                    value: 'email'
+                },
+                {
+                    name: `Phone (SMS)`,
+                    value: 'phone'
+                },
+                {
+                    name: `Recovery code`,
+                    value: 'recoveryCode'
+                }
+            ].filter((ch) => factors[ch.value] === true);
+
+            return choices;
+        }
+    }
+];
+
+const questionsMfaChallenge = [
+    {
+        type: "input",
+        name: "otp",
+        message: "Enter OTP",
+        validate(value) {
+            if (!value) {
+                return "Please enter OTP";
+            }
+            return true;
+        },
+    }
+];
 
 module.exports = {
     questionsInitProject,
@@ -398,5 +451,7 @@ module.exports = {
     questionsDeployCollections,
     questionsDeployBuckets,
     questionsDeployTeams,
-    questionsGetEntrypoint
+    questionsGetEntrypoint,
+    questionsListFactors,
+    questionsMfaChallenge
 };
