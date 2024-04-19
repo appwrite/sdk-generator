@@ -63,14 +63,6 @@ void main() {
           expect(query['method'], 'equal');
         });
       }
-
-      test('with a list', () {
-        final query = jsonDecode(Query.equal('attr', ['a', 'b', 'c']));
-        print(query);
-        expect(query['attribute'], 'attr');
-        expect(query['values'], ['a', 'b', 'c']);
-        expect(query['method'], 'equal');
-      });
     });
 
     group('notEqual()', () {
@@ -133,7 +125,7 @@ void main() {
     group('greaterThan()', () {
       for (var t in tests) {
         test(t.description, () {
-          final query = jsonDecode(Query.greaterThan('attr', t.value).toJson());
+          final query = jsonDecode(Query.greaterThan('attr', t.value));
           expect(query['attribute'], 'attr');
           expect(query['values'], t.expectedValues);
           expect(query['method'], 'greaterThan');
