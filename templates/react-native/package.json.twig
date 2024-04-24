@@ -1,0 +1,43 @@
+{
+  "name": "{{ language.params.npmPackage }}",
+  "homepage": "{{ spec.contactURL }}",
+  "description": "{{ sdk.shortDescription }}",
+  "version": "{{ sdk.version }}",
+  "license": "{{ sdk.license }}",
+  "main": "dist/cjs/sdk.js",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/sdk.js",
+      "require": "./dist/cjs/sdk.js",
+      "types": "./types/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "module": "dist/esm/sdk.js",
+  "types": "types/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "{{ sdk.gitURL }}"
+  },
+  "scripts": {
+    "build": "npm run build:types && npm run build:libs",
+    "build:types": "tsc --declaration --emitDeclarationOnly --outDir types",
+    "build:libs": "rollup -c"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "8.3.2",
+    "playwright": "1.15.0",
+    "rollup": "2.75.4",
+    "serve-handler": "6.1.0",
+    "tslib": "2.4.0",
+    "typescript": "4.7.2"
+  },
+  "dependencies": {
+    "expo-file-system": "16.0.8",
+    "react-native": "^0.73.6"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react-native": "*"
+  }
+}
