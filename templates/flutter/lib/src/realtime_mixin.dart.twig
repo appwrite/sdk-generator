@@ -143,7 +143,6 @@ mixin RealtimeMixin {
         channels: channels,
         close: () async {
           _subscriptions.remove(id);
-          _subscriptionsCounter--;
           controller.close();
           _cleanup(channels);
 
