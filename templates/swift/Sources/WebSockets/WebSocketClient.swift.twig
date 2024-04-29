@@ -408,5 +408,9 @@ public class WebSocketClient {
         } else {
             channel.write(frame, promise: nil)
         }
+        
+        if opcode == .connectionClose {
+            channel.close(mode: .all, promise: nil)
+        }
     }
 }

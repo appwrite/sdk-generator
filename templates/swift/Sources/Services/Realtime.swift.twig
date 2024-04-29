@@ -23,6 +23,8 @@ open class Realtime : Service {
 
     private func createSocket() {
         guard activeChannels.count > 0 else {
+            reconnect = false
+            closeSocket()
             return
         }
 
@@ -137,7 +139,7 @@ open class Realtime : Service {
             let subsWithChannel = activeSubscriptions.filter { callback in
                 return callback.value.channels.contains(channel)
             }
-            return subsWithChannel.isEmpty
+            return !subsWithChannel.isEmpty
         }
     }
 }
