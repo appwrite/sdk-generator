@@ -146,7 +146,7 @@ class ReactNative extends Web
                 }
                 return 'string[]';
             case self::TYPE_FILE:
-                return 'any';
+                return '{name: string, type: string, size: number, uri: string}';
         }
 
         return $parameter['type'];
