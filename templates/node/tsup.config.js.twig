@@ -8,12 +8,6 @@ export default defineConfig({
   bundle: false,
   treeshake: true,
   outDir: "dist",
-  outExtension({ format }) {
-    return {
-      cjs: '.js',
-      esm: '.mjs'
-    }[format]
-  },
   target: "node16",
   format: ['cjs', 'esm']
 })
