@@ -229,8 +229,8 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'tsup.config.js',
-                'template'      => 'node/tsup.config.js.twig',
+                'destination'   => 'tsup.config.ts',
+                'template'      => 'node/tsup.config.ts.twig',
             ],
             [
                 'scope'         => 'default',
