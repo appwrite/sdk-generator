@@ -268,7 +268,7 @@ class Client {
 
         const response = await fetch(uri, options);
 
-        const latestFormat = response.headers.get('x-appwrite-default-response-format');
+        const defaultFormat = response.headers.get('x-appwrite-default-response-format');
         const sentFormat = headers['x-appwrite-response-format'];
         if (defaultFormat && sentFormat && greaterThan(sentFormat, defaultFormat)) {
             console.warn(`Request made with SDK version {{ sdk.version }} using response format ${sentFormat} while the server latest is ${defaultFormat}. This may lead to unexpected behavior. Please downgrade your SDK version to match the server default, see {{ sdk.gitURL }}/releases`);
