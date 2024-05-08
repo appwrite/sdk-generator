@@ -9,7 +9,7 @@
     "require": {
         "utopia-php/framework": "0.33.*",
         "utopia-php/database": "0.48.*",
-        "utopia-php/cli": "0.16.*",
+        "utopia-php/cli": "0.18.*",
         "utopia-php/swoole": "0.8.*"
     },
     "require-dev": {
