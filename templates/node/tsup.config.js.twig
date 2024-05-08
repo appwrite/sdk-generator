@@ -1,4 +1,5 @@
 import { defineConfig } from 'tsup'
+import { esbuildPluginFilePathExtensions } from 'esbuild-plugin-file-path-extensions'
 
 export default defineConfig({
   entry: ["src/**/*.ts"],
@@ -7,12 +8,9 @@ export default defineConfig({
   dts: true,
   treeshake: true,
   outDir: "dist",
-  outExtension({ format }) {
-    return {
-      cjs: '.js',
-      esm: '.mjs'
-    }[format]
-  },
+  esbuildPlugins: [esbuildPluginFilePathExtensions({ filter: /^\./ })],
+  // Yes, bundle: true => https://github.com/favware/esbuild-plugin-file-path-extensions?tab=readme-ov-file#usage
+  bundle: true,
   target: "node16",
   format: ['cjs', 'esm']
 })
