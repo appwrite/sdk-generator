@@ -4,7 +4,7 @@ const { Command } = require("commander");
 const { localConfig } = require("../config");
 const { paginate } = require('../paginate');
 const { questionsDeployBuckets, questionsDeployTeams, questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
-const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
+const { actionRunner, success, log, tip, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
@@ -256,6 +256,11 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
     if (functionIds.length <= 0) {
         const answers = await inquirer.prompt(questionsDeployFunctions[0]);
         functionIds.push(...answers.functions);
+
+        if (functionIds.length <= 0) {
+            functionIds.push(...localConfig.getFunctions().map(f => f.$id));
+            tip(`Deploying All available functions. Use the '--all' flag to execute this action intentionally\n`)
+        }
     }
 
     let functions = functionIds.map((id) => {
@@ -353,7 +358,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                     functionId: func['$id'],
                     parseOutput: false
                 }, 100, 'variables');
-    
+
                 await Promise.all(variables.map(async variable => {
                     await functionsDeleteVariable({
                         functionId: func['$id'],
@@ -361,7 +366,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                         parseOutput: false
                     });
                 }));
-    
+
                 let result = await awaitPools.wipeVariables(func['$id']);
                 if (!result) {
                     throw new Error("Variable deletion timed out.");
