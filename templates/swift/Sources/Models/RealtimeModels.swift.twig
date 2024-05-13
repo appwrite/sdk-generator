@@ -14,7 +14,7 @@ public class RealtimeCallback {
 
     init(
         for channels: Set<String>,
-        and callback: @escaping (RealtimeResponseEvent) -> Void
+        with callback: @escaping (RealtimeResponseEvent) -> Void
     ) {
         self.channels = channels
         self.callback = callback
