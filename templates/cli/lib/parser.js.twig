@@ -137,6 +137,10 @@ const parseBool = (value) => {
     throw new commander.InvalidArgumentError('Not a boolean.');
 }
 
+const tip = (message) => {
+    console.log(`${chalk.yellow.bold("✧ Tip")} ${chalk.yellow(message ?? "")}`);
+}
+
 const log = (message) => {
     console.log(`${chalk.cyan.bold("ℹ Info")} ${chalk.cyan(message ?? "")}`);
 }
@@ -189,6 +193,7 @@ module.exports = {
     parseInteger,
     parseBool,
     log,
+    tip,
     success,
     error,
     commandDescriptions,
