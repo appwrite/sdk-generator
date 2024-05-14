@@ -240,27 +240,21 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
     let response = {};
 
     const functionIds = [];
+    const configFunctions = localConfig.getFunctions();
 
     if (functionId) {
         functionIds.push(functionId);
     } else if (all) {
-        const functions = localConfig.getFunctions();
-        if (functions.length === 0) {
+        if (configFunctions.length === 0) {
             throw new Error("No functions found in the current directory.");
         }
-        functionIds.push(...functions.map((func, idx) => {
+        functionIds.push(...configFunctions.map((func, idx) => {
             return func.$id;
         }));
     }
 
     if (functionIds.length <= 0) {
-        const answers = await inquirer.prompt(questionsDeployFunctions[0]);
-        functionIds.push(...answers.functions);
-
-        if (functionIds.length <= 0) {
-            functionIds.push(...localConfig.getFunctions().map(f => f.$id));
-            tip(`Deploying All available functions. Use the '--all' flag to execute this action intentionally\n`)
-        }
+        functionIds.push(...await selectedOrAll('functions', questionsDeployFunctions[0], configFunctions));
     }
 
     let functions = functionIds.map((id) => {
@@ -538,20 +532,21 @@ const deployCollection = async ({ all, yes } = {}) => {
     let response = {};
 
     const collections = [];
+    const configCollections = localConfig.getCollections();
 
     if (all) {
-        if (localConfig.getCollections().length === 0) {
+        if (configCollections.length === 0) {
             throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
         }
-        collections.push(...localConfig.getCollections());
+        collections.push(...configCollections);
     } else {
-        const answers = await inquirer.prompt(questionsDeployCollections[0])
-        const configCollections = new Map();
-        localConfig.getCollections().forEach((c) => {
-            configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
-        });
-        answers.collections.forEach((a) => {
-            const collection = configCollections.get(a);
+        const collectionsIds = await selectedOrAll('collections', questionsDeployCollections[0], () => configCollections.map(c => `${c['databaseId']}|${c['$id']}`))
+
+        const mappedConfigCollections = new Map();
+        configCollections.forEach((c) => mappedConfigCollections.set(`${c['databaseId']}|${c['$id']}`, c));
+
+        collectionsIds.forEach((a) => {
+            const collection = mappedConfigCollections.get(a);
             collections.push(collection);
         })
     }
@@ -768,9 +763,8 @@ const deployBucket = async ({ all, yes } = {}) => {
         bucketIds.push(...configBuckets.map((b) => b.$id));
     }
 
-    if (bucketIds.length === 0) {
-        const answers = await inquirer.prompt(questionsDeployBuckets[0])
-        bucketIds.push(...answers.buckets);
+    if (bucketIds.length <= 0) {
+        bucketIds.push(...await selectedOrAll('buckets', questionsDeployBuckets[0], configBuckets));
     }
 
     let buckets = [];
@@ -855,9 +849,8 @@ const deployTeam = async ({ all, yes } = {}) => {
         teamIds.push(...configTeams.map((t) => t.$id));
     }
 
-    if (teamIds.length === 0) {
-        const answers = await inquirer.prompt(questionsDeployTeams[0])
-        teamIds.push(...answers.teams);
+    if (teamIds.length <= 0) {
+        teamIds.push(...await selectedOrAll('teams', questionsDeployTeams[0], configTeams));
     }
 
     let teams = [];
@@ -910,6 +903,22 @@ const deployTeam = async ({ all, yes } = {}) => {
             }
         }
     }
+}
+
+const selectedOrAll = async (resourceName, questions, data) => {
+    const ids = []
+
+    const answers = await inquirer.prompt(questions);
+    ids.push(...answers[resourceName]);
+
+    if (ids.length <= 0) {
+        const all = data instanceof Function ? data() : data.map((resource) => resource.$id)
+
+        ids.push(...all);
+        tip(`Deploying All available ${resourceName}. Use the '--all' flag to execute this action intentionally\n`)
+    }
+
+    return ids;
 }
 
 deploy
