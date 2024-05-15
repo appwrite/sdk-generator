@@ -272,9 +272,9 @@ namespace {{ spec.title | caseUcfirst }}
             var warnings = response.Headers.GetValues("x-{{ spec.title | lower }}-warning");
             if (warnings != null)
             {
-                foreach (var warning in warnings.Split(';')
+                foreach (var warning in warnings.Split(';'))
                 {
-                    Console.WriteLine('Warning: ', warning);
+                    Console.WriteLine("Warning: " + warning);
                 }
             }
 
