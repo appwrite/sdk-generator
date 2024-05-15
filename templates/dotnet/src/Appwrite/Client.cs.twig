@@ -269,10 +269,13 @@ namespace {{ spec.title | caseUcfirst }}
             var response = await _http.SendAsync(request);
             var code = (int)response.StatusCode;
 
-            IEnumerable<string> warnings = response.Headers.TryGetValues("x-{{ spec.title | lower }}-warning");
-            foreach (var warning in warnings)
+            IEnumerable<string>? warnings = response.Headers.TryGetValues("x-{{ spec.title | lower }}-warning");
+            if (warnings != null) 
             {
-                Console.WriteLine("Warning: " + warning);
+                foreach (var warning in warnings)
+                {
+                    Console.WriteLine("Warning: " + warning);
+                }
             }
 
             string contentType = string.Empty;
