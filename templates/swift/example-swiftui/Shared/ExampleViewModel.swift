@@ -17,6 +17,7 @@ extension ExampleView {
         @Published public var collectionId: String = "test"
         @Published public var isShowPhotoLibrary = false
         @Published public var response: String = ""
+        @Published public var response2: String = ""
 
         func register() async {
             do {

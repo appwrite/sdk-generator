@@ -1,9 +1,9 @@
 import Foundation
 
 public class RealtimeSubscription {
-    public var close: () -> Void
+    public var close: () async throws -> Void
 
-    init(close: @escaping () -> Void) {
+    init(close: @escaping () async throws-> Void) {
         self.close = close
     }
 }

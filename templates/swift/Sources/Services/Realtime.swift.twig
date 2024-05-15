@@ -13,6 +13,8 @@ open class Realtime : Service {
     private var activeChannels = Set<String>()
     private var activeSubscriptions = [Int: RealtimeCallback]()
 
+    let connectSync = DispatchQueue(label: "ConnectSync")
+
     private var subCallDepth = 0
     private var reconnectAttempts = 0
     private var subscriptionsCounter = 0
@@ -120,7 +122,9 @@ open class Realtime : Service {
             with: callback
         )
 
-        subCallDepth += 1
+        connectSync.sync {
+            subCallDepth+=1
+        }
 
         try await Task.sleep(nanoseconds: UInt64(DEBOUNCE_NANOS))
 
@@ -128,7 +132,9 @@ open class Realtime : Service {
             try await self.createSocket()
         }
 
-        self.subCallDepth -= 1
+        connectSync.sync {
+            self.subCallDepth -= 1
+        }
 
         return RealtimeSubscription {
             self.activeSubscriptions[self.subscriptionsCounter] = nil

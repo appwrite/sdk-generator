@@ -226,7 +226,9 @@ public class WebSocketClient {
             SO_REUSEPORT
         )
 
-        while(threadGroup == nil) {}
+        while(threadGroup == nil) {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
 
         let bootstrap = ClientBootstrap(group: threadGroup!)
             .channelOption(socketOptions, value: 1)
