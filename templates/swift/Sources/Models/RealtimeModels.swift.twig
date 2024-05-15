@@ -1,10 +1,14 @@
 import Foundation
 
 public class RealtimeSubscription {
-    public var close: () async throws -> Void
+    private var close: () async throws -> Void
 
     init(close: @escaping () async throws-> Void) {
         self.close = close
+    }
+
+    public func close() async throws {
+        try await self.close()
     }
 }
 

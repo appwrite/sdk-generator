@@ -113,11 +113,13 @@ open class Realtime : Service {
     ) async throws -> RealtimeSubscription {
         subscriptionsCounter += 1
 
+        let count = subscriptionsCounter
+
         channels.forEach {
             activeChannels.insert($0)
         }
 
-        activeSubscriptions[self.subscriptionsCounter] = RealtimeCallback(
+        activeSubscriptions[count] = RealtimeCallback(
             for: Set(channels),
             with: callback
         )
@@ -137,7 +139,7 @@ open class Realtime : Service {
         }
 
         return RealtimeSubscription {
-            self.activeSubscriptions[self.subscriptionsCounter] = nil
+            self.activeSubscriptions[count] = nil
             self.cleanUp(channels: channels)
             try await self.createSocket()
         }
