@@ -209,12 +209,12 @@ const questionsInitFunction = [
                 parseOutput: false
             })
             let runtimes = response["runtimes"]
-            let choices = runtimes.map((runtime, idx) => { 
+            let choices = runtimes.map((runtime, idx) => {
                 return {
                     name: `${runtime.name} (${runtime['$id']})`,
-                    value: { 
-                        id: runtime['$id'], 
-                        entrypoint: getEntrypoint(runtime['$id']), 
+                    value: {
+                        id: runtime['$id'],
+                        entrypoint: getEntrypoint(runtime['$id']),
                         ignore: getIgnores(runtime['$id']),
                         commands : getInstallCommand(runtime['$id'])
                     },
@@ -275,6 +275,21 @@ const questionsLogin = [
         }
     },
 ];
+
+const questionsDeployResources = [
+    {
+        type: "checkbox",
+        name: "resources",
+        message: "Which resources would you like to deploy?",
+        choices: [
+            { name: 'Functions', value: 'functions' },
+            { name: 'Collections', value: 'collections' },
+            { name: 'Buckets', value: 'buckets' },
+            { name: 'Teams', value: 'teams' },
+            { name: 'Messages', value: 'messages' }
+        ]
+    }
+]
 
 const questionsDeployFunctions = [
     {
@@ -403,7 +418,7 @@ const questionsListFactors = [
                 sdk: client,
                 parseOutput: false
             });
-                
+
             const choices = [
                 {
                     name: `TOTP (Time-based One-time Password)`,
@@ -447,6 +462,7 @@ module.exports = {
     questionsLogin,
     questionsInitFunction,
     questionsInitCollection,
+    questionsDeployResources,
     questionsDeployFunctions,
     questionsDeployCollections,
     questionsDeployBuckets,
