@@ -226,6 +226,13 @@ module {{ spec.title | caseUcfirst }}
                 raise {{spec.title | caseUcfirst}}::Exception.new(error.message)
             end
 
+            warnings = response['x-{{ spec.title | lower }}-warning']
+            if warnings
+                warnings.split(';').each do |warning|
+                    warn warning
+                end
+            end
+
             location = response['location']
             if response_type == "location"
                 return location
