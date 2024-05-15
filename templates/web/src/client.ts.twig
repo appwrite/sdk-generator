@@ -390,7 +390,7 @@ class Client {
             let data = null;
             const response = await fetch(url.toString(), options);
 
-            const warnings = response.headers.get('x-{{spec.title | lower}}-warning');
+            const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
             if (warnings) {
                 warnings.split(';').forEach((warning: string) => console.warn(warning));
             }

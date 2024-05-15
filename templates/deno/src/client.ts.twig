@@ -97,7 +97,7 @@ export class Client {
                 body
             });
 
-            const warnings = response.headers.get('x-{{spec.title | lower}}-warning');
+            const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
             if (warnings) {
                 warnings.split(';').forEach((warning: string) => console.warn(warning));
             }
