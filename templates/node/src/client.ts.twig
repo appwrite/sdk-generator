@@ -18,12 +18,6 @@ type Headers = {
     [key: string]: string;
 }
 
-function greaterThan(v1, v2) {
-    const [a, b, c] = v1.split('.').map(Number);
-    const [x, y, z] = v2.split('.').map(Number);
-    return a > x || a === x && (b > y || b === y && c > z);
-}
-
 class {{spec.title | caseUcfirst}}Exception extends Error {
     code: number;
     response: string;
@@ -268,10 +262,9 @@ class Client {
 
         const response = await fetch(uri, options);
 
-        const defaultFormat = response.headers.get('x-appwrite-default-response-format');
-        const sentFormat = headers['x-appwrite-response-format'];
-        if (defaultFormat && sentFormat && greaterThan(sentFormat, defaultFormat)) {
-            console.warn(`Request made with SDK version {{ sdk.version }} using response format ${sentFormat} while the server latest is ${defaultFormat}. This may lead to unexpected behavior. Please downgrade your SDK version to match the server default, see {{ sdk.gitURL }}/releases`);
+        const warnings = response.headers.get('x-{{spec.title | lower}}-warning');
+        if (warnings) {
+            warnings.split(';').forEach((warning: string) => console.warn(warning));
         }
 
         if (response.headers.get('content-type')?.includes('application/json')) {
