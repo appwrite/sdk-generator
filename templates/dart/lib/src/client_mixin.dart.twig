@@ -67,6 +67,12 @@ class ClientMixin {
 
   Response prepareResponse(http.Response res, {ResponseType? responseType}) {
     responseType ??= ResponseType.json;
+
+    String? warnings = res.headers['x-{{ spec.title | lower }}-warning'];
+    if (warnings != null) {
+      warnings.split(';').forEach((warning) => print(warning));
+    }
+
     if (res.statusCode >= 400) {
       if ((res.headers['content-type'] ?? '').contains('application/json')) {
         final response = json.decode(res.body);
