@@ -55,11 +55,12 @@ open class Realtime : Service {
             return
         }
 
-        let promise = group.any().makePromise(of: Void.self)
+        if (client.isConnected) {
+            let promise = group.any().makePromise(of: Void.self)
+            client.close(promise: promise)
+            try await promise.futureResult.get()
+        }
 
-        client.close(promise: promise)
-
-        try await promise.futureResult.get()
         try await group.shutdownGracefully()
     }
 
