@@ -154,6 +154,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/id.js',
+                'template'      => 'cli/lib/id.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/utils.js',
                 'template'      => 'cli/lib/utils.js.twig',
             ],

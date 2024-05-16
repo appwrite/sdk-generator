@@ -10,6 +10,7 @@ const { databasesGet, databasesListCollections, databasesList } = require("./dat
 const { storageListBuckets } = require("./storage");
 const { sdkForConsole } = require("../sdks");
 const { localConfig } = require("../config");
+const ID  = require("../id");
 const { paginate } = require("../paginate");
 const { questionsPullProject, questionsPullFunction, questionsPullCollection } = require("../questions");
 const { success, log, actionRunner, commandDescriptions } = require("../parser");
@@ -63,10 +64,11 @@ const pullFunction = async () => {
         });
     }
 
-    const functionDir = path.join(functionFolder, answers.name);
+    const functionId = answers.id === 'unique()' ? ID.unique() : answers.id;
+    const functionDir = path.join(functionFolder, functionId);
 
     if (fs.existsSync(functionDir)) {
-        throw new Error(`( ${answers.name} ) already exists in the current directory. Please choose another name.`);
+        throw new Error(`( ${functionId} ) already exists in the current directory. Please choose another name.`);
     }
 
     if (!answers.runtime.entrypoint) {
@@ -78,7 +80,7 @@ const pullFunction = async () => {
     }
 
     let response = await functionsCreate({
-        functionId: answers.id,
+        functionId,
         name: answers.name,
         runtime: answers.runtime.id,
         entrypoint: answers.runtime.entrypoint || '',
@@ -134,7 +136,7 @@ const pullFunction = async () => {
 
     fs.rmSync(`${functionDir}/${answers.runtime.id}`, { recursive: true, force: true });
 
-    const readmePath = path.join(process.cwd(), 'functions', answers.name, 'README.md');
+    const readmePath = path.join(process.cwd(), 'functions', functionId, 'README.md');
     const readmeFile = fs.readFileSync(readmePath).toString();
     const newReadmeFile = readmeFile.split('\n');
     newReadmeFile[0] = `# ${answers.name}`;
@@ -154,7 +156,7 @@ const pullFunction = async () => {
         entrypoint: response.entrypoint,
         commands: response.commands,
         ignore: answers.runtime.ignore || null,
-        path: `functions/${answers.name}`,
+        path: `functions/${functionId}`,
     };
 
     localConfig.addFunction(data);
