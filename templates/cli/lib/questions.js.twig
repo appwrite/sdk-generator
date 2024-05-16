@@ -1,5 +1,6 @@
 const { localConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
+const { teamsList } = require('./commands/teams');
 const { functionsListRuntimes } = require('./commands/functions');
 const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
@@ -119,6 +120,35 @@ const questionsInitProject = [
     },
     {
         type: "list",
+        name: "organization",
+        message: "Choose the project Organization",
+        choices: async () => {
+            let client = await sdkForConsole(true);
+
+            let response = await teamsList({
+                parseOutput: false,
+                sdk: client
+            })
+            let teams = response["teams"]
+            let choices = teams.map((team, idx) => {
+                return {
+                    name: `${team.name} (${team['$id']})`,
+                    value: {
+                        name: team.name,
+                        id: team['$id']
+                    }
+                }
+            })
+
+            if (choices.length == 0) {
+                throw new Error("No organizations found. Please create a new organization.")
+            }
+
+            return choices;
+        }
+    },
+    {
+        type: "list",
         name: "start",
         when(answers) {
             if (answers.override == undefined) {
@@ -163,9 +193,10 @@ const questionsInitProject = [
         when(answers) {
             return answers.start == "existing";
         },
-        choices: async () => {
+        choices: async (answers) => {
             let response = await projectsList({
-                parseOutput: false
+                parseOutput: false,
+                queries: [JSON.stringify({ method: 'equal', attribute:'teamId', values: [answers.organization.id] })],
             })
             let projects = response["projects"]
             let choices = projects.map((project, idx) => {
@@ -209,12 +240,12 @@ const questionsInitFunction = [
                 parseOutput: false
             })
             let runtimes = response["runtimes"]
-            let choices = runtimes.map((runtime, idx) => { 
+            let choices = runtimes.map((runtime, idx) => {
                 return {
                     name: `${runtime.name} (${runtime['$id']})`,
-                    value: { 
-                        id: runtime['$id'], 
-                        entrypoint: getEntrypoint(runtime['$id']), 
+                    value: {
+                        id: runtime['$id'],
+                        entrypoint: getEntrypoint(runtime['$id']),
                         ignore: getIgnores(runtime['$id']),
                         commands : getInstallCommand(runtime['$id'])
                     },
@@ -403,7 +434,7 @@ const questionsListFactors = [
                 sdk: client,
                 parseOutput: false
             });
-                
+
             const choices = [
                 {
                     name: `TOTP (Time-based One-time Password)`,
