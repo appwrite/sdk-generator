@@ -3,7 +3,7 @@ const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
 const { paginate } = require('../paginate');
-const { questionsDeployBuckets, questionsDeployTeams, questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
+const { questionsDeployBuckets, questionsDeployTeams, questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsDeployMessagingTopics, questionsConfirmDeployCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
@@ -32,6 +32,9 @@ const {
 const {
     storageGetBucket, storageUpdateBucket, storageCreateBucket
 } = require("./storage");
+const {
+    messagingGetTopic, messagingUpdateTopic, messagingCreateTopic
+} = require("./messaging");
 const {
     teamsGet,
     teamsUpdate,
@@ -353,7 +356,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                     functionId: func['$id'],
                     parseOutput: false
                 }, 100, 'variables');
-    
+
                 await Promise.all(variables.map(async variable => {
                     await functionsDeleteVariable({
                         functionId: func['$id'],
@@ -361,7 +364,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                         parseOutput: false
                     });
                 }));
-    
+
                 let result = await awaitPools.wipeVariables(func['$id']);
                 if (!result) {
                     throw new Error("Variable deletion timed out.");
@@ -907,6 +910,78 @@ const deployTeam = async ({ all, yes } = {}) => {
     }
 }
 
+const deployMessagingTopic = async ({ all, yes } = {}) => {
+    let response = {};
+
+    let topicsIds = [];
+    const configTopics = localConfig.getMessagingTopics();
+
+    if (all) {
+        if (configTopics.length === 0) {
+            throw new Error("No topics found in the current directory. Run `appwrite init topics` to fetch all your messaging topics.");
+        }
+        topicsIds.push(...configTopics.map((b) => b.$id));
+    }
+
+    if (topicsIds.length === 0) {
+        const answers = await inquirer.prompt(questionsDeployMessagingTopics[0])
+        topicsIds.push(...answers.topics);
+    }
+
+    let topics = [];
+
+    for (const topicId of topicsIds) {
+        const idTopic = configTopics.filter((b) => b.$id === topicId);
+        topics.push(...idTopic);
+    }
+
+    for (let topic of topics) {
+        log(`Deploying topic ${topic.name} ( ${topic['$id']} )`)
+
+        try {
+            response = await messagingGetTopic({
+                topicId: topic['$id'],
+                parseOutput: false
+            })
+            log(`Topic ${topic.name} ( ${topic['$id']} ) already exists.`);
+
+            if (!yes) {
+                const answers = await inquirer.prompt(questionsDeployMessagingTopics[1])
+                if (answers.override.toLowerCase() !== "yes") {
+                    log(`Received "${answers.override}". Skipping ${topic.name} ( ${topic['$id']} )`);
+                    continue;
+                }
+            }
+
+            log(`Updating Topic ...`)
+
+            await messagingUpdateTopic({
+                topicId: topic['$id'],
+                name: topic.name,
+                subscribe: topic.subscribe,
+                parseOutput: false
+            });
+
+            success(`Deployed ${topic.name} ( ${topic['$id']} )`);
+        } catch (e) {
+            if (e.code == 404) {
+                log(`Topic ${topic.name} does not exist in the project. Creating ... `);
+
+                response = await messagingCreateTopic({
+                    topicId: topic['$id'],
+                    name: topic.name,
+                    subscribe: topic.subscribe,
+                    parseOutput: false
+                })
+
+                success(`Deployed ${topic.name} ( ${topic['$id']} )`);
+            } else {
+                throw e;
+            }
+        }
+    }
+}
+
 deploy
     .command("function")
     .description("Deploy functions in the current directory.")
@@ -935,6 +1010,13 @@ deploy
     .option(`--all`, `Flag to deploy all teams`)
     .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(deployTeam));
+
+deploy
+    .command("topic")
+    .description("Deploy messaging topics in the current project.")
+    .option(`--all`, `Flag to deploy all topics`)
+    .option(`--yes`, `Flag to confirm all warnings`)
+    .action(actionRunner(deployMessagingTopic));
 
 module.exports = {
     deploy

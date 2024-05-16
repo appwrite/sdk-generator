@@ -209,12 +209,12 @@ const questionsInitFunction = [
                 parseOutput: false
             })
             let runtimes = response["runtimes"]
-            let choices = runtimes.map((runtime, idx) => { 
+            let choices = runtimes.map((runtime, idx) => {
                 return {
                     name: `${runtime.name} (${runtime['$id']})`,
-                    value: { 
-                        id: runtime['$id'], 
-                        entrypoint: getEntrypoint(runtime['$id']), 
+                    value: {
+                        id: runtime['$id'],
+                        entrypoint: getEntrypoint(runtime['$id']),
                         ignore: getIgnores(runtime['$id']),
                         commands : getInstallCommand(runtime['$id'])
                     },
@@ -352,6 +352,31 @@ const questionsDeployBuckets = [
     },
 ]
 
+const questionsDeployMessagingTopics = [
+    {
+        type: "checkbox",
+        name: "topics",
+        message: "Which messaging topic would you like to deploy?",
+        choices: () => {
+            let topics = localConfig.getMessagingTopics();
+            if (topics.length === 0) {
+                throw new Error("No topics found in the current directory. Run `appwrite init messaging` to fetch all your messaging topics.");
+            }
+            return topics.map(topic => {
+                return {
+                    name: `${topic.name} (${topic['$id']})`,
+                    value: topic.$id
+                }
+            });
+        }
+    },
+    {
+        type: "input",
+        name: "override",
+        message: 'Are you sure you want to override this topic? This can lead to loss of data! Type "YES" to confirm.'
+    }
+]
+
 const questionsGetEntrypoint = [
     {
         type: "input",
@@ -403,7 +428,7 @@ const questionsListFactors = [
                 sdk: client,
                 parseOutput: false
             });
-                
+
             const choices = [
                 {
                     name: `TOTP (Time-based One-time Password)`,
@@ -450,6 +475,7 @@ module.exports = {
     questionsDeployFunctions,
     questionsDeployCollections,
     questionsDeployBuckets,
+    questionsDeployMessagingTopics,
     questionsDeployTeams,
     questionsGetEntrypoint,
     questionsListFactors,
