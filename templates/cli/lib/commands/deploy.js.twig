@@ -3,6 +3,8 @@ const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
+const { loaderInterval, clearLoaderInterval, } = require('../utils');
+const { formatterFunction } = require('../formatters');
 const { paginate } = require('../paginate');
 const { questionsDeployBuckets, questionsDeployTeams, questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
@@ -271,27 +273,38 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
     });
 
     const updatesBar = new _progress.MultiBar({
-        format: ` ${success('{status}')} | {function}({id})`,
+        format: formatterFunction,
         hideCursor: true,
         clearOnComplete: false,
         stopOnComplete: true,
         noTTYOutput: true
     });
-    log('Deploying functions')
-    for (let func of functions) {
-       const a = updatesBar.create(4, 0, { status: '', function: func.name, id: func['$id'] })
-        {#log(`Deploying function ${func.name} ( ${func['$id']} )`)#}
+
+    log('Deploying functions\n');
+
+    let successfullyDeployed = 0;
+
+    await Promise.all(functions.map(async (func) => {
+        const ignore = func.ignore ? 'appwrite.json' : '.gitignore';
+        let functionExists = false;
+
+        const bar = updatesBar.create(100, 0, { status: 'Deploying', function: func.name, id: func['$id'], ignore })
+        bar.update({ status: 'Getting' });
+        const updatingInterval = loaderInterval(bar, 8, 1, 80);
 
         try {
             response = await functionsGet({
                 functionId: func['$id'],
                 parseOutput: false,
             });
-
+            functionExists = true;
             if (response.runtime !== func.runtime) {
-                throw new Error(`Runtime missmatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.json`);
+                bar.update({ status: 'Error', errorMessage: `Runtime missmatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.json` })
+                clearLoaderInterval(bar, updatingInterval);
+                return;
             }
-            a.increment({status:'Updating'})
+            bar.update({ status: 'Updating' });
+
             response = await functionsUpdate({
                 functionId: func['$id'],
                 name: func.name,
@@ -307,9 +320,23 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 parseOutput: false
             });
         } catch (e) {
+
             if (e.code == 404) {
-                a.increment({status:'Creating'})
-                log(`Function ${func.name} ( ${func['$id']} ) does not exist in the project. Creating ... `);
+                functionExists = false;
+            } else {
+                clearLoaderInterval(bar, updatingInterval)
+                bar.update({ status: 'Error', errorMessage: e.message ?? 'General error occurs please try again' });
+                return;
+            }
+        }
+
+        clearLoaderInterval(bar, updatingInterval)
+
+        if (!functionExists) {
+            bar.update({ status: 'Creating' })
+            const creatingInterval = loaderInterval(bar, 8, 1, 80);
+
+            try {
                 response = await functionsCreate({
                     functionId: func.$id || 'unique()',
                     name: func.name,
@@ -329,15 +356,20 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 localConfig.updateFunction(func['$id'], {
                     "$id": response['$id'],
                 });
-
                 func["$id"] = response['$id'];
-                log(`Function ${func.name} created.`);
-            } else {
-                throw e;
+                bar.update({ status: 'Created' });
+
+                clearLoaderInterval(bar, creatingInterval);
+            } catch (e) {
+                clearLoaderInterval(bar, creatingInterval);
+
+                bar.update({ status: 'Error', errorMessage: e.message ?? 'General error occurs please try again' });
+                return;
             }
         }
 
         if (func.variables) {
+            // TODO:
             // Delete existing variables
 
             const { total } = await functionsListVariables({
@@ -375,7 +407,8 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
 
                 let result = await awaitPools.wipeVariables(func['$id']);
                 if (!result) {
-                    throw new Error("Variable deletion timed out.");
+                    bar.update({ status: 'Error', errorMessage: 'Variable deletion timed out' })
+                    return;
                 }
 
                 // Deploy local variables
@@ -396,6 +429,8 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             func.entrypoint = answers.entrypoint;
             localConfig.updateFunction(func['$id'], func);
         }
+        bar.update({ status: 'Deploying' })
+        const deployingInterval = loaderInterval(bar, 8, 1, 80);
 
         try {
             response = await functionsCreateDeployment({
@@ -407,20 +442,23 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 parseOutput: false
             })
 
-            success(`Deployed ${func.name} ( ${func['$id']} )`);
+            bar.update({ status: 'Deployed' })
+            successfullyDeployed++;
 
         } catch (e) {
             switch (e.code) {
                 case 'ENOENT':
-                    error(`Function ${func.name} ( ${func['$id']} ) not found in the current directory. Skipping ...`);
+                    bar.update({ status: 'Error', errorMessage: 'Not found in the current directory. Skipping...' })
                     break;
                 default:
-                    throw e;
+                    bar.update({ status: 'Error', errorMessage: e.message ?? 'General error occurs please try again' })
             }
         }
-    }
+        clearLoaderInterval(bar, deployingInterval);
+    }))
 
-    success(`Deployed ${functions.length} functions`);
+    updatesBar.stop()
+    success(`Deployed ${successfullyDeployed} functions`);
 }
 
 const createAttribute = async (databaseId, collectionId, attribute) => {

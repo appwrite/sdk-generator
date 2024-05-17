@@ -1,9 +1,23 @@
 const fs = require("fs");
 const path = require("path");
 
+function loaderInterval(bar, max, start, timeout) {
+    let a = start;
+
+    return setInterval(() => {
+        if (a === max) a = start;
+        bar.update({ progress: a++ })
+    }, timeout);
+}
+
+function clearLoaderInterval(bar, interval) {
+    clearInterval(interval);
+    bar.update({ progress: '⏳' })
+}
+
 function getAllFiles(folder) {
     const files = [];
-    for(const pathDir of fs.readdirSync(folder)) {
+    for (const pathDir of fs.readdirSync(folder)) {
         const pathAbsolute = path.join(folder, pathDir);
         if (fs.statSync(pathAbsolute).isDirectory()) {
             files.push(...getAllFiles(pathAbsolute));
@@ -15,5 +29,7 @@ function getAllFiles(folder) {
 }
 
 module.exports = {
-    getAllFiles
+    getAllFiles,
+    loaderInterval,
+    clearLoaderInterval
 };
