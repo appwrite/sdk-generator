@@ -1,3 +1,4 @@
+const _progress = require('cli-progress');
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
@@ -269,8 +270,17 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
         return func;
     });
 
+    const updatesBar = new _progress.MultiBar({
+        format: ` ${success('{status}')} | {function}({id})`,
+        hideCursor: true,
+        clearOnComplete: false,
+        stopOnComplete: true,
+        noTTYOutput: true
+    });
+    log('Deploying functions')
     for (let func of functions) {
-        log(`Deploying function ${func.name} ( ${func['$id']} )`)
+       const a = updatesBar.create(4, 0, { status: '', function: func.name, id: func['$id'] })
+        {#log(`Deploying function ${func.name} ( ${func['$id']} )`)#}
 
         try {
             response = await functionsGet({
@@ -281,7 +291,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             if (response.runtime !== func.runtime) {
                 throw new Error(`Runtime missmatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.json`);
             }
-
+            a.increment({status:'Updating'})
             response = await functionsUpdate({
                 functionId: func['$id'],
                 name: func.name,
@@ -298,6 +308,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             });
         } catch (e) {
             if (e.code == 404) {
+                a.increment({status:'Creating'})
                 log(`Function ${func.name} ( ${func['$id']} ) does not exist in the project. Creating ... `);
                 response = await functionsCreate({
                     functionId: func.$id || 'unique()',
@@ -353,7 +364,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                     functionId: func['$id'],
                     parseOutput: false
                 }, 100, 'variables');
-    
+
                 await Promise.all(variables.map(async variable => {
                     await functionsDeleteVariable({
                         functionId: func['$id'],
@@ -361,7 +372,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                         parseOutput: false
                     });
                 }));
-    
+
                 let result = await awaitPools.wipeVariables(func['$id']);
                 if (!result) {
                     throw new Error("Variable deletion timed out.");
