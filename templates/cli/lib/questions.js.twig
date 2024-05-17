@@ -3,6 +3,7 @@ const { projectsList } = require('./commands/projects');
 const { functionsListRuntimes } = require('./commands/functions');
 const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
+const { validateRequired } = require("./validations");
 
 const { databasesList } = require('./commands/databases');
 const JSONbig = require("json-bigint")({ storeAsString: false });
@@ -107,12 +108,6 @@ const getInstallCommand = (runtime) => {
     return undefined;
 };
 
-const deployValidate = (singular, items) => {
-    if (items.length <= 0) {
-        return `Please select at least one ${singular}`;
-    }
-    return true;
-}
 
 const questionsInitProject = [
     {
@@ -288,7 +283,7 @@ const questionsDeployFunctions = [
         type: "checkbox",
         name: "functions",
         message: "Which functions would you like to deploy?",
-        validate: (i) => deployValidate('function', i),
+        validate: (value) => validateRequired('function', value),
         choices: () => {
             let functions = localConfig.getFunctions();
             if (functions.length === 0) {
@@ -315,7 +310,7 @@ const questionsDeployCollections = [
         type: "checkbox",
         name: "collections",
         message: "Which collections would you like to deploy?",
-        validate: (i) => deployValidate('collection', i),
+        validate: (value) => validateRequired('collection', value),
         choices: () => {
             let collections = localConfig.getCollections();
             if (collections.length === 0) {
@@ -341,7 +336,7 @@ const questionsDeployBuckets = [
         type: "checkbox",
         name: "buckets",
         message: "Which buckets would you like to deploy?",
-        validate: (i) => deployValidate('bucket', i),
+        validate: (value) => validateRequired('bucket', value),
         choices: () => {
             let buckets = localConfig.getBuckets();
             if (buckets.length === 0) {
@@ -382,7 +377,7 @@ const questionsDeployTeams = [
         type: "checkbox",
         name: "teams",
         message: "Which teams would you like to deploy?",
-        validate: (i) => deployValidate('team', i),
+        validate: (value) => validateRequired('team', value),
         choices: () => {
             let teams = localConfig.getTeams();
             if (teams.length === 0) {
