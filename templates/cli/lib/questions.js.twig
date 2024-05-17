@@ -3,6 +3,7 @@ const { projectsList } = require('./commands/projects');
 const { functionsListRuntimes } = require('./commands/functions');
 const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
+const { validateRequired } = require("./validations");
 
 const { databasesList } = require('./commands/databases');
 const JSONbig = require("json-bigint")({ storeAsString: false });
@@ -107,6 +108,7 @@ const getInstallCommand = (runtime) => {
     return undefined;
 };
 
+
 const questionsInitProject = [
     {
         type: "confirm",
@@ -209,12 +211,12 @@ const questionsInitFunction = [
                 parseOutput: false
             })
             let runtimes = response["runtimes"]
-            let choices = runtimes.map((runtime, idx) => { 
+            let choices = runtimes.map((runtime, idx) => {
                 return {
                     name: `${runtime.name} (${runtime['$id']})`,
-                    value: { 
-                        id: runtime['$id'], 
-                        entrypoint: getEntrypoint(runtime['$id']), 
+                    value: {
+                        id: runtime['$id'],
+                        entrypoint: getEntrypoint(runtime['$id']),
                         ignore: getIgnores(runtime['$id']),
                         commands : getInstallCommand(runtime['$id'])
                     },
@@ -281,6 +283,7 @@ const questionsDeployFunctions = [
         type: "checkbox",
         name: "functions",
         message: "Which functions would you like to deploy?",
+        validate: (value) => validateRequired('function', value),
         choices: () => {
             let functions = localConfig.getFunctions();
             if (functions.length === 0) {
@@ -307,6 +310,7 @@ const questionsDeployCollections = [
         type: "checkbox",
         name: "collections",
         message: "Which collections would you like to deploy?",
+        validate: (value) => validateRequired('collection', value),
         choices: () => {
             let collections = localConfig.getCollections();
             if (collections.length === 0) {
@@ -332,6 +336,7 @@ const questionsDeployBuckets = [
         type: "checkbox",
         name: "buckets",
         message: "Which buckets would you like to deploy?",
+        validate: (value) => validateRequired('bucket', value),
         choices: () => {
             let buckets = localConfig.getBuckets();
             if (buckets.length === 0) {
@@ -372,6 +377,7 @@ const questionsDeployTeams = [
         type: "checkbox",
         name: "teams",
         message: "Which teams would you like to deploy?",
+        validate: (value) => validateRequired('team', value),
         choices: () => {
             let teams = localConfig.getTeams();
             if (teams.length === 0) {
@@ -403,7 +409,7 @@ const questionsListFactors = [
                 sdk: client,
                 parseOutput: false
             });
-                
+
             const choices = [
                 {
                     name: `TOTP (Time-based One-time Password)`,
