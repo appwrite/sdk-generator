@@ -129,6 +129,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/validations.js',
+                'template'      => 'cli/lib/validations.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/parser.js',
                 'template'      => 'cli/lib/parser.js.twig',
             ],
