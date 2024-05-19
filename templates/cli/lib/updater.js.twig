@@ -39,6 +39,12 @@ class Updater {
         let end = chalk.yellow(payload.end);
 
         if (status.toLowerCase().trim() === 'pushed') {
+            start = chalk.greenBright.bold(status);
+            prefix = chalk.greenBright.bold('✓');
+            end = '';
+        } else if (status.toLowerCase().trim() === 'deploying') {
+            start = chalk.cyanBright.bold(status);
+        } else if (status.toLowerCase().trim() === 'deployed') {
             start = chalk.green.bold(status);
             prefix = chalk.green.bold('✓');
             end = '';
