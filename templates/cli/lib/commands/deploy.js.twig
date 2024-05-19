@@ -1,4 +1,3 @@
-const _progress = require('cli-progress');
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
@@ -272,13 +271,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
         return func;
     });
 
-    const updatesBar = new _progress.MultiBar({
-        format: formatterFunction,
-        hideCursor: true,
-        clearOnComplete: false,
-        stopOnComplete: true,
-        noTTYOutput: true
-    });
+
 
     log('Deploying functions\n');
 

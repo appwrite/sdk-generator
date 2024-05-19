@@ -139,6 +139,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/updateTable.js',
+                'template'      => 'cli/lib/updateTable.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/parser.js',
                 'template'      => 'cli/lib/parser.js.twig',
             ],
