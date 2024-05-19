@@ -3,7 +3,7 @@ const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
 const { loaderInterval, clearLoaderInterval, } = require('../utils');
-const { formatterFunction } = require('../formatters');
+const { Updater, SPINNER_ARC, SPINNER_DOTS } = require('../updater');
 const { paginate } = require('../paginate');
 const { questionsDeployBuckets, questionsDeployTeams, questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
@@ -271,19 +271,18 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
         return func;
     });
 
+    log('Pushing functions\n');
 
-
-    log('Deploying functions\n');
-
+    Updater.start(false,)
     let successfullyDeployed = 0;
 
     await Promise.all(functions.map(async (func) => {
         const ignore = func.ignore ? 'appwrite.json' : '.gitignore';
         let functionExists = false;
 
-        const bar = updatesBar.create(100, 0, { status: 'Deploying', function: func.name, id: func['$id'], ignore })
-        bar.update({ status: 'Getting' });
-        const updatingInterval = loaderInterval(bar, 8, 1, 80);
+        const updaterRow = new Updater({ status: '', resource: func.name, id: func['$id'], end: `Ignoring using: ${ignore}` });
+
+        updaterRow.update({ status: 'Getting' }).startSpinner(SPINNER_DOTS);
 
         try {
             response = await functionsGet({
@@ -292,11 +291,11 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             });
             functionExists = true;
             if (response.runtime !== func.runtime) {
-                bar.update({ status: 'Error', errorMessage: `Runtime missmatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.json` })
-                clearLoaderInterval(bar, updatingInterval);
+                updaterRow.fail({ errorMessage: `Runtime mismatch! (local=${func.runtime},remote=${response.runtime}) Please delete remote function or update your appwrite.json` })
                 return;
             }
-            bar.update({ status: 'Updating' });
+
+            updaterRow.update({ status: 'Updating' }).replaceSpinner(SPINNER_ARC);
 
             response = await functionsUpdate({
                 functionId: func['$id'],
@@ -317,17 +316,13 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             if (e.code == 404) {
                 functionExists = false;
             } else {
-                clearLoaderInterval(bar, updatingInterval)
-                bar.update({ status: 'Error', errorMessage: e.message ?? 'General error occurs please try again' });
+                updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
                 return;
             }
         }
 
-        clearLoaderInterval(bar, updatingInterval)
-
         if (!functionExists) {
-            bar.update({ status: 'Creating' })
-            const creatingInterval = loaderInterval(bar, 8, 1, 80);
+            updaterRow.update({ status: 'Creating' }).replaceSpinner(SPINNER_DOTS);
 
             try {
                 response = await functionsCreate({
@@ -350,13 +345,9 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                     "$id": response['$id'],
                 });
                 func["$id"] = response['$id'];
-                bar.update({ status: 'Created' });
-
-                clearLoaderInterval(bar, creatingInterval);
+                updaterRow.update({ status: 'Created' });
             } catch (e) {
-                clearLoaderInterval(bar, creatingInterval);
-
-                bar.update({ status: 'Error', errorMessage: e.message ?? 'General error occurs please try again' });
+                updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
                 return;
             }
         }
@@ -400,7 +391,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
 
                 let result = await awaitPools.wipeVariables(func['$id']);
                 if (!result) {
-                    bar.update({ status: 'Error', errorMessage: 'Variable deletion timed out' })
+                    updaterRow.fail({ errorMessage: 'Variable deletion timed out' })
                     return;
                 }
 
@@ -422,10 +413,9 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             func.entrypoint = answers.entrypoint;
             localConfig.updateFunction(func['$id'], func);
         }
-        bar.update({ status: 'Deploying' })
-        const deployingInterval = loaderInterval(bar, 8, 1, 80);
 
         try {
+            updaterRow.update({ status: 'Pushing' }).replaceSpinner(SPINNER_ARC);
             response = await functionsCreateDeployment({
                 functionId: func['$id'],
                 entrypoint: func.entrypoint,
@@ -435,23 +425,23 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 parseOutput: false
             })
 
-            bar.update({ status: 'Deployed' })
+            updaterRow.update({ status: 'Pushed' })
             successfullyDeployed++;
 
         } catch (e) {
             switch (e.code) {
                 case 'ENOENT':
-                    bar.update({ status: 'Error', errorMessage: 'Not found in the current directory. Skipping...' })
+                    updaterRow.fail({ errorMessage: 'Not found in the current directory. Skipping...' })
                     break;
                 default:
-                    bar.update({ status: 'Error', errorMessage: e.message ?? 'General error occurs please try again' })
+                    updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' })
             }
         }
-        clearLoaderInterval(bar, deployingInterval);
+        updaterRow.stopSpinner();
     }))
+    Updater.stop();
 
-    updatesBar.stop()
-    success(`Deployed ${successfullyDeployed} functions`);
+    success(`Pushed ${successfullyDeployed} functions`);
 }
 
 const createAttribute = async (databaseId, collectionId, attribute) => {

@@ -134,13 +134,8 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/formatters.js',
-                'template'      => 'cli/lib/formatters.js.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'lib/updateTable.js',
-                'template'      => 'cli/lib/updateTable.js.twig',
+                'destination'   => 'lib/updater.js',
+                'template'      => 'cli/lib/updater.js.twig',
             ],
             [
                 'scope'         => 'default',
