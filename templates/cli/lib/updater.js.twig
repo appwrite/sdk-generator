@@ -52,7 +52,7 @@ class Updater {
     }
 
     static #line(prefix, start, middle, end, separator = '•') {
-        return `${prefix} ${start} ${separator} ${middle} ${separator} ${end}`;
+        return `${prefix} ${start} ${separator} ${middle} ${!end ? '' : separator} ${end}`;
 
     }
 

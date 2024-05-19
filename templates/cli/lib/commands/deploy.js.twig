@@ -270,6 +270,45 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
         return func;
     });
 
+    log('Validating functions');
+    // Validation is done BEFORE deploying so the deployment process can be run in async with progress update
+    for (let i = 0; i < functions.length; i++) {
+        const func = functions[i];
+
+        if (!func.entrypoint) {
+            log(`Function ${func.name} does not have an endpoint`);
+            const answers = await inquirer.prompt(questionsGetEntrypoint)
+            func.entrypoint = answers.entrypoint;
+            localConfig.updateFunction(func['$id'], func);
+        }
+
+        if (func.variables) {
+            func.deployVariables = yes;
+
+            try {
+                const { total } = await functionsListVariables({
+                    functionId: func['$id'],
+                    queries: [JSON.stringify({ method: 'limit', values: [1] })],
+                    parseOutput: false
+                });
+
+                if (total === 0) {
+                    func.deployVariables = true;
+                } else if (total > 0 && !func.deployVariables) {
+                    log(`The function ${func.name} has remote variables setup`);
+                    const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
+                    func.deployVariables = variableAnswers.override.toLowerCase() === "yes";
+                }
+            } catch (e) {
+                if (e.code != 404) {
+                    throw e.message;
+                }
+            }
+        }
+    }
+
+
+    log('All functions are validated');
     log('Pushing functions\n');
 
     Updater.start(false,)
@@ -352,28 +391,10 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
         }
 
         if (func.variables) {
-            // TODO:
-            // Delete existing variables
-
-            const { total } = await functionsListVariables({
-                functionId: func['$id'],
-                queries: [JSON.stringify({ method: 'limit', values: [1] })],
-                parseOutput: false
-            });
-
-            let deployVariables = yes;
-
-            if (total === 0) {
-                deployVariables = true;
-            } else if (total > 0 && !yes) {
-                const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
-                deployVariables = variableAnswers.override.toLowerCase() === "yes";
-            }
-
-            if (!deployVariables) {
-                log(`Skipping variables for ${func.name} ( ${func['$id']} )`);
+            if (!func.deployVariables) {
+                updaterRow.update({ end: 'Skipping variables' });
             } else {
-                log(`Deploying variables for ${func.name} ( ${func['$id']} )`);
+                updaterRow.update({ end: 'Pushing variables' });
 
                 const { variables } = await paginate(functionsListVariables, {
                     functionId: func['$id'],
@@ -404,13 +425,6 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                     });
                 }));
             }
-        }
-
-        // Create tag
-        if (!func.entrypoint) {
-            const answers = await inquirer.prompt(questionsGetEntrypoint)
-            func.entrypoint = answers.entrypoint;
-            localConfig.updateFunction(func['$id'], func);
         }
 
         try {
