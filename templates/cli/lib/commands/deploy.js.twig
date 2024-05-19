@@ -2,7 +2,6 @@ const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
-const { loaderInterval, clearLoaderInterval, } = require('../utils');
 const { Updater, SPINNER_ARC, SPINNER_DOTS } = require('../updater');
 const { paginate } = require('../paginate');
 const { questionsDeployBuckets, questionsDeployTeams, questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsConfirmDeployCollections } = require("../questions");
@@ -438,7 +437,8 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
             }
         }
         updaterRow.stopSpinner();
-    }))
+    }));
+
     Updater.stop();
 
     success(`Pushed ${successfullyDeployed} functions`);
