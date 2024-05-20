@@ -99,7 +99,8 @@ const createTopic = async () => {
             parseOutput: false
         })
 
-        {# localConfig.addMessagingTopic(response); #}
+        // TODO: after https://github.com/appwrite/sdk-generator/pull/839
+        // localConfig.addMessagingTopic(response);
         success();
     } catch (e) {
         error(e.getMessage ?? 'Unknown error occurred. Please try again');
