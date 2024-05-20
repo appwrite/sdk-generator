@@ -230,19 +230,13 @@ const awaitPools = {
     },
 }
 
-const push = new Command("push")
-    .description(commandDescriptions['push'])
-    .option(`--all`, `Flag to push all resources`)
-    .option(`--yes`, `Flag to confirm all warnings`)
-    .action(actionRunner(pushResources));
-
 const pushResources = async ({ all, yes } = {}) => {
     const actions = {
         functions: pushFunction,
         collections: pushCollection,
         buckets: pushBucket,
         teams: pushTeam,
-        messages: new Function()
+        messages: pushMessagingTopic
     }
 
     if (all) {
@@ -1006,6 +1000,11 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
     }
 }
 
+const push = new Command("push")
+    .description(commandDescriptions['push'])
+    .option(`--all`, `Flag to push all resources`)
+    .option(`--yes`, `Flag to confirm all warnings`)
+    .action(actionRunner(pushResources));
 
 push
     .command("function")
