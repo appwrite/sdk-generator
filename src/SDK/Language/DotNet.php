@@ -303,8 +303,8 @@ class DotNet extends Language
         return [
             [
                 'scope'         => 'default',
-                'destination'   => '.travis.yml',
-                'template'      => 'dotnet/.travis.yml.twig',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'dotnet/.github/workflows/publish.yml.twig',
             ],
             [
                 'scope'         => 'default',
