@@ -3,6 +3,7 @@ const { projectsList } = require('./commands/projects');
 const { functionsListRuntimes } = require('./commands/functions');
 const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
+const { validateRequired } = require("./validations");
 
 const { databasesList } = require('./commands/databases');
 const JSONbig = require("json-bigint")({ storeAsString: false });
@@ -107,7 +108,7 @@ const getInstallCommand = (runtime) => {
     return undefined;
 };
 
-const questionsInitProject = [
+const questionsPullProject = [
     {
         type: "confirm",
         name: "override",
@@ -187,7 +188,7 @@ const questionsInitProject = [
     }
 ];
 
-const questionsInitFunction = [
+const questionsPullFunction = [
     {
         type: "input",
         name: "name",
@@ -225,11 +226,11 @@ const questionsInitFunction = [
     }
 ];
 
-const questionsInitCollection = [
+const questionsPullCollection = [
     {
         type: "checkbox",
         name: "databases",
-        message: "From which database would you like to init collections?",
+        message: "From which database would you like to pull collections?",
         choices: async () => {
             let response = await databasesList({
                 parseOutput: false
@@ -276,11 +277,11 @@ const questionsLogin = [
     },
 ];
 
-const questionsDeployResources = [
+const questionsPushResources = [
     {
         type: "checkbox",
         name: "resources",
-        message: "Which resources would you like to deploy?",
+        message: "Which resources would you like to push?",
         choices: [
             { name: 'Functions', value: 'functions' },
             { name: 'Collections', value: 'collections' },
@@ -291,11 +292,12 @@ const questionsDeployResources = [
     }
 ]
 
-const questionsDeployFunctions = [
+const questionsPushFunctions = [
     {
         type: "checkbox",
         name: "functions",
-        message: "Which functions would you like to deploy?",
+        message: "Which functions would you like to push?",
+        validate: (value) => validateRequired('function', value),
         choices: () => {
             let functions = localConfig.getFunctions();
             if (functions.length === 0) {
@@ -317,15 +319,16 @@ const questionsDeployFunctions = [
     },
 ]
 
-const questionsDeployCollections = [
+const questionsPushCollections = [
     {
         type: "checkbox",
         name: "collections",
-        message: "Which collections would you like to deploy?",
+        message: "Which collections would you like to push?",
+        validate: (value) => validateRequired('collection', value),
         choices: () => {
             let collections = localConfig.getCollections();
             if (collections.length === 0) {
-                throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
+                throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} pull collection` to fetch all your collections.");
             }
             return collections.map(collection => {
                 return {
@@ -342,15 +345,16 @@ const questionsDeployCollections = [
     },
 ]
 
-const questionsDeployBuckets = [
+const questionsPushBuckets = [
     {
         type: "checkbox",
         name: "buckets",
-        message: "Which buckets would you like to deploy?",
+        message: "Which buckets would you like to push?",
+        validate: (value) => validateRequired('bucket', value),
         choices: () => {
             let buckets = localConfig.getBuckets();
             if (buckets.length === 0) {
-                throw new Error("No buckets found in the current directory. Run `appwrite init bucket` to fetch all your buckets.");
+                throw new Error("No buckets found in the current directory. Run `appwrite pull bucket` to fetch all your buckets.");
             }
             return buckets.map(bucket => {
                 return {
@@ -382,15 +386,16 @@ const questionsGetEntrypoint = [
     },
 ]
 
-const questionsDeployTeams = [
+const questionsPushTeams = [
     {
         type: "checkbox",
         name: "teams",
-        message: "Which teams would you like to deploy?",
+        message: "Which teams would you like to push?",
+        validate: (value) => validateRequired('team', value),
         choices: () => {
             let teams = localConfig.getTeams();
             if (teams.length === 0) {
-                throw new Error("No teams found in the current directory. Run `appwrite init team` to fetch all your teams.");
+                throw new Error("No teams found in the current directory. Run `appwrite pull team` to fetch all your teams.");
             }
             return teams.map(team => {
                 return {
@@ -458,15 +463,15 @@ const questionsMfaChallenge = [
 ];
 
 module.exports = {
-    questionsInitProject,
+    questionsPullProject,
     questionsLogin,
-    questionsInitFunction,
-    questionsInitCollection,
-    questionsDeployResources,
-    questionsDeployFunctions,
-    questionsDeployCollections,
-    questionsDeployBuckets,
-    questionsDeployTeams,
+    questionsPullFunction,
+    questionsPullCollection,
+    questionsPushResources,
+    questionsPushFunctions,
+    questionsPushCollections,
+    questionsPushBuckets,
+    questionsPushTeams,
     questionsGetEntrypoint,
     questionsListFactors,
     questionsMfaChallenge
