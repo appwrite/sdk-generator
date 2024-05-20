@@ -162,6 +162,86 @@ const questionsCreateProject = [
         default: "unique()"
     }
 ];
+
+const questionsCreateBucket = [
+    {
+        type: "input",
+        name: "bucket",
+        message: "What would you like to name your bucket?",
+        default: "My Awesome Bucket"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your bucket?",
+        default: "unique()"
+    },
+    {
+        type: "list",
+        name: "fileSecurity",
+        message: "Enable File-Security configuring permissions for individual file",
+        choices: ["No", "Yes"]
+    }
+];
+
+const questionsCreateCollection = [
+    {
+        type: "list",
+        name: "database",
+        message: "Choose the collection database",
+        choices: async () => {
+            const { databases } = await paginate(databasesList, { parseOutput: false }, 100, 'databases');
+
+            let choices = databases.map((database, idx) => {
+                return {
+                    name: `${database.name} (${database.$id})`,
+                    value: database.$id
+                }
+            })
+
+            if (choices.length === 0) {
+                throw new Error("No databases found. Please create one in project console.")
+            }
+
+            return choices;
+        }
+    },
+    {
+        type: "input",
+        name: "collection",
+        message: "What would you like to name your collection?",
+        default: "My Awesome Collection"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your collection?",
+        default: "unique()"
+    },
+    {
+        type: "list",
+        name: "documentSecurity",
+        message: "Enable Document-Security for configuring permissions for individual documents",
+        choices: ["No", "Yes"]
+    }
+];
+
+const questionsCreateMessagingTopic = [
+    {
+        type: "input",
+        name: "topic",
+        message: "What would you like to name your messaging topic?",
+        default: "My Awesome Topic"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your messaging topic?",
+        default: "unique()"
+    }
+];
+
+
 const questionsPullProject = [
     ...questionsProject,
     {
@@ -222,7 +302,7 @@ const questionsPullFunction = [
                         id: runtime['$id'],
                         entrypoint: getEntrypoint(runtime['$id']),
                         ignore: getIgnores(runtime['$id']),
-                        commands : getInstallCommand(runtime['$id'])
+                        commands: getInstallCommand(runtime['$id'])
                     },
                 }
             })
@@ -431,7 +511,7 @@ const questionsListFactors = [
                     name: `Recovery code`,
                     value: 'recoveryCode'
                 }
-            ].filter((ch) => factors[ch.value] === true);
+            ].filter((ch) => factors[ch.value] === true);
 
             return choices;
         }
@@ -454,6 +534,9 @@ const questionsMfaChallenge = [
 
 module.exports = {
     questionsCreateProject,
+    questionsCreateBucket,
+    questionsCreateCollection,
+    questionsCreateMessagingTopic,
     questionsPullProject,
     questionsLogin,
     questionsPullFunction,
