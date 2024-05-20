@@ -15,9 +15,9 @@ const spinners = {
     }
 }
 
-class Updater {
+class Spinner {
     static start(clearOnComplete = true, hideCursor = true) {
-        Updater.updatesBar = new progress.MultiBar({
+        Spinner.updatesBar = new progress.MultiBar({
             format: this.#formatter,
             hideCursor,
             clearOnComplete,
@@ -27,7 +27,7 @@ class Updater {
     }
 
     static stop() {
-        Updater.updatesBar.stop();
+        Spinner.updatesBar.stop();
     }
 
     static #formatter(options, params, payload) {
@@ -48,7 +48,7 @@ class Updater {
             end = chalk.red(payload.errorMessage);
         }
 
-        return Updater.#line(prefix, start, middle, end);
+        return Spinner.#line(prefix, start, middle, end);
     }
 
     static #line(prefix, start, middle, end, separator = '•') {
@@ -57,7 +57,7 @@ class Updater {
     }
 
     constructor(payload, total = 100, startValue = 0) {
-        this.bar = Updater.updatesBar.create(total, startValue, payload)
+        this.bar = Spinner.updatesBar.create(total, startValue, payload)
     }
 
     update(payload) {
@@ -92,7 +92,7 @@ class Updater {
 
 
 module.exports = {
-    Updater,
+    Spinner,
     SPINNER_ARC,
     SPINNER_DOTS
 }
