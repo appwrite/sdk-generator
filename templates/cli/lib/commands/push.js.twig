@@ -992,7 +992,7 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
                     parseOutput: false
                 })
 
-                success(`Pushed ${topic.name} ( ${topic['$id']} )`);
+                success(`Created ${topic.name} ( ${topic['$id']} )`);
             } else {
                 throw e;
             }
