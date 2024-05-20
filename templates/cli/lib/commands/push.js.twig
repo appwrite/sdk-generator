@@ -3,7 +3,7 @@ const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
 const { paginate } = require('../paginate');
-const { questionsDeployBuckets, questionsDeployTeams, questionsDeployFunctions, questionsGetEntrypoint, questionsDeployCollections, questionsDeployMessagingTopics, questionsConfirmDeployCollections } = require("../questions");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsDeployMessagingTopics } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
@@ -230,8 +230,8 @@ const awaitPools = {
     },
 }
 
-const deploy = new Command("deploy")
-    .description(commandDescriptions['deploy'])
+const push = new Command("push")
+    .description(commandDescriptions['push'])
     .configureHelp({
         helpWidth: process.stdout.columns || 80
     })
@@ -239,7 +239,7 @@ const deploy = new Command("deploy")
         command.help()
     }));
 
-const deployFunction = async ({ functionId, all, yes } = {}) => {
+const pushFunction = async ({ functionId, all, yes } = {}) => {
     let response = {};
 
     const functionIds = [];
@@ -257,7 +257,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
     }
 
     if (functionIds.length <= 0) {
-        const answers = await inquirer.prompt(questionsDeployFunctions[0]);
+        const answers = await inquirer.prompt(questionsPushFunctions[0]);
         functionIds.push(...answers.functions);
     }
 
@@ -273,7 +273,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
     });
 
     for (let func of functions) {
-        log(`Deploying function ${func.name} ( ${func['$id']} )`)
+        log(`Pushing function ${func.name} ( ${func['$id']} )`)
 
         try {
             response = await functionsGet({
@@ -338,19 +338,19 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 parseOutput: false
             });
 
-            let deployVariables = yes;
+            let pushVariables = yes;
 
             if (total === 0) {
-                deployVariables = true;
+                pushVariables = true;
             } else if (total > 0 && !yes) {
-                const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
-                deployVariables = variableAnswers.override.toLowerCase() === "yes";
+                const variableAnswers = await inquirer.prompt(questionsPushFunctions[1])
+                pushVariables = variableAnswers.override.toLowerCase() === "yes";
             }
 
-            if (!deployVariables) {
+            if (!pushVariables) {
                 log(`Skipping variables for ${func.name} ( ${func['$id']} )`);
             } else {
-                log(`Deploying variables for ${func.name} ( ${func['$id']} )`);
+                log(`Pushing variables for ${func.name} ( ${func['$id']} )`);
 
                 const { variables } = await paginate(functionsListVariables, {
                     functionId: func['$id'],
@@ -370,7 +370,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                     throw new Error("Variable deletion timed out.");
                 }
 
-                // Deploy local variables
+                // Push local variables
                 await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
                     await functionsCreateVariable({
                         functionId: func['$id'],
@@ -399,7 +399,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                 parseOutput: false
             })
 
-            success(`Deployed ${func.name} ( ${func['$id']} )`);
+            success(`Pushed ${func.name} ( ${func['$id']} )`);
 
         } catch (e) {
             switch (e.code) {
@@ -412,7 +412,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
         }
     }
 
-    success(`Deployed ${functions.length} functions`);
+    success(`Pushed ${functions.length} functions`);
 }
 
 const createAttribute = async (databaseId, collectionId, attribute) => {
@@ -532,18 +532,18 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
     }
 }
 
-const deployCollection = async ({ all, yes } = {}) => {
+const pushCollection = async ({ all, yes } = {}) => {
     let response = {};
 
     const collections = [];
 
     if (all) {
         if (localConfig.getCollections().length === 0) {
-            throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
+            throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} pull collection` to fetch all your collections.");
         }
         collections.push(...localConfig.getCollections());
     } else {
-        const answers = await inquirer.prompt(questionsDeployCollections[0])
+        const answers = await inquirer.prompt(questionsPushCollections[0])
         const configCollections = new Map();
         localConfig.getCollections().forEach((c) => {
             configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
@@ -555,7 +555,7 @@ const deployCollection = async ({ all, yes } = {}) => {
     }
 
     for (let collection of collections) {
-        log(`Deploying collection ${collection.name} ( ${collection['databaseId']} - ${collection['$id']} )`)
+        log(`Pushing collection ${collection.name} ( ${collection['databaseId']} - ${collection['$id']} )`)
 
         let databaseId;
 
@@ -600,7 +600,7 @@ const deployCollection = async ({ all, yes } = {}) => {
             log(`Collection ${collection.name} ( ${collection['$id']} ) already exists.`);
 
             if (!yes) {
-                const answers = await inquirer.prompt(questionsDeployCollections[1])
+                const answers = await inquirer.prompt(questionsPushCollections[1])
                 if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${collection.name} ( ${collection['$id']} )`);
                     continue;
@@ -720,7 +720,7 @@ const deployCollection = async ({ all, yes } = {}) => {
 
         success(`Created ${collection.indexes.length} indexes`);
 
-        success(`Deployed ${collection.name} ( ${collection['$id']} )`);
+        success(`Pushed ${collection.name} ( ${collection['$id']} )`);
     }
 
     // Create the relationship attributes
@@ -733,7 +733,7 @@ const deployCollection = async ({ all, yes } = {}) => {
             continue;
         }
 
-        log(`Deploying relationships for collection ${collection.name} ( ${collection['$id']} )`);
+        log(`Pushing relationships for collection ${collection.name} ( ${collection['$id']} )`);
 
         await Promise.all(relationships.map(attribute => {
             return createAttribute(collection['databaseId'], collection['$id'], attribute);
@@ -753,7 +753,7 @@ const deployCollection = async ({ all, yes } = {}) => {
     }
 }
 
-const deployBucket = async ({ all, yes } = {}) => {
+const pushBucket = async ({ all, yes } = {}) => {
     let response = {};
 
     let bucketIds = [];
@@ -761,13 +761,13 @@ const deployBucket = async ({ all, yes } = {}) => {
 
     if (all) {
         if (configBuckets.length === 0) {
-            throw new Error("No buckets found in the current directory. Run `appwrite init bucket` to fetch all your buckets.");
+            throw new Error("No buckets found in the current directory. Run `appwrite pull bucket` to fetch all your buckets.");
         }
         bucketIds.push(...configBuckets.map((b) => b.$id));
     }
 
     if (bucketIds.length === 0) {
-        const answers = await inquirer.prompt(questionsDeployBuckets[0])
+        const answers = await inquirer.prompt(questionsPushBuckets[0])
         bucketIds.push(...answers.buckets);
     }
 
@@ -779,7 +779,7 @@ const deployBucket = async ({ all, yes } = {}) => {
     }
 
     for (let bucket of buckets) {
-        log(`Deploying bucket ${bucket.name} ( ${bucket['$id']} )`)
+        log(`Pushing bucket ${bucket.name} ( ${bucket['$id']} )`)
 
         try {
             response = await storageGetBucket({
@@ -789,7 +789,7 @@ const deployBucket = async ({ all, yes } = {}) => {
             log(`Bucket ${bucket.name} ( ${bucket['$id']} ) already exists.`);
 
             if (!yes) {
-                const answers = await inquirer.prompt(questionsDeployBuckets[1])
+                const answers = await inquirer.prompt(questionsPushBuckets[1])
                 if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${bucket.name} ( ${bucket['$id']} )`);
                     continue;
@@ -813,7 +813,7 @@ const deployBucket = async ({ all, yes } = {}) => {
                 parseOutput: false
             });
 
-            success(`Deployed ${bucket.name} ( ${bucket['$id']} )`);
+            success(`Pushed ${bucket.name} ( ${bucket['$id']} )`);
         } catch (e) {
             if (e.code == 404) {
                 log(`Bucket ${bucket.name} does not exist in the project. Creating ... `);
@@ -832,7 +832,7 @@ const deployBucket = async ({ all, yes } = {}) => {
                     parseOutput: false
                 })
 
-                success(`Deployed ${bucket.name} ( ${bucket['$id']} )`);
+                success(`Pushed ${bucket.name} ( ${bucket['$id']} )`);
             } else {
                 throw e;
             }
@@ -840,7 +840,7 @@ const deployBucket = async ({ all, yes } = {}) => {
     }
 }
 
-const deployTeam = async ({ all, yes } = {}) => {
+const pushTeam = async ({ all, yes } = {}) => {
     let response = {};
 
     let teamIds = [];
@@ -848,13 +848,13 @@ const deployTeam = async ({ all, yes } = {}) => {
 
     if (all) {
         if (configTeams.length === 0) {
-            throw new Error("No teams found in the current directory. Run `appwrite init team` to fetch all your teams.");
+            throw new Error("No teams found in the current directory. Run `appwrite pull team` to fetch all your teams.");
         }
         teamIds.push(...configTeams.map((t) => t.$id));
     }
 
     if (teamIds.length === 0) {
-        const answers = await inquirer.prompt(questionsDeployTeams[0])
+        const answers = await inquirer.prompt(questionsPushTeams[0])
         teamIds.push(...answers.teams);
     }
 
@@ -866,7 +866,7 @@ const deployTeam = async ({ all, yes } = {}) => {
     }
 
     for (let team of teams) {
-        log(`Deploying team ${team.name} ( ${team['$id']} )`)
+        log(`Pushing team ${team.name} ( ${team['$id']} )`)
 
         try {
             response = await teamsGet({
@@ -876,7 +876,7 @@ const deployTeam = async ({ all, yes } = {}) => {
             log(`Team ${team.name} ( ${team['$id']} ) already exists.`);
 
             if (!yes) {
-                const answers = await inquirer.prompt(questionsDeployTeams[1])
+                const answers = await inquirer.prompt(questionsPushTeams[1])
                 if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${team.name} ( ${team['$id']} )`);
                     continue;
@@ -891,7 +891,7 @@ const deployTeam = async ({ all, yes } = {}) => {
                 parseOutput: false
             });
 
-            success(`Deployed ${team.name} ( ${team['$id']} )`);
+            success(`Pushed ${team.name} ( ${team['$id']} )`);
         } catch (e) {
             if (e.code == 404) {
                 log(`Team ${team.name} does not exist in the project. Creating ... `);
@@ -902,7 +902,7 @@ const deployTeam = async ({ all, yes } = {}) => {
                     parseOutput: false
                 })
 
-                success(`Deployed ${team.name} ( ${team['$id']} )`);
+                success(`Pushed ${team.name} ( ${team['$id']} )`);
             } else {
                 throw e;
             }
@@ -982,34 +982,34 @@ const deployMessagingTopic = async ({ all, yes } = {}) => {
     }
 }
 
-deploy
+push
     .command("function")
-    .description("Deploy functions in the current directory.")
+    .description("Push functions in the current directory.")
     .option(`--functionId <functionId>`, `Function ID`)
-    .option(`--all`, `Flag to deploy all functions`)
+    .option(`--all`, `Flag to push all functions`)
     .option(`--yes`, `Flag to confirm all warnings`)
-    .action(actionRunner(deployFunction));
+    .action(actionRunner(pushFunction));
 
-deploy
+push
     .command("collection")
-    .description("Deploy collections in the current project.")
-    .option(`--all`, `Flag to deploy all collections`)
+    .description("Push collections in the current project.")
+    .option(`--all`, `Flag to push all collections`)
     .option(`--yes`, `Flag to confirm all warnings`)
-    .action(actionRunner(deployCollection));
+    .action(actionRunner(pushCollection));
 
-deploy
+push
     .command("bucket")
-    .description("Deploy buckets in the current project.")
-    .option(`--all`, `Flag to deploy all buckets`)
+    .description("Push buckets in the current project.")
+    .option(`--all`, `Flag to push all buckets`)
     .option(`--yes`, `Flag to confirm all warnings`)
-    .action(actionRunner(deployBucket));
+    .action(actionRunner(pushBucket));
 
-deploy
+push
     .command("team")
-    .description("Deploy teams in the current project.")
-    .option(`--all`, `Flag to deploy all teams`)
+    .description("Push teams in the current project.")
+    .option(`--all`, `Flag to push all teams`)
     .option(`--yes`, `Flag to confirm all warnings`)
-    .action(actionRunner(deployTeam));
+    .action(actionRunner(pushTeam));
 
 deploy
     .command("topic")
@@ -1019,5 +1019,5 @@ deploy
     .action(actionRunner(deployMessagingTopic));
 
 module.exports = {
-    deploy
+    push
 }

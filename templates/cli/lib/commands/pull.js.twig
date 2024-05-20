@@ -13,11 +13,11 @@ const { sdkForConsole } = require("../sdks");
 const { localConfig } = require("../config");
 const ID  = require("../id");
 const { paginate } = require("../paginate");
-const { questionsInitProject, questionsInitFunction, questionsInitCollection } = require("../questions");
+const { questionsPullProject, questionsPullFunction, questionsPullCollection } = require("../questions");
 const { success, log, actionRunner, commandDescriptions } = require("../parser");
 
-const init = new Command("init")
-    .description(commandDescriptions['init'])
+const pull = new Command("pull")
+    .description(commandDescriptions['pull'])
     .configureHelp({
         helpWidth: process.stdout.columns || 80
     })
@@ -25,9 +25,9 @@ const init = new Command("init")
         command.help();
     }));
 
-const initProject = async () => {
+const pullProject = async () => {
     let response = {}
-    const answers = await inquirer.prompt(questionsInitProject)
+    const answers = await inquirer.prompt(questionsPullProject)
     if (!answers.project) process.exit(1)
 
     let sdk = await sdkForConsole();
@@ -54,9 +54,9 @@ const initProject = async () => {
     success();
 }
 
-const initFunction = async () => {
+const pullFunction = async () => {
     // TODO: Add CI/CD support (ID, name, runtime)
-    const answers = await inquirer.prompt(questionsInitFunction)
+    const answers = await inquirer.prompt(questionsPullFunction)
     const functionFolder = path.join(process.cwd(), 'functions');
 
     if (!fs.existsSync(functionFolder)) {
@@ -73,11 +73,11 @@ const initFunction = async () => {
     }
 
     if (!answers.runtime.entrypoint) {
-        log(`Entrypoint for this runtime not found. You will be asked to configure entrypoint when you first deploy the function.`);
+        log(`Entrypoint for this runtime not found. You will be asked to configure entrypoint when you first push the function.`);
     }
 
     if (!answers.runtime.commands) {
-        log(`Installation command for this runtime not found. You will be asked to configure the install command when you first deploy the function.`);
+        log(`Installation command for this runtime not found. You will be asked to configure the install command when you first push the function.`);
     }
 
     let response = await functionsCreate({
@@ -164,7 +164,7 @@ const initFunction = async () => {
     success();
 }
 
-const initCollection = async ({ all, databaseId } = {}) => {
+const pullCollection = async ({ all, databaseId } = {}) => {
     const databaseIds = [];
 
     if (databaseId) {
@@ -178,7 +178,7 @@ const initCollection = async ({ all, databaseId } = {}) => {
     }
 
     if (databaseIds.length <= 0) {
-        let answers = await inquirer.prompt(questionsInitCollection)
+        let answers = await inquirer.prompt(questionsPullCollection)
         if (!answers.databases) process.exit(1)
         databaseIds.push(...answers.databases);
     }
@@ -211,7 +211,7 @@ const initCollection = async ({ all, databaseId } = {}) => {
     success();
 }
 
-const initBucket = async () => {
+const pullBucket = async () => {
     const { buckets } = await paginate(storageListBuckets, { parseOutput: false }, 100, 'buckets');
 
     log(`Found ${buckets.length} buckets`);
@@ -224,7 +224,7 @@ const initBucket = async () => {
     success();
 }
 
-const initTeam = async () => {
+const pullTeam = async () => {
     const { teams } = await paginate(teamsList, { parseOutput: false }, 100, 'teams');
 
     log(`Found ${teams.length} teams`);
@@ -251,32 +251,32 @@ const initMessagingTopic = async () => {
     success();
 }
 
-init
+pull
     .command("project")
-    .description("Initialise your {{ spec.title|caseUcfirst }} project")
-    .action(actionRunner(initProject));
+    .description("Pulling your {{ spec.title|caseUcfirst }} project")
+    .action(actionRunner(pullProject));
 
-init
+pull
     .command("function")
-    .description("Initialise your {{ spec.title|caseUcfirst }} cloud function")
-    .action(actionRunner(initFunction))
+    .description("Pulling your {{ spec.title|caseUcfirst }} cloud function")
+    .action(actionRunner(pullFunction))
 
-init
+pull
     .command("collection")
-    .description("Initialise your {{ spec.title|caseUcfirst }} collections")
+    .description("Pulling your {{ spec.title|caseUcfirst }} collections")
     .option(`--databaseId <databaseId>`, `Database ID`)
-    .option(`--all`, `Flag to initialize all databases`)
-    .action(actionRunner(initCollection))
+    .option(`--all`, `Flag to pullialize all databases`)
+    .action(actionRunner(pullCollection))
 
-init
+pull
     .command("bucket")
-    .description("Initialise your Appwrite buckets")
-    .action(actionRunner(initBucket))
+    .description("Pulling your Appwrite buckets")
+    .action(actionRunner(pullBucket))
 
-init
+pull
     .command("team")
-    .description("Initialise your Appwrite teams")
-    .action(actionRunner(initTeam))
+    .description("Pulling your Appwrite teams")
+    .action(actionRunner(pullTeam))
 
 init
     .command("topic")
@@ -284,5 +284,5 @@ init
     .action(actionRunner(initMessagingTopic))
 
 module.exports = {
-    init,
+    pull,
 };
