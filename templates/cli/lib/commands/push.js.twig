@@ -3,7 +3,7 @@ const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
 const { paginate } = require('../paginate');
-const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsDeployMessagingTopics } = require("../questions");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
@@ -910,7 +910,7 @@ const pushTeam = async ({ all, yes } = {}) => {
     }
 }
 
-const deployMessagingTopic = async ({ all, yes } = {}) => {
+const pushMessagingTopic = async ({ all, yes } = {}) => {
     let response = {};
 
     let topicsIds = [];
@@ -918,13 +918,13 @@ const deployMessagingTopic = async ({ all, yes } = {}) => {
 
     if (all) {
         if (configTopics.length === 0) {
-            throw new Error("No topics found in the current directory. Run `appwrite init topics` to fetch all your messaging topics.");
+            throw new Error("No topics found in the current directory. Run `appwrite pull topics` to pull all your messaging topics.");
         }
         topicsIds.push(...configTopics.map((b) => b.$id));
     }
 
     if (topicsIds.length === 0) {
-        const answers = await inquirer.prompt(questionsDeployMessagingTopics[0])
+        const answers = await inquirer.prompt(questionsPushMessagingTopics[0])
         topicsIds.push(...answers.topics);
     }
 
@@ -936,7 +936,7 @@ const deployMessagingTopic = async ({ all, yes } = {}) => {
     }
 
     for (let topic of topics) {
-        log(`Deploying topic ${topic.name} ( ${topic['$id']} )`)
+        log(`Pushing topic ${topic.name} ( ${topic['$id']} )`)
 
         try {
             response = await messagingGetTopic({
@@ -946,7 +946,7 @@ const deployMessagingTopic = async ({ all, yes } = {}) => {
             log(`Topic ${topic.name} ( ${topic['$id']} ) already exists.`);
 
             if (!yes) {
-                const answers = await inquirer.prompt(questionsDeployMessagingTopics[1])
+                const answers = await inquirer.prompt(questionsPushMessagingTopics[1])
                 if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${topic.name} ( ${topic['$id']} )`);
                     continue;
@@ -962,7 +962,7 @@ const deployMessagingTopic = async ({ all, yes } = {}) => {
                 parseOutput: false
             });
 
-            success(`Deployed ${topic.name} ( ${topic['$id']} )`);
+            success(`Pushed ${topic.name} ( ${topic['$id']} )`);
         } catch (e) {
             if (e.code == 404) {
                 log(`Topic ${topic.name} does not exist in the project. Creating ... `);
@@ -974,7 +974,7 @@ const deployMessagingTopic = async ({ all, yes } = {}) => {
                     parseOutput: false
                 })
 
-                success(`Deployed ${topic.name} ( ${topic['$id']} )`);
+                success(`Pushed ${topic.name} ( ${topic['$id']} )`);
             } else {
                 throw e;
             }
@@ -1011,12 +1011,12 @@ push
     .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushTeam));
 
-deploy
+push
     .command("topic")
-    .description("Deploy messaging topics in the current project.")
+    .description("Push messaging topics in the current project.")
     .option(`--all`, `Flag to deploy all topics`)
     .option(`--yes`, `Flag to confirm all warnings`)
-    .action(actionRunner(deployMessagingTopic));
+    .action(actionRunner(pushMessagingTopic));
 
 module.exports = {
     push

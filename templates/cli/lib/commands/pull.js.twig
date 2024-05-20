@@ -238,13 +238,13 @@ const pullTeam = async () => {
     success();
 }
 
-const initMessagingTopic = async () => {
+const pullMessagingTopic = async () => {
     const { topics } = await paginate(messagingListTopics, { parseOutput: false }, 100, 'topics');
 
     log(`Found ${topics.length} topics`);
 
     topics.forEach(async topic => {
-        log(`Fetching ${topic.name} ...`);
+        log(`Pulling ${topic.name} ...`);
         localConfig.addMessagingTopic(topic);
     });
 
@@ -278,10 +278,10 @@ pull
     .description("Pulling your Appwrite teams")
     .action(actionRunner(pullTeam))
 
-init
+pull
     .command("topic")
     .description("Initialise your Appwrite messaging topics")
-    .action(actionRunner(initMessagingTopic))
+    .action(actionRunner(pullMessagingTopic))
 
 module.exports = {
     pull,

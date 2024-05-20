@@ -356,15 +356,15 @@ const questionsPushBuckets = [
     },
 ]
 
-const questionsDeployMessagingTopics = [
+const questionsPushMessagingTopics = [
     {
         type: "checkbox",
         name: "topics",
-        message: "Which messaging topic would you like to deploy?",
+        message: "Which messaging topic would you like to push?",
         choices: () => {
             let topics = localConfig.getMessagingTopics();
             if (topics.length === 0) {
-                throw new Error("No topics found in the current directory. Run `appwrite init messaging` to fetch all your messaging topics.");
+                throw new Error("No topics found in the current directory. Run `appwrite pull messaging` to fetch all your messaging topics.");
             }
             return topics.map(topic => {
                 return {
@@ -480,7 +480,7 @@ module.exports = {
     questionsPushFunctions,
     questionsPushCollections,
     questionsPushBuckets,
-    questionsDeployMessagingTopics,
+    questionsPushMessagingTopics,
     questionsPushTeams,
     questionsGetEntrypoint,
     questionsListFactors,
