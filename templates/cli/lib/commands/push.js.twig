@@ -450,7 +450,7 @@ const pushFunction = async ({ functionId, all, yes, async } = {}) => {
                     updaterRow.fail({ errorMessage: 'Not found in the current directory. Skipping...' })
                     break;
                 default:
-                    updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' })
+                    updaterRow.fail({ errorMessage: e.message ?? 'An unknown error occurred. Please try again.' })
             }
         }
 
