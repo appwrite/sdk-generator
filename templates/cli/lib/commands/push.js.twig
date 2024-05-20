@@ -1,7 +1,7 @@
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
-const { localConfig } = require("../config");
+const { localConfig, globalConfig } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
 const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections } = require("../questions");
@@ -314,6 +314,7 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
     Spinner.start(false);
     let successfullyPushed = 0;
     let successfullyDeployed = 0;
+    const failedDeployments = [];
 
     await Promise.all(functions.map(async (func) => {
         const ignore = func.ignore ? 'appwrite.json' : '.gitignore';
@@ -479,7 +480,8 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
 
                         break;
                     } else if (status === 'failed') {
-                        updaterRow.fail({ errorMessage: 'Failed to deploy.' });
+                        failedDeployments.push({ name: func['name'], $id: func['$id'], deployment: response['$id'] });
+                        updaterRow.fail({ errorMessage: `Failed to deploy` });
 
                         break;
                     } else {
@@ -498,6 +500,14 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
     }));
 
     Spinner.stop();
+    console.log('\n');
+
+    failedDeployments.forEach((failed) => {
+        const { name, deployment, $id } = failed;
+        const failUrl = `${globalConfig.getEndpoint().replace('/v1', '')}/console/project-${localConfig.getProject().projectId}/functions/function-${$id}/deployment-${deployment}`;
+
+        error(`Deployment of ${name} has failed. Check at ${failUrl} for more details\n`);
+    })
 
     success(`Pushed ${successfullyPushed} functions with ${successfullyDeployed} successfully deployed`);
 }
