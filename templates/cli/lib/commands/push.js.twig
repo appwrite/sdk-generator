@@ -238,7 +238,7 @@ const push = new Command("push")
         command.help()
     }));
 
-const pushFunction = async ({ functionId, all, yes } = {}) => {
+const pushFunction = async ({ functionId, all, yes, async } = {}) => {
     let response = {};
 
     const functionIds = [];
@@ -454,7 +454,7 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
             }
         }
 
-        if (deploymentCreated) {
+        if (deploymentCreated && !async) {
             try {
                 const deploymentId = response['$id'];
                 updaterRow.update({ status: 'Deploying', end: 'Checking deployment status...' })
@@ -1013,6 +1013,7 @@ push
     .option(`--functionId <functionId>`, `Function ID`)
     .option(`--all`, `Flag to push all functions`)
     .option(`--yes`, `Flag to confirm all warnings`)
+    .option(`--async`, `Don't wait for functions deployments status`)
     .action(actionRunner(pushFunction));
 
 push
