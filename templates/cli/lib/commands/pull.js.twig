@@ -10,7 +10,7 @@ const { databasesGet, databasesListCollections, databasesList } = require("./dat
 const { storageListBuckets } = require("./storage");
 const { sdkForConsole } = require("../sdks");
 const { localConfig } = require("../config");
-const ID  = require("../id");
+const ID = require("../id");
 const { paginate } = require("../paginate");
 const { questionsPullProject, questionsPullFunction, questionsPullCollection } = require("../questions");
 const { success, log, actionRunner, commandDescriptions } = require("../parser");
@@ -25,31 +25,10 @@ const pull = new Command("pull")
     }));
 
 const pullProject = async () => {
-    let response = {}
     const answers = await inquirer.prompt(questionsPullProject)
     if (!answers.project) process.exit(1)
 
-    let sdk = await sdkForConsole();
-    if (answers.start === "new") {
-        response = await teamsCreate({
-            teamId: 'unique()',
-            name: answers.project,
-            sdk,
-            parseOutput: false
-        })
-
-        let teamId = response['$id'];
-        response = await projectsCreate({
-            projectId: answers.id,
-            name: answers.project,
-            teamId,
-            parseOutput: false
-        })
-
-        localConfig.setProject(response['$id'], response.name);
-    } else {
-        localConfig.setProject(answers.project.id, answers.project.name);
-    }
+    localConfig.setProject(answers.project.id, answers.project.name);
     success();
 }
 

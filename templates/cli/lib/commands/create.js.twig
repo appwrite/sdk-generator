@@ -1,0 +1,41 @@
+const { Command } = require("commander");
+const inquirer = require("inquirer");
+const { projectsCreate } = require("./projects");
+const { sdkForConsole } = require("../sdks");
+const { localConfig } = require("../config");
+const { questionsCreateProject } = require("../questions");
+const { success, actionRunner, commandDescriptions } = require("../parser");
+
+const create = new Command("create")
+    .description(commandDescriptions['create'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
+    .action(actionRunner(async (_options, command) => {
+        command.help();
+    }));
+
+const createProject = async () => {
+    let response = {}
+    const answers = await inquirer.prompt(questionsCreateProject)
+    if (!answers.project || !answers.organization) process.exit(1)
+
+    response = await projectsCreate({
+        projectId: answers.id,
+        name: answers.project,
+        teamId: answers.organization.id,
+        parseOutput: false
+    })
+
+    localConfig.setProject(response['$id'], response.name);
+    success();
+}
+
+create
+    .command("project")
+    .description("Create a new {{ spec.title|caseUcfirst }} project")
+    .action(actionRunner(createProject));
+
+module.exports = {
+    create,
+};
