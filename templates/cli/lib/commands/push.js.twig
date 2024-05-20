@@ -312,9 +312,9 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
     log('All functions are validated');
     log('Pushing functions\n');
 
-    Updater.start(false,)
+    Updater.start(false);
     let successfullyPushed = 0;
-    let successfullyPushed = 0;
+    let successfullyDeployed = 0;
 
     await Promise.all(functions.map(async (func) => {
         const ignore = func.ignore ? 'appwrite.json' : '.gitignore';
