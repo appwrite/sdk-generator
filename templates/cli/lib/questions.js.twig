@@ -282,6 +282,21 @@ const questionsLogin = [
     },
 ];
 
+const questionsPushResources = [
+    {
+        type: "checkbox",
+        name: "resources",
+        message: "Which resources would you like to push?",
+        choices: [
+            { name: 'Functions', value: 'functions' },
+            { name: 'Collections', value: 'collections' },
+            { name: 'Buckets', value: 'buckets' },
+            { name: 'Teams', value: 'teams' },
+            { name: 'Topics', value: 'messages' }
+        ]
+    }
+]
+
 const questionsPushFunctions = [
     {
         type: "checkbox",
@@ -359,6 +374,31 @@ const questionsPushBuckets = [
         name: "override",
         message: 'Are you sure you want to override this bucket? This can lead to loss of data! Type "YES" to confirm.'
     },
+]
+
+const questionsPushMessagingTopics = [
+    {
+        type: "checkbox",
+        name: "topics",
+        message: "Which messaging topic would you like to push?",
+        choices: () => {
+            let topics = localConfig.getMessagingTopics();
+            if (topics.length === 0) {
+                throw new Error("No topics found in the current directory. Run `appwrite pull messaging` to fetch all your messaging topics.");
+            }
+            return topics.map(topic => {
+                return {
+                    name: `${topic.name} (${topic['$id']})`,
+                    value: topic.$id
+                }
+            });
+        }
+    },
+    {
+        type: "input",
+        name: "override",
+        message: 'Would you like to override existing topics? This can lead to loss of data! Type "YES" to confirm.'
+    }
 ]
 
 const questionsGetEntrypoint = [
@@ -458,9 +498,11 @@ module.exports = {
     questionsLogin,
     questionsPullFunction,
     questionsPullCollection,
+    questionsPushResources,
     questionsPushFunctions,
     questionsPushCollections,
     questionsPushBuckets,
+    questionsPushMessagingTopics,
     questionsPushTeams,
     questionsGetEntrypoint,
     questionsListFactors,
