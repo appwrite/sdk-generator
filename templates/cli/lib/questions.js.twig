@@ -1,12 +1,12 @@
 const { localConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { teamsList } = require('./commands/teams');
-const { functionsListRuntimes } = require('./commands/functions');
+const { functionsListRuntimes, functionsList } = require('./commands/functions');
 const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
 const { validateRequired } = require("./validations");
 const { paginate } = require('./paginate');
-
+const chalk = require('chalk');
 const { databasesList } = require('./commands/databases');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
@@ -311,6 +311,30 @@ const questionsPullProject = [
     }
 ];
 
+
+const questionsPullFunctions = [
+    {
+        type: "checkbox",
+        name: "functions",
+        message: "Which functions would you like to pull?",
+        choices: async () => {
+            const { functions } = await paginate(functionsList, { parseOutput: false }, 100, 'functions');
+
+            return functions.map(func => {
+                return {
+                    name: `${func.name} (${func.$id})`,
+                    value: func
+                }
+            });
+        }
+    },
+    {
+        type: "input",
+        name: "override",
+        message: `Do you want to override local functions code and definition? ${chalk.red('all local changes will lost!')} Type "YES" to confirm.`
+    }
+];
+
 const questionsPullCollection = [
     {
         type: "checkbox",
@@ -539,6 +563,7 @@ module.exports = {
     questionsCreateCollection,
     questionsCreateMessagingTopic,
     questionsPullProject,
+    questionsPullFunctions,
     questionsLogin,
     questionsPullCollection,
     questionsPushFunctions,

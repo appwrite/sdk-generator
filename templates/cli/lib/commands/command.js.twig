@@ -45,6 +45,7 @@ const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower 
 {% for parameter in method.parameters.all %}
  * @property {{ "{" }}{{ parameter | typeName }}{{ "}" }} {{ parameter.name | caseCamel | escapeKeyword }} {{ parameter.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}
 {% endfor %}
+ * @property {boolean} overrideForCli
  * @property {boolean} parseOutput
  * @property {libClient | undefined} sdk
 {% if 'multipart/form-data' in method.consumes %}
@@ -58,7 +59,7 @@ const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower 
 /**
  * @param {{ "{" }}{{ service.name | caseUcfirst }}{{ method.name | caseUcfirst }}RequestParams{{ "}" }} params
  */
-const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}, {% endfor %}parseOutput = true, sdk = undefined{% if 'multipart/form-data' in method.consumes %}, onProgress = () => {}{% endif %}{% if method.type == 'location' %}, destination{% endif %}}) => {
+const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({ {% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}, {% endfor %}parseOutput = true, overrideForCli = false, sdk = undefined{% if 'multipart/form-data' in method.consumes %}, onProgress = () => {}{% endif %}{% if method.type == 'location' %}, destination{% endif %}}) => {
     let client = !sdk ? await {% if service.name == "projects" %}sdkForConsole(){% else %}sdkForProject(){% endif %} : sdk;
     let apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
 {{ include ('cli/base/params.twig') }}
