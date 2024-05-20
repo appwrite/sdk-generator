@@ -371,6 +371,31 @@ const questionsPushBuckets = [
     },
 ]
 
+const questionsPushMessagingTopics = [
+    {
+        type: "checkbox",
+        name: "topics",
+        message: "Which messaging topic would you like to push?",
+        choices: () => {
+            let topics = localConfig.getMessagingTopics();
+            if (topics.length === 0) {
+                throw new Error("No topics found in the current directory. Run `appwrite pull messaging` to fetch all your messaging topics.");
+            }
+            return topics.map(topic => {
+                return {
+                    name: `${topic.name} (${topic['$id']})`,
+                    value: topic.$id
+                }
+            });
+        }
+    },
+    {
+        type: "input",
+        name: "override",
+        message: 'What you like to override existing topics? This can lead to loss of data! Type "YES" to confirm.'
+    }
+]
+
 const questionsGetEntrypoint = [
     {
         type: "input",
@@ -471,6 +496,7 @@ module.exports = {
     questionsPushFunctions,
     questionsPushCollections,
     questionsPushBuckets,
+    questionsPushMessagingTopics,
     questionsPushTeams,
     questionsGetEntrypoint,
     questionsListFactors,

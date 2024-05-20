@@ -204,6 +204,45 @@ class Local extends Config {
         this.set("buckets", buckets);
     }
 
+    getMessagingTopics() {
+        if (!this.has("topics")) {
+            return [];
+        }
+        return this.get("topics");
+    }
+
+    getMessagingTopic($id) {
+        if (!this.has("topics")) {
+            return {};
+        }
+
+        let topic = this.get("topics");
+        for (let i = 0; i < topic.length; i++) {
+            if (topic[i]['$id'] == $id) {
+                return topic[i];
+            }
+        }
+
+        return {};
+    }
+
+    addMessagingTopic(props) {
+        if (!this.has("topics")) {
+            this.set("topics", []);
+        }
+
+        let topics = this.get("topics");
+        for (let i = 0; i < topics.length; i++) {
+            if (topics[i]['$id'] == props['$id']) {
+                topics[i] = props;
+                this.set("topics", topics);
+                return;
+            }
+        }
+        topics.push(props);
+        this.set("topics", topics);
+    }
+
     getDatabases() {
         if (!this.has("databases")) {
             return [];

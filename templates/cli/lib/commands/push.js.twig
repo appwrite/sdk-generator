@@ -3,7 +3,7 @@ const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
 const { paginate } = require('../paginate');
-const { questionsPushResources, questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections } = require("../questions");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
@@ -32,6 +32,9 @@ const {
 const {
     storageGetBucket, storageUpdateBucket, storageCreateBucket
 } = require("./storage");
+const {
+    messagingGetTopic, messagingUpdateTopic, messagingCreateTopic
+} = require("./messaging");
 const {
     teamsGet,
     teamsUpdate,
@@ -226,6 +229,12 @@ const awaitPools = {
         );
     },
 }
+
+const push = new Command("push")
+    .description(commandDescriptions['push'])
+    .option(`--all`, `Flag to push all resources`)
+    .option(`--yes`, `Flag to confirm all warnings`)
+    .action(actionRunner(pushResources));
 
 const pushResources = async ({ all, yes } = {}) => {
     const actions = {
@@ -920,11 +929,83 @@ const pushTeam = async ({ all, yes } = {}) => {
     }
 }
 
-const push = new Command("push")
-    .description(commandDescriptions['push'])
-    .option(`--all`, `Flag to push all resources`)
-    .option(`--yes`, `Flag to confirm all warnings`)
-    .action(actionRunner(pushResources));
+const pushMessagingTopic = async ({ all, yes } = {}) => {
+    let response = {};
+
+    let topicsIds = [];
+    const configTopics = localConfig.getMessagingTopics();
+    let overrideExisting = yes;
+
+    if (all) {
+        if (configTopics.length === 0) {
+            throw new Error("No topics found in the current directory. Run `appwrite pull topics` to pull all your messaging topics.");
+        }
+        topicsIds.push(...configTopics.map((b) => b.$id));
+    }
+
+    if (topicsIds.length === 0) {
+        const answers = await inquirer.prompt(questionsPushMessagingTopics[0])
+        topicsIds.push(...answers.topics);
+    }
+
+    let topics = [];
+
+    for (const topicId of topicsIds) {
+        const idTopic = configTopics.filter((b) => b.$id === topicId);
+        topics.push(...idTopic);
+    }
+
+    if (!yes) {
+        const answers = await inquirer.prompt(questionsPushMessagingTopics[1])
+        if (answers.override.toLowerCase() === "yes") {
+            overrideExisting = true;
+        }
+    }
+
+    for (let topic of topics) {
+        log(`Pushing topic ${topic.name} ( ${topic['$id']} )`)
+
+        try {
+            response = await messagingGetTopic({
+                topicId: topic['$id'],
+                parseOutput: false
+            })
+            log(`Topic ${topic.name} ( ${topic['$id']} ) already exists.`);
+
+            if (!overrideExisting) {
+                log(`Skipping ${topic.name} ( ${topic['$id']} )`);
+                continue;
+            }
+
+            log(`Updating Topic ...`)
+
+            await messagingUpdateTopic({
+                topicId: topic['$id'],
+                name: topic.name,
+                subscribe: topic.subscribe,
+                parseOutput: false
+            });
+
+            success(`Pushed ${topic.name} ( ${topic['$id']} )`);
+        } catch (e) {
+            if (e.code == 404) {
+                log(`Topic ${topic.name} does not exist in the project. Creating ... `);
+
+                response = await messagingCreateTopic({
+                    topicId: topic['$id'],
+                    name: topic.name,
+                    subscribe: topic.subscribe,
+                    parseOutput: false
+                })
+
+                success(`Pushed ${topic.name} ( ${topic['$id']} )`);
+            } else {
+                throw e;
+            }
+        }
+    }
+}
+
 
 push
     .command("function")
@@ -954,6 +1035,13 @@ push
     .option(`--all`, `Flag to push all teams`)
     .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushTeam));
+
+push
+    .command("topic")
+    .description("Push messaging topics in the current project.")
+    .option(`--all`, `Flag to deploy all topics`)
+    .option(`--yes`, `Flag to confirm all warnings`)
+    .action(actionRunner(pushMessagingTopic));
 
 module.exports = {
     push
