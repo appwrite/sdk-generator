@@ -233,7 +233,7 @@ class Local extends Config {
 
         let topics = this.get("topics");
         for (let i = 0; i < topics.length; i++) {
-            if (topics[i]['$id'] == props['$id']) {
+            if (topics[i]['$id'] === props['$id']) {
                 topics[i] = props;
                 this.set("topics", topics);
                 return;
