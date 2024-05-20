@@ -255,7 +255,7 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
     }
 
     if (functionIds.length <= 0) {
-        const answers = await inquirer.prompt(questionsDeployFunctions[0]);
+        const answers = await inquirer.prompt(questionsPushFunctions[0]);
         functionIds.push(...answers.functions);
     }
 
@@ -271,7 +271,7 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
     });
 
     log('Validating functions');
-    // Validation is done BEFORE deploying so the deployment process can be run in async with progress update
+    // Validation is done BEFORE pushing so the deployment process can be run in async with progress update
     for (let i = 0; i < functions.length; i++) {
         const func = functions[i];
 
@@ -283,7 +283,7 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
         }
 
         if (func.variables) {
-            func.deployVariables = yes;
+            func.pushVariables = yes;
 
             try {
                 const { total } = await functionsListVariables({
@@ -293,11 +293,11 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
                 });
 
                 if (total === 0) {
-                    func.deployVariables = true;
-                } else if (total > 0 && !func.deployVariables) {
+                    func.pushVariables = true;
+                } else if (total > 0 && !func.pushVariables) {
                     log(`The function ${func.name} has remote variables setup`);
-                    const variableAnswers = await inquirer.prompt(questionsDeployFunctions[1])
-                    func.deployVariables = variableAnswers.override.toLowerCase() === "yes";
+                    const variableAnswers = await inquirer.prompt(questionsPushFunctions[1])
+                    func.pushVariables = variableAnswers.override.toLowerCase() === "yes";
                 }
             } catch (e) {
                 if (e.code != 404) {
@@ -312,7 +312,7 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
     log('Pushing functions\n');
 
     Updater.start(false,)
-    let successfullyDeployed = 0;
+    let successfullyPushed = 0;
 
     await Promise.all(functions.map(async (func) => {
         const ignore = func.ignore ? 'appwrite.json' : '.gitignore';
@@ -391,7 +391,7 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
         }
 
         if (func.variables) {
-            if (!func.deployVariables) {
+            if (!func.pushVariables) {
                 updaterRow.update({ end: 'Skipping variables' });
             } else {
                 updaterRow.update({ end: 'Pushing variables' });
@@ -415,7 +415,7 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
                     return;
                 }
 
-                // Deploy local variables
+                // Push local variables
                 await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
                     await functionsCreateVariable({
                         functionId: func['$id'],
@@ -439,7 +439,7 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
             })
 
             updaterRow.update({ status: 'Pushed' })
-            successfullyDeployed++;
+            successfullyPushed++;
 
         } catch (e) {
             switch (e.code) {
@@ -455,7 +455,7 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
 
     Updater.stop();
 
-    success(`Pushed ${successfullyDeployed} functions`);
+    success(`Pushed ${successfullyPushed} functions`);
 }
 
 const createAttribute = async (databaseId, collectionId, attribute) => {
