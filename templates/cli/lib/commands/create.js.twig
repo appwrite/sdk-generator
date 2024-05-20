@@ -1,10 +1,11 @@
 const { Command } = require("commander");
 const inquirer = require("inquirer");
 const { projectsCreate } = require("./projects");
+const { storageCreateBucket } = require("./storage");
 const { sdkForConsole } = require("../sdks");
 const { localConfig } = require("../config");
-const { questionsCreateProject } = require("../questions");
-const { success, actionRunner, commandDescriptions } = require("../parser");
+const { questionsCreateProject, questionsCreateBucket } = require("../questions");
+const { success, error, actionRunner, commandDescriptions } = require("../parser");
 
 const create = new Command("create")
     .description(commandDescriptions['create'])
@@ -31,10 +32,64 @@ const createProject = async () => {
     success();
 }
 
+
+const createBucket = async () => {
+    let response = {}
+    const answers = await inquirer.prompt(questionsCreateBucket)
+    if (!answers.bucket || !answers.id || !answers.fileSecurity) process.exit(1)
+
+    try {
+        response = await storageCreateBucket({
+            bucketId: answers.id,
+            name: answers.bucket,
+            fileSecurity: answers.fileSecurity.toLowerCase() === 'yes',
+            enabled: true,
+            parseOutput: false
+        })
+
+        localConfig.addBucket(response);
+        success();
+    } catch (e) {
+        error(e.getMessage ?? 'Unknown error occurred. Please try again');
+    }
+};
+
+const createFunction = async () => {
+
+};
+
+const createCollection = async () => {
+
+};
+
+const createTopic = async () => {
+
+};
+
 create
     .command("project")
     .description("Create a new {{ spec.title|caseUcfirst }} project")
     .action(actionRunner(createProject));
+
+create
+    .command("function")
+    .description("Create a new {{ spec.title|caseUcfirst }} function")
+    .action(actionRunner(createFunction));
+
+create
+    .command("bucket")
+    .description("Create a new {{ spec.title|caseUcfirst }} bucket")
+    .action(actionRunner(createBucket));
+
+create
+    .command("collection")
+    .description("Create a new {{ spec.title|caseUcfirst }} collection")
+    .action(actionRunner(createCollection));
+
+create
+    .command("topic")
+    .description("Create a new {{ spec.title|caseUcfirst }} topic")
+    .action(actionRunner(createTopic));
 
 module.exports = {
     create,
