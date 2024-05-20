@@ -334,92 +334,92 @@ class DotNet extends Language
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}.sln',
-                'template'      => 'dotnet/Appwrite.sln',
+                'template'      => 'dotnet/Package.sln',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/{{ spec.title | caseUcfirst }}.csproj',
-                'template'      => 'dotnet/Appwrite/Appwrite.csproj.twig',
+                'template'      => 'dotnet/Package/Package.csproj.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Client.cs',
-                'template'      => 'dotnet/Appwrite/Client.cs.twig',
+                'template'      => 'dotnet/Package/Client.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/{{ spec.title | caseUcfirst }}Exception.cs',
-                'template'      => 'dotnet/Appwrite/Exception.cs.twig',
+                'template'      => 'dotnet/Package/Exception.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/ID.cs',
-                'template'      => 'dotnet/Appwrite/ID.cs.twig',
+                'template'      => 'dotnet/Package/ID.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Permission.cs',
-                'template'      => 'dotnet/Appwrite/Permission.cs.twig',
+                'template'      => 'dotnet/Package/Permission.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Query.cs',
-                'template'      => 'dotnet/Appwrite/Query.cs.twig',
+                'template'      => 'dotnet/Package/Query.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Role.cs',
-                'template'      => 'dotnet/Appwrite/Role.cs.twig',
+                'template'      => 'dotnet/Package/Role.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Converters/ValueClassConverter.cs',
-                'template'      => 'dotnet/Appwrite/Converters/ValueClassConverter.cs.twig',
+                'template'      => 'dotnet/Package/Converters/ValueClassConverter.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Extensions/Extensions.cs',
-                'template'      => 'dotnet/Appwrite/Extensions/Extensions.cs.twig',
+                'template'      => 'dotnet/Package/Extensions/Extensions.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Models/OrderType.cs',
-                'template'      => 'dotnet/Appwrite/Models/OrderType.cs.twig',
+                'template'      => 'dotnet/Package/Models/OrderType.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Models/UploadProgress.cs',
-                'template'      => 'dotnet/Appwrite/Models/UploadProgress.cs.twig',
+                'template'      => 'dotnet/Package/Models/UploadProgress.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Models/InputFile.cs',
-                'template'      => 'dotnet/Appwrite/Models/InputFile.cs.twig',
+                'template'      => 'dotnet/Package/Models/InputFile.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Services/Service.cs',
-                'template'      => 'dotnet/Appwrite/Services/Service.cs.twig',
+                'template'      => 'dotnet/Package/Services/Service.cs.twig',
             ],
             [
                 'scope'         => 'service',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Services/{{service.name | caseUcfirst}}.cs',
-                'template'      => 'dotnet/Appwrite/Services/ServiceTemplate.cs.twig',
+                'template'      => 'dotnet/Package/Services/ServiceTemplate.cs.twig',
             ],
             [
                 'scope'         => 'definition',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
-                'template'      => 'dotnet/Appwrite/Models/Model.cs.twig',
+                'template'      => 'dotnet/Package/Models/Model.cs.twig',
             ],
             [
                 'scope'         => 'enum',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
-                'template'      => 'dotnet/Appwrite/Enums/Enum.cs.twig',
+                'template'      => 'dotnet/Package/Enums/Enum.cs.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '{{ spec.title | caseUcfirst }}/Enums/IEnum.cs',
-                'template'      => 'dotnet/Appwrite/Enums/IEnum.cs.twig',
+                'template'      => 'dotnet/Package/Enums/IEnum.cs.twig',
             ]
         ];
     }
