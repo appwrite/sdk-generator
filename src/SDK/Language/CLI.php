@@ -134,8 +134,8 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/updater.js',
-                'template'      => 'cli/lib/updater.js.twig',
+                'destination'   => 'lib/spinner.js',
+                'template'      => 'cli/lib/spinner.js.twig',
             ],
             [
                 'scope'         => 'default',

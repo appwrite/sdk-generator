@@ -2,7 +2,7 @@ const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig } = require("../config");
-const { Updater, SPINNER_ARC, SPINNER_DOTS } = require('../updater');
+const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
 const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
@@ -273,8 +273,7 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
 
     log('Validating functions');
     // Validation is done BEFORE pushing so the deployment process can be run in async with progress update
-    for (let i = 0; i < functions.length; i++) {
-        const func = functions[i];
+    for (let func of functions) {
 
         if (!func.entrypoint) {
             log(`Function ${func.name} does not have an endpoint`);
@@ -312,7 +311,7 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
     log('All functions are validated');
     log('Pushing functions\n');
 
-    Updater.start(false);
+    Spinner.start(false);
     let successfullyPushed = 0;
     let successfullyDeployed = 0;
 
@@ -321,7 +320,7 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
         let functionExists = false;
         let deploymentCreated = false;
 
-        const updaterRow = new Updater({ status: '', resource: func.name, id: func['$id'], end: `Ignoring using: ${ignore}` });
+        const updaterRow = new Spinner({ status: '', resource: func.name, id: func['$id'], end: `Ignoring using: ${ignore}` });
 
         updaterRow.update({ status: 'Getting' }).startSpinner(SPINNER_DOTS);
 
@@ -498,7 +497,7 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
         updaterRow.stopSpinner();
     }));
 
-    Updater.stop();
+    Spinner.stop();
 
     success(`Pushed ${successfullyPushed} functions with ${successfullyDeployed} successfully deployed`);
 }
