@@ -12,8 +12,8 @@ const { commandDescriptions, cliConfig } = require("./lib/parser");
 const { client } = require("./lib/commands/generic");
 {% if sdk.test != "true" %}
 const { login, logout } = require("./lib/commands/generic");
-const { init } = require("./lib/commands/init");
-const { deploy } = require("./lib/commands/deploy");
+const { pull } = require("./lib/commands/pull");
+const { push } = require("./lib/commands/push");
 {% endif %}
 {% for service in spec.services %}
 const { {{ service.name | caseLower }} } = require("./lib/commands/{{ service.name | caseLower }}");
@@ -37,8 +37,8 @@ program
   .showSuggestionAfterError()
 {% if sdk.test != "true" %}
   .addCommand(login)
-  .addCommand(init)
-  .addCommand(deploy)
+  .addCommand(pull)
+  .addCommand(push)
   .addCommand(logout)
 {% endif %}
 {% for service in spec.services %}
@@ -46,5 +46,5 @@ program
 {% endfor %}
   .addCommand(client)
   .parse(process.argv);
-  
+
 process.stdout.columns = oldWidth;
