@@ -3,9 +3,10 @@ const inquirer = require("inquirer");
 const { projectsCreate } = require("./projects");
 const { storageCreateBucket } = require("./storage");
 const { messagingCreateTopic } = require("./messaging");
+const { databasesCreateCollection } = require("./databases");
 const { sdkForConsole } = require("../sdks");
 const { localConfig } = require("../config");
-const { questionsCreateProject, questionsCreateBucket, questionsCreateMessagingTopic } = require("../questions");
+const { questionsCreateProject, questionsCreateBucket, questionsCreateMessagingTopic, questionsCreateCollection } = require("../questions");
 const { success, error, actionRunner, commandDescriptions } = require("../parser");
 
 const create = new Command("create")
@@ -55,7 +56,25 @@ const createBucket = async () => {
 };
 
 const createCollection = async () => {
+    let response = {}
+    const answers = await inquirer.prompt(questionsCreateCollection)
+    if (!answers.database || !answers.collection || !answers.id || !answers.documentSecurity) process.exit(1)
 
+    try {
+        response = await databasesCreateCollection({
+            databaseId: answers.database,
+            collectionId: answers.id,
+            name: answers.collection,
+            documentSecurity: answers.documentSecurity.toLowerCase() === 'yes',
+            enabled: true,
+            parseOutput: false
+        })
+
+        localConfig.addCollection(response);
+        success();
+    } catch (e) {
+        error(e.getMessage ?? 'Unknown error occurred. Please try again');
+    }
 };
 
 const createTopic = async () => {
@@ -70,7 +89,7 @@ const createTopic = async () => {
             parseOutput: false
         })
 
-        {#localConfig.addMessagingTopic(response);#}
+        {# localConfig.addMessagingTopic(response); #}
         success();
     } catch (e) {
         error(e.getMessage ?? 'Unknown error occurred. Please try again');
