@@ -163,6 +163,44 @@ const questionsCreateProject = [
     }
 ];
 
+const questionsCreateFunction = [
+    {
+        type: "input",
+        name: "name",
+        message: "What would you like to name your function?",
+        default: "My Awesome Function"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your function?",
+        default: "unique()"
+    },
+    {
+        type: "list",
+        name: "runtime",
+        message: "What runtime would you like to use?",
+        choices: async () => {
+            let response = await functionsListRuntimes({
+                parseOutput: false
+            })
+            let runtimes = response["runtimes"]
+            let choices = runtimes.map((runtime, idx) => {
+                return {
+                    name: `${runtime.name} (${runtime['$id']})`,
+                    value: {
+                        id: runtime['$id'],
+                        entrypoint: getEntrypoint(runtime['$id']),
+                        ignore: getIgnores(runtime['$id']),
+                        commands: getInstallCommand(runtime['$id'])
+                    },
+                }
+            })
+            return choices;
+        }
+    }
+];
+
 const questionsCreateBucket = [
     {
         type: "input",
@@ -268,44 +306,6 @@ const questionsPullProject = [
                 throw new Error("No projects found. Please create a new project.")
             }
 
-            return choices;
-        }
-    }
-];
-
-const questionsPullFunction = [
-    {
-        type: "input",
-        name: "name",
-        message: "What would you like to name your function?",
-        default: "My Awesome Function"
-    },
-    {
-        type: "input",
-        name: "id",
-        message: "What ID would you like to have for your function?",
-        default: "unique()"
-    },
-    {
-        type: "list",
-        name: "runtime",
-        message: "What runtime would you like to use?",
-        choices: async () => {
-            let response = await functionsListRuntimes({
-                parseOutput: false
-            })
-            let runtimes = response["runtimes"]
-            let choices = runtimes.map((runtime, idx) => {
-                return {
-                    name: `${runtime.name} (${runtime['$id']})`,
-                    value: {
-                        id: runtime['$id'],
-                        entrypoint: getEntrypoint(runtime['$id']),
-                        ignore: getIgnores(runtime['$id']),
-                        commands: getInstallCommand(runtime['$id'])
-                    },
-                }
-            })
             return choices;
         }
     }
@@ -534,12 +534,12 @@ const questionsMfaChallenge = [
 
 module.exports = {
     questionsCreateProject,
+    questionsCreateFunction,
     questionsCreateBucket,
     questionsCreateCollection,
     questionsCreateMessagingTopic,
     questionsPullProject,
     questionsLogin,
-    questionsPullFunction,
     questionsPullCollection,
     questionsPushFunctions,
     questionsPushCollections,
