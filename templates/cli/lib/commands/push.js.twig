@@ -509,7 +509,7 @@ const pushFunction = async ({ functionId, all, yes, async } = {}) => {
         error(`Deployment of ${name} has failed. Check at ${failUrl} for more details\n`);
     })
 
-    success(`Pushed ${successfullyPushed} functions with ${successfullyDeployed} successfully deployed`);
+    success(`Pushed ${successfullyPushed} functions with ${successfullyDeployed} successful deployments.`);
 }
 
 const createAttribute = async (databaseId, collectionId, attribute) => {
