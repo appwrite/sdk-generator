@@ -1,5 +1,6 @@
 const { Command } = require("commander");
 const inquirer = require("inquirer");
+const { messagingCreateTopic, messagingListTopics } = require("./messaging");
 const { teamsCreate, teamsList } = require("./teams");
 const { projectsCreate } = require("./projects");
 const { databasesGet, databasesListCollections, databasesList } = require("./databases");
@@ -101,6 +102,19 @@ const pullTeam = async () => {
     success();
 }
 
+const pullMessagingTopic = async () => {
+    const { topics } = await paginate(messagingListTopics, { parseOutput: false }, 100, 'topics');
+
+    log(`Found ${topics.length} topics`);
+
+    topics.forEach(async topic => {
+        log(`Pulling ${topic.name} ...`);
+        localConfig.addMessagingTopic(topic);
+    });
+
+    success();
+}
+
 pull
     .command("project")
     .description("Pulling your {{ spec.title|caseUcfirst }} project")
@@ -122,6 +136,11 @@ pull
     .command("team")
     .description("Pulling your Appwrite teams")
     .action(actionRunner(pullTeam))
+
+pull
+    .command("topic")
+    .description("Initialise your Appwrite messaging topics")
+    .action(actionRunner(pullMessagingTopic))
 
 module.exports = {
     pull,
