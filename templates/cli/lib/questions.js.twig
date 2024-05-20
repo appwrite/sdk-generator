@@ -1,9 +1,11 @@
 const { localConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
+const { teamsList } = require('./commands/teams');
 const { functionsListRuntimes } = require('./commands/functions');
 const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
 const { validateRequired } = require("./validations");
+const { paginate } = require('./paginate');
 
 const { databasesList } = require('./commands/databases');
 const JSONbig = require("json-bigint")({ storeAsString: false });
@@ -120,6 +122,31 @@ const questionsPullProject = [
     },
     {
         type: "list",
+        name: "organization",
+        message: "Choose the project organization",
+        choices: async () => {
+            let client = await sdkForConsole(true);
+            const { teams } = await paginate(teamsList, { parseOutput: false , sdk: client}, 100, 'teams');
+
+            let choices = teams.map((team, idx) => {
+                return {
+                    name: `${team.name} (${team['$id']})`,
+                    value: {
+                        name: team.name,
+                        id: team['$id']
+                    }
+                }
+            })
+
+            if (choices.length == 0) {
+                throw new Error("No organizations found. Please create a new organization.")
+            }
+
+            return choices;
+        }
+    },
+    {
+        type: "list",
         name: "start",
         when(answers) {
             if (answers.override == undefined) {
@@ -164,9 +191,10 @@ const questionsPullProject = [
         when(answers) {
             return answers.start == "existing";
         },
-        choices: async () => {
+        choices: async (answers) => {
             let response = await projectsList({
-                parseOutput: false
+                parseOutput: false,
+                queries: [JSON.stringify({ method: 'equal', attribute:'teamId', values: [answers.organization.id] })],
             })
             let projects = response["projects"]
             let choices = projects.map((project, idx) => {
