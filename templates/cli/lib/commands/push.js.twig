@@ -915,6 +915,7 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
 
     let topicsIds = [];
     const configTopics = localConfig.getMessagingTopics();
+    let overrideExisting = yes;
 
     if (all) {
         if (configTopics.length === 0) {
@@ -935,6 +936,13 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
         topics.push(...idTopic);
     }
 
+    if (!yes) {
+        const answers = await inquirer.prompt(questionsPushMessagingTopics[1])
+        if (answers.override.toLowerCase() === "yes") {
+            overrideExisting = true;
+        }
+    }
+
     for (let topic of topics) {
         log(`Pushing topic ${topic.name} ( ${topic['$id']} )`)
 
@@ -945,12 +953,9 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
             })
             log(`Topic ${topic.name} ( ${topic['$id']} ) already exists.`);
 
-            if (!yes) {
-                const answers = await inquirer.prompt(questionsPushMessagingTopics[1])
-                if (answers.override.toLowerCase() !== "yes") {
-                    log(`Received "${answers.override}". Skipping ${topic.name} ( ${topic['$id']} )`);
-                    continue;
-                }
+            if (!overrideExisting) {
+                log(`Skipping ${topic.name} ( ${topic['$id']} )`);
+                continue;
             }
 
             log(`Updating Topic ...`)
