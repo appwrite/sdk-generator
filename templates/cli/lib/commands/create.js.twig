@@ -2,9 +2,10 @@ const { Command } = require("commander");
 const inquirer = require("inquirer");
 const { projectsCreate } = require("./projects");
 const { storageCreateBucket } = require("./storage");
+const { messagingCreateTopic } = require("./messaging");
 const { sdkForConsole } = require("../sdks");
 const { localConfig } = require("../config");
-const { questionsCreateProject, questionsCreateBucket } = require("../questions");
+const { questionsCreateProject, questionsCreateBucket, questionsCreateMessagingTopic } = require("../questions");
 const { success, error, actionRunner, commandDescriptions } = require("../parser");
 
 const create = new Command("create")
@@ -32,7 +33,6 @@ const createProject = async () => {
     success();
 }
 
-
 const createBucket = async () => {
     let response = {}
     const answers = await inquirer.prompt(questionsCreateBucket)
@@ -54,17 +54,36 @@ const createBucket = async () => {
     }
 };
 
-const createFunction = async () => {
-
-};
-
 const createCollection = async () => {
 
 };
 
 const createTopic = async () => {
+    let response = {}
+    const answers = await inquirer.prompt(questionsCreateMessagingTopic)
+    if (!answers.topic || !answers.id) process.exit(1)
+
+    try {
+        response = await messagingCreateTopic({
+            topicId: answers.id,
+            name: answers.topic,
+            parseOutput: false
+        })
+
+        {#localConfig.addMessagingTopic(response);#}
+        success();
+    } catch (e) {
+        error(e.getMessage ?? 'Unknown error occurred. Please try again');
+    }
+};
+
+const createFunction = async () => {
 
 };
+
+
+
+
 
 create
     .command("project")
