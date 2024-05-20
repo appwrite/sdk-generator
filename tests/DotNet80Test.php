@@ -17,7 +17,7 @@ class DotNet80Test extends Base
         'cp tests/languages/dotnet/Tests80.csproj tests/sdks/dotnet/test/Tests.csproj',
     ];
     protected string $command =
-        'docker run --network="mockapi" -v $(pwd):/app -w /app/tests/sdks/dotnet/test mcr.microsoft.com/dotnet/sdk:8.0-alpine3.19 dotnet test --verbosity normal --framework net8.0';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/test mcr.microsoft.com/dotnet/sdk:8.0-alpine3.19 dotnet test --verbosity normal --framework net8.0';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

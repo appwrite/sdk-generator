@@ -14,10 +14,10 @@ class DotNet60Test extends Base
     protected array $build = [
         'mkdir -p tests/sdks/dotnet/test',
         'cp tests/languages/dotnet/Tests.cs tests/sdks/dotnet/test/Tests.cs',
-        'cp tests/languages/dotnet/Tests80.csproj tests/sdks/dotnet/test/Tests.csproj',
+        'cp tests/languages/dotnet/Tests60.csproj tests/sdks/dotnet/test/Tests.csproj',
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/test/ mcr.microsoft.com/dotnet/sdk:6.0-alpine3.17 dotnet test --verbosity normal --framework net6.0';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/dotnet/test mcr.microsoft.com/dotnet/sdk:6.0-alpine3.17 dotnet test --verbosity normal --framework net6.0';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
