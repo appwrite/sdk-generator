@@ -1,12 +1,12 @@
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
-const { localConfig } = require("../config");
+const { localConfig, globalConfig } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
 const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
-const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
+const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
     databasesCreate,
@@ -40,13 +40,14 @@ const {
 } = require("./teams");
 
 const STEP_SIZE = 100;      // Resources
-const POOL_DEBOUNCE = 2000; // Milliseconds
+const POLL_DEBOUNCE = 2000; // Milliseconds
+const POLL_MAX_DEBOUNCE = 30; // Times
 
-let poolMaxDebounces = 30;
+let pollMaxDebounces = 30;
 
 const awaitPools = {
     wipeAttributes: async (databaseId, collectionId, iteration = 1) => {
-        if (iteration > poolMaxDebounces) {
+        if (iteration > pollMaxDebounces) {
             return false;
         }
 
@@ -63,12 +64,12 @@ const awaitPools = {
 
         let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
         if (steps > 1 && iteration === 1) {
-            poolMaxDebounces *= steps;
+            pollMaxDebounces *= steps;
 
-            log('Found a large number of attributes, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+            log('Found a large number of attributes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
         }
 
-        await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
 
         return await awaitPools.wipeAttributes(
             databaseId,
@@ -77,7 +78,7 @@ const awaitPools = {
         );
     },
     wipeIndexes: async (databaseId, collectionId, iteration = 1) => {
-        if (iteration > poolMaxDebounces) {
+        if (iteration > pollMaxDebounces) {
             return false;
         }
 
@@ -94,12 +95,12 @@ const awaitPools = {
 
         let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
         if (steps > 1 && iteration === 1) {
-            poolMaxDebounces *= steps;
+            pollMaxDebounces *= steps;
 
-            log('Found a large number of indexes, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+            log('Found a large number of indexes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
         }
 
-        await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
 
         return await awaitPools.wipeIndexes(
             databaseId,
@@ -108,7 +109,7 @@ const awaitPools = {
         );
     },
     wipeVariables: async (functionId, iteration = 1) => {
-        if (iteration > poolMaxDebounces) {
+        if (iteration > pollMaxDebounces) {
             return false;
         }
 
@@ -124,12 +125,12 @@ const awaitPools = {
 
         let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
         if (steps > 1 && iteration === 1) {
-            poolMaxDebounces *= steps;
+            pollMaxDebounces *= steps;
 
-            log('Found a large number of variables, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+            log('Found a large number of variables, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
         }
 
-        await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
 
         return await awaitPools.wipeVariables(
             functionId,
@@ -137,15 +138,15 @@ const awaitPools = {
         );
     },
     expectAttributes: async (databaseId, collectionId, attributeKeys, iteration = 1) => {
-        if (iteration > poolMaxDebounces) {
+        if (iteration > pollMaxDebounces) {
             return false;
         }
 
         let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
         if (steps > 1 && iteration === 1) {
-            poolMaxDebounces *= steps;
+            pollMaxDebounces *= steps;
 
-            log('Creating a large number of attributes, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+            log('Creating a large number of attributes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
         }
 
         const { attributes } = await paginate(databasesListAttributes, {
@@ -172,7 +173,7 @@ const awaitPools = {
             return true;
         }
 
-        await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
 
         return await awaitPools.expectAttributes(
             databaseId,
@@ -182,15 +183,15 @@ const awaitPools = {
         );
     },
     expectIndexes: async (databaseId, collectionId, indexKeys, iteration = 1) => {
-        if (iteration > poolMaxDebounces) {
+        if (iteration > pollMaxDebounces) {
             return false;
         }
 
         let steps = Math.max(1, Math.ceil(indexKeys.length / STEP_SIZE));
         if (steps > 1 && iteration === 1) {
-            poolMaxDebounces *= steps;
+            pollMaxDebounces *= steps;
 
-            log('Creating a large number of indexes, increasing timeout to ' + (poolMaxDebounces * POOL_DEBOUNCE / 1000 / 60) + ' minutes')
+            log('Creating a large number of indexes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
         }
 
         const { indexes } = await paginate(databasesListIndexes, {
@@ -217,7 +218,7 @@ const awaitPools = {
             return true;
         }
 
-        await new Promise(resolve => setTimeout(resolve, POOL_DEBOUNCE));
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
 
         return await awaitPools.expectIndexes(
             databaseId,
@@ -237,7 +238,7 @@ const push = new Command("push")
         command.help()
     }));
 
-const pushFunction = async ({ functionId, all, yes } = {}) => {
+const pushFunction = async ({ functionId, all, yes, async } = {}) => {
     let response = {};
 
     const functionIds = [];
@@ -312,10 +313,13 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
 
     Spinner.start(false);
     let successfullyPushed = 0;
+    let successfullyDeployed = 0;
+    const failedDeployments = [];
 
     await Promise.all(functions.map(async (func) => {
         const ignore = func.ignore ? 'appwrite.json' : '.gitignore';
         let functionExists = false;
+        let deploymentCreated = false;
 
         const updaterRow = new Spinner({ status: '', resource: func.name, id: func['$id'], end: `Ignoring using: ${ignore}` });
 
@@ -437,9 +441,9 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
                 parseOutput: false
             })
 
-            updaterRow.update({ status: 'Pushed' })
+            updaterRow.update({ status: 'Pushed' });
+            deploymentCreated = true;
             successfullyPushed++;
-
         } catch (e) {
             switch (e.code) {
                 case 'ENOENT':
@@ -449,12 +453,63 @@ const pushFunction = async ({ functionId, all, yes } = {}) => {
                     updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' })
             }
         }
+
+        if (deploymentCreated && !async) {
+            try {
+                const deploymentId = response['$id'];
+                updaterRow.update({ status: 'Deploying', end: 'Checking deployment status...' })
+                let pollChecks = 0;
+
+                while (true) {
+                    if (pollChecks >= POLL_MAX_DEBOUNCE) {
+                        updaterRow.update({ end: 'Deployment is taking too long. Please check the console for more details.' })
+                        break;
+                    }
+
+                    response = await functionsGetDeployment({
+                        functionId: func['$id'],
+                        deploymentId: deploymentId,
+                        parseOutput: false
+                    });
+
+
+                    const status = response['status'];
+                    if (status === 'ready') {
+                        updaterRow.update({ status: 'Deployed' });
+                        successfullyDeployed++;
+
+                        break;
+                    } else if (status === 'failed') {
+                        failedDeployments.push({ name: func['name'], $id: func['$id'], deployment: response['$id'] });
+                        updaterRow.fail({ errorMessage: `Failed to deploy` });
+
+                        break;
+                    } else {
+                        updaterRow.update({ status: 'Deploying', end: `Current status: ${status}` })
+                    }
+
+                    pollChecks++;
+                    await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+                }
+            } catch (e) {
+                updaterRow.fail({ errorMessage: e.message ?? 'Unknown error occurred. Please try again' })
+            }
+        }
+
         updaterRow.stopSpinner();
     }));
 
     Spinner.stop();
+    console.log('\n');
 
-    success(`Pushed ${successfullyPushed} functions`);
+    failedDeployments.forEach((failed) => {
+        const { name, deployment, $id } = failed;
+        const failUrl = `${globalConfig.getEndpoint().replace('/v1', '')}/console/project-${localConfig.getProject().projectId}/functions/function-${$id}/deployment-${deployment}`;
+
+        error(`Deployment of ${name} has failed. Check at ${failUrl} for more details\n`);
+    })
+
+    success(`Pushed ${successfullyPushed} functions with ${successfullyDeployed} successful deployments.`);
 }
 
 const createAttribute = async (databaseId, collectionId, attribute) => {
@@ -958,6 +1013,7 @@ push
     .option(`--functionId <functionId>`, `Function ID`)
     .option(`--all`, `Flag to push all functions`)
     .option(`--yes`, `Flag to confirm all warnings`)
+    .option(`--async`, `Don't wait for functions deployments status`)
     .action(actionRunner(pushFunction));
 
 push
