@@ -34,7 +34,7 @@ const {
 } = require("./storage");
 const {
     teamsGet,
-    teamsUpdate,
+    teamsUpdateName,
     teamsCreate
 } = require("./teams");
 const { checkDeployConditions } = require('../utils');
@@ -355,7 +355,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                     functionId: func['$id'],
                     parseOutput: false
                 }, 100, 'variables');
-    
+
                 await Promise.all(variables.map(async variable => {
                     await functionsDeleteVariable({
                         functionId: func['$id'],
@@ -363,7 +363,7 @@ const deployFunction = async ({ functionId, all, yes } = {}) => {
                         parseOutput: false
                     });
                 }));
-    
+
                 let result = await awaitPools.wipeVariables(func['$id']);
                 if (!result) {
                     throw new Error("Variable deletion timed out.");
@@ -881,7 +881,7 @@ const deployTeam = async ({ all, yes } = {}) => {
 
             log(`Updating team ...`)
 
-            await teamsUpdate({
+            await teamsUpdateName({
                 teamId: team['$id'],
                 name: team.name,
                 parseOutput: false
