@@ -277,6 +277,21 @@ const questionsLogin = [
     },
 ];
 
+const questionsPushResources = [
+    {
+        type: "checkbox",
+        name: "resources",
+        message: "Which resources would you like to push?",
+        choices: [
+            { name: 'Functions', value: 'functions' },
+            { name: 'Collections', value: 'collections' },
+            { name: 'Buckets', value: 'buckets' },
+            { name: 'Teams', value: 'teams' },
+            { name: 'Topics', value: 'messages' }
+        ]
+    }
+]
+
 const questionsPushFunctions = [
     {
         type: "checkbox",
@@ -477,6 +492,7 @@ module.exports = {
     questionsLogin,
     questionsPullFunction,
     questionsPullCollection,
+    questionsPushResources,
     questionsPushFunctions,
     questionsPushCollections,
     questionsPushBuckets,
