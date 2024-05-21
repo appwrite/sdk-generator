@@ -3,7 +3,7 @@ const { Command } = require("commander");
 const Client = require("../client");
 const { sdkForConsole } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
-const { actionRunner, success, parseBool, commandDescriptions, log, parse, drawTable } = require("../parser");
+const { actionRunner, success, parseBool, commandDescriptions, error, parse, drawTable } = require("../parser");
 {% if sdk.test != "true" %}
 const { questionsLogin, questionsListFactors, questionsMfaChallenge } = require("../questions");
 const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
@@ -14,6 +14,11 @@ const whoami = new Command("whoami")
         helpWidth: process.stdout.columns || 80
     })
     .action(actionRunner(async () => {
+        if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
+            error("No user is signed in");
+            return;
+        }
+
         let client = await sdkForConsole(false);
 
         let account;
@@ -23,8 +28,9 @@ const whoami = new Command("whoami")
                 sdk: client,
                 parseOutput: false
             });
-        } catch(error) {
-            throw error;
+        } catch (error) {
+            error("No user is signed in");
+            return;
         }
 
         success("Signed in");
@@ -67,7 +73,7 @@ const login = new Command("login")
                 sdk: client,
                 parseOutput: false
             });
-        } catch(error) {
+        } catch (error) {
             if (error.response === 'user_more_factors_required') {
                 const { factor } = await inquirer.prompt(questionsListFactors);
 
@@ -191,10 +197,10 @@ const client = new Command("client")
     }));
 
 module.exports = {
-{% if sdk.test != "true" %}
+    {% if sdk.test != "true" %}
     whoami,
     login,
     logout,
-{% endif %}
+    {% endif %}
     client
 };
