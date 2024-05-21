@@ -3,10 +3,43 @@ const { Command } = require("commander");
 const Client = require("../client");
 const { sdkForConsole } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
-const { actionRunner, success, parseBool, commandDescriptions, log, parse } = require("../parser");
+const { actionRunner, success, parseBool, commandDescriptions, log, parse, drawTable } = require("../parser");
 {% if sdk.test != "true" %}
 const { questionsLogin, questionsListFactors, questionsMfaChallenge } = require("../questions");
 const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
+
+const whoami = new Command("whoami")
+    .description(commandDescriptions['whoami'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
+    .action(actionRunner(async () => {
+        let client = await sdkForConsole(false);
+
+        let account;
+
+        try {
+            account = await accountGet({
+                sdk: client,
+                parseOutput: false
+            });
+        } catch(error) {
+            throw error;
+        }
+
+        success("Signed in");
+
+        const data = [
+            {
+                'ID': account.$id,
+                'Name': account.name,
+                'Email': account.email,
+                'MFA enabled': account.mfa
+            }
+        ];
+
+        drawTable(data)
+    }));
 
 const login = new Command("login")
     .description(commandDescriptions['login'])
@@ -159,6 +192,7 @@ const client = new Command("client")
 
 module.exports = {
 {% if sdk.test != "true" %}
+    whoami,
     login,
     logout,
 {% endif %}
