@@ -34,7 +34,7 @@ class Tests: XCTestCase {
 
         let expectation = XCTestExpectation(description: "realtime server")
 
-        realtime.subscribe(channels: ["tests"]) { message in
+        try await realtime.subscribe(channels: ["tests"]) { message in
             realtimeResponse = message.payload!["response"] as! String
             expectation.fulfill()
         }

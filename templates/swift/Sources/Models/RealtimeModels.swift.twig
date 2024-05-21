@@ -1,10 +1,14 @@
 import Foundation
 
 public class RealtimeSubscription {
-    public var close: () -> Void
+    private var close: () async throws -> Void
 
-    init(close: @escaping () -> Void) {
+    init(close: @escaping () async throws-> Void) {
         self.close = close
+    }
+
+    public func close() async throws {
+        try await self.close()
     }
 }
 
@@ -14,7 +18,7 @@ public class RealtimeCallback {
 
     init(
         for channels: Set<String>,
-        and callback: @escaping (RealtimeResponseEvent) -> Void
+        with callback: @escaping (RealtimeResponseEvent) -> Void
     ) {
         self.channels = channels
         self.callback = callback

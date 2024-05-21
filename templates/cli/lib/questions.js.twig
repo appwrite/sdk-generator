@@ -5,6 +5,7 @@ const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
 
 const { databasesList } = require('./commands/databases');
+const { checkDeployConditions } = require('./utils');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
 const getIgnores = (runtime) => {
@@ -209,12 +210,12 @@ const questionsInitFunction = [
                 parseOutput: false
             })
             let runtimes = response["runtimes"]
-            let choices = runtimes.map((runtime, idx) => { 
+            let choices = runtimes.map((runtime, idx) => {
                 return {
                     name: `${runtime.name} (${runtime['$id']})`,
-                    value: { 
-                        id: runtime['$id'], 
-                        entrypoint: getEntrypoint(runtime['$id']), 
+                    value: {
+                        id: runtime['$id'],
+                        entrypoint: getEntrypoint(runtime['$id']),
                         ignore: getIgnores(runtime['$id']),
                         commands : getInstallCommand(runtime['$id'])
                     },
@@ -283,6 +284,7 @@ const questionsDeployFunctions = [
         message: "Which functions would you like to deploy?",
         choices: () => {
             let functions = localConfig.getFunctions();
+            checkDeployConditions(localConfig)
             if (functions.length === 0) {
                 throw new Error("No functions found in the current directory.");
             }
@@ -309,6 +311,8 @@ const questionsDeployCollections = [
         message: "Which collections would you like to deploy?",
         choices: () => {
             let collections = localConfig.getCollections();
+            checkDeployConditions(localConfig)
+
             if (collections.length === 0) {
                 throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
             }
@@ -334,6 +338,7 @@ const questionsDeployBuckets = [
         message: "Which buckets would you like to deploy?",
         choices: () => {
             let buckets = localConfig.getBuckets();
+            checkDeployConditions(localConfig)
             if (buckets.length === 0) {
                 throw new Error("No buckets found in the current directory. Run `appwrite init bucket` to fetch all your buckets.");
             }
@@ -374,6 +379,7 @@ const questionsDeployTeams = [
         message: "Which teams would you like to deploy?",
         choices: () => {
             let teams = localConfig.getTeams();
+            checkDeployConditions(localConfig);
             if (teams.length === 0) {
                 throw new Error("No teams found in the current directory. Run `appwrite init team` to fetch all your teams.");
             }
