@@ -180,7 +180,7 @@ class Client
         $warnings = $responseHeaders['x-{{spec.title | caseLower}}-warning'] ?? '';
         if ($warnings) {
             foreach(explode(';', $warnings) as $warning) {
-                trigger_error($warning, E_USER_WARNING);
+                echo 'Warning: ' . $warning . PHP_EOL;
             }
         }
         
