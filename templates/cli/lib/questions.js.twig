@@ -515,6 +515,31 @@ const questionsMfaChallenge = [
     }
 ];
 
+const questionGetEndpoint = [
+    {
+        type: "input",
+        name: "endpoint",
+        message: "Enter the endpoint of your {{ spec.title|caseUcfirst }} server",
+        default: "http://localhost/v1",
+        async validate(value) {
+            if (!value) {
+                return "Please enter a valid endpoint.";
+            }
+            let client = new Client().setEndpoint(value);
+            try {
+                let response = await client.call('get', '/health/version');
+                if (response.version) {
+                    return true;
+                } else {
+                    throw new Error();
+                }
+            } catch (error) {
+                return "Invalid endpoint or your Appwrite server is not running as expected.";
+            }
+        }
+    }
+];
+
 module.exports = {
     questionsPullProject,
     questionsLogin,
@@ -528,5 +553,6 @@ module.exports = {
     questionsPushTeams,
     questionsGetEntrypoint,
     questionsListFactors,
-    questionsMfaChallenge
+    questionsMfaChallenge,
+    questionGetEndpoint
 };

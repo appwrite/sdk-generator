@@ -1,12 +1,82 @@
 const inquirer = require("inquirer");
 const { Command } = require("commander");
 const Client = require("../client");
-const { sdkForConsole } = require("../sdks");
+const { sdkForConsole, questionGetEndpoint } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, error, parse, drawTable } = require("../parser");
 {% if sdk.test != "true" %}
 const { questionsLogin, questionsListFactors, questionsMfaChallenge } = require("../questions");
 const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
+const ID = require("../id");
+
+const DEFAULT_ENDPOINT = 'https://cloud.appwrite.io/v1';
+
+const loginCommand = async ({ selfHosted }) => {
+    const answers = await inquirer.prompt(questionsLogin);
+    const oldCurrent = globalConfig.getCurrentLogin();
+    const id = ID.unique();
+
+    globalConfig.setCurrentLogin(id);
+    globalConfig.addLogin(id, {});
+    globalConfig.setEmail(answers.email);
+    globalConfig.setEndpoint(DEFAULT_ENDPOINT);
+
+    if (selfHosted) {
+        const selfHostedAnswers = await inquirer.prompt(questionGetEndpoint);
+
+        globalConfig.setEndpoint(selfHostedAnswers.endpoint);
+    }
+
+    let client = await sdkForConsole(false);
+
+    let account;
+
+    try {
+        await accountCreateEmailPasswordSession({
+            email: answers.email,
+            password: answers.password,
+            parseOutput: false,
+            sdk: client
+        })
+
+        client.setCookie(globalConfig.getCookie());
+
+        account = await accountGet({
+            sdk: client,
+            parseOutput: false
+        });
+    } catch (error) {
+        if (error.response === 'user_more_factors_required') {
+            const { factor } = await inquirer.prompt(questionsListFactors);
+
+            const challenge = await accountCreateMfaChallenge({
+                factor,
+                parseOutput: false,
+                sdk: client
+            });
+
+            const { otp } = await inquirer.prompt(questionsMfaChallenge);
+
+            await accountUpdateMfaChallenge({
+                challengeId: challenge.$id,
+                otp,
+                parseOutput: false,
+                sdk: client
+            });
+
+            account = await accountGet({
+                sdk: client,
+                parseOutput: false
+            });
+        } else {
+            globalConfig.removeLogin(id);
+            globalConfig.setCurrentLogin(oldCurrent);
+            throw error;
+        }
+    }
+
+    success("Signed in as user with ID: " + account.$id);
+};
 
 const whoami = new Command("whoami")
     .description(commandDescriptions['whoami'])
@@ -49,60 +119,73 @@ const whoami = new Command("whoami")
 
 const login = new Command("login")
     .description(commandDescriptions['login'])
+    .option(`-sa, --self-hosted`, `Flag for enabling custom endpoint for self hosted instances`)
     .configureHelp({
         helpWidth: process.stdout.columns || 80
     })
+    .action(actionRunner(loginCommand));
+
+login
+    .command('list')
+    .description("List available logged accounts.")
     .action(actionRunner(async () => {
-        const answers = await inquirer.prompt(questionsLogin)
+        const logins = globalConfig.getLogins();
+        const current = globalConfig.getCurrentLogin();
 
-        let client = await sdkForConsole(false);
+        const data = [...logins.map((login => {
+            return {
+                'Current': login.id === current ? '*' : '',
+                'ID': login.id,
+                'Endpoint': login.endpoint,
+                'Email': login.email
+            };
+        }))];
 
-        await accountCreateEmailPasswordSession({
-            email: answers.email,
-            password: answers.password,
-            parseOutput: false,
-            sdk: client
-        })
+        drawTable(data);
 
-        client.setCookie(globalConfig.getCookie());
+    }));
 
-        let account;
+login
+    .command('change')
+    .description("Change the current account")
+    .option(`-a, --accountId <accountId>`, `Login ID`)
+    .action(actionRunner(async ({ accountId }) => {
+        const loginIds = globalConfig.getLoginIds();
 
-        try {
-            account = await accountGet({
-                sdk: client,
-                parseOutput: false
-            });
-        } catch (error) {
-            if (error.response === 'user_more_factors_required') {
-                const { factor } = await inquirer.prompt(questionsListFactors);
-
-                const challenge = await accountCreateMfaChallenge({
-                    factor,
-                    parseOutput: false,
-                    sdk: client
-                });
-
-                const { otp } = await inquirer.prompt(questionsMfaChallenge);
-
-                await accountUpdateMfaChallenge({
-                    challengeId: challenge.$id,
-                    otp,
-                    parseOutput: false,
-                    sdk: client
-                });
-
-                account = await accountGet({
-                    sdk: client,
-                    parseOutput: false
-                });
-            } else {
-                throw error;
-            }
+        if (!loginIds.includes(accountId)) {
+            throw Error('Login ID not found');
         }
 
-        success("Signed in as user with ID: " + account.$id);
+        globalConfig.setCurrentLogin(accountId);
+        success(`Current account is ${accountId}`);
     }));
+
+login
+    .command('migrate')
+    .description("Migrate existing login to new scheme")
+    .action(actionRunner(async ({ accountId }) => {
+        const endpoint = globalConfig.getEndpoint();
+        const cookie = globalConfig.getCookie();
+
+        if (endpoint === '' || cookie === '') {
+            throw Error(`Couldn't find any existing account credentials`)
+        }
+
+        const id = ID.unique();
+        const data = {
+            endpoint,
+            cookie,
+            email: 'legacy'
+        };
+
+        globalConfig.addLogin(id, data);
+        globalConfig.setCurrentLogin(id);
+        globalConfig.delete('endpoint');
+        globalConfig.delete('cookie');
+
+        success(`Account was migrated and it's the current account`);
+    }));
+
 
 const logout = new Command("logout")
     .description(commandDescriptions['logout'])
