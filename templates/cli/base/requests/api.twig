@@ -9,14 +9,13 @@
 {% endfor %}
     }, payload{% if method.type == 'location' %}, 'arraybuffer'{% endif %});
 
-{% if method.type == 'location' %}
+    {%~ if method.type == 'location' %}
     if (overrideForCli) {
         response = Buffer.from(response);
     }
 
     fs.writeFileSync(destination, response);
-
-{% endif %}
+    {%~ endif %}
     if (parseOutput) {
         parse(response)
         success()
