@@ -8,62 +8,64 @@ const { actionRunner, success, parseBool, commandDescriptions, log, parse } = re
 const { questionsLogin, questionsListFactors, questionsMfaChallenge } = require("../questions");
 const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
 
+const loginCommand = async () => {
+    const answers = await inquirer.prompt(questionsLogin)
+
+    let client = await sdkForConsole(false);
+
+    await accountCreateEmailPasswordSession({
+        email: answers.email,
+        password: answers.password,
+        parseOutput: false,
+        sdk: client
+    })
+
+    client.setCookie(globalConfig.getCookie());
+
+    let account;
+
+    try {
+        account = await accountGet({
+            sdk: client,
+            parseOutput: false
+        });
+    } catch(error) {
+        if (error.response === 'user_more_factors_required') {
+            const { factor } = await inquirer.prompt(questionsListFactors);
+
+            const challenge = await accountCreateMfaChallenge({
+                factor,
+                parseOutput: false,
+                sdk: client
+            });
+
+            const { otp } = await inquirer.prompt(questionsMfaChallenge);
+
+            await accountUpdateMfaChallenge({
+                challengeId: challenge.$id,
+                otp,
+                parseOutput: false,
+                sdk: client
+            });
+
+            account = await accountGet({
+                sdk: client,
+                parseOutput: false
+            });
+        } else {
+            throw error;
+        }
+    }
+
+    success("Signed in as user with ID: " + account.$id);
+};
+
 const login = new Command("login")
     .description(commandDescriptions['login'])
     .configureHelp({
         helpWidth: process.stdout.columns || 80
     })
-    .action(actionRunner(async () => {
-        const answers = await inquirer.prompt(questionsLogin)
-
-        let client = await sdkForConsole(false);
-
-        await accountCreateEmailPasswordSession({
-            email: answers.email,
-            password: answers.password,
-            parseOutput: false,
-            sdk: client
-        })
-
-        client.setCookie(globalConfig.getCookie());
-
-        let account;
-
-        try {
-            account = await accountGet({
-                sdk: client,
-                parseOutput: false
-            });
-        } catch(error) {
-            if (error.response === 'user_more_factors_required') {
-                const { factor } = await inquirer.prompt(questionsListFactors);
-
-                const challenge = await accountCreateMfaChallenge({
-                    factor,
-                    parseOutput: false,
-                    sdk: client
-                });
-
-                const { otp } = await inquirer.prompt(questionsMfaChallenge);
-
-                await accountUpdateMfaChallenge({
-                    challengeId: challenge.$id,
-                    otp,
-                    parseOutput: false,
-                    sdk: client
-                });
-
-                account = await accountGet({
-                    sdk: client,
-                    parseOutput: false
-                });
-            } else {
-                throw error;
-            }
-        }
-
-        success("Signed in as user with ID: " + account.$id);
-    }));
+    .action(actionRunner(loginCommand));
 
 const logout = new Command("logout")
     .description(commandDescriptions['logout'])
@@ -159,6 +161,7 @@ const client = new Command("client")
 
 module.exports = {
 {% if sdk.test != "true" %}
+    loginCommand,
     login,
     logout,
 {% endif %}

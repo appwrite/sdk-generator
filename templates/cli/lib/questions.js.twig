@@ -10,6 +10,8 @@ const { paginate } = require('./paginate');
 const { databasesList } = require('./commands/databases');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
+const whenOverride = (answers)=> answers.override === undefined ? true : answers.override;
+
 const getIgnores = (runtime) => {
     const languge = runtime.split('-')[0];
 
@@ -143,7 +145,8 @@ const questionsProject = [
             }
 
             return choices;
-        }
+        },
+        when: whenOverride
     },
 ];
 
@@ -153,13 +156,15 @@ const questionsCreateProject = [
         type: "input",
         name: "project",
         message: "What would you like to name your project?",
-        default: "My Awesome Project"
+        default: "My Awesome Project",
+        when: whenOverride
     },
     {
         type: "input",
         name: "id",
         message: "What ID would you like to have for your project?",
-        default: "unique()"
+        default: "unique()",
+        when: whenOverride
     }
 ];
 const questionsPullProject = [
@@ -189,7 +194,8 @@ const questionsPullProject = [
             }
 
             return choices;
-        }
+        },
+        when: whenOverride
     }
 ];
 
