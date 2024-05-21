@@ -1,9 +1,13 @@
 const fs = require("fs");
 const path = require("path");
+const { localConfig, globalConfig } = require("./config");
+const { success, log } = require('./parser')
+const readline = require('readline');
+const cp = require('child_process');
 
 function getAllFiles(folder) {
     const files = [];
-    for(const pathDir of fs.readdirSync(folder)) {
+    for (const pathDir of fs.readdirSync(folder)) {
         const pathAbsolute = path.join(folder, pathDir);
         if (fs.statSync(pathAbsolute).isDirectory()) {
             files.push(...getAllFiles(pathAbsolute));
@@ -14,6 +18,60 @@ function getAllFiles(folder) {
     return files;
 }
 
+function showConsoleLink(serviceName, action, id = '') {
+    let resource = '';
+    let service = '';
+
+    switch (serviceName) {
+        case "account":
+            service = 'account';
+            break;
+        case "databases":
+            resource = 'database';
+            service = 'databases';
+            break;
+        case "functions":
+            resource = 'function';
+            service = 'functions';
+            break;
+        case "projects":
+            service = `project-${id}`;
+            id = '';
+            break;
+        case "teams":
+            resource = 'team';
+            service = 'auth/teams';
+            break;
+
+        case "users":
+            resource = 'user';
+            service = 'auth';
+            break;
+        default:
+            return;
+    }
+
+    const baseUrl = globalConfig.getEndpoint().replace('/v1', '');
+
+    const end = action === 'get' ? (id ? `/${resource}-${id}` : `/${resource}`) : '';
+    const projectId = localConfig.getProject().projectId;
+    const middle = resource !== '' ? `/project-${projectId}` : '';
+    const url = `${baseUrl}/console${middle}/${service}${end}`
+
+    const start = (process.platform == 'darwin' ? 'open' : process.platform == 'win32' ? 'start' : 'xdg-open');
+    const key = (process.platform == 'darwin' ? 'Return' : 'Enter');
+
+    success(`\n  ${url}\n  Press <${key}> to open URL in your default browser, exising in 3 seconds`);
+    setTimeout(() => process.exit(0), 3000);
+
+    const read = readline.createInterface({ input: process.stdin, output: process.stdout });
+    read.on('line', () => {
+        cp.exec(`${start} ${url}`);
+        setTimeout(() => process.exit(0), 250);
+    });
+}
+
 module.exports = {
-    getAllFiles
+    getAllFiles,
+    showConsoleLink
 };
