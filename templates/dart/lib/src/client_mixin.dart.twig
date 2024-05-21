@@ -2,6 +2,7 @@ import 'package:http/http.dart' as http;
 import 'exception.dart';
 import 'response.dart';
 import 'dart:convert';
+import 'dart:developer';
 import 'enums.dart';
 
 class ClientMixin {
@@ -70,7 +71,7 @@ class ClientMixin {
 
     String? warnings = res.headers['x-{{ spec.title | lower }}-warning'];
     if (warnings != null) {
-      warnings.split(';').forEach((warning) => print(warning));
+      warnings.split(';').forEach((warning) => log('Warning: $warning'));
     }
 
     if (res.statusCode >= 400) {
