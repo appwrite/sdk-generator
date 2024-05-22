@@ -3,7 +3,7 @@ const { Command } = require("commander");
 const Client = require("../client");
 const { sdkForConsole, questionGetEndpoint } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
-const { actionRunner, success, parseBool, commandDescriptions, error, parse, drawTable } = require("../parser");
+const { actionRunner, success, parseBool, commandDescriptions, error, parse,log, drawTable } = require("../parser");
 {% if sdk.test != "true" %}
 const { questionsLogin, questionsListFactors, questionsMfaChallenge } = require("../questions");
 const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
@@ -161,33 +161,6 @@ login
         success(`Current account is ${accountId}`);
     }));
 
-login
-    .command('migrate')
-    .description("Migrate existing login to new scheme")
-    .action(actionRunner(async ({ accountId }) => {
-        const endpoint = globalConfig.getEndpoint();
-        const cookie = globalConfig.getCookie();
-
-        if (endpoint === '' || cookie === '') {
-            throw Error(`Couldn't find any existing account credentials`)
-        }
-
-        const id = ID.unique();
-        const data = {
-            endpoint,
-            cookie,
-            email: 'legacy'
-        };
-
-        globalConfig.addLogin(id, data);
-        globalConfig.setCurrentLogin(id);
-        globalConfig.delete('endpoint');
-        globalConfig.delete('cookie');
-
-        success(`Account was migrated and it's the current account`);
-    }));
-
-
 const logout = new Command("logout")
     .description(commandDescriptions['logout'])
     .configureHelp({
@@ -280,11 +253,35 @@ const client = new Command("client")
         success()
     }));
 
+const migrate = async ()=>{
+    if (!globalConfig.has('endpoint') || !globalConfig.has('cookie')) {
+        return;
+    }
+
+    const endpoint = globalConfig.get('endpoint');
+    const cookie = globalConfig.get('cookie');
+
+    log("Old Appwrite login settings were detected, migrating...");
+    const id = ID.unique();
+    const data = {
+        endpoint,
+        cookie,
+        email: 'legacy'
+    };
+
+    globalConfig.addLogin(id, data);
+    globalConfig.setCurrentLogin(id);
+    globalConfig.delete('endpoint');
+    globalConfig.delete('cookie');
+
+    success(`Account was migrated and it's the current account`);
+}
 module.exports = {
     {% if sdk.test != "true" %}
     whoami,
     login,
     logout,
+    migrate,
     {% endif %}
     client
 };

@@ -11,7 +11,7 @@ const { version } = require("./package.json");
 const { commandDescriptions, cliConfig } = require("./lib/parser");
 const { client } = require("./lib/commands/generic");
 {% if sdk.test != "true" %}
-const { login, logout, whoami } = require("./lib/commands/generic");
+const { login, logout, whoami, migrate } = require("./lib/commands/generic");
 const { pull } = require("./lib/commands/pull");
 const { push } = require("./lib/commands/push");
 {% endif %}
@@ -28,6 +28,7 @@ program
   .version(version, "-v, --version")
   .option("--verbose", "Show complete error log")
   .option("--json", "Output in JSON format")
+  .hook('preAction',migrate)
   .on("option:json", () => {
     cliConfig.json = true;
   })

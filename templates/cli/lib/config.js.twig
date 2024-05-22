@@ -467,46 +467,35 @@ class Global extends Config {
         this.setTo(Global.PREFERENCE_KEY, key);
     }
 
+
     hasFrom(key) {
-        try {
-            const current = this.getCurrentLogin();
+        const current = this.getCurrentLogin();
 
-            if (current) {
-                const config = this.get(current);
+        if (current) {
+            const config = this.get(current);
 
-                return config[key] !== undefined;
-            }
-        } catch {
-            return this.has(key);
+            return config[key] !== undefined;
         }
     }
 
     getFrom(key) {
-        try {
-            const current = this.getCurrentLogin();
+        const current = this.getCurrentLogin();
 
-            if (current) {
-                const config = this.get(current);
+        if (current) {
+            const config = this.get(current);
 
-                return config[key];
-            }
-        } catch {
-            return this.get(key);
+            return config[key];
         }
     }
 
     setTo(key, value) {
-        try {
-            const current = this.getCurrentLogin();
+        const current = this.getCurrentLogin();
 
-            if (current) {
-                const config = this.get(current);
+        if (current) {
+            const config = this.get(current);
 
-                config[key] = value;
-                this.write();
-            }
-        } catch {
-            this.set(key, value);
+            config[key] = value;
+            this.write();
         }
     }
 }
