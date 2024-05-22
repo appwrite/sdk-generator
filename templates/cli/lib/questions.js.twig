@@ -167,6 +167,7 @@ const questionsCreateProject = [
         when: whenOverride
     }
 ];
+
 const questionsPullProject = [
     ...questionsProject,
     {
@@ -315,37 +316,6 @@ const questionsCreateMessagingTopic = [
     }
 ];
 
-
-const questionsPullProject = [
-    ...questionsProject,
-    {
-        type: "list",
-        name: "project",
-        message: "Choose your {{ spec.title|caseUcfirst }} project.",
-        choices: async (answers) => {
-            let response = await projectsList({
-                parseOutput: false,
-                queries: [JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization.id] })],
-            })
-            let projects = response["projects"]
-            let choices = projects.map((project, idx) => {
-                return {
-                    name: `${project.name} (${project['$id']})`,
-                    value: {
-                        name: project.name,
-                        id: project['$id']
-                    }
-                }
-            })
-
-            if (choices.length == 0) {
-                throw new Error("No projects found. Please create a new project.")
-            }
-
-            return choices;
-        }
-    }
-];
 
 const questionsPullCollection = [
     {
