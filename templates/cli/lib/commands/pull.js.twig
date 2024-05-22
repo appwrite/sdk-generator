@@ -1,14 +1,17 @@
+const fs = require("fs");
+const tar = require("tar");
 const { Command } = require("commander");
 const inquirer = require("inquirer");
 const { messagingCreateTopic, messagingListTopics } = require("./messaging");
 const { teamsCreate, teamsList } = require("./teams");
 const { projectsCreate } = require("./projects");
+const { functionsList, functionsDownloadDeployment } = require("./functions");
 const { databasesGet, databasesListCollections, databasesList } = require("./databases");
 const { storageListBuckets } = require("./storage");
 const { sdkForConsole } = require("../sdks");
 const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
-const { questionsPullProject, questionsPullCollection } = require("../questions");
+const { questionsPullProject, questionsPullCollection, questionsPullFunctions } = require("../questions");
 const { success, log, actionRunner, commandDescriptions } = require("../parser");
 
 const pull = new Command("pull")
@@ -26,6 +29,64 @@ const pullProject = async () => {
 
     localConfig.setProject(answers.project.id, answers.project.name);
     success();
+}
+
+const pullFunctions = async ({ all, yes } = {}) => {
+    let functions = [];
+    let questions = questionsPullFunctions;
+
+    const localFunctions = localConfig.getFunctions();
+
+    if (all) {
+        questions = yes ? [] : questionsPullFunctions[1];
+        functions = (await paginate(functionsList, { parseOutput: false }, 100, 'functions')).functions;
+    }
+
+    const answers = await inquirer.prompt(questions);
+
+    const overridingLocalChanges = yes ?? answers.override.toLowerCase() === "yes";
+    const selectedFunctions = functions.length === 0 ? answers.functions : functions;
+
+    for (let func of selectedFunctions) {
+        const functionExistLocally = localFunctions.find((localFunc) => localFunc['$id'] === func['$id']) !== undefined;
+
+        if (!overridingLocalChanges && functionExistLocally) {
+            log(`Skipping locally found implementation of ${func['name']}`)
+            continue;
+        }
+        if (functionExistLocally) {
+            localConfig.updateFunction(func['$id'], func);
+        } else {
+            func['path'] = `functions/${func['$id']}`;
+            localConfig.addFunction(func);
+        }
+
+        const localFunction = localFunctions.find((localFunc) => localFunc['$id'] === func['$id']);
+
+        if (localFunction['deployment'] === '') {
+            continue
+        }
+
+        const compressedFileName = `${+new Date()}.tar.gz`
+
+        await functionsDownloadDeployment({
+            functionId: func['$id'],
+            deploymentId: func['deployment'],
+            destination: compressedFileName,
+            overrideForCli: true,
+            parseOutput: false
+        })
+
+        tar.extract({
+            sync: true,
+            cwd: localFunction['path'],
+            file: compressedFileName,
+            strict: false,
+        });
+
+        fs.rmSync(compressedFileName);
+        success(`Pulled ${func['name']} code and definition`)
+    }
 }
 
 const pullCollection = async ({ all, databaseId } = {}) => {
@@ -117,14 +178,21 @@ const pullMessagingTopic = async () => {
 
 pull
     .command("project")
-    .description("Pulling your {{ spec.title|caseUcfirst }} project")
+    .description("Pulling your Appwrite project")
     .action(actionRunner(pullProject));
 
 pull
+    .command("function")
+    .description(`Pulling your Appwrite functions`)
+    .option(`--yes`, `Flag to confirm all warnings`)
+    .option(`--all`, `Flag to pull all functions`)
+    .action(actionRunner(pullFunctions));
+
+pull
     .command("collection")
-    .description("Pulling your {{ spec.title|caseUcfirst }} collections")
+    .description("Pulling your Appwrite collections")
     .option(`--databaseId <databaseId>`, `Database ID`)
-    .option(`--all`, `Flag to pullialize all databases`)
+    .option(`--all`, `Flag to pull all databases`)
     .action(actionRunner(pullCollection))
 
 pull
