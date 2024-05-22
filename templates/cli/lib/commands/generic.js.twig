@@ -5,7 +5,7 @@ const { sdkForConsole, questionGetEndpoint } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, error, parse, log, drawTable } = require("../parser");
 {% if sdk.test != "true" %}
-const { questionsLogin, questionsListFactors, questionsMfaChallenge } = require("../questions");
+const { questionsLogin, questionsLogout, questionsListFactors, questionsMfaChallenge } = require("../questions");
 const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
 const ID = require("../id");
 
@@ -165,12 +165,8 @@ login
 
     }));
 
-const logout = new Command("logout")
-    .description(commandDescriptions['logout'])
-    .configureHelp({
-        helpWidth: process.stdout.columns || 80
-    })
-    .action(actionRunner(async () => {
+const singleLogout = async (accountId) => {
+    try {
         let client = await sdkForConsole();
 
         await accountDeleteSession({
@@ -179,8 +175,58 @@ const logout = new Command("logout")
             sdk: client
         })
 
-        globalConfig.setCookie("");
-        success()
+        globalConfig.removeLogin(accountId);
+    } catch (e) {
+        error('Unable to log out, removing locally saved session information')
+    }
+    globalConfig.removeLogin(accountId);
+}
+
+const logout = new Command("logout")
+    .description(commandDescriptions['logout'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
+    .action(actionRunner(async () => {
+        const logins = globalConfig.getLogins();
+        const current = globalConfig.getCurrentLogin();
+
+        if (current === '') {
+            return;
+        }
+        if (logins.length === 1) {
+            await singleLogout(current);
+            success();
+
+            return;
+        }
+
+        const answers = await inquirer.prompt(questionsLogout);
+        const accountIds = [];
+
+        if (answers.method === 'all') {
+            accountIds.push(...logins.map(login => login.id));
+        }
+
+        if (answers.method === 'selected' && answers.accounts) {
+            accountIds.push(...answers.accounts);
+        }
+
+        for (let accountId of accountIds) {
+            globalConfig.setCurrentLogin(accountId);
+            await singleLogout(accountId);
+        }
+
+        const leftLogins = globalConfig.getLogins();
+
+        if (leftLogins.length > 0 && leftLogins.filter(login => login.id === current).length !== 1) {
+            const accountId = leftLogins[0].id;
+            globalConfig.setCurrentLogin(accountId);
+
+            success(`Current account is ${accountId}`);
+        }
+
+        success();
     }));
 {% endif %}
 

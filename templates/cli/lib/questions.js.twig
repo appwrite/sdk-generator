@@ -342,6 +342,48 @@ const questionsLogin = [
 
 ];
 
+const questionsLogout = [
+    {
+        type: "list",
+        name: "method",
+        message: "Which account would you like to logout from?",
+        choices() {
+            const logins = globalConfig.getLogins();
+
+            return [
+                { name: 'Account in use' },
+                { name: 'Selected accounts', value: 'selected' },
+                { name: 'All accounts', value: 'all' }
+            ];
+        },
+        when: () => globalConfig.getCurrentLogin() !== ''
+    },
+    {
+        type: "checkbox",
+        name: "accounts",
+        message: "Select accounts to logout from",
+        when: (answers) => answers.method === 'selected',
+        validate: (value) => validateRequired('account', value),
+        choices() {
+            const logins = globalConfig.getLogins();
+            const current = globalConfig.getCurrentLogin();
+
+            const data = [];
+
+            const longestEmail = logins.reduce((prev, current) => (prev && prev.email > current.email) ? prev : current).email.length;
+
+            logins.forEach((login) => {
+                data.push({
+                    value: login.id,
+                    name: `${login.email.padEnd(longestEmail)} ${current === login.id ? chalk.green.bold('In use') : ' '.repeat(6)} ${login.endpoint}`,
+                });
+            })
+
+            return data;
+        }
+    }
+];
+
 const questionsPushResources = [
     {
         type: "checkbox",
@@ -580,6 +622,7 @@ const questionGetEndpoint = [
 module.exports = {
     questionsPullProject,
     questionsLogin,
+    questionsLogout,
     questionsPullFunction,
     questionsPullCollection,
     questionsPushResources,
