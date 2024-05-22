@@ -1,4 +1,5 @@
-const { localConfig } = require('./config');
+const chalk = require("chalk");
+const { localConfig, globalConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { teamsList } = require('./commands/teams');
 const { functionsListRuntimes } = require('./commands/functions');
@@ -126,7 +127,7 @@ const questionsPullProject = [
         message: "Choose the project organization",
         choices: async () => {
             let client = await sdkForConsole(true);
-            const { teams } = await paginate(teamsList, { parseOutput: false , sdk: client}, 100, 'teams');
+            const { teams } = await paginate(teamsList, { parseOutput: false, sdk: client }, 100, 'teams');
 
             let choices = teams.map((team, idx) => {
                 return {
@@ -194,7 +195,7 @@ const questionsPullProject = [
         choices: async (answers) => {
             let response = await projectsList({
                 parseOutput: false,
-                queries: [JSON.stringify({ method: 'equal', attribute:'teamId', values: [answers.organization.id] })],
+                queries: [JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization.id] })],
             })
             let projects = response["projects"]
             let choices = projects.map((project, idx) => {
@@ -245,7 +246,7 @@ const questionsPullFunction = [
                         id: runtime['$id'],
                         entrypoint: getEntrypoint(runtime['$id']),
                         ignore: getIgnores(runtime['$id']),
-                        commands : getInstallCommand(runtime['$id'])
+                        commands: getInstallCommand(runtime['$id'])
                     },
                 }
             })
@@ -281,6 +282,16 @@ const questionsPullCollection = [
 
 const questionsLogin = [
     {
+        type: "list",
+        name: "method",
+        message: "You're already logged in, what you like to do?",
+        choices: [
+            { name: 'Login to a different account', value: 'login' },
+            { name: 'Change to a different existed account', value: 'select' }
+        ],
+        when: () => globalConfig.getCurrentLogin() !== ''
+    },
+    {
         type: "input",
         name: "email",
         message: "Enter your email",
@@ -290,6 +301,7 @@ const questionsLogin = [
             }
             return true;
         },
+        when: (answers) => answers.method === 'login'
     },
     {
         type: "password",
@@ -301,8 +313,33 @@ const questionsLogin = [
                 return "Please enter your password";
             }
             return true;
-        }
+        },
+        when: (answers) => answers.method === 'login'
     },
+    {
+        type: "list",
+        name: "accountId",
+        message: "Select an account to switch to",
+        choices() {
+            const logins = globalConfig.getLogins();
+            const current = globalConfig.getCurrentLogin();
+
+            const data = [];
+
+            const longestEmail = logins.reduce((prev, current) => (prev && prev.email > current.email) ? prev : current).email.length;
+
+            logins.forEach((login) => {
+                data.push({
+                    value: login.id,
+                    name: `${login.email.padEnd(longestEmail)} ${current === login.id ? chalk.green.bold('In use') : ' '.repeat(6)} ${login.endpoint}`,
+                });
+            })
+
+            return data;
+        },
+        when: (answers) => answers.method === 'select'
+    },
+
 ];
 
 const questionsPushResources = [
@@ -494,7 +531,7 @@ const questionsListFactors = [
                     name: `Recovery code`,
                     value: 'recoveryCode'
                 }
-            ].filter((ch) => factors[ch.value] === true);
+            ].filter((ch) => factors[ch.value] === true);
 
             return choices;
         }

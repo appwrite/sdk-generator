@@ -3,7 +3,7 @@ const { Command } = require("commander");
 const Client = require("../client");
 const { sdkForConsole, questionGetEndpoint } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
-const { actionRunner, success, parseBool, commandDescriptions, error, parse,log, drawTable } = require("../parser");
+const { actionRunner, success, parseBool, commandDescriptions, error, parse, log, drawTable } = require("../parser");
 {% if sdk.test != "true" %}
 const { questionsLogin, questionsListFactors, questionsMfaChallenge } = require("../questions");
 const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
@@ -13,6 +13,20 @@ const DEFAULT_ENDPOINT = 'https://cloud.appwrite.io/v1';
 
 const loginCommand = async ({ selfHosted }) => {
     const answers = await inquirer.prompt(questionsLogin);
+
+    if (answers.method === 'select') {
+        const accountId = answers.accountId;
+
+        if (!globalConfig.getLoginIds().includes(accountId)) {
+            throw Error('Login ID not found');
+        }
+
+        globalConfig.setCurrentLogin(accountId);
+        success(`Current account is ${accountId}`);
+
+        return;
+    }
+
     const oldCurrent = globalConfig.getCurrentLogin();
     const id = ID.unique();
 
@@ -146,21 +160,6 @@ login
 
     }));
 
-login
-    .command('change')
-    .description("Change the current account")
-    .option(`-a, --accountId <accountId>`, `Login ID`)
-    .action(actionRunner(async ({ accountId }) => {
-        const loginIds = globalConfig.getLoginIds();
-
-        if (!loginIds.includes(accountId)) {
-            throw Error('Login ID not found');
-        }
-
-        globalConfig.setCurrentLogin(accountId);
-        success(`Current account is ${accountId}`);
-    }));
-
 const logout = new Command("logout")
     .description(commandDescriptions['logout'])
     .configureHelp({
@@ -253,7 +252,7 @@ const client = new Command("client")
         success()
     }));
 
-const migrate = async ()=>{
+const migrate = async () => {
     if (!globalConfig.has('endpoint') || !globalConfig.has('cookie')) {
         return;
     }
