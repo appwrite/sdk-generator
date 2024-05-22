@@ -4,7 +4,7 @@ const { projectsCreate } = require("./projects");
 const { sdkForConsole } = require("../sdks");
 const { localConfig, globalConfig } = require("../config");
 const { questionsCreateProject } = require("../questions");
-const { success, error, actionRunner, commandDescriptions } = require("../parser");
+const { success, log, actionRunner, commandDescriptions } = require("../parser");
 const { accountGet } = require("./account");
 const { loginCommand } = require("./generic");
 
@@ -19,7 +19,7 @@ const initProject = async () => {
             parseOutput: false
         });
     } catch (e) {
-        error('You must login first')
+        log('You must login first')
         await loginCommand()
     }
 
