@@ -18,7 +18,7 @@ function getAllFiles(folder) {
     return files;
 }
 
-function showConsoleLink(serviceName, action, id = '') {
+function showConsoleLink(serviceName, action, open, id = '') {
     let resource = '';
     let service = '';
 
@@ -58,17 +58,13 @@ function showConsoleLink(serviceName, action, id = '') {
     const middle = resource !== '' ? `/project-${projectId}` : '';
     const url = `${baseUrl}/console${middle}/${service}${end}`
 
-    const start = (process.platform == 'darwin' ? 'open' : process.platform == 'win32' ? 'start' : 'xdg-open');
-    const key = (process.platform == 'darwin' ? 'Return' : 'Enter');
 
-    success(`\n  ${url}\n  Press <${key}> to open URL in your default browser, exising in 3 seconds`);
-    setTimeout(() => process.exit(0), 3000);
+    success(url);
 
-    const read = readline.createInterface({ input: process.stdin, output: process.stdout });
-    read.on('line', () => {
+    if (open) {
+        const start = (process.platform == 'darwin' ? 'open' : process.platform == 'win32' ? 'start' : 'xdg-open');
         cp.exec(`${start} ${url}`);
-        setTimeout(() => process.exit(0), 250);
-    });
+    }
 }
 
 module.exports = {

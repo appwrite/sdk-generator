@@ -20,7 +20,7 @@
     {%~ if method.name == 'get' and service.name not in ['health','migrations','locale'] %}
         if(console) {
             showConsoleLink('{{service.name}}', 'get'
-        {%- for parameter in method.parameters.path -%}{%- set param = (parameter.name | caseCamel | escapeKeyword)  -%}{%- if param  ends with 'Id' -%}, {{ param }} {%- endif -%}{%- endfor -%}
+        {%- for parameter in method.parameters.path -%}{%- set param = (parameter.name | caseCamel | escapeKeyword)  -%},open {%- if param  ends with 'Id' -%}, {{ param }} {%- endif -%}{%- endfor -%}
             );
          } else {
             parse(response)

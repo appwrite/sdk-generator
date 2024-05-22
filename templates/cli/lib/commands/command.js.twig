@@ -70,7 +70,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
         {%- if 'multipart/form-data' in method.consumes -%},onProgress = () => {}{%- endif -%}
 
         {%- if method.type == 'location' -%}, destination{%- endif -%}
-        {%- if method.name == 'get' -%}, console{%- endif -%}
+        {%- if method.name == 'get' -%}, console, open{%- endif -%}
 }) => {
 {%~ endblock %}
     let client = !sdk ? await {% if service.name == "projects" %}sdkForConsole(){% else %}sdkForProject(){% endif %} :
@@ -96,7 +96,8 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
     .requiredOption(`--destination <path>`, `output file path.`)
 {% endif %}
 {% if method.name == 'get' %}
-    .option(`--console`, `View this resource in the console`)
+    .option(`--console`, `Get the resource console url`)
+    .option(`--open`, `Use with '--console' to open the using default browser`)
 {% endif %}
 {% endautoescape %}
     .action(actionRunner({{ service.name | caseLower }}{{ method.name | caseUcfirst }}))
