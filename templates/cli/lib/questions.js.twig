@@ -301,7 +301,7 @@ const questionsLogin = [
             }
             return true;
         },
-        when: (answers) => answers.method === 'login'
+        when: (answers) => answers.method !== 'select'
     },
     {
         type: "password",
@@ -314,7 +314,7 @@ const questionsLogin = [
             }
             return true;
         },
-        when: (answers) => answers.method === 'login'
+        when: (answers) => answers.method !== 'select'
     },
     {
         type: "list",
