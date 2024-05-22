@@ -10,7 +10,7 @@ const { functionsCreate } = require("./functions");
 const { databasesCreateCollection } = require("./databases");
 const { sdkForConsole } = require("../sdks");
 const ID = require("../id");
-const { localConfig } = require("../config");
+const { localConfig, globalConfig } = require("../config");
 const {
     questionsCreateProject,
     questionsCreateFunction,
@@ -19,9 +19,11 @@ const {
     questionsCreateCollection
 } = require("../questions");
 const { success, error, actionRunner, commandDescriptions } = require("../parser");
+const { accountGet } = require("./account");
+const { loginCommand } = require("./generic");
 
-const create = new Command("create")
-    .description(commandDescriptions['create'])
+const init = new Command("init")
+    .description(commandDescriptions['init'])
     .configureHelp({
         helpWidth: process.stdout.columns || 80
     })
@@ -29,8 +31,21 @@ const create = new Command("create")
         command.help();
     }));
 
-const createProject = async () => {
-    let response = {}
+const initProject = async () => {
+    let response = {};
+
+    try {
+        if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
+            throw '';
+        }
+        await accountGet({
+            parseOutput: false
+        });
+    } catch (e) {
+        error('You must login first')
+        await loginCommand()
+    }
+
     const answers = await inquirer.prompt(questionsCreateProject)
     if (!answers.project || !answers.organization) process.exit(1)
 
@@ -219,10 +234,10 @@ const createFunction = async () => {
 
 
 
-create
+init
     .command("project")
-    .description("Create a new {{ spec.title|caseUcfirst }} project")
-    .action(actionRunner(createProject));
+    .description("Init and create a new {{ spec.title|caseUcfirst }} project")
+    .action(actionRunner(initProject));
 
 create
     .command("function")
@@ -245,5 +260,5 @@ create
     .action(actionRunner(createTopic));
 
 module.exports = {
-    create,
+    init,
 };

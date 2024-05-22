@@ -10,6 +10,8 @@ const { paginate } = require('./paginate');
 const { databasesList } = require('./commands/databases');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
+const whenOverride = (answers)=> answers.override === undefined ? true : answers.override;
+
 const getIgnores = (runtime) => {
     const languge = runtime.split('-')[0];
 
@@ -143,7 +145,8 @@ const questionsProject = [
             }
 
             return choices;
-        }
+        },
+        when: whenOverride
     },
 ];
 
@@ -153,13 +156,46 @@ const questionsCreateProject = [
         type: "input",
         name: "project",
         message: "What would you like to name your project?",
-        default: "My Awesome Project"
+        default: "My Awesome Project",
+        when: whenOverride
     },
     {
         type: "input",
         name: "id",
         message: "What ID would you like to have for your project?",
-        default: "unique()"
+        default: "unique()",
+        when: whenOverride
+    }
+];
+const questionsPullProject = [
+    ...questionsProject,
+    {
+        type: "list",
+        name: "project",
+        message: "Choose your {{ spec.title|caseUcfirst }} project.",
+        choices: async (answers) => {
+            let response = await projectsList({
+                parseOutput: false,
+                queries: [JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization.id] })],
+            })
+            let projects = response["projects"]
+            let choices = projects.map((project, idx) => {
+                return {
+                    name: `${project.name} (${project['$id']})`,
+                    value: {
+                        name: project.name,
+                        id: project['$id']
+                    }
+                }
+            })
+
+            if (choices.length == 0) {
+                throw new Error("No projects found. Please create a new project.")
+            }
+
+            return choices;
+        },
+        when: whenOverride
     }
 ];
 
