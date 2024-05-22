@@ -303,7 +303,7 @@ const client = new Command("client")
         success()
     }));
 
-async function migrate() {
+const migrate = async () => {
     if (!globalConfig.has('endpoint') || !globalConfig.has('cookie')) {
         return;
     }
