@@ -15,7 +15,7 @@ const whoami = new Command("whoami")
     })
     .action(actionRunner(async () => {
         if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
-            error("No user is signed in");
+            error("No user is signed in. Run appwrite login. ..... ");
             return;
         }
 
