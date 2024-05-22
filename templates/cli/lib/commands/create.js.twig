@@ -3,16 +3,13 @@ const path = require("path");
 const childProcess = require('child_process');
 const { Command } = require("commander");
 const inquirer = require("inquirer");
-const { projectsCreate } = require("./projects");
 const { storageCreateBucket } = require("./storage");
 const { messagingCreateTopic } = require("./messaging");
 const { functionsCreate } = require("./functions");
 const { databasesCreateCollection } = require("./databases");
-const { sdkForConsole } = require("../sdks");
 const ID = require("../id");
 const { localConfig } = require("../config");
 const {
-    questionsCreateProject,
     questionsCreateFunction,
     questionsCreateBucket,
     questionsCreateMessagingTopic,
@@ -29,21 +26,6 @@ const create = new Command("create")
         command.help();
     }));
 
-const createProject = async () => {
-    let response = {}
-    const answers = await inquirer.prompt(questionsCreateProject)
-    if (!answers.project || !answers.organization) process.exit(1)
-
-    response = await projectsCreate({
-        projectId: answers.id,
-        name: answers.project,
-        teamId: answers.organization.id,
-        parseOutput: false
-    })
-
-    localConfig.setProject(response['$id'], response.name);
-    success();
-}
 
 const createBucket = async () => {
     let response = {}
@@ -216,13 +198,6 @@ const createFunction = async () => {
     localConfig.addFunction(data);
     success();
 }
-
-
-
-create
-    .command("project")
-    .description("Create a new {{ spec.title|caseUcfirst }} project")
-    .action(actionRunner(createProject));
 
 create
     .command("function")
