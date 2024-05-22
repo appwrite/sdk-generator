@@ -8,15 +8,6 @@ const { success, error, actionRunner, commandDescriptions } = require("../parser
 const { accountGet } = require("./account");
 const { loginCommand } = require("./generic");
 
-const init = new Command("init")
-    .description(commandDescriptions['init'])
-    .configureHelp({
-        helpWidth: process.stdout.columns || 80
-    })
-    .action(actionRunner(async (_options, command) => {
-        command.help();
-    }));
-
 const initProject = async () => {
     let response = {};
 
@@ -46,9 +37,11 @@ const initProject = async () => {
     success();
 }
 
-init
-    .command("project")
-    .description("Init and create a new {{ spec.title|caseUcfirst }} project")
+const init = new Command("init")
+    .description('Init and create a new {{ spec.title|caseUcfirst }} project')
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
     .action(actionRunner(initProject));
 
 module.exports = {
