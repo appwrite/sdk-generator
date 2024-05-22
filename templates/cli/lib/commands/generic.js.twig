@@ -143,7 +143,8 @@ const login = new Command("login")
 login
     .command('list')
     .description("List available logged accounts.")
-    .action(actionRunner(async () => {
+    .option("-j, --json", "Output in JSON format")
+    .action(actionRunner(async ({ json }) => {
         const logins = globalConfig.getLogins();
         const current = globalConfig.getCurrentLogin();
 
@@ -151,11 +152,15 @@ login
             return {
                 'Current': login.id === current ? '*' : '',
                 'ID': login.id,
-                'Endpoint': login.endpoint,
-                'Email': login.email
+                'Email': login.email,
+                'Endpoint': login.endpoint
             };
         }))];
 
+        if (json) {
+            console.log(data);
+            return;
+        }
         drawTable(data);
 
     }));
