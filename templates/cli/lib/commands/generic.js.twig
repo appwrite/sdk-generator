@@ -4,10 +4,10 @@ const Client = require("../client");
 const { sdkForConsole, questionGetEndpoint } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, error, parse, log, drawTable } = require("../parser");
+const ID = require("../id");
 {% if sdk.test != "true" %}
 const { questionsLogin, questionsLogout, questionsListFactors, questionsMfaChallenge } = require("../questions");
 const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
-const ID = require("../id");
 
 const DEFAULT_ENDPOINT = 'https://cloud.appwrite.io/v1';
 
@@ -259,6 +259,7 @@ const client = new Command("client")
 
         if (endpoint !== undefined) {
             try {
+                const id = ID.unique();
                 let url = new URL(endpoint);
                 if (url.protocol !== "http:" && url.protocol !== "https:") {
                     throw new Error();
@@ -273,7 +274,8 @@ const client = new Command("client")
                 if (!response.version) {
                     throw new Error();
                 }
-
+                globalConfig.setCurrentLogin(id);
+                globalConfig.addLogin(id, {});
                 globalConfig.setEndpoint(endpoint);
             } catch (_) {
                 throw new Error("Invalid endpoint or your Appwrite server is not running as expected.");
@@ -293,11 +295,12 @@ const client = new Command("client")
         }
 
         if (reset !== undefined) {
-            globalConfig.setEndpoint("");
-            globalConfig.setKey("");
-            globalConfig.setCookie("");
-            globalConfig.setSelfSigned("");
-            localConfig.setProject("", "");
+            const logins = globalConfig.getLogins();
+
+            for (let accountId of logins.map(login => login.id)) {
+                globalConfig.setCurrentLogin(accountId);
+                await singleLogout(accountId);
+            }
         }
 
         success()

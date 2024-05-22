@@ -460,7 +460,7 @@ class Global extends Config {
         if (!this.hasFrom(Global.PREFERENCE_KEY)) {
             return "";
         }
-        return this.get(Global.PREFERENCE_KEY);
+        return this.getFrom(Global.PREFERENCE_KEY);
     }
 
     setKey(key) {
