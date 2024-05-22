@@ -787,29 +787,18 @@ const pushCollection = async ({ all, yes } = {}) => {
                 throw e;
             }
         }
-
-        // Create all non-relationship attributes first
         const attributes = collection.attributes.filter(attribute => attribute.type !== 'relationship');
+        const relationshipAttributes = collection.attributes.filter(attribute => attribute.type === 'relationship' && attribute.side === 'parent');
 
-        await Promise.all(attributes.map(attribute => {
-            return createAttribute(databaseId, collection['$id'], attribute);
-        }));
-
-        let result = await awaitPools.expectAttributes(
-            databaseId,
-            collection['$id'],
-            attributes.map(attribute => attribute.key)
-        );
-
-        if (!result) {
-            throw new Error("Attribute creation timed out.");
+        try {
+            await createAttributes(attributes, 'attributes')
+        } catch (e) {
+            throw e;
         }
-
-        success(`Created ${attributes.length} non-relationship attributes`);
 
         log(`Creating indexes ...`)
 
-        await Promise.all(collection.indexes.map(async index => {
+        for (let index of collections.indexes) {
             await databasesCreateIndex({
                 databaseId,
                 collectionId: collection['$id'],
@@ -819,7 +808,7 @@ const pushCollection = async ({ all, yes } = {}) => {
                 orders: index.orders,
                 parseOutput: false
             });
-        }));
+        }
 
         result = await awaitPools.expectIndexes(
             databaseId,
@@ -831,39 +820,40 @@ const pushCollection = async ({ all, yes } = {}) => {
             throw new Error("Index creation timed out.");
         }
 
+        for (let attribute of collection.attributes) {
+            await createAttribute(databaseId, collection['$id'], attribute);
+        }
+
         success(`Created ${collection.indexes.length} indexes`);
+
+
+        try {
+            await createAttributes(relationshipAttributes, 'relationship attributes')
+        } catch (e) {
+            throw e;
+        }
+
 
         success(`Pushed ${collection.name} ( ${collection['$id']} )`);
     }
+}
 
-    // Create the relationship attributes
-    for (let collection of collections) {
-        const relationships = collection.attributes.filter(attribute =>
-            attribute.type === 'relationship' && attribute.side === 'parent'
-        );
-
-        if (relationships.length === 0) {
-            continue;
-        }
-
-        log(`Pushing relationships for collection ${collection.name} ( ${collection['$id']} )`);
-
-        await Promise.all(relationships.map(attribute => {
-            return createAttribute(collection['databaseId'], collection['$id'], attribute);
-        }));
-
-        let result = await awaitPools.expectAttributes(
-            collection['databaseId'],
-            collection['$id'],
-            relationships.map(attribute => attribute.key)
-        );
-
-        if (!result) {
-            throw new Error("Attribute creation timed out.");
-        }
-
-        success(`Created ${relationships.length} relationship attributes`);
+const createAttributes = async (attributes, title) => {
+    for (let attribute of attributes) {
+        await createAttribute(databaseId, collection['$id'], attribute);
     }
+
+    let result = await awaitPools.expectAttributes(
+        databaseId,
+        collection['$id'],
+        collection.attributes.map(attribute => attribute.key)
+    );
+
+    if (!result) {
+        throw new Error(`Attribute creation timed out.`);
+    }
+
+    success(`Created ${attributes.length} ${title}`);
 }
 
 const pushBucket = async ({ all, yes } = {}) => {
