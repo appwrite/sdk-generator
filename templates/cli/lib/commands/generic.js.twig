@@ -80,12 +80,10 @@ const loginCommand = async ({ selfHosted }) => {
 
 const whoami = new Command("whoami")
     .description(commandDescriptions['whoami'])
-    .configureHelp({
-        helpWidth: process.stdout.columns || 80
-    })
-    .action(actionRunner(async () => {
+    .option("-j, --json", "Output in JSON format")
+    .action(actionRunner(async ({ json }) => {
         if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
-            error("No user is signed in");
+            error("No user is signed in. To sign in, run: appwrite login ");
             return;
         }
 
@@ -99,20 +97,23 @@ const whoami = new Command("whoami")
                 parseOutput: false
             });
         } catch (error) {
-            error("No user is signed in");
+            error("No user is signed in. To sign in, run: appwrite login");
             return;
         }
-
-        success("Signed in");
 
         const data = [
             {
                 'ID': account.$id,
                 'Name': account.name,
                 'Email': account.email,
-                'MFA enabled': account.mfa
+                'MFA enabled': account.mfa ? 'Yes' : 'No'
             }
         ];
+        if (json) {
+            console.log(data);
+
+            return;
+        }
 
         drawTable(data)
     }));
