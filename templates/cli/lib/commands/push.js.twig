@@ -5,7 +5,7 @@ const { localConfig, globalConfig } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
 const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics } = require("../questions");
-const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
+const { cliConfig, actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
@@ -232,7 +232,7 @@ const awaitPools = {
     },
 }
 
-const pushResources = async ({ all, yes } = {}) => {
+const pushResources = async () => {
     const actions = {
         functions: pushFunction,
         collections: pushCollection,
@@ -241,27 +241,28 @@ const pushResources = async ({ all, yes } = {}) => {
         messages: pushMessagingTopic
     }
 
-    if (all) {
-        Object.values(actions).forEach(action => action({ all: true, yes }));
+    if (cliConfig.all) {
+        Object.values(actions).forEach(action => action());
     } else {
         const answers = await inquirer.prompt(questionsPushResources[0]);
+
         answers.resources.forEach((resource) => {
             const action = actions[resource];
             if (action !== undefined) {
-                action({ all: true, yes });
+                action();
             }
         })
     }
 };
 
-const pushFunction = async ({ functionId, all, yes, async } = {}) => {
+const pushFunction = async ({ functionId, async } = {}) => {
     let response = {};
 
     const functionIds = [];
 
     if (functionId) {
         functionIds.push(functionId);
-    } else if (all) {
+    } else if (cliConfig.all) {
         const functions = localConfig.getFunctions();
         if (functions.length === 0) {
             throw new Error("No functions found in the current directory.");
@@ -299,7 +300,7 @@ const pushFunction = async ({ functionId, all, yes, async } = {}) => {
         }
 
         if (func.variables) {
-            func.pushVariables = yes;
+            func.pushVariables = cliConfig.force;
 
             try {
                 const { total } = await functionsListVariables({
@@ -645,12 +646,12 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
     }
 }
 
-const pushCollection = async ({ all, yes } = {}) => {
+const pushCollection = async () => {
     let response = {};
 
     const collections = [];
 
-    if (all) {
+    if (cliConfig.all) {
         if (localConfig.getCollections().length === 0) {
             throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} pull collection` to fetch all your collections.");
         }
@@ -712,7 +713,7 @@ const pushCollection = async ({ all, yes } = {}) => {
 
             log(`Collection ${collection.name} ( ${collection['$id']} ) already exists.`);
 
-            if (!yes) {
+            if (!cliConfig.force) {
                 const answers = await inquirer.prompt(questionsPushCollections[1])
                 if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${collection.name} ( ${collection['$id']} )`);
@@ -866,13 +867,13 @@ const pushCollection = async ({ all, yes } = {}) => {
     }
 }
 
-const pushBucket = async ({ all, yes } = {}) => {
+const pushBucket = async () => {
     let response = {};
 
     let bucketIds = [];
     const configBuckets = localConfig.getBuckets();
 
-    if (all) {
+    if (cliConfig.all) {
         if (configBuckets.length === 0) {
             throw new Error("No buckets found in the current directory. Run `appwrite pull bucket` to fetch all your buckets.");
         }
@@ -901,7 +902,7 @@ const pushBucket = async ({ all, yes } = {}) => {
             })
             log(`Bucket ${bucket.name} ( ${bucket['$id']} ) already exists.`);
 
-            if (!yes) {
+            if (!cliConfig.force) {
                 const answers = await inquirer.prompt(questionsPushBuckets[1])
                 if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${bucket.name} ( ${bucket['$id']} )`);
@@ -953,13 +954,13 @@ const pushBucket = async ({ all, yes } = {}) => {
     }
 }
 
-const pushTeam = async ({ all, yes } = {}) => {
+const pushTeam = async () => {
     let response = {};
 
     let teamIds = [];
     const configTeams = localConfig.getTeams();
 
-    if (all) {
+    if (cliConfig.all) {
         if (configTeams.length === 0) {
             throw new Error("No teams found in the current directory. Run `appwrite pull team` to fetch all your teams.");
         }
@@ -988,7 +989,7 @@ const pushTeam = async ({ all, yes } = {}) => {
             })
             log(`Team ${team.name} ( ${team['$id']} ) already exists.`);
 
-            if (!yes) {
+            if (!cliConfig.force) {
                 const answers = await inquirer.prompt(questionsPushTeams[1])
                 if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${team.name} ( ${team['$id']} )`);
@@ -1023,14 +1024,14 @@ const pushTeam = async ({ all, yes } = {}) => {
     }
 }
 
-const pushMessagingTopic = async ({ all, yes } = {}) => {
+const pushMessagingTopic = async () => {
     let response = {};
 
     let topicsIds = [];
     const configTopics = localConfig.getMessagingTopics();
-    let overrideExisting = yes;
+    let overrideExisting = cliConfig.force;
 
-    if (all) {
+    if (cliConfig.all) {
         if (configTopics.length === 0) {
             throw new Error("No topics found in the current directory. Run `appwrite pull topics` to pull all your messaging topics.");
         }
@@ -1049,7 +1050,7 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
         topics.push(...idTopic);
     }
 
-    if (!yes) {
+    if (!cliConfig.force) {
         const answers = await inquirer.prompt(questionsPushMessagingTopics[1])
         if (answers.override.toLowerCase() === "yes") {
             overrideExisting = true;
@@ -1102,45 +1103,33 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
 
 const push = new Command("push")
     .description(commandDescriptions['push'])
-    .option(`--all`, `Flag to push all resources`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushResources));
 
 push
     .command("function")
     .description("Push functions in the current directory.")
     .option(`--functionId <functionId>`, `Function ID`)
-    .option(`--all`, `Flag to push all functions`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .option(`--async`, `Don't wait for functions deployments status`)
     .action(actionRunner(pushFunction));
 
 push
     .command("collection")
     .description("Push collections in the current project.")
-    .option(`--all`, `Flag to push all collections`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushCollection));
 
 push
     .command("bucket")
     .description("Push buckets in the current project.")
-    .option(`--all`, `Flag to push all buckets`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushBucket));
 
 push
     .command("team")
     .description("Push teams in the current project.")
-    .option(`--all`, `Flag to push all teams`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushTeam));
 
 push
     .command("topic")
     .description("Push messaging topics in the current project.")
-    .option(`--all`, `Flag to deploy all topics`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushMessagingTopic));
 
 module.exports = {

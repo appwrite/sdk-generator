@@ -14,7 +14,7 @@ const { localConfig } = require("../config");
 const ID  = require("../id");
 const { paginate } = require("../paginate");
 const { questionsPullProject, questionsPullFunction, questionsPullCollection } = require("../questions");
-const { success, log, actionRunner, commandDescriptions } = require("../parser");
+const { cliConfig, success, log, actionRunner, commandDescriptions } = require("../parser");
 
 const pull = new Command("pull")
     .description(commandDescriptions['pull'])
@@ -164,12 +164,12 @@ const pullFunction = async () => {
     success();
 }
 
-const pullCollection = async ({ all, databaseId } = {}) => {
+const pullCollection = async ({ databaseId } = {}) => {
     const databaseIds = [];
 
     if (databaseId) {
         databaseIds.push(databaseId);
-    } else if (all) {
+    } else if (cliConfig.all) {
         let allDatabases = await databasesList({
             parseOutput: false
         })
@@ -265,7 +265,6 @@ pull
     .command("collection")
     .description("Pulling your {{ spec.title|caseUcfirst }} collections")
     .option(`--databaseId <databaseId>`, `Database ID`)
-    .option(`--all`, `Flag to pullialize all databases`)
     .action(actionRunner(pullCollection))
 
 pull

@@ -28,11 +28,23 @@ program
   .version(version, "-v, --version")
   .option("--verbose", "Show complete error log")
   .option("--json", "Output in JSON format")
+  .option("-f,--force", "Flag to confirm all warnings")
+  .option("-a,--all", "Flag to push all resources")
+  .option("--ids [id...]", "Flag to pass list of ids for a giving action")
   .on("option:json", () => {
     cliConfig.json = true;
   })
   .on("option:verbose", () => {
     cliConfig.verbose = true;
+  })
+  .on("option:force", () => {
+    cliConfig.force = true;
+  })
+  .on("option:all", () => {
+    cliConfig.all = true;
+  })
+  .on("option:ids", function() {
+    cliConfig.ids = this.opts().ids;
   })
   .showSuggestionAfterError()
 {% if sdk.test != "true" %}
