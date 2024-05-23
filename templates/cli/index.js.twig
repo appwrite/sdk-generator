@@ -12,7 +12,6 @@ const { commandDescriptions, cliConfig } = require("./lib/parser");
 const { client } = require("./lib/commands/generic");
 {% if sdk.test != "true" %}
 const { login, logout } = require("./lib/commands/generic");
-const { create } = require("./lib/commands/create");
 const { init } = require("./lib/commands/init");
 const { pull } = require("./lib/commands/pull");
 const { push } = require("./lib/commands/push");
@@ -39,7 +38,6 @@ program
   .showSuggestionAfterError()
 {% if sdk.test != "true" %}
   .addCommand(login)
-  .addCommand(create)
   .addCommand(init)
   .addCommand(pull)
   .addCommand(push)
