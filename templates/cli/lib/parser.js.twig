@@ -5,7 +5,8 @@ const { description } = require('../package.json');
 
 const cliConfig = {
   verbose: false,
-  json: false
+  json: false,
+  report: false
 };
 
 const parse = (data) => {
@@ -110,11 +111,17 @@ const drawJSON = (data) => {
 }
 
 const parseError = (err) => {
-    if(cliConfig.verbose) {
-        console.error(err);
+    if(cliConfig.report) {
+        const githubIssueUrl=`https://github.com/appwrite/appwrite/issues/new?labels=bug&template=bug.yaml&title=%F0%9F%90%9B+Bug+Report%3A+&actual-behavior=Console%20Crash%0A${encodeURIComponent('```\n'+err.stack+'\n```').replaceAll('(','').replaceAll(')','')}`
+
+        log(`To report this error you can:\n - Create a support ticket in our Discord server https://appwrite.io/discord \n - Create an issue in our Github\n   ${githubIssueUrl}\n`);
     }
 
-    error(err.message);
+    if(cliConfig.verbose) {
+        console.error(err);
+    } else {
+        error(err.message);
+    }
 
     process.exit(1)
 }

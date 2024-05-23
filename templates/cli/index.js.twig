@@ -28,11 +28,15 @@ program
   .version(version, "-v, --version")
   .option("--verbose", "Show complete error log")
   .option("--json", "Output in JSON format")
+  .option("--report", "Enable reporting when cli is crashing")
   .on("option:json", () => {
     cliConfig.json = true;
   })
   .on("option:verbose", () => {
     cliConfig.verbose = true;
+  })
+  .on("option:report", () => {
+    cliConfig.report = true;
   })
   .showSuggestionAfterError()
 {% if sdk.test != "true" %}
