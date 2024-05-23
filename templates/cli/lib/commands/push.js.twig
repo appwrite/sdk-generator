@@ -1,3 +1,4 @@
+const chalk = require('chalk');
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
@@ -5,7 +6,7 @@ const { localConfig, globalConfig } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
 const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics } = require("../questions");
-const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
+const { actionRunner, success, log, error, commandDescriptions, drawTable } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
@@ -137,6 +138,39 @@ const awaitPools = {
 
         return await awaitPools.wipeVariables(
             functionId,
+            iteration + 1
+        );
+    },
+    deleteAttributes: async (databaseId, collectionId, attributeKeys, iteration = 1) => {
+        if (iteration > pollMaxDebounces) {
+            return false;
+        }
+
+        let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
+        if (steps > 1 && iteration === 1) {
+            pollMaxDebounces *= steps;
+
+            log('Found a large number of deleting attributes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+        }
+
+        const { attributes } = await paginate(databasesListAttributes, {
+            databaseId,
+            collectionId,
+            parseOutput: false
+        }, 100, 'attributes');
+
+        const ready = attributeKeys.filter(attribute => attributes.includes(attribute.key));
+
+        if (ready.length === 0) {
+            return true;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+
+        return await awaitPools.expectAttributes(
+            databaseId,
+            collectionId,
+            attributeKeys,
             iteration + 1
         );
     },
@@ -645,6 +679,91 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
     }
 }
 
+const deleteAttribute = async (collection, attribute) => {
+    log(`Deleting attribute ${attribute.key} of ${collection.name} ( ${collection['$id']} )`);
+
+    await databasesDeleteAttribute({
+        databaseId: collection['databaseId'],
+        collectionId: collection['$id'],
+        key: attribute.key,
+        parseOutput: false
+    });
+}
+
+const deepSimilar = (remote, local, collection) => {
+    if (local === undefined) {
+        return undefined;
+    }
+
+    const key = `${chalk.yellow(local.key)} in ${collection.name} (${collection['$id']})`;
+
+    if (remote.type !== local.type) {
+        return { key, attribute: remote, reason: `type changed from ${chalk.red(remote.type)} to ${chalk.green(local.type)}` };
+    }
+
+    if (remote.array !== local.array) {
+        return { key, attribute: remote, reason: `array changed from ${chalk.red(remote.array)} to ${chalk.green(local.array)}` };
+    }
+
+    if (remote.size !== local.size) {
+        return { key, attribute: remote, reason: `size changed from ${chalk.red(remote.size)} to ${chalk.green(local.size)}` };
+    }
+
+    if (remote.relatedCollectionId !== local.relatedCollectionId) {
+        return { key, attribute: remote, reason: `relationships collection id changed from ${chalk.red(remote.relatedCollectionId)} to ${chalk.green(local.relatedCollectionId)}` };
+    }
+
+    if (remote.twoWay !== local.twoWay) {
+        return { key, attribute: remote, reason: `relationships twoWay changed from ${chalk.red(remote.twoWay)} to ${chalk.green(local.twoWay)}` };
+    }
+
+    if (remote.twoWayKey !== local.twoWayKey) {
+        return { key, attribute: remote, reason: `relationships twoWayKey changed from ${chalk.red(remote.twoWayKey)} to ${chalk.green(local.twoWayKey)}` };
+    }
+
+    return undefined;
+}
+
+const findMatch = (attribute, attributes) => attributes.find((attr) => attr.key === attribute.key);
+
+const updatedList = async (remoteAttributes, localAttributes, collection) => {
+    const deleting = remoteAttributes.filter((attribute) => !findMatch(attribute, localAttributes));
+    const changes = remoteAttributes.map((attribute) => deepSimilar(attribute, findMatch(attribute, localAttributes), collection)).filter(attribute => attribute !== undefined);
+    let changedAttributes = [];
+
+    if (changes.length > 0) {
+        log('There is a conflict in your collection deployment');
+        drawTable(changes.map((change) => {
+            return { Key: change.key, Reason: change.reason };
+        }));
+        const answers = await inquirer.prompt(questionsPushCollections[1]);
+
+        if (answers.changes.toLowerCase() !== 'yes') {
+            return [];
+        }
+
+        changedAttributes = changes.map((change) => change.attribute);
+
+        await Promise.all(changedAttributes.map((changed) => deleteAttribute(collection, changed)));
+
+        remoteAttributes = remoteAttributes.filter((attribute) => !findMatch(attribute, changedAttributes))
+    }
+
+    await Promise.all(deleting.map((attribute) => deleteAttribute(collection, attribute)));
+
+    const attributeKeys = [...remoteAttributes.map(attribute => attribute.key), ...deleting.map(attribute => attribute.key)]
+
+    if (attributeKeys.length) {
+        const deleteAttributesPoolStatus = await awaitPools.deleteAttributes(collection['databaseId'], collection['$id'], attributeKeys);
+
+        if (!deleteAttributesPoolStatus) {
+            throw new Error("Attribute deletion timed out.");
+        }
+    }
+
+    return localAttributes.filter((attribute) => !findMatch(attribute, remoteAttributes));
+}
+
 const pushCollection = async ({ all, yes } = {}) => {
     const collections = [];
 
@@ -666,7 +785,7 @@ const pushCollection = async ({ all, yes } = {}) => {
     }
     const databases = Array.from(new Set(collections.map(c => c['databaseId'])));
 
-    // Parallel db action
+    // Parallel db actions
     await Promise.all(databases.map(async (dbId) => {
         const localDatabase = localConfig.getDatabase(dbId);
 
@@ -696,7 +815,7 @@ const pushCollection = async ({ all, yes } = {}) => {
         }
     }));
 
-    // Parallel collection action
+    // Parallel collection actions
     await Promise.all(collections.map(async (collection) => {
         try {
             const remoteCollection = await databasesGetCollection({
@@ -715,6 +834,9 @@ const pushCollection = async ({ all, yes } = {}) => {
 
                 success(`Updated ${collection.name} ( ${collection['$id']} ) name`);
             }
+            collection.remoteVersion = remoteCollection;
+
+            collection.isExisted = true;
         } catch (e) {
             if (e.code == 404) {
                 log(`Collection ${collection.name} does not exist in the project. Creating ... `);
@@ -726,19 +848,30 @@ const pushCollection = async ({ all, yes } = {}) => {
                     permissions: collection['$permissions'],
                     parseOutput: false
                 })
-
+                collection.isNew = true;
             } else {
                 throw e;
             }
         }
     }))
 
-    // Serialize attribute creation
+    // Serialize attribute actions
     for (let collection of collections) {
+        let attributes = collection.attributes;
+
+        if (collection.isExisted) {
+            attributes = await updatedList(collection.remoteVersion.attributes, collection.attributes, collection);
+
+            if (Array.isArray(attributes) && attributes.length <= 0) {
+                log(`No changes has been detected. Skipping ${collection.name} ( ${collection['$id']} )`);
+                continue;
+            }
+        }
+
         log(`Pushing collection ${collection.name} ( ${collection['databaseId']} - ${collection['$id']} ) attributes`)
 
         try {
-            await createAttributes(collection.attributes, collection)
+            await createAttributes(attributes, collection)
         } catch (e) {
             throw e;
         }

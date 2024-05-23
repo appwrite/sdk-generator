@@ -1,3 +1,4 @@
+const chalk = require("chalk")
 const { localConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { teamsList } = require('./commands/teams');
@@ -368,9 +369,9 @@ const questionsPushCollections = [
     },
     {
         type: "input",
-        name: "override",
-        message: 'Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.'
-    },
+        name: "changes",
+        message: `These are the pending destructive changes. To create the new fields, all data in the old ones will be ${chalk.red('deleted')}. Type "YES" to confirm`
+    }
 ]
 
 const questionsPushBuckets = [
