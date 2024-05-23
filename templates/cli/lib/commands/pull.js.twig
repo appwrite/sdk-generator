@@ -2,16 +2,15 @@ const fs = require("fs");
 const tar = require("tar");
 const { Command } = require("commander");
 const inquirer = require("inquirer");
-const { messagingCreateTopic, messagingListTopics } = require("./messaging");
-const { teamsCreate, teamsList } = require("./teams");
-const { projectsCreate } = require("./projects");
+const { messagingListTopics } = require("./messaging");
+const { teamsList } = require("./teams");
+const { projectsList } = require("./projects");
 const { functionsList, functionsDownloadDeployment } = require("./functions");
 const { databasesGet, databasesListCollections, databasesList } = require("./databases");
 const { storageListBuckets } = require("./storage");
-const { sdkForConsole } = require("../sdks");
 const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
-const { questionsPullProject, questionsPullCollection, questionsPullFunctions } = require("../questions");
+const { questionsPullCollection, questionsPullFunctions } = require("../questions");
 const { success, log, actionRunner, commandDescriptions } = require("../parser");
 
 const pull = new Command("pull")
@@ -24,11 +23,19 @@ const pull = new Command("pull")
     }));
 
 const pullProject = async () => {
-    const answers = await inquirer.prompt(questionsPullProject)
-    if (!answers.project) process.exit(1)
+    try {
+        let response = await projectsList({
+            parseOutput: false,
+            queries: [JSON.stringify({ method: 'equal', attribute: '$id', values: [localConfig.getProject().projectId] })]
 
-    localConfig.setProject(answers.project.id, answers.project.name);
-    success();
+        })
+        if(response.total === 1){
+            localConfig.setProject(response.projects[0].$id, response.projects[0].name);
+        }
+        success();
+    } catch (e) {
+        throw e;
+    }
 }
 
 const pullFunctions = async ({ all, yes } = {}) => {
@@ -178,7 +185,7 @@ const pullMessagingTopic = async () => {
 
 pull
     .command("project")
-    .description("Pulling your Appwrite project")
+    .description("Pulling your Appwrite project name")
     .action(actionRunner(pullProject));
 
 pull
