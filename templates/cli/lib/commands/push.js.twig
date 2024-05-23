@@ -41,6 +41,7 @@ const {
     teamsUpdate,
     teamsCreate
 } = require("./teams");
+const { projectsUpdate } = require("./projects");
 
 const STEP_SIZE = 100;      // Resources
 const POLL_DEBOUNCE = 2000; // Milliseconds
@@ -253,6 +254,19 @@ const pushResources = async ({ all, yes } = {}) => {
         })
     }
 };
+
+const pushProject = async () => {
+    try {
+        await projectsUpdate({
+            projectId: localConfig.getProject().projectId,
+            name: localConfig.getProject().projectName,
+            parseOutput: false
+        })
+        success();
+    } catch (e) {
+        throw e;
+    }
+}
 
 const pushFunction = async ({ functionId, all, yes, async } = {}) => {
     let response = {};
@@ -1105,6 +1119,11 @@ const push = new Command("push")
     .option(`--all`, `Flag to push all resources`)
     .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushResources));
+
+push
+    .command("project")
+    .description("Push project name.")
+    .action(actionRunner(pushProject));
 
 push
     .command("function")
