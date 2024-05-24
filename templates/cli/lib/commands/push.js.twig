@@ -49,6 +49,8 @@ const POLL_MAX_DEBOUNCE = 30; // Times
 
 let pollMaxDebounces = 30;
 
+const changeableKeys = ['status', 'required', 'xdefault', 'elements', 'min', 'max', 'default', 'error'];
+
 const awaitPools = {
     wipeAttributes: async (databaseId, collectionId, iteration = 1) => {
         if (iteration > pollMaxDebounces) {
@@ -695,63 +697,71 @@ const deepSimilar = (remote, local, collection) => {
         return undefined;
     }
 
-    const key = `${chalk.yellow(local.key)} in ${collection.name} (${collection['$id']})`;
+    const keyName = `${chalk.yellow(local.key)} in ${collection.name} (${collection['$id']})`;
+    const action = chalk.cyan('recreating');
+    let reason = '';
+    for (let key of Object.keys(remote)) {
+        if (changeableKeys.includes(key)) {
+            continue;
+        }
 
-    if (remote.type !== local.type) {
-        return { key, attribute: remote, reason: `type changed from ${chalk.red(remote.type)} to ${chalk.green(local.type)}` };
+        if (remote[key] !== local[key]) {
+            const bol = reason === '' ? '' : '\n';
+            reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
+        }
     }
 
-    if (remote.array !== local.array) {
-        return { key, attribute: remote, reason: `array changed from ${chalk.red(remote.array)} to ${chalk.green(local.array)}` };
-    }
-
-    if (remote.size !== local.size) {
-        return { key, attribute: remote, reason: `size changed from ${chalk.red(remote.size)} to ${chalk.green(local.size)}` };
-    }
-
-    if (remote.relatedCollectionId !== local.relatedCollectionId) {
-        return { key, attribute: remote, reason: `relationships collection id changed from ${chalk.red(remote.relatedCollectionId)} to ${chalk.green(local.relatedCollectionId)}` };
-    }
-
-    if (remote.twoWay !== local.twoWay) {
-        return { key, attribute: remote, reason: `relationships twoWay changed from ${chalk.red(remote.twoWay)} to ${chalk.green(local.twoWay)}` };
-    }
-
-    if (remote.twoWayKey !== local.twoWayKey) {
-        return { key, attribute: remote, reason: `relationships twoWayKey changed from ${chalk.red(remote.twoWayKey)} to ${chalk.green(local.twoWayKey)}` };
-    }
-
-    return undefined;
+    return reason === '' ? undefined : { key: keyName, attribute: remote, reason, action };
 }
 
 const findMatch = (attribute, attributes) => attributes.find((attr) => attr.key === attribute.key);
 
+const mapChangeAttribute = (attribute, collection, isAdding) => {
+    return {
+        key: `${chalk.yellow(attribute.key)} in ${collection.name} (${collection['$id']})`,
+        attribute,
+        reason: isAdding ? 'Field doesn\'t exist on the remote server' : 'Field doesn\'t exist in appwrite.json file',
+        action: isAdding ? chalk.green('adding') : chalk.red('deleting')
+    };
+
+};
+
 const updatedList = async (remoteAttributes, localAttributes, collection) => {
-    const deleting = remoteAttributes.filter((attribute) => !findMatch(attribute, localAttributes));
-    const changes = remoteAttributes.map((attribute) => deepSimilar(attribute, findMatch(attribute, localAttributes), collection)).filter(attribute => attribute !== undefined);
+    const deleting = remoteAttributes.filter((attribute) => !findMatch(attribute, localAttributes)).map((attr) => mapChangeAttribute(attr, collection, false));
+    const adding = localAttributes.filter((attribute) => !findMatch(attribute, remoteAttributes)).map((attr) => mapChangeAttribute(attr, collection, true));
+    const conflicts = remoteAttributes.map((attribute) => deepSimilar(attribute, findMatch(attribute, localAttributes), collection)).filter(attribute => attribute !== undefined);
     let changedAttributes = [];
 
-    if (changes.length > 0) {
-        log('There is a conflict in your collection deployment');
-        drawTable(changes.map((change) => {
-            return { Key: change.key, Reason: change.reason };
-        }));
-        const answers = await inquirer.prompt(questionsPushCollections[1]);
+    const changing = [...deleting, ...adding, ...conflicts]
 
-        if (answers.changes.toLowerCase() !== 'yes') {
-            return [];
-        }
+    if (changing.length === 0) {
+        return changedAttributes;
+    }
+    log('There are pending changes in your collection deployment');
 
-        changedAttributes = changes.map((change) => change.attribute);
+    drawTable(changing.map((change) => {
+        return { Key: change.key, Action: change.action, Reason: change.reason, };
+    }));
+
+    const answers = await inquirer.prompt(questionsPushCollections[1]);
+
+    if (answers.changes.toLowerCase() !== 'yes') {
+        return changedAttributes;
+    }
+
+    if (conflicts.length > 0) {
+        changedAttributes = conflicts.map((change) => change.attribute);
 
         await Promise.all(changedAttributes.map((changed) => deleteAttribute(collection, changed)));
 
         remoteAttributes = remoteAttributes.filter((attribute) => !findMatch(attribute, changedAttributes))
     }
 
-    await Promise.all(deleting.map((attribute) => deleteAttribute(collection, attribute)));
+    const deletingAttributes = deleting.map((change) => change.attribute);
 
-    const attributeKeys = [...remoteAttributes.map(attribute => attribute.key), ...deleting.map(attribute => attribute.key)]
+    await Promise.all(deletingAttributes.map((attribute) => deleteAttribute(collection, attribute)));
+
+    const attributeKeys = [...remoteAttributes.map(attribute => attribute.key), ...deletingAttributes.map(attribute => attribute.key)]
 
     if (attributeKeys.length) {
         const deleteAttributesPoolStatus = await awaitPools.deleteAttributes(collection['databaseId'], collection['$id'], attributeKeys);
