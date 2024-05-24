@@ -31,11 +31,16 @@ program
   .option("-f,--force", "Flag to confirm all warnings")
   .option("-a,--all", "Flag to push all resources")
   .option("--ids [id...]", "Flag to pass list of ids for a giving action")
+  .option("--report", "Enable reporting when cli is crashing")
   .on("option:json", () => {
     cliConfig.json = true;
   })
   .on("option:verbose", () => {
     cliConfig.verbose = true;
+  })
+  .on("option:report", () => {
+    cliConfig.report = true;
+    cliConfig.reportData = { data: this };
   })
   .on("option:force", () => {
     cliConfig.force = true;
