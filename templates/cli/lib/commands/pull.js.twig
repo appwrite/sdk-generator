@@ -4,7 +4,7 @@ const { Command } = require("commander");
 const inquirer = require("inquirer");
 const { messagingListTopics } = require("./messaging");
 const { teamsList } = require("./teams");
-const { projectsList } = require("./projects");
+const { projectsGet } = require("./projects");
 const { functionsList, functionsDownloadDeployment } = require("./functions");
 const { databasesGet, databasesListCollections, databasesList } = require("./databases");
 const { storageListBuckets } = require("./storage");
@@ -24,43 +24,31 @@ const pull = new Command("pull")
 
 const pullProject = async () => {
     try {
-        let response = await projectsList({
+        let response = await projectsGet({
             parseOutput: false,
-            queries: [JSON.stringify({ method: 'equal', attribute: '$id', values: [localConfig.getProject().projectId] })]
+            projectId: localConfig.getProject().projectId
 
         })
-        if(response.total === 1){
-            localConfig.setProject(response.projects[0].$id, response.projects[0].name);
-        }
+
+        localConfig.setProject(response.$id, response.name);
         success();
     } catch (e) {
         throw e;
     }
 }
 
-const pullFunctions = async ({ all, yes } = {}) => {
-    let functions = [];
-    let questions = questionsPullFunctions;
-
+const pullFunctions = async ({ all } = {}) => {
     const localFunctions = localConfig.getFunctions();
 
-    if (all) {
-        questions = yes ? [] : questionsPullFunctions[1];
-        functions = (await paginate(functionsList, { parseOutput: false }, 100, 'functions')).functions;
-    }
+    const functions = all
+        ? (await paginate(functionsList, { parseOutput: false }, 100, 'functions')).functions
+        : (await inquirer.prompt(questionsPullFunctions)).functions;
 
-    const answers = await inquirer.prompt(questions);
+    log(`Pulling ${functions.length} functions`);
 
-    const overridingLocalChanges = yes ?? answers.override.toLowerCase() === "yes";
-    const selectedFunctions = functions.length === 0 ? answers.functions : functions;
-
-    for (let func of selectedFunctions) {
+    for (let func of functions) {
         const functionExistLocally = localFunctions.find((localFunc) => localFunc['$id'] === func['$id']) !== undefined;
 
-        if (!overridingLocalChanges && functionExistLocally) {
-            log(`Skipping locally found implementation of ${func['name']}`)
-            continue;
-        }
         if (functionExistLocally) {
             localConfig.updateFunction(func['$id'], func);
         } else {
@@ -74,7 +62,7 @@ const pullFunctions = async ({ all, yes } = {}) => {
             continue
         }
 
-        const compressedFileName = `${+new Date()}.tar.gz`
+        const compressedFileName = `${func['$id']}-${+new Date()}.tar.gz`
 
         await functionsDownloadDeployment({
             functionId: func['$id'],
@@ -92,7 +80,7 @@ const pullFunctions = async ({ all, yes } = {}) => {
         });
 
         fs.rmSync(compressedFileName);
-        success(`Pulled ${func['name']} code and definition`)
+        success(`Pulled ${func['name']} code and settings`)
     }
 }
 
@@ -111,7 +99,6 @@ const pullCollection = async ({ all, databaseId } = {}) => {
 
     if (databaseIds.length <= 0) {
         let answers = await inquirer.prompt(questionsPullCollection)
-        if (!answers.databases) process.exit(1)
         databaseIds.push(...answers.databases);
     }
 
@@ -185,31 +172,30 @@ const pullMessagingTopic = async () => {
 
 pull
     .command("project")
-    .description("Pulling your Appwrite project name")
+    .description("Pulling your {{ spec.title|caseUcfirst }} project name")
     .action(actionRunner(pullProject));
 
 pull
     .command("function")
-    .description(`Pulling your Appwrite functions`)
-    .option(`--yes`, `Flag to confirm all warnings`)
+    .description(`Pulling your {{ spec.title|caseUcfirst }} functions`)
     .option(`--all`, `Flag to pull all functions`)
     .action(actionRunner(pullFunctions));
 
 pull
     .command("collection")
-    .description("Pulling your Appwrite collections")
+    .description("Pulling your {{ spec.title|caseUcfirst }} collections")
     .option(`--databaseId <databaseId>`, `Database ID`)
     .option(`--all`, `Flag to pull all databases`)
     .action(actionRunner(pullCollection))
 
 pull
     .command("bucket")
-    .description("Pulling your Appwrite buckets")
+    .description("Pulling your {{ spec.title|caseUcfirst }} buckets")
     .action(actionRunner(pullBucket))
 
 pull
     .command("team")
-    .description("Pulling your Appwrite teams")
+    .description("Pulling your {{ spec.title|caseUcfirst }} teams")
     .action(actionRunner(pullTeam))
 
 pull

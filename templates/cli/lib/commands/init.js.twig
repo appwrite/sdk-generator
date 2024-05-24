@@ -20,6 +20,7 @@ const {
 const { success, log, error, actionRunner, commandDescriptions } = require("../parser");
 const { accountGet } = require("./account");
 const { loginCommand } = require("./generic");
+const { sdkForConsole } = require("../sdks");
 
 const initProject = async () => {
     let response = {};
@@ -28,16 +29,19 @@ const initProject = async () => {
         if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
             throw '';
         }
+        const client = await sdkForConsole();
+
         await accountGet({
-            parseOutput: false
+            parseOutput: false,
+            sdk: client
         });
     } catch (e) {
         log('You must login first')
-        await loginCommand()
+        await loginCommand();
     }
 
     const answers = await inquirer.prompt(questionsInitProject)
-    if (!answers.project || !answers.organization) {
+    if (answers.override === false) {
         process.exit(1)
     }
 
@@ -60,7 +64,6 @@ const initProject = async () => {
 const initBucket = async () => {
     let response = {}
     const answers = await inquirer.prompt(questionsCreateBucket)
-    if (!answers.bucket || !answers.id || !answers.fileSecurity) process.exit(1)
 
     try {
         response = await storageCreateBucket({
@@ -81,7 +84,6 @@ const initBucket = async () => {
 const initCollection = async () => {
     let response = {}
     const answers = await inquirer.prompt(questionsCreateCollection)
-    if (!answers.database || !answers.collection || !answers.id || !answers.documentSecurity) process.exit(1)
 
     try {
         response = await databasesCreateCollection({
@@ -103,7 +105,6 @@ const initCollection = async () => {
 const initTopic = async () => {
     let response = {}
     const answers = await inquirer.prompt(questionsCreateMessagingTopic)
-    if (!answers.topic || !answers.id) process.exit(1)
 
     try {
         response = await messagingCreateTopic({
@@ -115,7 +116,7 @@ const initTopic = async () => {
         localConfig.addMessagingTopic(response);
         success();
     } catch (e) {
-        error(e.getMessage ?? 'Unknown error occurred. Please try again');
+        error(e.message ?? 'Unknown error occurred. Please try again');
     }
 };
 

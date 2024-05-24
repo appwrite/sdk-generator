@@ -218,8 +218,13 @@ const questionsPullFunctions = [
         type: "checkbox",
         name: "functions",
         message: "Which functions would you like to pull?",
+        validate: (value) => validateRequired('function', value),
         choices: async () => {
             const { functions } = await paginate(functionsList, { parseOutput: false }, 100, 'functions');
+
+            if(functions.length === 0){
+                throw "We couldn't find any functions in your {{ spec.title|caseUcfirst }} project";
+            }
 
             return functions.map(func => {
                 return {
@@ -228,11 +233,6 @@ const questionsPullFunctions = [
                 }
             });
         }
-    },
-    {
-        type: "input",
-        name: "override",
-        message: `Are you sure you want to override local functions code and definition? ${chalk.red('All local changes will be lost!')} Type "YES" to confirm.`
     }
 ];
 
@@ -357,6 +357,7 @@ const questionsPullCollection = [
         type: "checkbox",
         name: "databases",
         message: "From which database would you like to pull collections?",
+        validate: (value) => validateRequired('collection', value),
         choices: async () => {
             let response = await databasesList({
                 parseOutput: false
