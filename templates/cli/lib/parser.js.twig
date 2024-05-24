@@ -2,11 +2,14 @@ const chalk = require('chalk');
 const commander = require('commander');
 const Table = require('cli-table3');
 const { description } = require('../package.json');
+const { globalConfig } = require("./config.js");
+const os = require('os');
 
 const cliConfig = {
-  verbose: false,
-  json: false,
-  report: false
+    verbose: false,
+    json: false,
+    report: false,
+    reportData: {}
 };
 
 const parse = (data) => {
@@ -111,19 +114,40 @@ const drawJSON = (data) => {
 }
 
 const parseError = (err) => {
-    if(cliConfig.report) {
-        const githubIssueUrl=`https://github.com/appwrite/appwrite/issues/new?labels=bug&template=bug.yaml&title=%F0%9F%90%9B+Bug+Report%3A+&actual-behavior=Console%20Crash%0A${encodeURIComponent('```\n'+err.stack+'\n```').replaceAll('(','').replaceAll(')','')}`
+    if (cliConfig.report) {
+        (async () => {
+            let appwriteVersion = 'unknown';
+            const isCloud = globalConfig.getEndpoint().includes('cloud.appwrite.io') ? 'Yes' : 'No';
 
-        log(`To report this error you can:\n - Create a support ticket in our Discord server https://appwrite.io/discord \n - Create an issue in our Github\n   ${githubIssueUrl}\n`);
+            try {
+                const res = await fetch(`${globalConfig.getEndpoint()}/health/version`);
+                const json = await res.json();
+                appwriteVersion = json.version;
+            } catch {
+            }
+
+            const version = '0.16.0';
+            const stepsToReproduce = encodeURIComponent(`Running \`appwrite ${cliConfig.reportData.data.args}\` using CLI ${version}`);
+            const yourEnvironment = encodeURI(`CLI version: ${version}\nOperation System: ${os.type()}\nAppwrite version: ${appwriteVersion}\nIs Cloud: ${isCloud}`)
+
+            const stack = encodeURIComponent('```\n' + err.stack + '\n```').replaceAll('(', '').replaceAll(')', '');
+
+            const githubIssueUrl = `https://github.com/appwrite/appwrite/issues/new?labels=bug&template=bug.yaml&title=%F0%9F%90%9B+Bug+Report%3A+CLI+error:+${encodeURI(err.message)}&actual-behavior=CLI%20Error:%0A${stack}&steps-to-reproduce=${stepsToReproduce}&environment=${yourEnvironment}`;
+
+            log(`To report this error you can:\n - Create a support ticket in our Discord server https://appwrite.io/discord \n - Create an issue in our Github\n   ${githubIssueUrl}\n`);
+
+            process.exit(1);
+        })()
+    }
+    else {
+        if (cliConfig.verbose) {
+            console.error(err);
+        } else {
+            error(err.message);
+        }
+        process.exit(1);
     }
 
-    if(cliConfig.verbose) {
-        console.error(err);
-    } else {
-        error(err.message);
-    }
-
-    process.exit(1)
 }
 
 const actionRunner = (fn) => {

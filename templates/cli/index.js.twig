@@ -37,6 +37,7 @@ program
   })
   .on("option:report", () => {
     cliConfig.report = true;
+    cliConfig.reportData = { data: this };
   })
   .showSuggestionAfterError()
 {% if sdk.test != "true" %}
