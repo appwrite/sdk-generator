@@ -326,16 +326,19 @@ const questionsLogin = [
 
             const data = [];
 
-            const longestEmail = logins.reduce((prev, current) => (prev && prev.email > current.email) ? prev : current).email.length;
+            const longestEmail = logins.reduce((prev, current) => (prev && (prev.email ?? '').length > (current.email ?? '').length) ? prev : current).email.length;
 
             logins.forEach((login) => {
-                data.push({
-                    value: login.id,
-                    name: `${login.email.padEnd(longestEmail)} ${current === login.id ? chalk.green.bold('In use') : ' '.repeat(6)} ${login.endpoint}`,
-                });
+                if (login.email) {
+                    data.push({
+                        current: current === login.id,
+                        value: login.id,
+                        name: `${login.email.padEnd(longestEmail)} ${current === login.id ? chalk.green.bold('current') : ' '.repeat(6)} ${login.endpoint}`,
+                    });
+                }
             })
 
-            return data;
+            return data.sort((a, b) => Number(b.current) - Number(a.current))
         },
         when: (answers) => answers.method === 'select'
     },
@@ -344,25 +347,9 @@ const questionsLogin = [
 
 const questionsLogout = [
     {
-        type: "list",
-        name: "method",
-        message: "Which account would you like to logout from?",
-        choices() {
-            const logins = globalConfig.getLogins();
-
-            return [
-                { name: 'Account in use' },
-                { name: 'Selected accounts', value: 'selected' },
-                { name: 'All accounts', value: 'all' }
-            ];
-        },
-        when: () => globalConfig.getCurrentLogin() !== ''
-    },
-    {
         type: "checkbox",
         name: "accounts",
         message: "Select accounts to logout from",
-        when: (answers) => answers.method === 'selected',
         validate: (value) => validateRequired('account', value),
         choices() {
             const logins = globalConfig.getLogins();
@@ -370,16 +357,19 @@ const questionsLogout = [
 
             const data = [];
 
-            const longestEmail = logins.reduce((prev, current) => (prev && prev.email > current.email) ? prev : current).email.length;
+            const longestEmail = logins.reduce((prev, current) => (prev && (prev.email ?? '').length > (current.email ?? '').length) ? prev : current).email.length;
 
             logins.forEach((login) => {
-                data.push({
-                    value: login.id,
-                    name: `${login.email.padEnd(longestEmail)} ${current === login.id ? chalk.green.bold('In use') : ' '.repeat(6)} ${login.endpoint}`,
-                });
+                if (login.email) {
+                    data.push({
+                        current: current === login.id,
+                        value: login.id,
+                        name: `${login.email.padEnd(longestEmail)} ${current === login.id ? chalk.green.bold('current') : ' '.repeat(6)} ${login.endpoint}`,
+                    });
+                }
             })
 
-            return data;
+            return data.sort((a, b) => Number(b.current) - Number(a.current))
         }
     }
 ];

@@ -140,31 +140,6 @@ const login = new Command("login")
     })
     .action(actionRunner(loginCommand));
 
-login
-    .command('list')
-    .description("List available logged accounts.")
-    .option("-j, --json", "Output in JSON format")
-    .action(actionRunner(async ({ json }) => {
-        const logins = globalConfig.getLogins();
-        const current = globalConfig.getCurrentLogin();
-
-        const data = [...logins.map((login => {
-            return {
-                'Current': login.id === current ? '*' : '',
-                'ID': login.id,
-                'Email': login.email,
-                'Endpoint': login.endpoint
-            };
-        }))];
-
-        if (json) {
-            console.log(data);
-            return;
-        }
-        drawTable(data);
-
-    }));
-
 const singleLogout = async (accountId) => {
     try {
         let client = await sdkForConsole();
@@ -202,19 +177,12 @@ const logout = new Command("logout")
         }
 
         const answers = await inquirer.prompt(questionsLogout);
-        const accountIds = [];
 
-        if (answers.method === 'all') {
-            accountIds.push(...logins.map(login => login.id));
-        }
-
-        if (answers.method === 'selected' && answers.accounts) {
-            accountIds.push(...answers.accounts);
-        }
-
-        for (let accountId of accountIds) {
-            globalConfig.setCurrentLogin(accountId);
-            await singleLogout(accountId);
+        if (answers.accounts) {
+            for (let accountId of answers.accounts) {
+                globalConfig.setCurrentLogin(accountId);
+                await singleLogout(accountId);
+            }
         }
 
         const leftLogins = globalConfig.getLogins();
