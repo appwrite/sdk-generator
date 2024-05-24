@@ -13,15 +13,6 @@ const { paginate } = require("../paginate");
 const { questionsPullCollection, questionsPullFunctions } = require("../questions");
 const { success, log, actionRunner, commandDescriptions } = require("../parser");
 
-const pull = new Command("pull")
-    .description(commandDescriptions['pull'])
-    .configureHelp({
-        helpWidth: process.stdout.columns || 80
-    })
-    .action(actionRunner(async (_options, command) => {
-        command.help();
-    }));
-
 const pullProject = async () => {
     try {
         let response = await projectsGet({
@@ -170,36 +161,42 @@ const pullMessagingTopic = async () => {
     success();
 }
 
+const pull = new Command("pull")
+    .description(commandDescriptions['pull'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    });
+
 pull
     .command("project")
     .description("Pulling your {{ spec.title|caseUcfirst }} project name")
     .action(actionRunner(pullProject));
 
 pull
-    .command("function")
+    .command("functions")
     .description(`Pulling your {{ spec.title|caseUcfirst }} functions`)
     .option(`--all`, `Flag to pull all functions`)
     .action(actionRunner(pullFunctions));
 
 pull
-    .command("collection")
+    .command("collections")
     .description("Pulling your {{ spec.title|caseUcfirst }} collections")
     .option(`--databaseId <databaseId>`, `Database ID`)
     .option(`--all`, `Flag to pull all databases`)
     .action(actionRunner(pullCollection))
 
 pull
-    .command("bucket")
+    .command("buckets")
     .description("Pulling your {{ spec.title|caseUcfirst }} buckets")
     .action(actionRunner(pullBucket))
 
 pull
-    .command("team")
+    .command("teams")
     .description("Pulling your {{ spec.title|caseUcfirst }} teams")
     .action(actionRunner(pullTeam))
 
 pull
-    .command("topic")
+    .command("topics")
     .description("Initialise your Appwrite messaging topics")
     .action(actionRunner(pullMessagingTopic))
 

@@ -1117,8 +1117,10 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
 const push = new Command("push")
     .alias('deploy')
     .description(commandDescriptions['push'])
-    .option(`--all`, `Flag to push all resources`)
-    .option(`--yes`, `Flag to confirm all warnings`)
+
+push
+    .command("all")
+    .description("Push all resource.")
     .action(actionRunner(pushResources));
 
 push
@@ -1127,7 +1129,7 @@ push
     .action(actionRunner(pushProject));
 
 push
-    .command("function")
+    .command("functions")
     .description("Push functions in the current directory.")
     .option(`--functionId <functionId>`, `Function ID`)
     .option(`--all`, `Flag to push all functions`)
@@ -1136,28 +1138,28 @@ push
     .action(actionRunner(pushFunction));
 
 push
-    .command("collection")
+    .command("collections")
     .description("Push collections in the current project.")
     .option(`--all`, `Flag to push all collections`)
     .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushCollection));
 
 push
-    .command("bucket")
+    .command("buckets")
     .description("Push buckets in the current project.")
     .option(`--all`, `Flag to push all buckets`)
     .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushBucket));
 
 push
-    .command("team")
+    .command("teams")
     .description("Push teams in the current project.")
     .option(`--all`, `Flag to push all teams`)
     .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushTeam));
 
 push
-    .command("topic")
+    .command("topics")
     .description("Push messaging topics in the current project.")
     .option(`--all`, `Flag to deploy all topics`)
     .option(`--yes`, `Flag to confirm all warnings`)
