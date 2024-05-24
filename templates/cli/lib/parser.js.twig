@@ -127,7 +127,7 @@ const parseError = (err) => {
             }
 
             const version = '0.16.0';
-            const stepsToReproduce = encodeURIComponent(`Running \`appwrite ${cliConfig.reportData.data.args}\` using CLI ${version}`);
+            const stepsToReproduce = encodeURIComponent(`Running \`appwrite ${cliConfig.reportData.data.args}\``);
             const yourEnvironment = encodeURI(`CLI version: ${version}\nOperation System: ${os.type()}\nAppwrite version: ${appwriteVersion}\nIs Cloud: ${isCloud}`)
 
             const stack = encodeURIComponent('```\n' + err.stack + '\n```').replaceAll('(', '').replaceAll(')', '');
