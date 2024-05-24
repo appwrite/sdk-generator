@@ -25,7 +25,4 @@ jobs:
           dotnet pack -c Release
 
       - name: Publish nuget
-        run: |
-          dotnet nuget push ./Appwrite/bin/Release/*.nupkg \
-            --api-key {{ '${{ secrets.NUGET_TOKEN }}' }} \
-            --source https://api.nuget.org/v3/index.json
+        run: dotnet nuget push ./Appwrite/bin/Release/*.nupkg --api-key {{ '${{ secrets.NUGET_TOKEN }}' }} --source https://api.nuget.org/v3/index.json
