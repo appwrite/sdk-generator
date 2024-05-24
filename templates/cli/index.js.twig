@@ -30,7 +30,7 @@ program
   .option("--json", "Output in JSON format")
   .option("-f,--force", "Flag to confirm all warnings")
   .option("-a,--all", "Flag to push all resources")
-  .option("--ids [id...]", "Flag to pass list of ids for a giving action")
+  .option("--id [id...]", "Flag to pass list of ids for a giving action")
   .option("--report", "Enable reporting when cli is crashing")
   .on("option:json", () => {
     cliConfig.json = true;
@@ -48,8 +48,8 @@ program
   .on("option:all", () => {
     cliConfig.all = true;
   })
-  .on("option:ids", function() {
-    cliConfig.ids = this.opts().ids;
+  .on("option:id", function() {
+    cliConfig.ids = this.opts().id;
   })
   .showSuggestionAfterError()
 {% if sdk.test != "true" %}
