@@ -6,7 +6,7 @@ const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
 const { validateRequired } = require("./validations");
 const { paginate } = require('./paginate');
-
+const { cliConfig } = require('./parser');
 const { databasesList } = require('./commands/databases');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
@@ -126,7 +126,7 @@ const questionsPullProject = [
         message: "Choose the project organization",
         choices: async () => {
             let client = await sdkForConsole(true);
-            const { teams } = await paginate(teamsList, { parseOutput: false , sdk: client}, 100, 'teams');
+            const { teams } = await paginate(teamsList, { parseOutput: false, sdk: client }, 100, 'teams');
 
             let choices = teams.map((team, idx) => {
                 return {
@@ -194,7 +194,7 @@ const questionsPullProject = [
         choices: async (answers) => {
             let response = await projectsList({
                 parseOutput: false,
-                queries: [JSON.stringify({ method: 'equal', attribute:'teamId', values: [answers.organization.id] })],
+                queries: [JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization.id] })],
             })
             let projects = response["projects"]
             let choices = projects.map((project, idx) => {
@@ -245,7 +245,7 @@ const questionsPullFunction = [
                         id: runtime['$id'],
                         entrypoint: getEntrypoint(runtime['$id']),
                         ignore: getIgnores(runtime['$id']),
-                        commands : getInstallCommand(runtime['$id'])
+                        commands: getInstallCommand(runtime['$id'])
                     },
                 }
             })
@@ -256,25 +256,44 @@ const questionsPullFunction = [
 
 const questionsPullCollection = [
     {
-        type: "checkbox",
-        name: "databases",
-        message: "From which database would you like to pull collections?",
-        choices: async () => {
-            let response = await databasesList({
-                parseOutput: false
-            })
-            let databases = response["databases"]
+        type: 'checkbox',
+        name: 'setup',
+        async when(answers) {
+            let queries = [];
+
+            if (Array.isArray(cliConfig.ids) && cliConfig.ids.length !== 0) {
+                queries = [JSON.stringify({ method: 'equal', attribute: '$id', values: cliConfig.ids })]
+            }
+
+            const { databases } = await paginate(databasesList, { parseOutput: false, queries }, 100, 'databases');
 
             if (databases.length <= 0) {
                 throw new Error("No databases found. Please create one in project console.")
             }
-            let choices = databases.map((database, idx) => {
+
+            answers.setup = databases.map((database, idx) => {
                 return {
                     name: `${database.name} (${database.$id})`,
                     value: database.$id
                 }
-            })
-            return choices;
+            });
+
+            return false;
+        }
+    },
+    {
+        type: "checkbox",
+        name: "databases",
+        message: "From which database would you like to pull collections?",
+        when: (answers) => {
+            if (cliConfig.all || Array.isArray(cliConfig.ids) && cliConfig.ids.length !== 0) {
+                answers.databases = answers.setup;
+                return false;
+            }
+            return true;
+        },
+        choices: async (answers) => {
+            return answers.setup;
         }
     }
 ];
@@ -307,37 +326,77 @@ const questionsLogin = [
 
 const questionsPushResources = [
     {
+        type: 'checkbox',
+        name: 'setup',
+        async when(answers) {
+            answers.setup = [
+                { name: 'Functions', value: 'functions' },
+                { name: 'Collections', value: 'collections' },
+                { name: 'Buckets', value: 'buckets' },
+                { name: 'Teams', value: 'teams' },
+                { name: 'Topics', value: 'messages' }
+            ];
+
+            return false;
+        }
+    },
+    {
         type: "checkbox",
         name: "resources",
         message: "Which resources would you like to push?",
-        choices: [
-            { name: 'Functions', value: 'functions' },
-            { name: 'Collections', value: 'collections' },
-            { name: 'Buckets', value: 'buckets' },
-            { name: 'Teams', value: 'teams' },
-            { name: 'Topics', value: 'messages' }
-        ]
+        when: (answers) => {
+            if (cliConfig.all) {
+                answers.resources = answers.setup;
+                return false;
+            }
+
+            return true;
+        },
+        choices: async (answers) => {
+            return answers.setup;
+        }
     }
 ]
 
 const questionsPushFunctions = [
     {
-        type: "checkbox",
-        name: "functions",
-        message: "Which functions would you like to push?",
-        validate: (value) => validateRequired('function', value),
-        choices: () => {
+        type: 'checkbox',
+        name: 'setup',
+        async when(answers) {
             let functions = localConfig.getFunctions();
             if (functions.length === 0) {
                 throw new Error("No functions found in the current directory.");
             }
-            let choices = functions.map((func, idx) => {
+
+            answers.setup = functions.map((func, idx) => {
                 return {
                     name: `${func.name} (${func.$id})`,
                     value: func.$id
                 }
-            })
-            return choices;
+            });
+
+            if (Array.isArray(cliConfig.ids) && cliConfig.ids.length !== 0) {
+                answers.setup = answers.setup.filter((func) => cliConfig.ids.includes(func.value));
+            }
+
+            return false;
+        }
+    },
+    {
+        type: "checkbox",
+        name: "functions",
+        message: "Which functions would you like to push?",
+        validate: (value) => validateRequired('function', value),
+        when: (answers) => {
+            if (cliConfig.all || Array.isArray(cliConfig.ids) && cliConfig.ids.length !== 0) {
+                answers.functions = answers.setup;
+                return false;
+            }
+
+            return true;
+        },
+        choices: (answers) => {
+            return answers.setup;
         }
     },
     {
@@ -349,21 +408,43 @@ const questionsPushFunctions = [
 
 const questionsPushCollections = [
     {
-        type: "checkbox",
-        name: "collections",
-        message: "Which collections would you like to push?",
-        validate: (value) => validateRequired('collection', value),
-        choices: () => {
+        type: 'checkbox',
+        name: 'setup',
+        async when(answers) {
             let collections = localConfig.getCollections();
             if (collections.length === 0) {
                 throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} pull collection` to fetch all your collections.");
             }
-            return collections.map(collection => {
+
+            answers.setup = collections.map((collection, idx) => {
                 return {
                     name: `${collection.name} (${collection['databaseId']} - ${collection['$id']})`,
                     value: `${collection['databaseId']}|${collection['$id']}`
                 }
             });
+
+            if (Array.isArray(cliConfig.ids) && cliConfig.ids.length !== 0) {
+                answers.setup = answers.setup.filter((collection) => cliConfig.ids.includes(collection.value));
+            }
+
+            return false;
+        }
+    },
+    {
+        type: "checkbox",
+        name: "collections",
+        message: "Which collections would you like to push?",
+        validate: (value) => validateRequired('collection', value),
+        when: (answers) => {
+            if (cliConfig.all || Array.isArray(cliConfig.ids) && cliConfig.ids.length !== 0) {
+                answers.collections = answers.setup;
+                return false;
+            }
+
+            return true;
+        },
+        choices: (answers) => {
+            return answers.setup;
         }
     },
     {
@@ -375,21 +456,43 @@ const questionsPushCollections = [
 
 const questionsPushBuckets = [
     {
-        type: "checkbox",
-        name: "buckets",
-        message: "Which buckets would you like to push?",
-        validate: (value) => validateRequired('bucket', value),
-        choices: () => {
+        type: 'checkbox',
+        name: 'setup',
+        async when(answers) {
             let buckets = localConfig.getBuckets();
             if (buckets.length === 0) {
                 throw new Error("No buckets found in the current directory. Run `appwrite pull bucket` to fetch all your buckets.");
             }
-            return buckets.map(bucket => {
+
+            answers.setup = buckets.map(bucket => {
                 return {
                     name: `${bucket.name} (${bucket['$id']})`,
                     value: bucket.$id
                 }
             });
+
+            if (Array.isArray(cliConfig.ids) && cliConfig.ids.length !== 0) {
+                answers.setup = answers.setup.filter((bucket) => cliConfig.ids.includes(bucket.value));
+            }
+
+            return false;
+        }
+    },
+    {
+        type: "checkbox",
+        name: "buckets",
+        message: "Which buckets would you like to push?",
+        validate: (value) => validateRequired('bucket', value),
+        when: (answers) => {
+            if (cliConfig.all || Array.isArray(cliConfig.ids) && cliConfig.ids.length !== 0) {
+                answers.buckets = answers.setup;
+                return false;
+            }
+
+            return true;
+        },
+        choices: (answers) => {
+            return answers.setup;
         }
     },
     {
@@ -401,20 +504,42 @@ const questionsPushBuckets = [
 
 const questionsPushMessagingTopics = [
     {
-        type: "checkbox",
-        name: "topics",
-        message: "Which messaging topic would you like to push?",
-        choices: () => {
+        type: 'checkbox',
+        name: 'setup',
+        async when(answers) {
             let topics = localConfig.getMessagingTopics();
             if (topics.length === 0) {
                 throw new Error("No topics found in the current directory. Run `appwrite pull messaging` to fetch all your messaging topics.");
             }
-            return topics.map(topic => {
+
+            answers.setup = topics.map(topic => {
                 return {
                     name: `${topic.name} (${topic['$id']})`,
                     value: topic.$id
                 }
             });
+
+            if (Array.isArray(cliConfig.ids) && cliConfig.ids.length !== 0) {
+                answers.setup = answers.setup.filter((topic) => cliConfig.ids.includes(topic.value));
+            }
+
+            return false;
+        }
+    },
+    {
+        type: "checkbox",
+        name: "topics",
+        message: "Which messaging topic would you like to push?",
+        when: (answers) => {
+            if (cliConfig.all || Array.isArray(cliConfig.ids) && cliConfig.ids.length !== 0) {
+                answers.topics = answers.setup;
+                return false;
+            }
+
+            return true;
+        },
+        choices: (answers) => {
+            return answers.setup;
         }
     },
     {
@@ -441,21 +566,43 @@ const questionsGetEntrypoint = [
 
 const questionsPushTeams = [
     {
-        type: "checkbox",
-        name: "teams",
-        message: "Which teams would you like to push?",
-        validate: (value) => validateRequired('team', value),
-        choices: () => {
+        type: 'checkbox',
+        name: 'setup',
+        async when(answers) {
             let teams = localConfig.getTeams();
             if (teams.length === 0) {
                 throw new Error("No teams found in the current directory. Run `appwrite pull team` to fetch all your teams.");
             }
-            return teams.map(team => {
+
+            answers.setup = teams.map(team => {
                 return {
                     name: `${team.name} (${team['$id']})`,
                     value: team.$id
                 }
             });
+
+            if (Array.isArray(cliConfig.ids) && cliConfig.ids.length !== 0) {
+                answers.setup = answers.setup.filter((team) => cliConfig.ids.includes(team.value));
+            }
+
+            return false;
+        }
+    },
+    {
+        type: "checkbox",
+        name: "teams",
+        message: "Which teams would you like to push?",
+        validate: (value) => validateRequired('team', value),
+        when: (answers) => {
+            if (cliConfig.all || Array.isArray(cliConfig.ids) && cliConfig.ids.length !== 0) {
+                answers.teams = answers.setup;
+                return false;
+            }
+
+            return true;
+        },
+        choices: (answers) => {
+            return answers.setup;
         }
     },
     {
@@ -494,7 +641,7 @@ const questionsListFactors = [
                     name: `Recovery code`,
                     value: 'recoveryCode'
                 }
-            ].filter((ch) => factors[ch.value] === true);
+            ].filter((ch) => factors[ch.value] === true);
 
             return choices;
         }

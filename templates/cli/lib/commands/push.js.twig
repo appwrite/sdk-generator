@@ -4,8 +4,19 @@ const { Command } = require("commander");
 const { localConfig, globalConfig } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
-const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics } = require("../questions");
-const { cliConfig, actionRunner, success, log, error, commandDescriptions } = require("../parser");
+const {
+    questionsPushBuckets,
+    questionsPushTeams,
+    questionsPushFunctions,
+    questionsGetEntrypoint,
+    questionsPushCollections,
+    questionsPushResources,
+    questionsPushMessagingTopics
+} = require("../questions");
+const {
+    cliConfig, actionRunner,
+    success, log, error, commandDescriptions
+} = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
@@ -241,43 +252,29 @@ const pushResources = async () => {
         messages: pushMessagingTopic
     }
 
-    if (cliConfig.all) {
-        Object.values(actions).forEach(action => action());
-    } else {
-        const answers = await inquirer.prompt(questionsPushResources[0]);
+    const answers = await inquirer.prompt(questionsPushResources);
 
-        answers.resources.forEach((resource) => {
-            const action = actions[resource];
-            if (action !== undefined) {
-                action();
+    for (const resource of answers.resources) {
+        const method = resource.value ? resource.value : resource;
+        const action = actions[method];
+        if (action !== undefined) {
+            try {
+                await action();
+            } catch (e) {
+                error(e);
             }
-        })
+        }
     }
 };
 
-const pushFunction = async ({ functionId, async } = {}) => {
+const pushFunction = async ({ async } = {}) => {
     let response = {};
 
-    const functionIds = [];
+    const functionIds = (await inquirer.prompt(questionsPushFunctions.slice(0, 2))).functions;
 
-    if (functionId) {
-        functionIds.push(functionId);
-    } else if (cliConfig.all) {
-        const functions = localConfig.getFunctions();
-        if (functions.length === 0) {
-            throw new Error("No functions found in the current directory.");
-        }
-        functionIds.push(...functions.map((func, idx) => {
-            return func.$id;
-        }));
-    }
+    let functions = functionIds.map((functionId) => {
+        const id = functionId.value ? functionId.value : functionId;
 
-    if (functionIds.length <= 0) {
-        const answers = await inquirer.prompt(questionsPushFunctions[0]);
-        functionIds.push(...answers.functions);
-    }
-
-    let functions = functionIds.map((id) => {
         const functions = localConfig.getFunctions();
         const func = functions.find((f) => f.$id === id);
 
@@ -651,22 +648,19 @@ const pushCollection = async () => {
 
     const collections = [];
 
-    if (cliConfig.all) {
-        if (localConfig.getCollections().length === 0) {
-            throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} pull collection` to fetch all your collections.");
-        }
-        collections.push(...localConfig.getCollections());
-    } else {
-        const answers = await inquirer.prompt(questionsPushCollections[0])
-        const configCollections = new Map();
-        localConfig.getCollections().forEach((c) => {
-            configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
-        });
-        answers.collections.forEach((a) => {
-            const collection = configCollections.get(a);
-            collections.push(collection);
-        })
-    }
+    const answers = await inquirer.prompt(questionsPushCollections.slice(0, 2))
+
+    const configCollections = new Map();
+
+    localConfig.getCollections().forEach((c) => {
+        configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
+    });
+
+    answers.collections.forEach((c) => {
+        const id = c.value ? c.value : c;
+        const collection = configCollections.get(id);
+        collections.push(collection);
+    })
 
     for (let collection of collections) {
         log(`Pushing collection ${collection.name} ( ${collection['databaseId']} - ${collection['$id']} )`)
@@ -714,7 +708,7 @@ const pushCollection = async () => {
             log(`Collection ${collection.name} ( ${collection['$id']} ) already exists.`);
 
             if (!cliConfig.force) {
-                const answers = await inquirer.prompt(questionsPushCollections[1])
+                const answers = await inquirer.prompt(questionsPushCollections[2])
                 if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${collection.name} ( ${collection['$id']} )`);
                     continue;
@@ -870,25 +864,13 @@ const pushCollection = async () => {
 const pushBucket = async () => {
     let response = {};
 
-    let bucketIds = [];
+    const bucketIds = (await inquirer.prompt(questionsPushBuckets.slice(0, 2))).buckets;
+    const buckets = [];
     const configBuckets = localConfig.getBuckets();
 
-    if (cliConfig.all) {
-        if (configBuckets.length === 0) {
-            throw new Error("No buckets found in the current directory. Run `appwrite pull bucket` to fetch all your buckets.");
-        }
-        bucketIds.push(...configBuckets.map((b) => b.$id));
-    }
-
-    if (bucketIds.length === 0) {
-        const answers = await inquirer.prompt(questionsPushBuckets[0])
-        bucketIds.push(...answers.buckets);
-    }
-
-    let buckets = [];
-
     for (const bucketId of bucketIds) {
-        const idBuckets = configBuckets.filter((b) => b.$id === bucketId);
+        const id = bucketId.value ? bucketId.value : bucketId;
+        const idBuckets = configBuckets.filter((b) => b.$id === id);
         buckets.push(...idBuckets);
     }
 
@@ -903,7 +885,7 @@ const pushBucket = async () => {
             log(`Bucket ${bucket.name} ( ${bucket['$id']} ) already exists.`);
 
             if (!cliConfig.force) {
-                const answers = await inquirer.prompt(questionsPushBuckets[1])
+                const answers = await inquirer.prompt(questionsPushBuckets[2])
                 if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${bucket.name} ( ${bucket['$id']} )`);
                     continue;
@@ -957,25 +939,13 @@ const pushBucket = async () => {
 const pushTeam = async () => {
     let response = {};
 
-    let teamIds = [];
+    const teamIds = (await inquirer.prompt(questionsPushTeams.slice(0, 2))).teams;
     const configTeams = localConfig.getTeams();
-
-    if (cliConfig.all) {
-        if (configTeams.length === 0) {
-            throw new Error("No teams found in the current directory. Run `appwrite pull team` to fetch all your teams.");
-        }
-        teamIds.push(...configTeams.map((t) => t.$id));
-    }
-
-    if (teamIds.length === 0) {
-        const answers = await inquirer.prompt(questionsPushTeams[0])
-        teamIds.push(...answers.teams);
-    }
-
-    let teams = [];
+    const teams = [];
 
     for (const teamId of teamIds) {
-        const idTeams = configTeams.filter((t) => t.$id === teamId);
+        const id = teamId.value ? teamId.value : teamId
+        const idTeams = configTeams.filter((t) => t.$id === id);
         teams.push(...idTeams);
     }
 
@@ -990,7 +960,7 @@ const pushTeam = async () => {
             log(`Team ${team.name} ( ${team['$id']} ) already exists.`);
 
             if (!cliConfig.force) {
-                const answers = await inquirer.prompt(questionsPushTeams[1])
+                const answers = await inquirer.prompt(questionsPushTeams[2])
                 if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${team.name} ( ${team['$id']} )`);
                     continue;
@@ -1027,31 +997,19 @@ const pushTeam = async () => {
 const pushMessagingTopic = async () => {
     let response = {};
 
-    let topicsIds = [];
     const configTopics = localConfig.getMessagingTopics();
+    const topicsIds = (await inquirer.prompt(questionsPushMessagingTopics.slice(0, 2))).topics;
     let overrideExisting = cliConfig.force;
-
-    if (cliConfig.all) {
-        if (configTopics.length === 0) {
-            throw new Error("No topics found in the current directory. Run `appwrite pull topics` to pull all your messaging topics.");
-        }
-        topicsIds.push(...configTopics.map((b) => b.$id));
-    }
-
-    if (topicsIds.length === 0) {
-        const answers = await inquirer.prompt(questionsPushMessagingTopics[0])
-        topicsIds.push(...answers.topics);
-    }
-
-    let topics = [];
+    const topics = [];
 
     for (const topicId of topicsIds) {
-        const idTopic = configTopics.filter((b) => b.$id === topicId);
+        const id = topicId.value ? topicId.value : topicId
+        const idTopic = configTopics.filter((b) => b.$id === id);
         topics.push(...idTopic);
     }
 
     if (!cliConfig.force) {
-        const answers = await inquirer.prompt(questionsPushMessagingTopics[1])
+        const answers = await inquirer.prompt(questionsPushMessagingTopics[2])
         if (answers.override.toLowerCase() === "yes") {
             overrideExisting = true;
         }
