@@ -277,7 +277,6 @@ const questionsPullCollection = [
                     value: database.$id
                 }
             });
-
             return false;
         }
     },
@@ -401,7 +400,17 @@ const questionsPushFunctions = [
     },
     {
         type: "input",
+        name: "setupoverride",
+        when: (answers) => {
+            answers.setupoverride = cliConfig.force;
+
+            return false;
+        }
+    },
+    {
+        type: "input",
         name: "override",
+        when: () => !cliConfig.force,
         message: 'Are you sure you want to override this function\'s variables? This can lead to loss of secrets! Type "YES" to confirm.'
     },
 ]
@@ -449,9 +458,19 @@ const questionsPushCollections = [
     },
     {
         type: "input",
-        name: "override",
-        message: 'Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.'
+        name: "setupoverride",
+        when: (answers) => {
+            answers.setupoverride = cliConfig.force;
+
+            return false;
+        }
     },
+    {
+        type: "input",
+        name: "override",
+        when: () => !cliConfig.force,
+        message: 'Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.'
+    }
 ]
 
 const questionsPushBuckets = [
@@ -497,9 +516,19 @@ const questionsPushBuckets = [
     },
     {
         type: "input",
-        name: "override",
-        message: 'Are you sure you want to override this bucket? This can lead to loss of data! Type "YES" to confirm.'
+        name: "setupoverride",
+        when: (answers) => {
+            answers.setupoverride = cliConfig.force;
+
+            return false;
+        }
     },
+    {
+        type: "input",
+        name: "override",
+        when: () => !cliConfig.force,
+        message: 'Are you sure you want to override this bucket? This can lead to loss of data! Type "YES" to confirm.'
+    }
 ]
 
 const questionsPushMessagingTopics = [
@@ -544,24 +573,19 @@ const questionsPushMessagingTopics = [
     },
     {
         type: "input",
-        name: "override",
-        message: 'Would you like to override existing topics? This can lead to loss of data! Type "YES" to confirm.'
-    }
-]
+        name: "setupoverride",
+        when: (answers) => {
+            answers.setupoverride = cliConfig.force;
 
-const questionsGetEntrypoint = [
-    {
-        type: "input",
-        name: "entrypoint",
-        message: "Enter the entrypoint",
-        default: null,
-        validate(value) {
-            if (!value) {
-                return "Please enter your entrypoint";
-            }
-            return true;
+            return false;
         }
     },
+    {
+        type: "input",
+        name: "override",
+        when: () => !cliConfig.force,
+        message: 'Would you like to override existing topics? This can lead to loss of data! Type "YES" to confirm.'
+    }
 ]
 
 const questionsPushTeams = [
@@ -585,6 +609,7 @@ const questionsPushTeams = [
                 answers.setup = answers.setup.filter((team) => cliConfig.ids.includes(team.value));
             }
 
+
             return false;
         }
     },
@@ -607,10 +632,35 @@ const questionsPushTeams = [
     },
     {
         type: "input",
-        name: "override",
-        message: 'Are you sure you want to override this team? This can lead to loss of data! Type "YES" to confirm.'
+        name: "setupoverride",
+        when: (answers) => {
+            answers.setupoverride = cliConfig.force;
+
+            return false;
+        }
     },
+    {
+        type: "input",
+        name: "override",
+        when: () => !cliConfig.force,
+        message: 'Are you sure you want to override this team? This can lead to loss of data! Type "YES" to confirm.'
+    }
 ];
+
+const questionsGetEntrypoint = [
+    {
+        type: "input",
+        name: "entrypoint",
+        message: "Enter the entrypoint",
+        default: null,
+        validate(value) {
+            if (!value) {
+                return "Please enter your entrypoint";
+            }
+            return true;
+        }
+    },
+]
 
 const questionsListFactors = [
     {

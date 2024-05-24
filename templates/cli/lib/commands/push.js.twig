@@ -265,6 +265,8 @@ const pushResources = async () => {
             }
         }
     }
+
+    process.exit(0);
 };
 
 const pushFunction = async ({ async } = {}) => {
@@ -297,8 +299,6 @@ const pushFunction = async ({ async } = {}) => {
         }
 
         if (func.variables) {
-            func.pushVariables = cliConfig.force;
-
             try {
                 const { total } = await functionsListVariables({
                     functionId: func['$id'],
@@ -310,8 +310,8 @@ const pushFunction = async ({ async } = {}) => {
                     func.pushVariables = true;
                 } else if (total > 0 && !func.pushVariables) {
                     log(`The function ${func.name} has remote variables setup`);
-                    const variableAnswers = await inquirer.prompt(questionsPushFunctions[1])
-                    func.pushVariables = variableAnswers.override.toLowerCase() === "yes";
+                    const variableAnswers = await inquirer.prompt(questionsPushFunctions.slice(2, 4));
+                    func.pushVariables = variableAnswers.setupoverride ? variableAnswers.setupoverride : variableAnswers.override.toLowerCase() === "yes";
                 }
             } catch (e) {
                 if (e.code != 404) {
@@ -524,6 +524,8 @@ const pushFunction = async ({ async } = {}) => {
     })
 
     success(`Pushed ${successfullyPushed} functions with ${successfullyDeployed} successful deployments.`);
+
+    process.exit(0);
 }
 
 const createAttribute = async (databaseId, collectionId, attribute) => {
@@ -641,6 +643,8 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 parseOutput: false
             })
     }
+
+    process.exit(0);
 }
 
 const pushCollection = async () => {
@@ -707,12 +711,11 @@ const pushCollection = async () => {
 
             log(`Collection ${collection.name} ( ${collection['$id']} ) already exists.`);
 
-            if (!cliConfig.force) {
-                const answers = await inquirer.prompt(questionsPushCollections[2])
-                if (answers.override.toLowerCase() !== "yes") {
-                    log(`Received "${answers.override}". Skipping ${collection.name} ( ${collection['$id']} )`);
-                    continue;
-                }
+            const answers = await inquirer.prompt(questionsPushCollections.slice(2, 4))
+            const override = answers.setupoverride ? answers.setupoverride : answers.override.toLowerCase() === "yes";
+            if (!override) {
+                log(`Skipping ${collection.name} ( ${collection['$id']} )`);
+                continue;
             }
 
             log(`Deleting indexes and attributes ... `);
@@ -859,6 +862,8 @@ const pushCollection = async () => {
 
         success(`Created ${relationships.length} relationship attributes`);
     }
+
+    process.exit(0);
 }
 
 const pushBucket = async () => {
@@ -884,12 +889,11 @@ const pushBucket = async () => {
             })
             log(`Bucket ${bucket.name} ( ${bucket['$id']} ) already exists.`);
 
-            if (!cliConfig.force) {
-                const answers = await inquirer.prompt(questionsPushBuckets[2])
-                if (answers.override.toLowerCase() !== "yes") {
-                    log(`Received "${answers.override}". Skipping ${bucket.name} ( ${bucket['$id']} )`);
-                    continue;
-                }
+            const answers = await inquirer.prompt(questionsPushBuckets.slice(2, 4))
+            const override = answers.setupoverride ? answers.setupoverride : answers.override.toLowerCase() === "yes";
+            if (!override) {
+                log(`Skipping ${bucket.name} ( ${bucket['$id']} )`);
+                continue;
             }
 
             log(`Updating bucket ...`)
@@ -934,6 +938,8 @@ const pushBucket = async () => {
             }
         }
     }
+
+    process.exit(0);
 }
 
 const pushTeam = async () => {
@@ -959,12 +965,11 @@ const pushTeam = async () => {
             })
             log(`Team ${team.name} ( ${team['$id']} ) already exists.`);
 
-            if (!cliConfig.force) {
-                const answers = await inquirer.prompt(questionsPushTeams[2])
-                if (answers.override.toLowerCase() !== "yes") {
-                    log(`Received "${answers.override}". Skipping ${team.name} ( ${team['$id']} )`);
-                    continue;
-                }
+            const answers = await inquirer.prompt(questionsPushTeams.slice(2, 4))
+            const override = answers.setupoverride ? answers.setupoverride : answers.override.toLowerCase() === "yes";
+            if (!override) {
+                log(`Skipping ${team.name} ( ${team['$id']} )`);
+                continue;
             }
 
             log(`Updating team ...`)
@@ -992,6 +997,8 @@ const pushTeam = async () => {
             }
         }
     }
+
+    process.exit(0);
 }
 
 const pushMessagingTopic = async () => {
@@ -999,8 +1006,8 @@ const pushMessagingTopic = async () => {
 
     const configTopics = localConfig.getMessagingTopics();
     const topicsIds = (await inquirer.prompt(questionsPushMessagingTopics.slice(0, 2))).topics;
-    let overrideExisting = cliConfig.force;
     const topics = [];
+    let overrideExisting = false;
 
     for (const topicId of topicsIds) {
         const id = topicId.value ? topicId.value : topicId
@@ -1008,11 +1015,10 @@ const pushMessagingTopic = async () => {
         topics.push(...idTopic);
     }
 
-    if (!cliConfig.force) {
-        const answers = await inquirer.prompt(questionsPushMessagingTopics[2])
-        if (answers.override.toLowerCase() === "yes") {
-            overrideExisting = true;
-        }
+    const answers = await inquirer.prompt(questionsPushMessagingTopics.slice(2, 4))
+    const override = answers.setupoverride ? answers.setupoverride : answers.override.toLowerCase() === "yes";
+    if (override) {
+        overrideExisting = true
     }
 
     for (let topic of topics) {
@@ -1057,6 +1063,8 @@ const pushMessagingTopic = async () => {
             }
         }
     }
+
+    process.exit(0);
 }
 
 const push = new Command("push")
