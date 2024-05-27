@@ -3,15 +3,14 @@ const { Command } = require("commander");
 const Client = require("../client");
 const { sdkForConsole } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
-const { actionRunner, success, parseBool, commandDescriptions, error, parse, drawTable } = require("../parser");
+const { actionRunner, success, parseBool, commandDescriptions, error, parse, drawTable, cliConfig } = require("../parser");
 {% if sdk.test != "true" %}
 const { questionsLogin, questionsListFactors, questionsMfaChallenge } = require("../questions");
 const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
 
 const whoami = new Command("whoami")
     .description(commandDescriptions['whoami'])
-    .option("-j, --json", "Output in JSON format")
-    .action(actionRunner(async ({ json }) => {
+    .action(actionRunner(async () => {
         if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
             error("No user is signed in. To sign in, run: appwrite login ");
             return;
@@ -39,9 +38,9 @@ const whoami = new Command("whoami")
                 'MFA enabled': account.mfa ? 'Yes' : 'No'
             }
         ];
-        if (json) {
-            console.log(data);
 
+        if(cliConfig.json) {
+            console.log(data);
             return;
         }
 
@@ -129,12 +128,12 @@ const client = new Command("client")
     .configureHelp({
         helpWidth: process.stdout.columns || 80
     })
-    .option("--selfSigned <value>", "Configure the CLI to use a self-signed certificate ( true or false )", parseBool)
-    .option("--endpoint <endpoint>", "Set your Appwrite server endpoint")
-    .option("--projectId <projectId>", "Set your Appwrite project ID")
-    .option("--key <key>", "Set your Appwrite server's API key")
-    .option("--debug", "Print CLI debug information")
-    .option("--reset", "Reset the CLI configuration")
+    .option("-ss, --selfSigned <value>", "Configure the CLI to use a self-signed certificate ( true or false )", parseBool)
+    .option("-e, --endpoint <endpoint>", "Set your Appwrite server endpoint")
+    .option("-p, --projectId <projectId>", "Set your Appwrite project ID")
+    .option("-k, --key <key>", "Set your Appwrite server's API key")
+    .option("-d, --debug", "Print CLI debug information")
+    .option("-r, --reset", "Reset the CLI configuration")
     .action(actionRunner(async ({ selfSigned, endpoint, projectId, key, debug, reset }, command) => {
         if (selfSigned == undefined && endpoint == undefined && projectId == undefined && key == undefined && debug == undefined && reset == undefined) {
             command.help()

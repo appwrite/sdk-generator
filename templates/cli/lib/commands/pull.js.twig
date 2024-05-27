@@ -258,28 +258,33 @@ pull
 
 pull
     .command("function")
+    .alias("functions")
     .description("Pulling your {{ spec.title|caseUcfirst }} cloud function")
     .action(actionRunner(pullFunction))
 
 pull
     .command("collection")
+    .command("collections")
     .description("Pulling your {{ spec.title|caseUcfirst }} collections")
-    .option(`--databaseId <databaseId>`, `Database ID`)
-    .option(`--all`, `Flag to pullialize all databases`)
+    .option(`-d, --databaseId <databaseId>`, `Database ID`)
+    .option(`-a, --all`, `Flag to pullialize all databases`)
     .action(actionRunner(pullCollection))
 
 pull
     .command("bucket")
+    .command("buckets")
     .description("Pulling your Appwrite buckets")
     .action(actionRunner(pullBucket))
 
 pull
     .command("team")
+    .command("teams")
     .description("Pulling your Appwrite teams")
     .action(actionRunner(pullTeam))
 
 pull
     .command("topic")
+    .command("topics")
     .description("Initialise your Appwrite messaging topics")
     .action(actionRunner(pullMessagingTopic))
 

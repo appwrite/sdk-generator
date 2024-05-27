@@ -26,8 +26,8 @@ program
     sortSubcommands: true
   })
   .version(version, "-v, --version")
-  .option("--verbose", "Show complete error log")
-  .option("--json", "Output in JSON format")
+  .option("-V, --verbose", "Show complete error log")
+  .option("-j, --json", "Output in JSON format")
   .on("option:json", () => {
     cliConfig.json = true;
   })

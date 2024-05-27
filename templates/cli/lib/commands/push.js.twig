@@ -1101,46 +1101,52 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
 }
 
 const push = new Command("push")
+    .alias("deploy")
     .description(commandDescriptions['push'])
-    .option(`--all`, `Flag to push all resources`)
-    .option(`--yes`, `Flag to confirm all warnings`)
+    .option(`-a, --all`, `Flag to push all resources`)
+    .option(`-y, --yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushResources));
 
 push
     .command("function")
+    .alias("functions")
     .description("Push functions in the current directory.")
-    .option(`--functionId <functionId>`, `Function ID`)
-    .option(`--all`, `Flag to push all functions`)
-    .option(`--yes`, `Flag to confirm all warnings`)
-    .option(`--async`, `Don't wait for functions deployments status`)
+    .option(`-f, --functionId <functionId>`, `Function ID`)
+    .option(`-a, --all`, `Flag to push all functions`)
+    .option(`-y, --yes`, `Flag to confirm all warnings`)
+    .option(`-A, --async`, `Don't wait for functions deployments status`)
     .action(actionRunner(pushFunction));
 
 push
     .command("collection")
+    .alias("collections")
     .description("Push collections in the current project.")
-    .option(`--all`, `Flag to push all collections`)
-    .option(`--yes`, `Flag to confirm all warnings`)
+    .option(`-a, --all`, `Flag to push all collections`)
+    .option(`-a, --yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushCollection));
 
 push
     .command("bucket")
+    .alias("buckets")
     .description("Push buckets in the current project.")
-    .option(`--all`, `Flag to push all buckets`)
-    .option(`--yes`, `Flag to confirm all warnings`)
+    .option(`-a, --all`, `Flag to push all buckets`)
+    .option(`-y, --yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushBucket));
 
 push
     .command("team")
+    .alias("teams")
     .description("Push teams in the current project.")
-    .option(`--all`, `Flag to push all teams`)
-    .option(`--yes`, `Flag to confirm all warnings`)
+    .option(`-a, --all`, `Flag to push all teams`)
+    .option(`-y, --yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushTeam));
 
 push
     .command("topic")
+    .alias("topics")
     .description("Push messaging topics in the current project.")
-    .option(`--all`, `Flag to deploy all topics`)
-    .option(`--yes`, `Flag to confirm all warnings`)
+    .option(`-a, --all`, `Flag to deploy all topics`)
+    .option(`-y, --yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushMessagingTopic));
 
 module.exports = {
