@@ -35,7 +35,7 @@ program
   .on("option:verbose", () => {
     cliConfig.verbose = true;
   })
-  .on("option:report", () => {
+  .on("option:report", function() {
     cliConfig.report = true;
     cliConfig.reportData = { data: this };
   })
