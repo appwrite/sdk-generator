@@ -167,8 +167,8 @@ const pullFunction = async () => {
 const pullCollection = async () => {
     const databasesIds = (await inquirer.prompt(questionsPullCollection)).databases;
 
-    for (let dbID of databasesIds) {
-        const databaseId = dbID.value ? dbID.value : dbID;
+    for (let id of databasesIds) {
+        const databaseId = id.value ? id.value : id;
 
         const database = await databasesGet({
             databaseId,
@@ -184,14 +184,15 @@ const pullCollection = async () => {
 
         log(`Found ${total} collections`);
 
-        await Promise.all(collections.map(async collection => {
+        collections.map(async collection => {
             log(`Fetching ${collection.name} ...`);
             localConfig.addCollection({
                 ...collection,
                 '$createdAt': undefined,
-                '$updatedAt': undefined,
+                '$updatedAt': undefined
             });
-        }))
+        });
+
     }
 
     success();
