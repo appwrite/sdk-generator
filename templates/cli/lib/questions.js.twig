@@ -263,6 +263,7 @@ const questionsCreateFunction = [
                     name: `${runtime.name} (${runtime['$id']})`,
                     value: {
                         id: runtime['$id'],
+                        name: runtime['$id'].split('-')[0],
                         entrypoint: getEntrypoint(runtime['$id']),
                         ignore: getIgnores(runtime['$id']),
                         commands: getInstallCommand(runtime['$id'])
@@ -273,6 +274,23 @@ const questionsCreateFunction = [
         }
     }
 ];
+
+const questionsCreateFunctionSelectTemplate = (templates) => {
+    return [
+        {
+            type: "list",
+            name: "template",
+            message: "What template would you like to use?",
+            choices: templates.map((template) => {
+                const name =`${template[0].toUpperCase()}${template.split('').slice(1).join('')}`.replace(/[-_]/g,' ');
+
+                return { value: template, name }
+            })
+        }
+    ];
+};
+
+
 
 const questionsCreateBucket = [
     {
@@ -617,6 +635,7 @@ const questionsMfaChallenge = [
 module.exports = {
     questionsInitProject,
     questionsCreateFunction,
+    questionsCreateFunctionSelectTemplate,
     questionsCreateBucket,
     questionsCreateCollection,
     questionsCreateMessagingTopic,

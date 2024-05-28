@@ -12,6 +12,7 @@ const ID = require("../id");
 const { localConfig, globalConfig } = require("../config");
 const {
     questionsCreateFunction,
+    questionsCreateFunctionSelectTemplate,
     questionsCreateBucket,
     questionsCreateMessagingTopic,
     questionsCreateCollection,
@@ -133,6 +134,8 @@ const initFunction = async () => {
 
     const functionId = answers.id === 'unique()' ? ID.unique() : answers.id;
     const functionDir = path.join(functionFolder, functionId);
+    const templatesDir = path.join(functionFolder, `${functionId}-templates`);
+    const runtimeDir = path.join(templatesDir, answers.runtime.name);
 
     if (fs.existsSync(functionDir)) {
         throw new Error(`( ${functionId} ) already exists in the current directory. Please choose another name.`);
@@ -156,10 +159,12 @@ const initFunction = async () => {
     })
 
     fs.mkdirSync(functionDir, "777");
+    fs.mkdirSync(templatesDir, "777");
 
-    let gitInitCommands = "git clone -b v3 --single-branch --depth 1 --sparse https://github.com/{{ sdk.gitUserName }}/functions-starter ."; // depth prevents fetching older commits reducing the amount fetched
+    let gitInitCommands = "git clone --single-branch --depth 1 --sparse https://github.com/{{ sdk.gitUserName }}/templates ."; // depth prevents fetching older commits reducing the amount fetched
 
-    let gitPullCommands = `git sparse-checkout add ${answers.runtime.id}`;
+    let gitPullCommands = `git sparse-checkout add ${answers.runtime.name}`;
+
 
     /* Force use CMD as powershell does not support && */
     if (process.platform === 'win32') {
@@ -167,10 +172,11 @@ const initFunction = async () => {
         gitPullCommands = 'cmd /c "' + gitPullCommands + '"';
     }
 
+    log('Loading templates...');
     /*  Execute the child process but do not print any std output */
     try {
-        childProcess.execSync(gitInitCommands, { stdio: 'pipe', cwd: functionDir });
-        childProcess.execSync(gitPullCommands, { stdio: 'pipe', cwd: functionDir });
+        childProcess.execSync(gitInitCommands, { stdio: 'pipe', cwd: templatesDir });
+        childProcess.execSync(gitPullCommands, { stdio: 'pipe', cwd: templatesDir });
     } catch (error) {
         /* Specialised errors with recommended actions to take */
         if (error.message.includes('error: unknown option')) {
@@ -182,7 +188,20 @@ const initFunction = async () => {
         }
     }
 
-    fs.rmSync(path.join(functionDir, ".git"), { recursive: true });
+    fs.rmSync(path.join(templatesDir, ".git"), { recursive: true });
+    const templates = ['Starter'];
+    templates.push(...fs.readdirSync(runtimeDir, { withFileTypes: true })
+        .filter(item => item.isDirectory() && item.name !== 'starter')
+        .map(dirent => dirent.name));
+
+    let selected = { template: 'starter' };
+
+    if (templates.length > 1) {
+        selected = await inquirer.prompt(questionsCreateFunctionSelectTemplate(templates))
+    }
+
+
+
     const copyRecursiveSync = (src, dest) => {
         let exists = fs.existsSync(src);
         let stats = exists && fs.statSync(src);
@@ -199,9 +218,9 @@ const initFunction = async () => {
             fs.copyFileSync(src, dest);
         }
     };
-    copyRecursiveSync(path.join(functionDir, answers.runtime.id), functionDir);
+    copyRecursiveSync(path.join(runtimeDir, selected.template), functionDir);
 
-    fs.rmSync(`${functionDir}/${answers.runtime.id}`, { recursive: true, force: true });
+    fs.rmSync(templatesDir, { recursive: true, force: true });
 
     const readmePath = path.join(process.cwd(), 'functions', functionId, 'README.md');
     const readmeFile = fs.readFileSync(readmePath).toString();
