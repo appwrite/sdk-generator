@@ -191,7 +191,7 @@ const initFunction = async () => {
     fs.rmSync(path.join(templatesDir, ".git"), { recursive: true });
     const templates = ['Starter'];
     templates.push(...fs.readdirSync(runtimeDir, { withFileTypes: true })
-        .filter(dirent => dirent.isDirectory() && dirent.name !== 'starter')
+        .filter(item => item.isDirectory() && item.name !== 'starter')
         .map(dirent => dirent.name));
 
     let selected = { template: 'starter' };
