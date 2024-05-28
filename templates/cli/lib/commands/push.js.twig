@@ -152,7 +152,7 @@ const awaitPools = {
         if (steps > 1 && iteration === 1) {
             pollMaxDebounces *= steps;
 
-            log('Found a large number of deleting attributes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            log('Found a large number of attributes to be deleted. Increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
         }
 
         const { attributes } = await paginate(databasesListAttributes, {
@@ -727,18 +727,17 @@ const mapChangeAttribute = (attribute, collection, isAdding) => {
 };
 
 const updatedList = async (remoteAttributes, localAttributes, collection) => {
+
     const deleting = remoteAttributes.filter((attribute) => !findMatch(attribute, localAttributes)).map((attr) => mapChangeAttribute(attr, collection, false));
     const adding = localAttributes.filter((attribute) => !findMatch(attribute, remoteAttributes)).map((attr) => mapChangeAttribute(attr, collection, true));
     const conflicts = remoteAttributes.map((attribute) => deepSimilar(attribute, findMatch(attribute, localAttributes), collection)).filter(attribute => attribute !== undefined);
+
     let changedAttributes = [];
-
     const changing = [...deleting, ...adding, ...conflicts]
-
     if (changing.length === 0) {
         return changedAttributes;
     }
     log('There are pending changes in your collection deployment');
-
     drawTable(changing.map((change) => {
         return { Key: change.key, Action: change.action, Reason: change.reason, };
     }));
@@ -751,16 +750,12 @@ const updatedList = async (remoteAttributes, localAttributes, collection) => {
 
     if (conflicts.length > 0) {
         changedAttributes = conflicts.map((change) => change.attribute);
-
         await Promise.all(changedAttributes.map((changed) => deleteAttribute(collection, changed)));
-
         remoteAttributes = remoteAttributes.filter((attribute) => !findMatch(attribute, changedAttributes))
     }
 
     const deletingAttributes = deleting.map((change) => change.attribute);
-
     await Promise.all(deletingAttributes.map((attribute) => deleteAttribute(collection, attribute)));
-
     const attributeKeys = [...remoteAttributes.map(attribute => attribute.key), ...deletingAttributes.map(attribute => attribute.key)]
 
     if (attributeKeys.length) {
@@ -793,33 +788,33 @@ const pushCollection = async ({ all, yes } = {}) => {
             collections.push(collection);
         })
     }
-    const databases = Array.from(new Set(collections.map(c => c['databaseId'])));
+    const databases = Array.from(new Set(collections.map(collection => collection['databaseId'])));
 
     // Parallel db actions
-    await Promise.all(databases.map(async (dbId) => {
-        const localDatabase = localConfig.getDatabase(dbId);
+    await Promise.all(databases.map(async (databaseId) => {
+        const localDatabase = localConfig.getDatabase(databaseId);
 
         try {
             const database = await databasesGet({
-                databaseId: dbId,
+                databaseId: databaseId,
                 parseOutput: false,
             });
 
-            if (database.name !== (localDatabase.name ?? dbId)) {
+            if (database.name !== (localDatabase.name ?? databaseId)) {
                 await databasesUpdate({
-                    databaseId: dbId,
-                    name: localDatabase.name ?? dbId,
+                    databaseId: databaseId,
+                    name: localDatabase.name ?? databaseId,
                     parseOutput: false
                 })
 
-                success(`Updated ${localDatabase.name} ( ${dbId} ) name`);
+                success(`Updated ${localDatabase.name} ( ${databaseId} ) name`);
             }
         } catch (err) {
-            log(`Database ${dbId} not found. Creating it now...`);
+            log(`Database ${databaseId} not found. Creating it now...`);
 
             await databasesCreate({
-                databaseId: dbId,
-                name: localDatabase.name ?? dbId,
+                databaseId: databaseId,
+                name: localDatabase.name ?? databaseId,
                 parseOutput: false,
             });
         }
@@ -858,7 +853,6 @@ const pushCollection = async ({ all, yes } = {}) => {
                     permissions: collection['$permissions'],
                     parseOutput: false
                 })
-                collection.isNew = true;
             } else {
                 throw e;
             }
@@ -914,7 +908,7 @@ const createIndexes = async (indexes, collection) => {
     const result = await awaitPools.expectIndexes(
         collection['databaseId'],
         collection['$id'],
-        indexes.map(attribute => attribute.key)
+        indexes.map(index => index.key)
     );
 
     if (!result) {
