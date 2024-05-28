@@ -134,7 +134,7 @@ const whoami = new Command("whoami")
 
 const login = new Command("login")
     .description(commandDescriptions['login'])
-    .option(`-sa, --self-hosted`, `Flag for enabling custom endpoint for self hosted instances`)
+    .option(`-sh, --self-hosted`, `Flag for enabling custom endpoint for self hosted instances`)
     .configureHelp({
         helpWidth: process.stdout.columns || 80
     })
@@ -282,7 +282,6 @@ const migrate = async () => {
     const endpoint = globalConfig.get('endpoint');
     const cookie = globalConfig.get('cookie');
 
-    log("Old Appwrite login settings were detected, migrating...");
     const id = ID.unique();
     const data = {
         endpoint,
@@ -295,7 +294,6 @@ const migrate = async () => {
     globalConfig.delete('endpoint');
     globalConfig.delete('cookie');
 
-    success(`Account was migrated and it's the current account`);
 }
 module.exports = {
     {% if sdk.test != "true" %}
