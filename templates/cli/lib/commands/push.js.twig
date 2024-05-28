@@ -692,7 +692,15 @@ const deleteAttribute = async (collection, attribute) => {
     });
 }
 
-const deepSimilar = (remote, local, collection) => {
+/**
+ * Check if attribute non-changeable fields has been changed
+ * If so return the differences as an object.
+ * @param remote
+ * @param local
+ * @param collection
+ * @returns {undefined|{reason: string, action: *, attribute, key: string}}
+ */
+const checkAttributeChanges = (remote, local, collection) => {
     if (local === undefined) {
         return undefined;
     }
@@ -700,6 +708,7 @@ const deepSimilar = (remote, local, collection) => {
     const keyName = `${chalk.yellow(local.key)} in ${collection.name} (${collection['$id']})`;
     const action = chalk.cyan('recreating');
     let reason = '';
+
     for (let key of Object.keys(remote)) {
         if (changeableKeys.includes(key)) {
             continue;
@@ -714,23 +723,38 @@ const deepSimilar = (remote, local, collection) => {
     return reason === '' ? undefined : { key: keyName, attribute: remote, reason, action };
 }
 
-const findMatch = (attribute, attributes) => attributes.find((attr) => attr.key === attribute.key);
+/**
+ * Check if attributes contain the given attribute
+ * @param attribute
+ * @param attributes
+ * @returns {*}
+ */
+const attributesContains = (attribute, attributes) => attributes.find((attr) => attr.key === attribute.key);
 
-const mapChangeAttribute = (attribute, collection, isAdding) => {
+
+const generateChangesObject = (attribute, collection, isAdding) => {
     return {
         key: `${chalk.yellow(attribute.key)} in ${collection.name} (${collection['$id']})`,
-        attribute,
+        attribute: attribute,
         reason: isAdding ? 'Field doesn\'t exist on the remote server' : 'Field doesn\'t exist in appwrite.json file',
         action: isAdding ? chalk.green('adding') : chalk.red('deleting')
     };
 
 };
 
-const updatedList = async (remoteAttributes, localAttributes, collection) => {
+/**
+ * Filter deleted and recreated attributes,
+ * return list of attributes to create
+ * @param remoteAttributes
+ * @param localAttributes
+ * @param collection
+ * @returns {Promise<*|*[]>}
+ */
+const attributesToCreate = async (remoteAttributes, localAttributes, collection) => {
 
-    const deleting = remoteAttributes.filter((attribute) => !findMatch(attribute, localAttributes)).map((attr) => mapChangeAttribute(attr, collection, false));
-    const adding = localAttributes.filter((attribute) => !findMatch(attribute, remoteAttributes)).map((attr) => mapChangeAttribute(attr, collection, true));
-    const conflicts = remoteAttributes.map((attribute) => deepSimilar(attribute, findMatch(attribute, localAttributes), collection)).filter(attribute => attribute !== undefined);
+    const deleting = remoteAttributes.filter((attribute) => !attributesContains(attribute, localAttributes)).map((attr) => generateChangesObject(attr, collection, false));
+    const adding = localAttributes.filter((attribute) => !attributesContains(attribute, remoteAttributes)).map((attr) => generateChangesObject(attr, collection, true));
+    const conflicts = remoteAttributes.map((attribute) => checkAttributeChanges(attribute, attributesContains(attribute, localAttributes), collection)).filter(attribute => attribute !== undefined);
 
     let changedAttributes = [];
     const changing = [...deleting, ...adding, ...conflicts]
@@ -751,7 +775,7 @@ const updatedList = async (remoteAttributes, localAttributes, collection) => {
     if (conflicts.length > 0) {
         changedAttributes = conflicts.map((change) => change.attribute);
         await Promise.all(changedAttributes.map((changed) => deleteAttribute(collection, changed)));
-        remoteAttributes = remoteAttributes.filter((attribute) => !findMatch(attribute, changedAttributes))
+        remoteAttributes = remoteAttributes.filter((attribute) => !attributesContains(attribute, changedAttributes))
     }
 
     const deletingAttributes = deleting.map((change) => change.attribute);
@@ -766,7 +790,7 @@ const updatedList = async (remoteAttributes, localAttributes, collection) => {
         }
     }
 
-    return localAttributes.filter((attribute) => !findMatch(attribute, remoteAttributes));
+    return localAttributes.filter((attribute) => !attributesContains(attribute, remoteAttributes));
 }
 
 const pushCollection = async ({ all, yes } = {}) => {
@@ -864,7 +888,7 @@ const pushCollection = async ({ all, yes } = {}) => {
         let attributes = collection.attributes;
 
         if (collection.isExisted) {
-            attributes = await updatedList(collection.remoteVersion.attributes, collection.attributes, collection);
+            attributes = await attributesToCreate(collection.remoteVersion.attributes, collection.attributes, collection);
 
             if (Array.isArray(attributes) && attributes.length <= 0) {
                 log(`No changes has been detected. Skipping ${collection.name} ( ${collection['$id']} )`);
