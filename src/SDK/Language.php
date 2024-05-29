@@ -84,6 +84,15 @@ abstract class Language
         return [];
     }
 
+    /**
+     * Language specific functions.
+     * @return array
+     */
+    public function getFunctions(): array
+    {
+        return [];
+    }
+
     protected function toPascalCase(string $value): string
     {
         return \ucfirst($this->toCamelCase($value));

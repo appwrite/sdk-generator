@@ -41,6 +41,17 @@ const {
     teamsUpdateName,
     teamsCreate
 } = require("./teams");
+const {
+    projectsUpdate,
+    projectsUpdateServiceStatus,
+    projectsUpdateAuthStatus,
+    projectsUpdateAuthDuration,
+    projectsUpdateAuthLimit,
+    projectsUpdateAuthSessionsLimit,
+    projectsUpdateAuthPasswordDictionary,
+    projectsUpdateAuthPasswordHistory,
+    projectsUpdatePersonalDataCheck,
+} = require("./projects");
 const { checkDeployConditions } = require('../utils');
 
 const STEP_SIZE = 100;      // Resources
@@ -255,6 +266,65 @@ const pushResources = async () => {
         })
     }
 };
+
+
+const pushProject = async () => {
+    try {
+        const projectId = localConfig.getProject().projectId;
+        const projectName = localConfig.getProject().projectName;
+
+        log('Updating project name');
+
+        await projectsUpdate({
+            projectId,
+            name: projectName,
+            parseOutput: false
+        });
+
+        const settings = localConfig.getProjectSettings();
+
+        if (settings.services) {
+            log('Updating services status');
+            for (let [service, status] of Object.entries(settings.services)) {
+                await projectsUpdateServiceStatus({
+                    projectId,
+                    service,
+                    status,
+                    parseOutput: false
+                });
+            }
+        }
+
+        if (settings.auth) {
+            if (settings.auth.security) {
+                log('Updating Auth security settings');
+                await projectsUpdateAuthDuration({ projectId, duration: settings.auth.security.duration, parseOutput: false });
+                await projectsUpdateAuthLimit({ projectId, limit: settings.auth.security.limit, parseOutput: false });
+                await projectsUpdateAuthSessionsLimit({ projectId, limit: settings.auth.security.sessionsLimit, parseOutput: false });
+                await projectsUpdateAuthPasswordDictionary({ projectId, enabled: settings.auth.security.passwordDictionary, parseOutput: false });
+                await projectsUpdateAuthPasswordHistory({ projectId, limit: settings.auth.security.passwordHistory, parseOutput: false });
+                await projectsUpdatePersonalDataCheck({ projectId, enabled: settings.auth.security.personalDataCheck, parseOutput: false });
+            }
+
+            if (settings.auth.methods) {
+                log('Updating Auth available login methods');
+
+                for (let [method, status] of Object.entries(settings.auth.methods)) {
+                    await projectsUpdateAuthStatus({
+                        projectId,
+                        method,
+                        status,
+                        parseOutput: false
+                    });
+                }
+            }
+        }
+
+        success();
+    } catch (e) {
+        throw e;
+    }
+}
 
 const pushFunction = async ({ functionId, async } = {}) => {
     let response = {};
@@ -1108,33 +1178,43 @@ const pushMessagingTopic = async () => {
 }
 
 const push = new Command("push")
+    .alias('deploy')
     .description(commandDescriptions['push'])
+
+push
+    .command("all")
+    .description("Push all resource.")
     .action(actionRunner(pushResources));
 
 push
-    .command("function")
+    .command("project")
+    .description("Push project name, services and auth settings")
+    .action(actionRunner(pushProject));
+
+push
+    .command("functions")
     .description("Push functions in the current directory.")
     .option(`--functionId <functionId>`, `Function ID`)
     .option(`--async`, `Don't wait for functions deployments status`)
     .action(actionRunner(pushFunction));
 
 push
-    .command("collection")
+    .command("collections")
     .description("Push collections in the current project.")
     .action(actionRunner(pushCollection));
 
 push
-    .command("bucket")
+    .command("buckets")
     .description("Push buckets in the current project.")
     .action(actionRunner(pushBucket));
 
 push
-    .command("team")
+    .command("teams")
     .description("Push teams in the current project.")
     .action(actionRunner(pushTeam));
 
 push
-    .command("topic")
+    .command("topics")
     .description("Push messaging topics in the current project.")
     .action(actionRunner(pushMessagingTopic));
 

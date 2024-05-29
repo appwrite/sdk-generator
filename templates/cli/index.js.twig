@@ -12,6 +12,7 @@ const { commandDescriptions, cliConfig } = require("./lib/parser");
 const { client } = require("./lib/commands/generic");
 {% if sdk.test != "true" %}
 const { login, logout, whoami } = require("./lib/commands/generic");
+const { init } = require("./lib/commands/init");
 const { pull } = require("./lib/commands/pull");
 const { push } = require("./lib/commands/push");
 {% endif %}
@@ -55,6 +56,7 @@ program
 {% if sdk.test != "true" %}
   .addCommand(whoami)
   .addCommand(login)
+  .addCommand(init)
   .addCommand(pull)
   .addCommand(push)
   .addCommand(logout)
