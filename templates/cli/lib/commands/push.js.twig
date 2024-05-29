@@ -38,9 +38,10 @@ const {
 } = require("./messaging");
 const {
     teamsGet,
-    teamsUpdate,
+    teamsUpdateName,
     teamsCreate
 } = require("./teams");
+const { checkDeployConditions } = require('../utils');
 
 const STEP_SIZE = 100;      // Resources
 const POLL_DEBOUNCE = 2000; // Milliseconds
@@ -263,6 +264,7 @@ const pushFunction = async ({ functionId, async } = {}) => {
     if (functionId) {
         functionIds.push(functionId);
     } else if (cliConfig.all) {
+        checkDeployConditions(localConfig);
         const functions = localConfig.getFunctions();
         if (functions.length === 0) {
             throw new Error("No functions found in the current directory.");
@@ -652,6 +654,7 @@ const pushCollection = async () => {
     const collections = [];
 
     if (cliConfig.all) {
+        checkDeployConditions(localConfig);
         if (localConfig.getCollections().length === 0) {
             throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} pull collection` to fetch all your collections.");
         }
@@ -874,6 +877,7 @@ const pushBucket = async () => {
     const configBuckets = localConfig.getBuckets();
 
     if (cliConfig.all) {
+        checkDeployConditions(localConfig);
         if (configBuckets.length === 0) {
             throw new Error("No buckets found in the current directory. Run `appwrite pull bucket` to fetch all your buckets.");
         }
@@ -961,6 +965,7 @@ const pushTeam = async () => {
     const configTeams = localConfig.getTeams();
 
     if (cliConfig.all) {
+        checkDeployConditions(localConfig);
         if (configTeams.length === 0) {
             throw new Error("No teams found in the current directory. Run `appwrite pull team` to fetch all your teams.");
         }
@@ -1032,6 +1037,7 @@ const pushMessagingTopic = async () => {
     let overrideExisting = cliConfig.force;
 
     if (cliConfig.all) {
+        checkDeployConditions(localConfig);
         if (configTopics.length === 0) {
             throw new Error("No topics found in the current directory. Run `appwrite pull topics` to pull all your messaging topics.");
         }
