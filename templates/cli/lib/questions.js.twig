@@ -9,6 +9,7 @@ const { validateRequired } = require("./validations");
 const { paginate } = require('./paginate');
 
 const { databasesList } = require('./commands/databases');
+const { checkDeployConditions } = require('./utils');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
 const getIgnores = (runtime) => {
@@ -329,6 +330,7 @@ const questionsPushFunctions = [
         validate: (value) => validateRequired('function', value),
         choices: () => {
             let functions = localConfig.getFunctions();
+            checkDeployConditions(localConfig)
             if (functions.length === 0) {
                 throw new Error("No functions found in the current directory.");
             }
@@ -356,6 +358,8 @@ const questionsPushCollections = [
         validate: (value) => validateRequired('collection', value),
         choices: () => {
             let collections = localConfig.getCollections();
+            checkDeployConditions(localConfig)
+
             if (collections.length === 0) {
                 throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} pull collection` to fetch all your collections.");
             }
@@ -382,6 +386,7 @@ const questionsPushBuckets = [
         validate: (value) => validateRequired('bucket', value),
         choices: () => {
             let buckets = localConfig.getBuckets();
+            checkDeployConditions(localConfig)
             if (buckets.length === 0) {
                 throw new Error("No buckets found in the current directory. Run `appwrite pull bucket` to fetch all your buckets.");
             }
@@ -448,6 +453,7 @@ const questionsPushTeams = [
         validate: (value) => validateRequired('team', value),
         choices: () => {
             let teams = localConfig.getTeams();
+            checkDeployConditions(localConfig);
             if (teams.length === 0) {
                 throw new Error("No teams found in the current directory. Run `appwrite pull team` to fetch all your teams.");
             }
