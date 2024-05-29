@@ -4,7 +4,7 @@ const { Command } = require("commander");
 const { localConfig, globalConfig } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
-const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics } = require("../questions");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
@@ -246,6 +246,7 @@ const awaitPools = {
 
 const pushResources = async ({ all, yes } = {}) => {
     const actions = {
+        project: pushProject,
         functions: pushFunction,
         collections: pushCollection,
         buckets: pushBucket,
@@ -254,7 +255,9 @@ const pushResources = async ({ all, yes } = {}) => {
     }
 
     if (all) {
-        Object.values(actions).forEach(action => action({ all: true, yes }));
+        for(let action of Object.values(actions)){
+            await action({ all: true, yes });
+        }
     } else {
         const answers = await inquirer.prompt(questionsPushResources[0]);
         answers.resources.forEach((resource) => {
@@ -1182,6 +1185,8 @@ const push = new Command("push")
 push
     .command("all")
     .description("Push all resource.")
+    .option(`--all`, `Flag to push all functions`)
+    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushResources));
 
 push
