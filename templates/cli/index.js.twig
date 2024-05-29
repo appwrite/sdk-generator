@@ -13,6 +13,7 @@ const { client } = require("./lib/commands/generic");
 {% if sdk.test != "true" %}
 const { login, logout, whoami } = require("./lib/commands/generic");
 const { pull } = require("./lib/commands/pull");
+const { run } = require("./lib/commands/run");
 const { push } = require("./lib/commands/push");
 {% endif %}
 {% for service in spec.services %}
@@ -40,6 +41,7 @@ program
   .addCommand(login)
   .addCommand(pull)
   .addCommand(push)
+  .addCommand(run)
   .addCommand(logout)
 {% endif %}
 {% for service in spec.services %}

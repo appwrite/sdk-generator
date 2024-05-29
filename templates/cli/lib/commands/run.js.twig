@@ -1,0 +1,121 @@
+const inquirer = require("inquirer");
+const { Command } = require("commander");
+const { localConfig, globalConfig } = require("../config");
+const { paginate } = require('../paginate');
+const { questionsRunFunctions } = require("../questions");
+const { actionRunner, success, log, error, commandDescriptions, drawTable } = require("../parser");
+const { systemHasCommand, isPortTaken } = require('../utils');
+
+const systemTools = {
+    'node': {
+        commands: [
+            { command: "node", docs: "https://nodejs.org/en/download/package-manager" },
+            { command: "npm", docs: "https://nodejs.org/en/download/package-manager" },
+        ],
+        dependencyFiles: [ "package.json", "package-lock.json" ]
+    },
+    // TODO: Add all runtime needs
+};
+
+const runFunction = async ({ port, engine, functionId } = {}) => {
+    // Selection
+    if(!functionId) {
+        const answers = await inquirer.prompt(questionsRunFunctions[0]);
+        functionId = answers.function;
+    }
+
+    const functions = localConfig.getFunctions();
+    const func = functions.find((f) => f.$id === functionId);
+    if (!func) {
+        throw new Error("Function '" + functionId + "' not found.")
+    }
+
+    // Configuration: Port
+    if(port) {
+        port = +port;
+    }
+
+    if(isNaN(port)) {
+        port = null;
+    }
+
+    if(port) {
+        const taken = await isPortTaken(port);
+
+        if(taken) {
+            log(`Port ${port} is already used.`);
+            port = null;
+        }
+    }
+
+    if(!port) {
+        const answers = await inquirer.prompt(questionsRunFunctions[1]);
+        port = answers.port;
+    }
+
+    // Configuration: Engine
+    if(engine !== "system" && engine !== "docker") {
+        engine = null;
+    }
+
+    if(!engine) {
+        const answers = await inquirer.prompt(questionsRunFunctions[2]);
+        engine = answers.engine;
+    }
+
+    if(engine === 'docker') {
+        log('💡 Hint: Using system is faster, but using Docker simulates the production environment precisely.');
+
+        if(!systemHasCommand('docker')) {
+            return error("Please install Docker first: https://docs.docker.com/engine/install/");
+        }
+    } else if(engine === 'system') {
+        log('💡 Hint: Docker simulates the production environment precisely, but using system is faster');
+
+        const runtimeName = func.runtime.split('-')[0];
+        const tool = systemTools[runtimeName];
+
+        for(const command of tool.commands) {
+            if(!systemHasCommand(command.command)) {
+                return error(`Your system is missing command "${command.command}". Please install it first: ${command.docs}`);
+            }
+        }
+    }
+
+    // Settings
+    const settings = {
+        runtime: func.runtime,
+        entrypoint: func.entrypoint,
+        path: func.path,
+        commands: func.commands,
+    };
+    log("Local function configuration:");
+    drawTable([settings]);
+    log('If you wish to change local settings, update appwrite.json file and rerun the command. To deploy the function, run: appwrite push function');
+
+    childProcess.execSync('where ' + command, { stdio: 'pipe' })
+
+}
+
+const run = new Command("run")
+    .alias("dev")
+    .description(commandDescriptions['run'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
+    .action(actionRunner(async (_options, command) => {
+        command.help();
+    }));
+
+run
+    .command("function")
+    .alias("functions")
+    .description("Run functions in the current directory.")
+    .option(`--functionId <functionId>`, `Function ID`)
+    .option(`--port <port>`, `Local port`)
+    .option(`--engine <engine>`, `Local engine, "system" or "docker"`)
+    .action(actionRunner(runFunction));
+
+module.exports = {
+    run
+}

@@ -6,6 +6,7 @@ const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
 const { validateRequired } = require("./validations");
 const { paginate } = require('./paginate');
+const { isPortTaken } = require('./utils');
 
 const { databasesList } = require('./commands/databases');
 const JSONbig = require("json-bigint")({ storeAsString: false });
@@ -515,6 +516,76 @@ const questionsMfaChallenge = [
     }
 ];
 
+const questionsRunFunctions = [
+    {
+        type: "list",
+        name: "function",
+        message: "Which function would you like to develop locally?",
+        validate: (value) => validateRequired('function', value),
+        choices: () => {
+            let functions = localConfig.getFunctions();
+            if (functions.length === 0) {
+                throw new Error("No functions found in the current directory.");
+            }
+            let choices = functions.map((func, idx) => {
+                return {
+                    name: `${func.name} (${func.$id})`,
+                    value: func.$id
+                }
+            })
+            return choices;
+        }
+    },
+    {
+        type: "number",
+        name: "port",
+        message: 'Which port would you like function to listen on?',
+        default: async () => {
+            let port = 3000;
+            while(port < 3100) {
+                const taken = await isPortTaken(port);
+                if(!taken) {
+                    return port;
+                }
+
+                port++;
+            }
+
+            return 3000;
+        },
+        validate: function(value) {
+            const done = this.async();
+
+            (async () => {
+                const taken = await isPortTaken(value);
+
+                if(taken) {
+                    throw Error(`Port ${value} is taken. Pick another one.`);
+                }
+            })().then(() => {
+                done(null, true);
+            }).catch((err) => {
+                done(err.message);
+            });
+        },
+    },
+    {
+        type: "list",
+        name: "engine",
+        message: "Which engine would you like to use?",
+        choices: [
+            {
+                name: "Docker",
+                value: "docker",
+            },
+            {
+                name: "System",
+                value: "system",
+            },
+        ],
+    },
+];
+
 module.exports = {
     questionsPullProject,
     questionsLogin,
@@ -528,5 +599,6 @@ module.exports = {
     questionsPushTeams,
     questionsGetEntrypoint,
     questionsListFactors,
-    questionsMfaChallenge
+    questionsMfaChallenge,
+    questionsRunFunctions
 };
