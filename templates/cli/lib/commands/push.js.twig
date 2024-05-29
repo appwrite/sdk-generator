@@ -5,9 +5,8 @@ const { Command } = require("commander");
 const { localConfig, globalConfig } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
-const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics } = require("../questions");
-const { actionRunner, success, log, error, commandDescriptions, drawTable } = require("../parser");
-const { cliConfig, actionRunner, success, log, error, commandDescriptions } = require("../parser");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
+const { cliConfig, actionRunner, success, log, error, commandDescriptions, drawTable } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
@@ -29,7 +28,6 @@ const {
     databasesDeleteAttribute,
     databasesListAttributes,
     databasesListIndexes,
-    databasesDeleteIndex,
     databasesUpdateCollection
 } = require("./databases");
 const {
@@ -376,7 +374,7 @@ const pushFunction = async ({ functionId, async } = {}) => {
         if (functions.length === 0) {
             throw new Error("No functions found in the current directory.");
         }
-        functionIds.push(...functions.map((func, idx) => {
+        functionIds.push(...functions.map((func) => {
             return func.$id;
         }));
     }
@@ -480,7 +478,7 @@ const pushFunction = async ({ functionId, async } = {}) => {
             });
         } catch (e) {
 
-            if (e.code == 404) {
+            if (Number(e.code) === 404) {
                 functionExists = false;
             } else {
                 updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
@@ -835,15 +833,19 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection)
     if (changing.length === 0) {
         return changedAttributes;
     }
-    log('There are pending changes in your collection deployment');
+
+    log(!cliConfig.force ? 'There are pending changes in your collection deployment' : 'List of applied changes');
+
     drawTable(changing.map((change) => {
         return { Key: change.key, Action: change.action, Reason: change.reason, };
     }));
 
-    const answers = await inquirer.prompt(questionsPushCollections[1]);
+    if (!cliConfig.force) {
+        const answers = await inquirer.prompt(questionsPushCollections[1]);
 
-    if (answers.changes.toLowerCase() !== 'yes') {
-        return changedAttributes;
+        if (answers.changes.toLowerCase() !== 'yes') {
+            return changedAttributes;
+        }
     }
 
     if (conflicts.length > 0) {
@@ -888,6 +890,7 @@ const pushCollection = async () => {
         })
     }
     const databases = Array.from(new Set(collections.map(collection => collection['databaseId'])));
+    log('Checking for databases and collection changes');
 
     // Parallel db actions
     await Promise.all(databases.map(async (databaseId) => {
@@ -926,7 +929,6 @@ const pushCollection = async () => {
                 databaseId: collection['databaseId'],
                 collectionId: collection['$id'],
                 parseOutput: false,
-                });
             });
 
             if (remoteCollection.name !== collection.name) {
@@ -934,7 +936,6 @@ const pushCollection = async () => {
                     databaseId: collection['databaseId'],
                     collectionId: collection['$id'],
                     name: collection.name,
-                name: collection.name,
                     parseOutput: false
                 })
 
@@ -944,7 +945,7 @@ const pushCollection = async () => {
 
             collection.isExisted = true;
         } catch (e) {
-            if (e.code == 404) {
+            if (Number(e.code) === 404) {
                 log(`Collection ${collection.name} does not exist in the project. Creating ... `);
                 await databasesCreateCollection({
                     databaseId: collection['databaseId'],
@@ -1092,7 +1093,6 @@ const pushBucket = async () => {
                 enabled: bucket.enabled,
                 maximumFileSize: bucket.maximumFileSize,
                 allowedFileExtensions: bucket.allowedFileExtensions,
-                compression: bucket.compression,
                 encryption: bucket.encryption,
                 antivirus: bucket.antivirus,
                 compression: bucket.compression,
@@ -1101,7 +1101,7 @@ const pushBucket = async () => {
 
             success(`Pushed ${bucket.name} ( ${bucket['$id']} )`);
         } catch (e) {
-            if (e.code == 404) {
+            if (Number(e.code) === 404) {
                 log(`Bucket ${bucket.name} does not exist in the project. Creating ... `);
 
                 response = await storageCreateBucket({
@@ -1172,7 +1172,7 @@ const pushTeam = async () => {
 
             log(`Updating team ...`)
 
-            await teamsUpdate({
+            await teamsUpdateName({
                 teamId: team['$id'],
                 name: team.name,
                 parseOutput: false
@@ -1180,7 +1180,7 @@ const pushTeam = async () => {
 
             success(`Pushed ${team.name} ( ${team['$id']} )`);
         } catch (e) {
-            if (e.code == 404) {
+            if (Number(e.code) === 404) {
                 log(`Team ${team.name} does not exist in the project. Creating ... `);
 
                 response = await teamsCreate({
@@ -1257,7 +1257,7 @@ const pushMessagingTopic = async () => {
 
             success(`Pushed ${topic.name} ( ${topic['$id']} )`);
         } catch (e) {
-            if (e.code == 404) {
+            if (Number(e.code) === 404) {
                 log(`Topic ${topic.name} does not exist in the project. Creating ... `);
 
                 response = await messagingCreateTopic({
