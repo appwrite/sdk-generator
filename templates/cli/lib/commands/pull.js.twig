@@ -171,7 +171,7 @@ const pull = new Command("pull")
 
 pull
     .command("project")
-    .description("Pulling your {{ spec.title|caseUcfirst }} project name")
+    .description("Pulling your {{ spec.title|caseUcfirst }} project name, services and auth settings")
     .action(actionRunner(pullProject));
 
 pull
