@@ -173,7 +173,7 @@ function getProjectsPath(action, ids) {
     }
 
     if (['getplatform', 'getkey', 'getwebhook'].includes(action)) {
-        path += ids[1];
+        path += `/${ids[1]}`;
     }
 
     return path;
