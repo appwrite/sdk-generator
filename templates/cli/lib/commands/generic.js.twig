@@ -11,8 +11,8 @@ const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accoun
 
 const DEFAULT_ENDPOINT = 'https://cloud.appwrite.io/v1';
 
-const loginCommand = async ({ selfHosted }) => {
-    const answers = await inquirer.prompt(questionsLogin);
+const loginCommand = async ({ selfHosted, email, password, endpoint, mfa, code }) => {
+    const answers = email && password ? { email, password } : await inquirer.prompt(questionsLogin);
 
     if (answers.method === 'select') {
         const accountId = answers.accountId;
@@ -36,7 +36,7 @@ const loginCommand = async ({ selfHosted }) => {
     globalConfig.setEndpoint(DEFAULT_ENDPOINT);
 
     if (selfHosted) {
-        const selfHostedAnswers = await inquirer.prompt(questionGetEndpoint);
+        const selfHostedAnswers = endpoint ? { endpoint } : await inquirer.prompt(questionGetEndpoint);
 
         globalConfig.setEndpoint(selfHostedAnswers.endpoint);
     }
@@ -61,7 +61,7 @@ const loginCommand = async ({ selfHosted }) => {
         });
     } catch (error) {
         if (error.response === 'user_more_factors_required') {
-            const { factor } = await inquirer.prompt(questionsListFactors);
+            const { factor } = mfa ? { factor: mfa } : await inquirer.prompt(questionsListFactors);
 
             const challenge = await accountCreateMfaChallenge({
                 factor,
@@ -69,7 +69,7 @@ const loginCommand = async ({ selfHosted }) => {
                 sdk: client
             });
 
-            const { otp } = await inquirer.prompt(questionsMfaChallenge);
+            const { otp } = code ? { otp: code } : await inquirer.prompt(questionsMfaChallenge);
 
             await accountUpdateMfaChallenge({
                 challengeId: challenge.$id,
@@ -135,6 +135,11 @@ const whoami = new Command("whoami")
 const login = new Command("login")
     .description(commandDescriptions['login'])
     .option(`-sh, --self-hosted`, `Flag for enabling custom endpoint for self hosted instances`)
+    .option(`--email [email]`, `User email`)
+    .option(`--password [password]`, `User password`)
+    .option(`--endpoint [endpoint]`, `Appwrite endpoint for self hosted instances`)
+    .option(`--mfa [factor]`, `Multi-factor authentication login factor: totp, email, phone or recoveryCode`)
+    .option(`--code [code]`, `Multi-factor code`)
     .configureHelp({
         helpWidth: process.stdout.columns || 80
     })
