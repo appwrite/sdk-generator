@@ -1,4 +1,5 @@
-const { localConfig } = require('./config');
+const chalk = require("chalk");
+const { localConfig, globalConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { teamsList } = require('./commands/teams');
 const { functionsListRuntimes, functionsList } = require('./commands/functions');
@@ -6,7 +7,6 @@ const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
 const { validateRequired } = require("./validations");
 const { paginate } = require('./paginate');
-const chalk = require('chalk');
 const { databasesList } = require('./commands/databases');
 const { checkDeployConditions } = require('./utils');
 const JSONbig = require("json-bigint")({ storeAsString: false });
@@ -414,6 +414,16 @@ const questionsPullCollection = [
 
 const questionsLogin = [
     {
+        type: "list",
+        name: "method",
+        message: "You're already logged in, what you like to do?",
+        choices: [
+            { name: 'Login to a different account', value: 'login' },
+            { name: 'Change to a different existed account', value: 'select' }
+        ],
+        when: () => globalConfig.getCurrentLogin() !== ''
+    },
+    {
         type: "input",
         name: "email",
         message: "Enter your email",
@@ -423,6 +433,7 @@ const questionsLogin = [
             }
             return true;
         },
+        when: (answers) => answers.method !== 'select'
     },
     {
         type: "password",
@@ -434,8 +445,65 @@ const questionsLogin = [
                 return "Please enter your password";
             }
             return true;
-        }
+        },
+        when: (answers) => answers.method !== 'select'
     },
+    {
+        type: "list",
+        name: "accountId",
+        message: "Select an account to use",
+        choices() {
+            const logins = globalConfig.getLogins();
+            const current = globalConfig.getCurrentLogin();
+
+            const data = [];
+
+            const longestEmail = logins.reduce((prev, current) => (prev && (prev.email ?? '').length > (current.email ?? '').length) ? prev : current).email.length;
+
+            logins.forEach((login) => {
+                if (login.email) {
+                    data.push({
+                        current: current === login.id,
+                        value: login.id,
+                        name: `${login.email.padEnd(longestEmail)} ${current === login.id ? chalk.green.bold('current') : ' '.repeat(6)} ${login.endpoint}`,
+                    });
+                }
+            })
+
+            return data.sort((a, b) => Number(b.current) - Number(a.current))
+        },
+        when: (answers) => answers.method === 'select'
+    },
+
+];
+
+const questionsLogout = [
+    {
+        type: "checkbox",
+        name: "accounts",
+        message: "Select accounts to logout from",
+        validate: (value) => validateRequired('account', value),
+        choices() {
+            const logins = globalConfig.getLogins();
+            const current = globalConfig.getCurrentLogin();
+
+            const data = [];
+
+            const longestEmail = logins.reduce((prev, current) => (prev && (prev.email ?? '').length > (current.email ?? '').length) ? prev : current).email.length;
+
+            logins.forEach((login) => {
+                if (login.email) {
+                    data.push({
+                        current: current === login.id,
+                        value: login.id,
+                        name: `${login.email.padEnd(longestEmail)} ${current === login.id ? chalk.green.bold('current') : ' '.repeat(6)} ${login.endpoint}`,
+                    });
+                }
+            })
+
+            return data.sort((a, b) => Number(b.current) - Number(a.current))
+        }
+    }
 ];
 
 const questionsPushResources = [
@@ -505,9 +573,9 @@ const questionsPushCollections = [
     },
     {
         type: "input",
-        name: "override",
-        message: 'Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.'
-    },
+        name: "changes",
+        message: `Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.`
+    }
 ]
 
 const questionsPushBuckets = [
@@ -654,6 +722,31 @@ const questionsMfaChallenge = [
     }
 ];
 
+const questionGetEndpoint = [
+    {
+        type: "input",
+        name: "endpoint",
+        message: "Enter the endpoint of your {{ spec.title|caseUcfirst }} server",
+        default: "http://localhost/v1",
+        async validate(value) {
+            if (!value) {
+                return "Please enter a valid endpoint.";
+            }
+            let client = new Client().setEndpoint(value);
+            try {
+                let response = await client.call('get', '/health/version');
+                if (response.version) {
+                    return true;
+                } else {
+                    throw new Error();
+                }
+            } catch (error) {
+                return "Invalid endpoint or your Appwrite server is not running as expected.";
+            }
+        }
+    }
+];
+
 module.exports = {
     questionsInitProject,
     questionsCreateFunction,
@@ -664,6 +757,7 @@ module.exports = {
     questionsPullFunctions,
     questionsLogin,
     questionsPullResources,
+    questionsLogout,
     questionsPullCollection,
     questionsPushResources,
     questionsPushFunctions,
@@ -673,5 +767,6 @@ module.exports = {
     questionsPushTeams,
     questionsGetEntrypoint,
     questionsListFactors,
-    questionsMfaChallenge
+    questionsMfaChallenge,
+    questionGetEndpoint
 };
