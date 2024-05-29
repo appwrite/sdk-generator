@@ -86,6 +86,13 @@ class SDK
         ]);
 
         /**
+         * Add language-specific functions
+         */
+        foreach ($this->language->getFunctions() as $function) {
+            $this->twig->addFunction($function);
+        }
+
+        /**
          * Add language specific filters
          */
         foreach ($this->language->getFilters() as $filter) {
