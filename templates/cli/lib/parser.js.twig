@@ -129,20 +129,25 @@ const parseError = (err) => {
             } catch {
             }
 
-            const version = '0.16.0';
-            const stepsToReproduce = encodeURIComponent(`Running \`appwrite ${cliConfig.reportData.data.args}\``);
-            const yourEnvironment = encodeURI(`CLI version: ${version}\nOperation System: ${os.type()}\nAppwrite version: ${appwriteVersion}\nIs Cloud: ${isCloud}`)
+            const version = '{{ sdk.version }}';
+            const stepsToReproduce = `Running \`appwrite ${cliConfig.reportData.data.args}\``;
+            const yourEnvironment = `CLI version: ${version}\nOperation System: ${os.type()}\nAppwrite version: ${appwriteVersion}\nIs Cloud: ${isCloud}`;
 
-            const stack = encodeURIComponent('```\n' + err.stack + '\n```').replaceAll('(', '').replaceAll(')', '');
+            const stack = '```\n' + err.stack + '\n```';
 
-            const githubIssueUrl = `https://github.com/appwrite/appwrite/issues/new?labels=bug&template=bug.yaml&title=%F0%9F%90%9B+Bug+Report%3A+CLI+error:+${encodeURI(err.message)}&actual-behavior=CLI%20Error:%0A${stack}&steps-to-reproduce=${stepsToReproduce}&environment=${yourEnvironment}`;
+            const githubIssueUrl = new URL('https://github.com/appwrite/appwrite/issues/new');
+            githubIssueUrl.searchParams.append('labels', 'bug');
+            githubIssueUrl.searchParams.append('template', 'bug.yaml');
+            githubIssueUrl.searchParams.append('title', `🐛 Bug Report: ${err.message}`);
+            githubIssueUrl.searchParams.append('actual-behavior', `CLI Error:\n${stack}`);
+            githubIssueUrl.searchParams.append('steps-to-reproduce', stepsToReproduce);
+            githubIssueUrl.searchParams.append('environment', yourEnvironment);
 
-            log(`To report this error you can:\n - Create a support ticket in our Discord server https://appwrite.io/discord \n - Create an issue in our Github\n   ${githubIssueUrl}\n`);
+            log(`To report this error you can:\n - Create a support ticket in our Discord server https://appwrite.io/discord \n - Create an issue in our Github\n   ${githubIssueUrl.href}\n`);
 
             process.exit(1);
         })()
-    }
-    else {
+    } else {
         if (cliConfig.verbose) {
             console.error(err);
         } else {
