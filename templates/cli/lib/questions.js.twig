@@ -10,6 +10,8 @@ const chalk = require('chalk');
 const { databasesList } = require('./commands/databases');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
+const whenOverride = (answers)=> answers.override === undefined ? true : answers.override;
+
 const getIgnores = (runtime) => {
     const languge = runtime.split('-')[0];
 
@@ -110,7 +112,7 @@ const getInstallCommand = (runtime) => {
     return undefined;
 };
 
-const questionsProject = [
+const questionsInitProject = [
     {
         type: "confirm",
         name: "override",
@@ -143,23 +145,94 @@ const questionsProject = [
             }
 
             return choices;
-        }
+        },
+        when: whenOverride
     },
-];
-
-const questionsCreateProject = [
-    ...questionsProject,
+    {
+        type: "list",
+        name: "start",
+        when(answers) {
+            if (answers.override == undefined) {
+                return true
+            }
+            return answers.override;
+        },
+        message: "How would you like to start?",
+        choices: [
+            {
+                name: "Create a new {{ spec.title|caseUcfirst }} project",
+                value: "new"
+            },
+            {
+                name: "Link this directory to an existing {{ spec.title|caseUcfirst }} project",
+                value: "existing"
+            }
+        ]
+    },
     {
         type: "input",
         name: "project",
         message: "What would you like to name your project?",
-        default: "My Awesome Project"
+        default: "My Awesome Project",
+        when: (answer) => answer.start === 'new'
     },
     {
         type: "input",
         name: "id",
         message: "What ID would you like to have for your project?",
-        default: "unique()"
+        default: "unique()",
+        when: (answer) => answer.start === 'new'
+    },
+    {
+        type: "list",
+        name: "project",
+        message: "Choose your {{ spec.title|caseUcfirst }} project.",
+        choices: async (answers) => {
+            let response = await projectsList({
+                parseOutput: false,
+                queries: [JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization.id] })],
+            })
+            let projects = response["projects"]
+            let choices = projects.map((project, idx) => {
+                return {
+                    name: `${project.name} (${project['$id']})`,
+                    value: {
+                        name: project.name,
+                        id: project['$id']
+                    }
+                }
+            })
+
+            if (choices.length == 0) {
+                throw new Error("No projects found. Please create a new project.")
+            }
+
+            return choices;
+        },
+        when: (answer) => answer.start === 'existing'
+    }
+];
+
+const questionsPullFunctions = [
+    {
+        type: "checkbox",
+        name: "functions",
+        message: "Which functions would you like to pull?",
+        validate: (value) => validateRequired('function', value),
+        choices: async () => {
+            const { functions } = await paginate(functionsList, { parseOutput: false }, 100, 'functions');
+
+            if(functions.length === 0){
+                throw "We couldn't find any functions in your {{ spec.title|caseUcfirst }} project";
+            }
+
+            return functions.map(func => {
+                return {
+                    name: `${func.name} (${func.$id})`,
+                    value: func
+                }
+            });
+        }
     }
 ];
 
@@ -190,6 +263,7 @@ const questionsCreateFunction = [
                     name: `${runtime.name} (${runtime['$id']})`,
                     value: {
                         id: runtime['$id'],
+                        name: runtime['$id'].split('-')[0],
                         entrypoint: getEntrypoint(runtime['$id']),
                         ignore: getIgnores(runtime['$id']),
                         commands: getInstallCommand(runtime['$id'])
@@ -200,6 +274,23 @@ const questionsCreateFunction = [
         }
     }
 ];
+
+const questionsCreateFunctionSelectTemplate = (templates) => {
+    return [
+        {
+            type: "list",
+            name: "template",
+            message: "What template would you like to use?",
+            choices: templates.map((template) => {
+                const name =`${template[0].toUpperCase()}${template.split('').slice(1).join('')}`.replace(/[-_]/g,' ');
+
+                return { value: template, name }
+            })
+        }
+    ];
+};
+
+
 
 const questionsCreateBucket = [
     {
@@ -279,67 +370,12 @@ const questionsCreateMessagingTopic = [
     }
 ];
 
-
-const questionsPullProject = [
-    ...questionsProject,
-    {
-        type: "list",
-        name: "project",
-        message: "Choose your {{ spec.title|caseUcfirst }} project.",
-        choices: async (answers) => {
-            let response = await projectsList({
-                parseOutput: false,
-                queries: [JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization.id] })],
-            })
-            let projects = response["projects"]
-            let choices = projects.map((project, idx) => {
-                return {
-                    name: `${project.name} (${project['$id']})`,
-                    value: {
-                        name: project.name,
-                        id: project['$id']
-                    }
-                }
-            })
-
-            if (choices.length == 0) {
-                throw new Error("No projects found. Please create a new project.")
-            }
-
-            return choices;
-        }
-    }
-];
-
-
-const questionsPullFunctions = [
-    {
-        type: "checkbox",
-        name: "functions",
-        message: "Which functions would you like to pull?",
-        choices: async () => {
-            const { functions } = await paginate(functionsList, { parseOutput: false }, 100, 'functions');
-
-            return functions.map(func => {
-                return {
-                    name: `${func.name} (${func.$id})`,
-                    value: func
-                }
-            });
-        }
-    },
-    {
-        type: "input",
-        name: "override",
-        message: `Do you want to override local functions code and definition? ${chalk.red('all local changes will lost!')} Type "YES" to confirm.`
-    }
-];
-
 const questionsPullCollection = [
     {
         type: "checkbox",
         name: "databases",
         message: "From which database would you like to pull collections?",
+        validate: (value) => validateRequired('collection', value),
         choices: async () => {
             let response = await databasesList({
                 parseOutput: false
@@ -597,12 +633,12 @@ const questionsMfaChallenge = [
 ];
 
 module.exports = {
-    questionsCreateProject,
+    questionsInitProject,
     questionsCreateFunction,
+    questionsCreateFunctionSelectTemplate,
     questionsCreateBucket,
     questionsCreateCollection,
     questionsCreateMessagingTopic,
-    questionsPullProject,
     questionsPullFunctions,
     questionsLogin,
     questionsPullCollection,

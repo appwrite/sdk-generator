@@ -8,47 +8,63 @@ const { storageCreateBucket } = require("./storage");
 const { messagingCreateTopic } = require("./messaging");
 const { functionsCreate } = require("./functions");
 const { databasesCreateCollection } = require("./databases");
-const { sdkForConsole } = require("../sdks");
 const ID = require("../id");
-const { localConfig } = require("../config");
+const { localConfig, globalConfig } = require("../config");
 const {
-    questionsCreateProject,
     questionsCreateFunction,
+    questionsCreateFunctionSelectTemplate,
     questionsCreateBucket,
     questionsCreateMessagingTopic,
-    questionsCreateCollection
+    questionsCreateCollection,
+    questionsInitProject
 } = require("../questions");
-const { success, error, actionRunner, commandDescriptions } = require("../parser");
+const { success, log, error, actionRunner, commandDescriptions } = require("../parser");
+const { accountGet } = require("./account");
+const { loginCommand } = require("./generic");
+const { sdkForConsole } = require("../sdks");
 
-const create = new Command("create")
-    .description(commandDescriptions['create'])
-    .configureHelp({
-        helpWidth: process.stdout.columns || 80
-    })
-    .action(actionRunner(async (_options, command) => {
-        command.help();
-    }));
+const initProject = async () => {
+    let response = {};
 
-const createProject = async () => {
-    let response = {}
-    const answers = await inquirer.prompt(questionsCreateProject)
-    if (!answers.project || !answers.organization) process.exit(1)
+    try {
+        if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
+            throw '';
+        }
+        const client = await sdkForConsole();
 
-    response = await projectsCreate({
-        projectId: answers.id,
-        name: answers.project,
-        teamId: answers.organization.id,
-        parseOutput: false
-    })
+        await accountGet({
+            parseOutput: false,
+            sdk: client
+        });
+    } catch (e) {
+        log('You must login first')
+        await loginCommand();
+    }
 
-    localConfig.setProject(response['$id'], response.name);
+    const answers = await inquirer.prompt(questionsInitProject)
+    if (answers.override === false) {
+        process.exit(1)
+    }
+
+    if (answers.start === 'new') {
+        response = await projectsCreate({
+            projectId: answers.id,
+            name: answers.project,
+            teamId: answers.organization.id,
+            parseOutput: false
+        })
+
+        localConfig.setProject(response['$id'], response.name);
+    } else {
+        localConfig.setProject(answers.project.id, answers.project.name);
+    }
+
     success();
 }
 
-const createBucket = async () => {
+const initBucket = async () => {
     let response = {}
     const answers = await inquirer.prompt(questionsCreateBucket)
-    if (!answers.bucket || !answers.id || !answers.fileSecurity) process.exit(1)
 
     try {
         response = await storageCreateBucket({
@@ -66,10 +82,9 @@ const createBucket = async () => {
     }
 };
 
-const createCollection = async () => {
+const initCollection = async () => {
     let response = {}
     const answers = await inquirer.prompt(questionsCreateCollection)
-    if (!answers.database || !answers.collection || !answers.id || !answers.documentSecurity) process.exit(1)
 
     try {
         response = await databasesCreateCollection({
@@ -88,10 +103,9 @@ const createCollection = async () => {
     }
 };
 
-const createTopic = async () => {
+const initTopic = async () => {
     let response = {}
     const answers = await inquirer.prompt(questionsCreateMessagingTopic)
-    if (!answers.topic || !answers.id) process.exit(1)
 
     try {
         response = await messagingCreateTopic({
@@ -103,11 +117,11 @@ const createTopic = async () => {
         localConfig.addMessagingTopic(response);
         success();
     } catch (e) {
-        error(e.getMessage ?? 'Unknown error occurred. Please try again');
+        error(e.message ?? 'Unknown error occurred. Please try again');
     }
 };
 
-const createFunction = async () => {
+const initFunction = async () => {
     // TODO: Add CI/CD support (ID, name, runtime)
     const answers = await inquirer.prompt(questionsCreateFunction)
     const functionFolder = path.join(process.cwd(), 'functions');
@@ -120,6 +134,8 @@ const createFunction = async () => {
 
     const functionId = answers.id === 'unique()' ? ID.unique() : answers.id;
     const functionDir = path.join(functionFolder, functionId);
+    const templatesDir = path.join(functionFolder, `${functionId}-templates`);
+    const runtimeDir = path.join(templatesDir, answers.runtime.name);
 
     if (fs.existsSync(functionDir)) {
         throw new Error(`( ${functionId} ) already exists in the current directory. Please choose another name.`);
@@ -143,10 +159,12 @@ const createFunction = async () => {
     })
 
     fs.mkdirSync(functionDir, "777");
+    fs.mkdirSync(templatesDir, "777");
 
-    let gitInitCommands = "git clone -b v3 --single-branch --depth 1 --sparse https://github.com/{{ sdk.gitUserName }}/functions-starter ."; // depth prevents fetching older commits reducing the amount fetched
+    let gitInitCommands = "git clone --single-branch --depth 1 --sparse https://github.com/{{ sdk.gitUserName }}/templates ."; // depth prevents fetching older commits reducing the amount fetched
 
-    let gitPullCommands = `git sparse-checkout add ${answers.runtime.id}`;
+    let gitPullCommands = `git sparse-checkout add ${answers.runtime.name}`;
+
 
     /* Force use CMD as powershell does not support && */
     if (process.platform === 'win32') {
@@ -154,10 +172,11 @@ const createFunction = async () => {
         gitPullCommands = 'cmd /c "' + gitPullCommands + '"';
     }
 
+    log('Loading templates...');
     /*  Execute the child process but do not print any std output */
     try {
-        childProcess.execSync(gitInitCommands, { stdio: 'pipe', cwd: functionDir });
-        childProcess.execSync(gitPullCommands, { stdio: 'pipe', cwd: functionDir });
+        childProcess.execSync(gitInitCommands, { stdio: 'pipe', cwd: templatesDir });
+        childProcess.execSync(gitPullCommands, { stdio: 'pipe', cwd: templatesDir });
     } catch (error) {
         /* Specialised errors with recommended actions to take */
         if (error.message.includes('error: unknown option')) {
@@ -169,7 +188,20 @@ const createFunction = async () => {
         }
     }
 
-    fs.rmSync(path.join(functionDir, ".git"), { recursive: true });
+    fs.rmSync(path.join(templatesDir, ".git"), { recursive: true });
+    const templates = ['Starter'];
+    templates.push(...fs.readdirSync(runtimeDir, { withFileTypes: true })
+        .filter(item => item.isDirectory() && item.name !== 'starter')
+        .map(dirent => dirent.name));
+
+    let selected = { template: 'starter' };
+
+    if (templates.length > 1) {
+        selected = await inquirer.prompt(questionsCreateFunctionSelectTemplate(templates))
+    }
+
+
+
     const copyRecursiveSync = (src, dest) => {
         let exists = fs.existsSync(src);
         let stats = exists && fs.statSync(src);
@@ -186,9 +218,9 @@ const createFunction = async () => {
             fs.copyFileSync(src, dest);
         }
     };
-    copyRecursiveSync(path.join(functionDir, answers.runtime.id), functionDir);
+    copyRecursiveSync(path.join(runtimeDir, selected.template), functionDir);
 
-    fs.rmSync(`${functionDir}/${answers.runtime.id}`, { recursive: true, force: true });
+    fs.rmSync(templatesDir, { recursive: true, force: true });
 
     const readmePath = path.join(process.cwd(), 'functions', functionId, 'README.md');
     const readmeFile = fs.readFileSync(readmePath).toString();
@@ -217,33 +249,33 @@ const createFunction = async () => {
     success();
 }
 
+const init = new Command("init")
+    .description('Init an {{ spec.title|caseUcfirst }} project')
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
+    .action(actionRunner(initProject));
 
-
-create
-    .command("project")
-    .description("Create a new {{ spec.title|caseUcfirst }} project")
-    .action(actionRunner(createProject));
-
-create
+init
     .command("function")
-    .description("Create a new {{ spec.title|caseUcfirst }} function")
-    .action(actionRunner(createFunction));
+    .description("Init a new {{ spec.title|caseUcfirst }} function")
+    .action(actionRunner(initFunction));
 
-create
+init
     .command("bucket")
-    .description("Create a new {{ spec.title|caseUcfirst }} bucket")
-    .action(actionRunner(createBucket));
+    .description("Init a new {{ spec.title|caseUcfirst }} bucket")
+    .action(actionRunner(initBucket));
 
-create
+init
     .command("collection")
-    .description("Create a new {{ spec.title|caseUcfirst }} collection")
-    .action(actionRunner(createCollection));
+    .description("Init a new {{ spec.title|caseUcfirst }} collection")
+    .action(actionRunner(initCollection));
 
-create
+init
     .command("topic")
-    .description("Create a new {{ spec.title|caseUcfirst }} topic")
-    .action(actionRunner(createTopic));
+    .description("Init a new {{ spec.title|caseUcfirst }} topic")
+    .action(actionRunner(initTopic));
 
 module.exports = {
-    create,
+    init,
 };

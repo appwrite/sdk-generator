@@ -2,58 +2,44 @@ const fs = require("fs");
 const tar = require("tar");
 const { Command } = require("commander");
 const inquirer = require("inquirer");
-const { messagingCreateTopic, messagingListTopics } = require("./messaging");
-const { teamsCreate, teamsList } = require("./teams");
-const { projectsCreate } = require("./projects");
+const { messagingListTopics } = require("./messaging");
+const { teamsList } = require("./teams");
+const { projectsGet } = require("./projects");
 const { functionsList, functionsDownloadDeployment } = require("./functions");
 const { databasesGet, databasesListCollections, databasesList } = require("./databases");
 const { storageListBuckets } = require("./storage");
-const { sdkForConsole } = require("../sdks");
 const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
-const { questionsPullProject, questionsPullCollection, questionsPullFunctions } = require("../questions");
+const { questionsPullCollection, questionsPullFunctions } = require("../questions");
 const { success, log, actionRunner, commandDescriptions } = require("../parser");
 
-const pull = new Command("pull")
-    .description(commandDescriptions['pull'])
-    .configureHelp({
-        helpWidth: process.stdout.columns || 80
-    })
-    .action(actionRunner(async (_options, command) => {
-        command.help();
-    }));
-
 const pullProject = async () => {
-    const answers = await inquirer.prompt(questionsPullProject)
-    if (!answers.project) process.exit(1)
+    try {
+        let response = await projectsGet({
+            parseOutput: false,
+            projectId: localConfig.getProject().projectId
 
-    localConfig.setProject(answers.project.id, answers.project.name);
-    success();
+        })
+
+        localConfig.setProject(response.$id, response.name);
+        success();
+    } catch (e) {
+        throw e;
+    }
 }
 
-const pullFunctions = async ({ all, yes } = {}) => {
-    let functions = [];
-    let questions = questionsPullFunctions;
-
+const pullFunctions = async ({ all } = {}) => {
     const localFunctions = localConfig.getFunctions();
 
-    if (all) {
-        questions = yes ? [] : questionsPullFunctions[1];
-        functions = (await paginate(functionsList, { parseOutput: false }, 100, 'functions')).functions;
-    }
+    const functions = all
+        ? (await paginate(functionsList, { parseOutput: false }, 100, 'functions')).functions
+        : (await inquirer.prompt(questionsPullFunctions)).functions;
 
-    const answers = await inquirer.prompt(questions);
+    log(`Pulling ${functions.length} functions`);
 
-    const overridingLocalChanges = yes ?? answers.override.toLowerCase() === "yes";
-    const selectedFunctions = functions.length === 0 ? answers.functions : functions;
-
-    for (let func of selectedFunctions) {
+    for (let func of functions) {
         const functionExistLocally = localFunctions.find((localFunc) => localFunc['$id'] === func['$id']) !== undefined;
 
-        if (!overridingLocalChanges && functionExistLocally) {
-            log(`Skipping locally found implementation of ${func['name']}`)
-            continue;
-        }
         if (functionExistLocally) {
             localConfig.updateFunction(func['$id'], func);
         } else {
@@ -67,7 +53,7 @@ const pullFunctions = async ({ all, yes } = {}) => {
             continue
         }
 
-        const compressedFileName = `${+new Date()}.tar.gz`
+        const compressedFileName = `${func['$id']}-${+new Date()}.tar.gz`
 
         await functionsDownloadDeployment({
             functionId: func['$id'],
@@ -85,7 +71,7 @@ const pullFunctions = async ({ all, yes } = {}) => {
         });
 
         fs.rmSync(compressedFileName);
-        success(`Pulled ${func['name']} code and definition`)
+        success(`Pulled ${func['name']} code and settings`)
     }
 }
 
@@ -104,7 +90,6 @@ const pullCollection = async ({ all, databaseId } = {}) => {
 
     if (databaseIds.length <= 0) {
         let answers = await inquirer.prompt(questionsPullCollection)
-        if (!answers.databases) process.exit(1)
         databaseIds.push(...answers.databases);
     }
 
@@ -176,37 +161,42 @@ const pullMessagingTopic = async () => {
     success();
 }
 
+const pull = new Command("pull")
+    .description(commandDescriptions['pull'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    });
+
 pull
     .command("project")
-    .description("Pulling your Appwrite project")
+    .description("Pulling your {{ spec.title|caseUcfirst }} project name")
     .action(actionRunner(pullProject));
 
 pull
-    .command("function")
-    .description(`Pulling your Appwrite functions`)
-    .option(`--yes`, `Flag to confirm all warnings`)
+    .command("functions")
+    .description(`Pulling your {{ spec.title|caseUcfirst }} functions`)
     .option(`--all`, `Flag to pull all functions`)
     .action(actionRunner(pullFunctions));
 
 pull
-    .command("collection")
-    .description("Pulling your Appwrite collections")
+    .command("collections")
+    .description("Pulling your {{ spec.title|caseUcfirst }} collections")
     .option(`--databaseId <databaseId>`, `Database ID`)
     .option(`--all`, `Flag to pull all databases`)
     .action(actionRunner(pullCollection))
 
 pull
-    .command("bucket")
-    .description("Pulling your Appwrite buckets")
+    .command("buckets")
+    .description("Pulling your {{ spec.title|caseUcfirst }} buckets")
     .action(actionRunner(pullBucket))
 
 pull
-    .command("team")
-    .description("Pulling your Appwrite teams")
+    .command("teams")
+    .description("Pulling your {{ spec.title|caseUcfirst }} teams")
     .action(actionRunner(pullTeam))
 
 pull
-    .command("topic")
+    .command("topics")
     .description("Initialise your Appwrite messaging topics")
     .action(actionRunner(pullMessagingTopic))
 

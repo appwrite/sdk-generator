@@ -156,7 +156,7 @@ const commandDescriptions = {
     "graphql": `The graphql command allows you to query and mutate any resource type on your Appwrite server.`,
     "avatars": `The avatars command aims to help you complete everyday tasks related to your app image, icons, and avatars.`,
     "databases": `The databases command allows you to create structured collections of documents, query and filter lists of documents.`,
-    "create": `The create command provides a convenient wrapper for creating projects functions, collections, buckets, teams and messaging.`,
+    "init": `The init command provides a convenient wrapper for creating and initializing project, functions, collections, buckets, teams and messaging in Appwrite.`,
     "push": `The push command provides a convenient wrapper for pushing your functions, collections, buckets, teams and messaging.`,
     "functions": `The functions command allows you view, create and manage your Cloud Functions.`,
     "health": `The health command allows you to both validate and monitor your {{ spec.title|caseUcfirst }} server's health.`,
@@ -169,6 +169,7 @@ const commandDescriptions = {
     "client": `The client command allows you to configure your CLI`,
     "login": `The login command allows you to authenticate and manage a user account.`,
     "logout": `The logout command allows you to logout of your {{ spec.title|caseUcfirst }} account.`,
+    "whoami": `The whoami command gives information about the currently logged in user.`,
     "console" : `The console command allows gives you access to the APIs used by the Appwrite console.`,
     "assistant": `The assistant command allows you to interact with the Appwrite Assistant AI`,
     "messaging": `The messaging command allows you to send messages.`,
@@ -185,6 +186,7 @@ const commandDescriptions = {
 }
 
 module.exports = {
+    drawTable,
     parse,
     actionRunner,
     parseInteger,

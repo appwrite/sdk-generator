@@ -232,8 +232,8 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/commands/create.js',
-                'template'      => 'cli/lib/commands/create.js.twig',
+                'destination'   => 'lib/commands/init.js',
+                'template'      => 'cli/lib/commands/init.js.twig',
             ],
             [
                 'scope'         => 'default',

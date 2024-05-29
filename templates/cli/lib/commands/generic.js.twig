@@ -3,29 +3,73 @@ const { Command } = require("commander");
 const Client = require("../client");
 const { sdkForConsole } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
-const { actionRunner, success, parseBool, commandDescriptions, log, parse } = require("../parser");
+const { actionRunner, success, parseBool, commandDescriptions, error, parse, drawTable } = require("../parser");
 {% if sdk.test != "true" %}
 const { questionsLogin, questionsListFactors, questionsMfaChallenge } = require("../questions");
 const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
 
-const login = new Command("login")
-    .description(commandDescriptions['login'])
-    .configureHelp({
-        helpWidth: process.stdout.columns || 80
+const loginCommand = async () => {
+    const answers = await inquirer.prompt(questionsLogin)
+
+    let client = await sdkForConsole(false);
+
+    await accountCreateEmailPasswordSession({
+        email: answers.email,
+        password: answers.password,
+        parseOutput: false,
+        sdk: client
     })
-    .action(actionRunner(async () => {
-        const answers = await inquirer.prompt(questionsLogin)
+
+    client.setCookie(globalConfig.getCookie());
+
+    let account;
+
+    try {
+        account = await accountGet({
+            sdk: client,
+            parseOutput: false
+        });
+    } catch(error) {
+        if (error.response === 'user_more_factors_required') {
+            const { factor } = await inquirer.prompt(questionsListFactors);
+
+            const challenge = await accountCreateMfaChallenge({
+                factor,
+                parseOutput: false,
+                sdk: client
+            });
+
+            const { otp } = await inquirer.prompt(questionsMfaChallenge);
+
+            await accountUpdateMfaChallenge({
+                challengeId: challenge.$id,
+                otp,
+                parseOutput: false,
+                sdk: client
+            });
+
+            account = await accountGet({
+                sdk: client,
+                parseOutput: false
+            });
+        } else {
+            throw error;
+        }
+    }
+
+    success("Signed in as user with ID: " + account.$id);
+};
+
+const whoami = new Command("whoami")
+    .description(commandDescriptions['whoami'])
+    .option("-j, --json", "Output in JSON format")
+    .action(actionRunner(async ({ json }) => {
+        if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
+            error("No user is signed in. To sign in, run: appwrite login ");
+            return;
+        }
 
         let client = await sdkForConsole(false);
-
-        await accountCreateEmailPasswordSession({
-            email: answers.email,
-            password: answers.password,
-            parseOutput: false,
-            sdk: client
-        })
-
-        client.setCookie(globalConfig.getCookie());
 
         let account;
 
@@ -34,36 +78,35 @@ const login = new Command("login")
                 sdk: client,
                 parseOutput: false
             });
-        } catch(error) {
-            if (error.response === 'user_more_factors_required') {
-                const { factor } = await inquirer.prompt(questionsListFactors);
-
-                const challenge = await accountCreateMfaChallenge({
-                    factor,
-                    parseOutput: false,
-                    sdk: client
-                });
-
-                const { otp } = await inquirer.prompt(questionsMfaChallenge);
-
-                await accountUpdateMfaChallenge({
-                    challengeId: challenge.$id,
-                    otp,
-                    parseOutput: false,
-                    sdk: client
-                });
-
-                account = await accountGet({
-                    sdk: client,
-                    parseOutput: false
-                });
-            } else {
-                throw error;
-            }
+        } catch (error) {
+            error("No user is signed in. To sign in, run: appwrite login");
+            return;
         }
 
-        success("Signed in as user with ID: " + account.$id);
+        const data = [
+            {
+                'ID': account.$id,
+                'Name': account.name,
+                'Email': account.email,
+                'MFA enabled': account.mfa ? 'Yes' : 'No'
+            }
+        ];
+        if (json) {
+            console.log(data);
+
+            return;
+        }
+
+        drawTable(data)
     }));
+
+
+const login = new Command("login")
+    .description(commandDescriptions['login'])
+    .configureHelp({
+        helpWidth: process.stdout.columns || 80
+    })
+    .action(actionRunner(loginCommand));
 
 const logout = new Command("logout")
     .description(commandDescriptions['logout'])
@@ -158,9 +201,11 @@ const client = new Command("client")
     }));
 
 module.exports = {
-{% if sdk.test != "true" %}
+    {% if sdk.test != "true" %}
+    loginCommand,
+    whoami,
     login,
     logout,
-{% endif %}
+    {% endif %}
     client
 };
