@@ -332,8 +332,13 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '.travis.yml',
-                'template'      => 'flutter/.travis.yml.twig',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'flutter/.github/workflows/publish.yml.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '.github/workflows/format.yml',
+                'template'      => 'flutter/.github/workflows/format.yml.twig',
             ],
             [
                 'scope'         => 'enum',
