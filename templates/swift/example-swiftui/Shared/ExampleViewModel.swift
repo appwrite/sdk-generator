@@ -15,8 +15,10 @@ extension ExampleView {
         @Published public var fileId: String = "test"
         @Published public var databaseId: String = "test"
         @Published public var collectionId: String = "test"
+        @Published public var collectionId2: String = "test2"
         @Published public var isShowPhotoLibrary = false
         @Published public var response: String = ""
+        @Published public var response2: String = ""
 
         func register() async {
             do {
@@ -127,13 +129,25 @@ extension ExampleView {
                 }
             }
         }
-        
-        func subscribe() {
-            _ = realtime.subscribe(channels: ["databases.\(databaseId).collections.\(collectionId).documents"]) { event in
+
+        func subscribe() async {
+            let sub1 = try? await realtime.subscribe(channels: ["databases.\(databaseId).collections.\(collectionId).documents"]) { event in
                 DispatchQueue.main.async {
                     self.response = String(describing: event.payload!)
                 }
             }
+
+            try? await Task.sleep(nanoseconds: UInt64(500_000_000))
+
+            _ = try? await realtime.subscribe(channels: ["databases.\(databaseId).collections.\(collectionId2).documents"]) { event in
+                DispatchQueue.main.async {
+                    self.response2 = String(describing: event.payload!)
+                }
+            }
+
+            try? await Task.sleep(nanoseconds: UInt64(500_000_000))
+
+            try? await sub1?.close()
         }
     }
 }

@@ -1,0 +1,31 @@
+name: Publish to RubyGems
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    name: Release build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6'
+
+      - name: Install dependencies
+        run: dotnet restore
+
+      - name: Build nuget
+        run: |
+          dotnet build -c Release
+          dotnet pack -c Release
+
+      - name: Publish nuget
+        run: |
+          dotnet nuget push ./Appwrite/bin/Release/*.nupkg \
+            --api-key {{ '${{ secrets.NUGET_TOKEN }}' }} \
+            --source https://api.nuget.org/v3/index.json
