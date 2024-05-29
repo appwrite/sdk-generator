@@ -41,7 +41,17 @@ const {
     teamsUpdateName,
     teamsCreate
 } = require("./teams");
-const { projectsUpdate } = require("./projects");
+const {
+    projectsUpdate,
+    projectsUpdateServiceStatus,
+    projectsUpdateAuthStatus,
+    projectsUpdateAuthDuration,
+    projectsUpdateAuthLimit,
+    projectsUpdateAuthSessionsLimit,
+    projectsUpdateAuthPasswordDictionary,
+    projectsUpdateAuthPasswordHistory,
+    projectsUpdatePersonalDataCheck,
+} = require("./projects");
 const { checkDeployConditions } = require('../utils');
 
 const STEP_SIZE = 100;      // Resources
@@ -258,11 +268,56 @@ const pushResources = async ({ all, yes } = {}) => {
 
 const pushProject = async () => {
     try {
+        const projectId = localConfig.getProject().projectId;
+        const projectName = localConfig.getProject().projectName;
+
+        log('Updating project name');
+
         await projectsUpdate({
-            projectId: localConfig.getProject().projectId,
-            name: localConfig.getProject().projectName,
+            projectId,
+            name: projectName,
             parseOutput: false
-        })
+        });
+
+        const settings = localConfig.getProjectSettings();
+
+        if (settings.services) {
+            log('Updating services status');
+            for (let [service, status] of Object.entries(settings.services)) {
+                await projectsUpdateServiceStatus({
+                    projectId,
+                    service,
+                    status,
+                    parseOutput: false
+                });
+            }
+        }
+
+        if (settings.auth) {
+            if (settings.auth.security) {
+                log('Updating Auth security settings');
+                await projectsUpdateAuthDuration({ projectId, duration: settings.auth.security.duration, parseOutput: false });
+                await projectsUpdateAuthLimit({ projectId, limit: settings.auth.security.limit, parseOutput: false });
+                await projectsUpdateAuthSessionsLimit({ projectId, limit: settings.auth.security.sessionsLimit, parseOutput: false });
+                await projectsUpdateAuthPasswordDictionary({ projectId, enabled: settings.auth.security.passwordDictionary, parseOutput: false });
+                await projectsUpdateAuthPasswordHistory({ projectId, limit: settings.auth.security.passwordHistory, parseOutput: false });
+                await projectsUpdatePersonalDataCheck({ projectId, enabled: settings.auth.security.personalDataCheck, parseOutput: false });
+            }
+
+            if (settings.auth.methods) {
+                log('Updating Auth available login methods');
+
+                for (let [method, status] of Object.entries(settings.auth.methods)) {
+                    await projectsUpdateAuthStatus({
+                        projectId,
+                        method,
+                        status,
+                        parseOutput: false
+                    });
+                }
+            }
+        }
+
         success();
     } catch (e) {
         throw e;
