@@ -11,7 +11,7 @@ const { databasesGet, databasesListCollections, databasesList } = require("./dat
 const { storageListBuckets } = require("./storage");
 const { sdkForConsole } = require("../sdks");
 const { localConfig } = require("../config");
-const ID  = require("../id");
+const ID = require("../id");
 const { paginate } = require("../paginate");
 const { questionsPullProject, questionsPullFunction, questionsPullCollection } = require("../questions");
 const { cliConfig, success, log, actionRunner, commandDescriptions } = require("../parser");
@@ -164,26 +164,12 @@ const pullFunction = async () => {
     success();
 }
 
-const pullCollection = async ({ databaseId } = {}) => {
-    const databaseIds = [];
+const pullCollection = async () => {
+    const databasesIds = (await inquirer.prompt(questionsPullCollection)).databases;
 
-    if (databaseId) {
-        databaseIds.push(databaseId);
-    } else if (cliConfig.all) {
-        let allDatabases = await databasesList({
-            parseOutput: false
-        })
+    for (let id of databasesIds) {
+        const databaseId = id.value ? id.value : id;
 
-        databaseIds.push(...allDatabases.databases.map((d) => d.$id));
-    }
-
-    if (databaseIds.length <= 0) {
-        let answers = await inquirer.prompt(questionsPullCollection)
-        if (!answers.databases) process.exit(1)
-        databaseIds.push(...answers.databases);
-    }
-
-    for (const databaseId of databaseIds) {
         const database = await databasesGet({
             databaseId,
             parseOutput: false
@@ -198,14 +184,15 @@ const pullCollection = async ({ databaseId } = {}) => {
 
         log(`Found ${total} collections`);
 
-        collections.forEach(async collection => {
+        collections.map(async collection => {
             log(`Fetching ${collection.name} ...`);
             localConfig.addCollection({
                 ...collection,
                 '$createdAt': undefined,
-                '$updatedAt': undefined,
+                '$updatedAt': undefined
             });
         });
+
     }
 
     success();
@@ -264,7 +251,6 @@ pull
 pull
     .command("collection")
     .description("Pulling your {{ spec.title|caseUcfirst }} collections")
-    .option(`--databaseId <databaseId>`, `Database ID`)
     .action(actionRunner(pullCollection))
 
 pull
