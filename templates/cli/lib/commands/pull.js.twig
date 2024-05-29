@@ -10,8 +10,33 @@ const { databasesGet, databasesListCollections, databasesList } = require("./dat
 const { storageListBuckets } = require("./storage");
 const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
-const { questionsPullCollection, questionsPullFunctions } = require("../questions");
+const { questionsPullCollection, questionsPullFunctions, questionsPullResources } = require("../questions");
 const { success, log, actionRunner, commandDescriptions } = require("../parser");
+
+const pullResources = async ({ all, yes } = {}) => {
+    const actions = {
+        project: pullProject,
+        functions: pullFunctions,
+        collections: pullCollection,
+        buckets: pullBucket,
+        teams: pullTeam,
+        messages: pullMessagingTopic
+    }
+
+    if (all) {
+        for (let action of Object.values(actions)) {
+            await action({ all: true, yes });
+        }
+    } else {
+        const answers = await inquirer.prompt(questionsPullResources[0]);
+        answers.resources.forEach((resource) => {
+            const action = actions[resource];
+            if (action !== undefined) {
+                action({ all: true, yes });
+            }
+        })
+    }
+};
 
 const pullProject = async () => {
     try {
@@ -47,6 +72,7 @@ const pullFunctions = async ({ all } = {}) => {
         } else {
             func['path'] = `functions/${func['$id']}`;
             localConfig.addFunction(func);
+            localFunctions.push(func);
         }
 
         const localFunction = localFunctions.find((localFunc) => localFunc['$id'] === func['$id']);
@@ -64,6 +90,10 @@ const pullFunctions = async ({ all } = {}) => {
             overrideForCli: true,
             parseOutput: false
         })
+
+        if (!fs.existsSync(localFunction['path'])) {
+            fs.mkdirSync(localFunction['path'], { recursive: true });
+        }
 
         tar.extract({
             sync: true,
@@ -168,6 +198,14 @@ const pull = new Command("pull")
     .configureHelp({
         helpWidth: process.stdout.columns || 80
     });
+
+pull
+    .command("all")
+    .description("Push all resource.")
+    .option(`--all`, `Flag to pull all functions`)
+    .option(`--yes`, `Flag to confirm all warnings`)
+    .action(actionRunner(pullResources));
+
 
 pull
     .command("project")
