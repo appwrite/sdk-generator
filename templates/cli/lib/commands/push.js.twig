@@ -38,10 +38,11 @@ const {
 } = require("./messaging");
 const {
     teamsGet,
-    teamsUpdate,
+    teamsUpdateName,
     teamsCreate
 } = require("./teams");
 const { projectsUpdate } = require("./projects");
+const { checkDeployConditions } = require('../utils');
 
 const STEP_SIZE = 100;      // Resources
 const POLL_DEBOUNCE = 2000; // Milliseconds
@@ -276,6 +277,7 @@ const pushFunction = async ({ functionId, all, yes, async } = {}) => {
     if (functionId) {
         functionIds.push(functionId);
     } else if (all) {
+        checkDeployConditions(localConfig);
         const functions = localConfig.getFunctions();
         if (functions.length === 0) {
             throw new Error("No functions found in the current directory.");
@@ -665,6 +667,7 @@ const pushCollection = async ({ all, yes } = {}) => {
     const collections = [];
 
     if (all) {
+        checkDeployConditions(localConfig);
         if (localConfig.getCollections().length === 0) {
             throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} pull collection` to fetch all your collections.");
         }
@@ -887,6 +890,7 @@ const pushBucket = async ({ all, yes } = {}) => {
     const configBuckets = localConfig.getBuckets();
 
     if (all) {
+        checkDeployConditions(localConfig);
         if (configBuckets.length === 0) {
             throw new Error("No buckets found in the current directory. Run `appwrite pull bucket` to fetch all your buckets.");
         }
@@ -974,6 +978,7 @@ const pushTeam = async ({ all, yes } = {}) => {
     const configTeams = localConfig.getTeams();
 
     if (all) {
+        checkDeployConditions(localConfig);
         if (configTeams.length === 0) {
             throw new Error("No teams found in the current directory. Run `appwrite pull team` to fetch all your teams.");
         }
@@ -1045,6 +1050,7 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
     let overrideExisting = yes;
 
     if (all) {
+        checkDeployConditions(localConfig);
         if (configTopics.length === 0) {
             throw new Error("No topics found in the current directory. Run `appwrite pull topics` to pull all your messaging topics.");
         }
