@@ -29,12 +29,13 @@ const pullResources = async () => {
         }
     } else {
         const answers = await inquirer.prompt(questionsPullResources[0]);
-        answers.resources.forEach((resource) => {
+
+        for (let resource of answers.resources) {
             const action = actions[resource];
             if (action !== undefined) {
-                action();
+                await action();
             }
-        })
+        }
     }
 };
 
@@ -112,10 +113,9 @@ const pullCollection = async () => {
 
     if (databases.length === 0) {
         if (cliConfig.all) {
-            databases = (await paginate(databasesList, { parseOutput: false }, 100, 'databases')).databases.map(database=>database.$id);
-        } else{
+            databases = (await paginate(databasesList, { parseOutput: false }, 100, 'databases')).databases.map(database => database.$id);
+        } else {
             databases = (await inquirer.prompt(questionsPullCollection)).databases;
-    }
         }
     }
 

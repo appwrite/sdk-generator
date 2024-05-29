@@ -290,18 +290,18 @@ const pushResources = async () => {
     }
 
     if (cliConfig.all) {
-        for(let action of Object.values(actions)){
+        for (let action of Object.values(actions)) {
             await action();
         }
     } else {
         const answers = await inquirer.prompt(questionsPushResources[0]);
 
-        answers.resources.forEach((resource) => {
+        for (let resource of answers.resources) {
             const action = actions[resource];
             if (action !== undefined) {
-              await action();
+                await action();
             }
-        })
+        }
     }
 };
 
@@ -932,7 +932,6 @@ const pushCollection = async () => {
                 databaseId: collection['databaseId'],
                 collectionId: collection['$id'],
                 parseOutput: false,
-                });
             });
 
             if (remoteCollection.name !== collection.name) {
@@ -940,7 +939,7 @@ const pushCollection = async () => {
                     databaseId: collection['databaseId'],
                     collectionId: collection['$id'],
                     name: collection.name,
-                name: collection.name,
+                    name: collection.name,
                     parseOutput: false
                 })
 
@@ -949,7 +948,8 @@ const pushCollection = async () => {
             collection.remoteVersion = remoteCollection;
 
             collection.isExisted = true;
-        } catch (e) {
+        } catch
+            (e) {
             if (Number(e.code) === 404) {
                 log(`Collection ${collection.name} does not exist in the project. Creating ... `);
                 await databasesCreateCollection({
@@ -966,7 +966,7 @@ const pushCollection = async () => {
         }
     }))
 
-    // Serialize attribute actions
+// Serialize attribute actions
     for (let collection of collections) {
         let attributes = collection.attributes;
 
