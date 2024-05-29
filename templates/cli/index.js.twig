@@ -12,6 +12,7 @@ const { commandDescriptions, cliConfig } = require("./lib/parser");
 const { client } = require("./lib/commands/generic");
 {% if sdk.test != "true" %}
 const { login, logout, whoami } = require("./lib/commands/generic");
+const { init } = require("./lib/commands/init");
 const { pull } = require("./lib/commands/pull");
 const { push } = require("./lib/commands/push");
 {% endif %}
@@ -28,16 +29,34 @@ program
   .version(version, "-v, --version")
   .option("--verbose", "Show complete error log")
   .option("--json", "Output in JSON format")
+  .option("-f,--force", "Flag to confirm all warnings")
+  .option("-a,--all", "Flag to push all resources")
+  .option("--id [id...]", "Flag to pass list of ids for a giving action")
+  .option("--report", "Enable reporting when cli is crashing")
   .on("option:json", () => {
     cliConfig.json = true;
   })
   .on("option:verbose", () => {
     cliConfig.verbose = true;
   })
+  .on("option:report", function() {
+    cliConfig.report = true;
+    cliConfig.reportData = { data: this };
+  })
+  .on("option:force", () => {
+    cliConfig.force = true;
+  })
+  .on("option:all", () => {
+    cliConfig.all = true;
+  })
+  .on("option:id", function() {
+    cliConfig.ids = this.opts().id;
+  })
   .showSuggestionAfterError()
 {% if sdk.test != "true" %}
   .addCommand(whoami)
   .addCommand(login)
+  .addCommand(init)
   .addCommand(pull)
   .addCommand(push)
   .addCommand(logout)

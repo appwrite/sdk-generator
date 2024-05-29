@@ -7,6 +7,7 @@ const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
 const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions, drawTable } = require("../parser");
+const { cliConfig, actionRunner, success, log, error, commandDescriptions } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
@@ -42,6 +43,17 @@ const {
     teamsUpdateName,
     teamsCreate
 } = require("./teams");
+const {
+    projectsUpdate,
+    projectsUpdateServiceStatus,
+    projectsUpdateAuthStatus,
+    projectsUpdateAuthDuration,
+    projectsUpdateAuthLimit,
+    projectsUpdateAuthSessionsLimit,
+    projectsUpdateAuthPasswordDictionary,
+    projectsUpdateAuthPasswordHistory,
+    projectsUpdatePersonalDataCheck,
+} = require("./projects");
 const { checkDeployConditions } = require('../utils');
 
 const STEP_SIZE = 100;      // Resources
@@ -269,7 +281,7 @@ const awaitPools = {
     },
 }
 
-const pushResources = async ({ all, yes } = {}) => {
+const pushResources = async () => {
     const actions = {
         functions: pushFunction,
         collections: pushCollection,
@@ -278,27 +290,87 @@ const pushResources = async ({ all, yes } = {}) => {
         messages: pushMessagingTopic
     }
 
-    if (all) {
-        Object.values(actions).forEach(action => action({ all: true, yes }));
+    if (cliConfig.all) {
+        Object.values(actions).forEach(action => action());
     } else {
         const answers = await inquirer.prompt(questionsPushResources[0]);
+
         answers.resources.forEach((resource) => {
             const action = actions[resource];
             if (action !== undefined) {
-                action({ all: true, yes });
+                action();
             }
         })
     }
 };
 
-const pushFunction = async ({ functionId, all, yes, async } = {}) => {
+
+const pushProject = async () => {
+    try {
+        const projectId = localConfig.getProject().projectId;
+        const projectName = localConfig.getProject().projectName;
+
+        log('Updating project name');
+
+        await projectsUpdate({
+            projectId,
+            name: projectName,
+            parseOutput: false
+        });
+
+        const settings = localConfig.getProjectSettings();
+
+        if (settings.services) {
+            log('Updating services status');
+            for (let [service, status] of Object.entries(settings.services)) {
+                await projectsUpdateServiceStatus({
+                    projectId,
+                    service,
+                    status,
+                    parseOutput: false
+                });
+            }
+        }
+
+        if (settings.auth) {
+            if (settings.auth.security) {
+                log('Updating Auth security settings');
+                await projectsUpdateAuthDuration({ projectId, duration: settings.auth.security.duration, parseOutput: false });
+                await projectsUpdateAuthLimit({ projectId, limit: settings.auth.security.limit, parseOutput: false });
+                await projectsUpdateAuthSessionsLimit({ projectId, limit: settings.auth.security.sessionsLimit, parseOutput: false });
+                await projectsUpdateAuthPasswordDictionary({ projectId, enabled: settings.auth.security.passwordDictionary, parseOutput: false });
+                await projectsUpdateAuthPasswordHistory({ projectId, limit: settings.auth.security.passwordHistory, parseOutput: false });
+                await projectsUpdatePersonalDataCheck({ projectId, enabled: settings.auth.security.personalDataCheck, parseOutput: false });
+            }
+
+            if (settings.auth.methods) {
+                log('Updating Auth available login methods');
+
+                for (let [method, status] of Object.entries(settings.auth.methods)) {
+                    await projectsUpdateAuthStatus({
+                        projectId,
+                        method,
+                        status,
+                        parseOutput: false
+                    });
+                }
+            }
+        }
+
+        success();
+    } catch (e) {
+        throw e;
+    }
+}
+
+const pushFunction = async ({ functionId, async } = {}) => {
     let response = {};
 
     const functionIds = [];
 
     if (functionId) {
         functionIds.push(functionId);
-    } else if (all) {
+    } else if (cliConfig.all) {
         checkDeployConditions(localConfig);
         const functions = localConfig.getFunctions();
         if (functions.length === 0) {
@@ -337,7 +409,7 @@ const pushFunction = async ({ functionId, all, yes, async } = {}) => {
         }
 
         if (func.variables) {
-            func.pushVariables = yes;
+            func.pushVariables = cliConfig.force;
 
             try {
                 const { total } = await functionsListVariables({
@@ -795,10 +867,10 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection)
     return localAttributes.filter((attribute) => !attributesContains(attribute, remoteAttributes));
 }
 
-const pushCollection = async ({ all, yes } = {}) => {
+const pushCollection = async () => {
     const collections = [];
 
-    if (all) {
+    if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (localConfig.getCollections().length === 0) {
             throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} pull collection` to fetch all your collections.");
@@ -854,6 +926,7 @@ const pushCollection = async ({ all, yes } = {}) => {
                 databaseId: collection['databaseId'],
                 collectionId: collection['$id'],
                 parseOutput: false,
+                });
             });
 
             if (remoteCollection.name !== collection.name) {
@@ -861,6 +934,7 @@ const pushCollection = async ({ all, yes } = {}) => {
                     databaseId: collection['databaseId'],
                     collectionId: collection['$id'],
                     name: collection.name,
+                name: collection.name,
                     parseOutput: false
                 })
 
@@ -964,13 +1038,13 @@ const createAttributes = async (attributes, collection) => {
     success(`Created ${attributes.length} attributes`);
 }
 
-const pushBucket = async ({ all, yes } = {}) => {
+const pushBucket = async () => {
     let response = {};
 
     let bucketIds = [];
     const configBuckets = localConfig.getBuckets();
 
-    if (all) {
+    if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (configBuckets.length === 0) {
             throw new Error("No buckets found in the current directory. Run `appwrite pull bucket` to fetch all your buckets.");
@@ -1000,7 +1074,7 @@ const pushBucket = async ({ all, yes } = {}) => {
             })
             log(`Bucket ${bucket.name} ( ${bucket['$id']} ) already exists.`);
 
-            if (!yes) {
+            if (!cliConfig.force) {
                 const answers = await inquirer.prompt(questionsPushBuckets[1])
                 if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${bucket.name} ( ${bucket['$id']} )`);
@@ -1052,13 +1126,13 @@ const pushBucket = async ({ all, yes } = {}) => {
     }
 }
 
-const pushTeam = async ({ all, yes } = {}) => {
+const pushTeam = async () => {
     let response = {};
 
     let teamIds = [];
     const configTeams = localConfig.getTeams();
 
-    if (all) {
+    if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (configTeams.length === 0) {
             throw new Error("No teams found in the current directory. Run `appwrite pull team` to fetch all your teams.");
@@ -1088,7 +1162,7 @@ const pushTeam = async ({ all, yes } = {}) => {
             })
             log(`Team ${team.name} ( ${team['$id']} ) already exists.`);
 
-            if (!yes) {
+            if (!cliConfig.force) {
                 const answers = await inquirer.prompt(questionsPushTeams[1])
                 if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${team.name} ( ${team['$id']} )`);
@@ -1123,14 +1197,14 @@ const pushTeam = async ({ all, yes } = {}) => {
     }
 }
 
-const pushMessagingTopic = async ({ all, yes } = {}) => {
+const pushMessagingTopic = async () => {
     let response = {};
 
     let topicsIds = [];
     const configTopics = localConfig.getMessagingTopics();
-    let overrideExisting = yes;
+    let overrideExisting = cliConfig.force;
 
-    if (all) {
+    if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (configTopics.length === 0) {
             throw new Error("No topics found in the current directory. Run `appwrite pull topics` to pull all your messaging topics.");
@@ -1150,7 +1224,7 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
         topics.push(...idTopic);
     }
 
-    if (!yes) {
+    if (!cliConfig.force) {
         const answers = await inquirer.prompt(questionsPushMessagingTopics[1])
         if (answers.override.toLowerCase() === "yes") {
             overrideExisting = true;
@@ -1202,46 +1276,44 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
 }
 
 const push = new Command("push")
+    .alias('deploy')
     .description(commandDescriptions['push'])
-    .option(`--all`, `Flag to push all resources`)
-    .option(`--yes`, `Flag to confirm all warnings`)
+
+push
+    .command("all")
+    .description("Push all resource.")
     .action(actionRunner(pushResources));
 
 push
-    .command("function")
+    .command("project")
+    .description("Push project name, services and auth settings")
+    .action(actionRunner(pushProject));
+
+push
+    .command("functions")
     .description("Push functions in the current directory.")
     .option(`--functionId <functionId>`, `Function ID`)
-    .option(`--all`, `Flag to push all functions`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .option(`--async`, `Don't wait for functions deployments status`)
     .action(actionRunner(pushFunction));
 
 push
-    .command("collection")
+    .command("collections")
     .description("Push collections in the current project.")
-    .option(`--all`, `Flag to push all collections`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushCollection));
 
 push
-    .command("bucket")
+    .command("buckets")
     .description("Push buckets in the current project.")
-    .option(`--all`, `Flag to push all buckets`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushBucket));
 
 push
-    .command("team")
+    .command("teams")
     .description("Push teams in the current project.")
-    .option(`--all`, `Flag to push all teams`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushTeam));
 
 push
-    .command("topic")
+    .command("topics")
     .description("Push messaging topics in the current project.")
-    .option(`--all`, `Flag to deploy all topics`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushMessagingTopic));
 
 module.exports = {
