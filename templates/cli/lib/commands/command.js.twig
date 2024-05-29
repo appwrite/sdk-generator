@@ -4,7 +4,7 @@ const tar = require("tar");
 const ignore = require("ignore");
 const { promisify } = require('util');
 const libClient = require('../client.js');
-const { getAllFiles } = require('../utils.js');
+const { getAllFiles, showConsoleLink } = require('../utils.js');
 const { Command } = require('commander');
 const { sdkForProject, sdkForConsole } = require('../sdks')
 const { parse, actionRunner, parseInteger, parseBool, commandDescriptions, success, log } = require('../parser')
@@ -70,6 +70,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
         {%- if 'multipart/form-data' in method.consumes -%},onProgress = () => {}{%- endif -%}
 
         {%- if method.type == 'location' -%}, destination{%- endif -%}
+        {% if methodHaveConsolePreview(method.name,service.name) %}, console, open{%- endif -%}
 }) => {
 {%~ endblock %}
     let client = !sdk ? await {% if service.name == "projects" %}sdkForConsole(){% else %}sdkForProject(){% endif %} :
@@ -93,6 +94,10 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
 {% endfor %}
 {% if method.type == 'location' %}
     .requiredOption(`--destination <path>`, `output file path.`)
+{% endif %}
+{% if methodHaveConsolePreview(method.name,service.name) %}
+    .option(`--console`, `Get the resource console url`)
+    .option(`--open`, `Use with '--console' to open the using default browser`)
 {% endif %}
 {% endautoescape %}
     .action(actionRunner({{ service.name | caseLower }}{{ method.name | caseUcfirst }}))
