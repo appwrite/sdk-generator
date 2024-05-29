@@ -11,7 +11,7 @@ const { storageListBuckets } = require("./storage");
 const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
 const { questionsPullCollection, questionsPullFunctions } = require("../questions");
-const { success, log, actionRunner, commandDescriptions } = require("../parser");
+const { cliConfig, success, log, actionRunner, commandDescriptions } = require("../parser");
 
 const pullProject = async () => {
     try {
@@ -30,10 +30,10 @@ const pullProject = async () => {
     }
 }
 
-const pullFunctions = async ({ all } = {}) => {
+const pullFunctions = async () => {
     const localFunctions = localConfig.getFunctions();
 
-    const functions = all
+    const functions = cliConfig.all
         ? (await paginate(functionsList, { parseOutput: false }, 100, 'functions')).functions
         : (await inquirer.prompt(questionsPullFunctions)).functions;
 
@@ -74,22 +74,21 @@ const pullFunctions = async ({ all } = {}) => {
 
         fs.rmSync(compressedFileName);
         success(`Pulled ${func['name']} code and settings`)
-            }
     }
 }
 
 const pullCollection = async () => {
-    const databasesIds = (await inquirer.prompt(questionsPullCollection)).databases;
+    let databases = cliConfig.ids;
 
-    for (let id of databasesIds) {
-        const databaseId = id.value ? id.value : id;
-
-    if (databaseIds.length <= 0) {
-        let answers = await inquirer.prompt(questionsPullCollection)
-        databaseIds.push(...answers.databases);
+    if (databases.length === 0) {
+        if (cliConfig.all) {
+            databases = (await paginate(databasesList, { parseOutput: false }, 100, 'databases')).databases.map(database=>database.$id);
+        } else{
+            databases = (await inquirer.prompt(questionsPullCollection)).databases;
+        }
     }
 
-    for (const databaseId of databaseIds) {
+    for (const databaseId of databases) {
         const database = await databasesGet({
             databaseId,
             parseOutput: false
@@ -113,9 +112,9 @@ const pullCollection = async () => {
             });
         });
 
+        success();
     }
 
-    success();
 }
 
 const pullBucket = async () => {
@@ -172,7 +171,6 @@ pull
 pull
     .command("functions")
     .description(`Pulling your {{ spec.title|caseUcfirst }} functions`)
-    .option(`--all`, `Flag to pull all functions`)
     .action(actionRunner(pullFunctions));
 
 pull
