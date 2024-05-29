@@ -186,7 +186,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '0.15.0',
+            'X-Appwrite-Response-Format' => '1.5.0',
         ])
     ;
 
@@ -393,7 +393,7 @@ try {
     ;
 
     $sdk->generate(__DIR__ . '/examples/apple');
-    
+
     // DotNet
     $sdk  = new SDK(new DotNet(), new Swagger2($spec));
 
@@ -442,7 +442,7 @@ try {
     // Android
 
     $sdk = new SDK(new Android(), new Swagger2($spec));
-    
+
     $sdk
         ->setName('Android')
         ->setNamespace('io appwrite')
@@ -466,7 +466,7 @@ try {
 
     // Kotlin
     $sdk = new SDK(new Kotlin(), new Swagger2($spec));
-    
+
     $sdk
         ->setName('Kotlin')
         ->setNamespace('io appwrite')
