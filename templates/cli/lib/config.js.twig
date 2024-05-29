@@ -336,6 +336,55 @@ class Local extends Config {
         this.set("projectId", projectId);
         this.set("projectName", projectName);
     }
+
+
+    getProjectSettings() {
+        if (!this.has("projectSettings")) {
+            return {};
+        }
+
+        return this.get('projectSettings')
+    }
+
+    setProjectSettings(project) {
+        const settings = {
+            services: {
+                account: project.serviceStatusForAccount,
+                avatars: project.serviceStatusForAvatars,
+                databases: project.serviceStatusForDatabases,
+                locale: project.serviceStatusForLocale,
+                health: project.serviceStatusForHealth,
+                storage: project.serviceStatusForStorage,
+                teams: project.serviceStatusForTeams,
+                users: project.serviceStatusForUsers,
+                functions: project.serviceStatusForFunctions,
+                graphql: project.serviceStatusForGraphql,
+                messaging: project.serviceStatusForMessaging,
+
+            },
+            auth: {
+                methods: {
+                    jwt: project.authJWT,
+                    phone: project.authPhone,
+                    invites: project.authInvites,
+                    anonymous: project.authAnonymous,
+                    "email-otp": project.authEmailOtp,
+                    "magic-url": project.authUsersAuthMagicURL,
+                    "email-password": project.authEmailPassword
+                },
+                security: {
+                    duration: project.authDuration,
+                    limit: project.authLimit,
+                    sessionsLimit: project.authSessionsLimit,
+                    passwordHistory: project.authPasswordHistory,
+                    passwordDictionary: project.authPasswordDictionary,
+                    personalDataCheck: project.authPersonalDataCheck
+                }
+            }
+        };
+
+        this.set('projectSettings', settings)
+    }
 }
 
 class Global extends Config {

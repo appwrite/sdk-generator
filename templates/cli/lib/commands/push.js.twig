@@ -1,11 +1,12 @@
+const chalk = require('chalk');
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
 const { localConfig, globalConfig } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
-const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics } = require("../questions");
-const { actionRunner, success, log, error, commandDescriptions } = require("../parser");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
+const { cliConfig, actionRunner, success, log, error, commandDescriptions, drawTable } = require("../parser");
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
@@ -27,7 +28,6 @@ const {
     databasesDeleteAttribute,
     databasesListAttributes,
     databasesListIndexes,
-    databasesDeleteIndex,
     databasesUpdateCollection
 } = require("./databases");
 const {
@@ -41,6 +41,17 @@ const {
     teamsUpdateName,
     teamsCreate
 } = require("./teams");
+const {
+    projectsUpdate,
+    projectsUpdateServiceStatus,
+    projectsUpdateAuthStatus,
+    projectsUpdateAuthDuration,
+    projectsUpdateAuthLimit,
+    projectsUpdateAuthSessionsLimit,
+    projectsUpdateAuthPasswordDictionary,
+    projectsUpdateAuthPasswordHistory,
+    projectsUpdatePersonalDataCheck,
+} = require("./projects");
 const { checkDeployConditions } = require('../utils');
 
 const STEP_SIZE = 100;      // Resources
@@ -48,6 +59,8 @@ const POLL_DEBOUNCE = 2000; // Milliseconds
 const POLL_MAX_DEBOUNCE = 30; // Times
 
 let pollMaxDebounces = 30;
+
+const changeableKeys = ['status', 'required', 'xdefault', 'elements', 'min', 'max', 'default', 'error'];
 
 const awaitPools = {
     wipeAttributes: async (databaseId, collectionId, iteration = 1) => {
@@ -138,6 +151,39 @@ const awaitPools = {
 
         return await awaitPools.wipeVariables(
             functionId,
+            iteration + 1
+        );
+    },
+    deleteAttributes: async (databaseId, collectionId, attributeKeys, iteration = 1) => {
+        if (iteration > pollMaxDebounces) {
+            return false;
+        }
+
+        let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
+        if (steps > 1 && iteration === 1) {
+            pollMaxDebounces *= steps;
+
+            log('Found a large number of attributes to be deleted. Increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+        }
+
+        const { attributes } = await paginate(databasesListAttributes, {
+            databaseId,
+            collectionId,
+            parseOutput: false
+        }, 100, 'attributes');
+
+        const ready = attributeKeys.filter(attribute => attributes.includes(attribute.key));
+
+        if (ready.length === 0) {
+            return true;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+
+        return await awaitPools.expectAttributes(
+            databaseId,
+            collectionId,
+            attributeKeys,
             iteration + 1
         );
     },
@@ -233,7 +279,7 @@ const awaitPools = {
     },
 }
 
-const pushResources = async ({ all, yes } = {}) => {
+const pushResources = async () => {
     const actions = {
         functions: pushFunction,
         collections: pushCollection,
@@ -242,33 +288,93 @@ const pushResources = async ({ all, yes } = {}) => {
         messages: pushMessagingTopic
     }
 
-    if (all) {
-        Object.values(actions).forEach(action => action({ all: true, yes }));
+    if (cliConfig.all) {
+        Object.values(actions).forEach(action => action());
     } else {
         const answers = await inquirer.prompt(questionsPushResources[0]);
+
         answers.resources.forEach((resource) => {
             const action = actions[resource];
             if (action !== undefined) {
-                action({ all: true, yes });
+                action();
             }
         })
     }
 };
 
-const pushFunction = async ({ functionId, all, yes, async } = {}) => {
+
+const pushProject = async () => {
+    try {
+        const projectId = localConfig.getProject().projectId;
+        const projectName = localConfig.getProject().projectName;
+
+        log('Updating project name');
+
+        await projectsUpdate({
+            projectId,
+            name: projectName,
+            parseOutput: false
+        });
+
+        const settings = localConfig.getProjectSettings();
+
+        if (settings.services) {
+            log('Updating services status');
+            for (let [service, status] of Object.entries(settings.services)) {
+                await projectsUpdateServiceStatus({
+                    projectId,
+                    service,
+                    status,
+                    parseOutput: false
+                });
+            }
+        }
+
+        if (settings.auth) {
+            if (settings.auth.security) {
+                log('Updating Auth security settings');
+                await projectsUpdateAuthDuration({ projectId, duration: settings.auth.security.duration, parseOutput: false });
+                await projectsUpdateAuthLimit({ projectId, limit: settings.auth.security.limit, parseOutput: false });
+                await projectsUpdateAuthSessionsLimit({ projectId, limit: settings.auth.security.sessionsLimit, parseOutput: false });
+                await projectsUpdateAuthPasswordDictionary({ projectId, enabled: settings.auth.security.passwordDictionary, parseOutput: false });
+                await projectsUpdateAuthPasswordHistory({ projectId, limit: settings.auth.security.passwordHistory, parseOutput: false });
+                await projectsUpdatePersonalDataCheck({ projectId, enabled: settings.auth.security.personalDataCheck, parseOutput: false });
+            }
+
+            if (settings.auth.methods) {
+                log('Updating Auth available login methods');
+
+                for (let [method, status] of Object.entries(settings.auth.methods)) {
+                    await projectsUpdateAuthStatus({
+                        projectId,
+                        method,
+                        status,
+                        parseOutput: false
+                    });
+                }
+            }
+        }
+
+        success();
+    } catch (e) {
+        throw e;
+    }
+}
+
+const pushFunction = async ({ functionId, async } = {}) => {
     let response = {};
 
     const functionIds = [];
 
     if (functionId) {
         functionIds.push(functionId);
-    } else if (all) {
+    } else if (cliConfig.all) {
         checkDeployConditions(localConfig);
         const functions = localConfig.getFunctions();
         if (functions.length === 0) {
             throw new Error("No functions found in the current directory.");
         }
-        functionIds.push(...functions.map((func, idx) => {
+        functionIds.push(...functions.map((func) => {
             return func.$id;
         }));
     }
@@ -301,7 +407,7 @@ const pushFunction = async ({ functionId, all, yes, async } = {}) => {
         }
 
         if (func.variables) {
-            func.pushVariables = yes;
+            func.pushVariables = cliConfig.force;
 
             try {
                 const { total } = await functionsListVariables({
@@ -372,7 +478,7 @@ const pushFunction = async ({ functionId, all, yes, async } = {}) => {
             });
         } catch (e) {
 
-            if (e.code == 404) {
+            if (Number(e.code) === 404) {
                 functionExists = false;
             } else {
                 updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
@@ -647,12 +753,126 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
     }
 }
 
-const pushCollection = async ({ all, yes } = {}) => {
-    let response = {};
+const deleteAttribute = async (collection, attribute) => {
+    log(`Deleting attribute ${attribute.key} of ${collection.name} ( ${collection['$id']} )`);
 
+    await databasesDeleteAttribute({
+        databaseId: collection['databaseId'],
+        collectionId: collection['$id'],
+        key: attribute.key,
+        parseOutput: false
+    });
+}
+
+/**
+ * Check if attribute non-changeable fields has been changed
+ * If so return the differences as an object.
+ * @param remote
+ * @param local
+ * @param collection
+ * @returns {undefined|{reason: string, action: *, attribute, key: string}}
+ */
+const checkAttributeChanges = (remote, local, collection) => {
+    if (local === undefined) {
+        return undefined;
+    }
+
+    const keyName = `${chalk.yellow(local.key)} in ${collection.name} (${collection['$id']})`;
+    const action = chalk.cyan('recreating');
+    let reason = '';
+
+    for (let key of Object.keys(remote)) {
+        if (changeableKeys.includes(key)) {
+            continue;
+        }
+
+        if (remote[key] !== local[key]) {
+            const bol = reason === '' ? '' : '\n';
+            reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
+        }
+    }
+
+    return reason === '' ? undefined : { key: keyName, attribute: remote, reason, action };
+}
+
+/**
+ * Check if attributes contain the given attribute
+ * @param attribute
+ * @param attributes
+ * @returns {*}
+ */
+const attributesContains = (attribute, attributes) => attributes.find((attr) => attr.key === attribute.key);
+
+
+const generateChangesObject = (attribute, collection, isAdding) => {
+    return {
+        key: `${chalk.yellow(attribute.key)} in ${collection.name} (${collection['$id']})`,
+        attribute: attribute,
+        reason: isAdding ? 'Field doesn\'t exist on the remote server' : 'Field doesn\'t exist in appwrite.json file',
+        action: isAdding ? chalk.green('adding') : chalk.red('deleting')
+    };
+
+};
+
+/**
+ * Filter deleted and recreated attributes,
+ * return list of attributes to create
+ * @param remoteAttributes
+ * @param localAttributes
+ * @param collection
+ * @returns {Promise<*|*[]>}
+ */
+const attributesToCreate = async (remoteAttributes, localAttributes, collection) => {
+
+    const deleting = remoteAttributes.filter((attribute) => !attributesContains(attribute, localAttributes)).map((attr) => generateChangesObject(attr, collection, false));
+    const adding = localAttributes.filter((attribute) => !attributesContains(attribute, remoteAttributes)).map((attr) => generateChangesObject(attr, collection, true));
+    const conflicts = remoteAttributes.map((attribute) => checkAttributeChanges(attribute, attributesContains(attribute, localAttributes), collection)).filter(attribute => attribute !== undefined);
+
+    let changedAttributes = [];
+    const changing = [...deleting, ...adding, ...conflicts]
+    if (changing.length === 0) {
+        return changedAttributes;
+    }
+
+    log(!cliConfig.force ? 'There are pending changes in your collection deployment' : 'List of applied changes');
+
+    drawTable(changing.map((change) => {
+        return { Key: change.key, Action: change.action, Reason: change.reason, };
+    }));
+
+    if (!cliConfig.force) {
+        const answers = await inquirer.prompt(questionsPushCollections[1]);
+
+        if (answers.changes.toLowerCase() !== 'yes') {
+            return changedAttributes;
+        }
+    }
+
+    if (conflicts.length > 0) {
+        changedAttributes = conflicts.map((change) => change.attribute);
+        await Promise.all(changedAttributes.map((changed) => deleteAttribute(collection, changed)));
+        remoteAttributes = remoteAttributes.filter((attribute) => !attributesContains(attribute, changedAttributes))
+    }
+
+    const deletingAttributes = deleting.map((change) => change.attribute);
+    await Promise.all(deletingAttributes.map((attribute) => deleteAttribute(collection, attribute)));
+    const attributeKeys = [...remoteAttributes.map(attribute => attribute.key), ...deletingAttributes.map(attribute => attribute.key)]
+
+    if (attributeKeys.length) {
+        const deleteAttributesPoolStatus = await awaitPools.deleteAttributes(collection['databaseId'], collection['$id'], attributeKeys);
+
+        if (!deleteAttributesPoolStatus) {
+            throw new Error("Attribute deletion timed out.");
+        }
+    }
+
+    return localAttributes.filter((attribute) => !attributesContains(attribute, remoteAttributes));
+}
+
+const pushCollection = async () => {
     const collections = [];
 
-    if (all) {
+    if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (localConfig.getCollections().length === 0) {
             throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} pull collection` to fetch all your collections.");
@@ -669,213 +889,163 @@ const pushCollection = async ({ all, yes } = {}) => {
             collections.push(collection);
         })
     }
+    const databases = Array.from(new Set(collections.map(collection => collection['databaseId'])));
+    log('Checking for databases and collection changes');
 
-    for (let collection of collections) {
-        log(`Pushing collection ${collection.name} ( ${collection['databaseId']} - ${collection['$id']} )`)
-
-        let databaseId;
-
-        const localDatabase = localConfig.getDatabase(collection.databaseId);
+    // Parallel db actions
+    await Promise.all(databases.map(async (databaseId) => {
+        const localDatabase = localConfig.getDatabase(databaseId);
 
         try {
             const database = await databasesGet({
-                databaseId: collection.databaseId,
+                databaseId: databaseId,
                 parseOutput: false,
             });
 
-            databaseId = database.$id;
-
-            if (database.name !== (localDatabase.name ?? collection.databaseId)) {
+            if (database.name !== (localDatabase.name ?? databaseId)) {
                 await databasesUpdate({
-                    databaseId: collection.databaseId,
-                    name: localDatabase.name ?? collection.databaseId,
+                    databaseId: databaseId,
+                    name: localDatabase.name ?? databaseId,
                     parseOutput: false
                 })
 
-                success(`Updated ${localDatabase.name} ( ${collection.databaseId} )`);
+                success(`Updated ${localDatabase.name} ( ${databaseId} ) name`);
             }
         } catch (err) {
-            log(`Database ${collection.databaseId} not found. Creating it now...`);
+            log(`Database ${databaseId} not found. Creating it now...`);
 
-            const database = await databasesCreate({
-                databaseId: collection.databaseId,
-                name: localDatabase.name ?? collection.databaseId,
+            await databasesCreate({
+                databaseId: databaseId,
+                name: localDatabase.name ?? databaseId,
+                parseOutput: false,
+            });
+        }
+    }));
+
+    // Parallel collection actions
+    await Promise.all(collections.map(async (collection) => {
+        try {
+            const remoteCollection = await databasesGetCollection({
+                databaseId: collection['databaseId'],
+                collectionId: collection['$id'],
                 parseOutput: false,
             });
 
-            databaseId = database.$id;
-        }
-
-        try {
-            response = await databasesGetCollection({
-                databaseId,
-                collectionId: collection['$id'],
-                parseOutput: false,
-            })
-
-            log(`Collection ${collection.name} ( ${collection['$id']} ) already exists.`);
-
-            if (!yes) {
-                const answers = await inquirer.prompt(questionsPushCollections[1])
-                if (answers.override.toLowerCase() !== "yes") {
-                    log(`Received "${answers.override}". Skipping ${collection.name} ( ${collection['$id']} )`);
-                    continue;
-                }
-            }
-
-            log(`Deleting indexes and attributes ... `);
-
-            const { indexes } = await paginate(databasesListIndexes, {
-                databaseId,
-                collectionId: collection['$id'],
-                parseOutput: false
-            }, 100, 'indexes');
-
-            await Promise.all(indexes.map(async index => {
-                await databasesDeleteIndex({
-                    databaseId,
+            if (remoteCollection.name !== collection.name) {
+                await databasesUpdateCollection({
+                    databaseId: collection['databaseId'],
                     collectionId: collection['$id'],
-                    key: index.key,
+                    name: collection.name,
                     parseOutput: false
-                });
-            }));
+                })
 
-            let result = await awaitPools.wipeIndexes(databaseId, collection['$id']);
-            if (!result) {
-                throw new Error("Index deletion timed out.");
+                success(`Updated ${collection.name} ( ${collection['$id']} ) name`);
             }
+            collection.remoteVersion = remoteCollection;
 
-            const { attributes } = await paginate(databasesListAttributes, {
-                databaseId,
-                collectionId: collection['$id'],
-                parseOutput: false
-            }, 100, 'attributes');
-
-            await Promise.all(attributes.map(async attribute => {
-                await databasesDeleteAttribute({
-                    databaseId,
-                    collectionId: collection['$id'],
-                    key: attribute.key,
-                    parseOutput: false
-                });
-            }));
-
-            const deleteAttributesPoolStatus = await awaitPools.wipeAttributes(databaseId, collection['$id']);
-            if (!deleteAttributesPoolStatus) {
-                throw new Error("Attribute deletion timed out.");
-            }
-
-            await databasesUpdateCollection({
-                databaseId,
-                collectionId: collection['$id'],
-                name: collection.name,
-                documentSecurity: collection.documentSecurity,
-                permissions: collection['$permissions'],
-                enabled: collection.enabled,
-                parseOutput: false
-            })
+            collection.isExisted = true;
         } catch (e) {
-            if (e.code == 404) {
+            if (Number(e.code) === 404) {
                 log(`Collection ${collection.name} does not exist in the project. Creating ... `);
-                response = await databasesCreateCollection({
-                    databaseId,
+                await databasesCreateCollection({
+                    databaseId: collection['databaseId'],
                     collectionId: collection['$id'],
                     name: collection.name,
                     documentSecurity: collection.documentSecurity,
                     permissions: collection['$permissions'],
                     parseOutput: false
                 })
-
             } else {
                 throw e;
             }
         }
+    }))
 
-        // Create all non-relationship attributes first
-        const attributes = collection.attributes.filter(attribute => attribute.type !== 'relationship');
+    // Serialize attribute actions
+    for (let collection of collections) {
+        let attributes = collection.attributes;
 
-        await Promise.all(attributes.map(attribute => {
-            return createAttribute(databaseId, collection['$id'], attribute);
-        }));
+        if (collection.isExisted) {
+            attributes = await attributesToCreate(collection.remoteVersion.attributes, collection.attributes, collection);
 
-        let result = await awaitPools.expectAttributes(
-            databaseId,
-            collection['$id'],
-            attributes.map(attribute => attribute.key)
-        );
-
-        if (!result) {
-            throw new Error("Attribute creation timed out.");
+            if (Array.isArray(attributes) && attributes.length <= 0) {
+                log(`No changes has been detected. Skipping ${collection.name} ( ${collection['$id']} )`);
+                continue;
+            }
         }
 
-        success(`Created ${attributes.length} non-relationship attributes`);
+        log(`Pushing collection ${collection.name} ( ${collection['databaseId']} - ${collection['$id']} ) attributes`)
 
-        log(`Creating indexes ...`)
-
-        await Promise.all(collection.indexes.map(async index => {
-            await databasesCreateIndex({
-                databaseId,
-                collectionId: collection['$id'],
-                key: index.key,
-                type: index.type,
-                attributes: index.attributes,
-                orders: index.orders,
-                parseOutput: false
-            });
-        }));
-
-        result = await awaitPools.expectIndexes(
-            databaseId,
-            collection['$id'],
-            collection.indexes.map(attribute => attribute.key)
-        );
-
-        if (!result) {
-            throw new Error("Index creation timed out.");
+        try {
+            await createAttributes(attributes, collection)
+        } catch (e) {
+            throw e;
         }
 
-        success(`Created ${collection.indexes.length} indexes`);
+        try {
+            await createIndexes(collection.indexes, collection);
+        } catch (e) {
+            throw e;
+        }
 
         success(`Pushed ${collection.name} ( ${collection['$id']} )`);
     }
-
-    // Create the relationship attributes
-    for (let collection of collections) {
-        const relationships = collection.attributes.filter(attribute =>
-            attribute.type === 'relationship' && attribute.side === 'parent'
-        );
-
-        if (relationships.length === 0) {
-            continue;
-        }
-
-        log(`Pushing relationships for collection ${collection.name} ( ${collection['$id']} )`);
-
-        await Promise.all(relationships.map(attribute => {
-            return createAttribute(collection['databaseId'], collection['$id'], attribute);
-        }));
-
-        let result = await awaitPools.expectAttributes(
-            collection['databaseId'],
-            collection['$id'],
-            relationships.map(attribute => attribute.key)
-        );
-
-        if (!result) {
-            throw new Error("Attribute creation timed out.");
-        }
-
-        success(`Created ${relationships.length} relationship attributes`);
-    }
 }
 
-const pushBucket = async ({ all, yes } = {}) => {
+const createIndexes = async (indexes, collection) => {
+    log(`Creating indexes ...`)
+
+    for (let index of indexes) {
+        await databasesCreateIndex({
+            databaseId: collection['databaseId'],
+            collectionId: collection['$id'],
+            key: index.key,
+            type: index.type,
+            attributes: index.attributes,
+            orders: index.orders,
+            parseOutput: false
+        });
+    }
+
+    const result = await awaitPools.expectIndexes(
+        collection['databaseId'],
+        collection['$id'],
+        indexes.map(index => index.key)
+    );
+
+    if (!result) {
+        throw new Error("Index creation timed out.");
+    }
+
+    success(`Created ${indexes.length} indexes`);
+}
+const createAttributes = async (attributes, collection) => {
+    for (let attribute of attributes) {
+        if (attribute.side !== 'child') {
+            await createAttribute(collection['databaseId'], collection['$id'], attribute);
+        }
+    }
+
+    const result = await awaitPools.expectAttributes(
+        collection['databaseId'],
+        collection['$id'],
+        collection.attributes.map(attribute => attribute.key)
+    );
+
+    if (!result) {
+        throw new Error(`Attribute creation timed out.`);
+    }
+
+    success(`Created ${attributes.length} attributes`);
+}
+
+const pushBucket = async () => {
     let response = {};
 
     let bucketIds = [];
     const configBuckets = localConfig.getBuckets();
 
-    if (all) {
+    if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (configBuckets.length === 0) {
             throw new Error("No buckets found in the current directory. Run `appwrite pull bucket` to fetch all your buckets.");
@@ -905,7 +1075,7 @@ const pushBucket = async ({ all, yes } = {}) => {
             })
             log(`Bucket ${bucket.name} ( ${bucket['$id']} ) already exists.`);
 
-            if (!yes) {
+            if (!cliConfig.force) {
                 const answers = await inquirer.prompt(questionsPushBuckets[1])
                 if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${bucket.name} ( ${bucket['$id']} )`);
@@ -923,7 +1093,6 @@ const pushBucket = async ({ all, yes } = {}) => {
                 enabled: bucket.enabled,
                 maximumFileSize: bucket.maximumFileSize,
                 allowedFileExtensions: bucket.allowedFileExtensions,
-                compression: bucket.compression,
                 encryption: bucket.encryption,
                 antivirus: bucket.antivirus,
                 compression: bucket.compression,
@@ -932,7 +1101,7 @@ const pushBucket = async ({ all, yes } = {}) => {
 
             success(`Pushed ${bucket.name} ( ${bucket['$id']} )`);
         } catch (e) {
-            if (e.code == 404) {
+            if (Number(e.code) === 404) {
                 log(`Bucket ${bucket.name} does not exist in the project. Creating ... `);
 
                 response = await storageCreateBucket({
@@ -957,13 +1126,13 @@ const pushBucket = async ({ all, yes } = {}) => {
     }
 }
 
-const pushTeam = async ({ all, yes } = {}) => {
+const pushTeam = async () => {
     let response = {};
 
     let teamIds = [];
     const configTeams = localConfig.getTeams();
 
-    if (all) {
+    if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (configTeams.length === 0) {
             throw new Error("No teams found in the current directory. Run `appwrite pull team` to fetch all your teams.");
@@ -993,7 +1162,7 @@ const pushTeam = async ({ all, yes } = {}) => {
             })
             log(`Team ${team.name} ( ${team['$id']} ) already exists.`);
 
-            if (!yes) {
+            if (!cliConfig.force) {
                 const answers = await inquirer.prompt(questionsPushTeams[1])
                 if (answers.override.toLowerCase() !== "yes") {
                     log(`Received "${answers.override}". Skipping ${team.name} ( ${team['$id']} )`);
@@ -1003,7 +1172,7 @@ const pushTeam = async ({ all, yes } = {}) => {
 
             log(`Updating team ...`)
 
-            await teamsUpdate({
+            await teamsUpdateName({
                 teamId: team['$id'],
                 name: team.name,
                 parseOutput: false
@@ -1011,7 +1180,7 @@ const pushTeam = async ({ all, yes } = {}) => {
 
             success(`Pushed ${team.name} ( ${team['$id']} )`);
         } catch (e) {
-            if (e.code == 404) {
+            if (Number(e.code) === 404) {
                 log(`Team ${team.name} does not exist in the project. Creating ... `);
 
                 response = await teamsCreate({
@@ -1028,14 +1197,14 @@ const pushTeam = async ({ all, yes } = {}) => {
     }
 }
 
-const pushMessagingTopic = async ({ all, yes } = {}) => {
+const pushMessagingTopic = async () => {
     let response = {};
 
     let topicsIds = [];
     const configTopics = localConfig.getMessagingTopics();
-    let overrideExisting = yes;
+    let overrideExisting = cliConfig.force;
 
-    if (all) {
+    if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (configTopics.length === 0) {
             throw new Error("No topics found in the current directory. Run `appwrite pull topics` to pull all your messaging topics.");
@@ -1055,7 +1224,7 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
         topics.push(...idTopic);
     }
 
-    if (!yes) {
+    if (!cliConfig.force) {
         const answers = await inquirer.prompt(questionsPushMessagingTopics[1])
         if (answers.override.toLowerCase() === "yes") {
             overrideExisting = true;
@@ -1088,7 +1257,7 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
 
             success(`Pushed ${topic.name} ( ${topic['$id']} )`);
         } catch (e) {
-            if (e.code == 404) {
+            if (Number(e.code) === 404) {
                 log(`Topic ${topic.name} does not exist in the project. Creating ... `);
 
                 response = await messagingCreateTopic({
@@ -1107,46 +1276,44 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
 }
 
 const push = new Command("push")
+    .alias('deploy')
     .description(commandDescriptions['push'])
-    .option(`--all`, `Flag to push all resources`)
-    .option(`--yes`, `Flag to confirm all warnings`)
+
+push
+    .command("all")
+    .description("Push all resource.")
     .action(actionRunner(pushResources));
 
 push
-    .command("function")
+    .command("project")
+    .description("Push project name, services and auth settings")
+    .action(actionRunner(pushProject));
+
+push
+    .command("functions")
     .description("Push functions in the current directory.")
     .option(`--functionId <functionId>`, `Function ID`)
-    .option(`--all`, `Flag to push all functions`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .option(`--async`, `Don't wait for functions deployments status`)
     .action(actionRunner(pushFunction));
 
 push
-    .command("collection")
+    .command("collections")
     .description("Push collections in the current project.")
-    .option(`--all`, `Flag to push all collections`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushCollection));
 
 push
-    .command("bucket")
+    .command("buckets")
     .description("Push buckets in the current project.")
-    .option(`--all`, `Flag to push all buckets`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushBucket));
 
 push
-    .command("team")
+    .command("teams")
     .description("Push teams in the current project.")
-    .option(`--all`, `Flag to push all teams`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushTeam));
 
 push
-    .command("topic")
+    .command("topics")
     .description("Push messaging topics in the current project.")
-    .option(`--all`, `Flag to deploy all topics`)
-    .option(`--yes`, `Flag to confirm all warnings`)
     .action(actionRunner(pushMessagingTopic));
 
 module.exports = {

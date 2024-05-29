@@ -297,6 +297,7 @@ const migrate = async () => {
 }
 module.exports = {
     {% if sdk.test != "true" %}
+    loginCommand,
     whoami,
     login,
     logout,

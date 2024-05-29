@@ -2,15 +2,16 @@ const chalk = require("chalk");
 const { localConfig, globalConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { teamsList } = require('./commands/teams');
-const { functionsListRuntimes } = require('./commands/functions');
+const { functionsListRuntimes, functionsList } = require('./commands/functions');
 const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
 const { validateRequired } = require("./validations");
 const { paginate } = require('./paginate');
-
 const { databasesList } = require('./commands/databases');
 const { checkDeployConditions } = require('./utils');
 const JSONbig = require("json-bigint")({ storeAsString: false });
+
+const whenOverride = (answers)=> answers.override === undefined ? true : answers.override;
 
 const getIgnores = (runtime) => {
     const languge = runtime.split('-')[0];
@@ -112,7 +113,7 @@ const getInstallCommand = (runtime) => {
     return undefined;
 };
 
-const questionsPullProject = [
+const questionsInitProject = [
     {
         type: "confirm",
         name: "override",
@@ -145,7 +146,8 @@ const questionsPullProject = [
             }
 
             return choices;
-        }
+        },
+        when: whenOverride
     },
     {
         type: "list",
@@ -160,39 +162,32 @@ const questionsPullProject = [
         choices: [
             {
                 name: "Create a new {{ spec.title|caseUcfirst }} project",
-                value: "new",
+                value: "new"
             },
             {
                 name: "Link this directory to an existing {{ spec.title|caseUcfirst }} project",
-                value: "existing",
-            },
-        ],
+                value: "existing"
+            }
+        ]
     },
     {
         type: "input",
         name: "project",
         message: "What would you like to name your project?",
         default: "My Awesome Project",
-        when(answers) {
-            return answers.start == "new";
-        },
+        when: (answer) => answer.start === 'new'
     },
     {
         type: "input",
         name: "id",
         message: "What ID would you like to have for your project?",
         default: "unique()",
-        when(answers) {
-            return answers.start == "new";
-        },
+        when: (answer) => answer.start === 'new'
     },
     {
         type: "list",
         name: "project",
         message: "Choose your {{ spec.title|caseUcfirst }} project.",
-        when(answers) {
-            return answers.start == "existing";
-        },
         choices: async (answers) => {
             let response = await projectsList({
                 parseOutput: false,
@@ -214,11 +209,35 @@ const questionsPullProject = [
             }
 
             return choices;
+        },
+        when: (answer) => answer.start === 'existing'
+    }
+];
+
+const questionsPullFunctions = [
+    {
+        type: "checkbox",
+        name: "functions",
+        message: "Which functions would you like to pull?",
+        validate: (value) => validateRequired('function', value),
+        choices: async () => {
+            const { functions } = await paginate(functionsList, { parseOutput: false }, 100, 'functions');
+
+            if(functions.length === 0){
+                throw "We couldn't find any functions in your {{ spec.title|caseUcfirst }} project";
+            }
+
+            return functions.map(func => {
+                return {
+                    name: `${func.name} (${func.$id})`,
+                    value: func
+                }
+            });
         }
     }
 ];
 
-const questionsPullFunction = [
+const questionsCreateFunction = [
     {
         type: "input",
         name: "name",
@@ -245,6 +264,7 @@ const questionsPullFunction = [
                     name: `${runtime.name} (${runtime['$id']})`,
                     value: {
                         id: runtime['$id'],
+                        name: runtime['$id'].split('-')[0],
                         entrypoint: getEntrypoint(runtime['$id']),
                         ignore: getIgnores(runtime['$id']),
                         commands: getInstallCommand(runtime['$id'])
@@ -256,11 +276,107 @@ const questionsPullFunction = [
     }
 ];
 
+const questionsCreateFunctionSelectTemplate = (templates) => {
+    return [
+        {
+            type: "list",
+            name: "template",
+            message: "What template would you like to use?",
+            choices: templates.map((template) => {
+                const name =`${template[0].toUpperCase()}${template.split('').slice(1).join('')}`.replace(/[-_]/g,' ');
+
+                return { value: template, name }
+            })
+        }
+    ];
+};
+
+
+
+const questionsCreateBucket = [
+    {
+        type: "input",
+        name: "bucket",
+        message: "What would you like to name your bucket?",
+        default: "My Awesome Bucket"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your bucket?",
+        default: "unique()"
+    },
+    {
+        type: "list",
+        name: "fileSecurity",
+        message: "Enable File-Security configuring permissions for individual file",
+        choices: ["No", "Yes"]
+    }
+];
+
+const questionsCreateCollection = [
+    {
+        type: "list",
+        name: "database",
+        message: "Choose the collection database",
+        choices: async () => {
+            const { databases } = await paginate(databasesList, { parseOutput: false }, 100, 'databases');
+
+            let choices = databases.map((database, idx) => {
+                return {
+                    name: `${database.name} (${database.$id})`,
+                    value: database.$id
+                }
+            })
+
+            if (choices.length === 0) {
+                throw new Error("No databases found. Please create one in project console.")
+            }
+
+            return choices;
+        }
+    },
+    {
+        type: "input",
+        name: "collection",
+        message: "What would you like to name your collection?",
+        default: "My Awesome Collection"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your collection?",
+        default: "unique()"
+    },
+    {
+        type: "list",
+        name: "documentSecurity",
+        message: "Enable Document-Security for configuring permissions for individual documents",
+        choices: ["No", "Yes"]
+    }
+];
+
+const questionsCreateMessagingTopic = [
+    {
+        type: "input",
+        name: "topic",
+        message: "What would you like to name your messaging topic?",
+        default: "My Awesome Topic"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your messaging topic?",
+        default: "unique()"
+    }
+];
+
 const questionsPullCollection = [
     {
         type: "checkbox",
         name: "databases",
         message: "From which database would you like to pull collections?",
+        validate: (value) => validateRequired('collection', value),
         choices: async () => {
             let response = await databasesList({
                 parseOutput: false
@@ -441,9 +557,9 @@ const questionsPushCollections = [
     },
     {
         type: "input",
-        name: "override",
-        message: 'Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.'
-    },
+        name: "changes",
+        message: `Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.`
+    }
 ]
 
 const questionsPushBuckets = [
@@ -616,10 +732,15 @@ const questionGetEndpoint = [
 ];
 
 module.exports = {
-    questionsPullProject,
+    questionsInitProject,
+    questionsCreateFunction,
+    questionsCreateFunctionSelectTemplate,
+    questionsCreateBucket,
+    questionsCreateCollection,
+    questionsCreateMessagingTopic,
+    questionsPullFunctions,
     questionsLogin,
     questionsLogout,
-    questionsPullFunction,
     questionsPullCollection,
     questionsPushResources,
     questionsPushFunctions,
