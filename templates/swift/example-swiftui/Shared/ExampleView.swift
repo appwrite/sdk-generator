@@ -20,6 +20,9 @@ struct ExampleView: View {
             TextField("", text: $viewModel.response, axis: .vertical)
                 .padding()
 
+            TextField("", text: $viewModel.response2, axis: .vertical)
+                .padding()
+
             Button("Login") {
                 Task { await viewModel.login() }
             }
@@ -41,7 +44,7 @@ struct ExampleView: View {
             }
             
             Button("Subscribe") {
-                viewModel.subscribe()
+                Task { await viewModel.subscribe() }
             }
         }
         #if os(macOS)
