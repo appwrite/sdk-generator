@@ -16,6 +16,8 @@
 
     const func = localConfig.getFunction(functionId);
 
+    ignore.add('.appwrite');
+
     if (func.ignore) {
         ignorer.add(func.ignore);
     } else if (fs.existsSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore'))) {
