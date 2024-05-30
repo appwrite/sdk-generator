@@ -7,6 +7,7 @@ const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
 const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
 const { cliConfig, actionRunner, success, log, error, commandDescriptions, drawTable } = require("../parser");
+const { proxyListRules } = require('./proxy');
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
@@ -881,8 +882,23 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
 
                     const status = response['status'];
                     if (status === 'ready') {
-                        updaterRow.update({ status: 'Deployed' });
                         successfullyDeployed++;
+
+                        let url = '';
+                        const res = await proxyListRules({
+                            parseOutput: false,
+                            queries: [
+                                JSON.stringify({ method: 'limit', values: [1] }),
+                                JSON.stringify({ method: 'equal', "attribute": "resourceType", "values": ["function"] }),
+                                JSON.stringify({ method: 'equal', "attribute": "resourceId", "values": [func['$id']] })
+                            ],
+                        });
+
+                        if(Number(res.total) === 1){
+                            url = res.rules[0].domain;
+                        }
+
+                        updaterRow.update({ status: 'Deployed', end: url});
 
                         break;
                     } else if (status === 'failed') {
