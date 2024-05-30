@@ -213,6 +213,21 @@ const questionsInitProject = [
         when: (answer) => answer.start === 'existing'
     }
 ];
+const questionsPullResources = [
+    {
+        type: "checkbox",
+        name: "resources",
+        message: "Which resources would you like to pull?",
+        choices: [
+            { name: 'Project', value: 'project' },
+            { name: 'Functions', value: 'functions' },
+            { name: 'Collections', value: 'collections' },
+            { name: 'Buckets', value: 'buckets' },
+            { name: 'Teams', value: 'teams' },
+            { name: 'Topics', value: 'messages' }
+        ]
+    }
+]
 
 const questionsPullFunctions = [
     {
@@ -497,6 +512,7 @@ const questionsPushResources = [
         name: "resources",
         message: "Which resources would you like to push?",
         choices: [
+            { name: 'Project', value: 'project' },
             { name: 'Functions', value: 'functions' },
             { name: 'Collections', value: 'collections' },
             { name: 'Buckets', value: 'buckets' },
@@ -740,6 +756,7 @@ module.exports = {
     questionsCreateMessagingTopic,
     questionsPullFunctions,
     questionsLogin,
+    questionsPullResources,
     questionsLogout,
     questionsPullCollection,
     questionsPushResources,

@@ -10,8 +10,34 @@ const { databasesGet, databasesListCollections, databasesList } = require("./dat
 const { storageListBuckets } = require("./storage");
 const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
-const { questionsPullCollection, questionsPullFunctions } = require("../questions");
+const { questionsPullCollection, questionsPullFunctions, questionsPullResources } = require("../questions");
 const { cliConfig, success, log, actionRunner, commandDescriptions } = require("../parser");
+
+const pullResources = async () => {
+    const actions = {
+        project: pullProject,
+        functions: pullFunctions,
+        collections: pullCollection,
+        buckets: pullBucket,
+        teams: pullTeam,
+        messages: pullMessagingTopic
+    }
+
+    if (cliConfig.all) {
+        for (let action of Object.values(actions)) {
+            await action();
+        }
+    } else {
+        const answers = await inquirer.prompt(questionsPullResources[0]);
+
+        for (let resource of answers.resources) {
+            const action = actions[resource];
+            if (action !== undefined) {
+                await action();
+            }
+        }
+    }
+};
 
 const pullProject = async () => {
     try {
@@ -47,6 +73,7 @@ const pullFunctions = async () => {
         } else {
             func['path'] = `functions/${func['$id']}`;
             localConfig.addFunction(func);
+            localFunctions.push(func);
         }
 
         const localFunction = localFunctions.find((localFunc) => localFunc['$id'] === func['$id']);
@@ -65,6 +92,10 @@ const pullFunctions = async () => {
             parseOutput: false
         })
 
+        if (!fs.existsSync(localFunction['path'])) {
+            fs.mkdirSync(localFunction['path'], { recursive: true });
+        }
+
         tar.extract({
             sync: true,
             cwd: localFunction['path'],
@@ -82,8 +113,8 @@ const pullCollection = async () => {
 
     if (databases.length === 0) {
         if (cliConfig.all) {
-            databases = (await paginate(databasesList, { parseOutput: false }, 100, 'databases')).databases.map(database=>database.$id);
-        } else{
+            databases = (await paginate(databasesList, { parseOutput: false }, 100, 'databases')).databases.map(database => database.$id);
+        } else {
             databases = (await inquirer.prompt(questionsPullCollection)).databases;
         }
     }
@@ -111,10 +142,9 @@ const pullCollection = async () => {
                 '$updatedAt': undefined
             });
         });
-
-        success();
     }
 
+    success();
 }
 
 const pullBucket = async () => {
@@ -122,10 +152,7 @@ const pullBucket = async () => {
 
     log(`Found ${buckets.length} buckets`);
 
-    buckets.forEach(async bucket => {
-        log(`Fetching ${bucket.name} ...`);
-        localConfig.addBucket(bucket);
-    });
+    buckets.forEach(bucket => localConfig.addBucket(bucket));
 
     success();
 }
@@ -135,8 +162,7 @@ const pullTeam = async () => {
 
     log(`Found ${teams.length} teams`);
 
-    teams.forEach(async team => {
-        log(`Fetching ${team.name} ...`);
+    teams.forEach(team => {
         const { total, $updatedAt, $createdAt, prefs, ...rest } = team;
         localConfig.addTeam(rest);
     });
@@ -149,8 +175,7 @@ const pullMessagingTopic = async () => {
 
     log(`Found ${topics.length} topics`);
 
-    topics.forEach(async topic => {
-        log(`Pulling ${topic.name} ...`);
+    topics.forEach(topic => {
         localConfig.addMessagingTopic(topic);
     });
 
@@ -164,33 +189,39 @@ const pull = new Command("pull")
     });
 
 pull
+    .command("all")
+    .description("Pull all resource.")
+    .action(actionRunner(pullResources));
+
+
+pull
     .command("project")
-    .description("Pulling your {{ spec.title|caseUcfirst }} project name, services and auth settings")
+    .description("Pull your {{ spec.title|caseUcfirst }} project name, services and auth settings")
     .action(actionRunner(pullProject));
 
 pull
     .command("functions")
-    .description(`Pulling your {{ spec.title|caseUcfirst }} functions`)
+    .description(`Pull your {{ spec.title|caseUcfirst }} functions`)
     .action(actionRunner(pullFunctions));
 
 pull
     .command("collections")
-    .description("Pulling your {{ spec.title|caseUcfirst }} collections")
+    .description("Pull your {{ spec.title|caseUcfirst }} collections")
     .action(actionRunner(pullCollection))
 
 pull
     .command("buckets")
-    .description("Pulling your {{ spec.title|caseUcfirst }} buckets")
+    .description("Pull your {{ spec.title|caseUcfirst }} buckets")
     .action(actionRunner(pullBucket))
 
 pull
     .command("teams")
-    .description("Pulling your {{ spec.title|caseUcfirst }} teams")
+    .description("Pull your {{ spec.title|caseUcfirst }} teams")
     .action(actionRunner(pullTeam))
 
 pull
     .command("topics")
-    .description("Initialise your Appwrite messaging topics")
+    .description("Pull your {{ spec.title|caseUcfirst }} messaging topics")
     .action(actionRunner(pullMessagingTopic))
 
 module.exports = {
