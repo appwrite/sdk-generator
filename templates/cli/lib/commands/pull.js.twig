@@ -152,10 +152,7 @@ const pullBucket = async () => {
 
     log(`Found ${buckets.length} buckets`);
 
-    buckets.forEach(async bucket => {
-        log(`Fetching ${bucket.name} ...`);
-        localConfig.addBucket(bucket);
-    });
+    buckets.forEach(bucket => localConfig.addBucket(bucket));
 
     success();
 }
@@ -165,8 +162,7 @@ const pullTeam = async () => {
 
     log(`Found ${teams.length} teams`);
 
-    teams.forEach(async team => {
-        log(`Fetching ${team.name} ...`);
+    teams.forEach(team => {
         const { total, $updatedAt, $createdAt, prefs, ...rest } = team;
         localConfig.addTeam(rest);
     });
@@ -179,8 +175,7 @@ const pullMessagingTopic = async () => {
 
     log(`Found ${topics.length} topics`);
 
-    topics.forEach(async topic => {
-        log(`Pulling ${topic.name} ...`);
+    topics.forEach(topic => {
         localConfig.addMessagingTopic(topic);
     });
 
