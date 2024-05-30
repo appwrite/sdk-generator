@@ -21,8 +21,7 @@ const pullProject = async () => {
 
         })
 
-        localConfig.setProject(response.$id, response.name);
-        localConfig.setProjectSettings(response);
+        localConfig.setProject(response.$id, response.name, response);
 
         success();
     } catch (e) {

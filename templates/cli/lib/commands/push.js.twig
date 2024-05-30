@@ -279,7 +279,7 @@ const pushProject = async () => {
             parseOutput: false
         });
 
-        const settings = localConfig.getProjectSettings();
+        const settings = localConfig.getProject().projectSettings;
 
         if (settings.services) {
             log('Updating services status');
