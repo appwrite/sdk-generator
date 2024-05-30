@@ -195,40 +195,38 @@ const pull = new Command("pull")
 
 pull
     .command("all")
-    .description("Push all resource.")
-    .option(`--all`, `Flag to pull all functions`)
-    .option(`--yes`, `Flag to confirm all warnings`)
+    .description("Pull all resource.")
     .action(actionRunner(pullResources));
 
 
 pull
     .command("project")
-    .description("Pulling your {{ spec.title|caseUcfirst }} project name, services and auth settings")
+    .description("Pull your {{ spec.title|caseUcfirst }} project name, services and auth settings")
     .action(actionRunner(pullProject));
 
 pull
     .command("functions")
-    .description(`Pulling your {{ spec.title|caseUcfirst }} functions`)
+    .description(`Pull your {{ spec.title|caseUcfirst }} functions`)
     .action(actionRunner(pullFunctions));
 
 pull
     .command("collections")
-    .description("Pulling your {{ spec.title|caseUcfirst }} collections")
+    .description("Pull your {{ spec.title|caseUcfirst }} collections")
     .action(actionRunner(pullCollection))
 
 pull
     .command("buckets")
-    .description("Pulling your {{ spec.title|caseUcfirst }} buckets")
+    .description("Pull your {{ spec.title|caseUcfirst }} buckets")
     .action(actionRunner(pullBucket))
 
 pull
     .command("teams")
-    .description("Pulling your {{ spec.title|caseUcfirst }} teams")
+    .description("Pull your {{ spec.title|caseUcfirst }} teams")
     .action(actionRunner(pullTeam))
 
 pull
     .command("topics")
-    .description("Initialise your Appwrite messaging topics")
+    .description("Pull your {{ spec.title|caseUcfirst }} messaging topics")
     .action(actionRunner(pullMessagingTopic))
 
 module.exports = {
