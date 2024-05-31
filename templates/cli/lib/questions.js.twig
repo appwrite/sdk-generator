@@ -11,7 +11,7 @@ const { databasesList } = require('./commands/databases');
 const { checkDeployConditions } = require('./utils');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
-const whenOverride = (answers)=> answers.override === undefined ? true : answers.override;
+const whenOverride = (answers) => answers.override === undefined ? true : answers.override;
 
 const getIgnores = (runtime) => {
     const languge = runtime.split('-')[0];
@@ -125,6 +125,22 @@ const questionsInitProject = [
     },
     {
         type: "list",
+        name: "start",
+        when: whenOverride,
+        message: "How would you like to start?",
+        choices: [
+            {
+                name: "Create a new {{ spec.title|caseUcfirst }} project",
+                value: "new"
+            },
+            {
+                name: "Link this directory to an existing {{ spec.title|caseUcfirst }} project",
+                value: "existing"
+            }
+        ]
+    },
+    {
+        type: "list",
         name: "organization",
         message: "Choose the project organization",
         choices: async () => {
@@ -150,27 +166,6 @@ const questionsInitProject = [
         when: whenOverride
     },
     {
-        type: "list",
-        name: "start",
-        when(answers) {
-            if (answers.override == undefined) {
-                return true
-            }
-            return answers.override;
-        },
-        message: "How would you like to start?",
-        choices: [
-            {
-                name: "Create a new {{ spec.title|caseUcfirst }} project",
-                value: "new"
-            },
-            {
-                name: "Link this directory to an existing {{ spec.title|caseUcfirst }} project",
-                value: "existing"
-            }
-        ]
-    },
-    {
         type: "input",
         name: "project",
         message: "What would you like to name your project?",
@@ -189,12 +184,14 @@ const questionsInitProject = [
         name: "project",
         message: "Choose your {{ spec.title|caseUcfirst }} project.",
         choices: async (answers) => {
-            let response = await projectsList({
-                parseOutput: false,
-                queries: [JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization.id] })],
-            })
-            let projects = response["projects"]
-            let choices = projects.map((project, idx) => {
+            const queries = [
+                JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization.id] }),
+                JSON.stringify({ method: 'orderDesc', attribute: 'Id' })
+            ]
+
+            const { projects } = await paginate(projectsList, { parseOutput: false, queries, }, 100, 'projects');
+
+            let choices = projects.map((project) => {
                 return {
                     name: `${project.name} (${project['$id']})`,
                     value: {
@@ -238,7 +235,7 @@ const questionsPullFunctions = [
         choices: async () => {
             const { functions } = await paginate(functionsList, { parseOutput: false }, 100, 'functions');
 
-            if(functions.length === 0){
+            if (functions.length === 0) {
                 throw "We couldn't find any functions in your {{ spec.title|caseUcfirst }} project";
             }
 
@@ -298,7 +295,7 @@ const questionsCreateFunctionSelectTemplate = (templates) => {
             name: "template",
             message: "What template would you like to use?",
             choices: templates.map((template) => {
-                const name =`${template[0].toUpperCase()}${template.split('').slice(1).join('')}`.replace(/[-_]/g,' ');
+                const name = `${template[0].toUpperCase()}${template.split('').slice(1).join('')}`.replace(/[-_]/g, ' ');
 
                 return { value: template, name }
             })
