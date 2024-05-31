@@ -1,0 +1,571 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "e8e3df78a113bec48bb61da0227ea50f",
+    "packages": [
+        {
+            "name": "jean85/pretty-package-versions",
+            "version": "2.0.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Jean85/pretty-package-versions.git",
+                "reference": "ae547e455a3d8babd07b96966b17d7fd21d9c6af"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Jean85/pretty-package-versions/zipball/ae547e455a3d8babd07b96966b17d7fd21d9c6af",
+                "reference": "ae547e455a3d8babd07b96966b17d7fd21d9c6af",
+                "shasum": ""
+            },
+            "require": {
+                "composer-runtime-api": "^2.0.0",
+                "php": "^7.1|^8.0"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^2.17",
+                "jean85/composer-provided-replaced-stub-package": "^1.0",
+                "phpstan/phpstan": "^0.12.66",
+                "phpunit/phpunit": "^7.5|^8.5|^9.4",
+                "vimeo/psalm": "^4.3"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Jean85\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Alessandro Lai",
+                    "email": "alessandro.lai85@gmail.com"
+                }
+            ],
+            "description": "A library to get pretty versions strings of installed dependencies",
+            "keywords": [
+                "composer",
+                "package",
+                "release",
+                "versions"
+            ],
+            "support": {
+                "issues": "https://github.com/Jean85/pretty-package-versions/issues",
+                "source": "https://github.com/Jean85/pretty-package-versions/tree/2.0.5"
+            },
+            "time": "2021-10-08T21:21:46+00:00"
+        },
+        {
+            "name": "mongodb/mongodb",
+            "version": "1.10.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mongodb/mongo-php-library.git",
+                "reference": "b0bbd657f84219212487d01a8ffe93a789e1e488"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mongodb/mongo-php-library/zipball/b0bbd657f84219212487d01a8ffe93a789e1e488",
+                "reference": "b0bbd657f84219212487d01a8ffe93a789e1e488",
+                "shasum": ""
+            },
+            "require": {
+                "ext-hash": "*",
+                "ext-json": "*",
+                "ext-mongodb": "^1.11.0",
+                "jean85/pretty-package-versions": "^1.2 || ^2.0.1",
+                "php": "^7.1 || ^8.0",
+                "symfony/polyfill-php80": "^1.19"
+            },
+            "require-dev": {
+                "doctrine/coding-standard": "^9.0",
+                "squizlabs/php_codesniffer": "^3.6",
+                "symfony/phpunit-bridge": "^5.2"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.10.x-dev"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/functions.php"
+                ],
+                "psr-4": {
+                    "MongoDB\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Andreas Braun",
+                    "email": "andreas.braun@mongodb.com"
+                },
+                {
+                    "name": "Jeremy Mikola",
+                    "email": "jmikola@gmail.com"
+                }
+            ],
+            "description": "MongoDB driver library",
+            "homepage": "https://jira.mongodb.org/browse/PHPLIB",
+            "keywords": [
+                "database",
+                "driver",
+                "mongodb",
+                "persistence"
+            ],
+            "support": {
+                "issues": "https://github.com/mongodb/mongo-php-library/issues",
+                "source": "https://github.com/mongodb/mongo-php-library/tree/1.10.0"
+            },
+            "time": "2021-10-20T22:22:37+00:00"
+        },
+        {
+            "name": "symfony/polyfill-php80",
+            "version": "v1.29.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/polyfill-php80.git",
+                "reference": "87b68208d5c1188808dd7839ee1e6c8ec3b02f1b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/polyfill-php80/zipball/87b68208d5c1188808dd7839ee1e6c8ec3b02f1b",
+                "reference": "87b68208d5c1188808dd7839ee1e6c8ec3b02f1b",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.1"
+            },
+            "type": "library",
+            "extra": {
+                "thanks": {
+                    "name": "symfony/polyfill",
+                    "url": "https://github.com/symfony/polyfill"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "bootstrap.php"
+                ],
+                "psr-4": {
+                    "Symfony\\Polyfill\\Php80\\": ""
+                },
+                "classmap": [
+                    "Resources/stubs"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ion Bazan",
+                    "email": "ion.bazan@gmail.com"
+                },
+                {
+                    "name": "Nicolas Grekas",
+                    "email": "p@tchwork.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Symfony polyfill backporting some PHP 8.0+ features to lower PHP versions",
+            "homepage": "https://symfony.com",
+            "keywords": [
+                "compatibility",
+                "polyfill",
+                "portable",
+                "shim"
+            ],
+            "support": {
+                "source": "https://github.com/symfony/polyfill-php80/tree/v1.29.0"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2024-01-29T20:11:03+00:00"
+        },
+        {
+            "name": "utopia-php/cache",
+            "version": "0.9.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/utopia-php/cache.git",
+                "reference": "4fc7b4789b5f0ce74835c1ecfec4f3afe6f0e34e"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/utopia-php/cache/zipball/4fc7b4789b5f0ce74835c1ecfec4f3afe6f0e34e",
+                "reference": "4fc7b4789b5f0ce74835c1ecfec4f3afe6f0e34e",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "ext-memcached": "*",
+                "ext-redis": "*",
+                "php": ">=8.0"
+            },
+            "require-dev": {
+                "laravel/pint": "1.2.*",
+                "phpstan/phpstan": "1.9.x-dev",
+                "phpunit/phpunit": "^9.3",
+                "vimeo/psalm": "4.13.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Utopia\\Cache\\": "src/Cache"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "A simple cache library to manage application cache storing, loading and purging",
+            "keywords": [
+                "cache",
+                "framework",
+                "php",
+                "upf",
+                "utopia"
+            ],
+            "support": {
+                "issues": "https://github.com/utopia-php/cache/issues",
+                "source": "https://github.com/utopia-php/cache/tree/0.9.0"
+            },
+            "time": "2024-01-07T18:11:23+00:00"
+        },
+        {
+            "name": "utopia-php/cli",
+            "version": "0.16.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/utopia-php/cli.git",
+                "reference": "5b936638c90c86d1bae83d0dbe81fe14d12ff8ff"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/utopia-php/cli/zipball/5b936638c90c86d1bae83d0dbe81fe14d12ff8ff",
+                "reference": "5b936638c90c86d1bae83d0dbe81fe14d12ff8ff",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.4",
+                "utopia-php/framework": "0.*.*"
+            },
+            "require-dev": {
+                "laravel/pint": "1.2.*",
+                "phpunit/phpunit": "^9.3",
+                "squizlabs/php_codesniffer": "^3.6",
+                "vimeo/psalm": "4.0.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Utopia\\CLI\\": "src/CLI"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "A simple CLI library to manage command line applications",
+            "keywords": [
+                "cli",
+                "command line",
+                "framework",
+                "php",
+                "upf",
+                "utopia"
+            ],
+            "support": {
+                "issues": "https://github.com/utopia-php/cli/issues",
+                "source": "https://github.com/utopia-php/cli/tree/0.16.0"
+            },
+            "time": "2023-08-05T13:13:08+00:00"
+        },
+        {
+            "name": "utopia-php/database",
+            "version": "0.48.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/utopia-php/database.git",
+                "reference": "0a231a2874fdbc0cf2ae2170b3f132fdee0ddfd4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/utopia-php/database/zipball/0a231a2874fdbc0cf2ae2170b3f132fdee0ddfd4",
+                "reference": "0a231a2874fdbc0cf2ae2170b3f132fdee0ddfd4",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mbstring": "*",
+                "ext-pdo": "*",
+                "php": ">=8.0",
+                "utopia-php/cache": "0.9.*",
+                "utopia-php/framework": "0.*.*",
+                "utopia-php/mongo": "0.3.*"
+            },
+            "require-dev": {
+                "fakerphp/faker": "^1.14",
+                "laravel/pint": "1.13.*",
+                "pcov/clobber": "^2.0",
+                "phpstan/phpstan": "1.10.*",
+                "phpunit/phpunit": "^9.4",
+                "rregeer/phpunit-coverage-check": "^0.3.1",
+                "swoole/ide-helper": "4.8.0",
+                "utopia-php/cli": "^0.14.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Utopia\\Database\\": "src/Database"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "A simple library to manage application persistence using multiple database adapters",
+            "keywords": [
+                "database",
+                "framework",
+                "php",
+                "upf",
+                "utopia"
+            ],
+            "support": {
+                "issues": "https://github.com/utopia-php/database/issues",
+                "source": "https://github.com/utopia-php/database/tree/0.48.2"
+            },
+            "time": "2024-02-02T14:10:14+00:00"
+        },
+        {
+            "name": "utopia-php/framework",
+            "version": "0.33.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/utopia-php/http.git",
+                "reference": "b1423ca3e3b61c6c4c2e619d2cb80672809a19f3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/utopia-php/http/zipball/b1423ca3e3b61c6c4c2e619d2cb80672809a19f3",
+                "reference": "b1423ca3e3b61c6c4c2e619d2cb80672809a19f3",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.0"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.2",
+                "phpbench/phpbench": "^1.2",
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^9.5.25"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Utopia\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "A simple, light and advanced PHP framework",
+            "keywords": [
+                "framework",
+                "php",
+                "upf"
+            ],
+            "support": {
+                "issues": "https://github.com/utopia-php/http/issues",
+                "source": "https://github.com/utopia-php/http/tree/0.33.2"
+            },
+            "time": "2024-01-31T10:35:59+00:00"
+        },
+        {
+            "name": "utopia-php/mongo",
+            "version": "0.3.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/utopia-php/mongo.git",
+                "reference": "52326a9a43e2d27ff0c15c48ba746dacbe9a7aee"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/utopia-php/mongo/zipball/52326a9a43e2d27ff0c15c48ba746dacbe9a7aee",
+                "reference": "52326a9a43e2d27ff0c15c48ba746dacbe9a7aee",
+                "shasum": ""
+            },
+            "require": {
+                "ext-mongodb": "*",
+                "mongodb/mongodb": "1.10.0",
+                "php": ">=8.0"
+            },
+            "require-dev": {
+                "fakerphp/faker": "^1.14",
+                "laravel/pint": "1.2.*",
+                "phpstan/phpstan": "1.8.*",
+                "phpunit/phpunit": "^9.4",
+                "swoole/ide-helper": "4.8.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Utopia\\Mongo\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Eldad Fux",
+                    "email": "eldad@appwrite.io"
+                },
+                {
+                    "name": "Wess",
+                    "email": "wess@appwrite.io"
+                }
+            ],
+            "description": "A simple library to manage Mongo database",
+            "keywords": [
+                "database",
+                "mongo",
+                "php",
+                "upf",
+                "utopia"
+            ],
+            "support": {
+                "issues": "https://github.com/utopia-php/mongo/issues",
+                "source": "https://github.com/utopia-php/mongo/tree/0.3.1"
+            },
+            "time": "2023-09-01T17:25:28+00:00"
+        },
+        {
+            "name": "utopia-php/swoole",
+            "version": "0.8.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/utopia-php/swoole.git",
+                "reference": "5fa9d42c608ad46a4ce42a6d2b2eae00592fccd4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/utopia-php/swoole/zipball/5fa9d42c608ad46a4ce42a6d2b2eae00592fccd4",
+                "reference": "5fa9d42c608ad46a4ce42a6d2b2eae00592fccd4",
+                "shasum": ""
+            },
+            "require": {
+                "ext-swoole": "*",
+                "php": ">=8.0",
+                "utopia-php/framework": "0.33.*"
+            },
+            "require-dev": {
+                "laravel/pint": "1.2.*",
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^9.3",
+                "swoole/ide-helper": "5.0.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Utopia\\Swoole\\": "src/Swoole"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "An extension for Utopia Framework to work with PHP Swoole as a PHP FPM alternative",
+            "keywords": [
+                "framework",
+                "http",
+                "php",
+                "server",
+                "swoole",
+                "upf",
+                "utopia"
+            ],
+            "support": {
+                "issues": "https://github.com/utopia-php/swoole/issues",
+                "source": "https://github.com/utopia-php/swoole/tree/0.8.2"
+            },
+            "time": "2024-02-01T14:54:12+00:00"
+        }
+    ],
+    "packages-dev": [
+        {
+            "name": "swoole/ide-helper",
+            "version": "5.1.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/swoole/ide-helper.git",
+                "reference": "33ec7af9111b76d06a70dd31191cc74793551112"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/swoole/ide-helper/zipball/33ec7af9111b76d06a70dd31191cc74793551112",
+                "reference": "33ec7af9111b76d06a70dd31191cc74793551112",
+                "shasum": ""
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Team Swoole",
+                    "email": "team@swoole.com"
+                }
+            ],
+            "description": "IDE help files for Swoole.",
+            "support": {
+                "issues": "https://github.com/swoole/ide-helper/issues",
+                "source": "https://github.com/swoole/ide-helper/tree/5.1.2"
+            },
+            "time": "2024-02-01T22:28:11+00:00"
+        }
+    ],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": [],
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": [],
+    "platform-dev": [],
+    "plugin-api-version": "2.6.0"
+}

@@ -1,0 +1,13 @@
+import json
+{%~ for enum in spec.enums %}
+from ..enums.{{ enum.name | caseSnake }} import {{ enum.name | caseUcfirst | overrideIdentifier }}
+{%~ endfor %}
+
+class ValueClassEncoder(json.JSONEncoder):
+    def default(self, o):
+        {%~ for enum in spec.enums %}
+        if isinstance(o, {{ enum.name | caseUcfirst | overrideIdentifier }}):
+            return o.value
+
+        {%~ endfor %}
+        return super().default(o)

@@ -52,15 +52,17 @@ $ wget -q {{ sdk.url }}/cli/install.sh  -O - | /bin/bash
 
 ### MacOS via [Homebrew](https://brew.sh)
 ```bash
-$ brew tap {{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }} https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}
-$ brew update
-$ brew install --HEAD {{ language.params.executableName }} 
+$ brew install {{ language.params.executableName }} 
 ```
-> Please note that `--HEAD` will be removed with official release.
 
 ### Windows
+Via Powershell
 ```powershell
 $ iwr -useb {{ sdk.url }}/cli/install.ps1 | iex
+```
+Via [Scoop](https://scoop.sh)
+```powershell
+$ scoop install https://raw.githubusercontent.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/master/scoop/appwrite.json
 ```
 
 Once the installation completes, you can verify your install using
@@ -90,7 +92,7 @@ $ cd sdk-generator
 $ docker run --rm --interactive --tty --volume "$(pwd)":/app composer install --ignore-platform-reqs --optimize-autoloader --no-plugins --no-scripts --prefer-dist
 
 # Generate the SDKs
-$ docker run --rm -v $(pwd):/app -w /app php:7.4-cli php example.php
+$ docker run --rm -v $(pwd):/app -w /app php:8.1-cli php example.php
 ```
 
 3. Head over to the generated SDK and install the dependencies.

@@ -1,13 +1,13 @@
 {% import 'flutter/base/utils.twig' as utils %}
-        final Map<String, dynamic> params = {
+        final Map<String, dynamic> apiParams = {
             {{- utils.map_parameter(method.parameters.query) -}}
             {{~ utils.map_parameter(method.parameters.body) }}
         };
 
-        final Map<String, String> headers = {
+        final Map<String, String> apiHeaders = {
             {{~ utils.map_headers(method.headers) }}
         };
 
-        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: path, params: params, headers: headers);
+        final res = await client.call(HttpMethod.{{ method.method | caseLower }}, path: apiPath, params: apiParams, headers: apiHeaders);
 
         return {% if method.responseModel and method.responseModel != 'any' %}models.{{method.responseModel | caseUcfirst | overrideIdentifier}}.fromMap(res.data){% else %} res.data{% endif %};

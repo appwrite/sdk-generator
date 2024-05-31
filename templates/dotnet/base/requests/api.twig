@@ -1,11 +1,11 @@
 {% import 'dotnet/base/utils.twig' as utils %}
-            return _client.Call{% if method.type != 'webAuth' %}<{{ utils.resultType(spec.title, method) }}>{% endif %}(
+            return _client.Call<{{ utils.resultType(spec.title, method) }}>(
                 method: "{{ method.method | caseUpper }}",
-                path: path,
-                headers: headers,
+                path: apiPath,
+                headers: apiHeaders,
                 {%~ if not method.responseModel %}
-                parameters: parameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!);
+                parameters: apiParameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!);
                 {%~ else %}
-                parameters: parameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!,
+                parameters: apiParameters.Where(it => it.Value != null).ToDictionary(it => it.Key, it => it.Value)!,
                 convert: Convert);
                 {%~ endif %}

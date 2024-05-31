@@ -12,7 +12,7 @@ class {{ service.name | caseUcfirst }}(Service):
         """{{ method.title }}"""
 
 {% endif %}        
-        path = '{{ method.path }}'
+        api_path = '{{ method.path }}'
 {{ include('python/base/params.twig') }}
 {% if 'multipart/form-data' in method.consumes %}
 {{ include('python/base/requests/file.twig') }}

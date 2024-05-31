@@ -1,4 +1,4 @@
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
 import Foundation
 import UIKit
 
@@ -82,7 +82,7 @@ public extension UIDevice {
             case "iPad8,5", "iPad8,6", "iPad8,7", "iPad8,8":      return "iPad Pro (12.9-inch) (3rd generation)"
             case "iPad8,11", "iPad8,12":                          return "iPad Pro (12.9-inch) (4th generation)"
             case "iPad13,8", "iPad13,9", "iPad13,10", "iPad13,11":return "iPad Pro (12.9-inch) (5th generation)"
-            case "i386", "x86_64":                                return "Simulator \(mapToDevice(identifier: ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "iOS"))"
+            case "i386", "x86_64", "arm64":                       return "Simulator \(mapToDevice(identifier: ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "iOS"))"
             default:                                              return identifier
             #elseif os(tvOS)
             case "AppleTV1,1":                                    return "Apple TV (1st generation)"
@@ -91,8 +91,12 @@ public extension UIDevice {
             case "AppleTV5,3":                                    return "Apple TV (4th generation)"
             case "AppleTV6,2":                                    return "Apple TV 4K (1st generation)"
             case "AppleTV11,1":                                   return "Apple TV 4K (2nd generation)"
-            case "i386", "x86_64": return "Simulator \(mapToDevice(identifier: ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "tvOS"))"
-            default: return identifier
+            case "i386", "x86_64", "arm64":                       return "Simulator \(mapToDevice(identifier: ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "tvOS"))"
+            default:                                              return identifier
+            #elseif os(visionOS)
+            case "RealityDevice14,1":                             return "Apple Vision Pro"
+            case "i386", "x86_64", "arm64":                       return "Simulator \(mapToDevice(identifier: ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] ?? "visionOS"))"
+            default:                                              return identifier
             #endif
             }
         }

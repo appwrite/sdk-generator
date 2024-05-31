@@ -1,0 +1,44 @@
+<?php
+
+namespace Appwrite\Services;
+
+use Appwrite\Client;
+use Appwrite\InputFile;
+use Mockery;
+use PHPUnit\Framework\TestCase;
+
+final class {{service.name | caseUcfirst}}Test extends TestCase {
+    private $client;
+    private ${{service.name | caseCamel}};
+
+    protected function setUp(): void {
+        $this->client = Mockery::mock(Client::class);
+        $this->{{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}($this->client);
+    }
+
+{% for method in service.methods %}
+    public function testMethod{{method.name | caseUcfirst}}(): void {
+        {%~ if method.responseModel and method.responseModel != 'any' ~%}
+        $data = array(
+            {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
+            "{{property.name | escapeDollarSign}}" => {% if property.type == 'object' %}array(){% elseif property.type == 'array' %}array(){% elseif property.type == 'string' %}"{{property.example | escapeDollarSign}}"{% elseif property.type == 'boolean' %}true{% else %}{{property.example}}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
+        );
+        {%~ elseif (method.responseModel and method.responseModel == 'any') or method.type == 'webAuth' ~%}
+        $data = array();
+        {%~ else ~%}
+        $data = '';
+        {%~ endif ~%}
+
+        $this->client
+            ->allows()->call(Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any())
+            ->andReturn($data);
+
+        $response = $this->{{service.name | caseCamel}}->{{method.name | caseCamel}}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
+            {% if parameter.type == 'object' %}array(){% elseif parameter.type == 'array' %}array(){% elseif parameter.type == 'file' %}InputFile::withData('', "image/png"){% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'string' %}"{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}"{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%}{% if not loop.last %},{% endif %}{%~ endfor ~%}
+        );
+
+        $this->assertSame($data, $response);
+    }
+
+{% endfor %}
+}

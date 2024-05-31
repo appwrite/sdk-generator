@@ -1,10 +1,10 @@
 {% import 'dotnet/base/utils.twig' as utils %}
             {%~ for parameter in method.parameters.path %}
-                .Replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }}){% if loop.last %};{% endif %}
+                .Replace("{{ '{' ~ parameter.name | caseCamel ~ '}' }}", {{ parameter.name | caseCamel | escapeKeyword }}{% if parameter.enumValues is not empty %}.Value{% endif %}){% if loop.last %};{% endif %}
 
             {%~ endfor %}
 
-            var parameters = new Dictionary<string, object?>()
+            var apiParameters = new Dictionary<string, object?>()
             {
                 {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
                 { "{{ parameter.name }}", {{ utils.map_parameter(parameter) }} }{% if not loop.last %},{% endif %}
@@ -12,7 +12,7 @@
                 {%~ endfor %}
             };
 
-            var headers = new Dictionary<string, string>()
+            var apiHeaders = new Dictionary<string, string>()
             {
                 {%~ for key, header in method.headers %}
                 { "{{ key }}", "{{ header }}" }{% if not loop.last %},{% endif %}

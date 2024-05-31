@@ -74,6 +74,7 @@ class Ruby extends Language
             'until',
             'when',
             'while',
+            'path'
         ];
     }
 
@@ -173,13 +174,18 @@ class Ruby extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '.travis.yml',
-                'template'      => 'ruby/.travis.yml.twig',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'ruby/.github/workflows/publish.yml.twig',
             ],
             [
                 'scope'         => 'definition',
                 'destination'   => '/lib/{{ spec.title | caseDash }}/models/{{ definition.name | caseSnake }}.rb',
                 'template'      => 'ruby/lib/container/models/model.rb.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'lib/{{ spec.title | caseSnake}}/enums/{{ enum.name | caseSnake }}.rb',
+                'template'      => 'ruby/lib/container/enums/enum.rb.twig',
             ],
         ];
     }
@@ -189,24 +195,23 @@ class Ruby extends Language
      * @param array $nestedTypes
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-                return 'Integer';
-            case self::TYPE_NUMBER:
-                return 'Float';
-            case self::TYPE_STRING:
-                return 'String';
-            case self::TYPE_ARRAY:
-                return 'Array';
-            case self::TYPE_OBJECT:
-                return 'Hash';
-            case self::TYPE_BOOLEAN:
-                return '';
-            default:
-                return $parameter['type'];
+        if (isset($parameter['enumName'])) {
+            return \ucfirst($parameter['enumName']);
         }
+        if (!empty($parameter['enumValues'])) {
+            return \ucfirst($parameter['name']);
+        }
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER => 'Integer',
+            self::TYPE_NUMBER => 'Float',
+            self::TYPE_STRING => 'String',
+            self::TYPE_ARRAY => 'Array',
+            self::TYPE_OBJECT => 'Hash',
+            self::TYPE_BOOLEAN => '',
+            default => $parameter['type'],
+        };
     }
 
     /**
@@ -347,7 +352,10 @@ class Ruby extends Language
                     $value[$key] = "        # " . wordwrap($line, 75, "\n        # ");
                 }
                 return implode("\n", $value);
-            }, ['is_safe' => ['html']])
+            }, ['is_safe' => ['html']]),
+            new TwigFilter('caseEnumKey', function (string $value) {
+                return $this->toUpperSnakeCase($value);
+            }),
         ];
     }
 }

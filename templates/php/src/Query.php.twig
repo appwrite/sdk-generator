@@ -2,8 +2,39 @@
 
 namespace {{ spec.title | caseUcfirst }};
 
-class Query
+class Query implements \JsonSerializable
 {
+    protected string $method;
+    protected ?string $attribute;
+    protected ?array $values;
+
+    public function __construct(string $method, ?string $attribute = null, $values = null)
+    {
+        $this->method = $method;
+        $this->attribute = $attribute;
+        
+        if (is_null($values) || is_array($values)) {
+            $this->values = $values;
+        } else {
+            $this->values = [$values];
+        }
+
+    }
+
+    public function __toString(): string
+    {
+        return json_encode($this->jsonSerialize());
+    }
+
+    public function jsonSerialize()
+    {
+        return array_filter([
+            'method' => $this->method,
+            'attribute' => $this->attribute,
+            'values' => $this->values,
+        ]);
+    }
+
     /**
      * Equal
      *
@@ -13,7 +44,7 @@ class Query
      */
     public static function equal(string $attribute, $value): string
     {
-        return self::addQuery($attribute, 'equal', $value);
+        return (new Query('equal', $attribute, $value))->__toString();
     }
 
     /**
@@ -25,7 +56,7 @@ class Query
      */
     public static function notEqual(string $attribute, $value): string
     {
-        return self::addQuery($attribute, 'notEqual', $value);
+        return (new Query('notEqual', $attribute, $value))->__toString();
     }
 
     /**
@@ -37,7 +68,7 @@ class Query
      */
     public static function lessThan(string $attribute, $value): string
     {
-        return self::addQuery($attribute, 'lessThan', $value);
+        return (new Query('lessThan', $attribute, $value))->__toString();
     }
 
     /**
@@ -49,7 +80,7 @@ class Query
      */
     public static function lessThanEqual(string $attribute, $value): string
     {
-        return self::addQuery($attribute, 'lessThanEqual', $value);
+        return (new Query('lessThanEqual', $attribute, $value))->__toString();
     }
 
     /**
@@ -61,7 +92,7 @@ class Query
      */
     public static function greaterThan(string $attribute, $value): string
     {
-        return self::addQuery($attribute, 'greaterThan', $value);
+        return (new Query('greaterThan', $attribute, $value))->__toString();
     }
 
     /**
@@ -73,7 +104,7 @@ class Query
      */
     public static function greaterThanEqual(string $attribute, $value): string
     {
-        return self::addQuery($attribute, 'greaterThanEqual', $value);
+        return (new Query('greaterThanEqual', $attribute, $value))->__toString();
     }
 
     /**
@@ -85,7 +116,7 @@ class Query
      */
     public static function search(string $attribute, string $value): string
     {
-        return self::addQuery($attribute, 'search', $value);
+        return (new Query('search', $attribute, $value))->__toString();
     }
 
     /**
@@ -96,7 +127,7 @@ class Query
      */
     public static function isNull(string $attribute): string
     {
-        return 'isNull("' . $attribute . '")';
+        return (new Query('isNull', $attribute, null))->__toString();
     }
 
     /**
@@ -107,7 +138,7 @@ class Query
      */
     public static function isNotNull(string $attribute): string
     {
-        return 'isNotNull("' . $attribute . '")';
+        return (new Query('isNotNull', $attribute, null))->__toString();
     }
 
     /**
@@ -120,7 +151,7 @@ class Query
      */
     public static function between(string $attribute, $start, $end): string
     {
-        return self::addQuery($attribute, 'between', [$start, $end]);
+        return (new Query('between', $attribute, [$start, $end]))->__toString();
     }
 
     /**
@@ -132,7 +163,7 @@ class Query
      */
     public static function startsWith(string $attribute, string $value): string
     {
-        return self::addQuery($attribute, 'startsWith', $value);
+        return (new Query('startsWith', $attribute, $value))->__toString();
     }
 
     /**
@@ -144,7 +175,7 @@ class Query
      */
     public static function endsWith(string $attribute, string $value): string
     {
-        return self::addQuery($attribute, 'endsWith', $value);
+        return (new Query('endsWith', $attribute, $value))->__toString();
     }
 
     /**
@@ -155,7 +186,7 @@ class Query
      */
     public static function select(array $attributes): string
     {
-        return 'select([' . implode(",", array_map(function ($attr) {return '"' . $attr . '"';}, $attributes)) . '])';
+        return (new Query('select', null, $attributes))->__toString();
     }
 
     /**
@@ -164,8 +195,9 @@ class Query
      * @param string $documentId
      * @return string
      */
-    public static function cursorAfter(string $documentId): string {
-        return 'cursorAfter("' . $documentId . '")';
+    public static function cursorAfter(string $documentId): string
+    {
+        return (new Query('cursorAfter', null, $documentId))->__toString();
     }
 
     /**
@@ -174,8 +206,9 @@ class Query
      * @param string $documentId
      * @return string
      */
-    public static function cursorBefore(string $documentId): string {
-        return 'cursorBefore("' . $documentId . '")';
+    public static function cursorBefore(string $documentId): string
+    {
+        return (new Query('cursorBefore', null, $documentId))->__toString();
     }
 
     /**
@@ -184,8 +217,9 @@ class Query
      * @param string $attribute
      * @return string
      */
-    public static function orderAsc(string $attribute): string {
-        return 'orderAsc("' . $attribute . '")';
+    public static function orderAsc(string $attribute): string
+    {
+        return (new Query('orderAsc', $attribute, null))->__toString();
     }
 
     /**
@@ -194,8 +228,9 @@ class Query
      * @param string $attribute
      * @return string
      */
-    public static function orderDesc(string $attribute): string {
-        return 'orderDesc("' . $attribute . '")';
+    public static function orderDesc(string $attribute): string
+    {
+        return (new Query('orderDesc', $attribute, null))->__toString();
     }
 
     /**
@@ -204,8 +239,9 @@ class Query
      * @param int $limit
      * @return string
      */
-    public static function limit(int $limit): string {
-        return 'limit(' . $limit . ')';
+    public static function limit(int $limit): string
+    {
+        return (new Query('limit', null, $limit))->__toString();
     }
 
     /**
@@ -214,35 +250,48 @@ class Query
      * @param int $offset
      * @return string
      */
-    public static function offset(int $offset): string {
-        return 'offset(' . $offset . ')';
+    public static function offset(int $offset): string
+    {
+        return (new Query('offset', null, $offset))->__toString();
     }
 
     /**
-     * Add Query
+     * Contains
      *
      * @param string $attribute
-     * @param string $method
      * @param mixed $value
      * @return string
      */
-    private static function addQuery(string $attribute, string $method, $value)
+    public static function contains(string $attribute, $value): string
     {
-        return is_array($value) ?  $method . '("' . $attribute . '", [' . implode(",", array_map(function ($item) {return self::parseValues($item);}, $value)) . '])' : $method . '("' . $attribute . '", [' .  self::parseValues($value) . '])';
+        return (new Query('contains', $attribute, $value))->__toString();
     }
 
     /**
-     * @param mixed $value
+     * Or
+     *
+     * @param array<string> $queries
      * @return string
      */
-    private static function parseValues($value): string
+    public static function or(array $queries): string
     {
-        if (is_string($value)) {
-            return '"' . $value . '"';
+        foreach ($queries as &$query) {
+            $query = \json_decode($query, true);
         }
-        if (is_bool($value)) {
-            return $value ? 'true' : 'false';
+        return (new Query('or', null, $queries))->__toString();
+    }
+
+    /**
+     * And
+     *
+     * @param array<string> $queries
+     * @return string
+     */
+    public static function and(array $queries): string
+    {
+        foreach ($queries as &$query) {
+            $query = \json_decode($query, true);
         }
-        return $value;
+        return (new Query('and', null, $queries))->__toString();
     }
 }

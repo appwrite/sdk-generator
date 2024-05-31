@@ -19,13 +19,13 @@ class CLINode16Test extends Base
         'cp tests/languages/cli/test.js tests/sdks/cli/test.js'
     ];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/cli node:16-alpine node test.js';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/cli node:16-alpine node test.js';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
-        'POST:/v1/mock/tests/general/upload:passed', //large file
+        ...Base::UPLOAD_RESPONSES,
     ];
 
     public function getLanguage(): Language

@@ -27,8 +27,8 @@
         Uri url = Uri(scheme: endpoint.scheme,
           host: endpoint.host,
           port: endpoint.port,
-          path: endpoint.path + path,
+          path: endpoint.path + apiPath,
           query: query.join('&')
         );
 
-      return client.webAuth(url, callbackUrlScheme: success);
+        return client.webAuth(url, callbackUrlScheme: success);

@@ -1,0 +1,67 @@
+// swift-tools-version:5.1
+
+import PackageDescription
+
+let package = Package(
+    name: "{{spec.title | caseUcfirst}}",
+    platforms: [
+        .iOS("15.0"),
+        .macOS("11.0"),
+        .watchOS("7.0"),
+        .tvOS("13.0"),
+    ],
+    products: [
+        .library(
+            name: "{{spec.title | caseUcfirst}}",
+            targets: [
+                "{{spec.title | caseUcfirst}}",
+                "{{spec.title | caseUcfirst}}Enums",
+                "{{spec.title | caseUcfirst}}Models",
+                "JSONCodable"
+            ]
+        ),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.17.0"),
+        .package(url: "https://github.com/apple/swift-nio.git", from: "2.32.0"),
+    ],
+    targets: [
+        .target(
+            name: "{{spec.title | caseUcfirst}}",
+            dependencies: [
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
+                .product(name: "NIOWebSocket", package: "swift-nio"),
+                {%~ if spec.definitions is not empty %}
+                "{{spec.title | caseUcfirst}}Models",
+                {%~ endif %}
+                {%~ if spec.enums is not empty %}
+                "{{spec.title | caseUcfirst}}Enums",
+                {%~ endif %}
+                "JSONCodable"
+            ]
+        ),
+        {%~ if spec.definitions is not empty %}
+        .target(
+            name: "{{spec.title | caseUcfirst}}Models",
+            dependencies: [
+                "JSONCodable"
+            ]
+        ),
+        {%~ endif %}
+        {%~ if spec.enums is not empty %}
+        .target(
+            name: "{{spec.title | caseUcfirst}}Enums"
+        ),
+        {%~ endif %}
+        .target(
+            name: "JSONCodable"
+        ),
+        .testTarget(
+            name: "{{spec.title | caseUcfirst}}Tests",
+            dependencies: [
+                "{{ spec.title | caseUcfirst }}"
+            ]
+        )
+    ],
+    swiftLanguageVersions: [.v5]
+)

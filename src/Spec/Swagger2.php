@@ -221,6 +221,11 @@ class Swagger2 extends Spec
                         }
 
                         $param['default'] = (is_array($param['default'])) ? json_encode($param['default']) : $param['default'];
+                        if (isset($parameter['enum'])) {
+                            $param['enumValues'] = $parameter['enum'];
+                            $param['enumName'] = $parameter['x-enum-name'];
+                            $param['enumKeys'] = $parameter['x-enum-keys'];
+                        }
 
                         switch ($parameter['in']) {
                             case 'header':
@@ -240,24 +245,31 @@ class Swagger2 extends Spec
                                 $bodyRequired = $parameter['schema']['required'] ?? [];
 
                                 foreach ($bodyProperties as $key => $value) {
-                                    $param['name'] = $key;
-                                    $param['type'] = $value['type'] ?? null;
-                                    $param['description'] = $value['description'] ?? '';
-                                    $param['required'] = (in_array($key, $bodyRequired));
-                                    $param['example'] = $value['x-example'] ?? null;
-                                    $param['isUploadID'] = $value['x-upload-id'] ?? false;
-                                    $param['nullable'] = $value['x-nullable'] ?? false;
-                                    $param['array'] = [
+                                    $temp = $param;
+                                    $temp['name'] = $key;
+                                    $temp['type'] = $value['type'] ?? null;
+                                    $temp['description'] = $value['description'] ?? '';
+                                    $temp['required'] = (in_array($key, $bodyRequired));
+                                    $temp['example'] = $value['x-example'] ?? null;
+                                    $temp['isUploadID'] = $value['x-upload-id'] ?? false;
+                                    $temp['nullable'] = $value['x-nullable'] ?? false;
+                                    $temp['array'] = [
                                         'type' => $value['items']['type'] ?? '',
                                     ];
                                     if ($value['type'] === 'object' && is_array($value['default'])) {
                                         $value['default'] = (empty($value['default'])) ? new stdClass() : $value['default'];
                                     }
 
-                                    $param['default'] = (is_array($value['default']) || $value['default'] instanceof stdClass) ? json_encode($value['default']) : $value['default'];
+                                    if (isset($value['enum'])) {
+                                        $temp['enumValues'] = $value['enum'];
+                                        $temp['enumName'] = $value['x-enum-name'];
+                                        $temp['enumKeys'] = $value['x-enum-keys'];
+                                    }
 
-                                    $output['parameters']['body'][] = $param;
-                                    $output['parameters']['all'][] = $param;
+                                    $temp['default'] = (is_array($value['default']) || $value['default'] instanceof stdClass) ? json_encode($value['default']) : $value['default'];
+
+                                    $output['parameters']['body'][] = $temp;
+                                    $output['parameters']['all'][] = $temp;
                                 }
 
                                 continue 2;
@@ -319,6 +331,7 @@ class Swagger2 extends Spec
                 foreach ($sch['properties'] as $name => $def) {
                     $sch['properties'][$name]['name'] = $name;
                     $sch['properties'][$name]['description'] = $def['description'];
+                    $sch['properties'][$name]['example'] = $def['x-example'];
                     $sch['properties'][$name]['required'] =  in_array($name, $sch['required']);
                     if (isset($def['items']['$ref'])) {
                         //nested model
@@ -339,5 +352,33 @@ class Swagger2 extends Spec
             $list[$key] = $sch;
         }
         return $list;
+    }
+
+    /**
+     * @return array
+     */
+    public function getEnums(): array
+    {
+        $list = [];
+
+        foreach ($this->getServices() as $key => $service) {
+            foreach ($this->getMethods($key) as $method) {
+                if (isset($method['parameters']) && is_array($method['parameters'])) {
+                    foreach ($method['parameters']['all'] as $parameter) {
+                        $enumName = $parameter['enumName'] ?? $parameter['name'];
+
+                        if (isset($parameter['enumValues']) && !\in_array($enumName, $list)) {
+                            $list[$enumName] = [
+                                'name' => $enumName,
+                                'enum' => $parameter['enumValues'],
+                                'keys' => $parameter['enumKeys'],
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        return \array_values($list);
     }
 }

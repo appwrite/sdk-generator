@@ -1,8 +1,10 @@
 require_relative '../../sdks/ruby/lib/appwrite'
 
 include Appwrite
+include Appwrite::Enums
 
 client = Client.new
+client.set_self_signed(true)
 client.add_header('Origin', 'http://localhost')
 
 foo = Foo.new(client)
@@ -81,6 +83,9 @@ rescue => e
     puts e
 end
 
+response = general.enum(mock_type: MockType::FIRST)
+puts response.result
+
 begin
     general.error400()
 rescue Exception => error
@@ -100,6 +105,15 @@ rescue Exception => error
 end
 
 general.empty()
+
+url = general.oauth2(
+    client_id: 'clientId',
+    scopes: ['test'],
+    state: '123456',
+    success: 'https://localhost',
+    failure: 'https://localhost'
+)
+puts url
 
 # Query helper tests
 puts Query.equal('released', [true])
@@ -122,6 +136,10 @@ puts Query.cursor_after("my_movie_id")
 puts Query.cursor_before("my_movie_id")
 puts Query.limit(50)
 puts Query.offset(20)
+puts Query.contains("title", "Spider")
+puts Query.contains("labels", "first")
+puts Query.or([Query.equal("released", true), Query.less_than("releasedYear", 1990)])
+puts Query.and([Query.equal("released", false), Query.greater_than("releasedYear", 2015)])
 
 # Permission & Role helper tests
 puts Permission.read(Role.any())
@@ -133,6 +151,7 @@ puts Permission.delete(Role.team('teamId'))
 puts Permission.create(Role.member('memberId'))
 puts Permission.update(Role.users('verified'))
 puts Permission.update(Role.user(ID.custom('userid'), 'unverified'))
+puts Permission.create(Role.label('admin'))
 
 # ID helper tests
 puts ID.unique()

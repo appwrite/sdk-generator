@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 using Appwrite;
 using Appwrite.Models;
+using Appwrite.Enums;
 using Appwrite.Services;
 using NUnit.Framework;
 
@@ -21,7 +22,10 @@ namespace AppwriteTests
         [Test]
         public async Task Test1()
         {
-            var client = new Client();
+            var client = new Client()
+                .AddHeader("Origin", "http://localhost")
+                .SetSelfSigned(true);
+
             var foo = new Foo(client);
             var bar = new Bar(client);
             var general = new General(client);
@@ -63,18 +67,21 @@ namespace AppwriteTests
             var result = await general.Redirect();
             TestContext.WriteLine((result as Dictionary<string, object>)["result"]);
 
-            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromPath("../../../../../../../resources/file.png"));
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromPath("../../../../../../resources/file.png"));
             TestContext.WriteLine(mock.Result);
 
-            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromPath("../../../../../../../resources/large_file.mp4"));
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromPath("../../../../../../resources/large_file.mp4"));
             TestContext.WriteLine(mock.Result);
 
-            var info = new FileInfo("../../../../../../../resources/file.png");
+            var info = new FileInfo("../../../../../../resources/file.png");
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "file.png", "image/png"));
             TestContext.WriteLine(mock.Result);
 
-            info = new FileInfo("../../../../../../../resources/large_file.mp4");
+            info = new FileInfo("../../../../../../resources/large_file.mp4");
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
+            TestContext.WriteLine(mock.Result);
+
+            mock = await general.Enum(MockType.First);
             TestContext.WriteLine(mock.Result);
 
             try
@@ -106,6 +113,15 @@ namespace AppwriteTests
 
             await general.Empty();
 
+            var url = await general.Oauth2(
+                clientId: "clientId",
+                scopes: new List<string>() {"test"},
+                state: "123456",
+                success: "https://localhost",
+                failure: "https://localhost"
+            );
+            TestContext.WriteLine(url);
+
             // Query helper tests
             TestContext.WriteLine(Query.Equal("released", new List<bool> { true }));
             TestContext.WriteLine(Query.Equal("title", new List<string> { "Spiderman", "Dr. Strange" }));
@@ -127,6 +143,20 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.CursorBefore("my_movie_id"));
             TestContext.WriteLine(Query.Limit(50));
             TestContext.WriteLine(Query.Offset(20));
+            TestContext.WriteLine(Query.Contains("title", "Spider"));
+            TestContext.WriteLine(Query.Contains("labels", "first"));
+            TestContext.WriteLine(Query.Or(
+                new List<string> {
+                    Query.Equal("released", true),
+                    Query.LessThan("releasedYear", 1990)
+                }
+            ));
+            TestContext.WriteLine(Query.And(
+                new List<string> {
+                    Query.Equal("released", false),
+                    Query.GreaterThan("releasedYear", 2015)
+                }
+            ));
 
             // Permission & Roles helper tests
             TestContext.WriteLine(Permission.Read(Role.Any()));
@@ -136,8 +166,9 @@ namespace AppwriteTests
             TestContext.WriteLine(Permission.Delete(Role.Team("teamId", "owner")));
             TestContext.WriteLine(Permission.Delete(Role.Team("teamId")));
             TestContext.WriteLine(Permission.Create(Role.Member("memberId")));
-            TestContext.WriteLine(Permission.Update(Role.Users("verified")));;
-            TestContext.WriteLine(Permission.Update(Role.User(ID.Custom("userid"), "unverified")));;
+            TestContext.WriteLine(Permission.Update(Role.Users("verified")));
+            TestContext.WriteLine(Permission.Update(Role.User(ID.Custom("userid"), "unverified")));
+            TestContext.WriteLine(Permission.Create(Role.Label("admin")));
 
             // ID helper tests
             TestContext.WriteLine(ID.Unique());

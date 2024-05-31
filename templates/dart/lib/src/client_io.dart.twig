@@ -43,7 +43,7 @@ class ClientIO extends ClientBase with ClientMixin {
       'x-sdk-platform': '{{ sdk.platform }}',
       'x-sdk-language': '{{ language.name | caseLower }}',
       'x-sdk-version': '{{ sdk.version }}',
-      'user-agent' : '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({{Platform.operatingSystem}}; {{Platform.operatingSystemVersion}})',
+      'user-agent' : '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Platform.operatingSystem}; ${Platform.operatingSystemVersion})',
 {% for key,header in spec.global.defaultHeaders %}
       '{{key}}' : '{{header}}',
 {% endfor %}
@@ -143,7 +143,7 @@ class ClientIO extends ClientBase with ClientMixin {
           headers: headers,
         );
         final int chunksUploaded = res.data['chunksUploaded'] as int;
-        offset = min(size, chunksUploaded * CHUNK_SIZE);
+        offset = chunksUploaded * CHUNK_SIZE;
       } on {{spec.title | caseUcfirst}}Exception catch (_) {}
     }
 
@@ -156,7 +156,7 @@ class ClientIO extends ClientBase with ClientMixin {
     while (offset < size) {
       List<int> chunk = [];
       if (file.bytes != null) {
-        final end = min(offset + CHUNK_SIZE-1, size-1);
+        final end = min(offset + CHUNK_SIZE, size);
         chunk = file.bytes!.getRange(offset, end).toList();
       } else {
         raf!.setPositionSync(offset);
@@ -165,7 +165,7 @@ class ClientIO extends ClientBase with ClientMixin {
       params[paramName] =
           http.MultipartFile.fromBytes(paramName, chunk, filename: file.filename);
       headers['content-range'] =
-          'bytes $offset-${min<int>(((offset + CHUNK_SIZE) - 1), size)}/$size';
+          'bytes $offset-${min<int>((offset + CHUNK_SIZE - 1), size - 1)}/$size';
       res = await call(HttpMethod.post,
           path: path, headers: headers, params: params);
       offset += CHUNK_SIZE;
@@ -174,8 +174,8 @@ class ClientIO extends ClientBase with ClientMixin {
       }
       final progress = UploadProgress(
         $id: res.data['\$id'] ?? '',
-        progress: min(offset - 1, size) / size * 100,
-        sizeUploaded: min(offset - 1, size),
+        progress: min(offset, size) / size * 100,
+        sizeUploaded: min(offset, size),
         chunksTotal: res.data['chunksTotal'] ?? 0,
         chunksUploaded: res.data['chunksUploaded'] ?? 0,
       );
@@ -183,6 +183,14 @@ class ClientIO extends ClientBase with ClientMixin {
     }
     raf?.close();
     return res;
+  }
+
+  @override
+  Future<String?> webAuth(Uri url) async {
+    final request = http.Request('GET', url);
+    request.followRedirects = false;
+    final response = await _httpClient.send(request);
+    return response.headers['location'];
   }
 
   @override

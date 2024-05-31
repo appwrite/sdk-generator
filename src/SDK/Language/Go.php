@@ -136,26 +136,18 @@ class Go extends Language
      * @param array $nestedTypes
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-                return 'int';
-            case self::TYPE_NUMBER:
-                return 'float64';
-            case self::TYPE_FILE:
-                return 'file.InputFile';
-            case self::TYPE_STRING:
-                return 'string';
-            case self::TYPE_BOOLEAN:
-                return 'bool';
-            case self::TYPE_OBJECT:
-                return 'interface{}';
-            case self::TYPE_ARRAY:
-                return '[]interface{}';
-        }
-
-        return $parameter['type'];
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER => 'int',
+            self::TYPE_NUMBER => 'float64',
+            self::TYPE_FILE => 'file.InputFile',
+            self::TYPE_STRING => 'string',
+            self::TYPE_BOOLEAN => 'bool',
+            self::TYPE_OBJECT => 'interface{}',
+            self::TYPE_ARRAY => '[]interface{}',
+            default => $parameter['type'],
+        };
     }
 
     /**
@@ -296,6 +288,8 @@ class Go extends Language
             }),
             new TwigFilter('returnType', function (array $method, array $spec, string $namespace, string $generic = 'T') {
                 return $this->getReturnType($method, $spec, $namespace, $generic);
+            new TwigFilter('caseEnumKey', function (string $value) {
+                return $this->toUpperSnakeCase($value);
             }),
         ];
     }

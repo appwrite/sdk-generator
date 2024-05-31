@@ -1,0 +1,111 @@
+{% import 'flutter/base/utils.twig' as utils %}
+{% if 'dart' in language.params.packageName %}
+import 'package:test/test.dart';
+{% else %}
+import 'package:flutter_test/flutter_test.dart';
+{% endif %}
+import 'package:mockito/mockito.dart';
+import 'package:{{ language.params.packageName }}/models.dart' as models;
+import 'package:{{ language.params.packageName }}/src/enums.dart';
+import 'package:{{ language.params.packageName }}/src/response.dart';
+import 'dart:typed_data';
+import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
+
+class MockClient extends Mock implements Client {
+  Map<String, String> config = {'project': 'testproject'};
+  String endPoint = 'https://localhost/v1';
+  @override
+  Future<Response> call(
+    HttpMethod? method, {
+    String path = '',
+    Map<String, String> headers = const {},
+    Map<String, dynamic> params = const {},
+    ResponseType? responseType,
+  }) async {
+    return super.noSuchMethod(Invocation.method(#call, [method]),
+        returnValue: Response());
+  }
+
+  @override
+  Future webAuth(
+    Uri? url, 
+    {
+        String? callbackUrlScheme,
+    }
+  ) async {
+    return super.noSuchMethod(Invocation.method(#webAuth, [url]), returnValue: 'done');
+  }
+
+  @override
+  Future<Response> chunkedUpload({
+    String? path,
+    Map<String, dynamic>? params,
+    String? paramName,
+    String? idParamName,
+    Map<String, String>? headers,
+    Function(UploadProgress)? onProgress,
+  }) async {
+    return super.noSuchMethod(Invocation.method(#chunkedUpload, [path, params, paramName, idParamName, headers]), returnValue: Response(data: {}));
+  }
+}
+
+void main() {
+    group('{{service.name | caseUcfirst}} test', () {
+        late MockClient client;
+        late {{service.name | caseUcfirst}} {{service.name | caseCamel}};
+
+        setUp(() {
+            client = MockClient();
+            {{service.name | caseCamel}} = {{service.name | caseUcfirst}}(client);
+        });
+
+{% for method in service.methods %}
+        test('test method {{method.name | caseCamel}}()', () async {
+            {%- if method.type == 'webAuth' -%}
+            {%~ elseif method.type == 'location' -%}
+            final Uint8List data = Uint8List.fromList([]);
+            {%- else -%}
+
+                {%~ if method.responseModel and method.responseModel != 'any' ~%}
+            final Map<String, dynamic> data = {
+                {%- for definition in spec.definitions ~%}{%~ if definition.name == method.responseModel -%}{%~ for property in definition.properties | filter((param) => param.required) ~%}
+                '{{property.name | escapeDollarSign}}': {% if property.type == 'object' %}<String, dynamic>{}{% elseif property.type == 'array' %}[]{% elseif property.type == 'string' %}'{{property.example | escapeDollarSign}}'{% elseif property.type == 'boolean' %}true{% else %}{{property.example}}{% endif %},{%~ endfor ~%}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor -%}
+
+            };
+                {%~ else ~%}
+            final data = '';
+                {%- endif -%}
+            {% endif %}
+
+            {%~ if method.type == 'webAuth' ~%}
+            when(client.webAuth(
+                Uri(),
+            )).thenAnswer((_) async => 'done');
+            {%~ elseif 'multipart/form-data' in method.consumes ~%}
+            when(client.chunkedUpload(
+                path: argThat(isNotNull),
+                params: argThat(isNotNull),
+                paramName: argThat(isNotNull),
+                idParamName: argThat(isNotNull),
+                headers: argThat(isNotNull),
+            )).thenAnswer((_) async => Response(data: data));
+            {%~ else ~%}
+            when(client.call(
+                HttpMethod.{{method.method | caseLower}},
+            )).thenAnswer((_) async => Response(data: data));
+            {%~ endif ~%}
+
+            final response = await {{service.name | caseCamel}}.{{method.name | caseCamel}}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
+                {{parameter.name | escapeKeyword | caseCamel}}: {% if parameter.type == 'object' %}{}{% elseif parameter.type == 'array' %}[]{% elseif parameter.type == 'file' %}InputFile.fromPath(path: './image.png'){% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'string' %}'{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}'{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%},{%~ endfor ~%}
+            );
+
+        {%- if method.type == 'location' ~%}
+            expect(response, isA<Uint8List>());
+        {%~ endif ~%}{%~ if method.responseModel and method.responseModel != 'any' ~%}
+            expect(response, isA<models.{{method.responseModel | caseUcfirst | overrideIdentifier}}>());
+        {%~ endif ~%}
+        });
+
+{% endfor %}
+    });
+}

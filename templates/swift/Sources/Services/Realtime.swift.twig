@@ -7,22 +7,23 @@ open class Realtime : Service {
 
     private let TYPE_ERROR = "error"
     private let TYPE_EVENT = "event"
-    private let DEBOUNCE_MILLIS = 1
+    private let DEBOUNCE_NANOS = 1_000_000
 
     private var socketClient: WebSocketClient? = nil
     private var activeChannels = Set<String>()
     private var activeSubscriptions = [Int: RealtimeCallback]()
 
     let connectSync = DispatchQueue(label: "ConnectSync")
-    let callbackSync = DispatchQueue(label: "CallbackSync")
 
     private var subCallDepth = 0
     private var reconnectAttempts = 0
     private var subscriptionsCounter = 0
     private var reconnect = true
 
-    private func createSocket() {
+    private func createSocket() async throws {
         guard activeChannels.count > 0 else {
+            reconnect = false
+            try await closeSocket()
             return
         }
 
@@ -36,17 +37,31 @@ open class Realtime : Service {
 
         if (socketClient != nil) {
             reconnect = false
-            closeSocket()
-        } else {
-            socketClient = WebSocketClient(url, tlsEnabled: !client.selfSigned, delegate: self)!
+            try await closeSocket()
         }
 
-        try! socketClient?.connect()
+        socketClient = WebSocketClient(
+            url,
+            tlsEnabled: !client.selfSigned,
+            delegate: self
+        )
+
+        try await socketClient?.connect()
     }
 
-    private func closeSocket() {
-        socketClient?.close()
-        //socket?.close(RealtimeCode.POLICY_VIOLATION.value, null)
+    private func closeSocket() async throws {
+        guard let client = socketClient,
+              let group = client.threadGroup else {
+            return
+        }
+
+        if (client.isConnected) {
+            let promise = group.any().makePromise(of: Void.self)
+            client.close(promise: promise)
+            try await promise.futureResult.get()
+        }
+
+        try await group.shutdownGracefully()
     }
 
     private func getTimeout() -> Int {
@@ -61,8 +76,8 @@ open class Realtime : Service {
     public func subscribe(
         channel: String,
         callback: @escaping (RealtimeResponseEvent) -> Void
-    ) -> RealtimeSubscription {
-        return subscribe(
+    ) async throws -> RealtimeSubscription {
+        return try await subscribe(
             channels: [channel],
             payloadType: String.self,
             callback: callback
@@ -72,8 +87,8 @@ open class Realtime : Service {
     public func subscribe(
         channels: Set<String>,
         callback: @escaping (RealtimeResponseEvent) -> Void
-    ) -> RealtimeSubscription {
-        return subscribe(
+    ) async throws -> RealtimeSubscription {
+        return try await subscribe(
             channels: channels,
             payloadType: String.self,
             callback: callback
@@ -84,8 +99,8 @@ open class Realtime : Service {
         channel: String,
         payloadType: T.Type,
         callback: @escaping (RealtimeResponseEvent) -> Void
-    ) -> RealtimeSubscription {
-        return subscribe(
+    ) async throws -> RealtimeSubscription {
+        return try await subscribe(
             channels: [channel],
             payloadType: T.self,
             callback: callback
@@ -96,36 +111,38 @@ open class Realtime : Service {
         channels: Set<String>,
         payloadType: T.Type,
         callback: @escaping (RealtimeResponseEvent) -> Void
-    ) -> RealtimeSubscription {
+    ) async throws -> RealtimeSubscription {
         subscriptionsCounter += 1
-        let counter = subscriptionsCounter
+
+        let count = subscriptionsCounter
 
         channels.forEach {
             activeChannels.insert($0)
         }
 
-        activeSubscriptions[counter] = RealtimeCallback(
+        activeSubscriptions[count] = RealtimeCallback(
             for: Set(channels),
-            and: callback
+            with: callback
         )
 
         connectSync.sync {
             subCallDepth+=1
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(DEBOUNCE_MILLIS)) {
-            if (self.subCallDepth == 1) {
-                self.createSocket()
-            }
-            self.connectSync.sync {
-                self.subCallDepth-=1
-            }
+        try await Task.sleep(nanoseconds: UInt64(DEBOUNCE_NANOS))
+
+        if self.subCallDepth == 1 {
+            try await self.createSocket()
+        }
+
+        connectSync.sync {
+            self.subCallDepth -= 1
         }
 
         return RealtimeSubscription {
-            self.activeSubscriptions[counter] = nil
+            self.activeSubscriptions[count] = nil
             self.cleanUp(channels: channels)
-            self.createSocket()
+            try await self.createSocket()
         }
     }
 
@@ -137,7 +154,7 @@ open class Realtime : Service {
             let subsWithChannel = activeSubscriptions.filter { callback in
                 return callback.value.channels.contains(channel)
             }
-            return subsWithChannel.isEmpty
+            return !subsWithChannel.isEmpty
         }
     }
 }
@@ -161,7 +178,7 @@ extension Realtime: WebSocketClientDelegate {
         }
     }
 
-    public func onClose(channel: Channel, data: Data) {
+    public func onClose(channel: Channel, data: Data) async throws {
         if (!reconnect) {
             reconnect = true
             return
@@ -171,10 +188,11 @@ extension Realtime: WebSocketClientDelegate {
 
         print("Realtime disconnected. Re-connecting in \(timeout / 1000) seconds.")
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(timeout)) {
-            self.reconnectAttempts += 1
-            self.createSocket()
-        }
+        try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000))
+
+        self.reconnectAttempts += 1
+
+        try await self.createSocket()
     }
 
     public func onError(error: Swift.Error?, status: HTTPResponseStatus?) {
@@ -186,16 +204,10 @@ extension Realtime: WebSocketClientDelegate {
     }
 
     func handleResponseEvent(from json: [String: Any]) {
-        guard let data = json["data"] as? [String: Any] else {
-            return
-        }
-        guard let channels = data["channels"] as? Array<String> else {
-            return
-        }
-        guard let events = data["events"] as? Array<String> else {
-            return
-        }
-        guard let payload = data["payload"] as? [String: Any] else {
+        guard let data = json["data"] as? [String: Any],
+              let channels = data["channels"] as? [String],
+              let events = data["events"] as? [String],
+              let payload = data["payload"] as? [String: Any] else {
             return
         }
         guard channels.contains(where: { channel in

@@ -19,6 +19,12 @@ export class InputFile {
         return new InputFile(stream, filename, size);
     };
 
+    static fromBlob = async (blob: Blob, filename: string) => {
+        const arrayBuffer = await blob.arrayBuffer();
+        const buffer = new Uint8Array(arrayBuffer);
+        return InputFile.fromBuffer(buffer, filename);
+    };
+
     static fromBuffer = (buffer: Uint8Array, filename: string): InputFile => {
         const stream = _bufferToString(buffer);
         const size = buffer.byteLength;

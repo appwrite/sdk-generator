@@ -13,12 +13,17 @@ let package = Package(
     products: [
         .library(
             name: "{{spec.title | caseUcfirst}}",
-            targets: ["{{spec.title | caseUcfirst}}", "{{spec.title | caseUcfirst}}Models", "JSONCodable"]
+            targets: [
+                "{{spec.title | caseUcfirst}}",
+                "{{spec.title | caseUcfirst}}Enums",
+                "{{spec.title | caseUcfirst}}Models",
+                "JSONCodable"
+            ]
         ),
     ],
     dependencies: [
         .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.9.0"),
-        .package(url: "https://github.com/apple/swift-nio.git", from: "2.32.0")
+        .package(url: "https://github.com/apple/swift-nio.git", from: "2.32.0"),
     ],
     targets: [
         .target(
@@ -26,16 +31,28 @@ let package = Package(
             dependencies: [
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "NIOWebSocket", package: "swift-nio"),
+                {%~ if spec.definitions is not empty %}
                 "{{spec.title | caseUcfirst}}Models",
+                {%~ endif %}
+                {%~ if spec.enums is not empty %}
+                "{{spec.title | caseUcfirst}}Enums",
+                {%~ endif %}
                 "JSONCodable"
             ]
         ),
+        {%~ if spec.definitions is not empty %}
         .target(
             name: "{{spec.title | caseUcfirst}}Models",
             dependencies: [
                 "JSONCodable"
             ]
         ),
+        {%~ endif %}
+        {%~ if spec.enums is not empty %}
+        .target(
+            name: "{{spec.title | caseUcfirst}}Enums"
+        ),
+        {%~ endif %}
         .target(
             name: "JSONCodable"
         ),

@@ -1,7 +1,11 @@
 const { localConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { functionsListRuntimes } = require('./commands/functions');
+const { accountListMfaFactors } = require("./commands/account");
+const { sdkForConsole } = require("./sdks");
+
 const { databasesList } = require('./commands/databases');
+const { checkDeployConditions } = require('./utils');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
 const getIgnores = (runtime) => {
@@ -20,6 +24,7 @@ const getIgnores = (runtime) => {
         case 'kotlin':
             return ['build'];
         case 'node':
+        case 'bun':
             return ['node_modules', '.npm'];
         case 'php':
             return ['vendor'];
@@ -43,27 +48,61 @@ const getEntrypoint = (runtime) => {
         case 'dart':
             return 'lib/main.dart';
         case 'deno':
-            return 'src/mod.ts';
+            return 'src/main.ts';
         case 'node':
-            return 'src/index.js';
+            return 'src/main.js';
+        case 'bun':
+            return 'src/main.ts';
         case 'php':
             return 'src/index.php';
         case 'python':
-            return 'src/index.py';
+            return 'src/main.py';
         case 'ruby':
-            return 'src/index.rb';
+            return 'lib/main.rb';
         case 'rust':
             return 'main.rs';
         case 'swift':
-            return 'Sources/swift-5.5/main.swift';
+            return 'Sources/index.swift';
         case 'cpp':
-            return 'src/index.cc';
+            return 'src/main.cc';
         case 'dotnet':
             return 'src/Index.cs';
         case 'java':
-            return 'src/Index.java';
+            return 'src/Main.java';
         case 'kotlin':
-            return 'src/Index.kt';
+            return 'src/Main.kt';
+    }
+
+    return undefined;
+};
+
+const getInstallCommand = (runtime) => {
+    const languge = runtime.split('-')[0];
+
+    switch (languge) {
+        case 'dart':
+            return 'dart pub get';
+        case 'deno':
+            return "deno install";
+        case 'node':
+            return 'npm install';
+        case 'bun':
+            return 'bun install';
+        case 'php':
+            return 'composer install';
+        case 'python':
+            return 'pip install -r requirements.txt';
+        case 'ruby':
+            return 'bundle install';
+        case 'rust':
+            return 'cargo install';
+        case 'dotnet':
+            return 'dotnet restore';
+        case 'swift':
+        case 'java':
+        case 'kotlin':
+        case 'cpp':
+            return '';
     }
 
     return undefined;
@@ -174,7 +213,12 @@ const questionsInitFunction = [
             let choices = runtimes.map((runtime, idx) => {
                 return {
                     name: `${runtime.name} (${runtime['$id']})`,
-                    value: { id: runtime['$id'], entrypoint: getEntrypoint(runtime['$id']), ignore: getIgnores(runtime['$id']) },
+                    value: {
+                        id: runtime['$id'],
+                        entrypoint: getEntrypoint(runtime['$id']),
+                        ignore: getIgnores(runtime['$id']),
+                        commands : getInstallCommand(runtime['$id'])
+                    },
                 }
             })
             return choices;
@@ -240,6 +284,7 @@ const questionsDeployFunctions = [
         message: "Which functions would you like to deploy?",
         choices: () => {
             let functions = localConfig.getFunctions();
+            checkDeployConditions(localConfig)
             if (functions.length === 0) {
                 throw new Error("No functions found in the current directory.");
             }
@@ -266,16 +311,17 @@ const questionsDeployCollections = [
         message: "Which collections would you like to deploy?",
         choices: () => {
             let collections = localConfig.getCollections();
+            checkDeployConditions(localConfig)
+
             if (collections.length === 0) {
                 throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
             }
-            let choices = collections.map((collection, idx) => {
+            return collections.map(collection => {
                 return {
                     name: `${collection.name} (${collection['databaseId']} - ${collection['$id']})`,
                     value: `${collection['databaseId']}|${collection['$id']}`
                 }
-            })
-            return choices;
+            });
         }
     },
     {
@@ -292,16 +338,16 @@ const questionsDeployBuckets = [
         message: "Which buckets would you like to deploy?",
         choices: () => {
             let buckets = localConfig.getBuckets();
+            checkDeployConditions(localConfig)
             if (buckets.length === 0) {
                 throw new Error("No buckets found in the current directory. Run `appwrite init bucket` to fetch all your buckets.");
             }
-            let choices = buckets.map((bucket, idx) => {
+            return buckets.map(bucket => {
                 return {
                     name: `${bucket.name} (${bucket['$id']})`,
                     value: bucket.$id
                 }
-            })
-            return choices;
+            });
         }
     },
     {
@@ -319,7 +365,7 @@ const questionsGetEntrypoint = [
         default: null,
         validate(value) {
             if (!value) {
-                return "Please enter your enrtypoint";
+                return "Please enter your entrypoint";
             }
             return true;
         }
@@ -333,16 +379,16 @@ const questionsDeployTeams = [
         message: "Which teams would you like to deploy?",
         choices: () => {
             let teams = localConfig.getTeams();
+            checkDeployConditions(localConfig);
             if (teams.length === 0) {
                 throw new Error("No teams found in the current directory. Run `appwrite init team` to fetch all your teams.");
             }
-            let choices = teams.map((team, idx) => {
+            return teams.map(team => {
                 return {
                     name: `${team.name} (${team['$id']})`,
                     value: team.$id
                 }
-            })
-            return choices;
+            });
         }
     },
     {
@@ -350,7 +396,57 @@ const questionsDeployTeams = [
         name: "override",
         message: 'Are you sure you want to override this team? This can lead to loss of data! Type "YES" to confirm.'
     },
-]
+];
+
+const questionsListFactors = [
+    {
+        type: "list",
+        name: "factor",
+        message: "Your account is protected by multiple factors. Which factor would you like to use to authenticate?",
+        choices: async () => {
+            let client = await sdkForConsole(false);
+            const factors = await accountListMfaFactors({
+                sdk: client,
+                parseOutput: false
+            });
+                
+            const choices = [
+                {
+                    name: `TOTP (Time-based One-time Password)`,
+                    value: 'totp'
+                },
+                {
+                    name: `E-mail`,
+                    value: 'email'
+                },
+                {
+                    name: `Phone (SMS)`,
+                    value: 'phone'
+                },
+                {
+                    name: `Recovery code`,
+                    value: 'recoveryCode'
+                }
+            ].filter((ch) => factors[ch.value] === true);
+
+            return choices;
+        }
+    }
+];
+
+const questionsMfaChallenge = [
+    {
+        type: "input",
+        name: "otp",
+        message: "Enter OTP",
+        validate(value) {
+            if (!value) {
+                return "Please enter OTP";
+            }
+            return true;
+        },
+    }
+];
 
 module.exports = {
     questionsInitProject,
@@ -361,5 +457,7 @@ module.exports = {
     questionsDeployCollections,
     questionsDeployBuckets,
     questionsDeployTeams,
-    questionsGetEntrypoint
+    questionsGetEntrypoint,
+    questionsListFactors,
+    questionsMfaChallenge
 };

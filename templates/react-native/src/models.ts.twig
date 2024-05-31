@@ -1,0 +1,17 @@
+export namespace Models {
+{% for definition in spec.definitions %}
+    /**
+     * {{ definition.description }}
+     */
+    export type {{ definition.name | caseUcfirst }}{{ definition.name | getGenerics(spec, true) | raw }} = {
+{% for property in definition.properties %}
+        /**
+         * {{ property.description }}
+         */
+        {{ property.name }}{% if not property.required %}?{% endif %}: {{ property | getSubSchema(spec) | raw }};
+{% endfor %}
+{% if definition.additionalProperties %}        [key: string]: any;
+{% endif %}
+    }
+{% endfor %}
+}

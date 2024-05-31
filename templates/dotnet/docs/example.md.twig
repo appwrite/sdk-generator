@@ -1,7 +1,15 @@
 using {{ spec.title | caseUcfirst }};
+{% set addedEnum = false %}
+{% for parameter in method.parameters.all %}
+{% if parameter.enumValues | length > 0 and not addedEnum %}
+using {{ spec.title | caseUcfirst }}.Enums;
+{% set addedEnum = true %}
+{% endif %}
+{% endfor %}
 using {{ spec.title | caseUcfirst }}.Models;
+using {{ spec.title | caseUcfirst }}.Services;
 
-var client = new Client()
+Client client = new Client()
 {% if method.auth|length > 0 %}
     .SetEndPoint("https://cloud.appwrite.io/v1") // Your API Endpoint
 {% for node in method.auth %}
@@ -9,9 +17,12 @@ var client = new Client()
     .Set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo']}}"){% if loop.last %};{% endif %} // {{node[header].description}}
 {% endfor %}{% endfor %}{% endif %}
 
-var {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
+{{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);
 
-{% if method.method != 'delete' %}{% if method.type == 'location' %}byte[]{% else %}{{ method.responseModel | caseUcfirst | overrideIdentifier }}{% endif %} result = {% endif %}await {{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}({% if method.parameters.all | length == 0 %});{% endif %}
-{% for parameter in method.parameters.all %}{% if parameter.required %}{% if not loop.first %},{% endif %}
+{% if method.method != 'delete' and method.type != 'webAuth' %}{% if method.type == 'location' %}byte[]{% else %}{{ method.responseModel | caseUcfirst | overrideIdentifier }}{% endif %} result = {% endif %}await {{ service.name | caseCamel }}.{{ method.name | caseUcfirst }}({% if method.parameters.all | length == 0 %});{% endif %}
+	  {%~ for parameter in method.parameters.all %}
 
-    {{ parameter.name }}: {{ parameter | paramExample }}{% endif %}{% endfor %}{% if method.parameters.all | length > 0 %});{% endif %}
+    {{ parameter.name }}: {% if parameter.enumValues | length > 0%}{{ parameter.enumName }}.{{ (parameter.enumKeys[0] ?? parameter.enumValues[0]) | caseEnumKey }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
+    {%~ endfor %}
+
+{% if method.parameters.all | length > 0 %});{% endif %}

@@ -17,7 +17,10 @@ struct ExampleView: View {
                 .aspectRatio(contentMode: .fit)
                 .frame(height: 200)
 
-            TextField("", text: $viewModel.response)
+            TextField("", text: $viewModel.response, axis: .vertical)
+                .padding()
+
+            TextField("", text: $viewModel.response2, axis: .vertical)
                 .padding()
 
             Button("Login") {
@@ -41,7 +44,7 @@ struct ExampleView: View {
             }
             
             Button("Subscribe") {
-                viewModel.subscribe()
+                Task { await viewModel.subscribe() }
             }
         }
         #if os(macOS)
@@ -49,7 +52,7 @@ struct ExampleView: View {
             ImagePicker.present()
         }
         #endif
-        #if os(iOS)
+        #if os(iOS) || os(visionOS)
         .sheet(isPresented: $viewModel.isShowPhotoLibrary) {
             ImagePicker(selectedImage: $imageToUpload)
         }

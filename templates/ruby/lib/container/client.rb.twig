@@ -141,7 +141,7 @@ module {{ spec.title | caseUcfirst }}
                     params: {}
                 )
                 chunks_uploaded = current['chunksUploaded'].to_i
-                offset = [size, (chunks_uploaded * @chunk_size)].min
+                offset = chunks_uploaded * @chunk_size
             end
 
             while offset < size
@@ -158,7 +158,7 @@ module {{ spec.title | caseUcfirst }}
                     mime_type: input_file.mime_type
                 )
 
-                headers['content-range'] = "bytes #{offset}-#{[offset + @chunk_size - 1, size].min}/#{size}"
+                headers['content-range'] = "bytes #{offset}-#{[offset + @chunk_size - 1, size - 1].min}/#{size}"
 
                 result = call(
                     method: 'POST',
@@ -170,7 +170,7 @@ module {{ spec.title | caseUcfirst }}
                 offset += @chunk_size
 
                 if defined? result['$id']
-                    headers['x-{{ spec.title }}-id'] = result['$id']
+                    headers['x-{{ spec.title | caseLower }}-id'] = result['$id']
                 end
 
                 on_progress.call({
@@ -205,6 +205,8 @@ module {{ spec.title | caseUcfirst }}
             
             headers = @headers.merge(headers)
 
+            params.compact!
+
             @boundary = "----A30#3ad1"
             if method != "GET"
                 case headers[:'content-type']
@@ -223,12 +225,15 @@ module {{ spec.title | caseUcfirst }}
             rescue => error
                 raise {{spec.title | caseUcfirst}}::Exception.new(error.message)
             end
+
+            location = response['location']
+            if response_type == "location"
+                return location
+            end
             
             # Handle Redirects
-            if response.class == Net::HTTPRedirection || response.class == Net::HTTPMovedPermanently
-                location = response['location']
+            if (response.class == Net::HTTPRedirection || response.class == Net::HTTPMovedPermanently)
                 uri = URI.parse(uri.scheme + "://" + uri.host + "" + location)
-                
                 return fetch(method, uri, headers, {}, response_type, limit - 1)
             end
 

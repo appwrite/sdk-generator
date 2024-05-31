@@ -23,11 +23,11 @@ const parse = (data) => {
                 drawJSON(data[key]);
             }
         } else if (typeof data[key] === 'object') {
-            if (data[key] && data[key].constructor.name === 'BigNumber') {
+            if (data[key]?.constructor?.name === 'BigNumber') {
                 console.log(`${chalk.yellow.bold(key)} : ${data[key]}`);
             } else {
                 console.log(`${chalk.yellow.bold.underline(key)}`)
-                parse(data[key]);
+                drawTable([data[key]]);
             }
         } else {
             console.log(`${chalk.yellow.bold(key)} : ${data[key]}`);
@@ -169,6 +169,12 @@ const commandDescriptions = {
     "login": `The login command allows you to authenticate and manage a user account.`,
     "logout": `The logout command allows you to logout of your {{ spec.title|caseUcfirst }} account.`,
     "console" : `The console command allows gives you access to the APIs used by the Appwrite console.`,
+    "assistant": `The assistant command allows you to interact with the Appwrite Assistant AI`,
+    "messaging": `The messaging command allows you to send messages.`,
+    "migrations": `The migrations command allows you to migrate data between services.`,
+    "project": `The project command is for overall project administration.`,
+    "proxy": `The proxy command allows you to configure behavior for your attached domains.`,
+    "vcs": `The vcs command allows you to interact with VCS providers and manage your code repositories.`,
     "main": chalk.redBright(`${logo}${description}`),
 {% if sdk.test == "true" %}
 {% for service in spec.services %}

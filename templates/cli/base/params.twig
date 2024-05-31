@@ -1,0 +1,84 @@
+    let payload = {};
+{% for parameter in method.parameters.query %}
+    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+    }
+{% endfor %}
+{% for parameter in method.parameters.body %}
+{% if parameter.type == 'file' %}
+{% if method.packaging %}
+    const folderPath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
+    if (!fs.lstatSync(folderPath).isDirectory()) {
+        throw new Error('The path is not a directory.');
+    }
+    
+    const ignorer = ignore();
+
+    const func = localConfig.getFunction(functionId);
+
+    if (func.ignore) {
+        ignorer.add(func.ignore);
+        log('Ignoring files using configuration from appwrite.json');
+    } else if (fs.existsSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore'))) {
+        ignorer.add(fs.readFileSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore')).toString());
+        log('Ignoring files in .gitignore');
+    }
+    
+    const files = getAllFiles({{ parameter.name | caseCamel | escapeKeyword }}).map((file) => pathLib.relative({{ parameter.name | caseCamel | escapeKeyword }}, file)).filter((file) => !ignorer.ignores(file));
+
+    await tar
+        .create({
+            gzip: true,
+            sync: true,
+            cwd: folderPath,
+            file: 'code.tar.gz'
+        }, files);
+
+    let archivePath = fs.realpathSync('code.tar.gz')
+    if (typeof archivePath !== 'undefined') {
+        payload['{{ parameter.name }}'] = archivePath;
+       {{ parameter.name | caseCamel | escapeKeyword }} = archivePath;
+    }
+
+{% endif %}
+    const filePath = fs.realpathSync({{ parameter.name | caseCamel | escapeKeyword }});
+    const nodeStream = fs.createReadStream(filePath);
+    const stream = convertReadStreamToReadableStream(nodeStream);
+
+    if (typeof filePath !== 'undefined') {
+        {{ parameter.name | caseCamel | escapeKeyword }} = { type: 'file', stream, filename: pathLib.basename(filePath), size: fs.statSync(filePath).size };
+        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}
+    }
+{% elseif parameter.type == 'boolean' %}
+    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+    }
+{% elseif parameter.type == 'number' %}
+    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+    }
+{% elseif parameter.type == 'string' %}
+    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+    }
+{% elseif parameter.type == 'object' %}
+    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+        payload['{{ parameter.name }}'] = JSON.parse({{ parameter.name | caseCamel | escapeKeyword}});
+    }
+{% elseif parameter.type == 'array' %}
+    {{ parameter.name | caseCamel | escapeKeyword}} = {{ parameter.name | caseCamel | escapeKeyword}} === true ? [] : {{ parameter.name | caseCamel | escapeKeyword}};
+    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword}};
+    }
+{% else %}
+    if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+        payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword}}{% if method.consumes[0] == "multipart/form-data" %}.toString(){% endif %};
+    }
+{% endif %}
+{% endfor %}
+{% if method.type == 'location' %}
+    payload['project'] = localConfig.getProject().projectId
+    payload['key'] = globalConfig.getKey();
+    const queryParams = new URLSearchParams(payload);
+    apiPath = `${globalConfig.getEndpoint()}${apiPath}?${queryParams.toString()}`;
+{% endif %}

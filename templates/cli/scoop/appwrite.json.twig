@@ -1,0 +1,30 @@
+{
+	"$schema": "https://raw.githubusercontent.com/ScoopInstaller/Scoop/master/schema.json",
+	"version": "{{ sdk.version }}",
+	"description": "The Appwrite CLI is a command-line application that allows you to interact with Appwrite and perform server-side tasks using your terminal.",
+	"homepage": "https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}",
+	"license": "BSD-3-Clause",
+	"architecture": {
+		"64bit": {
+			"url": "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.executableName }}-cli-win-x64.exe",
+			"bin": [
+				[
+					"{{ language.params.executableName }}-cli-win-x64.exe",
+					"{{ language.params.executableName|caseLower }}"
+				]
+			]
+		},
+		"arm64": {
+			"url": "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/releases/download/{{ sdk.version }}/{{ language.params.executableName }}-cli-win-arm64.exe",
+			"bin": [
+				[
+					"{{ language.params.executableName }}-cli-win-arm64.exe",
+					"{{ language.params.executableName|caseLower }}"
+				]
+			]
+		}
+	},
+	"checkver": {
+    	"github": "https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}"
+ 	}
+}

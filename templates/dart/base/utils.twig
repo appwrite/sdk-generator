@@ -1,6 +1,6 @@
 {% macro map_parameter(parameters) %}
 {% for parameter in parameters %}
-'{{ parameter.name }}': {{ parameter.name | caseCamel | overrideIdentifier }},
+'{{ parameter.name }}': {{ parameter.name | caseCamel | overrideIdentifier }}{% if parameter.enumValues | length > 0  %}{% if not parameter.required %}?{% endif %}.value{% endif %},
 {% endfor %}
 {% endmacro %}
 

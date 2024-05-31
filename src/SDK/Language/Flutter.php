@@ -62,6 +62,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/enums.dart',
+                'template'      => 'dart/lib/enums.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/permission.dart',
                 'template'      => 'dart/lib/permission.dart.twig',
             ],
@@ -241,14 +246,104 @@ class Flutter extends Dart
                 'template'      => 'flutter/lib/services/service.dart.twig',
             ],
             [
+                'scope'         => 'service',
+                'destination'   => '/test/services/{{service.name | caseDash}}_test.dart',
+                'template'      => 'dart/test/services/service_test.dart.twig',
+            ],
+            [
+                'scope'         => 'definition',
+                'destination'   => '/test/src/models/{{definition.name | caseSnake }}_test.dart',
+                'template'      => 'dart/test/src/models/model_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/id_test.dart',
+                'template'      => 'dart/test/id_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/permission_test.dart',
+                'template'      => 'dart/test/permission_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/query_test.dart',
+                'template'      => 'dart/test/query_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/role_test.dart',
+                'template'      => 'dart/test/role_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/cookie_manager_test.dart',
+                'template'      => 'flutter/test/src/cookie_manager_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/interceptor_test.dart',
+                'template'      => 'flutter/test/src/interceptor_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/realtime_response_test.dart',
+                'template'      => 'flutter/test/src/realtime_response_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/realtime_response_connected_test.dart',
+                'template'      => 'flutter/test/src/realtime_response_connected_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/realtime_subscription_test.dart',
+                'template'      => 'flutter/test/src/realtime_subscription_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/enums_test.dart',
+                'template'      => 'dart/test/src/enums_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/upload_progress_test.dart',
+                'template'      => 'dart/test/src/upload_progress_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/input_file_test.dart',
+                'template'      => 'dart/test/src/input_file_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/exception_test.dart',
+                'template'      => 'dart/test/src/exception_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/response_test.dart',
+                'template'      => 'dart/test/src/response_test.dart.twig',
+            ],
+            [
                 'scope'         => 'method',
                 'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
                 'template'      => 'flutter/docs/example.md.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '.travis.yml',
-                'template'      => 'flutter/.travis.yml.twig',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'flutter/.github/workflows/publish.yml.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '.github/workflows/format.yml',
+                'template'      => 'flutter/.github/workflows/format.yml.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => 'lib/src/enums/{{ enum.name | caseSnake }}.dart',
+                'template'      => 'dart/lib/src/enums/enum.dart.twig',
             ],
         ];
     }

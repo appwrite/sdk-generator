@@ -5,6 +5,7 @@ import io.appwrite.Permission
 import io.appwrite.Role
 import io.appwrite.ID
 import io.appwrite.Query
+import io.appwrite.enums.MockType
 import io.appwrite.exceptions.AppwriteException
 import io.appwrite.extensions.fromJson
 import io.appwrite.extensions.toJson
@@ -100,6 +101,9 @@ class ServiceTest {
                 writeToFile(ex.toString())
             }
 
+            mock = general.enum(MockType.FIRST)
+            writeToFile(mock.result)
+
             try {
                 general.error400()
             } catch (e: AppwriteException) {
@@ -119,6 +123,15 @@ class ServiceTest {
             }
 
             general.empty()
+
+            val url = general.oauth2(
+                clientId = "clientId",
+                scopes = listOf("test"),
+                state = "123456",
+                success = "https://localhost",
+                failure = "https://localhost",
+            )
+            writeToFile(url)
 
             // Query helper tests
             writeToFile(Query.equal("released", listOf(true)))
@@ -141,6 +154,10 @@ class ServiceTest {
             writeToFile(Query.cursorBefore("my_movie_id"))
             writeToFile(Query.limit(50))
             writeToFile(Query.offset(20))
+            writeToFile(Query.contains("title", listOf("Spider")))
+            writeToFile(Query.contains("labels", listOf("first")))
+            writeToFile(Query.or(listOf(Query.equal("released", listOf(true)), Query.lessThan("releasedYear", 1990))))
+            writeToFile(Query.and(listOf(Query.equal("released", listOf(false)), Query.greaterThan("releasedYear", 2015))))
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))
@@ -152,6 +169,7 @@ class ServiceTest {
             writeToFile(Permission.create(Role.member("memberId")))
             writeToFile(Permission.update(Role.users("verified")));
             writeToFile(Permission.update(Role.user(ID.custom("userid"), "unverified")));
+            writeToFile(Permission.create(Role.label("admin")));
 
             // ID helper tests
             writeToFile(ID.unique())

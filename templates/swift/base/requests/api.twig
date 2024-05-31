@@ -1,8 +1,8 @@
         return try await client.call(
             method: "{{ method.method | caseUpper }}",
-            path: path,
-            headers: headers,
-            params: params{% if method.responseModel %},
+            path: apiPath,
+            headers: apiHeaders,
+            params: apiParams{% if method.responseModel %},
             converter: converter
-{% endif %}
+            {%~ endif %}
         )

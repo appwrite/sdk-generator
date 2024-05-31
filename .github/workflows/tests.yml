@@ -1,0 +1,103 @@
+name: CI Workflow
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on: [pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.2']
+        sdk: [
+          Android5Java17,
+          Android14Java17,
+          CLINode16,
+          CLINode18,
+          DartBeta,
+          DartStable,
+          Deno1193,
+          Deno1303,
+          DotNet60,
+          DotNet80,
+          FlutterStable,
+          FlutterBeta,
+          Go112,
+          Go118,
+          KotlinJava8,
+          KotlinJava11,
+          KotlinJava17,
+          Node16,
+          Node18,
+          Node20,
+          PHP74,
+          PHP80,
+          Python38,
+          Python39,
+          Python310,
+          Ruby27,
+          Ruby30,
+          Ruby31,
+          AppleSwift56,
+          Swift56,
+          WebChromium,
+          WebNode
+        ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Docker Setup Buildx
+        uses: docker/setup-buildx-action@v3.0.0
+
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: curl
+
+      - name: Before Install
+        run: |
+          if [ ! -z "${DOCKERHUB_PULL_USERNAME:-}" ]; then
+            echo "${DOCKERHUB_PULL_PASSWORD}" | docker login --username "${DOCKERHUB_PULL_USERNAME}" --password-stdin
+          fi
+
+      - name: Install
+        run: |
+          docker --version
+          composer install
+
+      - name: Lint
+        if: matrix.sdk == 'Lint'
+        run: |
+          composer lint
+
+      - name: Run Tests
+        run: |
+          composer test tests/${{ matrix.sdk }}Test.php
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: curl
+
+      - name: Install
+        run: composer install
+
+      - name: Lint
+        run: composer lint

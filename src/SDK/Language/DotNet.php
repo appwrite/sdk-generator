@@ -129,7 +129,8 @@ class DotNet extends Language
             'when',
             'where',
             'while',
-            'yield'
+            'yield',
+            'path'
         ];
     }
 
@@ -144,33 +145,39 @@ class DotNet extends Language
         ];
     }
 
+    public function getPropertyOverrides(): array
+    {
+        return [
+            'provider' => [
+                'Provider' => 'MessagingProvider',
+            ],
+        ];
+    }
+
     /**
      * @param array $parameter
      * @return string
      */
-    public function getTypeName(array $parameter): string
+    public function getTypeName(array $parameter, array $spec = []): string
     {
-        switch ($parameter['type']) {
-            case self::TYPE_INTEGER:
-                return 'long';
-            case self::TYPE_NUMBER:
-                return 'double';
-            case self::TYPE_STRING:
-                return 'string';
-            case self::TYPE_FILE:
-                return 'InputFile';
-            case self::TYPE_BOOLEAN:
-                return 'bool';
-            case self::TYPE_ARRAY:
-                if (!empty($parameter['array']['type'])) {
-                    return 'List<' . $this->getTypeName($parameter['array']) . '>';
-                }
-                return 'List<object>';
-            case self::TYPE_OBJECT:
-                return 'object';
+        if (isset($parameter['enumName'])) {
+            return 'Appwrite.Enums.' . \ucfirst($parameter['enumName']);
         }
-
-        return $parameter['type'];
+        if (!empty($parameter['enumValues'])) {
+            return 'Appwrite.Enums.' . \ucfirst($parameter['name']);
+        }
+        return match ($parameter['type']) {
+            self::TYPE_INTEGER => 'long',
+            self::TYPE_NUMBER => 'double',
+            self::TYPE_STRING => 'string',
+            self::TYPE_BOOLEAN => 'bool',
+            self::TYPE_FILE => 'InputFile',
+            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
+                ? 'List<' . $this->getTypeName($parameter['array']) . '>'
+                : 'List<object>',
+            self::TYPE_OBJECT => 'object',
+            default => $parameter['type']
+        };
     }
 
     /**
@@ -236,7 +243,7 @@ class DotNet extends Language
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'new File("./path-to-files/image.jpg")';
+                    $output .= 'InputFile.FromPath("./path-to-files/image.jpg")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -258,7 +265,11 @@ class DotNet extends Language
                     if (\str_ends_with($example, ']')) {
                         $example = \substr($example, 0, -1);
                     }
-                    $output .= 'new List<' . $this->getTypeName($param['array']) . '> {' . $example . '}';
+                    if (!empty($example)) {
+                        $output .= 'new List<' . $this->getTypeName($param['array']) . '>() {' . $example . '}';
+                    } else {
+                        $output .= 'new List<' . $this->getTypeName($param['array']) . '>()';
+                    }
                     break;
             }
         } else {
@@ -292,8 +303,8 @@ class DotNet extends Language
         return [
             [
                 'scope'         => 'default',
-                'destination'   => '.travis.yml',
-                'template'      => 'dotnet/.travis.yml.twig',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'dotnet/.github/workflows/publish.yml.twig',
             ],
             [
                 'scope'         => 'default',
@@ -322,78 +333,93 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}.sln',
-                'template'      => 'dotnet/src/Appwrite.sln',
+                'destination'   => '{{ spec.title | caseUcfirst }}.sln',
+                'template'      => 'dotnet/Package.sln',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/{{ spec.title | caseUcfirst }}.csproj',
-                'template'      => 'dotnet/src/Appwrite/Appwrite.csproj.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/{{ spec.title | caseUcfirst }}.csproj',
+                'template'      => 'dotnet/Package/Package.csproj.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Client.cs',
-                'template'      => 'dotnet/src/Appwrite/Client.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Client.cs',
+                'template'      => 'dotnet/Package/Client.cs.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/{{ spec.title | caseUcfirst }}Exception.cs',
-                'template'      => 'dotnet/src/Appwrite/Exception.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/{{ spec.title | caseUcfirst }}Exception.cs',
+                'template'      => 'dotnet/Package/Exception.cs.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/ID.cs',
-                'template'      => 'dotnet/src/Appwrite/ID.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/ID.cs',
+                'template'      => 'dotnet/Package/ID.cs.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Permission.cs',
-                'template'      => 'dotnet/src/Appwrite/Permission.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Permission.cs',
+                'template'      => 'dotnet/Package/Permission.cs.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Query.cs',
-                'template'      => 'dotnet/src/Appwrite/Query.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Query.cs',
+                'template'      => 'dotnet/Package/Query.cs.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Role.cs',
-                'template'      => 'dotnet/src/Appwrite/Role.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Role.cs',
+                'template'      => 'dotnet/Package/Role.cs.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Extensions/Extensions.cs',
-                'template'      => 'dotnet/src/Appwrite/Extensions/Extensions.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Converters/ValueClassConverter.cs',
+                'template'      => 'dotnet/Package/Converters/ValueClassConverter.cs.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/OrderType.cs',
-                'template'      => 'dotnet/src/Appwrite/Models/OrderType.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Extensions/Extensions.cs',
+                'template'      => 'dotnet/Package/Extensions/Extensions.cs.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/UploadProgress.cs',
-                'template'      => 'dotnet/src/Appwrite/Models/UploadProgress.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Models/OrderType.cs',
+                'template'      => 'dotnet/Package/Models/OrderType.cs.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/InputFile.cs',
-                'template'      => 'dotnet/src/Appwrite/Models/InputFile.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Models/UploadProgress.cs',
+                'template'      => 'dotnet/Package/Models/UploadProgress.cs.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Services/Service.cs',
-                'template'      => 'dotnet/src/Appwrite/Services/Service.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Models/InputFile.cs',
+                'template'      => 'dotnet/Package/Models/InputFile.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Services/Service.cs',
+                'template'      => 'dotnet/Package/Services/Service.cs.twig',
             ],
             [
                 'scope'         => 'service',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Services/{{service.name | caseUcfirst}}.cs',
-                'template'      => 'dotnet/src/Appwrite/Services/ServiceTemplate.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Services/{{service.name | caseUcfirst}}.cs',
+                'template'      => 'dotnet/Package/Services/ServiceTemplate.cs.twig',
             ],
             [
                 'scope'         => 'definition',
-                'destination'   => '/src/{{ spec.title | caseUcfirst }}/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
-                'template'      => 'dotnet/src/Appwrite/Models/Model.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Models/{{ definition.name | caseUcfirst | overrideIdentifier }}.cs',
+                'template'      => 'dotnet/Package/Models/Model.cs.twig',
+            ],
+            [
+                'scope'         => 'enum',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Enums/{{ enum.name | caseUcfirst | overrideIdentifier }}.cs',
+                'template'      => 'dotnet/Package/Enums/Enum.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Enums/IEnum.cs',
+                'template'      => 'dotnet/Package/Enums/IEnum.cs.twig',
             ]
         ];
     }
@@ -407,7 +433,16 @@ class DotNet extends Language
                     $value[$key] = "        /// " . wordwrap($line, 75, "\n        /// ");
                 }
                 return implode("\n", $value);
-            }, ['is_safe' => ['html']])
+            }, ['is_safe' => ['html']]),
+            new TwigFilter('caseEnumKey', function (string $value) {
+                return $this->toPascalCase($value);
+            }),
+            new TwigFilter('overrideProperty', function (string $property, string $class) {
+                if (isset($this->getPropertyOverrides()[$class][$property])) {
+                    return $this->getPropertyOverrides()[$class][$property];
+                }
+                return $property;
+            }),
         ];
     }
 }

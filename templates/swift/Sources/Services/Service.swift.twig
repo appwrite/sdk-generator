@@ -2,10 +2,11 @@ import AsyncHTTPClient
 import Foundation
 import NIO
 import JSONCodable
+import {{spec.title | caseUcfirst}}Enums
 import {{spec.title | caseUcfirst}}Models
 
 /// {{ service.description }}
-open class {{ service.name | caseUcfirst }}: Service {
+open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
 
     {%~ for method in service.methods %}
     ///
@@ -16,17 +17,14 @@ open class {{ service.name | caseUcfirst }}: Service {
     ///
     {%~ endif %}
     {%~ for parameter in method.parameters.all %}
-    /// @param {{ parameter | typeName | raw}} {{ parameter.name | caseCamel }}
+    /// @param {{ parameter | typeName(spec) | raw}} {{ parameter.name | caseCamel }}
     {%~ endfor %}
     /// @throws Exception
     /// @return array
     ///
-    {%~ if method.type == "webAuth" %}
-    @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
-    {%~ endif %}
-    open func {{ method.name | caseCamel }}{% if method.responseModel | hasGenericType(spec) %}<T>{% endif %}(
+    open func {{ method.name | caseCamel | overrideIdentifier }}{% if method.responseModel | hasGenericType(spec) %}<T>{% endif %}(
         {%~ for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes or method.responseModel | hasGenericType(spec) %},{% endif %}
+        {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes or method.responseModel | hasGenericType(spec) %},{% endif %}
 
         {%~ endfor %}
         {%~ if method.responseModel | hasGenericType(spec) %}
@@ -35,19 +33,14 @@ open class {{ service.name | caseUcfirst }}: Service {
         {%~ if 'multipart/form-data' in method.consumes %}
         onProgress: ((UploadProgress) -> Void)? = nil
         {%~ endif %}
-    ){%~ if method.type != "webAuth" %} async{% endif %} throws -> {{ method | returnType(spec) | raw }} {
+    ) async throws -> {{ method | returnType(spec) | raw }} {
         {{~ include('swift/base/params.twig') }}
-        {%~ if method.type == 'webAuth' %}
-        {{~ include('swift/base/requests/OAuth.twig') }}
-        {%~ elseif method.type == 'location' %}
-        {{~ include('swift/base/requests/location.twig')}}
-        {%~ else %}
         {%~ if method.headers | length <= 0 %}
-        let headers: [String: String] = [:]
+        let apiHeaders: [String: String] = [:]
         {%~ else %}
         {% if 'multipart/form-data' in method.consumes -%} var
         {%- else -%} let
-        {%- endif %} headers: [String: String] = [
+        {%- endif %} apiHeaders: [String: String] = [
         {%~ for key, header in method.headers %}
             "{{ key }}": "{{ header }}"{% if not loop.last %},{% endif %}
 
@@ -55,6 +48,11 @@ open class {{ service.name | caseUcfirst }}: Service {
         ]
         {%~ endif %}
 
+        {%~ if method.type == 'webAuth' %}
+        {{~ include('swift/base/requests/oauth.twig') }}
+        {%~ elseif method.type == 'location' %}
+        {{~ include('swift/base/requests/location.twig')}}
+        {%~ else %}
         {%~ if method.responseModel %}
         let converter: (Any) -> {{ method | returnType(spec) | raw }} = { response in
             {%~ if method.responseModel == 'any' %}
@@ -82,17 +80,14 @@ open class {{ service.name | caseUcfirst }}: Service {
     ///
     {%~ endif %}
     {%~ for parameter in method.parameters.all %}
-    /// @param {{ parameter | typeName | raw}} {{ parameter.name | caseCamel }}
+    /// @param {{ parameter | typeName(spec) | raw}} {{ parameter.name | caseCamel }}
     {%~ endfor %}
     /// @throws Exception
     /// @return array
     ///
-    {%~ if method.type == "webAuth" %}
-    @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, *)
-    {%~ endif %}
     open func {{ method.name | caseCamel }}(
         {%~ for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter | typeName | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
+        {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
 
         {%~ endfor %}
         {%~ if 'multipart/form-data' in method.consumes %}
@@ -101,7 +96,7 @@ open class {{ service.name | caseUcfirst }}: Service {
     ) async throws -> {{ method | returnType(spec, '[String: AnyCodable]') | raw }} {
         return try await {{ method.name | caseCamel }}(
             {%~ for parameter in method.parameters.all %}
-            {{ parameter.name | caseCamel | escapeKeyword }}: {{ parameter.name | caseCamel | escapeKeyword }},
+            {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter.name | caseCamel | escapeSwiftKeyword }},
             {%~ endfor %}
             nestedType: [String: AnyCodable].self
             {%~ if 'multipart/form-data' in method.consumes %}
