@@ -271,7 +271,7 @@ const pushProject = async () => {
         const projectId = localConfig.getProject().projectId;
         const projectName = localConfig.getProject().projectName;
 
-        log('Updating project name');
+        log(`Updating project ${projectName} ( ${projectId} )`);
 
         await projectsUpdate({
             projectId,
@@ -282,7 +282,7 @@ const pushProject = async () => {
         const settings = localConfig.getProject().projectSettings;
 
         if (settings.services) {
-            log('Updating services status');
+            log('Updating service statuses');
             for (let [service, status] of Object.entries(settings.services)) {
                 await projectsUpdateServiceStatus({
                     projectId,
@@ -295,7 +295,7 @@ const pushProject = async () => {
 
         if (settings.auth) {
             if (settings.auth.security) {
-                log('Updating Auth security settings');
+                log('Updating auth security settings');
                 await projectsUpdateAuthDuration({ projectId, duration: settings.auth.security.duration, parseOutput: false });
                 await projectsUpdateAuthLimit({ projectId, limit: settings.auth.security.limit, parseOutput: false });
                 await projectsUpdateAuthSessionsLimit({ projectId, limit: settings.auth.security.sessionsLimit, parseOutput: false });
@@ -305,7 +305,7 @@ const pushProject = async () => {
             }
 
             if (settings.auth.methods) {
-                log('Updating Auth available login methods');
+                log('Updating auth login methods');
 
                 for (let [method, status] of Object.entries(settings.auth.methods)) {
                     await projectsUpdateAuthStatus({
