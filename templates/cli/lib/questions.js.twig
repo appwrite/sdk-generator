@@ -1,4 +1,5 @@
 const chalk = require("chalk");
+const Client = require("./client");
 const { localConfig, globalConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { teamsList } = require('./commands/teams');
@@ -11,7 +12,7 @@ const { databasesList } = require('./commands/databases');
 const { checkDeployConditions } = require('./utils');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
-const whenOverride = (answers)=> answers.override === undefined ? true : answers.override;
+const whenOverride = (answers) => answers.override === undefined ? true : answers.override;
 
 const getIgnores = (runtime) => {
     const languge = runtime.split('-')[0];
@@ -238,7 +239,7 @@ const questionsPullFunctions = [
         choices: async () => {
             const { functions } = await paginate(functionsList, { parseOutput: false }, 100, 'functions');
 
-            if(functions.length === 0){
+            if (functions.length === 0) {
                 throw "We couldn't find any functions in your {{ spec.title|caseUcfirst }} project";
             }
 
@@ -298,7 +299,7 @@ const questionsCreateFunctionSelectTemplate = (templates) => {
             name: "template",
             message: "What template would you like to use?",
             choices: templates.map((template) => {
-                const name =`${template[0].toUpperCase()}${template.split('').slice(1).join('')}`.replace(/[-_]/g,' ');
+                const name = `${template[0].toUpperCase()}${template.split('').slice(1).join('')}`.replace(/[-_]/g, ' ');
 
                 return { value: template, name }
             })
@@ -474,8 +475,39 @@ const questionsLogin = [
         },
         when: (answers) => answers.method === 'select'
     },
-
 ];
+const questionGetEndpoint = [
+    {
+        type: "input",
+        name: "endpoint",
+        message: "Enter the endpoint of your {{ spec.title|caseUcfirst }} server",
+        default: "http://localhost/v1",
+        async validate(value) {
+            if (!value) {
+                return "Please enter a valid endpoint.";
+            }
+            let client = new Client().setEndpoint(value);
+            try {
+                let response = await client.call('get', '/health/version');
+                if (response.version) {
+                    return true;
+                } else {
+                    throw new Error();
+                }
+            } catch (error) {
+                return "Invalid endpoint or your Appwrite server is not running as expected.";
+            }
+        }
+    }
+];
+
+const questionLoginWithEndpoint = [
+    questionsLogin[0],
+    { ...questionGetEndpoint[0], when: (answers) => answers.method !== 'select' },
+    questionsLogin[1],
+    questionsLogin[2],
+    questionsLogin[3]
+]
 
 const questionsLogout = [
     {
@@ -722,30 +754,7 @@ const questionsMfaChallenge = [
     }
 ];
 
-const questionGetEndpoint = [
-    {
-        type: "input",
-        name: "endpoint",
-        message: "Enter the endpoint of your {{ spec.title|caseUcfirst }} server",
-        default: "http://localhost/v1",
-        async validate(value) {
-            if (!value) {
-                return "Please enter a valid endpoint.";
-            }
-            let client = new Client().setEndpoint(value);
-            try {
-                let response = await client.call('get', '/health/version');
-                if (response.version) {
-                    return true;
-                } else {
-                    throw new Error();
-                }
-            } catch (error) {
-                return "Invalid endpoint or your Appwrite server is not running as expected.";
-            }
-        }
-    }
-];
+
 
 module.exports = {
     questionsInitProject,
@@ -768,5 +777,6 @@ module.exports = {
     questionsGetEntrypoint,
     questionsListFactors,
     questionsMfaChallenge,
-    questionGetEndpoint
+    questionGetEndpoint,
+    questionLoginWithEndpoint
 };
