@@ -1,3 +1,6 @@
+const ignore = require("ignore");
+const tar = require("tar");
+const fs = require("fs");
 const childProcess = require('child_process');
 const chokidar = require('chokidar');
 const inquirer = require("inquirer");
@@ -7,11 +10,12 @@ const { localConfig, globalConfig } = require("../config");
 const { paginate } = require('../paginate');
 const { questionsRunFunctions } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions, drawTable } = require("../parser");
-const { systemHasCommand, isPortTaken } = require('../utils');
+const { systemHasCommand, isPortTaken, getAllFiles } = require('../utils');
 const { info } = require('console');
 
 const activeDockerIds = {};
 
+const openRuntimesVersion = 'v3';
 const systemTools = {
     'node': {
         isCompiled: false,
@@ -35,10 +39,11 @@ async function dockerStop(id) {
 }
 
 async function dockerPull(func) {
+    return; // TODO: Remove
     log('Pulling Docker image of function runtime ...');
 
     const [ runtimeName, runtimeVersion ] = func.runtime.split('-', 2);
-    const imageName = `openruntimes/${runtimeName}:v3-${runtimeVersion}`;
+    const imageName = `openruntimes/${runtimeName}:${openRuntimesVersion}-${runtimeVersion}`;
 
     const pullProcess = childProcess.spawn('docker', ['pull', imageName], {
         stdio: 'pipe',
@@ -56,7 +61,7 @@ async function dockerBuild(func) {
     log('Building function using Docker engine ...');
 
     const [ runtimeName, runtimeVersion ] = func.runtime.split('-', 2);
-    const imageName = `openruntimes/${runtimeName}:v3-${runtimeVersion}`;
+    const imageName = `openruntimes/${runtimeName}:${openRuntimesVersion}-${runtimeVersion}`;
 
     const functionDir = path.join(process.cwd(), func.path);
 
@@ -93,14 +98,14 @@ async function dockerStart(func, port) {
    success(`Visit http://localhost:${port}/ to execute your function.`);
    
     const [ runtimeName, runtimeVersion ] = func.runtime.split('-', 2);
-    const imageName = `openruntimes/${runtimeName}:v3-${runtimeVersion}`;
+    const imageName = `openruntimes/${runtimeName}:${openRuntimesVersion}-${runtimeVersion}`;
 
     const tool = systemTools[runtimeName];
 
     const functionDir = path.join(process.cwd(), func.path);
 
     const id = `${new Date().getTime().toString(16)}${Math.round(Math.random() * 1000000000).toString(16)}`;
-    const params = ['run', '--rm', '--name', id, '-i', '-e', 'OPEN_RUNTIMES_SECRET=', '-p', `${port}:3000`, '-v', `${functionDir}/:/mnt/code:rw`, imageName, 'sh', '-c', ` helpers/start.sh "${tool.startCommand}"`];
+    const params = ['run', '--rm', '--name', id, '-i', '-e', 'OPEN_RUNTIMES_SECRET=', '-p', `${port}:3000`, '-v', `${functionDir}/.appwrite/logs:/mnt/logs:rw`, '-v', `${functionDir}/:/mnt/code:rw`, imageName, 'sh', '-c', ` helpers/start.sh "${tool.startCommand}"`];
 
     const execProcess = childProcess.spawn('docker', params, {
         stdio: 'pipe',
@@ -211,11 +216,21 @@ const runFunction = async ({ port, engine, functionId } = {}) => {
 
         let watcherRunning = false;
 
+        childProcess.execSync(`sudo mkdir -p ${path.join(process.cwd(), func.path, '.appwrite/logs')}`, {
+            pwd: path.join(process.cwd(), func.path)
+        });
+        chokidar.watch('.appwrite/logs', {
+            cwd: path.join(process.cwd(), func.path),
+            ignoreInitial: true,
+        }).on('all', async (event, filePath) => {
+            console.log(fs.readFileSync(path.join(process.cwd(), func.path, filePath)).toString());
+        });
+
         chokidar.watch('.', {
             cwd: path.join(process.cwd(), func.path),
             ignoreInitial: true,
-            ignored: [ ...(func.ignore ?? []), 'code.tar.gz', '.appwrite' ]
-        }).on('all', async (event, path) => {
+            ignored: [ ...(func.ignore ?? []), 'code.tar.gz', '.appwrite', '.appwrite/', '.appwrite/*', '.appwrite/**', '.appwrite/*.*', '.appwrite/**/*.*' ]
+        }).on('all', async (event, filePath) => {
             if(watcherRunning) {
                 info("File change detected but ignored, because live reload is already being ran.");
                 return;
@@ -223,7 +238,7 @@ const runFunction = async ({ port, engine, functionId } = {}) => {
 
             watcherRunning = true;
 
-            log('Detected a change in ' + path);
+            log('Detected a change in ' + filePath);
 
             try {
                 log('Stopping the function ...');
@@ -232,11 +247,63 @@ const runFunction = async ({ port, engine, functionId } = {}) => {
                     await dockerStop(id);
                 }
     
-                if(tool.isCompiled || tool.dependencyFiles.includes(path)) {
+                if(tool.isCompiled || tool.dependencyFiles.includes(filePath)) {
                     await dockerBuild(func);
                     await dockerStart(func, port);
                 } else {
-                    // TODO: Update code.tar.gz with latest changes
+                    // TODO: Some try-catch approach, to rebuild if fails
+                    log('Hot swapping function files ...');
+                    
+                    const functionPath = path.join(process.cwd(), func.path);
+                    const hotSwapPath = path.join(functionPath, '.appwrite/hot-swap');
+                    const buildPath = path.join(functionPath, 'code.tar.gz')
+
+                    // TODO: Using Node code, no sudo
+                    childProcess.execSync(`sudo mkdir -p ${hotSwapPath} && sudo chmod 777 ${buildPath} ${hotSwapPath} && sudo tar -zxf ${buildPath} -C ${hotSwapPath}`, {
+                        pwd: path.join(process.cwd(), func.path)
+                    });
+
+                    const ignorer = ignore();
+                    ignorer.add('.appwrite');
+
+                    if (func.ignore) {
+                        ignorer.add(func.ignore);
+                    }
+
+                    // TODO: Better approach
+                    const filesToCopy = getAllFiles(functionPath).map((file) => path.relative(functionPath, file)).filter((file) => !ignorer.ignores(file));
+
+                    const copyCommands = [];
+                    for(const f of filesToCopy) {
+                        const filePath = path.join(hotSwapPath, f);
+                        copyCommands.push(`sudo rm -rf ${filePath}`);
+
+                        const fileDir = path.dirname(filePath);
+                        copyCommands.push(`sudo mkdir -p ${fileDir}`);
+
+                        const sourcePath = path.join(functionPath, f);
+                        copyCommands.push(`sudo cp ${sourcePath} ${filePath}`);
+                    }
+                    childProcess.execSync(copyCommands.join(" && "), {
+                        pwd: path.join(process.cwd(), func.path)
+                    });
+
+                    console.log(path.join(process.cwd(), func.path, '.appwrite'));
+                    /*
+                    childProcess.execSync("sudo chmod -R 777 .", {
+                        pwd: path.join(process.cwd(), func.path, '.appwrite')
+                    });
+                    */
+
+                    childProcess.execSync(`sudo tar -C ${hotSwapPath} --exclude code.tar.gz -zcf ${buildPath} .`, {
+                        pwd: hotSwapPath
+                    });
+                    
+                    // TODO: Using Node code
+                    childProcess.execSync(`sudo rm -rf ${hotSwapPath}`, {
+                        pwd: path.join(process.cwd(), func.path)
+                    });
+
                     await dockerStart(func, port);
                 }
             } catch(err) {
