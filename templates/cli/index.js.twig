@@ -32,7 +32,7 @@ program
   .option("-f,--force", "Flag to confirm all warnings")
   .option("-a,--all", "Flag to push all resources")
   .option("--id [id...]", "Flag to pass list of ids for a giving action")
-  .option("--report", "Enable reporting when cli is crashing")
+  .option("--report", "Enable reporting in case of CLI errors")
   .on("option:json", () => {
     cliConfig.json = true;
   })
