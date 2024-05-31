@@ -3,7 +3,7 @@ const path = require("path");
 const childProcess = require('child_process');
 const { Command } = require("commander");
 const inquirer = require("inquirer");
-const { projectsCreate } = require("./projects");
+const { projectsCreate, projectsGet } = require("./projects");
 const { storageCreateBucket } = require("./storage");
 const { messagingCreateTopic } = require("./messaging");
 const { functionsCreate } = require("./functions");
@@ -23,7 +23,7 @@ const { accountGet } = require("./account");
 const { loginCommand } = require("./generic");
 const { sdkForConsole } = require("../sdks");
 
-const initProject = async () => {
+const initProject = async ({ organizationId, projectId, projectName } = {}) => {
     let response = {};
 
     try {
@@ -40,11 +40,21 @@ const initProject = async () => {
         log('You must login first')
         await loginCommand();
     }
+    let answers = {};
 
-    const answers = await inquirer.prompt(questionsInitProject)
-    if (answers.override === false) {
-        process.exit(1)
+    if (organizationId && projectId) {
+        answers = {
+            project: { id: projectId, name: projectName },
+            organization: { id: organizationId },
+            start: 'existing'
+        }
+    } else {
+        answers = await inquirer.prompt(questionsInitProject)
+        if (answers.override === false) {
+            process.exit(1)
+        }
     }
+
 
     if (answers.start === 'new') {
         response = await projectsCreate({
@@ -201,7 +211,6 @@ const initFunction = async () => {
     }
 
 
-
     const copyRecursiveSync = (src, dest) => {
         let exists = fs.existsSync(src);
         let stats = exists && fs.statSync(src);
@@ -254,6 +263,9 @@ const init = new Command("init")
     .configureHelp({
         helpWidth: process.stdout.columns || 80
     })
+    .option("--organizationId <organizationId>", "{{ spec.title|caseUcfirst }} organization ID")
+    .option("--projectId <projectId>", "{{ spec.title|caseUcfirst }} project ID")
+    .option("--projectName <projectnName>", "{{ spec.title|caseUcfirst }} project name")
     .action(actionRunner(initProject));
 
 init
