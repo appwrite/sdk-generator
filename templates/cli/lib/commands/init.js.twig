@@ -48,6 +48,20 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
             organization: { id: organizationId },
             start: 'existing'
         }
+
+
+        try {
+            await projectsGet({ projectId, parseOutput: false });
+        } catch (e) {
+            if (e.code === 404) {
+                answers.start = 'new';
+                answers.id = answers.project.id;
+                answers.project = answers.project.name;
+            } else {
+                throw e;
+            }
+        }
+
     } else {
         answers = await inquirer.prompt(questionsInitProject)
         if (answers.override === false) {
