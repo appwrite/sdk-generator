@@ -6,13 +6,23 @@ const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, error, parse, log, drawTable } = require("../parser");
 const ID = require("../id");
 {% if sdk.test != "true" %}
-const { questionsLogin, questionsLogout, questionsListFactors, questionsMfaChallenge } = require("../questions");
+const { questionsLogin, questionLoginWithEndpoint, questionsLogout, questionsListFactors, questionsMfaChallenge } = require("../questions");
 const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
 
 const DEFAULT_ENDPOINT = 'https://cloud.appwrite.io/v1';
 
 const loginCommand = async ({ selfHosted, email, password, endpoint, mfa, code }) => {
-    const answers = email && password ? { email, password } : await inquirer.prompt(questionsLogin);
+    const oldCurrent = globalConfig.getCurrentLogin();
+    let answers = {};
+    let configEndpoint = DEFAULT_ENDPOINT;
+
+    if (selfHosted) {
+        answers = endpoint && email && password ? { endpoint, email, password } : await inquirer.prompt(questionLoginWithEndpoint);
+        configEndpoint =  answers.endpoint;
+    } else {
+        answers = email && password ? { email, password } : await inquirer.prompt(questionsLogin);
+    }
+
 
     if (answers.method === 'select') {
         const accountId = answers.accountId;
@@ -27,19 +37,12 @@ const loginCommand = async ({ selfHosted, email, password, endpoint, mfa, code }
         return;
     }
 
-    const oldCurrent = globalConfig.getCurrentLogin();
     const id = ID.unique();
 
-    globalConfig.setCurrentLogin(id);
     globalConfig.addLogin(id, {});
+    globalConfig.setCurrentLogin(id);
+    globalConfig.setEndpoint(configEndpoint);
     globalConfig.setEmail(answers.email);
-    globalConfig.setEndpoint(DEFAULT_ENDPOINT);
-
-    if (selfHosted) {
-        const selfHostedAnswers = endpoint ? { endpoint } : await inquirer.prompt(questionGetEndpoint);
-
-        globalConfig.setEndpoint(selfHostedAnswers.endpoint);
-    }
 
     let client = await sdkForConsole(false);
 

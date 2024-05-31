@@ -1,4 +1,5 @@
 const chalk = require("chalk");
+const Client = require("./client");
 const { localConfig, globalConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { teamsList } = require('./commands/teams');
@@ -471,8 +472,39 @@ const questionsLogin = [
         },
         when: (answers) => answers.method === 'select'
     },
-
 ];
+const questionGetEndpoint = [
+    {
+        type: "input",
+        name: "endpoint",
+        message: "Enter the endpoint of your {{ spec.title|caseUcfirst }} server",
+        default: "http://localhost/v1",
+        async validate(value) {
+            if (!value) {
+                return "Please enter a valid endpoint.";
+            }
+            let client = new Client().setEndpoint(value);
+            try {
+                let response = await client.call('get', '/health/version');
+                if (response.version) {
+                    return true;
+                } else {
+                    throw new Error();
+                }
+            } catch (error) {
+                return "Invalid endpoint or your Appwrite server is not running as expected.";
+            }
+        }
+    }
+];
+
+const questionLoginWithEndpoint = [
+    questionsLogin[0],
+    { ...questionGetEndpoint[0], when: (answers) => answers.method !== 'select' },
+    questionsLogin[1],
+    questionsLogin[2],
+    questionsLogin[3]
+]
 
 const questionsLogout = [
     {
@@ -719,30 +751,7 @@ const questionsMfaChallenge = [
     }
 ];
 
-const questionGetEndpoint = [
-    {
-        type: "input",
-        name: "endpoint",
-        message: "Enter the endpoint of your {{ spec.title|caseUcfirst }} server",
-        default: "http://localhost/v1",
-        async validate(value) {
-            if (!value) {
-                return "Please enter a valid endpoint.";
-            }
-            let client = new Client().setEndpoint(value);
-            try {
-                let response = await client.call('get', '/health/version');
-                if (response.version) {
-                    return true;
-                } else {
-                    throw new Error();
-                }
-            } catch (error) {
-                return "Invalid endpoint or your Appwrite server is not running as expected.";
-            }
-        }
-    }
-];
+
 
 module.exports = {
     questionsInitProject,
@@ -765,5 +774,6 @@ module.exports = {
     questionsGetEntrypoint,
     questionsListFactors,
     questionsMfaChallenge,
-    questionGetEndpoint
+    questionGetEndpoint,
+    questionLoginWithEndpoint
 };
