@@ -143,10 +143,8 @@ const parseError = (err) => {
             log(`To report this error you can:\n - Create a support ticket in our Discord server https://appwrite.io/discord \n - Create an issue in our Github\n   ${githubIssueUrl.href}\n`);
 
 
-            error('\n Error stacktrace');
-
+            error('\n Stack Trace: \n');
             console.error(err);
-
             process.exit(1);
         })()
     } else {
