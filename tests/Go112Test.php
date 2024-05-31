@@ -21,8 +21,13 @@ class Go112Test extends Base
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
+        ...Base::EXTENDED_GENERAL_RESPONSES,
+        ...Base::LARGE_FILE_RESPONSES,
         ...Base::UPLOAD_RESPONSE,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
+        ...Base::QUERY_HELPER_RESPONSES,
+        ...Base::PERMISSION_HELPER_RESPONSES,
+        ...Base::ID_HELPER_RESPONSES,
     ];
 }

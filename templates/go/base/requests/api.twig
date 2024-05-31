@@ -1,1 +1,17 @@
-	return srv.client.Call("{{ method.method | caseUpper }}", apiPath, apiHeaders, apiParams)
+	resp, err := srv.client.Call("{{ method.method | caseUpper }}", path, headers, params)
+	if err != nil {
+		return nil, err
+	}
+	var parsed {{ method | returnType(spec, spec.title | caseLower) }}
+	if strings.HasPrefix(resp.Type, "application/json") {
+		err = json.Unmarshal([]byte(resp.Result.(string)), &parsed)
+		if err != nil {
+			return nil, err
+		}
+		return &parsed, nil
+	}
+	parsed, ok := resp.Result.({{ method | returnType(spec, spec.title | caseLower) }})
+	if !ok {
+		return nil, errors.New("unexpected response type")
+	}
+	return &parsed, nil
