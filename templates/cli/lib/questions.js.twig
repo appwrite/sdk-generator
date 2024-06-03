@@ -537,7 +537,7 @@ const questionsRunFunctions = [
         }
     },
     {
-        type: "number",
+        type: "input",
         name: "port",
         message: 'Which port would you like function to listen on?',
         default: async () => {
@@ -557,6 +557,12 @@ const questionsRunFunctions = [
             const done = this.async();
 
             (async () => {
+                if (typeof value !== 'number' && isNaN(+value)) {
+                    throw Error(`You need to provide a number.`);
+                }
+
+                value = +value;
+
                 const taken = await isPortTaken(value);
 
                 if(taken) {

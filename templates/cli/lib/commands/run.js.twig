@@ -1,3 +1,5 @@
+const Tail = require('tail').Tail;
+const EventEmitter = require('node:events');
 const ignore = require("ignore");
 const tar = require("tar");
 const fs = require("fs");
@@ -8,10 +10,10 @@ const path = require("path");
 const { Command } = require("commander");
 const { localConfig, globalConfig } = require("../config");
 const { paginate } = require('../paginate');
+const { functionsListVariables } = require('./functions');
 const { questionsRunFunctions } = require("../questions");
 const { actionRunner, success, log, error, commandDescriptions, drawTable } = require("../parser");
 const { systemHasCommand, isPortTaken, getAllFiles } = require('../utils');
-const { info } = require('console');
 
 const activeDockerIds = {};
 
@@ -27,6 +29,33 @@ const systemTools = {
         dependencyFiles: [ "package.json", "package-lock.json" ]
     },
     // TODO: Add all runtime needs
+};
+
+// TODO: Logs dont work
+
+const Queue = {
+    files: [],
+    locked: false,
+    events: new EventEmitter(),
+    push(file) {
+        if(!this.files.includes(file)) {
+            this.files.push(file);
+        }
+
+        if(!this.locked) {
+            this.events.emit('reload', { files: this.files });
+        }
+    },
+    lock() {
+        this.files = [];
+        this.locked = true;
+    },
+    unlock() {
+        this.locked = false;
+        if(this.files.length > 0) {
+            this.events.emit('reload', { files: this.files });
+        }
+    }
 };
 
 async function dockerStop(id) {
@@ -57,7 +86,7 @@ async function dockerPull(func) {
     await new Promise((res) => { pullProcess.on('close', res) });
 }
 
-async function dockerBuild(func) {
+async function dockerBuild(func, variables) {
     log('Building function using Docker engine ...');
 
     const [ runtimeName, runtimeVersion ] = func.runtime.split('-', 2);
@@ -66,7 +95,20 @@ async function dockerBuild(func) {
     const functionDir = path.join(process.cwd(), func.path);
 
     const id = `${new Date().getTime().toString(16)}${Math.round(Math.random() * 1000000000).toString(16)}`;
-    const params = ['run', '--rm', '--name', id, '-i', '-e', `OPEN_RUNTIMES_ENTRYPOINT=${func.entrypoint}`, '-v', `${functionDir}/:/mnt/code:rw`, imageName, 'sh', '-c', ` helpers/build.sh "${func.commands}"`];
+
+    const params = [ 'run' ];
+    params.push('--name', id);
+    params.push('-v', `${functionDir}/:/mnt/code:rw`);
+    params.push('-e', 'APPWRITE_ENV=development');
+    params.push('-e', 'OPEN_RUNTIMES_ENV=development');
+    params.push('-e', 'OPEN_RUNTIMES_SECRET=');
+    params.push('-e', `OPEN_RUNTIMES_ENTRYPOINT=${func.entrypoint}`);
+
+    for(const v of variables) {
+        params.push('-e', `${v.key}=${v.value}`);
+    }
+
+    params.push(imageName, 'sh', '-c', `helpers/build.sh "${func.commands}"`);
 
     const buildProcess = childProcess.spawn('docker', params, {
         stdio: 'pipe',
@@ -81,14 +123,37 @@ async function dockerBuild(func) {
         process.stderr.write(`\n${data}`);
     });
 
-    activeDockerIds[id] = true;
-
     await new Promise((res) => { buildProcess.on('close', res) });
 
+    const copyPath = path.join(process.cwd(), func.path, '.appwrite', 'build.tar.gz');
+    const copyDir = path.dirname(copyPath);
+    if (!fs.existsSync(copyDir)) {
+        fs.mkdirSync(copyDir, { recursive: true });
+    }
+
+    const copyProcess = childProcess.spawn('docker', ['cp', `${id}:/mnt/code/code.tar.gz`, copyPath], {
+        stdio: 'pipe',
+        pwd: functionDir
+    });
+
+    await new Promise((res) => { copyProcess.on('close', res) });
+
+    const cleanupProcess = childProcess.spawn('docker', ['rm', '--force', id], {
+        stdio: 'pipe',
+        pwd: functionDir
+    });
+
+    await new Promise((res) => { cleanupProcess.on('close', res) });
+
     delete activeDockerIds[id];
+
+    const tempPath = path.join(process.cwd(), func.path, 'code.tar.gz');
+    if (fs.existsSync(tempPath)) {
+        fs.rmSync(tempPath, { force: true });
+    } 
 }
 
-async function dockerStart(func, port) {
+async function dockerStart(func, variables, port) {
    log('Starting function using Docker engine ...');
 
    log("Permissions, events, CRON and timeouts dont apply when running locally.");
@@ -105,24 +170,51 @@ async function dockerStart(func, port) {
     const functionDir = path.join(process.cwd(), func.path);
 
     const id = `${new Date().getTime().toString(16)}${Math.round(Math.random() * 1000000000).toString(16)}`;
-    const params = ['run', '--rm', '--name', id, '-i', '-e', 'OPEN_RUNTIMES_SECRET=', '-p', `${port}:3000`, '-v', `${functionDir}/.appwrite/logs:/mnt/logs:rw`, '-v', `${functionDir}/:/mnt/code:rw`, imageName, 'sh', '-c', ` helpers/start.sh "${tool.startCommand}"`];
 
-    const execProcess = childProcess.spawn('docker', params, {
+    const params = [ 'run' ];
+    params.push('--rm');
+    params.push('-d');
+    params.push('--name', id);
+    params.push('-p', `${port}:3000`);
+    params.push('-e', 'APPWRITE_ENV=development');
+    params.push('-e', 'OPEN_RUNTIMES_ENV=development');
+    params.push('-e', 'OPEN_RUNTIMES_SECRET=');
+
+    for(const v of variables) {
+        params.push('-e', `${v.key}=${v.value}`);
+    }
+
+    params.push('-v', `${functionDir}/.appwrite/logs.txt:/mnt/logs/dev_logs.log:rw`);
+    params.push('-v', `${functionDir}/.appwrite/errors.txt:/mnt/logs/dev_errors.log:rw`);
+    params.push('-v', `${functionDir}/.appwrite/build.tar.gz:/mnt/code/code.tar.gz:ro`);
+    params.push(imageName, 'sh', '-c', `helpers/start.sh "${tool.startCommand}"`);
+    
+    childProcess.spawn('docker', params, {
         stdio: 'pipe',
         pwd: functionDir
     });
 
-    // TODO: Find a way to see context.log
-
-    execProcess.stdout.on('data', (data) => {
-        process.stdout.write(`\n${data}`);
-    });
-    
-    execProcess.stderr.on('data', (data) => {
-        process.stderr.write(`\n${data}`);
-    });
-
     activeDockerIds[id] = true;
+}
+
+async function dockerCleanup() {
+    const ids = Object.keys(activeDockerIds);
+    for await (const id of ids) {
+        await dockerStop(id);
+    }
+
+    const functions = localConfig.getFunctions();
+    for(const func of functions) {
+        const appwritePath = path.join(process.cwd(), func.path, '.appwrite');
+        if (fs.existsSync(appwritePath)) {
+            fs.rmSync(appwritePath, { recursive: true, force: true });
+        }
+
+        const tempPath = path.join(process.cwd(), func.path, 'code.tar.gz');
+        if (fs.existsSync(tempPath)) {
+            fs.rmSync(tempPath, { force: true });
+        }
+    }
 }
 
 const runFunction = async ({ port, engine, functionId } = {}) => {
@@ -197,48 +289,80 @@ const runFunction = async ({ port, engine, functionId } = {}) => {
         path: func.path,
         commands: func.commands,
     };
+
     log("Local function configuration:");
     drawTable([settings]);
     log('If you wish to change local settings, update appwrite.json file and rerun the command. To deploy the function, run: appwrite push function');
 
-    process.on('SIGINT', () => {
-        for(const id in activeDockerIds) {
-            dockerStop(id);
-        }
+    await dockerCleanup();
 
+    process.on('SIGINT', async () => {
+        log('Cleaning up ...');
+        await dockerCleanup();
+        success();
         process.exit();
     });
 
     if(engine === "docker") {
+        const logsPath = path.join(process.cwd(), func.path, '.appwrite/logs.txt');
+        const errorsPath = path.join(process.cwd(), func.path, '.appwrite/errors.txt');
+
+        if(!fs.existsSync(path.dirname(logsPath))) {
+            fs.mkdirSync(path.dirname(logsPath), { recursive: true });
+        }
+
+        if (!fs.existsSync(logsPath)) {
+            fs.writeFileSync(logsPath, '');
+        }
+
+        if (!fs.existsSync(errorsPath)) {
+            fs.writeFileSync(errorsPath, '');
+        }
+
+        let variables = [];
+        if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
+            // TODO: Flag to disable
+            error("No user is signed in. To sign in, run: appwrite login. Function will run locally, but will not have your function's environment variables set.");
+        } else {
+            const { variables: remoteVariables } = await paginate(functionsListVariables, {
+                functionId: func['$id'],
+                parseOutput: false
+            }, 100, 'variables');
+
+            remoteVariables.forEach((v) => {
+                variables.push({
+                    key: v.key,
+                    value: v.value
+                });
+            });
+        }
+
         await dockerPull(func);
-        await dockerBuild(func);
-        await dockerStart(func, port);
+        await dockerBuild(func, variables);
+        await dockerStart(func, variables, port);
 
-        let watcherRunning = false;
-
-        childProcess.execSync(`sudo mkdir -p ${path.join(process.cwd(), func.path, '.appwrite/logs')}`, {
-            pwd: path.join(process.cwd(), func.path)
+        new Tail(logsPath).on("line", function(data) {
+            console.log(data);
         });
-        chokidar.watch('.appwrite/logs', {
-            cwd: path.join(process.cwd(), func.path),
-            ignoreInitial: true,
-        }).on('all', async (event, filePath) => {
-            console.log(fs.readFileSync(path.join(process.cwd(), func.path, filePath)).toString());
+        new Tail(errorsPath).on("line", function(data) {
+            console.log(data);
         });
 
         chokidar.watch('.', {
             cwd: path.join(process.cwd(), func.path),
             ignoreInitial: true,
             ignored: [ ...(func.ignore ?? []), 'code.tar.gz', '.appwrite', '.appwrite/', '.appwrite/*', '.appwrite/**', '.appwrite/*.*', '.appwrite/**/*.*' ]
-        }).on('all', async (event, filePath) => {
-            if(watcherRunning) {
-                info("File change detected but ignored, because live reload is already being ran.");
-                return;
+        }).on('all', async (_event, filePath) => {
+            Queue.push(filePath);
+        });
+
+        Queue.events.on('reload', async ({ files }) => {
+            Queue.lock();
+
+            log('Live-reloading due to file changes: ');
+            for(const file of files) {
+                log(`- ${file}`);
             }
-
-            watcherRunning = true;
-
-            log('Detected a change in ' + filePath);
 
             try {
                 log('Stopping the function ...');
@@ -246,70 +370,73 @@ const runFunction = async ({ port, engine, functionId } = {}) => {
                 for(const id in activeDockerIds) {
                     await dockerStop(id);
                 }
-    
-                if(tool.isCompiled || tool.dependencyFiles.includes(filePath)) {
-                    await dockerBuild(func);
-                    await dockerStart(func, port);
+
+                const dependencyFile = files.find((filePath) => tool.dependencyFiles.includes(filePath));
+                if(tool.isCompiled || dependencyFile) {
+                    log(`Rebuilding the function due to cange in ${dependencyFile} ...`);
+                    await dockerBuild(func, variables);
+                    await dockerStart(func, variables, port);
                 } else {
-                    // TODO: Some try-catch approach, to rebuild if fails
-                    log('Hot swapping function files ...');
+                    log('Hot-swapping function files ...');
                     
                     const functionPath = path.join(process.cwd(), func.path);
                     const hotSwapPath = path.join(functionPath, '.appwrite/hot-swap');
-                    const buildPath = path.join(functionPath, 'code.tar.gz')
+                    const buildPath = path.join(functionPath, '.appwrite/build.tar.gz');
 
-                    // TODO: Using Node code, no sudo
-                    childProcess.execSync(`sudo mkdir -p ${hotSwapPath} && sudo chmod 777 ${buildPath} ${hotSwapPath} && sudo tar -zxf ${buildPath} -C ${hotSwapPath}`, {
-                        pwd: path.join(process.cwd(), func.path)
-                    });
+                    // Prepare temp folder
+                    if (!fs.existsSync(hotSwapPath)) {
+                        fs.mkdirSync(hotSwapPath, { recursive: true });
+                    } else {
+                        fs.rmSync(hotSwapPath, { recursive: true, force: true });
+                        fs.mkdirSync(hotSwapPath, { recursive: true });
+                    }
+
+                    await tar
+                        .extract({
+                            gzip: true,
+                            sync: true,
+                            cwd: hotSwapPath,
+                            file: buildPath
+                        });
 
                     const ignorer = ignore();
                     ignorer.add('.appwrite');
-
                     if (func.ignore) {
                         ignorer.add(func.ignore);
                     }
 
-                    // TODO: Better approach
                     const filesToCopy = getAllFiles(functionPath).map((file) => path.relative(functionPath, file)).filter((file) => !ignorer.ignores(file));
-
-                    const copyCommands = [];
                     for(const f of filesToCopy) {
                         const filePath = path.join(hotSwapPath, f);
-                        copyCommands.push(`sudo rm -rf ${filePath}`);
+                        if (fs.existsSync(filePath)) {
+                            fs.rmSync(filePath, { force: true });
+                        } 
 
                         const fileDir = path.dirname(filePath);
-                        copyCommands.push(`sudo mkdir -p ${fileDir}`);
+                        if (!fs.existsSync(fileDir)) {
+                            fs.mkdirSync(fileDir, { recursive: true });
+                        }
 
                         const sourcePath = path.join(functionPath, f);
-                        copyCommands.push(`sudo cp ${sourcePath} ${filePath}`);
+                        fs.copyFileSync(sourcePath, filePath);
                     }
-                    childProcess.execSync(copyCommands.join(" && "), {
-                        pwd: path.join(process.cwd(), func.path)
-                    });
 
-                    console.log(path.join(process.cwd(), func.path, '.appwrite'));
-                    /*
-                    childProcess.execSync("sudo chmod -R 777 .", {
-                        pwd: path.join(process.cwd(), func.path, '.appwrite')
-                    });
-                    */
-
-                    childProcess.execSync(`sudo tar -C ${hotSwapPath} --exclude code.tar.gz -zcf ${buildPath} .`, {
-                        pwd: hotSwapPath
-                    });
+                    await tar
+                        .create({
+                            gzip: true,
+                            sync: true,
+                            cwd: hotSwapPath,
+                            file: buildPath
+                        }, ['.']);
                     
-                    // TODO: Using Node code
-                    childProcess.execSync(`sudo rm -rf ${hotSwapPath}`, {
-                        pwd: path.join(process.cwd(), func.path)
-                    });
+                    fs.rmSync(hotSwapPath, { recursive: true, force: true });
 
-                    await dockerStart(func, port);
+                    await dockerStart(func, variables, port);
                 }
             } catch(err) {
                 console.error(err);
             } finally {
-                watcherRunning = false;
+                Queue.unlock();
             }
         });
     }
@@ -332,6 +459,8 @@ run
     .option(`--functionId <functionId>`, `Function ID`)
     .option(`--port <port>`, `Local port`)
     .option(`--engine <engine>`, `Local engine, "system" or "docker"`)
+    // TODO: Option to disable auto reloading
+    // TODO: Option to enable write operations to function folder
     .action(actionRunner(runFunction));
 
 module.exports = {
