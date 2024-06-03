@@ -31,8 +31,6 @@ const systemTools = {
     // TODO: Add all runtime needs
 };
 
-// TODO: Logs dont work
-
 const Queue = {
     files: [],
     locked: false,
@@ -217,7 +215,7 @@ async function dockerCleanup() {
     }
 }
 
-const runFunction = async ({ port, engine, functionId } = {}) => {
+const runFunction = async ({ port, engine, functionId, noVariables, noReload } = {}) => {
     // Selection
     if(!functionId) {
         const answers = await inquirer.prompt(questionsRunFunctions[0]);
@@ -320,21 +318,22 @@ const runFunction = async ({ port, engine, functionId } = {}) => {
         }
 
         let variables = [];
-        if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
-            // TODO: Flag to disable
-            error("No user is signed in. To sign in, run: appwrite login. Function will run locally, but will not have your function's environment variables set.");
-        } else {
-            const { variables: remoteVariables } = await paginate(functionsListVariables, {
-                functionId: func['$id'],
-                parseOutput: false
-            }, 100, 'variables');
+        if(!noVariables) {
+            if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
+                error("No user is signed in. To sign in, run: appwrite login. Function will run locally, but will not have your function's environment variables set.");
+            } else {
+                const { variables: remoteVariables } = await paginate(functionsListVariables, {
+                    functionId: func['$id'],
+                    parseOutput: false
+                }, 100, 'variables');
 
-            remoteVariables.forEach((v) => {
-                variables.push({
-                    key: v.key,
-                    value: v.value
+                remoteVariables.forEach((v) => {
+                    variables.push({
+                        key: v.key,
+                        value: v.value
+                    });
                 });
-            });
+            }
         }
 
         await dockerPull(func);
@@ -348,13 +347,15 @@ const runFunction = async ({ port, engine, functionId } = {}) => {
             console.log(data);
         });
 
-        chokidar.watch('.', {
-            cwd: path.join(process.cwd(), func.path),
-            ignoreInitial: true,
-            ignored: [ ...(func.ignore ?? []), 'code.tar.gz', '.appwrite', '.appwrite/', '.appwrite/*', '.appwrite/**', '.appwrite/*.*', '.appwrite/**/*.*' ]
-        }).on('all', async (_event, filePath) => {
-            Queue.push(filePath);
-        });
+        if(!noReload) {
+            chokidar.watch('.', {
+                cwd: path.join(process.cwd(), func.path),
+                ignoreInitial: true,
+                ignored: [ ...(func.ignore ?? []), 'code.tar.gz', '.appwrite', '.appwrite/', '.appwrite/*', '.appwrite/**', '.appwrite/*.*', '.appwrite/**/*.*' ]
+            }).on('all', async (_event, filePath) => {
+                Queue.push(filePath);
+            });
+        }
 
         Queue.events.on('reload', async ({ files }) => {
             Queue.lock();
@@ -459,8 +460,8 @@ run
     .option(`--functionId <functionId>`, `Function ID`)
     .option(`--port <port>`, `Local port`)
     .option(`--engine <engine>`, `Local engine, "system" or "docker"`)
-    // TODO: Option to disable auto reloading
-    // TODO: Option to enable write operations to function folder
+    .option(`--noVariables`, `Prevent pulling variables from function settings`)
+    .option(`--noReload`, `Prevent live reloading of server when changes are made to function files`)
     .action(actionRunner(runFunction));
 
 module.exports = {
