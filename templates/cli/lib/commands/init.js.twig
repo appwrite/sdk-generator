@@ -23,7 +23,7 @@ const { accountGet } = require("./account");
 const { loginCommand } = require("./generic");
 const { sdkForConsole } = require("../sdks");
 
-const initProject = async ({ organizationId, projectId, projectName } = {}) => {
+const initProject = async ({ organizationId, projectId } = {}) => {
     let response = {};
 
     try {
@@ -44,7 +44,7 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
 
     if (organizationId && projectId) {
         answers = {
-            project: { id: projectId, name: projectName },
+            project: { id: projectId, },
             organization: { id: organizationId },
             start: 'existing'
         }
@@ -78,9 +78,9 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
             parseOutput: false
         })
 
-        localConfig.setProject(response['$id'], response.name);
+        localConfig.setProject(response['$id']);
     } else {
-        localConfig.setProject(answers.project.id, answers.project.name);
+        localConfig.setProject(answers.project.id);
     }
 
     success();
@@ -279,7 +279,6 @@ const init = new Command("init")
     })
     .option("--organizationId <organizationId>", "{{ spec.title|caseUcfirst }} organization ID")
     .option("--projectId <projectId>", "{{ spec.title|caseUcfirst }} project ID")
-    .option("--projectName <projectnName>", "{{ spec.title|caseUcfirst }} project name")
     .action(actionRunner(initProject));
 
 init

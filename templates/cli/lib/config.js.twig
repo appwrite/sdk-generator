@@ -332,9 +332,12 @@ class Local extends Config {
         };
     }
 
-    setProject(projectId, projectName) {
+    setProject(projectId, projectName = '') {
         this.set("projectId", projectId);
-        this.set("projectName", projectName);
+
+        if (projectName !== '') {
+            this.set("projectName", projectName);
+        }
     }
 
 

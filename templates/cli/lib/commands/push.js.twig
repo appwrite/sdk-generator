@@ -589,12 +589,13 @@ const pushProject = async () => {
 
         log('Updating project name');
 
-        await projectsUpdate({
-            projectId,
-            name: projectName,
-            parseOutput: false
-        });
-
+        if (projectName) {
+            await projectsUpdate({
+                projectId,
+                name: projectName,
+                parseOutput: false
+            });
+        }
         const settings = localConfig.getProjectSettings();
 
         if (settings.services) {
@@ -894,11 +895,11 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                             ],
                         });
 
-                        if(Number(res.total) === 1){
+                        if (Number(res.total) === 1) {
                             url = res.rules[0].domain;
                         }
 
-                        updaterRow.update({ status: 'Deployed', end: url});
+                        updaterRow.update({ status: 'Deployed', end: url });
 
                         break;
                     } else if (status === 'failed') {
