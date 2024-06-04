@@ -47,7 +47,6 @@ class Spinner {
         } else if (status.toLowerCase().trim() === 'deployed') {
             start = chalk.green.bold(status);
             prefix = chalk.green.bold('✓');
-            end = '';
         } else if (status.toLowerCase().trim() === 'error') {
             start = chalk.red.bold(status);
             prefix = chalk.red.bold('✗');

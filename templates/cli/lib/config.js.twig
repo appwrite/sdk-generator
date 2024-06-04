@@ -336,18 +336,71 @@ class Local extends Config {
         this.set("projectId", projectId);
         this.set("projectName", projectName);
     }
+
+
+    getProjectSettings() {
+        if (!this.has("projectSettings")) {
+            return {};
+        }
+
+        return this.get('projectSettings')
+    }
+
+    setProjectSettings(project) {
+        const settings = {
+            services: {
+                account: project.serviceStatusForAccount,
+                avatars: project.serviceStatusForAvatars,
+                databases: project.serviceStatusForDatabases,
+                locale: project.serviceStatusForLocale,
+                health: project.serviceStatusForHealth,
+                storage: project.serviceStatusForStorage,
+                teams: project.serviceStatusForTeams,
+                users: project.serviceStatusForUsers,
+                functions: project.serviceStatusForFunctions,
+                graphql: project.serviceStatusForGraphql,
+                messaging: project.serviceStatusForMessaging,
+
+            },
+            auth: {
+                methods: {
+                    jwt: project.authJWT,
+                    phone: project.authPhone,
+                    invites: project.authInvites,
+                    anonymous: project.authAnonymous,
+                    "email-otp": project.authEmailOtp,
+                    "magic-url": project.authUsersAuthMagicURL,
+                    "email-password": project.authEmailPassword
+                },
+                security: {
+                    duration: project.authDuration,
+                    limit: project.authLimit,
+                    sessionsLimit: project.authSessionsLimit,
+                    passwordHistory: project.authPasswordHistory,
+                    passwordDictionary: project.authPasswordDictionary,
+                    personalDataCheck: project.authPersonalDataCheck
+                }
+            }
+        };
+
+        this.set('projectSettings', settings)
+    }
 }
 
 class Global extends Config {
     static CONFIG_FILE_PATH = ".{{ spec.title|caseLower }}/prefs.json";
 
+    static PREFERENCE_CURRENT = "current";
     static PREFERENCE_ENDPOINT = "endpoint";
+    static PREFERENCE_EMAIL = "email";
     static PREFERENCE_SELF_SIGNED = "selfSigned";
     static PREFERENCE_COOKIE = "cookie";
     static PREFERENCE_PROJECT = "project";
     static PREFERENCE_KEY = "key";
     static PREFERENCE_LOCALE = "locale";
     static PREFERENCE_MODE = "mode";
+
+    static IGNORE_ATTRIBUTES = [Global.PREFERENCE_CURRENT, Global.PREFERENCE_SELF_SIGNED, Global.PREFERENCE_ENDPOINT, Global.PREFERENCE_COOKIE, Global.PREFERENCE_PROJECT, Global.PREFERENCE_KEY, Global.PREFERENCE_LOCALE, Global.PREFERENCE_MODE];
 
     static MODE_ADMIN = "admin";
     static MODE_DEFAULT = "default";
@@ -359,59 +412,140 @@ class Global extends Config {
         super(`${homeDir}/${path}`);
     }
 
-    getEndpoint() {
-        if (!this.has(Global.PREFERENCE_ENDPOINT)) {
+    getCurrentLogin() {
+        if (!this.has(Global.PREFERENCE_CURRENT)) {
             return "";
         }
-        return this.get(Global.PREFERENCE_ENDPOINT);
+        return this.get(Global.PREFERENCE_CURRENT);
+    }
+
+    setCurrentLogin(endpoint) {
+        this.set(Global.PREFERENCE_CURRENT, endpoint);
+    }
+
+    getLoginIds() {
+        return Object.keys(this.data).filter((key) => !Global.IGNORE_ATTRIBUTES.includes(key));
+    }
+
+    getLogins() {
+        const logins = Object.keys(this.data).filter((key) => !Global.IGNORE_ATTRIBUTES.includes(key))
+
+        return logins.map((login) => {
+
+            return {
+                id: login,
+                endpoint: this.data[login][Global.PREFERENCE_ENDPOINT],
+                email: this.data[login][Global.PREFERENCE_EMAIL]
+            }
+        })
+    }
+
+    addLogin(login, data) {
+        this.set(login, data);
+    }
+
+    removeLogin(login, data) {
+        this.delete(login);
+    }
+
+    getEmail() {
+        if (!this.hasFrom(Global.PREFERENCE_EMAIL)) {
+            return "";
+        }
+
+        return this.getFrom(Global.PREFERENCE_EMAIL);
+    }
+
+    setEmail(email) {
+        this.setTo(Global.PREFERENCE_EMAIL, email);
+    }
+
+    getEndpoint() {
+        if (!this.hasFrom(Global.PREFERENCE_ENDPOINT)) {
+            return "";
+        }
+
+        return this.getFrom(Global.PREFERENCE_ENDPOINT);
     }
 
     setEndpoint(endpoint) {
-        this.set(Global.PREFERENCE_ENDPOINT, endpoint);
+        this.setTo(Global.PREFERENCE_ENDPOINT, endpoint);
     }
 
     getSelfSigned() {
-        if (!this.has(Global.PREFERENCE_SELF_SIGNED)) {
+        if (!this.hasFrom(Global.PREFERENCE_SELF_SIGNED)) {
             return false;
         }
-        return this.get(Global.PREFERENCE_SELF_SIGNED);
+        return this.getFrom(Global.PREFERENCE_SELF_SIGNED);
     }
 
     setSelfSigned(selfSigned) {
-        this.set(Global.PREFERENCE_SELF_SIGNED, selfSigned);
+        this.setTo(Global.PREFERENCE_SELF_SIGNED, selfSigned);
     }
 
     getCookie() {
-        if (!this.has(Global.PREFERENCE_COOKIE)) {
+        if (!this.hasFrom(Global.PREFERENCE_COOKIE)) {
             return "";
         }
-        return this.get(Global.PREFERENCE_COOKIE);
+        return this.getFrom(Global.PREFERENCE_COOKIE);
     }
 
     setCookie(cookie) {
-        this.set(Global.PREFERENCE_COOKIE, cookie);
+        this.setTo(Global.PREFERENCE_COOKIE, cookie);
     }
 
     getProject() {
-        if (!this.has(Global.PREFERENCE_PROJECT)) {
+        if (!this.hasFrom(Global.PREFERENCE_PROJECT)) {
             return "";
         }
-        return this.get(Global.PREFERENCE_PROJECT);
+        return this.getFrom(Global.PREFERENCE_PROJECT);
     }
 
     setProject(project) {
-        this.set(Global.PREFERENCE_PROJECT, project);
+        this.setTo(Global.PREFERENCE_PROJECT, project);
     }
 
     getKey() {
-        if (!this.has(Global.PREFERENCE_KEY)) {
+        if (!this.hasFrom(Global.PREFERENCE_KEY)) {
             return "";
         }
-        return this.get(Global.PREFERENCE_KEY);
+        return this.getFrom(Global.PREFERENCE_KEY);
     }
 
     setKey(key) {
-        this.set(Global.PREFERENCE_KEY, key);
+        this.setTo(Global.PREFERENCE_KEY, key);
+    }
+
+
+    hasFrom(key) {
+        const current = this.getCurrentLogin();
+
+        if (current) {
+            const config = this.get(current);
+
+            return config[key] !== undefined;
+        }
+    }
+
+    getFrom(key) {
+        const current = this.getCurrentLogin();
+
+        if (current) {
+            const config = this.get(current);
+
+            return config[key];
+        }
+    }
+
+    setTo(key, value) {
+        const current = this.getCurrentLogin();
+
+        if (current) {
+            const config = this.get(current);
+
+            config[key] = value;
+            this.write();
+        }
     }
 }
 

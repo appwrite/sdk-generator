@@ -2,10 +2,17 @@ const chalk = require('chalk');
 const commander = require('commander');
 const Table = require('cli-table3');
 const { description } = require('../package.json');
+const { globalConfig } = require("./config.js");
+const os = require('os');
 
 const cliConfig = {
-  verbose: false,
-  json: false
+    verbose: false,
+    json: false,
+    force: false,
+    all: false,
+    ids: [],
+    report: false,
+    reportData: {}
 };
 
 const parse = (data) => {
@@ -110,17 +117,55 @@ const drawJSON = (data) => {
 }
 
 const parseError = (err) => {
-    if(cliConfig.verbose) {
-        console.error(err);
+    if (cliConfig.report) {
+        (async () => {
+            let appwriteVersion = 'unknown';
+            const isCloud = globalConfig.getEndpoint().includes('cloud.appwrite.io') ? 'Yes' : 'No';
+
+            try {
+                const res = await fetch(`${globalConfig.getEndpoint()}/health/version`);
+                const json = await res.json();
+                appwriteVersion = json.version;
+            } catch {
+            }
+
+            const version = '{{ sdk.version }}';
+            const stepsToReproduce = `Running \`appwrite ${cliConfig.reportData.data.args}\``;
+            const yourEnvironment = `CLI version: ${version}\nOperation System: ${os.type()}\nAppwrite version: ${appwriteVersion}\nIs Cloud: ${isCloud}`;
+
+            const stack = '```\n' + err.stack + '\n```';
+
+            const githubIssueUrl = new URL('https://github.com/appwrite/appwrite/issues/new');
+            githubIssueUrl.searchParams.append('labels', 'bug');
+            githubIssueUrl.searchParams.append('template', 'bug.yaml');
+            githubIssueUrl.searchParams.append('title', `🐛 Bug Report: ${err.message}`);
+            githubIssueUrl.searchParams.append('actual-behavior', `CLI Error:\n${stack}`);
+            githubIssueUrl.searchParams.append('steps-to-reproduce', stepsToReproduce);
+            githubIssueUrl.searchParams.append('environment', yourEnvironment);
+
+            log(`To report this error you can:\n - Create a support ticket in our Discord server https://appwrite.io/discord \n - Create an issue in our Github\n   ${githubIssueUrl.href}\n`);
+
+            process.exit(1);
+        })()
+    } else {
+        if (cliConfig.verbose) {
+            console.error(err);
+        } else {
+            error(err.message);
+        }
+        process.exit(1);
     }
 
-    error(err.message);
-
-    process.exit(1)
 }
 
 const actionRunner = (fn) => {
-    return (...args) => fn(...args).catch(parseError);
+    return (...args) => {
+        if (cliConfig.all && (Array.isArray(cliConfig.ids) && cliConfig.ids.length !== 0)) {
+            error(`The '--all' and '--id' flags cannot be used together.`);
+            process.exit(1);
+        }
+        return fn(...args).catch(parseError)
+    };
 }
 
 const parseInteger = (value) => {
@@ -156,6 +201,7 @@ const commandDescriptions = {
     "graphql": `The graphql command allows you to query and mutate any resource type on your Appwrite server.`,
     "avatars": `The avatars command aims to help you complete everyday tasks related to your app image, icons, and avatars.`,
     "databases": `The databases command allows you to create structured collections of documents, query and filter lists of documents.`,
+    "init": `The init command provides a convenient wrapper for creating and initializing project, functions, collections, buckets, teams and messaging in Appwrite.`,
     "push": `The push command provides a convenient wrapper for pushing your functions, collections, buckets, teams and messaging.`,
     "run": `The dev command allows you to run project locally to allow easy development and quick debugging.`,
     "functions": `The functions command allows you view, create and manage your Cloud Functions.`,
@@ -195,5 +241,6 @@ module.exports = {
     success,
     error,
     commandDescriptions,
-    cliConfig
+    cliConfig,
+    drawTable
 }

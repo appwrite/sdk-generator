@@ -112,8 +112,8 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '.travis.yml',
-                'template'      => 'web/.travis.yml.twig',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'web/.github/workflows/publish.yml.twig',
             ],
             [
                 'scope'         => 'enum',

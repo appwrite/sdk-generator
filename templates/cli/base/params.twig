@@ -77,8 +77,10 @@
 {% endif %}
 {% endfor %}
 {% if method.type == 'location' %}
-    payload['project'] = localConfig.getProject().projectId
-    payload['key'] = globalConfig.getKey();
-    const queryParams = new URLSearchParams(payload);
-    apiPath = `${globalConfig.getEndpoint()}${apiPath}?${queryParams.toString()}`;
+    if (!overrideForCli) {
+        payload['project'] = localConfig.getProject().projectId
+        payload['key'] = globalConfig.getKey();
+        const queryParams = new URLSearchParams(payload);
+        apiPath = `${globalConfig.getEndpoint()}${apiPath}?${queryParams.toString()}`;
+    }
 {% endif %}

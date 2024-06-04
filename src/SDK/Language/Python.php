@@ -202,8 +202,8 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '.travis.yml',
-                'template' => 'python/.travis.yml.twig',
+                'destination' => '.github/workflows/publish.yml',
+                'template' => 'python/.github/workflows/publish.yml.twig',
             ],
             [
                 'scope' => 'enum',

@@ -174,8 +174,8 @@ class Ruby extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '.travis.yml',
-                'template'      => 'ruby/.travis.yml.twig',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'ruby/.github/workflows/publish.yml.twig',
             ],
             [
                 'scope'         => 'definition',
