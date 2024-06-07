@@ -154,7 +154,8 @@ const whoami = new Command("whoami")
                 'ID': account.$id,
                 'Name': account.name,
                 'Email': account.email,
-                'MFA enabled': account.mfa ? 'Yes' : 'No'
+                'MFA enabled': account.mfa ? 'Yes' : 'No',
+                'Endpoint': globalConfig.getEndpoint()
             }
         ];
         if (json) {
