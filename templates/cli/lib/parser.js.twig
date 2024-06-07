@@ -151,6 +151,7 @@ const parseError = (err) => {
         if (cliConfig.verbose) {
             console.error(err);
         } else {
+            log('For detailed error pass the --verbose or --report flag');
             error(err.message);
         }
         process.exit(1);
