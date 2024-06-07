@@ -23,7 +23,7 @@ const { accountGet } = require("./account");
 const { loginCommand } = require("./generic");
 const { sdkForConsole } = require("../sdks");
 
-const initProject = async ({ organizationId, projectId, projectName } = {}) => {
+const initProject = async ({ organizationId, projectId, projectName, selfHosted } = {}) => {
     let response = {};
 
     try {
@@ -38,7 +38,7 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         });
     } catch (e) {
         log('You must login first')
-        await loginCommand();
+        await loginCommand({selfHosted});
     }
     let answers = {};
 
@@ -269,6 +269,7 @@ const init = new Command("init")
     .option("--organizationId <organizationId>", "{{ spec.title|caseUcfirst }} organization ID")
     .option("--projectId <projectId>", "{{ spec.title|caseUcfirst }} project ID")
     .option("--projectName <projectName>", "{{ spec.title|caseUcfirst }} project ID")
+    .option(`-sh, --self-hosted`, `Flag for enabling custom endpoint for self hosted instances for non-logged in users`)
     .action(actionRunner(initProject));
 
 init
