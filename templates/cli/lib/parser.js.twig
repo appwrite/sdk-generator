@@ -130,7 +130,7 @@ const parseError = (err) => {
             }
 
             const version = '{{ sdk.version }}';
-            const stepsToReproduce = `Running \`appwrite ${cliConfig.reportData.data.args}\``;
+            const stepsToReproduce = `Running \`appwrite ${cliConfig.reportData.data.args.join(' ')}\``;
             const yourEnvironment = `CLI version: ${version}\nOperation System: ${os.type()}\nAppwrite version: ${appwriteVersion}\nIs Cloud: ${isCloud}`;
 
             const stack = '```\n' + err.stack + '\n```';
