@@ -322,13 +322,13 @@ class Local extends Config {
     }
 
     getProject() {
-        if (!this.has("projectId") || !this.has("projectName")) {
+        if (!this.has("projectId")) {
             return {};
         }
 
         return {
             projectId: this.get("projectId"),
-            projectName: this.get("projectName"),
+            projectName: this.has("projectName") ? this.get("projectName") : '',
         };
     }
 

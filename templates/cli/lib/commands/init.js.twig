@@ -23,7 +23,7 @@ const { accountGet } = require("./account");
 const { loginCommand } = require("./generic");
 const { sdkForConsole } = require("../sdks");
 
-const initProject = async ({ organizationId, projectId } = {}) => {
+const initProject = async ({ organizationId, projectId, projectName } = {}) => {
     let response = {};
 
     try {
@@ -42,13 +42,12 @@ const initProject = async ({ organizationId, projectId } = {}) => {
     }
     let answers = {};
 
-    if (organizationId && projectId) {
+    if (organizationId && projectId && projectName) {
         answers = {
-            project: { id: projectId, },
+            project: { id: projectId, name: projectName},
             organization: { id: organizationId },
             start: 'existing'
         }
-
 
         try {
             await projectsGet({ projectId, parseOutput: false });
@@ -279,6 +278,7 @@ const init = new Command("init")
     })
     .option("--organizationId <organizationId>", "{{ spec.title|caseUcfirst }} organization ID")
     .option("--projectId <projectId>", "{{ spec.title|caseUcfirst }} project ID")
+    .option("--projectName <projectName>", "{{ spec.title|caseUcfirst }} project ID")
     .action(actionRunner(initProject));
 
 init
