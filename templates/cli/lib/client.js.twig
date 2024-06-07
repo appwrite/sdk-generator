@@ -4,10 +4,11 @@ const { fetch, FormData, Agent } = require("undici");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const {{spec.title | caseUcfirst}}Exception = require("./exception.js");
 const { globalConfig } = require("./config.js");
+const {log} = require('./parser');
 
 class Client {
   CHUNK_SIZE = 5*1024*1024; // 5MB
-  
+
   constructor() {
     this.endpoint = '{{spec.endpoint}}';
     this.headers = {
@@ -143,6 +144,13 @@ class Client {
         json = JSON.parse(text);
       } catch (error) {
         throw new {{spec.title | caseUcfirst}}Exception(text, response.status, "", text);
+      }
+
+      if(path !== '/account' && json.code === 401 && json.type ==='user_more_factors_required'){
+        log('Unusable account found, removing...')
+        const current = globalConfig.getCurrentLogin();
+        globalConfig.setCurrentLogin('');
+        globalConfig.removeLogin(current);
       }
       throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, json);
     }
