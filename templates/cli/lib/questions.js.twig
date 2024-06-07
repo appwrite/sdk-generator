@@ -330,6 +330,16 @@ const questionsCreateBucket = [
 const questionsCreateCollection = [
     {
         type: "list",
+        name: "method",
+        message: "What database would you like to use for your collection",
+        choices: ["New", "Existing"],
+        when: async () => {
+            const res = await databasesList({ queries: [], parseOutput: false });
+            return res.total !== 0;
+        }
+    },
+    {
+        type: "list",
         name: "database",
         message: "Choose the collection database",
         choices: async () => {
@@ -338,7 +348,7 @@ const questionsCreateCollection = [
             let choices = databases.map((database, idx) => {
                 return {
                     name: `${database.name} (${database.$id})`,
-                    value: database.$id
+                    value: { $id: database.$id, name: database.name }
                 }
             })
 
@@ -347,7 +357,22 @@ const questionsCreateCollection = [
             }
 
             return choices;
-        }
+        },
+        when: (answers) => (answers.method ?? '').toLowerCase() === 'existing'
+    },
+    {
+        type: "input",
+        name: "database_name",
+        message: "What would you like to name your database?",
+        default: "My Awesome Database",
+        when: (answers) => (answers.method ?? '').toLowerCase() !== 'existing'
+    },
+    {
+        type: "input",
+        name: "database_id",
+        message: "What ID would you like to have for your database?",
+        default: "unique()",
+        when: (answers) => (answers.method ?? '').toLowerCase() !== 'existing'
     },
     {
         type: "input",

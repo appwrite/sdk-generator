@@ -44,7 +44,7 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
 
     if (organizationId && projectId && projectName) {
         answers = {
-            project: { id: projectId, name: projectName},
+            project: { id: projectId, name: projectName },
             organization: { id: organizationId },
             start: 'existing'
         }
@@ -86,62 +86,59 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
 }
 
 const initBucket = async () => {
-    let response = {}
     const answers = await inquirer.prompt(questionsCreateBucket)
 
-    try {
-        response = await storageCreateBucket({
-            bucketId: answers.id,
-            name: answers.bucket,
-            fileSecurity: answers.fileSecurity.toLowerCase() === 'yes',
-            enabled: true,
-            parseOutput: false
-        })
-
-        localConfig.addBucket(response);
-        success();
-    } catch (e) {
-        error(e.getMessage ?? 'Unknown error occurred. Please try again');
-    }
+    localConfig.addBucket({
+        $id: answers.id === 'unique()' ? ID.unique() : answers.id,
+        name: answers.bucket,
+        fileSecurity: answers.fileSecurity.toLowerCase() === 'yes',
+        enabled: true,
+    });
+    success();
 };
 
 const initCollection = async () => {
-    let response = {}
     const answers = await inquirer.prompt(questionsCreateCollection)
+    const newDatabase = (answers.method ?? '').toLowerCase() !== 'existing';
 
-    try {
-        response = await databasesCreateCollection({
-            databaseId: answers.database,
-            collectionId: answers.id,
-            name: answers.collection,
-            documentSecurity: answers.documentSecurity.toLowerCase() === 'yes',
-            enabled: true,
-            parseOutput: false
-        })
-
-        localConfig.addCollection(response);
-        success();
-    } catch (e) {
-        error(e.getMessage ?? 'Unknown error occurred. Please try again');
+    if (!newDatabase) {
+        answers.database_id = answers.database.$id;
+        answers.database_name = answers.database.name;
     }
+
+    const databaseId = answers.database_id === 'unique()' ? ID.unique() : answers.database_id;
+
+    if (newDatabase || !localConfig.getDatabase(answers.database_id).$id) {
+        localConfig.addDatabase({
+            $id: databaseId,
+            name: answers.database_name,
+            enabled: true
+        });
+    }
+
+    localConfig.addCollection({
+        $id: answers.id === 'unique()' ? ID.unique() : answers.id,
+        databaseId: databaseId,
+        name: answers.collection,
+        documentSecurity: answers.documentSecurity.toLowerCase() === 'yes',
+        attributes: [],
+        indexes: [],
+        enabled: true,
+    });
+
+    success();
 };
 
 const initTopic = async () => {
-    let response = {}
     const answers = await inquirer.prompt(questionsCreateMessagingTopic)
 
-    try {
-        response = await messagingCreateTopic({
-            topicId: answers.id,
-            name: answers.topic,
-            parseOutput: false
-        })
+    localConfig.addMessagingTopic({
+        $id: answers.id === 'unique()' ? ID.unique() : answers.id,
+        name: answers.topic,
 
-        localConfig.addMessagingTopic(response);
-        success();
-    } catch (e) {
-        error(e.message ?? 'Unknown error occurred. Please try again');
-    }
+    });
+
+    success();
 };
 
 const initFunction = async () => {
@@ -172,14 +169,7 @@ const initFunction = async () => {
         log(`Installation command for this runtime not found. You will be asked to configure the install command when you first push the function.`);
     }
 
-    let response = await functionsCreate({
-        functionId,
-        name: answers.name,
-        runtime: answers.runtime.id,
-        entrypoint: answers.runtime.entrypoint || '',
-        commands: answers.runtime.commands || '',
-        parseOutput: false
-    })
+
 
     fs.mkdirSync(functionDir, "777");
     fs.mkdirSync(templatesDir, "777");
@@ -252,17 +242,17 @@ const initFunction = async () => {
     fs.writeFileSync(readmePath, newReadmeFile.join('\n'));
 
     let data = {
-        $id: response['$id'],
-        name: response.name,
-        runtime: response.runtime,
-        execute: response.execute,
-        events: response.events,
-        schedule: response.schedule,
-        timeout: response.timeout,
-        enabled: response.enabled,
-        logging: response.logging,
-        entrypoint: response.entrypoint,
-        commands: response.commands,
+        $id: functionId,
+        name: answers.name,
+        runtime: answers.runtime.id,
+        execute: [],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: answers.runtime.entrypoint || '',
+        commands: answers.runtime.commands || '',
         ignore: answers.runtime.ignore || null,
         path: `functions/${functionId}`,
     };
