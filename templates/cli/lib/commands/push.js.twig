@@ -344,8 +344,8 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: attribute.min,
-                max: attribute.max,
+                min: parseInt(attribute.min.toString()),
+                max: parseInt(attribute.max.toString()),
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -356,8 +356,8 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: attribute.min,
-                max: attribute.max,
+                min: parseFloat(attribute.min.toString()),
+                max: parseFloat(attribute.max.toString()),
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
