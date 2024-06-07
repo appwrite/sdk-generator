@@ -12,7 +12,7 @@ const { commandDescriptions, cliConfig } = require("./lib/parser");
 const { client } = require("./lib/commands/generic");
 const inquirer = require("inquirer");
 {% if sdk.test != "true" %}
-const { login, logout, whoami, migrate } = require("./lib/commands/generic");
+const { login, register, logout, whoami, migrate } = require("./lib/commands/generic");
 const { init } = require("./lib/commands/init");
 const { pull } = require("./lib/commands/pull");
 const { push } = require("./lib/commands/push");
@@ -62,6 +62,7 @@ program
 {% if sdk.test != "true" %}
   .addCommand(whoami)
   .addCommand(login)
+  .addCommand(register)
   .addCommand(init)
   .addCommand(pull)
   .addCommand(push)

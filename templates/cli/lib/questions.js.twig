@@ -531,6 +531,50 @@ const questionLoginWithEndpoint = [
     questionsLogin[3]
 ]
 
+const questionsRegister = [
+    {
+        type: "input",
+        name: "name",
+        message: "Enter your name",
+        validate(value) {
+            if (!value) {
+                return "Please enter your name";
+            }
+            return true;
+        },
+    },
+    {
+        type: "input",
+        name: "email",
+        message: "Enter your email",
+        validate(value) {
+            if (!value) {
+                return "Please enter your email";
+            }
+            return true;
+        },
+    },
+    {
+        type: "password",
+        name: "password",
+        message: "Enter your password",
+        mask: "*",
+        validate(value) {
+            if (!value) {
+                return "Please enter your password";
+            }
+            return true;
+        },
+    },
+];
+
+const questionsRegisterWithEndpoint = [
+    questionGetEndpoint[0],
+    questionsRegister[0],
+    questionsRegister[1],
+    questionsRegister[2]
+]
+
 const questionsLogout = [
     {
         type: "checkbox",
@@ -800,5 +844,7 @@ module.exports = {
     questionsListFactors,
     questionsMfaChallenge,
     questionGetEndpoint,
-    questionLoginWithEndpoint
+    questionLoginWithEndpoint,
+    questionsRegister,
+    questionsRegisterWithEndpoint
 };
