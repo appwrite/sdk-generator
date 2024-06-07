@@ -932,7 +932,18 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
         error(`Deployment of ${name} has failed. Check at ${failUrl} for more details\n`);
     })
 
-    success(`Pushed ${successfullyPushed} functions with ${successfullyDeployed} successful deployments.`);
+    let message = chalk.green(`Pushed and deployed ${successfullyPushed} functions`);
+
+    if (!async) {
+        if (successfullyDeployed < successfullyPushed) {
+            message = `${chalk.green(`Pushed and deployed ${successfullyPushed} functions.`)} ${chalk.red(`${successfullyPushed - successfullyDeployed}  failed to deploy`)}`;
+        } else {
+            if (successfullyPushed === 0) {
+                message = chalk.red(`Error pushing ${functions.length} functions`)
+            }
+        }
+    }
+    log(message);
 }
 
 const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
