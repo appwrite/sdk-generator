@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { localConfig, globalConfig } = require("./config");
-const { success, log } = require('./parser')
+const { success, log, error } = require('./parser')
 const readline = require('readline');
 const cp = require('child_process');
 
@@ -67,7 +67,13 @@ function showConsoleLink(serviceName, action, open, ...ids) {
 
     if (open) {
         const start = (process.platform == 'darwin' ? 'open' : process.platform == 'win32' ? 'start' : 'xdg-open');
-        cp.exec(`${start} ${url}`);
+
+        cp.exec(`${start} ${url}`, (err, stdout, stderr) => {
+            if (err !== null) {
+                console.log('\n');
+                error('Opening in default browser. ' + err)
+            }
+        });
     }
 }
 
