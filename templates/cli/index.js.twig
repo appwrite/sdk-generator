@@ -29,11 +29,16 @@ program
   .version(version, "-v, --version")
   .option("--verbose", "Show complete error log")
   .option("--json", "Output in JSON format")
+  .option("--report", "Enable reporting in case of CLI errors")
   .on("option:json", () => {
     cliConfig.json = true;
   })
   .on("option:verbose", () => {
     cliConfig.verbose = true;
+  })
+  .on("option:report", function() {
+    cliConfig.report = true;
+    cliConfig.reportData = { data: this };
   })
   .showSuggestionAfterError()
 {% if sdk.test != "true" %}
