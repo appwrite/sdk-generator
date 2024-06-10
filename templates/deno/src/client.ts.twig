@@ -96,6 +96,11 @@ export class Client {
                 headers,
                 body
             });
+
+            const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
+            if (warnings) {
+                warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
+            }
         } catch (error) {
             throw new {{spec.title | caseUcfirst}}Exception(error.message);
         }

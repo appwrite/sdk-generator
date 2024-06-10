@@ -278,6 +278,12 @@ open class Client {
             timeout: .seconds(30)
         )
 
+        if let warning = response.headers["x-{{ spec.title | lower }}-warning"].first {
+            warning.split(separator: ";").forEach { warning in
+                print("Warning: \(warning)")
+            }
+        }
+
         switch response.status.code {
         case 0..<400:
             if response.headers["Set-Cookie"].count > 0 {
