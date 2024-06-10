@@ -1,3 +1,4 @@
+const chalk = require("chalk")
 const { localConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { teamsList } = require('./commands/teams');
@@ -6,7 +7,6 @@ const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
 const { validateRequired } = require("./validations");
 const { paginate } = require('./paginate');
-const chalk = require('chalk');
 const { databasesList } = require('./commands/databases');
 const { checkDeployConditions } = require('./utils');
 const JSONbig = require("json-bigint")({ storeAsString: false });
@@ -489,9 +489,9 @@ const questionsPushCollections = [
     },
     {
         type: "input",
-        name: "override",
-        message: 'Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.'
-    },
+        name: "changes",
+        message: `Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.`
+    }
 ]
 
 const questionsPushBuckets = [

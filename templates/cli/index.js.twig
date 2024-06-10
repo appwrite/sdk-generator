@@ -29,6 +29,9 @@ program
   .version(version, "-v, --version")
   .option("--verbose", "Show complete error log")
   .option("--json", "Output in JSON format")
+  .option("-f,--force", "Flag to confirm all warnings")
+  .option("-a,--all", "Flag to push all resources")
+  .option("--id [id...]", "Flag to pass list of ids for a giving action")
   .option("--report", "Enable reporting in case of CLI errors")
   .on("option:json", () => {
     cliConfig.json = true;
@@ -39,6 +42,15 @@ program
   .on("option:report", function() {
     cliConfig.report = true;
     cliConfig.reportData = { data: this };
+  })
+  .on("option:force", () => {
+    cliConfig.force = true;
+  })
+  .on("option:all", () => {
+    cliConfig.all = true;
+  })
+  .on("option:id", function() {
+    cliConfig.ids = this.opts().id;
   })
   .showSuggestionAfterError()
 {% if sdk.test != "true" %}

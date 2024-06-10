@@ -9,6 +9,9 @@ const Client = require("./client");
 const cliConfig = {
     verbose: false,
     json: false,
+    force: false,
+    all: false,
+    ids: [],
     report: false,
     reportData: {}
 };
@@ -161,7 +164,13 @@ const parseError = (err) => {
 }
 
 const actionRunner = (fn) => {
-    return (...args) => fn(...args).catch(parseError);
+    return (...args) => {
+        if (cliConfig.all && (Array.isArray(cliConfig.ids) && cliConfig.ids.length !== 0)) {
+            error(`The '--all' and '--id' flags cannot be used together.`);
+            process.exit(1);
+        }
+        return fn(...args).catch(parseError)
+    };
 }
 
 const parseInteger = (value) => {
@@ -236,5 +245,6 @@ module.exports = {
     success,
     error,
     commandDescriptions,
-    cliConfig
+    cliConfig,
+    drawTable
 }

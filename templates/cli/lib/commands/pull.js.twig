@@ -11,7 +11,7 @@ const { storageListBuckets } = require("./storage");
 const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
 const { questionsPullCollection, questionsPullFunctions } = require("../questions");
-const { success, log, actionRunner, commandDescriptions } = require("../parser");
+const { cliConfig, success, log, actionRunner, commandDescriptions } = require("../parser");
 
 const pullProject = async () => {
     try {
@@ -29,10 +29,10 @@ const pullProject = async () => {
     }
 }
 
-const pullFunctions = async ({ all } = {}) => {
+const pullFunctions = async () => {
     const localFunctions = localConfig.getFunctions();
 
-    const functions = all
+    const functions = cliConfig.all
         ? (await paginate(functionsList, { parseOutput: false }, 100, 'functions')).functions
         : (await inquirer.prompt(questionsPullFunctions)).functions;
 
@@ -76,25 +76,18 @@ const pullFunctions = async ({ all } = {}) => {
     }
 }
 
-const pullCollection = async ({ all, databaseId } = {}) => {
-    const databaseIds = [];
+const pullCollection = async () => {
+    let databases = cliConfig.ids;
 
-    if (databaseId) {
-        databaseIds.push(databaseId);
-    } else if (all) {
-        let allDatabases = await databasesList({
-            parseOutput: false
-        })
-
-        databaseIds.push(...allDatabases.databases.map((d) => d.$id));
+    if (databases.length === 0) {
+        if (cliConfig.all) {
+            databases = (await paginate(databasesList, { parseOutput: false }, 100, 'databases')).databases.map(database=>database.$id);
+        } else{
+            databases = (await inquirer.prompt(questionsPullCollection)).databases;
+        }
     }
 
-    if (databaseIds.length <= 0) {
-        let answers = await inquirer.prompt(questionsPullCollection)
-        databaseIds.push(...answers.databases);
-    }
-
-    for (const databaseId of databaseIds) {
+    for (const databaseId of databases) {
         const database = await databasesGet({
             databaseId,
             parseOutput: false
@@ -109,17 +102,18 @@ const pullCollection = async ({ all, databaseId } = {}) => {
 
         log(`Found ${total} collections`);
 
-        collections.forEach(async collection => {
+        collections.map(async collection => {
             log(`Fetching ${collection.name} ...`);
             localConfig.addCollection({
                 ...collection,
                 '$createdAt': undefined,
-                '$updatedAt': undefined,
+                '$updatedAt': undefined
             });
         });
+
+        success();
     }
 
-    success();
 }
 
 const pullBucket = async () => {
@@ -176,14 +170,11 @@ pull
 pull
     .command("functions")
     .description(`Pulling your {{ spec.title|caseUcfirst }} functions`)
-    .option(`--all`, `Flag to pull all functions`)
     .action(actionRunner(pullFunctions));
 
 pull
     .command("collections")
     .description("Pulling your {{ spec.title|caseUcfirst }} collections")
-    .option(`--databaseId <databaseId>`, `Database ID`)
-    .option(`--all`, `Flag to pull all databases`)
     .action(actionRunner(pullCollection))
 
 pull
