@@ -392,7 +392,7 @@ class Client {
 
             const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
             if (warnings) {
-                warnings.split(';').forEach((warning: string) => console.warn(warning));
+                warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
             }
 
             if (response.headers.get('content-type')?.includes('application/json')) {

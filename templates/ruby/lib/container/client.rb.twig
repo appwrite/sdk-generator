@@ -229,7 +229,7 @@ module {{ spec.title | caseUcfirst }}
             warnings = response['x-{{ spec.title | lower }}-warning']
             if warnings
                 warnings.split(';').each do |warning|
-                    warn warning
+                    warn "Warning: #{warning}"
                 end
             end
 

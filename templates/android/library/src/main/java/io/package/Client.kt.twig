@@ -477,7 +477,7 @@ class Client @JvmOverloads constructor(
                 val warnings = response.headers["x-{{ spec.title | lower }}-warning"]
                 if (warnings != null) {
                     warnings.split(";").forEach { warning ->
-                        System.out.println("Warning: $warning")
+                        println("Warning: $warning")
                     }
                 }
 

@@ -321,9 +321,8 @@ open class Client {
             timeout: .seconds(30)
         )
 
-        let warnings = response.headers["x-{{ spec.title | lower }}-warning"].first
-        if warnings != nil {
-            warnings!.split(separator: ";").forEach { warning in
+        if let warning = response.headers["x-{{ spec.title | lower }}-warning"].first {
+            warning.split(separator: ";").forEach { warning in
                 print("Warning: \(warning)")
             }
         }
