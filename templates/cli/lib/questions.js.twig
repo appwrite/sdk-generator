@@ -141,7 +141,7 @@ const questionsInitProject = [
         ]
     },
     {
-        type: "list",
+        type: "search-list",
         name: "organization",
         message: "Choose the project organization",
         choices: async () => {
@@ -181,7 +181,7 @@ const questionsInitProject = [
         when: (answer) => answer.start === 'new'
     },
     {
-        type: "list",
+        type: "search-list",
         name: "project",
         message: "Choose your {{ spec.title|caseUcfirst }} project.",
         choices: async (answers) => {
@@ -292,7 +292,7 @@ const questionsCreateFunction = [
 const questionsCreateFunctionSelectTemplate = (templates) => {
     return [
         {
-            type: "list",
+            type: "search-list",
             name: "template",
             message: "What template would you like to use?",
             choices: templates.map((template) => {
@@ -339,7 +339,7 @@ const questionsCreateCollection = [
         }
     },
     {
-        type: "list",
+        type: "search-list",
         name: "database",
         message: "Choose the collection database",
         choices: async () => {
@@ -472,7 +472,7 @@ const questionsLogin = [
         when: (answers) => answers.method !== 'select'
     },
     {
-        type: "list",
+        type: "search-list",
         name: "accountId",
         message: "Select an account to use",
         choices() {
