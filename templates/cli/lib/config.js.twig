@@ -418,29 +418,29 @@ class Global extends Config {
         this.set(Global.PREFERENCE_CURRENT, endpoint);
     }
 
-    getLoginIds() {
+    getSessionIds() {
         return Object.keys(this.data).filter((key) => !Global.IGNORE_ATTRIBUTES.includes(key));
     }
 
     getSessions() {
-        const logins = Object.keys(this.data).filter((key) => !Global.IGNORE_ATTRIBUTES.includes(key))
+        const sessions = Object.keys(this.data).filter((key) => !Global.IGNORE_ATTRIBUTES.includes(key))
 
-        return logins.map((login) => {
+        return sessions.map((session) => {
 
             return {
-                id: login,
-                endpoint: this.data[login][Global.PREFERENCE_ENDPOINT],
-                email: this.data[login][Global.PREFERENCE_EMAIL]
+                id: session,
+                endpoint: this.data[session][Global.PREFERENCE_ENDPOINT],
+                email: this.data[session][Global.PREFERENCE_EMAIL]
             }
         })
     }
 
-    addSession(login, data) {
-        this.set(login, data);
+    addSession(session, data) {
+        this.set(session, data);
     }
 
-    removeSession(login, data) {
-        this.delete(login);
+    removeSession(session) {
+        this.delete(session);
     }
 
     getEmail() {

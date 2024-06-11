@@ -476,19 +476,19 @@ const questionsLogin = [
         name: "accountId",
         message: "Select an account to use",
         choices() {
-            const logins = globalConfig.getSessions();
+            const sessions = globalConfig.getSessions();
             const current = globalConfig.getCurrentSession();
 
             const data = [];
 
-            const longestEmail = logins.reduce((prev, current) => (prev && (prev.email ?? '').length > (current.email ?? '').length) ? prev : current).email.length;
+            const longestEmail = sessions.reduce((prev, current) => (prev && (prev.email ?? '').length > (current.email ?? '').length) ? prev : current).email.length;
 
-            logins.forEach((login) => {
-                if (login.email) {
+            sessions.forEach((session) => {
+                if (session.email) {
                     data.push({
-                        current: current === login.id,
-                        value: login.id,
-                        name: `${login.email.padEnd(longestEmail)} ${current === login.id ? chalk.green.bold('current') : ' '.repeat(6)} ${login.endpoint}`,
+                        current: current === session.id,
+                        value: session.id,
+                        name: `${session.email.padEnd(longestEmail)} ${current === session.id ? chalk.green.bold('current') : ' '.repeat(6)} ${session.endpoint}`,
                     });
                 }
             })
@@ -530,19 +530,19 @@ const questionsLogout = [
         message: "Select accounts to logout from",
         validate: (value) => validateRequired('account', value),
         choices() {
-            const logins = globalConfig.getSessions();
+            const sessions = globalConfig.getSessions();
             const current = globalConfig.getCurrentSession();
 
             const data = [];
 
-            const longestEmail = logins.reduce((prev, current) => (prev && (prev.email ?? '').length > (current.email ?? '').length) ? prev : current).email.length;
+            const longestEmail = sessions.reduce((prev, current) => (prev && (prev.email ?? '').length > (current.email ?? '').length) ? prev : current).email.length;
 
-            logins.forEach((login) => {
-                if (login.email) {
+            sessions.forEach((session) => {
+                if (session.email) {
                     data.push({
-                        current: current === login.id,
-                        value: login.id,
-                        name: `${login.email.padEnd(longestEmail)} ${current === login.id ? chalk.green.bold('current') : ' '.repeat(6)} ${login.endpoint}`,
+                        current: current === session.id,
+                        value: session.id,
+                        name: `${session.email.padEnd(longestEmail)} ${current === session.id ? chalk.green.bold('current') : ' '.repeat(6)} ${session.endpoint}`,
                     });
                 }
             })

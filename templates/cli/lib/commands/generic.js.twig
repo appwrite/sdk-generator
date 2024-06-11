@@ -20,8 +20,8 @@ const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
     if (answers.method === 'select') {
         const accountId = answers.accountId;
 
-        if (!globalConfig.getLoginIds().includes(accountId)) {
-            throw Error('Login ID not found');
+        if (!globalConfig.getSessionIds().includes(accountId)) {
+            throw Error('Session ID not found');
         }
 
         globalConfig.setCurrentSession(accountId);
@@ -164,13 +164,13 @@ const logout = new Command("logout")
         helpWidth: process.stdout.columns || 80
     })
     .action(actionRunner(async () => {
-        const logins = globalConfig.getSessions();
+        const sessions = globalConfig.getSessions();
         const current = globalConfig.getCurrentSession();
 
         if (current === '') {
             return;
         }
-        if (logins.length === 1) {
+        if (sessions.length === 1) {
             await deleteSession(current);
             success();
 
@@ -186,10 +186,10 @@ const logout = new Command("logout")
             }
         }
 
-        const leftLogins = globalConfig.getSessions();
+        const leftSessions = globalConfig.getSessions();
 
-        if (leftLogins.length > 0 && leftLogins.filter(login => login.id === current).length !== 1) {
-            const accountId = leftLogins[0].id;
+        if (leftSessions.length > 0 && leftSessions.filter(session => session.id === current).length !== 1) {
+            const accountId = leftSessions[0].id;
             globalConfig.setCurrentSession(accountId);
 
             success(`Current account is ${accountId}`);
@@ -264,9 +264,9 @@ const client = new Command("client")
         }
 
         if (reset !== undefined) {
-            const logins = globalConfig.getSessions();
+            const sessions = globalConfig.getSessions();
 
-            for (let accountId of logins.map(login => login.id)) {
+            for (let accountId of sessions.map(session => session.id)) {
                 globalConfig.setCurrentSession(accountId);
                 await deleteSession(accountId);
             }
