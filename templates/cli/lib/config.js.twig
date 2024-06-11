@@ -407,14 +407,14 @@ class Global extends Config {
         super(`${homeDir}/${path}`);
     }
 
-    getCurrentLogin() {
+    getCurrentSession() {
         if (!this.has(Global.PREFERENCE_CURRENT)) {
             return "";
         }
         return this.get(Global.PREFERENCE_CURRENT);
     }
 
-    setCurrentLogin(endpoint) {
+    setCurrentSession(endpoint) {
         this.set(Global.PREFERENCE_CURRENT, endpoint);
     }
 
@@ -422,7 +422,7 @@ class Global extends Config {
         return Object.keys(this.data).filter((key) => !Global.IGNORE_ATTRIBUTES.includes(key));
     }
 
-    getLogins() {
+    getSessions() {
         const logins = Object.keys(this.data).filter((key) => !Global.IGNORE_ATTRIBUTES.includes(key))
 
         return logins.map((login) => {
@@ -435,11 +435,11 @@ class Global extends Config {
         })
     }
 
-    addLogin(login, data) {
+    addSession(login, data) {
         this.set(login, data);
     }
 
-    removeLogin(login, data) {
+    removeSession(login, data) {
         this.delete(login);
     }
 
@@ -513,7 +513,7 @@ class Global extends Config {
 
 
     hasFrom(key) {
-        const current = this.getCurrentLogin();
+        const current = this.getCurrentSession();
 
         if (current) {
             const config = this.get(current);
@@ -523,7 +523,7 @@ class Global extends Config {
     }
 
     getFrom(key) {
-        const current = this.getCurrentLogin();
+        const current = this.getCurrentSession();
 
         if (current) {
             const config = this.get(current);
@@ -533,7 +533,7 @@ class Global extends Config {
     }
 
     setTo(key, value) {
-        const current = this.getCurrentLogin();
+        const current = this.getCurrentSession();
 
         if (current) {
             const config = this.get(current);

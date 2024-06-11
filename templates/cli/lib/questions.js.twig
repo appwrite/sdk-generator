@@ -444,7 +444,7 @@ const questionsLogin = [
             { name: 'Login to a different account', value: 'login' },
             { name: 'Change to a different existed account', value: 'select' }
         ],
-        when: () => globalConfig.getCurrentLogin() !== ''
+        when: () => globalConfig.getCurrentSession() !== ''
     },
     {
         type: "input",
@@ -476,8 +476,8 @@ const questionsLogin = [
         name: "accountId",
         message: "Select an account to use",
         choices() {
-            const logins = globalConfig.getLogins();
-            const current = globalConfig.getCurrentLogin();
+            const logins = globalConfig.getSessions();
+            const current = globalConfig.getCurrentSession();
 
             const data = [];
 
@@ -538,8 +538,8 @@ const questionsLogout = [
         message: "Select accounts to logout from",
         validate: (value) => validateRequired('account', value),
         choices() {
-            const logins = globalConfig.getLogins();
-            const current = globalConfig.getCurrentLogin();
+            const logins = globalConfig.getSessions();
+            const current = globalConfig.getCurrentSession();
 
             const data = [];
 

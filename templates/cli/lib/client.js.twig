@@ -4,7 +4,7 @@ const { fetch, FormData, Agent } = require("undici");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const {{spec.title | caseUcfirst}}Exception = require("./exception.js");
 const { globalConfig } = require("./config.js");
-const { log } = require('./parser');
+const chalk = require("chalk");
 
 class Client {
   CHUNK_SIZE = 5*1024*1024; // 5MB
@@ -147,10 +147,11 @@ class Client {
       }
 
       if (path !== '/account' && json.code === 401 && json.type === 'user_more_factors_required') {
-        log('Unusable account found, removing...')
-        const current = globalConfig.getCurrentLogin();
-        globalConfig.setCurrentLogin('');
-        globalConfig.removeLogin(current);
+        console.log(`${chalk.cyan.bold("ℹ Info")} ${chalk.cyan("Unusable account found, removing...")}`);
+
+        const current = globalConfig.getCurrentSession();
+        globalConfig.setCurrentSession('');
+        globalConfig.removeSession(current);
       }
       throw new {{spec.title | caseUcfirst}}Exception(json.message, json.code, json.type, json);
     }

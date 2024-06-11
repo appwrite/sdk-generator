@@ -593,6 +593,7 @@ const pushProject = async () => {
     try {
         const projectId = localConfig.getProject().projectId;
         const projectName = localConfig.getProject().projectName;
+        const settings = localConfig.getProject().projectSettings;
 
         log(`Updating project ${projectName} ( ${projectId} )`);
 
@@ -602,8 +603,8 @@ const pushProject = async () => {
                 name: projectName,
                 parseOutput: false
             });
+        }
 
-        const settings = localConfig.getProject().projectSettings;
 
         if (settings.services) {
             log('Updating service statuses');

@@ -12,7 +12,7 @@ const {  accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accou
 const DEFAULT_ENDPOINT = 'https://cloud.appwrite.io/v1';
 
 const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
-    const oldCurrent = globalConfig.getCurrentLogin();
+    const oldCurrent = globalConfig.getCurrentSession();
     let configEndpoint = endpoint ?? DEFAULT_ENDPOINT;
 
     const answers = email && password ? { email, password } : await inquirer.prompt(questionsLogin);
@@ -24,7 +24,7 @@ const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
             throw Error('Login ID not found');
         }
 
-        globalConfig.setCurrentLogin(accountId);
+        globalConfig.setCurrentSession(accountId);
         success(`Current account is ${accountId}`);
 
         return;
@@ -32,8 +32,8 @@ const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
 
     const id = ID.unique();
 
-    globalConfig.addLogin(id, {});
-    globalConfig.setCurrentLogin(id);
+    globalConfig.addSession(id, {});
+    globalConfig.setCurrentSession(id);
     globalConfig.setEndpoint(configEndpoint);
     globalConfig.setEmail(answers.email);
 
@@ -79,8 +79,8 @@ const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
                 parseOutput: false
             });
         } else {
-            globalConfig.removeLogin(id);
-            globalConfig.setCurrentLogin(oldCurrent);
+            globalConfig.removeSession(id);
+            globalConfig.setCurrentSession(oldCurrent);
             throw error;
         }
     }
@@ -141,7 +141,7 @@ const login = new Command("login")
     })
     .action(actionRunner(loginCommand));
 
-const singleLogout = async (accountId) => {
+const deleteSession = async (accountId) => {
     try {
         let client = await sdkForConsole();
 
@@ -151,11 +151,11 @@ const singleLogout = async (accountId) => {
             sdk: client
         })
 
-        globalConfig.removeLogin(accountId);
+        globalConfig.removeSession(accountId);
     } catch (e) {
         error('Unable to log out, removing locally saved session information')
     }
-    globalConfig.removeLogin(accountId);
+    globalConfig.removeSession(accountId);
 }
 
 const logout = new Command("logout")
@@ -164,14 +164,14 @@ const logout = new Command("logout")
         helpWidth: process.stdout.columns || 80
     })
     .action(actionRunner(async () => {
-        const logins = globalConfig.getLogins();
-        const current = globalConfig.getCurrentLogin();
+        const logins = globalConfig.getSessions();
+        const current = globalConfig.getCurrentSession();
 
         if (current === '') {
             return;
         }
         if (logins.length === 1) {
-            await singleLogout(current);
+            await deleteSession(current);
             success();
 
             return;
@@ -181,16 +181,16 @@ const logout = new Command("logout")
 
         if (answers.accounts) {
             for (let accountId of answers.accounts) {
-                globalConfig.setCurrentLogin(accountId);
-                await singleLogout(accountId);
+                globalConfig.setCurrentSession(accountId);
+                await deleteSession(accountId);
             }
         }
 
-        const leftLogins = globalConfig.getLogins();
+        const leftLogins = globalConfig.getSessions();
 
         if (leftLogins.length > 0 && leftLogins.filter(login => login.id === current).length !== 1) {
             const accountId = leftLogins[0].id;
-            globalConfig.setCurrentLogin(accountId);
+            globalConfig.setCurrentSession(accountId);
 
             success(`Current account is ${accountId}`);
         }
@@ -243,8 +243,8 @@ const client = new Command("client")
                 if (!response.version) {
                     throw new Error();
                 }
-                globalConfig.setCurrentLogin(id);
-                globalConfig.addLogin(id, {});
+                globalConfig.setCurrentSession(id);
+                globalConfig.addSession(id, {});
                 globalConfig.setEndpoint(endpoint);
             } catch (_) {
                 throw new Error("Invalid endpoint or your Appwrite server is not running as expected.");
@@ -264,11 +264,11 @@ const client = new Command("client")
         }
 
         if (reset !== undefined) {
-            const logins = globalConfig.getLogins();
+            const logins = globalConfig.getSessions();
 
             for (let accountId of logins.map(login => login.id)) {
-                globalConfig.setCurrentLogin(accountId);
-                await singleLogout(accountId);
+                globalConfig.setCurrentSession(accountId);
+                await deleteSession(accountId);
             }
         }
 
@@ -290,8 +290,8 @@ const migrate = async () => {
         email: 'legacy'
     };
 
-    globalConfig.addLogin(id, data);
-    globalConfig.setCurrentLogin(id);
+    globalConfig.addSession(id, data);
+    globalConfig.setCurrentSession(id);
     globalConfig.delete('endpoint');
     globalConfig.delete('cookie');
 
