@@ -6,23 +6,16 @@ const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, error, parse, log, drawTable } = require("../parser");
 const ID = require("../id");
 {% if sdk.test != "true" %}
-const { questionsLogin, questionLoginWithEndpoint, questionsLogout, questionsListFactors, questionsMfaChallenge } = require("../questions");
-const { accountCreate, accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
+const { questionsLogin, questionsLogout, questionsListFactors, questionsMfaChallenge } = require("../questions");
+const {  accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
 
 const DEFAULT_ENDPOINT = 'https://cloud.appwrite.io/v1';
 
-const loginCommand = async ({ selfHosted, email, password, endpoint, mfa, code }) => {
+const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
     const oldCurrent = globalConfig.getCurrentLogin();
-    let answers = {};
-    let configEndpoint = DEFAULT_ENDPOINT;
+    let configEndpoint = endpoint ?? DEFAULT_ENDPOINT;
 
-    if (selfHosted) {
-        answers = endpoint && email && password ? { endpoint, email, password } : await inquirer.prompt(questionLoginWithEndpoint);
-        configEndpoint = answers.endpoint;
-    } else {
-        answers = email && password ? { email, password } : await inquirer.prompt(questionsLogin);
-    }
-
+    const answers = email && password ? { email, password } : await inquirer.prompt(questionsLogin);
 
     if (answers.method === 'select') {
         const accountId = answers.accountId;
@@ -138,7 +131,6 @@ const whoami = new Command("whoami")
 
 const login = new Command("login")
     .description(commandDescriptions['login'])
-    .option(`-sh, --self-hosted`, `Flag for enabling custom endpoint for self hosted instances`)
     .option(`--email [email]`, `User email`)
     .option(`--password [password]`, `User password`)
     .option(`--endpoint [endpoint]`, `Appwrite endpoint for self hosted instances`)
