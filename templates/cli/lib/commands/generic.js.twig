@@ -1,7 +1,7 @@
 const inquirer = require("inquirer");
 const { Command } = require("commander");
 const Client = require("../client");
-const { sdkForConsole, questionGetEndpoint } = require("../sdks");
+const { sdkForConsole } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, error, parse, log, drawTable } = require("../parser");
 const ID = require("../id");

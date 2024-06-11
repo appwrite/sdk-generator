@@ -523,14 +523,6 @@ const questionGetEndpoint = [
     }
 ];
 
-const questionLoginWithEndpoint = [
-    questionsLogin[0],
-    { ...questionGetEndpoint[0], when: (answers) => answers.method !== 'select' },
-    questionsLogin[1],
-    questionsLogin[2],
-    questionsLogin[3]
-]
-
 const questionsLogout = [
     {
         type: "checkbox",
@@ -799,6 +791,4 @@ module.exports = {
     questionsGetEntrypoint,
     questionsListFactors,
     questionsMfaChallenge,
-    questionGetEndpoint,
-    questionLoginWithEndpoint
 };
