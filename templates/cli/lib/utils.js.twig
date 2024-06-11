@@ -24,7 +24,7 @@ const checkDeployConditions = (localConfig) => {
     }
 }
 
-function showConsoleLink(serviceName, action, open, ...ids) {
+function showConsoleLink(serviceName, action, ...ids) {
     const projectId = localConfig.getProject().projectId;
 
     const url = new URL(globalConfig.getEndpoint().replace('/v1', '/console'));
@@ -64,17 +64,6 @@ function showConsoleLink(serviceName, action, open, ...ids) {
 
 
     success(url);
-
-    if (open) {
-        const start = (process.platform == 'darwin' ? 'open' : process.platform == 'win32' ? 'start' : 'xdg-open');
-
-        cp.exec(`${start} ${url}`, (err, stdout, stderr) => {
-            if (err !== null) {
-                console.log('\n');
-                error('Opening in default browser. ' + err)
-            }
-        });
-    }
 }
 
 function getAccountPath(action) {
