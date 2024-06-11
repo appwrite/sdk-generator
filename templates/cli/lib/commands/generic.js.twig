@@ -6,42 +6,11 @@ const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, error, parse, log, drawTable } = require("../parser");
 const ID = require("../id");
 {% if sdk.test != "true" %}
-const { questionsRegister, questionsRegisterWithEndpoint, questionsLogin, questionLoginWithEndpoint, questionsLogout, questionsListFactors, questionsMfaChallenge } = require("../questions");
+const { questionsLogin, questionLoginWithEndpoint, questionsLogout, questionsListFactors, questionsMfaChallenge } = require("../questions");
 const { accountCreate, accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
 
 const DEFAULT_ENDPOINT = 'https://cloud.appwrite.io/v1';
 
-const registerCommand = async ({ selfHosted, email, password, endpoint, name }) => {
-    let answers;
-    let configEndpoint = DEFAULT_ENDPOINT;
-
-    if (selfHosted) {
-        answers = endpoint && email && password ? { endpoint, email, password } : await inquirer.prompt(questionsRegisterWithEndpoint);
-        configEndpoint = answers.endpoint;
-    } else {
-        answers = email && password ? { email, password } : await inquirer.prompt(questionsRegister);
-    }
-
-    globalConfig.setEndpoint(configEndpoint);
-
-    let client = await sdkForConsole(false);
-
-    try {
-        await accountCreate({
-            userId: ID.unique(),
-            email: answers.email,
-            password: answers.password,
-            parseOutput: false,
-            name: answers.name,
-            sdk: client,
-        })
-
-        success();
-    } catch (e) {
-        throw e;
-    }
-
-}
 const loginCommand = async ({ selfHosted, email, password, endpoint, mfa, code }) => {
     const oldCurrent = globalConfig.getCurrentLogin();
     let answers = {};
@@ -179,15 +148,6 @@ const login = new Command("login")
         helpWidth: process.stdout.columns || 80
     })
     .action(actionRunner(loginCommand));
-
-const register = new Command("register")
-    .description(commandDescriptions['login'])
-    .option(`-sh, --self-hosted`, `Flag for enabling custom endpoint for self hosted instances`)
-    .option(`--name [name]`, `User name`)
-    .option(`--email [email]`, `User email`)
-    .option(`--password [password]`, `User password`)
-    .option(`--endpoint [endpoint]`, `Appwrite endpoint for self hosted instances`)
-    .action(actionRunner(registerCommand));
 
 const singleLogout = async (accountId) => {
     try {
@@ -349,7 +309,6 @@ module.exports = {
     loginCommand,
     whoami,
     login,
-    register,
     logout,
     {% endif %}
     migrate,
