@@ -126,6 +126,22 @@ const questionsInitProject = [
     },
     {
         type: "list",
+        name: "start",
+        when: whenOverride,
+        message: "How would you like to start?",
+        choices: [
+            {
+                name: "Create a new {{ spec.title|caseUcfirst }} project",
+                value: "new"
+            },
+            {
+                name: "Link this directory to an existing {{ spec.title|caseUcfirst }} project",
+                value: "existing"
+            }
+        ]
+    },
+    {
+        type: "search-list",
         name: "organization",
         message: "Choose the project organization",
         choices: async () => {
@@ -151,51 +167,32 @@ const questionsInitProject = [
         when: whenOverride
     },
     {
-        type: "list",
-        name: "start",
-        when(answers) {
-            if (answers.override == undefined) {
-                return true
-            }
-            return answers.override;
-        },
-        message: "How would you like to start?",
-        choices: [
-            {
-                name: "Create a new {{ spec.title|caseUcfirst }} project",
-                value: "new"
-            },
-            {
-                name: "Link this directory to an existing {{ spec.title|caseUcfirst }} project",
-                value: "existing"
-            }
-        ]
-    },
-    {
         type: "input",
         name: "project",
         message: "What would you like to name your project?",
         default: "My Awesome Project",
-        when: (answer) => answer.start === 'new'
+        when: (answer) => answer.start !== 'existing'
     },
     {
         type: "input",
         name: "id",
         message: "What ID would you like to have for your project?",
         default: "unique()",
-        when: (answer) => answer.start === 'new'
+        when: (answer) => answer.start !== 'existing'
     },
     {
-        type: "list",
+        type: "search-list",
         name: "project",
         message: "Choose your {{ spec.title|caseUcfirst }} project.",
         choices: async (answers) => {
-            let response = await projectsList({
-                parseOutput: false,
-                queries: [JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization.id] })],
-            })
-            let projects = response["projects"]
-            let choices = projects.map((project, idx) => {
+            const queries = [
+                JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization.id] }),
+                JSON.stringify({ method: 'orderDesc', attribute: 'Id' })
+            ]
+
+            const { projects } = await paginate(projectsList, { parseOutput: false, queries, }, 100, 'projects');
+
+            let choices = projects.map((project) => {
                 return {
                     name: `${project.name} (${project['$id']})`,
                     value: {
@@ -295,7 +292,7 @@ const questionsCreateFunction = [
 const questionsCreateFunctionSelectTemplate = (templates) => {
     return [
         {
-            type: "list",
+            type: "search-list",
             name: "template",
             message: "What template would you like to use?",
             choices: templates.map((template) => {
@@ -333,6 +330,16 @@ const questionsCreateBucket = [
 const questionsCreateCollection = [
     {
         type: "list",
+        name: "method",
+        message: "What database would you like to use for your collection",
+        choices: ["New", "Existing"],
+        when: async () => {
+            const res = await databasesList({ queries: [], parseOutput: false });
+            return res.total !== 0;
+        }
+    },
+    {
+        type: "search-list",
         name: "database",
         message: "Choose the collection database",
         choices: async () => {
@@ -341,7 +348,7 @@ const questionsCreateCollection = [
             let choices = databases.map((database, idx) => {
                 return {
                     name: `${database.name} (${database.$id})`,
-                    value: database.$id
+                    value: { $id: database.$id, name: database.name }
                 }
             })
 
@@ -350,7 +357,22 @@ const questionsCreateCollection = [
             }
 
             return choices;
-        }
+        },
+        when: (answers) => (answers.method ?? '').toLowerCase() === 'existing'
+    },
+    {
+        type: "input",
+        name: "databaseName",
+        message: "What would you like to name your database?",
+        default: "My Awesome Database",
+        when: (answers) => (answers.method ?? '').toLowerCase() !== 'existing'
+    },
+    {
+        type: "input",
+        name: "databaseId",
+        message: "What ID would you like to have for your database?",
+        default: "unique()",
+        when: (answers) => (answers.method ?? '').toLowerCase() !== 'existing'
     },
     {
         type: "input",
@@ -450,7 +472,7 @@ const questionsLogin = [
         when: (answers) => answers.method !== 'select'
     },
     {
-        type: "list",
+        type: "search-list",
         name: "accountId",
         message: "Select an account to use",
         choices() {
@@ -606,7 +628,7 @@ const questionsPushCollections = [
     {
         type: "input",
         name: "changes",
-        message: `Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.`
+        message: `Would you like to apply these changes? Type "YES" to confirm.`
     }
 ]
 

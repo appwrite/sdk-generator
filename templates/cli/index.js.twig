@@ -10,6 +10,7 @@ const chalk = require("chalk");
 const { version } = require("./package.json");
 const { commandDescriptions, cliConfig } = require("./lib/parser");
 const { client } = require("./lib/commands/generic");
+const inquirer = require("inquirer");
 {% if sdk.test != "true" %}
 const { login, logout, whoami, migrate } = require("./lib/commands/generic");
 const { init } = require("./lib/commands/init");
@@ -21,6 +22,8 @@ const { migrate } = require("./lib/commands/generic");
 {% for service in spec.services %}
 const { {{ service.name | caseLower }} } = require("./lib/commands/{{ service.name | caseLower }}");
 {% endfor %}
+
+inquirer.registerPrompt('search-list', require('inquirer-search-list'));
 
 program
   .description(commandDescriptions['main'])
