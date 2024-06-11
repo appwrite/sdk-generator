@@ -3,6 +3,7 @@ const path = require("path");
 const childProcess = require('child_process');
 const { Command } = require("commander");
 const inquirer = require("inquirer");
+const { fetch } = require("undici");
 const { projectsCreate, projectsGet } = require("./projects");
 const { storageCreateBucket } = require("./storage");
 const { messagingCreateTopic } = require("./messaging");
@@ -172,10 +173,26 @@ const initFunction = async () => {
 
     fs.mkdirSync(functionDir, "777");
     fs.mkdirSync(templatesDir, "777");
+    const repo = "https://github.com/{{ sdk.gitUserName }}/templates";
+    const api = `https://api.github.com/repos/appwrite/templates/contents/${answers.runtime.name}`
+    const templates = ['Starter'];
+    let selected = undefined;
 
-    let gitInitCommands = "git clone --single-branch --depth 1 --sparse https://github.com/{{ sdk.gitUserName }}/templates ."; // depth prevents fetching older commits reducing the amount fetched
+    try {
+        const res = await fetch(api);
+        templates.push(...(await res.json()).map((template) => template.name));
 
-    let gitPullCommands = `git sparse-checkout add ${answers.runtime.name}`;
+        selected = await inquirer.prompt(questionsCreateFunctionSelectTemplate(templates))
+    } catch {
+        // Not a problem will go with directory pulling
+        log('Loading templates...');
+    }
+
+    const sparse = selected ? `${answers.runtime.name}/${selected.template}` : answers.runtime.name;
+
+    let gitInitCommands = `git clone --single-branch --depth 1 --sparse ${repo} .`; // depth prevents fetching older commits reducing the amount fetched
+
+    let gitPullCommands = `git sparse-checkout add ${sparse}`;
 
 
     /* Force use CMD as powershell does not support && */
@@ -184,7 +201,6 @@ const initFunction = async () => {
         gitPullCommands = 'cmd /c "' + gitPullCommands + '"';
     }
 
-    log('Loading templates...');
     /*  Execute the child process but do not print any std output */
     try {
         childProcess.execSync(gitInitCommands, { stdio: 'pipe', cwd: templatesDir });
@@ -201,17 +217,16 @@ const initFunction = async () => {
     }
 
     fs.rmSync(path.join(templatesDir, ".git"), { recursive: true });
-    const templates = ['Starter'];
-    templates.push(...fs.readdirSync(runtimeDir, { withFileTypes: true })
-        .filter(item => item.isDirectory() && item.name !== 'starter')
-        .map(dirent => dirent.name));
+    if (!selected) {
+        templates.push(...fs.readdirSync(runtimeDir, { withFileTypes: true })
+            .filter(item => item.isDirectory() && item.name !== 'starter')
+            .map(dirent => dirent.name));
+        selected = { template: 'starter' };
 
-    let selected = { template: 'starter' };
-
-    if (templates.length > 1) {
-        selected = await inquirer.prompt(questionsCreateFunctionSelectTemplate(templates))
+        if (templates.length > 1) {
+            selected = await inquirer.prompt(questionsCreateFunctionSelectTemplate(templates))
+        }
     }
-
 
     const copyRecursiveSync = (src, dest) => {
         let exists = fs.existsSync(src);
