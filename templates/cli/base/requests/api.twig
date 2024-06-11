@@ -19,7 +19,7 @@
     if (parseOutput) {
     {%~ if methodHaveConsolePreview(method.name,service.name) %}
         if(console) {
-            showConsoleLink('{{service.name}}', '{{ method.name }}',open
+            showConsoleLink('{{service.name}}', '{{ method.name }}'
         {%- for parameter in method.parameters.path -%}{%- set param = (parameter.name | caseCamel | escapeKeyword)  -%}{%- if param  ends with 'Id' -%}, {{ param }} {%- endif -%}{%- endfor -%}
             );
          } else {

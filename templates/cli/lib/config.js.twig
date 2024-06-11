@@ -322,7 +322,7 @@ class Local extends Config {
     }
 
     getProject() {
-        if (!this.has("projectId") || !this.has("projectName")) {
+        if (!this.has("projectId")) {
             return {};
         }
 
@@ -333,9 +333,13 @@ class Local extends Config {
         };
     }
 
-    setProject(projectId, projectName, projectSettings = {}) {
+    setProject(projectId, projectName = '', projectSettings = {}) {
         this.set("projectId", projectId);
-        this.set("projectName", projectName);
+
+        if (projectName !== '') {
+            this.set("projectName", projectName);
+        }
+
 
         const settings = {
             services: {

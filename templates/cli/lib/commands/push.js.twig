@@ -344,8 +344,8 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: attribute.min,
-                max: attribute.max,
+                min: parseInt(attribute.min.toString()),
+                max: parseInt(attribute.max.toString()),
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -356,8 +356,8 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: attribute.min,
-                max: attribute.max,
+                min: parseFloat(attribute.min.toString()),
+                max: parseFloat(attribute.max.toString()),
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -481,7 +481,14 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection)
         return { Key: change.key, Action: change.action, Reason: change.reason, };
     }));
 
-    if (!cliConfig.force) {
+    if (!cliConfig.force && (deleting.length > 0 || conflicts.length > 0)) {
+        if (deleting.length > 0) {
+            log(`Attribute deletion will cause ${chalk.red('loss of data')}`);
+        }
+        if (conflicts.length > 0) {
+            log(`Attribute recreation will cause ${chalk.red('loss of data')}`);
+        }
+
         const answers = await inquirer.prompt(questionsPushCollections[1]);
 
         if (answers.changes.toLowerCase() !== 'yes') {
@@ -589,11 +596,12 @@ const pushProject = async () => {
 
         log(`Updating project ${projectName} ( ${projectId} )`);
 
-        await projectsUpdate({
-            projectId,
-            name: projectName,
-            parseOutput: false
-        });
+        if (projectName) {
+            await projectsUpdate({
+                projectId,
+                name: projectName,
+                parseOutput: false
+            });
 
         const settings = localConfig.getProject().projectSettings;
 
@@ -894,11 +902,11 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                             ],
                         });
 
-                        if(Number(res.total) === 1){
+                        if (Number(res.total) === 1) {
                             url = res.rules[0].domain;
                         }
 
-                        updaterRow.update({ status: 'Deployed', end: url});
+                        updaterRow.update({ status: 'Deployed', end: url });
 
                         break;
                     } else if (status === 'failed') {
@@ -931,7 +939,18 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
         error(`Deployment of ${name} has failed. Check at ${failUrl} for more details\n`);
     })
 
-    success(`Pushed ${successfullyPushed} functions with ${successfullyDeployed} successful deployments.`);
+    let message = chalk.green(`Pushed and deployed ${successfullyPushed} functions`);
+
+    if (!async) {
+        if (successfullyDeployed < successfullyPushed) {
+            message = `${chalk.green(`Pushed and deployed ${successfullyPushed} functions.`)} ${chalk.red(`${successfullyPushed - successfullyDeployed}  failed to deploy`)}`;
+        } else {
+            if (successfullyPushed === 0) {
+                message = chalk.red(`Error pushing ${functions.length} functions`)
+            }
+        }
+    }
+    log(message);
 }
 
 const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
@@ -1033,7 +1052,7 @@ const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
         }
     }))
 
-// Serialize attribute actions
+    // Serialize attribute actions
     for (let collection of collections) {
         let attributes = collection.attributes;
 
