@@ -7,6 +7,7 @@ const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
 const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
 const { cliConfig, actionRunner, success, log, error, commandDescriptions, drawTable } = require("../parser");
+const { proxyListRules } = require('./proxy');
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
@@ -279,8 +280,292 @@ const awaitPools = {
     },
 }
 
+const createAttribute = async (databaseId, collectionId, attribute) => {
+    switch (attribute.type) {
+        case 'string':
+            switch (attribute.format) {
+                case 'email':
+                    return await databasesCreateEmailAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                case 'url':
+                    return await databasesCreateUrlAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                case 'ip':
+                    return await databasesCreateIpAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                case 'enum':
+                    return await databasesCreateEnumAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        elements: attribute.elements,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                default:
+                    return await databasesCreateStringAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        size: attribute.size,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+
+            }
+        case 'integer':
+            return await databasesCreateIntegerAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                min: parseInt(attribute.min.toString()),
+                max: parseInt(attribute.max.toString()),
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'double':
+            return databasesCreateFloatAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                min: parseFloat(attribute.min.toString()),
+                max: parseFloat(attribute.max.toString()),
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'boolean':
+            return databasesCreateBooleanAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'datetime':
+            return databasesCreateDatetimeAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'relationship':
+            return databasesCreateRelationshipAttribute({
+                databaseId,
+                collectionId,
+                relatedCollectionId: attribute.relatedCollection,
+                type: attribute.relationType,
+                twoWay: attribute.twoWay,
+                key: attribute.key,
+                twoWayKey: attribute.twoWayKey,
+                onDelete: attribute.onDelete,
+                parseOutput: false
+            })
+    }
+}
+const deleteAttribute = async (collection, attribute) => {
+    log(`Deleting attribute ${attribute.key} of ${collection.name} ( ${collection['$id']} )`);
+
+    await databasesDeleteAttribute({
+        databaseId: collection['databaseId'],
+        collectionId: collection['$id'],
+        key: attribute.key,
+        parseOutput: false
+    });
+}
+
+/**
+ * Check if attribute non-changeable fields has been changed
+ * If so return the differences as an object.
+ * @param remote
+ * @param local
+ * @param collection
+ * @returns {undefined|{reason: string, action: *, attribute, key: string}}
+ */
+const checkAttributeChanges = (remote, local, collection) => {
+    if (local === undefined) {
+        return undefined;
+    }
+
+    const keyName = `${chalk.yellow(local.key)} in ${collection.name} (${collection['$id']})`;
+    const action = chalk.cyan('recreating');
+    let reason = '';
+
+    for (let key of Object.keys(remote)) {
+        if (changeableKeys.includes(key)) {
+            continue;
+        }
+
+        if (remote[key] !== local[key]) {
+            const bol = reason === '' ? '' : '\n';
+            reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
+        }
+    }
+
+    return reason === '' ? undefined : { key: keyName, attribute: remote, reason, action };
+}
+
+/**
+ * Check if attributes contain the given attribute
+ * @param attribute
+ * @param attributes
+ * @returns {*}
+ */
+const attributesContains = (attribute, attributes) => attributes.find((attr) => attr.key === attribute.key);
+const generateChangesObject = (attribute, collection, isAdding) => {
+    return {
+        key: `${chalk.yellow(attribute.key)} in ${collection.name} (${collection['$id']})`,
+        attribute: attribute,
+        reason: isAdding ? 'Field doesn\'t exist on the remote server' : 'Field doesn\'t exist in appwrite.json file',
+        action: isAdding ? chalk.green('adding') : chalk.red('deleting')
+    };
+
+};
+
+/**
+ * Filter deleted and recreated attributes,
+ * return list of attributes to create
+ * @param remoteAttributes
+ * @param localAttributes
+ * @param collection
+ * @returns {Promise<*|*[]>}
+ */
+const attributesToCreate = async (remoteAttributes, localAttributes, collection) => {
+
+    const deleting = remoteAttributes.filter((attribute) => !attributesContains(attribute, localAttributes)).map((attr) => generateChangesObject(attr, collection, false));
+    const adding = localAttributes.filter((attribute) => !attributesContains(attribute, remoteAttributes)).map((attr) => generateChangesObject(attr, collection, true));
+    const conflicts = remoteAttributes.map((attribute) => checkAttributeChanges(attribute, attributesContains(attribute, localAttributes), collection)).filter(attribute => attribute !== undefined);
+
+    let changedAttributes = [];
+    const changing = [...deleting, ...adding, ...conflicts]
+    if (changing.length === 0) {
+        return changedAttributes;
+    }
+
+    log(!cliConfig.force ? 'There are pending changes in your collection deployment' : 'List of applied changes');
+
+    drawTable(changing.map((change) => {
+        return { Key: change.key, Action: change.action, Reason: change.reason, };
+    }));
+
+    if (!cliConfig.force && (deleting.length > 0 || conflicts.length > 0)) {
+        if (deleting.length > 0) {
+            log(`Attribute deletion will cause ${chalk.red('loss of data')}`);
+        }
+        if (conflicts.length > 0) {
+            log(`Attribute recreation will cause ${chalk.red('loss of data')}`);
+        }
+
+        const answers = await inquirer.prompt(questionsPushCollections[1]);
+
+        if (answers.changes.toLowerCase() !== 'yes') {
+            return changedAttributes;
+        }
+    }
+
+    if (conflicts.length > 0) {
+        changedAttributes = conflicts.map((change) => change.attribute);
+        await Promise.all(changedAttributes.map((changed) => deleteAttribute(collection, changed)));
+        remoteAttributes = remoteAttributes.filter((attribute) => !attributesContains(attribute, changedAttributes))
+    }
+
+    const deletingAttributes = deleting.map((change) => change.attribute);
+    await Promise.all(deletingAttributes.map((attribute) => deleteAttribute(collection, attribute)));
+    const attributeKeys = [...remoteAttributes.map(attribute => attribute.key), ...deletingAttributes.map(attribute => attribute.key)]
+
+    if (attributeKeys.length) {
+        const deleteAttributesPoolStatus = await awaitPools.deleteAttributes(collection['databaseId'], collection['$id'], attributeKeys);
+
+        if (!deleteAttributesPoolStatus) {
+            throw new Error("Attribute deletion timed out.");
+        }
+    }
+
+    return localAttributes.filter((attribute) => !attributesContains(attribute, remoteAttributes));
+}
+const createIndexes = async (indexes, collection) => {
+    log(`Creating indexes ...`)
+
+    for (let index of indexes) {
+        await databasesCreateIndex({
+            databaseId: collection['databaseId'],
+            collectionId: collection['$id'],
+            key: index.key,
+            type: index.type,
+            attributes: index.attributes,
+            orders: index.orders,
+            parseOutput: false
+        });
+    }
+
+    const result = await awaitPools.expectIndexes(
+        collection['databaseId'],
+        collection['$id'],
+        indexes.map(index => index.key)
+    );
+
+    if (!result) {
+        throw new Error("Index creation timed out.");
+    }
+
+    success(`Created ${indexes.length} indexes`);
+}
+const createAttributes = async (attributes, collection) => {
+    for (let attribute of attributes) {
+        if (attribute.side !== 'child') {
+            await createAttribute(collection['databaseId'], collection['$id'], attribute);
+        }
+    }
+
+    const result = await awaitPools.expectAttributes(
+        collection['databaseId'],
+        collection['$id'],
+        collection.attributes.map(attribute => attribute.key)
+    );
+
+    if (!result) {
+        throw new Error(`Attribute creation timed out.`);
+    }
+
+    success(`Created ${attributes.length} attributes`);
+}
+
 const pushResources = async () => {
     const actions = {
+        project: pushProject,
         functions: pushFunction,
         collections: pushCollection,
         buckets: pushBucket,
@@ -289,34 +574,37 @@ const pushResources = async () => {
     }
 
     if (cliConfig.all) {
-        Object.values(actions).forEach(action => action());
+        for (let action of Object.values(actions)) {
+            await action({ returnOnZero: true });
+        }
     } else {
         const answers = await inquirer.prompt(questionsPushResources[0]);
 
-        answers.resources.forEach((resource) => {
+        for (let resource of answers.resources) {
             const action = actions[resource];
             if (action !== undefined) {
-                action();
+                await action({ returnOnZero: true });
             }
-        })
+        }
     }
 };
-
 
 const pushProject = async () => {
     try {
         const projectId = localConfig.getProject().projectId;
         const projectName = localConfig.getProject().projectName;
+        const settings = localConfig.getProject().projectSettings;
 
         log(`Updating project ${projectName} ( ${projectId} )`);
 
-        await projectsUpdate({
-            projectId,
-            name: projectName,
-            parseOutput: false
-        });
+        if (projectName) {
+            await projectsUpdate({
+                projectId,
+                name: projectName,
+                parseOutput: false
+            });
+        }
 
-        const settings = localConfig.getProject().projectSettings;
 
         if (settings.services) {
             log('Updating service statuses');
@@ -361,7 +649,7 @@ const pushProject = async () => {
     }
 }
 
-const pushFunction = async ({ functionId, async } = {}) => {
+const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero: false }) => {
     let response = {};
 
     const functionIds = [];
@@ -372,6 +660,10 @@ const pushFunction = async ({ functionId, async } = {}) => {
         checkDeployConditions(localConfig);
         const functions = localConfig.getFunctions();
         if (functions.length === 0) {
+            if (returnOnZero) {
+                log('No functions found, skipping');
+                return;
+            }
             throw new Error("No functions found in the current directory.");
         }
         functionIds.push(...functions.map((func) => {
@@ -599,8 +891,23 @@ const pushFunction = async ({ functionId, async } = {}) => {
 
                     const status = response['status'];
                     if (status === 'ready') {
-                        updaterRow.update({ status: 'Deployed' });
                         successfullyDeployed++;
+
+                        let url = '';
+                        const res = await proxyListRules({
+                            parseOutput: false,
+                            queries: [
+                                JSON.stringify({ method: 'limit', values: [1] }),
+                                JSON.stringify({ method: 'equal', "attribute": "resourceType", "values": ["function"] }),
+                                JSON.stringify({ method: 'equal', "attribute": "resourceId", "values": [func['$id']] })
+                            ],
+                        });
+
+                        if (Number(res.total) === 1) {
+                            url = res.rules[0].domain;
+                        }
+
+                        updaterRow.update({ status: 'Deployed', end: url });
 
                         break;
                     } else if (status === 'failed') {
@@ -633,248 +940,31 @@ const pushFunction = async ({ functionId, async } = {}) => {
         error(`Deployment of ${name} has failed. Check at ${failUrl} for more details\n`);
     })
 
-    success(`Pushed ${successfullyPushed} functions with ${successfullyDeployed} successful deployments.`);
-}
+    let message = chalk.green(`Pushed and deployed ${successfullyPushed} functions`);
 
-const createAttribute = async (databaseId, collectionId, attribute) => {
-    switch (attribute.type) {
-        case 'string':
-            switch (attribute.format) {
-                case 'email':
-                    return await databasesCreateEmailAttribute({
-                        databaseId,
-                        collectionId,
-                        key: attribute.key,
-                        required: attribute.required,
-                        xdefault: attribute.default,
-                        array: attribute.array,
-                        parseOutput: false
-                    })
-                case 'url':
-                    return await databasesCreateUrlAttribute({
-                        databaseId,
-                        collectionId,
-                        key: attribute.key,
-                        required: attribute.required,
-                        xdefault: attribute.default,
-                        array: attribute.array,
-                        parseOutput: false
-                    })
-                case 'ip':
-                    return await databasesCreateIpAttribute({
-                        databaseId,
-                        collectionId,
-                        key: attribute.key,
-                        required: attribute.required,
-                        xdefault: attribute.default,
-                        array: attribute.array,
-                        parseOutput: false
-                    })
-                case 'enum':
-                    return await databasesCreateEnumAttribute({
-                        databaseId,
-                        collectionId,
-                        key: attribute.key,
-                        elements: attribute.elements,
-                        required: attribute.required,
-                        xdefault: attribute.default,
-                        array: attribute.array,
-                        parseOutput: false
-                    })
-                default:
-                    return await databasesCreateStringAttribute({
-                        databaseId,
-                        collectionId,
-                        key: attribute.key,
-                        size: attribute.size,
-                        required: attribute.required,
-                        xdefault: attribute.default,
-                        array: attribute.array,
-                        parseOutput: false
-                    })
-
+    if (!async) {
+        if (successfullyDeployed < successfullyPushed) {
+            message = `${chalk.green(`Pushed and deployed ${successfullyPushed} functions.`)} ${chalk.red(`${successfullyPushed - successfullyDeployed}  failed to deploy`)}`;
+        } else {
+            if (successfullyPushed === 0) {
+                message = chalk.red(`Error pushing ${functions.length} functions`)
             }
-        case 'integer':
-            return await databasesCreateIntegerAttribute({
-                databaseId,
-                collectionId,
-                key: attribute.key,
-                required: attribute.required,
-                min: attribute.min,
-                max: attribute.max,
-                xdefault: attribute.default,
-                array: attribute.array,
-                parseOutput: false
-            })
-        case 'double':
-            return databasesCreateFloatAttribute({
-                databaseId,
-                collectionId,
-                key: attribute.key,
-                required: attribute.required,
-                min: attribute.min,
-                max: attribute.max,
-                xdefault: attribute.default,
-                array: attribute.array,
-                parseOutput: false
-            })
-        case 'boolean':
-            return databasesCreateBooleanAttribute({
-                databaseId,
-                collectionId,
-                key: attribute.key,
-                required: attribute.required,
-                xdefault: attribute.default,
-                array: attribute.array,
-                parseOutput: false
-            })
-        case 'datetime':
-            return databasesCreateDatetimeAttribute({
-                databaseId,
-                collectionId,
-                key: attribute.key,
-                required: attribute.required,
-                xdefault: attribute.default,
-                array: attribute.array,
-                parseOutput: false
-            })
-        case 'relationship':
-            return databasesCreateRelationshipAttribute({
-                databaseId,
-                collectionId,
-                relatedCollectionId: attribute.relatedCollection,
-                type: attribute.relationType,
-                twoWay: attribute.twoWay,
-                key: attribute.key,
-                twoWayKey: attribute.twoWayKey,
-                onDelete: attribute.onDelete,
-                parseOutput: false
-            })
-    }
-}
-
-const deleteAttribute = async (collection, attribute) => {
-    log(`Deleting attribute ${attribute.key} of ${collection.name} ( ${collection['$id']} )`);
-
-    await databasesDeleteAttribute({
-        databaseId: collection['databaseId'],
-        collectionId: collection['$id'],
-        key: attribute.key,
-        parseOutput: false
-    });
-}
-
-/**
- * Check if attribute non-changeable fields has been changed
- * If so return the differences as an object.
- * @param remote
- * @param local
- * @param collection
- * @returns {undefined|{reason: string, action: *, attribute, key: string}}
- */
-const checkAttributeChanges = (remote, local, collection) => {
-    if (local === undefined) {
-        return undefined;
-    }
-
-    const keyName = `${chalk.yellow(local.key)} in ${collection.name} (${collection['$id']})`;
-    const action = chalk.cyan('recreating');
-    let reason = '';
-
-    for (let key of Object.keys(remote)) {
-        if (changeableKeys.includes(key)) {
-            continue;
-        }
-
-        if (remote[key] !== local[key]) {
-            const bol = reason === '' ? '' : '\n';
-            reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
         }
     }
-
-    return reason === '' ? undefined : { key: keyName, attribute: remote, reason, action };
+    log(message);
 }
 
-/**
- * Check if attributes contain the given attribute
- * @param attribute
- * @param attributes
- * @returns {*}
- */
-const attributesContains = (attribute, attributes) => attributes.find((attr) => attr.key === attribute.key);
-
-
-const generateChangesObject = (attribute, collection, isAdding) => {
-    return {
-        key: `${chalk.yellow(attribute.key)} in ${collection.name} (${collection['$id']})`,
-        attribute: attribute,
-        reason: isAdding ? 'Field doesn\'t exist on the remote server' : 'Field doesn\'t exist in appwrite.json file',
-        action: isAdding ? chalk.green('adding') : chalk.red('deleting')
-    };
-
-};
-
-/**
- * Filter deleted and recreated attributes,
- * return list of attributes to create
- * @param remoteAttributes
- * @param localAttributes
- * @param collection
- * @returns {Promise<*|*[]>}
- */
-const attributesToCreate = async (remoteAttributes, localAttributes, collection) => {
-
-    const deleting = remoteAttributes.filter((attribute) => !attributesContains(attribute, localAttributes)).map((attr) => generateChangesObject(attr, collection, false));
-    const adding = localAttributes.filter((attribute) => !attributesContains(attribute, remoteAttributes)).map((attr) => generateChangesObject(attr, collection, true));
-    const conflicts = remoteAttributes.map((attribute) => checkAttributeChanges(attribute, attributesContains(attribute, localAttributes), collection)).filter(attribute => attribute !== undefined);
-
-    let changedAttributes = [];
-    const changing = [...deleting, ...adding, ...conflicts]
-    if (changing.length === 0) {
-        return changedAttributes;
-    }
-
-    log(!cliConfig.force ? 'There are pending changes in your collection deployment' : 'List of applied changes');
-
-    drawTable(changing.map((change) => {
-        return { Key: change.key, Action: change.action, Reason: change.reason, };
-    }));
-
-    if (!cliConfig.force) {
-        const answers = await inquirer.prompt(questionsPushCollections[1]);
-
-        if (answers.changes.toLowerCase() !== 'yes') {
-            return changedAttributes;
-        }
-    }
-
-    if (conflicts.length > 0) {
-        changedAttributes = conflicts.map((change) => change.attribute);
-        await Promise.all(changedAttributes.map((changed) => deleteAttribute(collection, changed)));
-        remoteAttributes = remoteAttributes.filter((attribute) => !attributesContains(attribute, changedAttributes))
-    }
-
-    const deletingAttributes = deleting.map((change) => change.attribute);
-    await Promise.all(deletingAttributes.map((attribute) => deleteAttribute(collection, attribute)));
-    const attributeKeys = [...remoteAttributes.map(attribute => attribute.key), ...deletingAttributes.map(attribute => attribute.key)]
-
-    if (attributeKeys.length) {
-        const deleteAttributesPoolStatus = await awaitPools.deleteAttributes(collection['databaseId'], collection['$id'], attributeKeys);
-
-        if (!deleteAttributesPoolStatus) {
-            throw new Error("Attribute deletion timed out.");
-        }
-    }
-
-    return localAttributes.filter((attribute) => !attributesContains(attribute, remoteAttributes));
-}
-
-const pushCollection = async () => {
+const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
     const collections = [];
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (localConfig.getCollections().length === 0) {
+            if (returnOnZero) {
+                log('No collections found, skipping');
+                return;
+            }
+
             throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} pull collection` to fetch all your collections.");
         }
         collections.push(...localConfig.getCollections());
@@ -936,6 +1026,7 @@ const pushCollection = async () => {
                     databaseId: collection['databaseId'],
                     collectionId: collection['$id'],
                     name: collection.name,
+                    name: collection.name,
                     parseOutput: false
                 })
 
@@ -944,7 +1035,8 @@ const pushCollection = async () => {
             collection.remoteVersion = remoteCollection;
 
             collection.isExisted = true;
-        } catch (e) {
+        } catch
+            (e) {
             if (Number(e.code) === 404) {
                 log(`Collection ${collection.name} does not exist in the project. Creating ... `);
                 await databasesCreateCollection({
@@ -992,54 +1084,7 @@ const pushCollection = async () => {
     }
 }
 
-const createIndexes = async (indexes, collection) => {
-    log(`Creating indexes ...`)
-
-    for (let index of indexes) {
-        await databasesCreateIndex({
-            databaseId: collection['databaseId'],
-            collectionId: collection['$id'],
-            key: index.key,
-            type: index.type,
-            attributes: index.attributes,
-            orders: index.orders,
-            parseOutput: false
-        });
-    }
-
-    const result = await awaitPools.expectIndexes(
-        collection['databaseId'],
-        collection['$id'],
-        indexes.map(index => index.key)
-    );
-
-    if (!result) {
-        throw new Error("Index creation timed out.");
-    }
-
-    success(`Created ${indexes.length} indexes`);
-}
-const createAttributes = async (attributes, collection) => {
-    for (let attribute of attributes) {
-        if (attribute.side !== 'child') {
-            await createAttribute(collection['databaseId'], collection['$id'], attribute);
-        }
-    }
-
-    const result = await awaitPools.expectAttributes(
-        collection['databaseId'],
-        collection['$id'],
-        collection.attributes.map(attribute => attribute.key)
-    );
-
-    if (!result) {
-        throw new Error(`Attribute creation timed out.`);
-    }
-
-    success(`Created ${attributes.length} attributes`);
-}
-
-const pushBucket = async () => {
+const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
     let response = {};
 
     let bucketIds = [];
@@ -1048,6 +1093,10 @@ const pushBucket = async () => {
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (configBuckets.length === 0) {
+            if (returnOnZero) {
+                log('No buckets found, skipping');
+                return;
+            }
             throw new Error("No buckets found in the current directory. Run `appwrite pull bucket` to fetch all your buckets.");
         }
         bucketIds.push(...configBuckets.map((b) => b.$id));
@@ -1126,7 +1175,7 @@ const pushBucket = async () => {
     }
 }
 
-const pushTeam = async () => {
+const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
     let response = {};
 
     let teamIds = [];
@@ -1135,6 +1184,10 @@ const pushTeam = async () => {
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (configTeams.length === 0) {
+            if (returnOnZero) {
+                log('No teams found, skipping');
+                return;
+            }
             throw new Error("No teams found in the current directory. Run `appwrite pull team` to fetch all your teams.");
         }
         teamIds.push(...configTeams.map((t) => t.$id));
@@ -1197,7 +1250,7 @@ const pushTeam = async () => {
     }
 }
 
-const pushMessagingTopic = async () => {
+const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) => {
     let response = {};
 
     let topicsIds = [];
@@ -1207,6 +1260,10 @@ const pushMessagingTopic = async () => {
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (configTopics.length === 0) {
+            if (returnOnZero) {
+                log('No topics found, skipping');
+                return;
+            }
             throw new Error("No topics found in the current directory. Run `appwrite pull topics` to pull all your messaging topics.");
         }
         topicsIds.push(...configTopics.map((b) => b.$id));
