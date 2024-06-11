@@ -174,7 +174,7 @@ const initFunction = async () => {
     fs.mkdirSync(functionDir, "777");
     fs.mkdirSync(templatesDir, "777");
     const repo = "https://github.com/{{ sdk.gitUserName }}/templates";
-    const api = `https://api.github.com/repos/appwrite/templates/contents/${answers.runtime.name}`
+    const api = `https://api.github.com/repos/{{ sdk.gitUserName }}/templates/contents/${answers.runtime.name}`
     const templates = ['Starter'];
     let selected = undefined;
 
