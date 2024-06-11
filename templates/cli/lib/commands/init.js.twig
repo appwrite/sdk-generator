@@ -18,12 +18,11 @@ const {
     questionsCreateCollection,
     questionsInitProject
 } = require("../questions");
-const { success, log, error, actionRunner, commandDescriptions } = require("../parser");
+const { success, log, error, actionRunner } = require("../parser");
 const { accountGet } = require("./account");
-const { loginCommand } = require("./generic");
 const { sdkForConsole } = require("../sdks");
 
-const initProject = async ({ organizationId, projectId, projectName, selfHosted } = {}) => {
+const initProject = async ({ organizationId, projectId, projectName } = {}) => {
     let response = {};
 
     try {
@@ -37,8 +36,8 @@ const initProject = async ({ organizationId, projectId, projectName, selfHosted 
             sdk: client
         });
     } catch (e) {
-        log('You must login first')
-        await loginCommand({selfHosted});
+        error('Error Session not found. Please run `appwrite login` to create a session');
+        process.exit(1);
     }
 
     let answers = {};
@@ -269,7 +268,6 @@ const init = new Command("init")
     .option("--organizationId <organizationId>", "{{ spec.title|caseUcfirst }} organization ID")
     .option("--projectId <projectId>", "{{ spec.title|caseUcfirst }} project ID")
     .option("--projectName <projectName>", "{{ spec.title|caseUcfirst }} project ID")
-    .option(`-sh, --self-hosted`, `Flag for enabling custom endpoint for self hosted instances for non-logged in users`)
     .action(actionRunner(initProject));
 
 init
