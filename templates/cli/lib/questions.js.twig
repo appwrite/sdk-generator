@@ -362,14 +362,14 @@ const questionsCreateCollection = [
     },
     {
         type: "input",
-        name: "database_name",
+        name: "databaseName",
         message: "What would you like to name your database?",
         default: "My Awesome Database",
         when: (answers) => (answers.method ?? '').toLowerCase() !== 'existing'
     },
     {
         type: "input",
-        name: "database_id",
+        name: "databaseId",
         message: "What ID would you like to have for your database?",
         default: "unique()",
         when: (answers) => (answers.method ?? '').toLowerCase() !== 'existing'

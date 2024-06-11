@@ -103,8 +103,8 @@ const initCollection = async () => {
     const newDatabase = (answers.method ?? '').toLowerCase() !== 'existing';
 
     if (!newDatabase) {
-        answers.database_id = answers.database.$id;
-        answers.database_name = answers.database.name;
+        answers.databaseId = answers.database.$id;
+        answers.databaseName = answers.database.name;
     }
 
     const databaseId = answers.database_id === 'unique()' ? ID.unique() : answers.database_id;
