@@ -1,9 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { localConfig, globalConfig } = require("./config");
-const { success, log, error } = require('./parser')
-const readline = require('readline');
-const cp = require('child_process');
+const { success } = require('./parser')
 
 function getAllFiles(folder) {
     const files = [];

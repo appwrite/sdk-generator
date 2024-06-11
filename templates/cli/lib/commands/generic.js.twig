@@ -186,10 +186,10 @@ const logout = new Command("logout")
             }
         }
 
-        const leftSessions = globalConfig.getSessions();
+        const remainingSessions  = globalConfig.getSessions();
 
-        if (leftSessions.length > 0 && leftSessions.filter(session => session.id === current).length !== 1) {
-            const accountId = leftSessions[0].id;
+        if (remainingSessions .length > 0 && remainingSessions .filter(session => session.id === current).length !== 1) {
+            const accountId = remainingSessions [0].id;
             globalConfig.setCurrentSession(accountId);
 
             success(`Current account is ${accountId}`);

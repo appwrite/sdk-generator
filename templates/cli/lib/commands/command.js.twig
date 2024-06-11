@@ -70,7 +70,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
         {%- if 'multipart/form-data' in method.consumes -%},onProgress = () => {}{%- endif -%}
 
         {%- if method.type == 'location' -%}, destination{%- endif -%}
-        {% if methodHaveConsolePreview(method.name,service.name) %}, console{%- endif -%}
+        {% if hasConsolePreview(method.name,service.name) %}, console{%- endif -%}
 }) => {
 {%~ endblock %}
     let client = !sdk ? await {% if service.name == "projects" %}sdkForConsole(){% else %}sdkForProject(){% endif %} :
@@ -95,7 +95,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
 {% if method.type == 'location' %}
     .requiredOption(`--destination <path>`, `output file path.`)
 {% endif %}
-{% if methodHaveConsolePreview(method.name,service.name) %}
+{% if hasConsolePreview(method.name,service.name) %}
     .option(`--console`, `Get the resource console url`)
 {% endif %}
 {% endautoescape %}
