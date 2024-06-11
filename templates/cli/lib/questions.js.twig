@@ -171,14 +171,14 @@ const questionsInitProject = [
         name: "project",
         message: "What would you like to name your project?",
         default: "My Awesome Project",
-        when: (answer) => answer.start === 'new'
+        when: (answer) => answer.start !== 'existing'
     },
     {
         type: "input",
         name: "id",
         message: "What ID would you like to have for your project?",
         default: "unique()",
-        when: (answer) => answer.start === 'new'
+        when: (answer) => answer.start !== 'existing'
     },
     {
         type: "search-list",

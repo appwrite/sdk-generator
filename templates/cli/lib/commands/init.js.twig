@@ -40,14 +40,22 @@ const initProject = async ({ organizationId, projectId, projectName, selfHosted 
         log('You must login first')
         await loginCommand({selfHosted});
     }
+
     let answers = {};
 
-    if (organizationId && projectId && projectName) {
-        answers = {
-            project: { id: projectId, name: projectName },
-            organization: { id: organizationId },
-            start: 'existing'
+    if (!organizationId && !projectId && !projectName) {
+        answers = await inquirer.prompt(questionsInitProject)
+        if (answers.override === false) {
+            process.exit(1)
         }
+    } else {
+        answers.start = 'existing';
+        answers.project = {};
+        answers.organization = {};
+
+        answers.organization.id = organizationId ?? (await inquirer.prompt(questionsInitProject[2])).organization;
+        answers.project.name = projectName ?? (await inquirer.prompt(questionsInitProject[3])).project;
+        answers.project.id = projectId ?? (await inquirer.prompt(questionsInitProject[4])).id;
 
         try {
             await projectsGet({ projectId, parseOutput: false });
@@ -60,14 +68,7 @@ const initProject = async ({ organizationId, projectId, projectName, selfHosted 
                 throw e;
             }
         }
-
-    } else {
-        answers = await inquirer.prompt(questionsInitProject)
-        if (answers.override === false) {
-            process.exit(1)
-        }
     }
-
 
     if (answers.start === 'new') {
         response = await projectsCreate({
@@ -168,7 +169,6 @@ const initFunction = async () => {
     if (!answers.runtime.commands) {
         log(`Installation command for this runtime not found. You will be asked to configure the install command when you first push the function.`);
     }
-
 
 
     fs.mkdirSync(functionDir, "777");
