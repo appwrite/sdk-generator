@@ -344,8 +344,8 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: attribute.min,
-                max: attribute.max,
+                min: parseInt(attribute.min.toString()),
+                max: parseInt(attribute.max.toString()),
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -356,8 +356,8 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: attribute.min,
-                max: attribute.max,
+                min: parseFloat(attribute.min.toString()),
+                max: parseFloat(attribute.max.toString()),
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -481,7 +481,14 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection)
         return { Key: change.key, Action: change.action, Reason: change.reason, };
     }));
 
-    if (!cliConfig.force) {
+    if (!cliConfig.force && (deleting.length > 0 || conflicts.length > 0)) {
+        if (deleting.length > 0) {
+            log(`Attribute deletion will cause ${chalk.red('loss of data')}`);
+        }
+        if (conflicts.length > 0) {
+            log(`Attribute recreation will cause ${chalk.red('loss of data')}`);
+        }
+
         const answers = await inquirer.prompt(questionsPushCollections[1]);
 
         if (answers.changes.toLowerCase() !== 'yes') {
@@ -1045,7 +1052,7 @@ const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
         }
     }))
 
-// Serialize attribute actions
+    // Serialize attribute actions
     for (let collection of collections) {
         let attributes = collection.attributes;
 
