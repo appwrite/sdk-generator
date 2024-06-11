@@ -329,62 +329,53 @@ class Local extends Config {
         return {
             projectId: this.get("projectId"),
             projectName: this.get("projectName"),
+            projectSettings: this.get('projectSettings')
         };
     }
 
-    setProject(projectId, projectName) {
+    setProject(projectId, projectName, projectSettings = {}) {
         this.set("projectId", projectId);
         this.set("projectName", projectName);
-    }
 
-
-    getProjectSettings() {
-        if (!this.has("projectSettings")) {
-            return {};
-        }
-
-        return this.get('projectSettings')
-    }
-
-    setProjectSettings(project) {
         const settings = {
             services: {
-                account: project.serviceStatusForAccount,
-                avatars: project.serviceStatusForAvatars,
-                databases: project.serviceStatusForDatabases,
-                locale: project.serviceStatusForLocale,
-                health: project.serviceStatusForHealth,
-                storage: project.serviceStatusForStorage,
-                teams: project.serviceStatusForTeams,
-                users: project.serviceStatusForUsers,
-                functions: project.serviceStatusForFunctions,
-                graphql: project.serviceStatusForGraphql,
-                messaging: project.serviceStatusForMessaging,
+                account: projectSettings.serviceStatusForAccount,
+                avatars: projectSettings.serviceStatusForAvatars,
+                databases: projectSettings.serviceStatusForDatabases,
+                locale: projectSettings.serviceStatusForLocale,
+                health: projectSettings.serviceStatusForHealth,
+                storage: projectSettings.serviceStatusForStorage,
+                teams: projectSettings.serviceStatusForTeams,
+                users: projectSettings.serviceStatusForUsers,
+                functions: projectSettings.serviceStatusForFunctions,
+                graphql: projectSettings.serviceStatusForGraphql,
+                messaging: projectSettings.serviceStatusForMessaging,
 
             },
             auth: {
                 methods: {
-                    jwt: project.authJWT,
-                    phone: project.authPhone,
-                    invites: project.authInvites,
-                    anonymous: project.authAnonymous,
-                    "email-otp": project.authEmailOtp,
-                    "magic-url": project.authUsersAuthMagicURL,
-                    "email-password": project.authEmailPassword
+                    jwt: projectSettings.authJWT,
+                    phone: projectSettings.authPhone,
+                    invites: projectSettings.authInvites,
+                    anonymous: projectSettings.authAnonymous,
+                    "email-otp": projectSettings.authEmailOtp,
+                    "magic-url": projectSettings.authUsersAuthMagicURL,
+                    "email-password": projectSettings.authEmailPassword
                 },
                 security: {
-                    duration: project.authDuration,
-                    limit: project.authLimit,
-                    sessionsLimit: project.authSessionsLimit,
-                    passwordHistory: project.authPasswordHistory,
-                    passwordDictionary: project.authPasswordDictionary,
-                    personalDataCheck: project.authPersonalDataCheck
+                    duration: projectSettings.authDuration,
+                    limit: projectSettings.authLimit,
+                    sessionsLimit: projectSettings.authSessionsLimit,
+                    passwordHistory: projectSettings.authPasswordHistory,
+                    passwordDictionary: projectSettings.authPasswordDictionary,
+                    personalDataCheck: projectSettings.authPersonalDataCheck
                 }
             }
         };
 
         this.set('projectSettings', settings)
     }
+
 }
 
 class Global extends Config {

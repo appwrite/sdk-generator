@@ -4,6 +4,7 @@ const Table = require('cli-table3');
 const { description } = require('../package.json');
 const { globalConfig } = require("./config.js");
 const os = require('os');
+const Client = require("./client");
 
 const cliConfig = {
     verbose: false,
@@ -120,12 +121,13 @@ const parseError = (err) => {
     if (cliConfig.report) {
         (async () => {
             let appwriteVersion = 'unknown';
-            const isCloud = globalConfig.getEndpoint().includes('cloud.appwrite.io') ? 'Yes' : 'No';
+            const endpoint = globalConfig.getEndpoint();
+            const isCloud = endpoint.includes('cloud.appwrite.io') ? 'Yes' : 'No';
 
             try {
-                const res = await fetch(`${globalConfig.getEndpoint()}/health/version`);
-                const json = await res.json();
-                appwriteVersion = json.version;
+                const client = new Client().setEndpoint(endpoint);
+                const res = await client.call('get', '/health/version');
+                appwriteVersion = res.version;
             } catch {
             }
 
@@ -145,6 +147,9 @@ const parseError = (err) => {
 
             log(`To report this error you can:\n - Create a support ticket in our Discord server https://appwrite.io/discord \n - Create an issue in our Github\n   ${githubIssueUrl.href}\n`);
 
+
+            error('\n Stack Trace: \n');
+            console.error(err);
             process.exit(1);
         })()
     } else {
