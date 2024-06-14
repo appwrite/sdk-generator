@@ -475,8 +475,13 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '.travis.yml',
-                'template'      => 'dart/.travis.yml.twig',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'dart/.github/workflows/publish.yml.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '.github/workflows/format.yml',
+                'template'      => 'dart/.github/workflows/format.yml.twig',
             ],
             [
                 'scope'         => 'default',

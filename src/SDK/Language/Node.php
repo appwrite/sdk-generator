@@ -234,8 +234,8 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '.travis.yml',
-                'template'      => 'node/.travis.yml.twig',
+                'destination'   => '.github/workflows/publish.yml',
+                'template'      => 'node/.github/workflows/publish.yml.twig',
             ],
             [
                 'scope'         => 'enum',

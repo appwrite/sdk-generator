@@ -2,8 +2,66 @@
 
 namespace Appwrite\SDK\Language;
 
+use Twig\TwigFunction;
+
 class CLI extends Node
 {
+    /**
+     * List of functions to ignore for console preview.
+     * @var array
+     */
+    private $consoleIgnoreFunctions = [
+        'listidentities',
+        'listmfafactors',
+        'getprefs',
+        'getsession',
+        'getattribute',
+        'listdocumentlogs',
+        'getindex',
+        'listcollectionlogs',
+        'getcollectionusage',
+        'listlogs',
+        'listruntimes',
+        'getusage',
+        'getusage',
+        'listvariables',
+        'getvariable',
+        'listproviderlogs',
+        'listsubscriberlogs',
+        'getsubscriber',
+        'listtopiclogs',
+        'getemailtemplate',
+        'getsmstemplate',
+        'getfiledownload',
+        'getfilepreview',
+        'getfileview',
+        'getusage',
+        'listlogs',
+        'getprefs',
+        'getusage',
+        'listlogs',
+        'getmembership',
+        'listmemberships',
+        'listmfafactors',
+        'getmfarecoverycodes',
+        'getprefs',
+        'listtargets',
+        'gettarget',
+    ];
+
+    /**
+     * List of SDK services to ignore for console preview.
+     * @var array
+     */
+    private $consoleIgnoreServices = [
+        'health',
+        'migrations',
+        'locale',
+        'avatars',
+        'project',
+        'proxy',
+        'vcs'
+    ];
     /**
      * @var array
      */
@@ -174,6 +232,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/commands/init.js',
+                'template'      => 'cli/lib/commands/init.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/commands/pull.js',
                 'template'      => 'cli/lib/commands/pull.js.twig',
             ],
@@ -284,5 +347,19 @@ class CLI extends Node
         }
 
         return $output;
+    }
+
+    /**
+     * Language specific filters.
+     * @return array
+     */
+    public function getFunctions(): array
+    {
+        return [
+            /** Return true if the entered service->method is enabled for a console preview link */
+            new TwigFunction('hasConsolePreview', fn($method, $service) => preg_match('/^([Gg]et|[Ll]ist)/', $method)
+                && !in_array(strtolower($method), $this->consoleIgnoreFunctions)
+                && !in_array($service, $this->consoleIgnoreServices)),
+        ];
     }
 }
