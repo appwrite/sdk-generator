@@ -199,28 +199,33 @@ pull
     .action(actionRunner(pullProject));
 
 pull
-    .command("functions")
-    .description(`Pull your {{ spec.title|caseUcfirst }} functions`)
-    .action(actionRunner(pullFunctions));
+    .command("function")
+    .alias("functions")
+    .description("Pulling your {{ spec.title|caseUcfirst }} cloud function")
+    .action(actionRunner(pullFunction))
 
 pull
-    .command("collections")
-    .description("Pull your {{ spec.title|caseUcfirst }} collections")
+    .command("collection")
+    .alias("collections")
+    .description("Pulling your {{ spec.title|caseUcfirst }} collections")
     .action(actionRunner(pullCollection))
 
 pull
-    .command("buckets")
-    .description("Pull your {{ spec.title|caseUcfirst }} buckets")
+    .command("bucket")
+    .alias("buckets")
+    .description("Pulling your Appwrite buckets")
     .action(actionRunner(pullBucket))
 
 pull
-    .command("teams")
-    .description("Pull your {{ spec.title|caseUcfirst }} teams")
+    .command("team")
+    .alias("teams")
+    .description("Pulling your Appwrite teams")
     .action(actionRunner(pullTeam))
 
 pull
-    .command("topics")
-    .description("Pull your {{ spec.title|caseUcfirst }} messaging topics")
+    .command("topic")
+    .alias("topics")
+    .description("Initialise your Appwrite messaging topics")
     .action(actionRunner(pullMessagingTopic))
 
 module.exports = {

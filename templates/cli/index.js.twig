@@ -32,8 +32,8 @@ program
     sortSubcommands: true
   })
   .version(version, "-v, --version")
-  .option("--verbose", "Show complete error log")
-  .option("--json", "Output in JSON format")
+  .option("-V, --verbose", "Show complete error log")
+  .option("-j, --json", "Output in JSON format")
   .hook('preAction', migrate)
   .option("-f,--force", "Flag to confirm all warnings")
   .option("-a,--all", "Flag to push all resources")

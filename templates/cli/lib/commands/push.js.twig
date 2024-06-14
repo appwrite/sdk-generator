@@ -1335,6 +1335,7 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
 const push = new Command("push")
     .alias('deploy')
     .description(commandDescriptions['push'])
+    .action(actionRunner(pushResources));
 
 push
     .command("all")
@@ -1347,29 +1348,34 @@ push
     .action(actionRunner(pushProject));
 
 push
-    .command("functions")
+    .command("function")
+    .alias("functions")
     .description("Push functions in the current directory.")
-    .option(`--functionId <functionId>`, `Function ID`)
-    .option(`--async`, `Don't wait for functions deployments status`)
+    .option(`-f, --functionId <functionId>`, `Function ID`)
+    .option(`-A, --async`, `Don't wait for functions deployments status`)
     .action(actionRunner(pushFunction));
 
 push
-    .command("collections")
+    .command("collection")
+    .alias("collections")
     .description("Push collections in the current project.")
     .action(actionRunner(pushCollection));
 
 push
-    .command("buckets")
+    .command("bucket")
+    .alias("buckets")
     .description("Push buckets in the current project.")
     .action(actionRunner(pushBucket));
 
 push
-    .command("teams")
+    .command("team")
+    .alias("teams")
     .description("Push teams in the current project.")
     .action(actionRunner(pushTeam));
 
 push
-    .command("topics")
+    .command("topic")
+    .alias("topics")
     .description("Push messaging topics in the current project.")
     .action(actionRunner(pushMessagingTopic));
 
