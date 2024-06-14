@@ -176,7 +176,9 @@ const initCollection = async ({ all, databaseId } = {}) => {
 
     if (databaseIds.length <= 0) {
         let answers = await inquirer.prompt(questionsInitCollection)
-        if (!answers.databases) process.exit(1)
+        if (!answers.databases) {
+            throw new Error("No database selected. Please retry command and select at least one with <space> or all with <a>.")
+        }
         databaseIds.push(...answers.databases);
     }
 
