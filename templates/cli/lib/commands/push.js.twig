@@ -1101,7 +1101,6 @@ const pushMessagingTopic = async ({ all, yes } = {}) => {
 }
 
 const push = new Command("push")
-    .alias("deploy")
     .description(commandDescriptions['push'])
     .option(`-a, --all`, `Flag to push all resources`)
     .option(`-y, --yes`, `Flag to confirm all warnings`)

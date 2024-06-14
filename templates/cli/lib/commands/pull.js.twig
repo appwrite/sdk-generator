@@ -264,7 +264,7 @@ pull
 
 pull
     .command("collection")
-    .command("collections")
+    .alias("collections")
     .description("Pulling your {{ spec.title|caseUcfirst }} collections")
     .option(`-d, --databaseId <databaseId>`, `Database ID`)
     .option(`-a, --all`, `Flag to pullialize all databases`)
@@ -272,19 +272,19 @@ pull
 
 pull
     .command("bucket")
-    .command("buckets")
+    .alias("buckets")
     .description("Pulling your Appwrite buckets")
     .action(actionRunner(pullBucket))
 
 pull
     .command("team")
-    .command("teams")
+    .alias("teams")
     .description("Pulling your Appwrite teams")
     .action(actionRunner(pullTeam))
 
 pull
     .command("topic")
-    .command("topics")
+    .alias("topics")
     .description("Initialise your Appwrite messaging topics")
     .action(actionRunner(pullMessagingTopic))
 
