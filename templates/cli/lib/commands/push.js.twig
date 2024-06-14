@@ -1338,6 +1338,16 @@ const push = new Command("push")
     .action(actionRunner(pushResources));
 
 push
+    .command("all")
+    .description("Push all resource.")
+    .action(actionRunner(pushResources));
+
+push
+    .command("project")
+    .description("Push project name, services and auth settings")
+    .action(actionRunner(pushProject));
+
+push
     .command("function")
     .alias("functions")
     .description("Push functions in the current directory.")
