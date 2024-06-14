@@ -5,15 +5,10 @@ const paginate = async (action, args = {}, limit = 100, wrapper = '') => {
 
     while (true) {
         const offset = pageNumber * limit;
-        const additionalQueries = [];
-        if (args.queries) {
-            additionalQueries.push(...args.queries);
-        }
         // Merge the limit and offset into the args
         const response = await action({
             ...args,
             queries: [
-                ...additionalQueries,
                 JSON.stringify({ method: 'limit', values: [limit] }),
                 JSON.stringify({ method: 'offset', values: [offset] })
             ]

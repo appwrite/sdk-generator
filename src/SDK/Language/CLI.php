@@ -362,7 +362,7 @@ class CLI extends Node
     {
         return [
             /** Return true if the entered service->method is enabled for a console preview link */
-            new TwigFunction('methodHaveConsolePreview', fn($method, $service) => preg_match('/^([Gg]et|[Ll]ist)/', $method)
+            new TwigFunction('hasConsolePreview', fn($method, $service) => preg_match('/^([Gg]et|[Ll]ist)/', $method)
                 && !in_array(strtolower($method), $this->consoleIgnoreFunctions)
                 && !in_array($service, $this->consoleIgnoreServices)),
         ];

@@ -322,69 +322,64 @@ class Local extends Config {
     }
 
     getProject() {
-        if (!this.has("projectId") || !this.has("projectName")) {
+        if (!this.has("projectId")) {
             return {};
         }
 
         return {
             projectId: this.get("projectId"),
             projectName: this.get("projectName"),
+            projectSettings: this.get('projectSettings')
         };
     }
 
-    setProject(projectId, projectName) {
+    setProject(projectId, projectName = '', projectSettings = {}) {
         this.set("projectId", projectId);
-        this.set("projectName", projectName);
-    }
 
-
-    getProjectSettings() {
-        if (!this.has("projectSettings")) {
-            return {};
+        if (projectName !== '') {
+            this.set("projectName", projectName);
         }
 
-        return this.get('projectSettings')
-    }
 
-    setProjectSettings(project) {
         const settings = {
             services: {
-                account: project.serviceStatusForAccount,
-                avatars: project.serviceStatusForAvatars,
-                databases: project.serviceStatusForDatabases,
-                locale: project.serviceStatusForLocale,
-                health: project.serviceStatusForHealth,
-                storage: project.serviceStatusForStorage,
-                teams: project.serviceStatusForTeams,
-                users: project.serviceStatusForUsers,
-                functions: project.serviceStatusForFunctions,
-                graphql: project.serviceStatusForGraphql,
-                messaging: project.serviceStatusForMessaging,
+                account: projectSettings.serviceStatusForAccount,
+                avatars: projectSettings.serviceStatusForAvatars,
+                databases: projectSettings.serviceStatusForDatabases,
+                locale: projectSettings.serviceStatusForLocale,
+                health: projectSettings.serviceStatusForHealth,
+                storage: projectSettings.serviceStatusForStorage,
+                teams: projectSettings.serviceStatusForTeams,
+                users: projectSettings.serviceStatusForUsers,
+                functions: projectSettings.serviceStatusForFunctions,
+                graphql: projectSettings.serviceStatusForGraphql,
+                messaging: projectSettings.serviceStatusForMessaging,
 
             },
             auth: {
                 methods: {
-                    jwt: project.authJWT,
-                    phone: project.authPhone,
-                    invites: project.authInvites,
-                    anonymous: project.authAnonymous,
-                    "email-otp": project.authEmailOtp,
-                    "magic-url": project.authUsersAuthMagicURL,
-                    "email-password": project.authEmailPassword
+                    jwt: projectSettings.authJWT,
+                    phone: projectSettings.authPhone,
+                    invites: projectSettings.authInvites,
+                    anonymous: projectSettings.authAnonymous,
+                    "email-otp": projectSettings.authEmailOtp,
+                    "magic-url": projectSettings.authUsersAuthMagicURL,
+                    "email-password": projectSettings.authEmailPassword
                 },
                 security: {
-                    duration: project.authDuration,
-                    limit: project.authLimit,
-                    sessionsLimit: project.authSessionsLimit,
-                    passwordHistory: project.authPasswordHistory,
-                    passwordDictionary: project.authPasswordDictionary,
-                    personalDataCheck: project.authPersonalDataCheck
+                    duration: projectSettings.authDuration,
+                    limit: projectSettings.authLimit,
+                    sessionsLimit: projectSettings.authSessionsLimit,
+                    passwordHistory: projectSettings.authPasswordHistory,
+                    passwordDictionary: projectSettings.authPasswordDictionary,
+                    personalDataCheck: projectSettings.authPersonalDataCheck
                 }
             }
         };
 
         this.set('projectSettings', settings)
     }
+
 }
 
 class Global extends Config {
@@ -412,40 +407,40 @@ class Global extends Config {
         super(`${homeDir}/${path}`);
     }
 
-    getCurrentLogin() {
+    getCurrentSession() {
         if (!this.has(Global.PREFERENCE_CURRENT)) {
             return "";
         }
         return this.get(Global.PREFERENCE_CURRENT);
     }
 
-    setCurrentLogin(id) {
+    setCurrentSession(endpoint) {
         this.set(Global.PREFERENCE_CURRENT, endpoint);
     }
 
-    getLoginIds() {
+    getSessionIds() {
         return Object.keys(this.data).filter((key) => !Global.IGNORE_ATTRIBUTES.includes(key));
     }
 
-    getLogins() {
-        const logins = Object.keys(this.data).filter((key) => !Global.IGNORE_ATTRIBUTES.includes(key))
+    getSessions() {
+        const sessions = Object.keys(this.data).filter((key) => !Global.IGNORE_ATTRIBUTES.includes(key))
 
-        return logins.map((login) => {
+        return sessions.map((session) => {
 
             return {
-                id: login,
-                endpoint: this.data[login][Global.PREFERENCE_ENDPOINT],
-                email: this.data[login][Global.PREFERENCE_EMAIL]
+                id: session,
+                endpoint: this.data[session][Global.PREFERENCE_ENDPOINT],
+                email: this.data[session][Global.PREFERENCE_EMAIL]
             }
         })
     }
 
-    addLogin(login, data) {
-        this.set(login, data);
+    addSession(session, data) {
+        this.set(session, data);
     }
 
-    removeLogin(login, data) {
-        this.delete(login);
+    removeSession(session) {
+        this.delete(session);
     }
 
     getEmail() {
@@ -517,7 +512,7 @@ class Global extends Config {
     }
 
     hasFrom(key) {
-        const current = this.getCurrentLogin();
+        const current = this.getCurrentSession();
 
         if (current) {
             const config = this.get(current);
@@ -527,7 +522,7 @@ class Global extends Config {
     }
 
     getFrom(key) {
-        const current = this.getCurrentLogin();
+        const current = this.getCurrentSession();
 
         if (current) {
             const config = this.get(current);
@@ -537,7 +532,7 @@ class Global extends Config {
     }
 
     setTo(key, value) {
-        const current = this.getCurrentLogin();
+        const current = this.getCurrentSession();
 
         if (current) {
             const config = this.get(current);

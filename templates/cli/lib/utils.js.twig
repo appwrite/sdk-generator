@@ -3,8 +3,7 @@ const path = require("path");
 const net = require("net");
 const childProcess = require('child_process');
 const { localConfig, globalConfig } = require("./config");
-const { success, log } = require('./parser')
-const readline = require('readline');
+const { success } = require('./parser')
 
 function getAllFiles(folder) {
     const files = [];
@@ -59,7 +58,7 @@ const checkDeployConditions = (localConfig) => {
     }
 }
 
-function showConsoleLink(serviceName, action, open, ...ids) {
+function showConsoleLink(serviceName, action, ...ids) {
     const projectId = localConfig.getProject().projectId;
 
     const url = new URL(globalConfig.getEndpoint().replace('/v1', '/console'));
@@ -99,11 +98,6 @@ function showConsoleLink(serviceName, action, open, ...ids) {
 
 
     success(url);
-
-    if (open) {
-        const start = (process.platform == 'darwin' ? 'open' : process.platform == 'win32' ? 'start' : 'xdg-open');
-        childProcess.exec(`${start} ${url}`);
-    }
 }
 
 function getAccountPath(action) {

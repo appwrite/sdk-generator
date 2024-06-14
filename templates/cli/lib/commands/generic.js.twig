@@ -1,37 +1,30 @@
 const inquirer = require("inquirer");
 const { Command } = require("commander");
 const Client = require("../client");
-const { sdkForConsole, questionGetEndpoint } = require("../sdks");
+const { sdkForConsole } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
 const { actionRunner, success, parseBool, commandDescriptions, error, parse, log, drawTable } = require("../parser");
 const ID = require("../id");
 {% if sdk.test != "true" %}
-const { questionsLogin, questionLoginWithEndpoint, questionsLogout, questionsListFactors, questionsMfaChallenge } = require("../questions");
-const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
+const { questionsLogin, questionsLogout, questionsListFactors, questionsMfaChallenge } = require("../questions");
+const {  accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
 
 const DEFAULT_ENDPOINT = 'https://cloud.appwrite.io/v1';
 
-const loginCommand = async ({ selfHosted, email, password, endpoint, mfa, code }) => {
-    const oldCurrent = globalConfig.getCurrentLogin();
-    let answers = {};
-    let configEndpoint = DEFAULT_ENDPOINT;
+const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
+    const oldCurrent = globalConfig.getCurrentSession();
+    let configEndpoint = endpoint ?? DEFAULT_ENDPOINT;
 
-    if (selfHosted) {
-        answers = endpoint && email && password ? { endpoint, email, password } : await inquirer.prompt(questionLoginWithEndpoint);
-        configEndpoint =  answers.endpoint;
-    } else {
-        answers = email && password ? { email, password } : await inquirer.prompt(questionsLogin);
-    }
-
+    const answers = email && password ? { email, password } : await inquirer.prompt(questionsLogin);
 
     if (answers.method === 'select') {
         const accountId = answers.accountId;
 
-        if (!globalConfig.getLoginIds().includes(accountId)) {
-            throw Error('Login ID not found');
+        if (!globalConfig.getSessionIds().includes(accountId)) {
+            throw Error('Session ID not found');
         }
 
-        globalConfig.setCurrentLogin(accountId);
+        globalConfig.setCurrentSession(accountId);
         success(`Current account is ${accountId}`);
 
         return;
@@ -39,8 +32,8 @@ const loginCommand = async ({ selfHosted, email, password, endpoint, mfa, code }
 
     const id = ID.unique();
 
-    globalConfig.addLogin(id, {});
-    globalConfig.setCurrentLogin(id);
+    globalConfig.addSession(id, {});
+    globalConfig.setCurrentSession(id);
     globalConfig.setEndpoint(configEndpoint);
     globalConfig.setEmail(answers.email);
 
@@ -86,8 +79,8 @@ const loginCommand = async ({ selfHosted, email, password, endpoint, mfa, code }
                 parseOutput: false
             });
         } else {
-            globalConfig.removeLogin(id);
-            globalConfig.setCurrentLogin(oldCurrent);
+            globalConfig.removeSession(id);
+            globalConfig.setCurrentSession(oldCurrent);
             throw error;
         }
     }
@@ -123,7 +116,8 @@ const whoami = new Command("whoami")
                 'ID': account.$id,
                 'Name': account.name,
                 'Email': account.email,
-                'MFA enabled': account.mfa ? 'Yes' : 'No'
+                'MFA enabled': account.mfa ? 'Yes' : 'No',
+                'Endpoint': globalConfig.getEndpoint()
             }
         ];
         if (json) {
@@ -137,7 +131,6 @@ const whoami = new Command("whoami")
 
 const login = new Command("login")
     .description(commandDescriptions['login'])
-    .option(`-sh, --self-hosted`, `Flag for enabling custom endpoint for self hosted instances`)
     .option(`--email [email]`, `User email`)
     .option(`--password [password]`, `User password`)
     .option(`--endpoint [endpoint]`, `Appwrite endpoint for self hosted instances`)
@@ -148,7 +141,7 @@ const login = new Command("login")
     })
     .action(actionRunner(loginCommand));
 
-const singleLogout = async (accountId) => {
+const deleteSession = async (accountId) => {
     try {
         let client = await sdkForConsole();
 
@@ -158,11 +151,11 @@ const singleLogout = async (accountId) => {
             sdk: client
         })
 
-        globalConfig.removeLogin(accountId);
+        globalConfig.removeSession(accountId);
     } catch (e) {
         error('Unable to log out, removing locally saved session information')
     }
-    globalConfig.removeLogin(accountId);
+    globalConfig.removeSession(accountId);
 }
 
 const logout = new Command("logout")
@@ -171,14 +164,14 @@ const logout = new Command("logout")
         helpWidth: process.stdout.columns || 80
     })
     .action(actionRunner(async () => {
-        const logins = globalConfig.getLogins();
-        const current = globalConfig.getCurrentLogin();
+        const sessions = globalConfig.getSessions();
+        const current = globalConfig.getCurrentSession();
 
         if (current === '') {
             return;
         }
-        if (logins.length === 1) {
-            await singleLogout(current);
+        if (sessions.length === 1) {
+            await deleteSession(current);
             success();
 
             return;
@@ -188,16 +181,16 @@ const logout = new Command("logout")
 
         if (answers.accounts) {
             for (let accountId of answers.accounts) {
-                globalConfig.setCurrentLogin(accountId);
-                await singleLogout(accountId);
+                globalConfig.setCurrentSession(accountId);
+                await deleteSession(accountId);
             }
         }
 
-        const leftLogins = globalConfig.getLogins();
+        const remainingSessions  = globalConfig.getSessions();
 
-        if (leftLogins.length > 0 && leftLogins.filter(login => login.id === current).length !== 1) {
-            const accountId = leftLogins[0].id;
-            globalConfig.setCurrentLogin(accountId);
+        if (remainingSessions .length > 0 && remainingSessions .filter(session => session.id === current).length !== 1) {
+            const accountId = remainingSessions [0].id;
+            globalConfig.setCurrentSession(accountId);
 
             success(`Current account is ${accountId}`);
         }
@@ -250,8 +243,8 @@ const client = new Command("client")
                 if (!response.version) {
                     throw new Error();
                 }
-                globalConfig.setCurrentLogin(id);
-                globalConfig.addLogin(id, {});
+                globalConfig.setCurrentSession(id);
+                globalConfig.addSession(id, {});
                 globalConfig.setEndpoint(endpoint);
             } catch (_) {
                 throw new Error("Invalid endpoint or your Appwrite server is not running as expected.");
@@ -271,11 +264,11 @@ const client = new Command("client")
         }
 
         if (reset !== undefined) {
-            const logins = globalConfig.getLogins();
+            const sessions = globalConfig.getSessions();
 
-            for (let accountId of logins.map(login => login.id)) {
-                globalConfig.setCurrentLogin(accountId);
-                await singleLogout(accountId);
+            for (let accountId of sessions.map(session => session.id)) {
+                globalConfig.setCurrentSession(accountId);
+                await deleteSession(accountId);
             }
         }
 
@@ -297,8 +290,8 @@ const migrate = async () => {
         email: 'legacy'
     };
 
-    globalConfig.addLogin(id, data);
-    globalConfig.setCurrentLogin(id);
+    globalConfig.addSession(id, data);
+    globalConfig.setCurrentSession(id);
     globalConfig.delete('endpoint');
     globalConfig.delete('cookie');
 

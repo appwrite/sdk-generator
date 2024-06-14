@@ -10,8 +10,9 @@ const chalk = require("chalk");
 const { version } = require("./package.json");
 const { commandDescriptions, cliConfig } = require("./lib/parser");
 const { client } = require("./lib/commands/generic");
+const inquirer = require("inquirer");
 {% if sdk.test != "true" %}
-const { login, logout, whoami, migrate } = require("./lib/commands/generic");
+const { login, logout, whoami } = require("./lib/commands/generic");
 const { init } = require("./lib/commands/init");
 const { pull } = require("./lib/commands/pull");
 const { run } = require("./lib/commands/run");
@@ -22,6 +23,8 @@ const { migrate } = require("./lib/commands/generic");
 {% for service in spec.services %}
 const { {{ service.name | caseLower }} } = require("./lib/commands/{{ service.name | caseLower }}");
 {% endfor %}
+
+inquirer.registerPrompt('search-list', require('inquirer-search-list'));
 
 program
   .description(commandDescriptions['main'])
@@ -36,7 +39,7 @@ program
   .option("-f,--force", "Flag to confirm all warnings")
   .option("-a,--all", "Flag to push all resources")
   .option("--id [id...]", "Flag to pass list of ids for a giving action")
-  .option("--report", "Enable reporting when cli is crashing")
+  .option("--report", "Enable reporting in case of CLI errors")
   .on("option:json", () => {
     cliConfig.json = true;
   })
