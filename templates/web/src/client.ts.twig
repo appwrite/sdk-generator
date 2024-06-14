@@ -290,6 +290,7 @@ class Client {
     config = {
         endpoint: '{{ spec.endpoint }}',
         endpointRealtime: '',
+        fetchFunction: fetch,
 {% for header in spec.global.headers %}
         {{ header.key | caseLower }}: '',
 {% endfor %}
@@ -333,6 +334,19 @@ class Client {
      */
     setEndpointRealtime(endpointRealtime: string): this {
         this.config.endpointRealtime = endpointRealtime;
+
+        return this;
+    }
+    
+    /**
+     * Set Fetch Function
+     *
+     * @param {typeof fetch} fetchFunction
+     *
+     * @returns {this}
+     */
+    setFetchFunction(fetchFunction: typeof fetch): this {
+        this.config.fetchFunction = fetchFunction;
 
         return this;
     }
@@ -603,7 +617,7 @@ class Client {
 
         try {
             let data = null;
-            const response = await fetch(url.toString(), options);
+            const response = await this.config.fetchFunction(url.toString(), options);
 
             const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
             if (warnings) {
