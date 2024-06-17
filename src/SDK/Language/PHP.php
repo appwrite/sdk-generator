@@ -261,7 +261,7 @@ class PHP extends Language
         return match ($parameter['type']) {
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
-            self::TYPE_NUMBER,
+            self::TYPE_NUMBER => 'float',
             self::TYPE_INTEGER => 'int',
             self::TYPE_ARRAY,
             self::TYPE_OBJECT => 'array',
