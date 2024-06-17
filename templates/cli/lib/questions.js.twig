@@ -8,6 +8,7 @@ const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
 const { validateRequired } = require("./validations");
 const { paginate } = require('./paginate');
+const { isPortTaken } = require('./utils');
 const { databasesList } = require('./commands/databases');
 const { checkDeployConditions } = require('./utils');
 const JSONbig = require("json-bigint")({ storeAsString: false });
@@ -15,7 +16,7 @@ const JSONbig = require("json-bigint")({ storeAsString: false });
 const whenOverride = (answers) => answers.override === undefined ? true : answers.override;
 
 const getIgnores = (runtime) => {
-    const languge = runtime.split('-')[0];
+    const languge = runtime.split("-").slice(0, -1).join("-");
 
     switch (languge) {
         case 'cpp':
@@ -35,6 +36,7 @@ const getIgnores = (runtime) => {
         case 'php':
             return ['vendor'];
         case 'python':
+        case 'python-ml':
             return ['__pypackages__'];
         case 'ruby':
             return ['vendor'];
@@ -48,7 +50,7 @@ const getIgnores = (runtime) => {
 };
 
 const getEntrypoint = (runtime) => {
-    const languge = runtime.split('-')[0];
+    const languge = runtime.split("-").slice(0, -1).join("-");
 
     switch (languge) {
         case 'dart':
@@ -62,6 +64,7 @@ const getEntrypoint = (runtime) => {
         case 'php':
             return 'src/index.php';
         case 'python':
+        case 'python-ml':
             return 'src/main.py';
         case 'ruby':
             return 'lib/main.rb';
@@ -83,7 +86,7 @@ const getEntrypoint = (runtime) => {
 };
 
 const getInstallCommand = (runtime) => {
-    const languge = runtime.split('-')[0];
+    const languge = runtime.split("-").slice(0, -1).join("-");
 
     switch (languge) {
         case 'dart':
@@ -97,6 +100,7 @@ const getInstallCommand = (runtime) => {
         case 'php':
             return 'composer install';
         case 'python':
+        case 'python-ml':
             return 'pip install -r requirements.txt';
         case 'ruby':
             return 'bundle install';
@@ -768,7 +772,27 @@ const questionsMfaChallenge = [
     }
 ];
 
-
+const questionsRunFunctions = [
+    {
+        type: "list",
+        name: "function",
+        message: "Which function would you like to develop locally?",
+        validate: (value) => validateRequired('function', value),
+        choices: () => {
+            let functions = localConfig.getFunctions();
+            if (functions.length === 0) {
+                throw new Error("No functions found in the current directory.");
+            }
+            let choices = functions.map((func, idx) => {
+                return {
+                    name: `${func.name} (${func.$id})`,
+                    value: func.$id
+                }
+            })
+            return choices;
+        }
+    }
+];
 
 module.exports = {
     questionsInitProject,
@@ -791,4 +815,6 @@ module.exports = {
     questionsGetEntrypoint,
     questionsListFactors,
     questionsMfaChallenge,
+    questionsRunFunctions,
+    questionGetEndpoint
 };

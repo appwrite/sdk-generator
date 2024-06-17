@@ -246,6 +246,21 @@ class CLI extends Node
                 'template'      => 'cli/lib/commands/push.js.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'lib/commands/run.js',
+                'template'      => 'cli/lib/commands/run.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/emulation/docker.js',
+                'template'      => 'cli/lib/emulation/docker.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/emulation/utils.js',
+                'template'      => 'cli/lib/emulation/utils.js.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => '/lib/commands/{{service.name | caseDash}}.js',
                 'template'      => 'cli/lib/commands/command.js.twig',

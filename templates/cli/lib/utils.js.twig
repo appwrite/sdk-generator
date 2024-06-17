@@ -1,5 +1,7 @@
 const fs = require("fs");
 const path = require("path");
+const net = require("net");
+const childProcess = require('child_process');
 const { localConfig, globalConfig } = require("./config");
 const { success } = require('./parser')
 
@@ -14,6 +16,40 @@ function getAllFiles(folder) {
         }
     }
     return files;
+}
+
+async function isPortTaken(port) {
+    const taken = await new Promise((res, rej) => {
+        const tester = net.createServer()
+        .once('error', function (err) {
+            if (err.code != 'EADDRINUSE') return rej(err)
+                res(true)
+            })
+            .once('listening', function() {
+                tester.once('close', function() { res(false) })
+                .close()
+            })
+            .listen(port);
+    });
+
+    return taken;
+}
+
+function systemHasCommand(command) {
+    const isUsingWindows = process.platform == 'win32'
+
+     try {
+        if(isUsingWindows) {
+            childProcess.execSync('where ' + command, { stdio: 'pipe' })
+        } else {
+            childProcess.execSync(`[[ $(${command} --version) ]] || { exit 1; } && echo "OK"`, { stdio: 'pipe', shell: '/bin/bash' });
+        }
+    } catch (error) {
+        console.log(error);
+        return false;
+    }
+
+    return true;
 }
 
 const checkDeployConditions = (localConfig) => {
@@ -221,6 +257,8 @@ function getUsersPath(action, ids) {
 
 module.exports = {
     getAllFiles,
+    isPortTaken,
+    systemHasCommand,
     checkDeployConditions,
     showConsoleLink
 };
