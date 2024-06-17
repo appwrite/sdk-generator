@@ -49,14 +49,28 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
         const taken = await isPortTaken(port);
 
         if(taken) {
-            log(`Port ${port} is already in use by another process.`);
-            port = null;
+            error(`Port ${port} is already in use by another process.`);
+            return;
         }
     }
 
     if(!port) {
-        const answers = await inquirer.prompt(questionsRunFunctions[1]);
-        port = answers.port;
+        let portFound = fale;
+        port = 3000;
+        while(port < 3100) {
+            const taken = await isPortTaken(port);
+            if(!taken) {
+                portFound = true;
+                break;
+            }
+
+            port++;
+        }
+
+        if(!portFound) {
+            error('Could not auto-suggest an available port. Please configure port with `appwrite run --port YOUR_PORT` command.');
+            return;
+        }
     }
 
     // Configuration: Engine

@@ -791,50 +791,7 @@ const questionsRunFunctions = [
             })
             return choices;
         }
-    },
-    {
-        type: "input",
-        name: "port",
-        message: 'Which port would you like function to listen on?',
-        default: async () => {
-            let port = 3000;
-            while(port < 3100) {
-                const taken = await isPortTaken(port);
-                if(!taken) {
-                    return port;
-                }
-
-                port++;
-            }
-
-            return 3000;
-        },
-        validate: function(value) {
-            const done = this.async();
-
-            (async () => {
-                if (typeof value !== 'number' && isNaN(+value)) {
-                    throw Error(`Port needs to be a valid integer between 1024 and 65536.`);
-                }
-
-                value = +value;
-
-                if(value < 1024 || value > 65536) {
-                    throw Error(`Port needs to be a valid integer between 1024 and 65536.`);
-                }
-
-                const taken = await isPortTaken(value);
-
-                if(taken) {
-                    throw Error(`Port ${value} is in use by another process. Pick a different one.`);
-                }
-            })().then(() => {
-                done(null, true);
-            }).catch((err) => {
-                done(err.message);
-            });
-        },
-    },
+    }
 ];
 
 module.exports = {
