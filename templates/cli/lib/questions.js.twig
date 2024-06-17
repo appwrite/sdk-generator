@@ -814,15 +814,19 @@ const questionsRunFunctions = [
 
             (async () => {
                 if (typeof value !== 'number' && isNaN(+value)) {
-                    throw Error(`You need to provide a number.`);
+                    throw Error(`Port needs to be a valid integer between 1024 and 65536.`);
                 }
 
                 value = +value;
 
+                if(value < 1024 || value > 65536) {
+                    throw Error(`Port needs to be a valid integer between 1024 and 65536.`);
+                }
+
                 const taken = await isPortTaken(value);
 
                 if(taken) {
-                    throw Error(`Port ${value} is taken. Pick another one.`);
+                    throw Error(`Port ${value} is in use by another process. Pick a different one.`);
                 }
             })().then(() => {
                 done(null, true);

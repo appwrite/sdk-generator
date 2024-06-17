@@ -1,0 +1,164 @@
+export const openRuntimesVersion = 'v3';
+
+export const runtimeNames = {
+    'node': 'Node.js',
+    'php': 'PHP',
+    'ruby': 'Ruby',
+    'python': 'Python',
+    'python-ml': 'Python (ML)',
+    'deno': 'Deno',
+    'dart': 'Dart',
+    'dotnet': '.NET',
+    'java': 'Java',
+    'swift': 'Swift',
+    'kotlin': 'Kotlin',
+    'bun': 'Bun'
+};
+
+export const systemTools = {
+    'node': {
+        isCompiled: false,
+        startCommand: "node src/server.js",
+        dependencyFiles: [ "package.json", "package-lock.json" ]
+    },
+    'php': {
+        isCompiled: false,
+        startCommand: "php src/server.php",
+        dependencyFiles: [ "composer.json", "composer.lock" ]
+    },
+    'ruby': {
+        isCompiled: false,
+        startCommand: "bundle exec puma -b tcp://0.0.0.0:3000 -e production",
+        dependencyFiles: [ "Gemfile", "Gemfile.lock" ]
+    },
+    'python': {
+        isCompiled: false,
+        startCommand: "python3 src/server.py",
+        dependencyFiles: [ "requirements.txt", "requirements.lock" ]
+    },
+    'python-ml': {
+        isCompiled: false,
+        startCommand: "python3 src/server.py",
+        dependencyFiles: [ "requirements.txt", "requirements.lock" ]
+    },
+    'deno': {
+        isCompiled: false,
+        startCommand: "deno start",
+        dependencyFiles: [ ]
+    },
+    'dart': {
+        isCompiled: true,
+        startCommand: "src/function/server",
+        dependencyFiles: [ ]
+    },
+    'dotnet': {
+        isCompiled: true,
+        startCommand: "dotnet src/function/DotNetRuntime.dll",
+        dependencyFiles: [ ]
+    },
+    'java': {
+        isCompiled: true,
+        startCommand: "java -jar src/function/java-runtime-1.0.0.jar",
+        dependencyFiles: [ ]
+    },
+    'swift': {
+        isCompiled: true,
+        startCommand: "src/function/Runtime serve --env production --hostname 0.0.0.0 --port 3000",
+        dependencyFiles: [ ]
+    },
+    'kotlin': {
+        isCompiled: true,
+        startCommand: "java -jar src/function/kotlin-runtime-1.0.0.jar",
+        dependencyFiles: [ ]
+    },
+    'bun': {
+        isCompiled: false,
+        startCommand: "bun src/server.ts",
+        dependencyFiles: [ "package.json", "package-lock.json", "bun.lockb" ]
+    },
+};
+
+export const JwtManager = {
+    userJwt: null,
+    functionJwt: null,
+
+    timerWarn: null,
+    timerError: null,
+
+    async setup(userId = null) {
+        if(this.timerWarn) {
+            clearTimeout(this.timerWarn);
+        }
+
+        if(this.timerError) {
+            clearTimeout(this.timerError);
+        }
+
+        this.timerWarn = setTimeout(() => {
+            log("Warning: Authorized JWT will expire in 5 minutes. Please stop and re-run the command to refresh tokens for 1 hour.");
+        }, 1000 * 60 * 55); // 55 mins
+
+        this.timerError = setTimeout(() => {
+            log("Warning: Authorized JWT just expired. Please stop and re-run the command to obtain new tokens with 1 hour validity.");
+            log("Some Appwrite API communication is not authorized now.")
+        }, 1000 * 60 * 60); // 60 mins
+
+        if(userId) {
+            await usersGet({
+                userId,
+                parseOutput: false
+            });
+            const userResponse = await usersCreateJWT({
+                userId,
+                duration: 60*60,
+                parseOutput: false
+            });
+            this.userJwt = userResponse.jwt;
+        }
+        
+        const functionResponse = await projectsCreateJWT({
+            projectId: localConfig.getProject().projectId,
+            // TODO: Once we have endpoint for this, use it
+            scopes: ["sessions.write","users.read","users.write","teams.read","teams.write","databases.read","databases.write","collections.read","collections.write","attributes.read","attributes.write","indexes.read","indexes.write","documents.read","documents.write","files.read","files.write","buckets.read","buckets.write","functions.read","functions.write","execution.read","execution.write","locale.read","avatars.read","health.read","providers.read","providers.write","messages.read","messages.write","topics.read","topics.write","subscribers.read","subscribers.write","targets.read","targets.write","rules.read","rules.write","migrations.read","migrations.write","vcs.read","vcs.write","assistant.read"],
+            duration: 60*60,
+            parseOutput: false
+        });
+        this.functionJwt = functionResponse.jwt;
+    }
+};
+
+export const Queue = {
+    files: [],
+    locked: false,
+    events: new EventEmitter(),
+    debounce: null,
+    push(file) {
+        if(!this.files.includes(file)) {
+            this.files.push(file);
+        }
+
+        if(!this.locked) {
+            this._trigger();
+        }
+    },
+    lock() {
+        this.files = [];
+        this.locked = true;
+    },
+    unlock() {
+        this.locked = false;
+        if(this.files.length > 0) {
+            this._trigger();
+        }
+    },
+    _trigger() {
+        if(this.debounce) {
+            return;
+        }
+
+        this.debounce = setTimeout(() => {
+            this.events.emit('reload', { files: this.files });
+            this.debounce = null;
+        }, 300);
+    }
+};
