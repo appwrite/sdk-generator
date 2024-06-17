@@ -68,7 +68,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
         }
 
         if(!portFound) {
-            error('Could not auto-suggest an available port. Please configure port with `appwrite run --port YOUR_PORT` command.');
+            error('Could not find an available port. Please select a port with `appwrite run --port YOUR_PORT` command.');
             return;
         }
     }
