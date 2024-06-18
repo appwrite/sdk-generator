@@ -95,68 +95,52 @@ public class ServiceTest {
             return null;
         });
 
-        runBlocking(new TestCoroutineScope(), () -> {
-            Mock mock;
-            // Foo Tests
-            mock = foo.get("string", 123, List.of("string in array"));
-            writeToFile(mock.getResult());
-            mock = foo.post("string", 123, List.of("string in array"));
-            writeToFile(mock.getResult());
-            mock = foo.put("string", 123, List.of("string in array"));
-            writeToFile(mock.getResult());
-            mock = foo.patch("string", 123, List.of("string in array"));
-            writeToFile(mock.getResult());
-            mock = foo.delete("string", 123, List.of("string in array"));
-            writeToFile(mock.getResult());
+        runBlocking(Dispatchers.getDefault(), (Continuation<Unit>) continuation -> {
+            foo.get("string", 123, List.of("string in array"), new CoroutineCallback<>(this::writeMockResult));
+            foo.post("string", 123, List.of("string in array"), new CoroutineCallback<>(this::writeMockResult));
+            foo.put("string", 123, List.of("string in array"), new CoroutineCallback<>(this::writeMockResult));
+            foo.patch("string", 123, List.of("string in array"), new CoroutineCallback<>(this::writeMockResult));
+            foo.delete("string", 123, List.of("string in array"), new CoroutineCallback<>(this::writeMockResult));
 
-            // Bar Tests
-            mock = bar.get("string", 123, List.of("string in array"));
-            writeToFile(mock.getResult());
-            mock = bar.post("string", 123, List.of("string in array"));
-            writeToFile(mock.getResult());
-            mock = bar.put("string", 123, List.of("string in array"));
-            writeToFile(mock.getResult());
-            mock = bar.patch("string", 123, List.of("string in array"));
-            writeToFile(mock.getResult());
-            mock = bar.delete("string", 123, List.of("string in array"));
-            writeToFile(mock.getResult());
+            bar.get("string", 123, List.of("string in array"), new CoroutineCallback<>(this::writeMockResult));
+            bar.post("string", 123, List.of("string in array"), new CoroutineCallback<>(this::writeMockResult));
+            bar.put("string", 123, List.of("string in array"), new CoroutineCallback<>(this::writeMockResult));
+            bar.patch("string", 123, List.of("string in array"), new CoroutineCallback<>(this::writeMockResult));
+            bar.delete("string", 123, List.of("string in array"), new CoroutineCallback<>(this::writeMockResult));
 
-            // General Tests
-            Object result = general.redirect();
-            writeToFile((String) ((Map<String, Object>) result).get("result"));
+            general.redirect(new CoroutineCallback<>((result, error) -> {
+                if (result != null) {
+                    writeToFile(((Map<String, Object>) result).get("result").toString());
+                }
+            }));
 
             try {
-                mock = general.upload("string", 123, List.of("string in array"), InputFile.fromPath("../../../resources/file.png"));
-                writeToFile(mock.getResult());
+                general.upload("string", 123, List.of("string in array"), InputFile.fromPath("../../../resources/file.png"), new CoroutineCallback<>(this::writeMockResult));
             } catch (Exception ex) {
                 writeToFile(ex.toString());
             }
 
             try {
-                mock = general.upload("string", 123, List.of("string in array"), InputFile.fromPath("../../../resources/large_file.mp4"));
-                writeToFile(mock.getResult());
+                general.upload("string", 123, List.of("string in array"), InputFile.fromPath("../../../resources/large_file.mp4"), new CoroutineCallback<>(this::writeMockResult));
             } catch (Exception ex) {
                 writeToFile(ex.toString());
             }
 
             try {
                 byte[] bytes = Files.readAllBytes(Paths.get("../../../resources/file.png"));
-                mock = general.upload("string", 123, List.of("string in array"), InputFile.fromBytes(bytes, "file.png", "image/png"));
-                writeToFile(mock.getResult());
+                general.upload("string", 123, List.of("string in array"), InputFile.fromBytes(bytes, "file.png", "image/png"), new CoroutineCallback<>(this::writeMockResult));
             } catch (Exception ex) {
                 writeToFile(ex.toString());
             }
 
             try {
                 byte[] bytes = Files.readAllBytes(Paths.get("../../../resources/large_file.mp4"));
-                mock = general.upload("string", 123, List.of("string in array"), InputFile.fromBytes(bytes, "large_file.mp4", "video/mp4"));
-                writeToFile(mock.getResult());
+                general.upload("string", 123, List.of("string in array"), InputFile.fromBytes(bytes, "large_file.mp4", "video/mp4"), new CoroutineCallback<>(this::writeMockResult));
             } catch (Exception ex) {
                 writeToFile(ex.toString());
             }
 
-            mock = general.enum(MockType.FIRST);
-            writeToFile(mock.getResult());
+            general.enum(MockType.FIRST, new CoroutineCallback<>(this::writeMockResult));
 
             try {
                 general.error400();
@@ -176,18 +160,8 @@ public class ServiceTest {
                 writeToFile(e.getMessage());
             }
 
-            delay(5000);
-            writeToFile(realtimeResponse);
-
-            // mock = general.setCookie();
-            // writeToFile(mock.getResult());
-
-            // mock = general.getCookie();
-            // writeToFile(mock.getResult());
-
             general.empty();
 
-            // Query helper tests
             writeToFile(Query.Companion.equal("released", List.of(true)).toString());
             writeToFile(Query.Companion.equal("title", List.of("Spiderman", "Dr. Strange")).toString());
             writeToFile(Query.Companion.notEqual("title", "Spiderman").toString());
@@ -227,11 +201,21 @@ public class ServiceTest {
             writeToFile(ID.Companion.unique().toString());
             writeToFile(ID.Companion.custom("custom_id").toString());
 
-            mock = general.headers();
-            writeToFile(mock.getResult());
+            general.headers(new CoroutineCallback<>(this::writeMockResult));
 
-            return null;
+            delay(5000, continuation);
+            writeToFile(realtimeResponse[0]);
+
+            return Unit.INSTANCE;
         });
+    }
+
+    private void writeMockResult(Mock result, Throwable error) {
+        if (result != null) {
+            writeToFile(result.getResult());
+        } else {
+            writeToFile(error.toString());
+        }
     }
 
     private void writeToFile(String string) {
