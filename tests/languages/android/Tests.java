@@ -213,21 +213,19 @@ public class ServiceTest {
             writeToFile(Query.Companion.or(List.of(Query.Companion.equal("released", List.of(true)), Query.Companion.lessThan("releasedYear", 1990))).toString());
             writeToFile(Query.Companion.and(List.of(Query.Companion.equal("released", List.of(false)), Query.Companion.greaterThan("releasedYear", 2015))).toString());
 
-            // Permission & Roles helper tests
             writeToFile(Permission.Companion.read(Role.Companion.any()).toString());
-            writeToFile(Permission.Companion.write(Role.Companion.user(ID.custom("userid"))).toString());
+            writeToFile(Permission.Companion.write(Role.Companion.user(ID.Companion.custom("userid"))).toString());
             writeToFile(Permission.Companion.create(Role.Companion.users()).toString());
             writeToFile(Permission.Companion.update(Role.Companion.guests()).toString());
             writeToFile(Permission.Companion.delete(Role.Companion.team("teamId", "owner")).toString());
             writeToFile(Permission.Companion.delete(Role.Companion.team("teamId")).toString());
             writeToFile(Permission.Companion.create(Role.Companion.member("memberId")).toString());
             writeToFile(Permission.Companion.update(Role.Companion.users("verified")).toString());
-            writeToFile(Permission.Companion.update(Role.Companion.user(ID.custom("userid"), "unverified")).toString());
+            writeToFile(Permission.Companion.update(Role.Companion.user(ID.Companion.custom("userid"), "unverified")).toString());
             writeToFile(Permission.Companion.create(Role.Companion.label("admin")).toString());
 
-            // ID helper tests
-            writeToFile(ID.unique().toString());
-            writeToFile(ID.custom("custom_id").toString());
+            writeToFile(ID.Companion.unique().toString());
+            writeToFile(ID.Companion.custom("custom_id").toString());
 
             mock = general.headers();
             writeToFile(mock.getResult());
