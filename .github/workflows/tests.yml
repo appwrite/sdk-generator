@@ -12,10 +12,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['8.2']
+        php-version: ['8.3']
         sdk: [
-          Android5Java17,
-          Android14Java17,
+          Android5Java17Kotlin,
+          Android14Java8Kotlin,
+          Android14Java17Kotlin,
+          Android14Java17Java
           CLINode16,
           CLINode18,
           DartBeta,
