@@ -3,16 +3,13 @@ package io.appwrite;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.google.gson.Gson;
-
+import io.appwrite.coroutines.CoroutineCallback;
 import io.appwrite.exceptions.AppwriteException;
 import io.appwrite.Permission;
 import io.appwrite.Role;
 import io.appwrite.ID;
 import io.appwrite.Query;
 import io.appwrite.enums.MockType;
-import io.appwrite.extensions.GsonExtensionsKt;
-import io.appwrite.models.Error;
 import io.appwrite.models.InputFile;
 import io.appwrite.models.Mock;
 import io.appwrite.services.Bar;
@@ -26,8 +23,6 @@ import kotlinx.coroutines.delay;
 import kotlinx.coroutines.runBlocking;
 import kotlinx.coroutines.test.TestCoroutineDispatcher;
 import kotlinx.coroutines.test.TestCoroutineScope;
-
-import okhttp3.Response;
 
 import org.junit.After;
 import org.junit.Before;
@@ -44,7 +39,10 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
 
-import static kotlinx.coroutines.test.TestCoroutineScopeKt.*;
+import kotlin.coroutines.Continuation;
+import kotlin.coroutines.CoroutineContext;
+import kotlin.coroutines.Result;
+import kotlin.jvm.JvmOverloads;
 
 class TestPayload {
     private String response;
