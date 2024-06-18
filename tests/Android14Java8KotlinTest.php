@@ -2,7 +2,7 @@
 
 namespace Tests;
 
-class Android14Java8Test extends Base
+class Android14Java8KotlinTest extends Base
 {
     protected string $sdkName = 'android';
     protected string $sdkPlatform = 'client';
@@ -23,9 +23,7 @@ class Android14Java8Test extends Base
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
-        ...Base::LARGE_FILE_RESPONSES,
-        ...Base::LARGE_FILE_RESPONSES,
-        ...Base::LARGE_FILE_RESPONSES,
+        ...Base::UPLOAD_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         // ...Base::COOKIE_RESPONSES,
