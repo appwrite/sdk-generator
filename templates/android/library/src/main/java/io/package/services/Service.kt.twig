@@ -43,7 +43,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
     @JvmOverloads
     {%~ endif %}
-    suspend fun {% if method.responseModel | hasGenericType(spec) %}{{ '<T>' | raw }} {% endif %}{{ method.name | caseCamel }}(
+    suspend fun {% if method.responseModel | hasGenericType(spec) %}{{ '<T>' | raw }} {% endif %}{{ method.name | caseCamel | escapeKeyword }}(
         {%~ if method.type == "webAuth" %}
         activity: ComponentActivity,
         {%~ endif %}

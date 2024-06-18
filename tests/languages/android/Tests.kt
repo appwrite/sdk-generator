@@ -135,7 +135,7 @@ class ServiceTest {
                 writeToFile(ex.toString())
             }
 
-            mock = general.enum(MockType.FIRST)
+            mock = general.xenum(MockType.FIRST)
             writeToFile(mock.result)
 
             try {

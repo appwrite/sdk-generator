@@ -140,7 +140,7 @@ public class ServiceTest {
                 writeToFile(ex.toString());
             }
 
-            general.enum(MockType.FIRST, new CoroutineCallback<>(this::writeMockResult));
+            general.xenum(MockType.FIRST, new CoroutineCallback<>(this::writeMockResult));
 
             try {
                 general.error400();
