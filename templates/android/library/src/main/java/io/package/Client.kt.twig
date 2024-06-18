@@ -44,7 +44,7 @@ class Client(context: Context) : CoroutineScope {
         internal const val COOKIE_PREFS = "myCookie"
     }
 
-    private var _endpoint: String = ""
+    private var _endpoint: String = "{{spec.endpoint}}"
     var endpoint: String
         get() = _endpoint
         private set(value) {

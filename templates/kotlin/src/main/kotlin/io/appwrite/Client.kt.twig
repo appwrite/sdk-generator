@@ -37,7 +37,7 @@ class Client: CoroutineScope {
         const val CHUNK_SIZE = 5*1024*1024; // 5MB
     }
 
-    private var _endpoint: String = ""
+    private var _endpoint: String = "{{spec.endpoint}}"
     var endpoint: String
         get() = _endpoint
         private set(value) {
