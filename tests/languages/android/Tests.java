@@ -77,7 +77,6 @@ public class ServiceTest {
     }
 
     @Test
-    @Throws(IOException.class)
     public void test() throws IOException {
         Client client = new Client(ApplicationProvider.getApplicationContext())
                 .setEndpointRealtime("wss://demo.appwrite.io/v1")
@@ -89,10 +88,10 @@ public class ServiceTest {
         Bar bar = new Bar(client);
         General general = new General(client);
         Realtime realtime = new Realtime(client);
-        String realtimeResponse = "Realtime failed!";
+        String[] realtimeResponse = {"Realtime failed!"};
 
         realtime.subscribe("tests", TestPayload.class, payload -> {
-            realtimeResponse = payload.getResponse();
+            realtimeResponse[0] = payload.getResponse();
             return null;
         });
 
