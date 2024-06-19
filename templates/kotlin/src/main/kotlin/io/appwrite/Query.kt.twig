@@ -4,55 +4,214 @@ import {{ sdk.namespace | caseDot }}.extensions.toJson
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
 
 class Query(
+    /**
+     * Query method
+     */
     val method: String,
+
+    /**
+     * The attribute the query is targeting
+     */
     val attribute: String? = null,
+
+    /**
+     * The values to check against
+     */
     val values: List<Any>? = null,
 ) {
     override fun toString() = this.toJson()
 
     companion object {
+
+        /**
+         * Create a new query to check if the attribute is equal to any of the values
+         *
+         * @param attribute The attribute to check
+         * @param value The value or values to check against
+         */
+        @JvmStatic
         fun equal(attribute: String, value: Any) = Query("equal", attribute, parseValue(value)).toJson()
 
+        /**
+         * Create a new query to check if the attribute is not equal to the value
+         *
+         * @param attribute The attribute to check
+         * @param value The value to check against
+         */
+        @JvmStatic
         fun notEqual(attribute: String, value: Any) = Query("notEqual", attribute, parseValue(value)).toJson()
 
+        /**
+         * Create a new query to check if the attribute is less than the value
+         *
+         * @param attribute The attribute to check
+         * @param value The value to check against
+         */
+        @JvmStatic
         fun lessThan(attribute: String, value: Any) = Query("lessThan", attribute, parseValue(value)).toJson()
 
+        /**
+         * Create a new query to check if the attribute is less than or equal to the value
+         *
+         * @param attribute The attribute to check
+         * @param value The value to check against
+         */
+        @JvmStatic
         fun lessThanEqual(attribute: String, value: Any) = Query("lessThanEqual", attribute, parseValue(value)).toJson()
 
+        /**
+         * Create a new query to check if the attribute is greater than the value
+         *
+         * @param attribute The attribute to check
+         * @param value The value to check against
+         */
+        @JvmStatic
         fun greaterThan(attribute: String, value: Any) = Query("greaterThan", attribute, parseValue(value)).toJson()
 
+        /**
+         * Create a new query to check if the attribute is greater than or equal to the value
+         *
+         * @param attribute The attribute to check
+         * @param value The value to check against
+         */
+        @JvmStatic
         fun greaterThanEqual(attribute: String, value: Any) = Query("greaterThanEqual", attribute, parseValue(value)).toJson()
 
+        /**
+         * Create a new query to check if the attribute contains part of the value, ignoring case
+         *
+         * @param attribute The attribute to check
+         * @param value The value to check against
+         */
+        @JvmStatic
         fun search(attribute: String, value: String) = Query("search", attribute, listOf(value)).toJson()
 
+        /**
+         * Create a new query to check if the attribute is null
+         *
+         * @param attribute The attribute to check
+         */
+        @JvmStatic
         fun isNull(attribute: String) = Query("isNull", attribute).toJson()
 
+        /**
+         * Create a new query to check if the attribute is not null
+         *
+         * @param attribute The attribute to check
+         */
+        @JvmStatic
         fun isNotNull(attribute: String) = Query("isNotNull", attribute).toJson()
 
+        /**
+         * Create a new query to check if the attribute is between the start and end values
+         *
+         * @param attribute The attribute to check
+         * @param start The start value
+         * @param end The end value
+         */
+        @JvmStatic
         fun between(attribute: String, start: Any, end: Any) = Query("between", attribute, listOf(start, end)).toJson()
 
+        /**
+         * Create a new query to check if the attribute starts with the value
+         *
+         * @param attribute The attribute to check
+         * @param value The value to check against
+         */
+        @JvmStatic
         fun startsWith(attribute: String, value: String) = Query("startsWith", attribute, listOf(value)).toJson()
 
+        /**
+         * Create a new query to check if the attribute ends with the value
+         *
+         * @param attribute The attribute to check
+         * @param value The value to check against
+         */
+        @JvmStatic
         fun endsWith(attribute: String, value: String) = Query("endsWith", attribute, listOf(value)).toJson()
 
+        /**
+         * Create a new query to fetch only the provided attributes
+         *
+         * @param attributes The attributes to fetch
+         */
+        @JvmStatic
         fun select(attributes: List<String>) = Query("select", null, attributes).toJson()
 
+        /**
+         * Create a new query to order the results in ascending order
+         *
+         * @param attribute The attribute to order by
+         */
+        @JvmStatic
         fun orderAsc(attribute: String) = Query("orderAsc", attribute).toJson()
 
+        /**
+         * Create a new query to order the results in descending order
+         *
+         * @param attribute The attribute to order by
+         */
+        @JvmStatic
         fun orderDesc(attribute: String) = Query("orderDesc", attribute).toJson()
 
+        /**
+         * Create a new query to fetch documents before the provided document ID
+         *
+         * @param documentId The document ID to fetch before
+         */
+        @JvmStatic
         fun cursorBefore(documentId: String) = Query("cursorBefore", null, listOf(documentId)).toJson()
 
+        /**
+         * Create a new query to fetch documents after the provided document ID
+         *
+         * @param documentId The document ID to fetch after
+         */
+        @JvmStatic
         fun cursorAfter(documentId: String) = Query("cursorAfter", null, listOf(documentId)).toJson()
 
+        /**
+         * Create a new query to limit the number of results
+         *
+         * @param limit The number of results to limit to
+         */
+        @JvmStatic
         fun limit(limit: Int) = Query("limit", null, listOf(limit)).toJson()
 
+        /**
+         * Create a new query to offset the results
+         *
+         * @param offset The number of results to offset by
+         */
+        @JvmStatic
         fun offset(offset: Int) = Query("offset", null, listOf(offset)).toJson()
 
+        /**
+         * Create a new query to check if the attribute contains the value.
+         *
+         * If the attribute is an array, this will check if the array contains the exact value.
+         * If the attribute is a string, this will check if the string contains the value.
+         *
+         * @param attribute The attribute to check
+         * @param value The value to check against
+         */
+        @JvmStatic
         fun contains(attribute: String, value: Any) = Query("contains", attribute, parseValue(value)).toJson()
 
+        /**
+         * Create a new query that groups multiple queries together using OR logic
+         *
+         * @param queries The queries to group
+         */
+        @JvmStatic
         fun or(queries: List<String>) = Query("or", null, queries.map { it.fromJson<Query>() }).toJson()
 
+        /**
+         * Create a new query that groups multiple queries together using AND logic
+         *
+         * @param queries The queries to group
+         */
+        @JvmStatic
         fun and(queries: List<String>) = Query("and", null, queries.map { it.fromJson<Query>() }).toJson()
 
         private fun parseValue(value: Any): List<Any> {

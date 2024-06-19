@@ -2,20 +2,45 @@ package {{ sdk.namespace | caseDot }}
 
 class Permission {
     companion object {
-        fun read(role: String): String {
-            return "read(\"${role}\")"
-        }        
-        fun write(role: String): String {
-            return "write(\"${role}\")"
-        }        
-        fun create(role: String): String {
-            return "create(\"${role}\")"
-        }        
-        fun update(role: String): String {
-            return "update(\"${role}\")"
-        }        
-        fun delete(role: String): String {
-            return "delete(\"${role}\")"
-        }        
+
+        /**
+         * Create a read permission string for the given role
+         *
+         * @param role The role to create the permission for
+         */
+        @JvmStatic
+        fun read(role: String)= "read(\"${role}\")"
+
+        /**
+         * Create a write permission string for the given role
+         *
+         * @param role The role to create the permission for
+         */
+        @JvmStatic
+        fun write(role: String) = "write(\"${role}\")"
+
+        /**
+         * Create a create permission string for the given role
+         *
+         * @param role The role to create the permission for
+         */
+        @JvmStatic
+        fun create(role: String) = "create(\"${role}\")"
+
+        /**
+         * Create a update permission string for the given role
+         *
+         * @param role The role to create the permission for
+         */
+        @JvmStatic
+        fun update(role: String) = "update(\"${role}\")"
+
+        /**
+         * Create a delete permission string for the given role
+         *
+         * @param role The role to create the permission for
+         */
+        @JvmStatic
+        fun delete(role: String) = "delete(\"${role}\")"
     }
 }

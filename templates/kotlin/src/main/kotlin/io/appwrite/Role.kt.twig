@@ -11,6 +11,7 @@ class Role {
          *
          * This includes authenticated and unauthenticated users.
          */
+        @JvmStatic
         fun any(): String = "any"
 
         /**
@@ -19,6 +20,7 @@ class Role {
          * You can optionally pass verified or unverified for
          * [status] to target specific types of users.
          */
+        @JvmStatic
         fun user(id: String, status: String = ""): String = if(status.isEmpty()) {
             "user:$id"
         } else {
@@ -31,6 +33,7 @@ class Role {
          * You can optionally pass verified or unverified for
          * [status] to target specific types of users.
          */
+        @JvmStatic
         fun users(status: String = ""): String = if(status.isEmpty()) {
             "users"
         } else {
@@ -42,6 +45,7 @@ class Role {
          *
          * Authenticated users don't have access to this role.
          */
+        @JvmStatic
         fun guests(): String = "guests"
 
         /**
@@ -50,6 +54,7 @@ class Role {
          * You can optionally pass a role for [role] to target
          * team members with the specified role.
          */
+        @JvmStatic
         fun team(id: String, role: String = ""): String = if(role.isEmpty()) {
             "team:$id"
         } else {
@@ -62,11 +67,13 @@ class Role {
          * When the member is removed from the team, they will
          * no longer have access.
          */
+        @JvmStatic
         fun member(id: String): String = "member:$id"
 
         /**
          * Grants access to a user with the specified label.
          */
+        @JvmStatic
         fun label(name: String): String = "label:$name"
     }
 }
