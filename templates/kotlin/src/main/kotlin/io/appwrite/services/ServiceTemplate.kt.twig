@@ -35,7 +35,6 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ if method.parameters.all | reduce((carry, param) => carry or not param.required) %}
     @JvmOverloads
     {%~ endif %}
-    @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun {% if method.responseModel | hasGenericType(spec) %}{{ '<T>' | raw }} {% endif %}{{ method.name | caseCamel | escapeKeyword }}(
         {%~ for parameter in method.parameters.all %}
         {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required or parameter.nullable %}? = null{% endif %},

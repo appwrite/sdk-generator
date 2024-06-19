@@ -14,6 +14,12 @@ class InputFile private constructor() {
     lateinit var data: Any
 
     companion object {
+        /**
+         * Create a new InputFile from a file
+         *
+         * @param file The file to create the InputFile from
+         */
+        @JvmStatic
         fun fromFile(file: File) = InputFile().apply {
             path = file.canonicalPath
             filename = file.name
@@ -23,10 +29,24 @@ class InputFile private constructor() {
             sourceType = "file"
         }
 
+        /**
+         * Create a new InputFile from a file path
+         *
+         * @param path The path to the file to create the InputFile from
+         */
+        @JvmStatic
         fun fromPath(path: String): InputFile = fromFile(File(path)).apply {
             sourceType = "path"
         }
 
+        /**
+         * Create a new InputFile from a byte array
+         *
+         * @param bytes The byte array to create the InputFile from
+         * @param filename The filename of the file
+         * @param mimeType The mime type of the file
+         */
+        @JvmStatic
         fun fromBytes(bytes: ByteArray, filename: String = "", mimeType: String = "") = InputFile().apply {
             this.filename = filename
             this.mimeType = mimeType
