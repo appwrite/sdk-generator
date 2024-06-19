@@ -21,6 +21,7 @@ class Role {
          * [status] to target specific types of users.
          */
         @JvmStatic
+        @JvmOverloads
         fun user(id: String, status: String = ""): String = if(status.isEmpty()) {
             "user:$id"
         } else {
@@ -34,6 +35,7 @@ class Role {
          * [status] to target specific types of users.
          */
         @JvmStatic
+        @JvmOverloads
         fun users(status: String = ""): String = if(status.isEmpty()) {
             "users"
         } else {
@@ -55,6 +57,7 @@ class Role {
          * team members with the specified role.
          */
         @JvmStatic
+        @JvmOverloads
         fun team(id: String, role: String = ""): String = if(role.isEmpty()) {
             "team:$id"
         } else {

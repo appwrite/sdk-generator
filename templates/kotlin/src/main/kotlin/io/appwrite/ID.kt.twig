@@ -29,6 +29,7 @@ class ID {
          * @param padding The length of the padding
          */
         @JvmStatic
+        @JvmOverloads
         fun unique(padding: Int = 7): String {
             val baseId = hexTimestamp()
 
