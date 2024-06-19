@@ -1,6 +1,8 @@
-export const openRuntimesVersion = 'v3';
+const EventEmitter = require('node:events');
 
-export const runtimeNames = {
+const openRuntimesVersion = 'v3';
+
+const runtimeNames = {
     'node': 'Node.js',
     'php': 'PHP',
     'ruby': 'Ruby',
@@ -15,7 +17,7 @@ export const runtimeNames = {
     'bun': 'Bun'
 };
 
-export const systemTools = {
+const systemTools = {
     'node': {
         isCompiled: false,
         startCommand: "node src/server.js",
@@ -78,7 +80,7 @@ export const systemTools = {
     },
 };
 
-export const JwtManager = {
+const JwtManager = {
     userJwt: null,
     functionJwt: null,
 
@@ -115,7 +117,7 @@ export const JwtManager = {
             });
             this.userJwt = userResponse.jwt;
         }
-        
+
         const functionResponse = await projectsCreateJWT({
             projectId: localConfig.getProject().projectId,
             // TODO: Once we have endpoint for this, use it
@@ -127,7 +129,7 @@ export const JwtManager = {
     }
 };
 
-export const Queue = {
+const Queue = {
     files: [],
     locked: false,
     events: new EventEmitter(),
@@ -162,3 +164,11 @@ export const Queue = {
         }, 300);
     }
 };
+
+module.exports = {
+    openRuntimesVersion,
+    runtimeNames,
+    systemTools,
+    JwtManager,
+    Queue
+}

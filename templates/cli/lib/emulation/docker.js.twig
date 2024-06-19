@@ -1,6 +1,6 @@
 const activeDockerIds = {};
 
-export async function dockerStop(id) {
+async function dockerStop(id) {
     delete activeDockerIds[id];
     const stopProcess = childProcess.spawn('docker', ['rm', '--force', id], {
         stdio: 'pipe',
@@ -9,7 +9,7 @@ export async function dockerStop(id) {
     await new Promise((res) => { stopProcess.on('close', res) });
 }
 
-export async function dockerPull(func) {
+async function dockerPull(func) {
     log('Pulling Docker image of function runtime ...');
 
     const runtimeChunks = func.runtime.split("-");
@@ -29,7 +29,7 @@ export async function dockerPull(func) {
     await new Promise((res) => { pullProcess.on('close', res) });
 }
 
-export async function dockerBuild(func, variables) {
+async function dockerBuild(func, variables) {
     log('Building function using Docker ...');
 
     const runtimeChunks = func.runtime.split("-");
@@ -63,7 +63,7 @@ export async function dockerBuild(func, variables) {
     buildProcess.stdout.on('data', (data) => {
         process.stdout.write(`\n${data}`);
     });
-    
+
     buildProcess.stderr.on('data', (data) => {
         process.stderr.write(`\n${data}`);
     });
@@ -95,10 +95,10 @@ export async function dockerBuild(func, variables) {
     const tempPath = path.join(process.cwd(), func.path, 'code.tar.gz');
     if (fs.existsSync(tempPath)) {
         fs.rmSync(tempPath, { force: true });
-    } 
+    }
 }
 
-export async function dockerStart(func, variables, port) {
+async function dockerStart(func, variables, port) {
    log('Starting function using Docker ...');
 
    log("Permissions, events, CRON and timeouts dont apply when running locally.");
@@ -106,8 +106,8 @@ export async function dockerStart(func, variables, port) {
    log('💡 Hint: Function automatically restarts when you edit your code.');
 
    success(`Visit http://localhost:${port}/ to execute your function.`);
-   
-   
+
+
    const runtimeChunks = func.runtime.split("-");
    const runtimeVersion = runtimeChunks.pop();
    const runtimeName = runtimeChunks.join("-");
@@ -136,7 +136,7 @@ export async function dockerStart(func, variables, port) {
     params.push('-v', `${functionDir}/.appwrite/errors.txt:/mnt/logs/dev_errors.log:rw`);
     params.push('-v', `${functionDir}/.appwrite/build.tar.gz:/mnt/code/code.tar.gz:ro`);
     params.push(imageName, 'sh', '-c', `helpers/start.sh "${tool.startCommand}"`);
-    
+
     childProcess.spawn('docker', params, {
         stdio: 'pipe',
         pwd: functionDir
@@ -145,7 +145,7 @@ export async function dockerStart(func, variables, port) {
     activeDockerIds[id] = true;
 }
 
-export async function dockerCleanup() {
+async function dockerCleanup() {
     await dockerStop();
 
     const functions = localConfig.getFunctions();
@@ -162,9 +162,18 @@ export async function dockerCleanup() {
     }
 }
 
-export async function dockerStopActive() {
+async function dockerStopActive() {
     const ids = Object.keys(activeDockerIds);
     for await (const id of ids) {
         await dockerStop(id);
-    }          
+    }
+}
+
+module.exports = {
+    dockerStop,
+    dockerPull,
+    dockerBuild,
+    dockerStart,
+    dockerCleanup,
+    dockerStopActive,
 }
