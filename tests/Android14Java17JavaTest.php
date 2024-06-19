@@ -13,7 +13,8 @@ class Android14Java17JavaTest extends Base
     protected string $class = 'Appwrite\SDK\Language\Android';
     protected array $build = [
         'mkdir -p tests/sdks/android/library/src/test/java',
-        'cp tests/languages/android/Tests.java tests/sdks/android/library/src/test/java/Tests.java',
+        'cp tests/languages/android/ServiceTest.java tests/sdks/android/library/src/test/java/io/appwrite/ServiceTest.java',
+        'cp tests/languages/android/CoroutineTestHelper.kt tests/sdks/android/library/src/test/java/io/appwrite/CoroutineTestHelper.kt',
         'chmod +x tests/sdks/android/gradlew',
     ];
     protected string $command =
