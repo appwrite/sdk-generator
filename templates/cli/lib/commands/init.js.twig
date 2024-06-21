@@ -53,16 +53,16 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         answers.project = {};
         answers.organization = {};
 
-        answers.organization.id = organizationId ?? (await inquirer.prompt(questionsInitProject[2])).organization;
+        answers.organization = organizationId ?? (await inquirer.prompt(questionsInitProject[2])).organization;
         answers.project.name = projectName ?? (await inquirer.prompt(questionsInitProject[3])).project;
-        answers.project.id = projectId ?? (await inquirer.prompt(questionsInitProject[4])).id;
+        answers.project = projectId ?? (await inquirer.prompt(questionsInitProject[4])).id;
 
         try {
             await projectsGet({ projectId, parseOutput: false });
         } catch (e) {
             if (e.code === 404) {
                 answers.start = 'new';
-                answers.id = answers.project.id;
+                answers.id = answers.project;
                 answers.project = answers.project.name;
             } else {
                 throw e;
@@ -74,7 +74,7 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         response = await projectsCreate({
             projectId: answers.id,
             name: answers.project,
-            teamId: answers.organization.id,
+            teamId: answers.organization,
             parseOutput: false
         })
 

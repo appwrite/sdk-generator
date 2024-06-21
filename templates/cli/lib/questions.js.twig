@@ -155,10 +155,7 @@ const questionsInitProject = [
             let choices = teams.map((team, idx) => {
                 return {
                     name: `${team.name} (${team['$id']})`,
-                    value: {
-                        name: team.name,
-                        id: team['$id']
-                    }
+                    value: team['$id']
                 }
             })
 
@@ -199,10 +196,7 @@ const questionsInitProject = [
             let choices = projects.map((project) => {
                 return {
                     name: `${project.name} (${project['$id']})`,
-                    value: {
-                        name: project.name,
-                        id: project['$id']
-                    }
+                    value: project['$id']
                 }
             })
 
