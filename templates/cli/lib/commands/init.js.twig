@@ -273,6 +273,7 @@ const initFunction = async () => {
 
     localConfig.addFunction(data);
     success();
+    log(`* use 'appwrite dev function' for local development\n${' '.repeat(7)}* use 'appwrite push functions' to push the function to your {{ spec.title|caseUcfirst }} instance`)
 }
 
 const init = new Command("init")
