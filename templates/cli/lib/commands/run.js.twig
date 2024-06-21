@@ -55,7 +55,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     }
 
     if(!port) {
-        let portFound = fale;
+        let portFound = false;
         port = 3000;
         while(port < 3100) {
             const taken = await isPortTaken(port);
@@ -194,7 +194,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
                 await dockerStart(func, variables, port);
             } else {
                 log('Hot-swapping function files ...');
-                
+
                 const functionPath = path.join(process.cwd(), func.path);
                 const hotSwapPath = path.join(functionPath, '.appwrite/hot-swap');
                 const buildPath = path.join(functionPath, '.appwrite/build.tar.gz');
@@ -226,7 +226,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
                     const filePath = path.join(hotSwapPath, f);
                     if (fs.existsSync(filePath)) {
                         fs.rmSync(filePath, { force: true });
-                    } 
+                    }
 
                     const fileDir = path.dirname(filePath);
                     if (!fs.existsSync(fileDir)) {
@@ -244,7 +244,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
                         cwd: hotSwapPath,
                         file: buildPath
                     }, ['.']);
-                
+
                 fs.rmSync(hotSwapPath, { recursive: true, force: true });
 
                 await dockerStart(func, variables, port);
