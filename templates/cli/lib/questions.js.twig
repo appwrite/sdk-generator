@@ -163,7 +163,7 @@ const questionsInitProject = [
             })
 
             if (choices.length == 0) {
-                throw new Error("No organizations found. Please create a new organization.")
+                throw new Error(`No organizations found. Please create a new organization in this url ${globalConfig.getEndpoint().replace('/v1', '/console/onboarding')}`)
             }
 
             return choices;
