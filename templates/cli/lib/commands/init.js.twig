@@ -80,7 +80,7 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
 
         localConfig.setProject(response['$id']);
     } else {
-        localConfig.setProject(answers.project.id);
+        localConfig.setProject(answers.project);
     }
 
     success();

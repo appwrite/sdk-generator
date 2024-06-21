@@ -333,13 +333,16 @@ class Local extends Config {
         };
     }
 
-    setProject(projectId, projectName = '', projectSettings = {}) {
+    setProject(projectId, projectName = '', projectSettings = undefined) {
         this.set("projectId", projectId);
 
         if (projectName !== '') {
             this.set("projectName", projectName);
         }
 
+        if(projectSettings === undefined){
+            return;
+        }
 
         const settings = {
             services: {
