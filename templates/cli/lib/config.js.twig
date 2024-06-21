@@ -417,8 +417,10 @@ class Global extends Config {
         return this.get(Global.PREFERENCE_CURRENT);
     }
 
-    setCurrentSession(endpoint) {
-        this.set(Global.PREFERENCE_CURRENT, endpoint);
+    setCurrentSession(session) {
+        if(session !== undefined) {
+            this.set(Global.PREFERENCE_CURRENT, session);
+        }
     }
 
     getSessionIds() {
