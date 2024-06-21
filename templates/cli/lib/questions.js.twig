@@ -781,7 +781,7 @@ const questionsRunFunctions = [
         choices: () => {
             let functions = localConfig.getFunctions();
             if (functions.length === 0) {
-                throw new Error("No functions found in the current directory.");
+                throw new Error("No functions found in the current directory, use 'appwrite init function' to create one");
             }
             let choices = functions.map((func, idx) => {
                 return {
