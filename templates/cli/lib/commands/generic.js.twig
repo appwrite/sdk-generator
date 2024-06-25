@@ -134,7 +134,7 @@ const whoami = new Command("whoami")
 const register = new Command("register")
     .description(commandDescriptions['register'])
     .action(actionRunner(async () => {
-        log('Access https://cloud.appwrite.io/register to register an account')
+        log('Visit https://cloud.appwrite.io/register to create an account')
     }));
 
 const login = new Command("login")
