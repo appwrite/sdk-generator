@@ -53,16 +53,16 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         answers.project = {};
         answers.organization = {};
 
-        answers.organization.id = organizationId ?? (await inquirer.prompt(questionsInitProject[2])).organization;
+        answers.organization = organizationId ?? (await inquirer.prompt(questionsInitProject[2])).organization;
         answers.project.name = projectName ?? (await inquirer.prompt(questionsInitProject[3])).project;
-        answers.project.id = projectId ?? (await inquirer.prompt(questionsInitProject[4])).id;
+        answers.project = projectId ?? (await inquirer.prompt(questionsInitProject[4])).id;
 
         try {
             await projectsGet({ projectId, parseOutput: false });
         } catch (e) {
             if (e.code === 404) {
                 answers.start = 'new';
-                answers.id = answers.project.id;
+                answers.id = answers.project;
                 answers.project = answers.project.name;
             } else {
                 throw e;
@@ -74,13 +74,13 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         response = await projectsCreate({
             projectId: answers.id,
             name: answers.project,
-            teamId: answers.organization.id,
+            teamId: answers.organization,
             parseOutput: false
         })
 
         localConfig.setProject(response['$id']);
     } else {
-        localConfig.setProject(answers.project.id);
+        localConfig.setProject(answers.project);
     }
 
     success();
@@ -273,6 +273,7 @@ const initFunction = async () => {
 
     localConfig.addFunction(data);
     success();
+    log(`* Use 'appwrite dev function' for local development\n${' '.repeat(7)}* Use 'appwrite push functions' to push the function to your {{ spec.title|caseUcfirst }} instance`)
 }
 
 const init = new Command("init")

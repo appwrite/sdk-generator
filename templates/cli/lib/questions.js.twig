@@ -155,15 +155,12 @@ const questionsInitProject = [
             let choices = teams.map((team, idx) => {
                 return {
                     name: `${team.name} (${team['$id']})`,
-                    value: {
-                        name: team.name,
-                        id: team['$id']
-                    }
+                    value: team['$id']
                 }
             })
 
             if (choices.length == 0) {
-                throw new Error("No organizations found. Please create a new organization.")
+                throw new Error(`No organizations found. Please create a new organization at ${globalConfig.getEndpoint().replace('/v1', '/console/onboarding')}`)
             }
 
             return choices;
@@ -199,10 +196,7 @@ const questionsInitProject = [
             let choices = projects.map((project) => {
                 return {
                     name: `${project.name} (${project['$id']})`,
-                    value: {
-                        name: project.name,
-                        id: project['$id']
-                    }
+                    value: project['$id']
                 }
             })
 
@@ -781,7 +775,7 @@ const questionsRunFunctions = [
         choices: () => {
             let functions = localConfig.getFunctions();
             if (functions.length === 0) {
-                throw new Error("No functions found in the current directory.");
+                throw new Error("No functions found in the current directory. Use 'appwrite init function' to create one");
             }
             let choices = functions.map((func, idx) => {
                 return {

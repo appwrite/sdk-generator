@@ -81,6 +81,9 @@ const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
         } else {
             globalConfig.removeSession(id);
             globalConfig.setCurrentSession(oldCurrent);
+            if(endpoint !== DEFAULT_ENDPOINT && error.response === 'user_invalid_credentials'){
+                log('Use the --endpoint option for self-hosted instances')
+            }
             throw error;
         }
     }
@@ -126,6 +129,12 @@ const whoami = new Command("whoami")
         }
 
         drawTable(data)
+    }));
+
+const register = new Command("register")
+    .description(commandDescriptions['register'])
+    .action(actionRunner(async () => {
+        log('Visit https://cloud.appwrite.io/register to create an account')
     }));
 
 const login = new Command("login")
@@ -299,6 +308,7 @@ module.exports = {
     {% if sdk.test != "true" %}
     loginCommand,
     whoami,
+    register,
     login,
     logout,
     {% endif %}
