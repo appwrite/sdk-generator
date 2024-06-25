@@ -82,7 +82,7 @@ const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
             globalConfig.removeSession(id);
             globalConfig.setCurrentSession(oldCurrent);
             if(endpoint !== DEFAULT_ENDPOINT && error.response === 'user_invalid_credentials'){
-                log('remember to use --endpoint for self-hosted instances')
+                log('Use the --endpoint option for self-hosted instances')
             }
             throw error;
         }
