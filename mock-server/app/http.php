@@ -64,7 +64,7 @@ App::get('/v1/health/version')
     ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
     ->inject('response')
     ->action(function (UtopiaSwooleResponse $response) {
-        $response->json([ 'version' => '1.0.0' ]);
+        $response->json([ 'version' => '1.5.7' ]);
     });
 
 // Mock Routes

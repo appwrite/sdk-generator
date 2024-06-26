@@ -15,7 +15,6 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.logging.HttpLoggingInterceptor
 import java.io.BufferedInputStream
 import java.io.BufferedReader
 import java.io.File
@@ -31,14 +30,20 @@ import javax.net.ssl.X509TrustManager
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 
-class Client @JvmOverloads constructor(
-    var endPoint: String = "{{spec.endpoint}}",
-    private var selfSigned: Boolean = false
-) : CoroutineScope {
+class Client: CoroutineScope {
 
     companion object {
         const val CHUNK_SIZE = 5*1024*1024; // 5MB
     }
+
+    private var _endpoint: String = "{{spec.endpoint}}"
+    var endpoint: String
+        get() = _endpoint
+        private set(value) {
+            _endpoint = value
+        }
+
+    private var selfSigned: Boolean = false
 
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.Main + job
@@ -152,8 +157,8 @@ class Client @JvmOverloads constructor(
     *
     * @return this
     */
-    fun setEndpoint(endPoint: String): Client {
-        this.endPoint = endPoint
+    fun setEndpoint(endpoint: String): Client {
+        this.endpoint = endpoint
         return this
     }
 
@@ -193,7 +198,7 @@ class Client @JvmOverloads constructor(
             .addAll(headers.toHeaders())
             .build()
 
-        val httpBuilder = (endPoint + path).toHttpUrl().newBuilder()
+        val httpBuilder = (endpoint + path).toHttpUrl().newBuilder()
 
         if ("GET" == method) {
             filteredParams.forEach {
