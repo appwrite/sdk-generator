@@ -1,0 +1,55 @@
+/** @typedef {import('../attribute').Attribute} Attribute */
+const { AttributeType } = require('../attribute');
+const { LanguageMeta } = require("./language");
+
+class Java extends LanguageMeta {
+  getType(attribute) {
+    let type = "";
+    switch (attribute.type) {
+      case AttributeType.STRING:
+      case AttributeType.EMAIL:
+      case AttributeType.DATETIME:
+      case AttributeType.ENUM:
+        type = "String";
+        break;
+      case AttributeType.INTEGER:
+        type = "Int";
+        break;
+      case AttributeType.FLOAT:
+        type = "Float";
+        break;
+      case AttributeType.BOOLEAN:
+        type = "Boolean";
+        break;
+      case AttributeType.RELATIONSHIP:
+        type = "Map<String, Any>";
+      default:
+        throw new Error(`Unknown attribute type: ${attribute.type}`);
+    }
+    if (attribute.array) {
+      type = "List<" + type + ">";
+    }
+    if (attribute.required) {
+      type += "?";
+    }
+    return type;
+  }
+
+  getTemplate() {
+    return `package io.appwrite.models;
+
+import java.util.*;
+    
+public record <%- toPascalCase(collection.name) %>(
+<% for (const [index, attribute] of Object.entries(collection.attributes)) { -%>
+    <%= getType(attribute) %> <%= toCamelCase(attribute.key) %><%- index < collection.attributes.length - 1 ? ',' : '' %>
+<% } -%>
+) { }`;
+  }
+
+  getFileName(collection) {
+    return LanguageMeta.toPascalCase(collection.name) + ".java";
+  }
+}
+
+module.exports = { Java };

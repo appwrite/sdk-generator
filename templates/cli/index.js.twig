@@ -13,6 +13,7 @@ const { client } = require("./lib/commands/generic");
 {% if sdk.test != "true" %}
 const { login, logout } = require("./lib/commands/generic");
 const { init } = require("./lib/commands/init");
+const { types } = require("./lib/commands/types");
 const { deploy } = require("./lib/commands/deploy");
 {% endif %}
 {% for service in spec.services %}
@@ -38,6 +39,7 @@ program
 {% if sdk.test != "true" %}
   .addCommand(login)
   .addCommand(init)
+  .addCommand(types)
   .addCommand(deploy)
   .addCommand(logout)
 {% endif %}
