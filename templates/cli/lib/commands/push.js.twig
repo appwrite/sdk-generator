@@ -625,7 +625,7 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection)
         return { Key: change.key, Action: change.action, Reason: change.reason, };
     }));
 
-    if (!cliConfig.force && (deleting.length > 0 || conflicts.length > 0)) {
+    if (!cliConfig.force) {
         if (deleting.length > 0) {
             log(`Attribute deletion will cause ${chalk.red('loss of data')}`);
         }
@@ -1212,7 +1212,6 @@ const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
             attributes = await attributesToCreate(collection.remoteVersion.attributes, collection.attributes, collection);
 
             if (Array.isArray(attributes) && attributes.length <= 0) {
-                log(`No destructive changes has been detected. Skipping ${collection.name} ( ${collection['$id']} )`);
                 continue;
             }
         }
