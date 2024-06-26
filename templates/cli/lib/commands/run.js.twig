@@ -129,8 +129,8 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
                     variables[v.key] = v.value;
                 });
             } catch(err) {
-                error("Could not fetch remote variables: " + err.message);
-                error("Function will run locally, but will not have your function's environment variables set.");
+                log("Could not fetch remote variables: " + err.message);
+                log("Function will run locally, but will not have your function's environment variables set.");
             }
         }
     }
@@ -258,7 +258,6 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
 }
 
 const run = new Command("run")
-    .alias("dev")
     .description(commandDescriptions['run'])
     .configureHelp({
         helpWidth: process.stdout.columns || 80

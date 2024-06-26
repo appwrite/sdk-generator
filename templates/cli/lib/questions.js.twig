@@ -123,7 +123,7 @@ const questionsInitProject = [
         type: "confirm",
         name: "override",
         message:
-            `An {{ spec.title|caseUcfirst }} project ( ${localConfig.getProject()['projectName']} ) is already associated with the current directory. Would you like to override`,
+            `An {{ spec.title|caseUcfirst }} project ( ${localConfig.getProject()['projectId']} ) is already associated with the current directory. Would you like to override`,
         when() {
             return Object.keys(localConfig.getProject()).length !== 0;
         }
@@ -135,11 +135,11 @@ const questionsInitProject = [
         message: "How would you like to start?",
         choices: [
             {
-                name: "Create a new {{ spec.title|caseUcfirst }} project",
+                name: "Create new project",
                 value: "new"
             },
             {
-                name: "Link this directory to an existing {{ spec.title|caseUcfirst }} project",
+                name: "Link directory to an existing project",
                 value: "existing"
             }
         ]
@@ -147,7 +147,7 @@ const questionsInitProject = [
     {
         type: "search-list",
         name: "organization",
-        message: "Choose the project organization",
+        message: "Choose your organization",
         choices: async () => {
             let client = await sdkForConsole(true);
             const { teams } = await paginate(teamsList, { parseOutput: false, sdk: client }, 100, 'teams');
@@ -211,8 +211,8 @@ const questionsInitProject = [
 ];
 const questionsPullResources = [
     {
-        type: "checkbox",
-        name: "resources",
+        type: "list",
+        name: "resource",
         message: "Which resources would you like to pull?",
         choices: [
             { name: 'Project', value: 'project' },
@@ -325,6 +325,21 @@ const questionsCreateBucket = [
     }
 ];
 
+const questionsCreateTeam = [
+    {
+        type: "input",
+        name: "bucket",
+        message: "What would you like to name your team?",
+        default: "My Awesome Team"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your team?",
+        default: "unique()"
+    }
+];
+
 const questionsCreateCollection = [
     {
         type: "list",
@@ -332,8 +347,7 @@ const questionsCreateCollection = [
         message: "What database would you like to use for your collection",
         choices: ["New", "Existing"],
         when: async () => {
-            const res = await databasesList({ queries: [], parseOutput: false });
-            return res.total !== 0;
+            return localConfig.getDatabases().length !== 0;
         }
     },
     {
@@ -341,12 +355,12 @@ const questionsCreateCollection = [
         name: "database",
         message: "Choose the collection database",
         choices: async () => {
-            const { databases } = await paginate(databasesList, { parseOutput: false }, 100, 'databases');
+            const databases = localConfig.getDatabases();
 
             let choices = databases.map((database, idx) => {
                 return {
                     name: `${database.name} (${database.$id})`,
-                    value: { $id: database.$id, name: database.name }
+                    value: database.$id
                 }
             })
 
@@ -552,8 +566,8 @@ const questionsLogout = [
 
 const questionsPushResources = [
     {
-        type: "checkbox",
-        name: "resources",
+        type: "list",
+        name: "resource",
         message: "Which resources would you like to push?",
         choices: [
             { name: 'Project', value: 'project' },
@@ -564,7 +578,22 @@ const questionsPushResources = [
             { name: 'Topics', value: 'messages' }
         ]
     }
-]
+];
+
+const questionsInitResources = [
+    {
+        type: "list",
+        name: "resource",
+        message: "Which resource would you create?",
+        choices: [
+            { name: 'Function', value: 'function' },
+            { name: 'Collection', value: 'collection' },
+            { name: 'Bucket', value: 'bucket' },
+            { name: 'Team', value: 'team' },
+            { name: 'Topic', value: 'message' }
+        ]
+    }
+];
 
 const questionsPushFunctions = [
     {
@@ -576,7 +605,7 @@ const questionsPushFunctions = [
             let functions = localConfig.getFunctions();
             checkDeployConditions(localConfig)
             if (functions.length === 0) {
-                throw new Error("No functions found in the current directory.");
+                throw new Error("No functions found in the current directory Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
             }
             let choices = functions.map((func, idx) => {
                 return {
@@ -605,7 +634,7 @@ const questionsPushCollections = [
             checkDeployConditions(localConfig)
 
             if (collections.length === 0) {
-                throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} pull collection` to fetch all your collections.");
+                throw new Error("No collections found in the current directory. Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
             }
             return collections.map(collection => {
                 return {
@@ -632,7 +661,7 @@ const questionsPushBuckets = [
             let buckets = localConfig.getBuckets();
             checkDeployConditions(localConfig)
             if (buckets.length === 0) {
-                throw new Error("No buckets found in the current directory. Run `appwrite pull bucket` to fetch all your buckets.");
+                throw new Error("No buckets found in the current directory. Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
             }
             return buckets.map(bucket => {
                 return {
@@ -641,12 +670,7 @@ const questionsPushBuckets = [
                 }
             });
         }
-    },
-    {
-        type: "input",
-        name: "override",
-        message: 'Are you sure you want to override this bucket? This can lead to loss of data! Type "YES" to confirm.'
-    },
+    }
 ]
 
 const questionsPushMessagingTopics = [
@@ -657,7 +681,7 @@ const questionsPushMessagingTopics = [
         choices: () => {
             let topics = localConfig.getMessagingTopics();
             if (topics.length === 0) {
-                throw new Error("No topics found in the current directory. Run `appwrite pull messaging` to fetch all your messaging topics.");
+                throw new Error("No topics found in the current directory. Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
             }
             return topics.map(topic => {
                 return {
@@ -699,7 +723,7 @@ const questionsPushTeams = [
             let teams = localConfig.getTeams();
             checkDeployConditions(localConfig);
             if (teams.length === 0) {
-                throw new Error("No teams found in the current directory. Run `appwrite pull team` to fetch all your teams.");
+                throw new Error("No teams found in the current directory. Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
             }
             return teams.map(team => {
                 return {
@@ -709,18 +733,13 @@ const questionsPushTeams = [
             });
         }
     },
-    {
-        type: "input",
-        name: "override",
-        message: 'Are you sure you want to override this team? This can lead to loss of data! Type "YES" to confirm.'
-    },
 ];
 
 const questionsListFactors = [
     {
         type: "list",
         name: "factor",
-        message: "Your account is protected by multiple factors. Which factor would you like to use to authenticate?",
+        message: "Your account is protected by multi-factor authentication. Please choose one for verification.",
         choices: async () => {
             let client = await sdkForConsole(false);
             const factors = await accountListMfaFactors({
@@ -730,19 +749,19 @@ const questionsListFactors = [
 
             const choices = [
                 {
-                    name: `TOTP (Time-based One-time Password)`,
+                    name: `Authenticator app (Get a code from a third-party authenticator app)`,
                     value: 'totp'
                 },
                 {
-                    name: `E-mail`,
+                    name: `Email (Get a security code at your Appwrite email address)`,
                     value: 'email'
                 },
                 {
-                    name: `Phone (SMS)`,
+                    name: `SMS (Get a security code on your Appwrite phone number)`,
                     value: 'phone'
                 },
                 {
-                    name: `Recovery code`,
+                    name: `Recovery code (Use one of your recovery codes for verification)`,
                     value: 'recoveryCode'
                 }
             ].filter((ch) => factors[ch.value] === true);
@@ -775,7 +794,7 @@ const questionsRunFunctions = [
         choices: () => {
             let functions = localConfig.getFunctions();
             if (functions.length === 0) {
-                throw new Error("No functions found in the current directory. Use 'appwrite init function' to create one");
+                throw new Error("No functions found in the current directory. Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
             }
             let choices = functions.map((func, idx) => {
                 return {
@@ -810,5 +829,7 @@ module.exports = {
     questionsListFactors,
     questionsMfaChallenge,
     questionsRunFunctions,
-    questionGetEndpoint
+    questionGetEndpoint,
+    questionsInitResources,
+    questionsCreateTeam
 };

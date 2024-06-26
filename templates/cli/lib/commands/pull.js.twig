@@ -30,11 +30,9 @@ const pullResources = async () => {
     } else {
         const answers = await inquirer.prompt(questionsPullResources[0]);
 
-        for (let resource of answers.resources) {
-            const action = actions[resource];
-            if (action !== undefined) {
-                await action();
-            }
+        const action = actions[answers.resource];
+        if (action !== undefined) {
+            await action({ returnOnZero: true });
         }
     }
 };
@@ -183,15 +181,15 @@ const pullMessagingTopic = async () => {
 
 const pull = new Command("pull")
     .description(commandDescriptions['pull'])
-    .configureHelp({
-        helpWidth: process.stdout.columns || 80
-    });
+    .action(actionRunner(pullResources));
 
 pull
     .command("all")
     .description("Pull all resource.")
-    .action(actionRunner(pullResources));
-
+    .action(actionRunner(() => {
+        cliConfig.all = true;
+        return pullResources();
+    }));
 
 pull
     .command("project")

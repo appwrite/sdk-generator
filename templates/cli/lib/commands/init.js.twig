@@ -17,11 +17,30 @@ const {
     questionsCreateBucket,
     questionsCreateMessagingTopic,
     questionsCreateCollection,
-    questionsInitProject
+    questionsInitProject,
+    questionsInitResources,
+    questionsCreateTeam
 } = require("../questions");
-const { success, log, error, actionRunner } = require("../parser");
+const { success, log, error, actionRunner, commandDescriptions } = require("../parser");
 const { accountGet } = require("./account");
 const { sdkForConsole } = require("../sdks");
+
+const initResources = async () => {
+    const actions = {
+        function: initFunction,
+        collection: initCollection,
+        bucket: initBucket,
+        team: initTeam,
+        message: initTopic
+    }
+
+    const answers = await inquirer.prompt(questionsInitResources[0]);
+
+    const action = actions[answers.resource];
+    if (action !== undefined) {
+        await action({ returnOnZero: true });
+    }
+};
 
 const initProject = async ({ organizationId, projectId, projectName } = {}) => {
     let response = {};
@@ -83,7 +102,13 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         localConfig.setProject(answers.project);
     }
 
-    success();
+    success(`Project successfully ${answers.start === 'existing' ? 'linked' : 'created'}. Details are now stored in appwrite.json file.`);
+
+    log("Next you can use 'appwrite init' to create resources in your project, or use 'appwrite pull' and 'appwite push' to synchronize your project.")
+
+    if(answers.start === 'existing') {
+        log("Since you connected to an existing project, we highly recommend to run 'appwrite pull all' to synchronize all of your existing resources.");
+    }
 }
 
 const initBucket = async () => {
@@ -96,6 +121,19 @@ const initBucket = async () => {
         enabled: true,
     });
     success();
+    log("Next you can use 'appwrite push bucket' to deploy the changes.");
+};
+
+const initTeam = async () => {
+    const answers = await inquirer.prompt(questionsCreateTeam)
+
+    localConfig.addTeam({
+        $id: answers.id === 'unique()' ? ID.unique() : answers.id,
+        name: answers.bucket,
+    });
+
+    success();
+    log("Next you can use 'appwrite push team' to deploy the changes.");
 };
 
 const initCollection = async () => {
@@ -103,16 +141,16 @@ const initCollection = async () => {
     const newDatabase = (answers.method ?? '').toLowerCase() !== 'existing';
 
     if (!newDatabase) {
-        answers.databaseId = answers.database.$id;
-        answers.databaseName = answers.database.name;
+        answers.databaseId = answers.database;
+        answers.databaseName = localConfig.getDatabase(answers.database).name;
     }
 
-    const databaseId = answers.database_id === 'unique()' ? ID.unique() : answers.database_id;
+    const databaseId = answers.databaseId === 'unique()' ? ID.unique() : answers.databaseId;
 
-    if (newDatabase || !localConfig.getDatabase(answers.database_id).$id) {
+    if (newDatabase || !localConfig.getDatabase(answers.databaseId)) {
         localConfig.addDatabase({
             $id: databaseId,
-            name: answers.database_name,
+            name: answers.databaseName,
             enabled: true
         });
     }
@@ -128,6 +166,7 @@ const initCollection = async () => {
     });
 
     success();
+    log("Next you can use 'appwrite push collection' to deploy the changes.");
 };
 
 const initTopic = async () => {
@@ -140,6 +179,7 @@ const initTopic = async () => {
     });
 
     success();
+    log("Next you can use 'appwrite push topic' to deploy the changes.");
 };
 
 const initFunction = async () => {
@@ -175,7 +215,7 @@ const initFunction = async () => {
     fs.mkdirSync(templatesDir, "777");
     const repo = "https://github.com/{{ sdk.gitUserName }}/templates";
     const api = `https://api.github.com/repos/{{ sdk.gitUserName }}/templates/contents/${answers.runtime.name}`
-    const templates = ['Starter'];
+    const templates = ['starter'];
     let selected = undefined;
 
     try {
@@ -188,12 +228,11 @@ const initFunction = async () => {
         log('Loading templates...');
     }
 
-    const sparse = selected ? `${answers.runtime.name}/${selected.template}` : answers.runtime.name;
+    const sparse = (selected ? `${answers.runtime.name}/${selected.template}` : answers.runtime.name).toLowerCase();
 
     let gitInitCommands = `git clone --single-branch --depth 1 --sparse ${repo} .`; // depth prevents fetching older commits reducing the amount fetched
 
     let gitPullCommands = `git sparse-checkout add ${sparse}`;
-
 
     /* Force use CMD as powershell does not support && */
     if (process.platform === 'win32') {
@@ -273,14 +312,16 @@ const initFunction = async () => {
 
     localConfig.addFunction(data);
     success();
-    log(`* Use 'appwrite dev function' for local development\n${' '.repeat(7)}* Use 'appwrite push functions' to push the function to your {{ spec.title|caseUcfirst }} instance`)
+    log("Next you can use 'appwrite run function' to develop a function locally. To deploy the function, use 'appwrite push function'");
 }
 
 const init = new Command("init")
-    .description('Init an {{ spec.title|caseUcfirst }} project')
-    .configureHelp({
-        helpWidth: process.stdout.columns || 80
-    })
+    .description(commandDescriptions['init'])
+    .action(actionRunner(initResources));
+
+init
+    .command("project")
+    .description("Init a new {{ spec.title|caseUcfirst }} project")
     .option("--organizationId <organizationId>", "{{ spec.title|caseUcfirst }} organization ID")
     .option("--projectId <projectId>", "{{ spec.title|caseUcfirst }} project ID")
     .option("--projectName <projectName>", "{{ spec.title|caseUcfirst }} project ID")
@@ -288,21 +329,31 @@ const init = new Command("init")
 
 init
     .command("function")
+    .alias("functions")
     .description("Init a new {{ spec.title|caseUcfirst }} function")
     .action(actionRunner(initFunction));
 
 init
     .command("bucket")
+    .alias("buckets")
     .description("Init a new {{ spec.title|caseUcfirst }} bucket")
     .action(actionRunner(initBucket));
 
 init
+    .command("team")
+    .alias("teams")
+    .description("Init a new {{ spec.title|caseUcfirst }} team")
+    .action(actionRunner(initTeam));
+
+init
     .command("collection")
+    .alias("collections")
     .description("Init a new {{ spec.title|caseUcfirst }} collection")
     .action(actionRunner(initCollection));
 
 init
     .command("topic")
+    .alias("topics")
     .description("Init a new {{ spec.title|caseUcfirst }} topic")
     .action(actionRunner(initTopic));
 

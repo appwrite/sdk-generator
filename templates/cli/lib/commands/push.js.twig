@@ -580,11 +580,9 @@ const pushResources = async () => {
     } else {
         const answers = await inquirer.prompt(questionsPushResources[0]);
 
-        for (let resource of answers.resources) {
-            const action = actions[resource];
-            if (action !== undefined) {
-                await action({ returnOnZero: true });
-            }
+        const action = actions[answers.resource];
+        if (action !== undefined) {
+            await action({ returnOnZero: true });
         }
     }
 };
@@ -593,9 +591,9 @@ const pushProject = async () => {
     try {
         const projectId = localConfig.getProject().projectId;
         const projectName = localConfig.getProject().projectName;
-        const settings = localConfig.getProject().projectSettings;
+        const settings = localConfig.getProject().projectSettings ?? {};
 
-        log(`Updating project ${projectName} ( ${projectId} )`);
+        log(`Updating project ${projectId}`);
 
         if (projectName) {
             await projectsUpdate({
@@ -604,7 +602,6 @@ const pushProject = async () => {
                 parseOutput: false
             });
         }
-
 
         if (settings.services) {
             log('Updating service statuses');
@@ -643,7 +640,7 @@ const pushProject = async () => {
             }
         }
 
-        success();
+        success("Project configuration updated.");
     } catch (e) {
         throw e;
     }
@@ -664,7 +661,7 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                 log('No functions found, skipping');
                 return;
             }
-            throw new Error("No functions found in the current directory.");
+            throw new Error("No functions found in the current directory. Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
         }
         functionIds.push(...functions.map((func) => {
             return func.$id;
@@ -970,7 +967,7 @@ const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
                 return;
             }
 
-            throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} pull collection` to fetch all your collections.");
+            throw new Error("No collections found in the current directory. Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
         }
         collections.push(...localConfig.getCollections());
     } else {
@@ -1102,7 +1099,7 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
                 log('No buckets found, skipping');
                 return;
             }
-            throw new Error("No buckets found in the current directory. Run `appwrite pull bucket` to fetch all your buckets.");
+            throw new Error("No buckets found in the current directory. Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
         }
         bucketIds.push(...configBuckets.map((b) => b.$id));
     }
@@ -1127,15 +1124,6 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
                 bucketId: bucket['$id'],
                 parseOutput: false,
             })
-            log(`Bucket ${bucket.name} ( ${bucket['$id']} ) already exists.`);
-
-            if (!cliConfig.force) {
-                const answers = await inquirer.prompt(questionsPushBuckets[1])
-                if (answers.override.toLowerCase() !== "yes") {
-                    log(`Received "${answers.override}". Skipping ${bucket.name} ( ${bucket['$id']} )`);
-                    continue;
-                }
-            }
 
             log(`Updating bucket ...`)
 
@@ -1193,7 +1181,7 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
                 log('No teams found, skipping');
                 return;
             }
-            throw new Error("No teams found in the current directory. Run `appwrite pull team` to fetch all your teams.");
+            throw new Error("No teams found in the current directory. Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
         }
         teamIds.push(...configTeams.map((t) => t.$id));
     }
@@ -1218,15 +1206,6 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
                 teamId: team['$id'],
                 parseOutput: false,
             })
-            log(`Team ${team.name} ( ${team['$id']} ) already exists.`);
-
-            if (!cliConfig.force) {
-                const answers = await inquirer.prompt(questionsPushTeams[1])
-                if (answers.override.toLowerCase() !== "yes") {
-                    log(`Received "${answers.override}". Skipping ${team.name} ( ${team['$id']} )`);
-                    continue;
-                }
-            }
 
             log(`Updating team ...`)
 
@@ -1269,7 +1248,7 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
                 log('No topics found, skipping');
                 return;
             }
-            throw new Error("No topics found in the current directory. Run `appwrite pull topics` to pull all your messaging topics.");
+            throw new Error("No topics found in the current directory. Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
         }
         topicsIds.push(...configTopics.map((b) => b.$id));
     }
@@ -1338,14 +1317,16 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
 }
 
 const push = new Command("push")
-    .alias('deploy')
     .description(commandDescriptions['push'])
     .action(actionRunner(pushResources));
 
 push
     .command("all")
     .description("Push all resource.")
-    .action(actionRunner(pushResources));
+    .action(actionRunner(() => {
+        cliConfig.all = true;
+        return pushResources();
+    }));
 
 push
     .command("project")

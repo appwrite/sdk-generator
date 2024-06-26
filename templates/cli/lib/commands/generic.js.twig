@@ -89,6 +89,7 @@ const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
     }
 
     success("Signed in as user with ID: " + account.$id);
+    info("Next you can create or link to your project using 'appwrite init project'");
 };
 
 const whoami = new Command("whoami")
