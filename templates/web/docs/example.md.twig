@@ -21,6 +21,7 @@ const {{ service.name | caseCamel }} = new {{service.name | caseUcfirst}}(client
 {% if method.parameters.all | length > 0 %});
 {% endif %}
 
-{% if method.type != 'webAuth' %}
-console.log({% if method.type == 'location' %}result{% else %}response{% endif %});
+{% if method.type != 'webAuth' %} 
+{# console.log({% if method.type == 'location' %}result{% else %}response{% endif %}); #} // previous code 
+console.log(result); // Updated to log the result variable
 {% endif %}
