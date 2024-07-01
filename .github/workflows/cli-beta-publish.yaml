@@ -1,0 +1,47 @@
+name: CLI beta Publish
+on:
+  pull_request:
+    paths:
+      - 'templates/cli/**.twig'
+      - 'src/SDK/Language/CLI.php'
+
+env:
+  PACKAGE_NAME: "${{ vars.PACKAGE_NAME }}@0.16.0${{ github.event.pull_request.head.sha }}"
+
+jobs:
+  publish:
+    environment: cli-testing
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Setup Composer dependencies
+        run: docker run --rm --volume "$(pwd)":/app composer install --ignore-platform-reqs
+      - name: Generate SDKS
+        run: docker run --rm -v "$(pwd)":/app -w /app php:8.1-cli php example.php
+      - name: Fix permission
+        run: sudo chown -R 1001:1001 examples
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Setup
+        working-directory: ./examples/cli/
+        run: npm install
+      - name: Set version
+        working-directory: ./examples/cli/
+        run: |
+          sed -i "s#appwrite-cli#${{ vars.PACKAGE_NAME }}#g" package.json
+          sed -i "s#0.16.0#0.16.0${{ github.event.pull_request.head.sha }}#g" package.json
+      - name: Publish
+        working-directory: examples/cli/
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Instruction
+        run: |
+          echo "Install it by running npm install ${{ env.PACKAGE_NAME }}"
+          echo "Run it using npx ${{ env.PACKAGE_NAME }}"

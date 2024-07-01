@@ -5,7 +5,6 @@ const paginate = async (action, args = {}, limit = 100, wrapper = '') => {
 
     while (true) {
         const offset = pageNumber * limit;
-
         // Merge the limit and offset into the args
         const response = await action({
             ...args,
