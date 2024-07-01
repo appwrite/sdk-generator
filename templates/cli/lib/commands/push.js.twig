@@ -25,6 +25,16 @@ const {
     databasesCreateUrlAttribute,
     databasesCreateIpAttribute,
     databasesCreateEnumAttribute,
+    databasesUpdateBooleanAttribute,
+    databasesUpdateStringAttribute,
+    databasesUpdateIntegerAttribute,
+    databasesUpdateFloatAttribute,
+    databasesUpdateEmailAttribute,
+    databasesUpdateDatetimeAttribute,
+    databasesUpdateUrlAttribute,
+    databasesUpdateIpAttribute,
+    databasesUpdateEnumAttribute,
+    databasesUpdateRelationshipAttribute,
     databasesCreateRelationshipAttribute,
     databasesDeleteAttribute,
     databasesListAttributes,
@@ -396,6 +406,123 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
             })
     }
 }
+
+const updateAttribute = async (databaseId, collectionId, attribute) => {
+    switch (attribute.type) {
+        case 'string':
+            switch (attribute.format) {
+                case 'email':
+                    return await databasesUpdateEmailAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                case 'url':
+                    return await databasesUpdateUrlAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                case 'ip':
+                    return await databasesUpdateIpAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                case 'enum':
+                    return await databasesUpdateEnumAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        elements: attribute.elements,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+                default:
+                    return await databasesUpdateStringAttribute({
+                        databaseId,
+                        collectionId,
+                        key: attribute.key,
+                        size: attribute.size,
+                        required: attribute.required,
+                        xdefault: attribute.default,
+                        array: attribute.array,
+                        parseOutput: false
+                    })
+
+            }
+        case 'integer':
+            return await databasesUpdateIntegerAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                min: parseInt(attribute.min.toString()),
+                max: parseInt(attribute.max.toString()),
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'double':
+            return databasesUpdateFloatAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                min: parseFloat(attribute.min.toString()),
+                max: parseFloat(attribute.max.toString()),
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'boolean':
+            return databasesUpdateBooleanAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'datetime':
+            return databasesUpdateDatetimeAttribute({
+                databaseId,
+                collectionId,
+                key: attribute.key,
+                required: attribute.required,
+                xdefault: attribute.default,
+                array: attribute.array,
+                parseOutput: false
+            })
+        case 'relationship':
+            return databasesUpdateRelationshipAttribute({
+                databaseId,
+                collectionId,
+                relatedCollectionId: attribute.relatedCollection,
+                type: attribute.relationType,
+                twoWay: attribute.twoWay,
+                key: attribute.key,
+                twoWayKey: attribute.twoWayKey,
+                onDelete: attribute.onDelete,
+                parseOutput: false
+            })
+    }
+}
 const deleteAttribute = async (collection, attribute) => {
     log(`Deleting attribute ${attribute.key} of ${collection.name} ( ${collection['$id']} )`);
 
@@ -407,25 +534,39 @@ const deleteAttribute = async (collection, attribute) => {
     });
 }
 
+
 /**
  * Check if attribute non-changeable fields has been changed
  * If so return the differences as an object.
  * @param remote
  * @param local
  * @param collection
+ * @param recraeting when true will check only non-changeable keys
  * @returns {undefined|{reason: string, action: *, attribute, key: string}}
  */
-const checkAttributeChanges = (remote, local, collection) => {
+const checkAttributeChanges = (remote, local, collection, recraeting = true) => {
     if (local === undefined) {
         return undefined;
     }
 
     const keyName = `${chalk.yellow(local.key)} in ${collection.name} (${collection['$id']})`;
-    const action = chalk.cyan('recreating');
+    const action = chalk.cyan(recraeting ? 'recreating' : 'changing');
     let reason = '';
+    let attribute = remote;
 
     for (let key of Object.keys(remote)) {
         if (changeableKeys.includes(key)) {
+            if (!recraeting) {
+                if (remote[key] !== local[key]) {
+                    const bol = reason === '' ? '' : '\n';
+                    reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
+                    attribute = local;
+                }
+            }
+            continue;
+        }
+
+        if (!recraeting) {
             continue;
         }
 
@@ -435,7 +576,7 @@ const checkAttributeChanges = (remote, local, collection) => {
         }
     }
 
-    return reason === '' ? undefined : { key: keyName, attribute: remote, reason, action };
+    return reason === '' ? undefined : { key: keyName, attribute, reason, action };
 }
 
 /**
@@ -468,9 +609,12 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection)
     const deleting = remoteAttributes.filter((attribute) => !attributesContains(attribute, localAttributes)).map((attr) => generateChangesObject(attr, collection, false));
     const adding = localAttributes.filter((attribute) => !attributesContains(attribute, remoteAttributes)).map((attr) => generateChangesObject(attr, collection, true));
     const conflicts = remoteAttributes.map((attribute) => checkAttributeChanges(attribute, attributesContains(attribute, localAttributes), collection)).filter(attribute => attribute !== undefined);
+    const changes = remoteAttributes.map((attribute) => checkAttributeChanges(attribute, attributesContains(attribute, localAttributes), collection, false))
+        .filter(attribute => attribute !== undefined)
+        .filter(attribute => conflicts.filter(attr => attribute.key === attr.key).length !== 1);
 
     let changedAttributes = [];
-    const changing = [...deleting, ...adding, ...conflicts]
+    const changing = [...deleting, ...adding, ...conflicts, ...changes]
     if (changing.length === 0) {
         return changedAttributes;
     }
@@ -481,7 +625,7 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection)
         return { Key: change.key, Action: change.action, Reason: change.reason, };
     }));
 
-    if (!cliConfig.force && (deleting.length > 0 || conflicts.length > 0)) {
+    if (!cliConfig.force) {
         if (deleting.length > 0) {
             log(`Attribute deletion will cause ${chalk.red('loss of data')}`);
         }
@@ -500,6 +644,11 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection)
         changedAttributes = conflicts.map((change) => change.attribute);
         await Promise.all(changedAttributes.map((changed) => deleteAttribute(collection, changed)));
         remoteAttributes = remoteAttributes.filter((attribute) => !attributesContains(attribute, changedAttributes))
+    }
+
+    if (changes.length > 0) {
+        changedAttributes = changes.map((change) => change.attribute);
+        await Promise.all(changedAttributes.map((changed) => updateAttribute(collection['databaseId'],collection['$id'], changed)));
     }
 
     const deletingAttributes = deleting.map((change) => change.attribute);
@@ -1063,7 +1212,6 @@ const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
             attributes = await attributesToCreate(collection.remoteVersion.attributes, collection.attributes, collection);
 
             if (Array.isArray(attributes) && attributes.length <= 0) {
-                log(`No changes has been detected. Skipping ${collection.name} ( ${collection['$id']} )`);
                 continue;
             }
         }
