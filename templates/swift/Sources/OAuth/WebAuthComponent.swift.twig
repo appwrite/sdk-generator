@@ -63,10 +63,13 @@ public class WebAuthComponent {
             item.value.map { (item.name, $0) }
         })
 
-        guard let validatedCookieParts = validateRequiredCookieParts(cookieParts) else {
+        guard var domain = cookieParts["domain"],
+              let key = cookieParts["key"],
+              let secret = cookieParts["secret"] else {
             return
         }
-        
+    
+        domain.remove(at: domain.startIndex)
         var domain = validatedCookieParts.domain
         domain.remove(at: domain.startIndex)
         let key = validatedCookieParts.key
@@ -109,15 +112,6 @@ public class WebAuthComponent {
             scheme: components.scheme!,
             url: components.url!
         )
-    }
-
-    private static func validateRequiredCookieParts(_ cookieParts: [String: String]) -> (domain: String, key: String, secret: String)? {
-        guard let domain = cookieParts["domain"],
-                let key = cookieParts["key"],
-                let secret = cookieParts["secret"] else {
-            return nil
-        }
-        return (domain, key, secret)
     }
 
     ///
