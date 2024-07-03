@@ -288,9 +288,10 @@ class Go extends Language
             }),
             new TwigFilter('returnType', function (array $method, array $spec, string $namespace, string $generic = 'T') {
                 return $this->getReturnType($method, $spec, $namespace, $generic);
+            }),
             new TwigFilter('caseEnumKey', function (string $value) {
                 return $this->toUpperSnakeCase($value);
-            }),
+            })
         ];
     }
 

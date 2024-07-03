@@ -109,12 +109,12 @@ func testGeneralService(client client.Client, stringInArray []interface{}) {
 	fmt.Printf("%s\n", (*response).(map[string]interface{})["result"].(string))
 
 	testGeneralUpload(client, stringInArray)
-
-	// // Extended General Responses
-	testGeneralDownload(client)
-
-	// // Large File Responses
+	testGeneralUpload(client, stringInArray)
 	testLargeUpload(client, stringInArray)
+	testLargeUpload(client, stringInArray)
+
+	// Extended General Responses
+	testGeneralDownload(client)
 
 	// Exception Responses
 	_, err = general.Error400()
@@ -185,8 +185,8 @@ func testLargeUpload(client client.Client, stringInArray []interface{}) {
 }
 
 func testQueries() {
-	fmt.Println(query.Equal("released", []interface{}{true}))
-	fmt.Println(query.Equal("title", []string{"Spiderman", "Dr. Strange"}))
+	fmt.Println(query.Equal("released", true))
+	fmt.Println(query.Equal("title", []interface{}{"Spiderman", "Dr. Strange"}))
 	fmt.Println(query.NotEqual("title", "Spiderman"))
 	fmt.Println(query.LessThan("releasedYear", 1990))
 	fmt.Println(query.GreaterThan("releasedYear", 1990))
@@ -198,13 +198,23 @@ func testQueries() {
 	fmt.Println(query.Between("name", "Anna", "Brad"))
 	fmt.Println(query.StartsWith("name", "Ann"))
 	fmt.Println(query.EndsWith("name", "nne"))
-	fmt.Println(query.Select([]string{"name", "age"}))
+	fmt.Println(query.Select([]interface{}{"name", "age"}))
 	fmt.Println(query.OrderAsc("title"))
 	fmt.Println(query.OrderDesc("title"))
 	fmt.Println(query.CursorAfter("my_movie_id"))
 	fmt.Println(query.CursorBefore("my_movie_id"))
 	fmt.Println(query.Limit(50))
 	fmt.Println(query.Offset(20))
+	fmt.Println(query.Contains("title", "Spider"))
+	fmt.Println(query.Contains("labels", "first"))
+	fmt.Println(query.Or([]string{
+		query.Equal("released", true),
+		query.LessThan("releasedYear", 1990),
+	}))
+	fmt.Println(query.And([]string{
+		query.Equal("released", false),
+		query.GreaterThan("releasedYear", 2015),
+	}))
 }
 
 func testPermissionHelpers() {
@@ -217,6 +227,7 @@ func testPermissionHelpers() {
 	fmt.Println(permission.Create(role.Member("memberId")))
 	fmt.Println(permission.Update(role.Users("verified")))
 	fmt.Println(permission.Update(role.User(id.Custom("userid"), "unverified")))
+	fmt.Println(permission.Create(role.Label("admin")))
 }
 
 func testIdHelpers() {
