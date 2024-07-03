@@ -69,11 +69,8 @@ public class WebAuthComponent {
             return
         }
     
-        domain.remove(at: domain.startIndex)
         var domain = validatedCookieParts.domain
         domain.remove(at: domain.startIndex)
-        let key = validatedCookieParts.key
-        let secret = validatedCookieParts.secret
 
         let path: String? = cookieParts["path"]
         let expires: String? = cookieParts["expires"]
