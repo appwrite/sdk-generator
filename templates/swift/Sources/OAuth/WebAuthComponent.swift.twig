@@ -69,7 +69,6 @@ public class WebAuthComponent {
             return
         }
     
-        var domain = validatedCookieParts.domain
         domain.remove(at: domain.startIndex)
 
         let path: String? = cookieParts["path"]
