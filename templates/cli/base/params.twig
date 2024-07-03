@@ -11,19 +11,19 @@
     if (!fs.lstatSync(folderPath).isDirectory()) {
         throw new Error('The path is not a directory.');
     }
-    
+
     const ignorer = ignore();
 
     const func = localConfig.getFunction(functionId);
 
+    ignorer.add('.appwrite');
+
     if (func.ignore) {
         ignorer.add(func.ignore);
-        log('Ignoring files using configuration from appwrite.json');
     } else if (fs.existsSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore'))) {
         ignorer.add(fs.readFileSync(pathLib.join({{ parameter.name | caseCamel | escapeKeyword }}, '.gitignore')).toString());
-        log('Ignoring files in .gitignore');
     }
-    
+
     const files = getAllFiles({{ parameter.name | caseCamel | escapeKeyword }}).map((file) => pathLib.relative({{ parameter.name | caseCamel | escapeKeyword }}, file)).filter((file) => !ignorer.ignores(file));
 
     await tar
@@ -77,8 +77,10 @@
 {% endif %}
 {% endfor %}
 {% if method.type == 'location' %}
-    payload['project'] = localConfig.getProject().projectId
-    payload['key'] = globalConfig.getKey();
-    const queryParams = new URLSearchParams(payload);
-    apiPath = `${globalConfig.getEndpoint()}${apiPath}?${queryParams.toString()}`;
+    if (!overrideForCli) {
+        payload['project'] = localConfig.getProject().projectId
+        payload['key'] = globalConfig.getKey();
+        const queryParams = new URLSearchParams(payload);
+        apiPath = `${globalConfig.getEndpoint()}${apiPath}?${queryParams.toString()}`;
+    }
 {% endif %}
