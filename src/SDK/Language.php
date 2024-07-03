@@ -4,6 +4,7 @@ namespace Appwrite\SDK;
 
 abstract class Language
 {
+    public const TYPE_MIXED = 'mixed';
     public const TYPE_INTEGER = 'integer';
     public const TYPE_NUMBER = 'number';
     public const TYPE_STRING = 'string';

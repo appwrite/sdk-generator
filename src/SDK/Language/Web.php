@@ -186,6 +186,8 @@ class Web extends JS
             return \ucfirst($parameter['name']);
         }
         switch ($parameter['type']) {
+            case self::TYPE_MIXED:
+                return 'any';
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
                 return 'number';
