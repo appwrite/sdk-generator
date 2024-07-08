@@ -44,6 +44,9 @@ class Client @JvmOverloads constructor(
 ) : CoroutineScope {
 
     companion object {
+        /**
+         * The size for chunked uploads in bytes.
+         */
         internal const val CHUNK_SIZE = 5*1024*1024; // 5MB
         internal const val GLOBAL_PREFS = "{{ sdk.namespace | caseDot }}"
         internal const val COOKIE_PREFS = "myCookie"
