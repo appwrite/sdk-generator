@@ -2,8 +2,7 @@ const EventEmitter = require('node:events');
 const { projectsCreateJWT } = require('../commands/projects');
 const { localConfig } = require("../config");
 
-
-const openRuntimesVersion = 'v3';
+const openRuntimesVersion = 'v4';
 
 const runtimeNames = {
     'node': 'Node.js',
@@ -17,7 +16,8 @@ const runtimeNames = {
     'java': 'Java',
     'swift': 'Swift',
     'kotlin': 'Kotlin',
-    'bun': 'Bun'
+    'bun': 'Bun',
+    'go': 'Go',
 };
 
 const systemTools = {
@@ -80,6 +80,11 @@ const systemTools = {
         isCompiled: false,
         startCommand: "bun src/server.ts",
         dependencyFiles: [ "package.json", "package-lock.json", "bun.lockb" ]
+    },
+    'go': {
+        isCompiled: true,
+        startCommand: "src/function/server",
+        dependencyFiles: [ ]
     },
 };
 

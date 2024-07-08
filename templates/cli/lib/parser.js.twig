@@ -192,6 +192,14 @@ const log = (message) => {
     console.log(`${chalk.cyan.bold("ℹ Info")} ${chalk.cyan(message ?? "")}`);
 }
 
+const warn = (message) => {
+    console.log(`${chalk.yellow.bold("ℹ Warning")} ${chalk.yellow(message ?? "")}`);
+}
+
+const hint = (message) => {
+    console.log(`${chalk.cyan.dim(chalk.cyan.bold("♥ Hint"))} ${chalk.cyan.dim(chalk.cyan(message ?? ""))}`);
+}
+
 const success = (message) => {
     console.log(`${chalk.green.bold("✓ Success")} ${chalk.green(message ?? "")}`);
 }
@@ -245,6 +253,8 @@ module.exports = {
     parseInteger,
     parseBool,
     log,
+    warn,
+    hint,
     success,
     error,
     commandDescriptions,

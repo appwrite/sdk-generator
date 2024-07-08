@@ -520,7 +520,7 @@ class Global extends Config {
         const current = this.getCurrentSession();
 
         if (current) {
-            const config = this.get(current);
+            const config = this.get(current) ?? {};
 
             return config[key] !== undefined;
         }
@@ -530,7 +530,7 @@ class Global extends Config {
         const current = this.getCurrentSession();
 
         if (current) {
-            const config = this.get(current);
+            const config = this.get(current) ?? {};
 
             return config[key];
         }

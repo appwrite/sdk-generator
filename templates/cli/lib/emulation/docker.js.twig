@@ -1,15 +1,12 @@
+const chalk = require('chalk');
 const childProcess = require('child_process');
 const { localConfig } = require("../config");
 const path = require('path');
 const fs = require('fs');
-const { log,success } = require("../parser");
+const { log, success, hint } = require("../parser");
 const { openRuntimesVersion, systemTools } = require("./utils");
-const ID = require("../id");
-
-const activeDockerIds = {};
 
 async function dockerStop(id) {
-    delete activeDockerIds[id];
     const stopProcess = childProcess.spawn('docker', ['rm', '--force', id], {
         stdio: 'pipe',
     });
@@ -18,20 +15,42 @@ async function dockerStop(id) {
 }
 
 async function dockerPull(func) {
-    log('Pulling Docker image of function runtime ...');
-
     const runtimeChunks = func.runtime.split("-");
     const runtimeVersion = runtimeChunks.pop();
     const runtimeName = runtimeChunks.join("-");
     const imageName = `openruntimes/${runtimeName}:${openRuntimesVersion}-${runtimeVersion}`;
 
-    const pullProcess = childProcess.spawn('docker', ['pull', imageName], {
+    const checkProcess = childProcess.spawn('docker', ['images', '--format', 'json', imageName], {
         stdio: 'pipe',
         pwd: path.join(process.cwd(), func.path)
     });
 
-    pullProcess.stderr.on('data', (data) => {
-        process.stderr.write(`\n${data}$ `);
+    let hasImage = false;
+
+    checkProcess.stdout.on('data', (data) => {
+        if(data) {
+            hasImage = false;
+        }
+    });
+
+    checkProcess.stderr.on('data', (data) => {
+        if(data) {
+            hasImage = false;
+        }
+    });
+
+    await new Promise((res) => { checkProcess.on('close', res) });
+
+    if(hasImage) {
+        return;
+    }
+
+    log('Pulling Docker image ...');
+    hint('This may take a few minutes, but we only need to do this once.');
+
+    const pullProcess = childProcess.spawn('docker', ['pull', imageName], {
+        stdio: 'pipe',
+        pwd: path.join(process.cwd(), func.path)
     });
 
     await new Promise((res) => { pullProcess.on('close', res) });
@@ -47,7 +66,7 @@ async function dockerBuild(func, variables) {
 
     const functionDir = path.join(process.cwd(), func.path);
 
-    const id = ID.unique();
+    const id = func.$id;
 
     const params = [ 'run' ];
     params.push('--name', id);
@@ -55,6 +74,7 @@ async function dockerBuild(func, variables) {
     params.push('-e', 'APPWRITE_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_SECRET=');
+    params.push('-l', 'appwrite-env=dev');
     params.push('-e', `OPEN_RUNTIMES_ENTRYPOINT=${func.entrypoint}`);
 
     for(const k of Object.keys(variables)) {
@@ -69,11 +89,11 @@ async function dockerBuild(func, variables) {
     });
 
     buildProcess.stdout.on('data', (data) => {
-        process.stdout.write(`\n${data}`);
+        process.stdout.write(chalk.white.dim(`${data}\n`));
     });
 
     buildProcess.stderr.on('data', (data) => {
-        process.stderr.write(`\n${data}`);
+        process.stderr.write(chalk.white.dim(`${data}\n`));
     });
 
     await new Promise((res) => { buildProcess.on('close', res) });
@@ -91,14 +111,7 @@ async function dockerBuild(func, variables) {
 
     await new Promise((res) => { copyProcess.on('close', res) });
 
-    const cleanupProcess = childProcess.spawn('docker', ['rm', '--force', id], {
-        stdio: 'pipe',
-        pwd: functionDir
-    });
-
-    await new Promise((res) => { cleanupProcess.on('close', res) });
-
-    delete activeDockerIds[id];
+    await dockerStop(id);
 
     const tempPath = path.join(process.cwd(), func.path, 'code.tar.gz');
     if (fs.existsSync(tempPath)) {
@@ -107,15 +120,6 @@ async function dockerBuild(func, variables) {
 }
 
 async function dockerStart(func, variables, port) {
-   log('Starting function using Docker ...');
-
-   log("Permissions, events, CRON and timeouts dont apply when running locally.");
-
-   log('💡 Hint: Function automatically restarts when you edit your code.');
-
-   success(`Visit http://localhost:${port}/ to execute your function.`);
-
-
    const runtimeChunks = func.runtime.split("-");
    const runtimeVersion = runtimeChunks.pop();
    const runtimeName = runtimeChunks.join("-");
@@ -125,13 +129,14 @@ async function dockerStart(func, variables, port) {
 
     const functionDir = path.join(process.cwd(), func.path);
 
-    const id = ID.unique();
+    const id = func.$id;
 
     const params = [ 'run' ];
     params.push('--rm');
     params.push('-d');
     params.push('--name', id);
     params.push('-p', `${port}:3000`);
+    params.push('-l', 'appwrite-env=dev');
     params.push('-e', 'APPWRITE_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_SECRET=');
@@ -150,11 +155,11 @@ async function dockerStart(func, variables, port) {
         pwd: functionDir
     });
 
-    activeDockerIds[id] = true;
+    success(`Visit http://localhost:${port}/ to execute your function.`);
 }
 
 async function dockerCleanup() {
-    await dockerStop();
+    await dockerStopActive();
 
     const functions = localConfig.getFunctions();
     for(const func of functions) {
@@ -171,17 +176,40 @@ async function dockerCleanup() {
 }
 
 async function dockerStopActive() {
-    const ids = Object.keys(activeDockerIds);
-    for await (const id of ids) {
+    const listProcess = childProcess.spawn('docker', ['ps', '-a', '-q', '--filter', 'label=appwrite-env=dev'], {
+        stdio: 'pipe',
+    });
+
+    const ids = [];
+    function handleOutput(data) {
+        const list = data.toString().split('\n');
+        for(const id of list) {
+            if(id && !id.includes(' ')) {
+                ids.push(id);
+            }
+        }
+    }
+
+    listProcess.stdout.on('data', (data) => {
+        handleOutput(data);
+    });
+
+    listProcess.stderr.on('data', (data) => {
+        handleOutput(data);
+    });
+
+    await new Promise((res) => { listProcess.on('close', res) });
+
+    for(const id of ids) {
         await dockerStop(id);
     }
 }
 
 module.exports = {
-    dockerStop,
     dockerPull,
     dockerBuild,
     dockerStart,
     dockerCleanup,
     dockerStopActive,
+    dockerStop,
 }
