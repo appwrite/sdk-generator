@@ -108,25 +108,10 @@ abstract class Language
 
         $str = \preg_replace('/[^a-zA-Z0-9]+/', ' ', $str);
         $str = \trim($str);
+        $str = strtolower($str);
         $str = \ucwords($str);
         $str = \str_replace(' ', '', $str);
         $str = \lcfirst($str);
-
-        return $str;
-    }
-
-    protected function toLowerCamelCase($str): string
-    {
-        // Normalize the string to decompose accented characters
-        $str = \Normalizer::normalize($str, \Normalizer::FORM_D);
-
-        // Remove accents and other residual non-ASCII characters
-        $str = preg_replace('/\p{M}/u', '', $str);
-
-        // Replace non-alphanumeric characters with a space
-        $str = preg_replace('/[^a-zA-Z0-9]+/', ' ', $str);
-        $str = ucwords(strtolower($str));
-        $str = lcfirst(str_replace(' ', '', $str));
 
         return $str;
     }

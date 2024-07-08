@@ -471,7 +471,7 @@ class Swift extends Language
                 if (isset($this->getIdentifierOverrides()[$value])) {
                     $value = $this->getIdentifierOverrides()[$value];
                 }
-                return $this->toLowerCamelCase($value);
+                return $this->toCamelCase($value);
             }),
         ];
     }
