@@ -9,6 +9,7 @@ const { storageCreateBucket } = require("./storage");
 const { messagingCreateTopic } = require("./messaging");
 const { functionsCreate } = require("./functions");
 const { databasesCreateCollection } = require("./databases");
+const { pullResources } = require("./pull");
 const ID = require("../id");
 const { localConfig, globalConfig } = require("../config");
 const {
@@ -18,10 +19,11 @@ const {
     questionsCreateMessagingTopic,
     questionsCreateCollection,
     questionsInitProject,
+    questionsInitProjectAutopull,
     questionsInitResources,
     questionsCreateTeam
 } = require("../questions");
-const { success, log, error, actionRunner, commandDescriptions } = require("../parser");
+const { cliConfig, success, log, hint, error, actionRunner, commandDescriptions } = require("../parser");
 const { accountGet } = require("./account");
 const { sdkForConsole } = require("../sdks");
 
@@ -56,7 +58,7 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
             sdk: client
         });
     } catch (e) {
-        error('Error Session not found. Please run `appwrite login` to create a session');
+        error("Error Session not found. Please run 'appwrite login' to create a session");
         process.exit(1);
     }
 
@@ -104,11 +106,17 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
 
     success(`Project successfully ${answers.start === 'existing' ? 'linked' : 'created'}. Details are now stored in appwrite.json file.`);
 
-    log("Next you can use 'appwrite init' to create resources in your project, or use 'appwrite pull' and 'appwite push' to synchronize your project.")
-
     if(answers.start === 'existing') {
-        log("Since you connected to an existing project, we highly recommend to run 'appwrite pull all' to synchronize all of your existing resources.");
+        answers = await inquirer.prompt(questionsInitProjectAutopull);
+        if(answers.autopull) {
+            cliConfig.all = true;
+            await pullResources();
+        } else {
+            log("You can run 'appwrite pull all' to synchronize all of your existing resources.");
+        }
     }
+
+    hint("Next you can use 'appwrite init' to create resources in your project, or use 'appwrite pull' and 'appwrite push' to synchronize your project.")
 }
 
 const initBucket = async () => {
@@ -210,22 +218,24 @@ const initFunction = async () => {
         log(`Installation command for this runtime not found. You will be asked to configure the install command when you first push the function.`);
     }
 
-
     fs.mkdirSync(functionDir, "777");
     fs.mkdirSync(templatesDir, "777");
     const repo = "https://github.com/{{ sdk.gitUserName }}/templates";
     const api = `https://api.github.com/repos/{{ sdk.gitUserName }}/templates/contents/${answers.runtime.name}`
-    const templates = ['starter'];
     let selected = undefined;
 
-    try {
-        const res = await fetch(api);
-        templates.push(...(await res.json()).map((template) => template.name));
-
-        selected = await inquirer.prompt(questionsCreateFunctionSelectTemplate(templates))
-    } catch {
-        // Not a problem will go with directory pulling
-        log('Loading templates...');
+    if(answers.template === 'starter') {
+        selected = { template: 'starter' };
+    } else {
+        try {
+            const res = await fetch(api);
+            const templates = [];
+            templates.push(...(await res.json()).map((template) => template.name));
+            selected = await inquirer.prompt(questionsCreateFunctionSelectTemplate(templates));
+        } catch {
+            // Not a problem will go with directory pulling
+            log('Loading templates...');
+        }
     }
 
     const sparse = (selected ? `${answers.runtime.name}/${selected.template}` : answers.runtime.name).toLowerCase();
@@ -257,6 +267,7 @@ const initFunction = async () => {
 
     fs.rmSync(path.join(templatesDir, ".git"), { recursive: true });
     if (!selected) {
+        const templates = [];
         templates.push(...fs.readdirSync(runtimeDir, { withFileTypes: true })
             .filter(item => item.isDirectory() && item.name !== 'starter')
             .map(dirent => dirent.name));

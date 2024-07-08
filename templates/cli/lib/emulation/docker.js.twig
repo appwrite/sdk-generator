@@ -89,11 +89,11 @@ async function dockerBuild(func, variables) {
     });
 
     buildProcess.stdout.on('data', (data) => {
-        process.stdout.write(chalk.white.dim(`${data}\n`));
+        process.stdout.write(chalk.blackBright(`${data}\n`));
     });
 
     buildProcess.stderr.on('data', (data) => {
-        process.stderr.write(chalk.white.dim(`${data}\n`));
+        process.stderr.write(chalk.blackBright(`${data}\n`));
     });
 
     await new Promise((res) => { buildProcess.on('close', res) });
