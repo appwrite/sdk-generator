@@ -1190,16 +1190,16 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
         buckets.push(...idBuckets);
     }
 
+    log('Pushing buckets ...');
+
     for (let bucket of buckets) {
-        log(`Pushing bucket ${bucket.name} ( ${bucket['$id']} )`)
+        log(`Pushing bucket ${chalk.bold(bucket['name'])} ...`);
 
         try {
             response = await storageGetBucket({
                 bucketId: bucket['$id'],
                 parseOutput: false,
             })
-
-            log(`Updating bucket ...`)
 
             await storageUpdateBucket({
                 bucketId: bucket['$id'],
@@ -1214,8 +1214,6 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
                 compression: bucket.compression,
                 parseOutput: false
             });
-
-            success(`Pushed ${bucket.name} ( ${bucket['$id']} )`);
         } catch (e) {
             if (Number(e.code) === 404) {
                 log(`Bucket ${bucket.name} does not exist in the project. Creating ... `);
@@ -1233,13 +1231,13 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
                     antivirus: bucket.antivirus,
                     parseOutput: false
                 })
-
-                success(`Pushed ${bucket.name} ( ${bucket['$id']} )`);
             } else {
                 throw e;
             }
         }
     }
+
+    success(`Successfully pushed ${buckets.length} buckets.`);
 }
 
 const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
@@ -1269,8 +1267,10 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
         teams.push(...idTeams);
     }
 
+    log('Pushing teams ...');
+
     for (let team of teams) {
-        log(`Pushing team ${team.name} ( ${team['$id']} )`)
+        log(`Pushing team ${chalk.bold(team['name'])} ...`);
 
         try {
             response = await teamsGet({
@@ -1278,15 +1278,11 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
                 parseOutput: false,
             })
 
-            log(`Updating team ...`)
-
             await teamsUpdateName({
                 teamId: team['$id'],
                 name: team.name,
                 parseOutput: false
             });
-
-            success(`Pushed ${team.name} ( ${team['$id']} )`);
         } catch (e) {
             if (Number(e.code) === 404) {
                 log(`Team ${team.name} does not exist in the project. Creating ... `);
@@ -1296,13 +1292,13 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
                     name: team.name,
                     parseOutput: false
                 })
-
-                success(`Pushed ${team.name} ( ${team['$id']} )`);
             } else {
                 throw e;
             }
         }
     }
+
+    success(`Successfully pushed ${teams.length} teams.`);
 }
 
 const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) => {
@@ -1340,8 +1336,10 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
         }
     }
 
+    log('Pushing topics ...');
+
     for (let topic of topics) {
-        log(`Pushing topic ${topic.name} ( ${topic['$id']} )`)
+        log(`Pushing topic ${chalk.bold(topic['name'])} ...`);
 
         try {
             response = await messagingGetTopic({
@@ -1355,16 +1353,12 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
                 continue;
             }
 
-            log(`Updating Topic ...`)
-
             await messagingUpdateTopic({
                 topicId: topic['$id'],
                 name: topic.name,
                 subscribe: topic.subscribe,
                 parseOutput: false
             });
-
-            success(`Pushed ${topic.name} ( ${topic['$id']} )`);
         } catch (e) {
             if (Number(e.code) === 404) {
                 log(`Topic ${topic.name} does not exist in the project. Creating ... `);
@@ -1382,6 +1376,8 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
             }
         }
     }
+
+    success(`Successfully pushed ${topics.length} topics.`);
 }
 
 const push = new Command("push")

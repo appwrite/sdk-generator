@@ -6,7 +6,7 @@ const JSONbig = require("json-bigint")({ storeAsString: false });
 
 const KeysFunction = ["path", "$id", "execute", "name", "enabled", "logging", "runtime", "scopes", "events", "schedule", "timeout", "entrypoint", "commands"];
 const KeysDatabase = ["$id", "name", "enabled"];
-const KeysCollection = ["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"]; // TODO: Limit attributes and indexes
+const KeysCollection = ["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"];
 const KeysStorage = ["$id", "$permissions", "fileSecurity", "name", "enabled", "maximumFileSize", "allowedFileExtensions", "compression", "encryption", "antivirus"];
 const KeyTopics = ["$id", "name", "subscribe"];
 const KeyAttributes = ["key", "type", "required", "array", "size", "default"];
