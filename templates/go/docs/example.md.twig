@@ -1,13 +1,22 @@
+{%- set requireModelsPkg = false -%}
+{%- set requireFilesPkg = false -%}
+{%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
+		{%- set requireModelsPkg = true -%}
+{%- endif -%}
+
 package main
 
 import (
     "fmt"
-    "time"
-    "github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}"
+    "github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/client"
+    "github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/{{ service.name | caseLower }}"
+{% if requireFilesPkg %}
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
+{% endif %}
 )
 
 func main() {
-    client := {{ spec.title | caseLower }}.NewClient()
+    client := client.NewClient()
 
 {% if method.auth|length > 0 %}
     client.SetEndpoint("https://cloud.appwrite.io/v1") // Your API Endpoint
@@ -18,11 +27,16 @@ func main() {
 {% endfor %}
 
 {% endif %}
-    var service := {{ spec.title | caseLower }}.{{ service.name | caseUcfirst }}{
-        client: &client
-    }
-
-    var response, error := service.{{ method.name | caseUcfirst }}({% for parameter in method.parameters.all %}{% if not loop.first %}, {% endif %}{{ parameter | paramExample }}{% endfor %})
+    service := {{ service.name | caseLower }}.New{{ service.name | caseUcfirst }}(client)
+    response, error := service.{{ method.name | caseUcfirst }}(
+{% for parameter in method.parameters.all %}
+{% if parameter.required %}
+        {{ parameter | paramExample }},
+{% else %}
+        {{ service.name | caseLower }}.With{{ method.name | caseUcfirst }}{{ parameter.name | caseUcfirst }}({{ parameter | paramExample }}),
+{% endif %}
+{% endfor %}
+    )
 
     if error != nil {
         panic(error)

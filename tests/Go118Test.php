@@ -21,8 +21,11 @@ class Go118Test extends Base
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
-        ...Base::UPLOAD_RESPONSE,
+        ...Base::UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
+        ...Base::QUERY_HELPER_RESPONSES,
+        ...Base::PERMISSION_HELPER_RESPONSES,
+        ...Base::ID_HELPER_RESPONSES,
     ];
 }

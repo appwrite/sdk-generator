@@ -23,15 +23,15 @@ func main() {
 	client.SetKey(os.Getenv("YOUR_KEY"))
 	client.SetTimeout(10 * time.Second)
 
-	db := {{ sdk.gitUserName|url_encode }}.NewDatabase(client)
+	db := {{ sdk.gitUserName|url_encode }}.NewDatabases(client)
 	data := map[string]string{
 		"hello": "world",
 	}
 	doc, err := db.CreateDocument(
+		os.Getenv("DATABASE_ID"),
 		os.Getenv("COLLECTION_ID"),
-		EmptyParentDocument,
+		os.Getenv("DOCUMENT_ID"),
 		data,
-		EmptyArray,
 		EmptyArray,
 	)
 	if err != nil {

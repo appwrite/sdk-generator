@@ -2,8 +2,66 @@
 
 namespace Appwrite\SDK\Language;
 
+use Twig\TwigFunction;
+
 class CLI extends Node
 {
+    /**
+     * List of functions to ignore for console preview.
+     * @var array
+     */
+    private $consoleIgnoreFunctions = [
+        'listidentities',
+        'listmfafactors',
+        'getprefs',
+        'getsession',
+        'getattribute',
+        'listdocumentlogs',
+        'getindex',
+        'listcollectionlogs',
+        'getcollectionusage',
+        'listlogs',
+        'listruntimes',
+        'getusage',
+        'getusage',
+        'listvariables',
+        'getvariable',
+        'listproviderlogs',
+        'listsubscriberlogs',
+        'getsubscriber',
+        'listtopiclogs',
+        'getemailtemplate',
+        'getsmstemplate',
+        'getfiledownload',
+        'getfilepreview',
+        'getfileview',
+        'getusage',
+        'listlogs',
+        'getprefs',
+        'getusage',
+        'listlogs',
+        'getmembership',
+        'listmemberships',
+        'listmfafactors',
+        'getmfarecoverycodes',
+        'getprefs',
+        'listtargets',
+        'gettarget',
+    ];
+
+    /**
+     * List of SDK services to ignore for console preview.
+     * @var array
+     */
+    private $consoleIgnoreServices = [
+        'health',
+        'migrations',
+        'locale',
+        'avatars',
+        'project',
+        'proxy',
+        'vcs'
+    ];
     /**
      * @var array
      */
@@ -129,6 +187,16 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/validations.js',
+                'template'      => 'cli/lib/validations.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/spinner.js',
+                'template'      => 'cli/lib/spinner.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/parser.js',
                 'template'      => 'cli/lib/parser.js.twig',
             ],
@@ -154,6 +222,11 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/id.js',
+                'template'      => 'cli/lib/id.js.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/utils.js',
                 'template'      => 'cli/lib/utils.js.twig',
             ],
@@ -164,8 +237,28 @@ class CLI extends Node
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/commands/deploy.js',
-                'template'      => 'cli/lib/commands/deploy.js.twig',
+                'destination'   => 'lib/commands/pull.js',
+                'template'      => 'cli/lib/commands/pull.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/commands/push.js',
+                'template'      => 'cli/lib/commands/push.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/commands/run.js',
+                'template'      => 'cli/lib/commands/run.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/emulation/docker.js',
+                'template'      => 'cli/lib/emulation/docker.js.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/emulation/utils.js',
+                'template'      => 'cli/lib/emulation/utils.js.twig',
             ],
             [
                 'scope'         => 'service',
@@ -269,5 +362,19 @@ class CLI extends Node
         }
 
         return $output;
+    }
+
+    /**
+     * Language specific filters.
+     * @return array
+     */
+    public function getFunctions(): array
+    {
+        return [
+            /** Return true if the entered service->method is enabled for a console preview link */
+            new TwigFunction('hasConsolePreview', fn($method, $service) => preg_match('/^([Gg]et|[Ll]ist)/', $method)
+                && !in_array(strtolower($method), $this->consoleIgnoreFunctions)
+                && !in_array($service, $this->consoleIgnoreServices)),
+        ];
     }
 }

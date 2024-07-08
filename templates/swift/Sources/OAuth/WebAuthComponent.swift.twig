@@ -53,17 +53,24 @@ public class WebAuthComponent {
     ///   - url: The URL containing the cookie
     ///
     public static func handleIncomingCookie(from url: URL) {
-        let components = URLComponents(string: url.absoluteString)!
 
-        let cookieParts = [String: String](uniqueKeysWithValues: components.queryItems!.map {
-            ($0.name, $0.value!)
+        guard let components = URLComponents(string: url.absoluteString),
+            let queryItems = components.queryItems else {
+            return
+        }
+        
+        let cookieParts = [String: String](uniqueKeysWithValues: queryItems.compactMap { item in
+            item.value.map { (item.name, $0) }
         })
 
-        var domain = cookieParts["domain"]!
+        guard var domain = cookieParts["domain"],
+              let key = cookieParts["key"],
+              let secret = cookieParts["secret"] else {
+            return
+        }
+    
         domain.remove(at: domain.startIndex)
 
-        let key: String = cookieParts["key"]!
-        let secret: String = cookieParts["secret"]!
         let path: String? = cookieParts["path"]
         let expires: String? = cookieParts["expires"]
         let maxAge: String? = cookieParts["maxAge"]
@@ -92,10 +99,7 @@ public class WebAuthComponent {
             cookie += "; secure"
         }
 
-        let existing = UserDefaults.standard.stringArray(forKey: domain)
-        let new = [cookie]
-
-        UserDefaults.standard.set(new, forKey: domain)
+        UserDefaults.standard.set([cookie], forKey: domain)
 
         WebAuthComponent.onCallback(
             scheme: components.scheme!,

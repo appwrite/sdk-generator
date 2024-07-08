@@ -3,58 +3,188 @@ const path = require("path");
 const childProcess = require('child_process');
 const { Command } = require("commander");
 const inquirer = require("inquirer");
-const { teamsCreate, teamsList } = require("./teams");
-const { projectsCreate } = require("./projects");
+const { fetch } = require("undici");
+const { projectsCreate, projectsGet } = require("./projects");
+const { storageCreateBucket } = require("./storage");
+const { messagingCreateTopic } = require("./messaging");
 const { functionsCreate } = require("./functions");
-const { databasesGet, databasesListCollections, databasesList } = require("./databases");
-const { storageListBuckets } = require("./storage");
+const { databasesCreateCollection } = require("./databases");
+const ID = require("../id");
+const { localConfig, globalConfig } = require("../config");
+const {
+    questionsCreateFunction,
+    questionsCreateFunctionSelectTemplate,
+    questionsCreateBucket,
+    questionsCreateMessagingTopic,
+    questionsCreateCollection,
+    questionsInitProject,
+    questionsInitResources,
+    questionsCreateTeam
+} = require("../questions");
+const { success, log, error, actionRunner, commandDescriptions } = require("../parser");
+const { accountGet } = require("./account");
 const { sdkForConsole } = require("../sdks");
-const { localConfig } = require("../config");
-const { paginate } = require("../paginate");
-const { questionsInitProject, questionsInitFunction, questionsInitCollection } = require("../questions");
-const { success, log, actionRunner, commandDescriptions } = require("../parser");
 
-const init = new Command("init")
-    .description(commandDescriptions['init'])
-    .configureHelp({
-        helpWidth: process.stdout.columns || 80
-    })
-    .action(actionRunner(async (_options, command) => {
-        command.help();
-    }));
+const initResources = async () => {
+    const actions = {
+        function: initFunction,
+        collection: initCollection,
+        bucket: initBucket,
+        team: initTeam,
+        message: initTopic
+    }
 
-const initProject = async () => {
-    let response = {}
-    const answers = await inquirer.prompt(questionsInitProject)
-    if (!answers.project) process.exit(1)
+    const answers = await inquirer.prompt(questionsInitResources[0]);
 
-    let sdk = await sdkForConsole();
-    if (answers.start === "new") {
-        response = await teamsCreate({
-            teamId: 'unique()',
-            name: answers.project,
-            sdk,
-            parseOutput: false
-        })
+    const action = actions[answers.resource];
+    if (action !== undefined) {
+        await action({ returnOnZero: true });
+    }
+};
 
-        let teamId = response['$id'];
+const initProject = async ({ organizationId, projectId, projectName } = {}) => {
+    let response = {};
+
+    try {
+        if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
+            throw '';
+        }
+        const client = await sdkForConsole();
+
+        await accountGet({
+            parseOutput: false,
+            sdk: client
+        });
+    } catch (e) {
+        error('Error Session not found. Please run `appwrite login` to create a session');
+        process.exit(1);
+    }
+
+    let answers = {};
+
+    if (!organizationId && !projectId && !projectName) {
+        answers = await inquirer.prompt(questionsInitProject)
+        if (answers.override === false) {
+            process.exit(1)
+        }
+    } else {
+        answers.start = 'existing';
+        answers.project = {};
+        answers.organization = {};
+
+        answers.organization = organizationId ?? (await inquirer.prompt(questionsInitProject[2])).organization;
+        answers.project.name = projectName ?? (await inquirer.prompt(questionsInitProject[3])).project;
+        answers.project = projectId ?? (await inquirer.prompt(questionsInitProject[4])).id;
+
+        try {
+            await projectsGet({ projectId, parseOutput: false });
+        } catch (e) {
+            if (e.code === 404) {
+                answers.start = 'new';
+                answers.id = answers.project;
+                answers.project = answers.project.name;
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    if (answers.start === 'new') {
         response = await projectsCreate({
             projectId: answers.id,
             name: answers.project,
-            teamId,
+            teamId: answers.organization,
             parseOutput: false
         })
 
-        localConfig.setProject(response['$id'], response.name);
+        localConfig.setProject(response['$id']);
     } else {
-        localConfig.setProject(answers.project.id, answers.project.name);
+        localConfig.setProject(answers.project);
     }
-    success();
+
+    success(`Project successfully ${answers.start === 'existing' ? 'linked' : 'created'}. Details are now stored in appwrite.json file.`);
+
+    log("Next you can use 'appwrite init' to create resources in your project, or use 'appwrite pull' and 'appwite push' to synchronize your project.")
+
+    if(answers.start === 'existing') {
+        log("Since you connected to an existing project, we highly recommend to run 'appwrite pull all' to synchronize all of your existing resources.");
+    }
 }
+
+const initBucket = async () => {
+    const answers = await inquirer.prompt(questionsCreateBucket)
+
+    localConfig.addBucket({
+        $id: answers.id === 'unique()' ? ID.unique() : answers.id,
+        name: answers.bucket,
+        fileSecurity: answers.fileSecurity.toLowerCase() === 'yes',
+        enabled: true,
+    });
+    success();
+    log("Next you can use 'appwrite push bucket' to deploy the changes.");
+};
+
+const initTeam = async () => {
+    const answers = await inquirer.prompt(questionsCreateTeam)
+
+    localConfig.addTeam({
+        $id: answers.id === 'unique()' ? ID.unique() : answers.id,
+        name: answers.bucket,
+    });
+
+    success();
+    log("Next you can use 'appwrite push team' to deploy the changes.");
+};
+
+const initCollection = async () => {
+    const answers = await inquirer.prompt(questionsCreateCollection)
+    const newDatabase = (answers.method ?? '').toLowerCase() !== 'existing';
+
+    if (!newDatabase) {
+        answers.databaseId = answers.database;
+        answers.databaseName = localConfig.getDatabase(answers.database).name;
+    }
+
+    const databaseId = answers.databaseId === 'unique()' ? ID.unique() : answers.databaseId;
+
+    if (newDatabase || !localConfig.getDatabase(answers.databaseId)) {
+        localConfig.addDatabase({
+            $id: databaseId,
+            name: answers.databaseName,
+            enabled: true
+        });
+    }
+
+    localConfig.addCollection({
+        $id: answers.id === 'unique()' ? ID.unique() : answers.id,
+        databaseId: databaseId,
+        name: answers.collection,
+        documentSecurity: answers.documentSecurity.toLowerCase() === 'yes',
+        attributes: [],
+        indexes: [],
+        enabled: true,
+    });
+
+    success();
+    log("Next you can use 'appwrite push collection' to deploy the changes.");
+};
+
+const initTopic = async () => {
+    const answers = await inquirer.prompt(questionsCreateMessagingTopic)
+
+    localConfig.addMessagingTopic({
+        $id: answers.id === 'unique()' ? ID.unique() : answers.id,
+        name: answers.topic,
+
+    });
+
+    success();
+    log("Next you can use 'appwrite push topic' to deploy the changes.");
+};
 
 const initFunction = async () => {
     // TODO: Add CI/CD support (ID, name, runtime)
-    const answers = await inquirer.prompt(questionsInitFunction)
+    const answers = await inquirer.prompt(questionsCreateFunction)
     const functionFolder = path.join(process.cwd(), 'functions');
 
     if (!fs.existsSync(functionFolder)) {
@@ -63,34 +193,46 @@ const initFunction = async () => {
         });
     }
 
-    const functionDir = path.join(functionFolder, answers.name);
+    const functionId = answers.id === 'unique()' ? ID.unique() : answers.id;
+    const functionDir = path.join(functionFolder, functionId);
+    const templatesDir = path.join(functionFolder, `${functionId}-templates`);
+    const runtimeDir = path.join(templatesDir, answers.runtime.name);
 
     if (fs.existsSync(functionDir)) {
-        throw new Error(`( ${answers.name} ) already exists in the current directory. Please choose another name.`);
+        throw new Error(`( ${functionId} ) already exists in the current directory. Please choose another name.`);
     }
 
     if (!answers.runtime.entrypoint) {
-        log(`Entrypoint for this runtime not found. You will be asked to configure entrypoint when you first deploy the function.`);
+        log(`Entrypoint for this runtime not found. You will be asked to configure entrypoint when you first push the function.`);
     }
 
     if (!answers.runtime.commands) {
-        log(`Installation command for this runtime not found. You will be asked to configure the install command when you first deploy the function.`);
+        log(`Installation command for this runtime not found. You will be asked to configure the install command when you first push the function.`);
     }
 
-    let response = await functionsCreate({
-        functionId: answers.id,
-        name: answers.name,
-        runtime: answers.runtime.id,
-        entrypoint: answers.runtime.entrypoint || '',
-        commands: answers.runtime.commands || '',
-        parseOutput: false
-    })
 
     fs.mkdirSync(functionDir, "777");
+    fs.mkdirSync(templatesDir, "777");
+    const repo = "https://github.com/{{ sdk.gitUserName }}/templates";
+    const api = `https://api.github.com/repos/{{ sdk.gitUserName }}/templates/contents/${answers.runtime.name}`
+    const templates = ['starter'];
+    let selected = undefined;
 
-    let gitInitCommands = "git clone -b v3 --single-branch --depth 1 --sparse https://github.com/{{ sdk.gitUserName }}/functions-starter ."; // depth prevents fetching older commits reducing the amount fetched
+    try {
+        const res = await fetch(api);
+        templates.push(...(await res.json()).map((template) => template.name));
 
-    let gitPullCommands = `git sparse-checkout add ${answers.runtime.id}`;
+        selected = await inquirer.prompt(questionsCreateFunctionSelectTemplate(templates))
+    } catch {
+        // Not a problem will go with directory pulling
+        log('Loading templates...');
+    }
+
+    const sparse = (selected ? `${answers.runtime.name}/${selected.template}` : answers.runtime.name).toLowerCase();
+
+    let gitInitCommands = `git clone --single-branch --depth 1 --sparse ${repo} .`; // depth prevents fetching older commits reducing the amount fetched
+
+    let gitPullCommands = `git sparse-checkout add ${sparse}`;
 
     /* Force use CMD as powershell does not support && */
     if (process.platform === 'win32') {
@@ -100,8 +242,8 @@ const initFunction = async () => {
 
     /*  Execute the child process but do not print any std output */
     try {
-        childProcess.execSync(gitInitCommands, { stdio: 'pipe', cwd: functionDir });
-        childProcess.execSync(gitPullCommands, { stdio: 'pipe', cwd: functionDir });
+        childProcess.execSync(gitInitCommands, { stdio: 'pipe', cwd: templatesDir });
+        childProcess.execSync(gitPullCommands, { stdio: 'pipe', cwd: templatesDir });
     } catch (error) {
         /* Specialised errors with recommended actions to take */
         if (error.message.includes('error: unknown option')) {
@@ -113,7 +255,18 @@ const initFunction = async () => {
         }
     }
 
-    fs.rmSync(path.join(functionDir, ".git"), { recursive: true });
+    fs.rmSync(path.join(templatesDir, ".git"), { recursive: true });
+    if (!selected) {
+        templates.push(...fs.readdirSync(runtimeDir, { withFileTypes: true })
+            .filter(item => item.isDirectory() && item.name !== 'starter')
+            .map(dirent => dirent.name));
+        selected = { template: 'starter' };
+
+        if (templates.length > 1) {
+            selected = await inquirer.prompt(questionsCreateFunctionSelectTemplate(templates))
+        }
+    }
+
     const copyRecursiveSync = (src, dest) => {
         let exists = fs.existsSync(src);
         let stats = exists && fs.statSync(src);
@@ -130,11 +283,11 @@ const initFunction = async () => {
             fs.copyFileSync(src, dest);
         }
     };
-    copyRecursiveSync(path.join(functionDir, answers.runtime.id), functionDir);
+    copyRecursiveSync(path.join(runtimeDir, selected.template), functionDir);
 
-    fs.rmSync(`${functionDir}/${answers.runtime.id}`, { recursive: true, force: true });
+    fs.rmSync(templatesDir, { recursive: true, force: true });
 
-    const readmePath = path.join(process.cwd(), 'functions', answers.name, 'README.md');
+    const readmePath = path.join(process.cwd(), 'functions', functionId, 'README.md');
     const readmeFile = fs.readFileSync(readmePath).toString();
     const newReadmeFile = readmeFile.split('\n');
     newReadmeFile[0] = `# ${answers.name}`;
@@ -142,125 +295,67 @@ const initFunction = async () => {
     fs.writeFileSync(readmePath, newReadmeFile.join('\n'));
 
     let data = {
-        $id: response['$id'],
-        name: response.name,
-        runtime: response.runtime,
-        execute: response.execute,
-        events: response.events,
-        schedule: response.schedule,
-        timeout: response.timeout,
-        enabled: response.enabled,
-        logging: response.logging,
-        entrypoint: response.entrypoint,
-        commands: response.commands,
+        $id: functionId,
+        name: answers.name,
+        runtime: answers.runtime.id,
+        execute: [],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: answers.runtime.entrypoint || '',
+        commands: answers.runtime.commands || '',
         ignore: answers.runtime.ignore || null,
-        path: `functions/${answers.name}`,
+        path: `functions/${functionId}`,
     };
 
     localConfig.addFunction(data);
     success();
+    log("Next you can use 'appwrite run function' to develop a function locally. To deploy the function, use 'appwrite push function'");
 }
 
-const initCollection = async ({ all, databaseId } = {}) => {
-    const databaseIds = [];
-
-    if (databaseId) {
-        databaseIds.push(databaseId);
-    } else if (all) {
-        let allDatabases = await databasesList({
-            parseOutput: false
-        })
-
-        databaseIds.push(...allDatabases.databases.map((d) => d.$id));
-    }
-
-    if (databaseIds.length <= 0) {
-        let answers = await inquirer.prompt(questionsInitCollection)
-        if (!answers.databases) process.exit(1)
-        databaseIds.push(...answers.databases);
-    }
-
-    for (const databaseId of databaseIds) {
-        const database = await databasesGet({
-            databaseId,
-            parseOutput: false
-        });
-
-        localConfig.addDatabase(database);
-
-        const { collections, total } = await paginate(databasesListCollections, {
-            databaseId,
-            parseOutput: false
-        }, 100, 'collections');
-
-        log(`Found ${total} collections`);
-
-        collections.forEach(async collection => {
-            log(`Fetching ${collection.name} ...`);
-            localConfig.addCollection({
-                ...collection,
-                '$createdAt': undefined,
-                '$updatedAt': undefined,
-            });
-        });
-    }
-
-    success();
-}
-
-const initBucket = async () => {
-    const { buckets } = await paginate(storageListBuckets, { parseOutput: false }, 100, 'buckets');
-
-    log(`Found ${buckets.length} buckets`);
-
-    buckets.forEach(async bucket => {
-        log(`Fetching ${bucket.name} ...`);
-        localConfig.addBucket(bucket);
-    });
-
-    success();
-}
-
-const initTeam = async () => {
-    const { teams } = await paginate(teamsList, { parseOutput: false }, 100, 'teams');
-
-    log(`Found ${teams.length} teams`);
-
-    teams.forEach(async team => {
-        log(`Fetching ${team.name} ...`);
-        const { total, $updatedAt, $createdAt, prefs, ...rest } = team;
-        localConfig.addTeam(rest);
-    });
-
-    success();
-}
+const init = new Command("init")
+    .description(commandDescriptions['init'])
+    .action(actionRunner(initResources));
 
 init
     .command("project")
-    .description("Initialise your {{ spec.title|caseUcfirst }} project")
+    .description("Init a new {{ spec.title|caseUcfirst }} project")
+    .option("--organizationId <organizationId>", "{{ spec.title|caseUcfirst }} organization ID")
+    .option("--projectId <projectId>", "{{ spec.title|caseUcfirst }} project ID")
+    .option("--projectName <projectName>", "{{ spec.title|caseUcfirst }} project ID")
     .action(actionRunner(initProject));
 
 init
     .command("function")
-    .description("Initialise your {{ spec.title|caseUcfirst }} cloud function")
-    .action(actionRunner(initFunction))
-
-init
-    .command("collection")
-    .description("Initialise your {{ spec.title|caseUcfirst }} collections")
-    .option(`--databaseId <databaseId>`, `Database ID`)
-    .option(`--all`, `Flag to initialize all databases`)
-    .action(actionRunner(initCollection))
+    .alias("functions")
+    .description("Init a new {{ spec.title|caseUcfirst }} function")
+    .action(actionRunner(initFunction));
 
 init
     .command("bucket")
-    .description("Initialise your Appwrite buckets")
-    .action(actionRunner(initBucket))
+    .alias("buckets")
+    .description("Init a new {{ spec.title|caseUcfirst }} bucket")
+    .action(actionRunner(initBucket));
 
 init
     .command("team")
-    .description("Initialise your Appwrite teams")
-    .action(actionRunner(initTeam))
+    .alias("teams")
+    .description("Init a new {{ spec.title|caseUcfirst }} team")
+    .action(actionRunner(initTeam));
+
+init
+    .command("collection")
+    .alias("collections")
+    .description("Init a new {{ spec.title|caseUcfirst }} collection")
+    .action(actionRunner(initCollection));
+
+init
+    .command("topic")
+    .alias("topics")
+    .description("Init a new {{ spec.title|caseUcfirst }} topic")
+    .action(actionRunner(initTopic));
 
 module.exports = {
     init,

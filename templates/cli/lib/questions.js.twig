@@ -1,15 +1,22 @@
-const { localConfig } = require('./config');
+const chalk = require("chalk");
+const Client = require("./client");
+const { localConfig, globalConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
-const { functionsListRuntimes } = require('./commands/functions');
+const { teamsList } = require('./commands/teams');
+const { functionsListRuntimes, functionsList } = require('./commands/functions');
 const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
-
+const { validateRequired } = require("./validations");
+const { paginate } = require('./paginate');
+const { isPortTaken } = require('./utils');
 const { databasesList } = require('./commands/databases');
 const { checkDeployConditions } = require('./utils');
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
+const whenOverride = (answers) => answers.override === undefined ? true : answers.override;
+
 const getIgnores = (runtime) => {
-    const languge = runtime.split('-')[0];
+    const languge = runtime.split("-").slice(0, -1).join("-");
 
     switch (languge) {
         case 'cpp':
@@ -29,6 +36,7 @@ const getIgnores = (runtime) => {
         case 'php':
             return ['vendor'];
         case 'python':
+        case 'python-ml':
             return ['__pypackages__'];
         case 'ruby':
             return ['vendor'];
@@ -42,7 +50,7 @@ const getIgnores = (runtime) => {
 };
 
 const getEntrypoint = (runtime) => {
-    const languge = runtime.split('-')[0];
+    const languge = runtime.split("-").slice(0, -1).join("-");
 
     switch (languge) {
         case 'dart':
@@ -56,6 +64,7 @@ const getEntrypoint = (runtime) => {
         case 'php':
             return 'src/index.php';
         case 'python':
+        case 'python-ml':
             return 'src/main.py';
         case 'ruby':
             return 'lib/main.rb';
@@ -77,7 +86,7 @@ const getEntrypoint = (runtime) => {
 };
 
 const getInstallCommand = (runtime) => {
-    const languge = runtime.split('-')[0];
+    const languge = runtime.split("-").slice(0, -1).join("-");
 
     switch (languge) {
         case 'dart':
@@ -91,6 +100,7 @@ const getInstallCommand = (runtime) => {
         case 'php':
             return 'composer install';
         case 'python':
+        case 'python-ml':
             return 'pip install -r requirements.txt';
         case 'ruby':
             return 'bundle install';
@@ -113,7 +123,7 @@ const questionsInitProject = [
         type: "confirm",
         name: "override",
         message:
-            `An {{ spec.title|caseUcfirst }} project ( ${localConfig.getProject()['projectName']} ) is already associated with the current directory. Would you like to override`,
+            `An {{ spec.title|caseUcfirst }} project ( ${localConfig.getProject()['projectId']} ) is already associated with the current directory. Would you like to override`,
         when() {
             return Object.keys(localConfig.getProject()).length !== 0;
         }
@@ -121,61 +131,72 @@ const questionsInitProject = [
     {
         type: "list",
         name: "start",
-        when(answers) {
-            if (answers.override == undefined) {
-                return true
-            }
-            return answers.override;
-        },
+        when: whenOverride,
         message: "How would you like to start?",
         choices: [
             {
-                name: "Create a new {{ spec.title|caseUcfirst }} project",
-                value: "new",
+                name: "Create new project",
+                value: "new"
             },
             {
-                name: "Link this directory to an existing {{ spec.title|caseUcfirst }} project",
-                value: "existing",
-            },
-        ],
+                name: "Link directory to an existing project",
+                value: "existing"
+            }
+        ]
+    },
+    {
+        type: "search-list",
+        name: "organization",
+        message: "Choose your organization",
+        choices: async () => {
+            let client = await sdkForConsole(true);
+            const { teams } = await paginate(teamsList, { parseOutput: false, sdk: client }, 100, 'teams');
+
+            let choices = teams.map((team, idx) => {
+                return {
+                    name: `${team.name} (${team['$id']})`,
+                    value: team['$id']
+                }
+            })
+
+            if (choices.length == 0) {
+                throw new Error(`No organizations found. Please create a new organization at ${globalConfig.getEndpoint().replace('/v1', '/console/onboarding')}`)
+            }
+
+            return choices;
+        },
+        when: whenOverride
     },
     {
         type: "input",
         name: "project",
         message: "What would you like to name your project?",
         default: "My Awesome Project",
-        when(answers) {
-            return answers.start == "new";
-        },
+        when: (answer) => answer.start !== 'existing'
     },
     {
         type: "input",
         name: "id",
         message: "What ID would you like to have for your project?",
         default: "unique()",
-        when(answers) {
-            return answers.start == "new";
-        },
+        when: (answer) => answer.start !== 'existing'
     },
     {
-        type: "list",
+        type: "search-list",
         name: "project",
         message: "Choose your {{ spec.title|caseUcfirst }} project.",
-        when(answers) {
-            return answers.start == "existing";
-        },
-        choices: async () => {
-            let response = await projectsList({
-                parseOutput: false
-            })
-            let projects = response["projects"]
-            let choices = projects.map((project, idx) => {
+        choices: async (answers) => {
+            const queries = [
+                JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization.id] }),
+                JSON.stringify({ method: 'orderDesc', attribute: 'Id' })
+            ]
+
+            const { projects } = await paginate(projectsList, { parseOutput: false, queries, }, 100, 'projects');
+
+            let choices = projects.map((project) => {
                 return {
                     name: `${project.name} (${project['$id']})`,
-                    value: {
-                        name: project.name,
-                        id: project['$id']
-                    }
+                    value: project['$id']
                 }
             })
 
@@ -184,11 +205,50 @@ const questionsInitProject = [
             }
 
             return choices;
+        },
+        when: (answer) => answer.start === 'existing'
+    }
+];
+const questionsPullResources = [
+    {
+        type: "list",
+        name: "resource",
+        message: "Which resources would you like to pull?",
+        choices: [
+            { name: 'Project', value: 'project' },
+            { name: 'Functions', value: 'functions' },
+            { name: 'Collections', value: 'collections' },
+            { name: 'Buckets', value: 'buckets' },
+            { name: 'Teams', value: 'teams' },
+            { name: 'Topics', value: 'messages' }
+        ]
+    }
+]
+
+const questionsPullFunctions = [
+    {
+        type: "checkbox",
+        name: "functions",
+        message: "Which functions would you like to pull?",
+        validate: (value) => validateRequired('function', value),
+        choices: async () => {
+            const { functions } = await paginate(functionsList, { parseOutput: false }, 100, 'functions');
+
+            if (functions.length === 0) {
+                throw "We couldn't find any functions in your {{ spec.title|caseUcfirst }} project";
+            }
+
+            return functions.map(func => {
+                return {
+                    name: `${func.name} (${func.$id})`,
+                    value: func
+                }
+            });
         }
     }
 ];
 
-const questionsInitFunction = [
+const questionsCreateFunction = [
     {
         type: "input",
         name: "name",
@@ -215,9 +275,10 @@ const questionsInitFunction = [
                     name: `${runtime.name} (${runtime['$id']})`,
                     value: {
                         id: runtime['$id'],
+                        name: runtime['$id'].split('-')[0],
                         entrypoint: getEntrypoint(runtime['$id']),
                         ignore: getIgnores(runtime['$id']),
-                        commands : getInstallCommand(runtime['$id'])
+                        commands: getInstallCommand(runtime['$id'])
                     },
                 }
             })
@@ -226,11 +287,146 @@ const questionsInitFunction = [
     }
 ];
 
-const questionsInitCollection = [
+const questionsCreateFunctionSelectTemplate = (templates) => {
+    return [
+        {
+            type: "search-list",
+            name: "template",
+            message: "What template would you like to use?",
+            choices: templates.map((template) => {
+                const name = `${template[0].toUpperCase()}${template.split('').slice(1).join('')}`.replace(/[-_]/g, ' ');
+
+                return { value: template, name }
+            })
+        }
+    ];
+};
+
+
+
+const questionsCreateBucket = [
+    {
+        type: "input",
+        name: "bucket",
+        message: "What would you like to name your bucket?",
+        default: "My Awesome Bucket"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your bucket?",
+        default: "unique()"
+    },
+    {
+        type: "list",
+        name: "fileSecurity",
+        message: "Enable File-Security configuring permissions for individual file",
+        choices: ["No", "Yes"]
+    }
+];
+
+const questionsCreateTeam = [
+    {
+        type: "input",
+        name: "bucket",
+        message: "What would you like to name your team?",
+        default: "My Awesome Team"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your team?",
+        default: "unique()"
+    }
+];
+
+const questionsCreateCollection = [
+    {
+        type: "list",
+        name: "method",
+        message: "What database would you like to use for your collection",
+        choices: ["New", "Existing"],
+        when: async () => {
+            return localConfig.getDatabases().length !== 0;
+        }
+    },
+    {
+        type: "search-list",
+        name: "database",
+        message: "Choose the collection database",
+        choices: async () => {
+            const databases = localConfig.getDatabases();
+
+            let choices = databases.map((database, idx) => {
+                return {
+                    name: `${database.name} (${database.$id})`,
+                    value: database.$id
+                }
+            })
+
+            if (choices.length === 0) {
+                throw new Error("No databases found. Please create one in project console.")
+            }
+
+            return choices;
+        },
+        when: (answers) => (answers.method ?? '').toLowerCase() === 'existing'
+    },
+    {
+        type: "input",
+        name: "databaseName",
+        message: "What would you like to name your database?",
+        default: "My Awesome Database",
+        when: (answers) => (answers.method ?? '').toLowerCase() !== 'existing'
+    },
+    {
+        type: "input",
+        name: "databaseId",
+        message: "What ID would you like to have for your database?",
+        default: "unique()",
+        when: (answers) => (answers.method ?? '').toLowerCase() !== 'existing'
+    },
+    {
+        type: "input",
+        name: "collection",
+        message: "What would you like to name your collection?",
+        default: "My Awesome Collection"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your collection?",
+        default: "unique()"
+    },
+    {
+        type: "list",
+        name: "documentSecurity",
+        message: "Enable Document-Security for configuring permissions for individual documents",
+        choices: ["No", "Yes"]
+    }
+];
+
+const questionsCreateMessagingTopic = [
+    {
+        type: "input",
+        name: "topic",
+        message: "What would you like to name your messaging topic?",
+        default: "My Awesome Topic"
+    },
+    {
+        type: "input",
+        name: "id",
+        message: "What ID would you like to have for your messaging topic?",
+        default: "unique()"
+    }
+];
+
+const questionsPullCollection = [
     {
         type: "checkbox",
         name: "databases",
-        message: "From which database would you like to init collections?",
+        message: "From which database would you like to pull collections?",
+        validate: (value) => validateRequired('collection', value),
         choices: async () => {
             let response = await databasesList({
                 parseOutput: false
@@ -253,6 +449,16 @@ const questionsInitCollection = [
 
 const questionsLogin = [
     {
+        type: "list",
+        name: "method",
+        message: "You're already logged in, what you like to do?",
+        choices: [
+            { name: 'Login to a different account', value: 'login' },
+            { name: 'Change to a different existed account', value: 'select' }
+        ],
+        when: () => globalConfig.getCurrentSession() !== ''
+    },
+    {
         type: "input",
         name: "email",
         message: "Enter your email",
@@ -262,6 +468,7 @@ const questionsLogin = [
             }
             return true;
         },
+        when: (answers) => answers.method !== 'select'
     },
     {
         type: "password",
@@ -273,20 +480,132 @@ const questionsLogin = [
                 return "Please enter your password";
             }
             return true;
-        }
+        },
+        when: (answers) => answers.method !== 'select'
+    },
+    {
+        type: "search-list",
+        name: "accountId",
+        message: "Select an account to use",
+        choices() {
+            const sessions = globalConfig.getSessions();
+            const current = globalConfig.getCurrentSession();
+
+            const data = [];
+
+            const longestEmail = sessions.reduce((prev, current) => (prev && (prev.email ?? '').length > (current.email ?? '').length) ? prev : current).email.length;
+
+            sessions.forEach((session) => {
+                if (session.email) {
+                    data.push({
+                        current: current === session.id,
+                        value: session.id,
+                        name: `${session.email.padEnd(longestEmail)} ${current === session.id ? chalk.green.bold('current') : ' '.repeat(6)} ${session.endpoint}`,
+                    });
+                }
+            })
+
+            return data.sort((a, b) => Number(b.current) - Number(a.current))
+        },
+        when: (answers) => answers.method === 'select'
     },
 ];
+const questionGetEndpoint = [
+    {
+        type: "input",
+        name: "endpoint",
+        message: "Enter the endpoint of your {{ spec.title|caseUcfirst }} server",
+        default: "http://localhost/v1",
+        async validate(value) {
+            if (!value) {
+                return "Please enter a valid endpoint.";
+            }
+            let client = new Client().setEndpoint(value);
+            try {
+                let response = await client.call('get', '/health/version');
+                if (response.version) {
+                    return true;
+                } else {
+                    throw new Error();
+                }
+            } catch (error) {
+                return "Invalid endpoint or your Appwrite server is not running as expected.";
+            }
+        }
+    }
+];
 
-const questionsDeployFunctions = [
+const questionsLogout = [
+    {
+        type: "checkbox",
+        name: "accounts",
+        message: "Select accounts to logout from",
+        validate: (value) => validateRequired('account', value),
+        choices() {
+            const sessions = globalConfig.getSessions();
+            const current = globalConfig.getCurrentSession();
+
+            const data = [];
+
+            const longestEmail = sessions.reduce((prev, current) => (prev && (prev.email ?? '').length > (current.email ?? '').length) ? prev : current).email.length;
+
+            sessions.forEach((session) => {
+                if (session.email) {
+                    data.push({
+                        current: current === session.id,
+                        value: session.id,
+                        name: `${session.email.padEnd(longestEmail)} ${current === session.id ? chalk.green.bold('current') : ' '.repeat(6)} ${session.endpoint}`,
+                    });
+                }
+            })
+
+            return data.sort((a, b) => Number(b.current) - Number(a.current))
+        }
+    }
+];
+
+const questionsPushResources = [
+    {
+        type: "list",
+        name: "resource",
+        message: "Which resources would you like to push?",
+        choices: [
+            { name: 'Project', value: 'project' },
+            { name: 'Functions', value: 'functions' },
+            { name: 'Collections', value: 'collections' },
+            { name: 'Buckets', value: 'buckets' },
+            { name: 'Teams', value: 'teams' },
+            { name: 'Topics', value: 'messages' }
+        ]
+    }
+];
+
+const questionsInitResources = [
+    {
+        type: "list",
+        name: "resource",
+        message: "Which resource would you create?",
+        choices: [
+            { name: 'Function', value: 'function' },
+            { name: 'Collection', value: 'collection' },
+            { name: 'Bucket', value: 'bucket' },
+            { name: 'Team', value: 'team' },
+            { name: 'Topic', value: 'message' }
+        ]
+    }
+];
+
+const questionsPushFunctions = [
     {
         type: "checkbox",
         name: "functions",
-        message: "Which functions would you like to deploy?",
+        message: "Which functions would you like to push?",
+        validate: (value) => validateRequired('function', value),
         choices: () => {
             let functions = localConfig.getFunctions();
             checkDeployConditions(localConfig)
             if (functions.length === 0) {
-                throw new Error("No functions found in the current directory.");
+                throw new Error("No functions found in the current directory Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
             }
             let choices = functions.map((func, idx) => {
                 return {
@@ -304,17 +623,18 @@ const questionsDeployFunctions = [
     },
 ]
 
-const questionsDeployCollections = [
+const questionsPushCollections = [
     {
         type: "checkbox",
         name: "collections",
-        message: "Which collections would you like to deploy?",
+        message: "Which collections would you like to push?",
+        validate: (value) => validateRequired('collection', value),
         choices: () => {
             let collections = localConfig.getCollections();
             checkDeployConditions(localConfig)
 
             if (collections.length === 0) {
-                throw new Error("No collections found in the current directory. Run `{{ language.params.executableName }} init collection` to fetch all your collections.");
+                throw new Error("No collections found in the current directory. Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
             }
             return collections.map(collection => {
                 return {
@@ -326,21 +646,22 @@ const questionsDeployCollections = [
     },
     {
         type: "input",
-        name: "override",
-        message: 'Are you sure you want to override this collection? This can lead to loss of data! Type "YES" to confirm.'
-    },
+        name: "changes",
+        message: `Would you like to apply these changes? Type "YES" to confirm.`
+    }
 ]
 
-const questionsDeployBuckets = [
+const questionsPushBuckets = [
     {
         type: "checkbox",
         name: "buckets",
-        message: "Which buckets would you like to deploy?",
+        message: "Which buckets would you like to push?",
+        validate: (value) => validateRequired('bucket', value),
         choices: () => {
             let buckets = localConfig.getBuckets();
             checkDeployConditions(localConfig)
             if (buckets.length === 0) {
-                throw new Error("No buckets found in the current directory. Run `appwrite init bucket` to fetch all your buckets.");
+                throw new Error("No buckets found in the current directory. Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
             }
             return buckets.map(bucket => {
                 return {
@@ -349,12 +670,32 @@ const questionsDeployBuckets = [
                 }
             });
         }
+    }
+]
+
+const questionsPushMessagingTopics = [
+    {
+        type: "checkbox",
+        name: "topics",
+        message: "Which messaging topic would you like to push?",
+        choices: () => {
+            let topics = localConfig.getMessagingTopics();
+            if (topics.length === 0) {
+                throw new Error("No topics found in the current directory. Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
+            }
+            return topics.map(topic => {
+                return {
+                    name: `${topic.name} (${topic['$id']})`,
+                    value: topic.$id
+                }
+            });
+        }
     },
     {
         type: "input",
         name: "override",
-        message: 'Are you sure you want to override this bucket? This can lead to loss of data! Type "YES" to confirm.'
-    },
+        message: 'Would you like to override existing topics? This can lead to loss of data! Type "YES" to confirm.'
+    }
 ]
 
 const questionsGetEntrypoint = [
@@ -372,16 +713,17 @@ const questionsGetEntrypoint = [
     },
 ]
 
-const questionsDeployTeams = [
+const questionsPushTeams = [
     {
         type: "checkbox",
         name: "teams",
-        message: "Which teams would you like to deploy?",
+        message: "Which teams would you like to push?",
+        validate: (value) => validateRequired('team', value),
         choices: () => {
             let teams = localConfig.getTeams();
             checkDeployConditions(localConfig);
             if (teams.length === 0) {
-                throw new Error("No teams found in the current directory. Run `appwrite init team` to fetch all your teams.");
+                throw new Error("No teams found in the current directory. Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
             }
             return teams.map(team => {
                 return {
@@ -391,43 +733,38 @@ const questionsDeployTeams = [
             });
         }
     },
-    {
-        type: "input",
-        name: "override",
-        message: 'Are you sure you want to override this team? This can lead to loss of data! Type "YES" to confirm.'
-    },
 ];
 
 const questionsListFactors = [
     {
         type: "list",
         name: "factor",
-        message: "Your account is protected by multiple factors. Which factor would you like to use to authenticate?",
+        message: "Your account is protected by multi-factor authentication. Please choose one for verification.",
         choices: async () => {
             let client = await sdkForConsole(false);
             const factors = await accountListMfaFactors({
                 sdk: client,
                 parseOutput: false
             });
-                
+
             const choices = [
                 {
-                    name: `TOTP (Time-based One-time Password)`,
+                    name: `Authenticator app (Get a code from a third-party authenticator app)`,
                     value: 'totp'
                 },
                 {
-                    name: `E-mail`,
+                    name: `Email (Get a security code at your Appwrite email address)`,
                     value: 'email'
                 },
                 {
-                    name: `Phone (SMS)`,
+                    name: `SMS (Get a security code on your Appwrite phone number)`,
                     value: 'phone'
                 },
                 {
-                    name: `Recovery code`,
+                    name: `Recovery code (Use one of your recovery codes for verification)`,
                     value: 'recoveryCode'
                 }
-            ].filter((ch) => factors[ch.value] === true);
+            ].filter((ch) => factors[ch.value] === true);
 
             return choices;
         }
@@ -448,16 +785,51 @@ const questionsMfaChallenge = [
     }
 ];
 
+const questionsRunFunctions = [
+    {
+        type: "list",
+        name: "function",
+        message: "Which function would you like to develop locally?",
+        validate: (value) => validateRequired('function', value),
+        choices: () => {
+            let functions = localConfig.getFunctions();
+            if (functions.length === 0) {
+                throw new Error("No functions found in the current directory. Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
+            }
+            let choices = functions.map((func, idx) => {
+                return {
+                    name: `${func.name} (${func.$id})`,
+                    value: func.$id
+                }
+            })
+            return choices;
+        }
+    }
+];
+
 module.exports = {
     questionsInitProject,
+    questionsCreateFunction,
+    questionsCreateFunctionSelectTemplate,
+    questionsCreateBucket,
+    questionsCreateCollection,
+    questionsCreateMessagingTopic,
+    questionsPullFunctions,
     questionsLogin,
-    questionsInitFunction,
-    questionsInitCollection,
-    questionsDeployFunctions,
-    questionsDeployCollections,
-    questionsDeployBuckets,
-    questionsDeployTeams,
+    questionsPullResources,
+    questionsLogout,
+    questionsPullCollection,
+    questionsPushResources,
+    questionsPushFunctions,
+    questionsPushCollections,
+    questionsPushBuckets,
+    questionsPushMessagingTopics,
+    questionsPushTeams,
     questionsGetEntrypoint,
     questionsListFactors,
-    questionsMfaChallenge
+    questionsMfaChallenge,
+    questionsRunFunctions,
+    questionGetEndpoint,
+    questionsInitResources,
+    questionsCreateTeam
 };

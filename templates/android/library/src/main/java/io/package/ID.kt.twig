@@ -4,6 +4,9 @@ import java.time.Instant
 import kotlin.math.floor
 import kotlin.random.Random
 
+/**
+ * Helper class to generate ID strings for resources.
+ */
 class ID {
     companion object {
         // Generate an hex ID based on timestamp
@@ -21,7 +24,12 @@ class ID {
         fun custom(id: String): String
             = id
 
-        // Generate a unique ID with padding to have a longer ID
+        /** 
+         * Generate a unique ID with padding to have a longer ID
+         *
+         * @param padding The number of characters to add to the ID
+         * @returns The unique ID
+         */
         fun unique(padding: Int = 7): String {
             val baseId = hexTimestamp()
             val randomPadding = (1..padding)

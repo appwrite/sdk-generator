@@ -68,7 +68,7 @@ const sdkForProject = async () => {
   }
 
   if (!project) {
-    throw new Error("Project is not set. Please run `{{ language.params.executableName }} init project` to initialize the current directory with an {{ spec.title|caseUcfirst }} project.");
+    throw new Error("Project is not set. Please run `{{ language.params.executableName }} init` to initialize the current directory with an {{ spec.title|caseUcfirst }} project.");
   }
 
   client
