@@ -46,7 +46,7 @@ const getIgnores = (runtime) => {
             return ['.build', '.swiftpm'];
     }
 
-    return undefined;
+    return [];
 };
 
 const getEntrypoint = (runtime) => {
@@ -80,6 +80,8 @@ const getEntrypoint = (runtime) => {
             return 'src/Main.java';
         case 'kotlin':
             return 'src/Main.kt';
+        case 'go':
+            return 'main.go';
     }
 
     return undefined;
@@ -209,18 +211,26 @@ const questionsInitProject = [
         when: (answer) => answer.start === 'existing'
     }
 ];
+const questionsInitProjectAutopull = [
+    {
+        type: "confirm",
+        name: "autopull",
+        message:
+            `Would you like to pull all resources from project you just linked?`
+    },
+];
 const questionsPullResources = [
     {
         type: "list",
         name: "resource",
         message: "Which resources would you like to pull?",
         choices: [
-            { name: 'Project', value: 'project' },
-            { name: 'Functions', value: 'functions' },
-            { name: 'Collections', value: 'collections' },
-            { name: 'Buckets', value: 'buckets' },
-            { name: 'Teams', value: 'teams' },
-            { name: 'Topics', value: 'messages' }
+            { name: `Settings ${chalk.blackBright(`(Project)`)}`, value: 'settings' },
+            { name: `Functions ${chalk.blackBright(`(Deployment)`)}`, value: 'functions' },
+            { name: `Collections ${chalk.blackBright(`(Databases)`)}`, value: 'collections' },
+            { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: 'buckets' },
+            { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: 'teams' },
+            { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: 'messages' }
         ]
     }
 ]
@@ -283,8 +293,23 @@ const questionsCreateFunction = [
                 }
             })
             return choices;
-        }
-    }
+        },
+    },
+    {
+        type: "list",
+        name: "template",
+        message: "How would you like to start your function code?",
+        choices: [
+            {
+                name: `Start from scratch ${chalk.blackBright(`(starter)`)}`,
+                value: "starter"
+            },
+            {
+                name: "Pick a template",
+                value: "custom"
+            }
+        ]
+    },
 ];
 
 const questionsCreateFunctionSelectTemplate = (templates) => {
@@ -451,12 +476,12 @@ const questionsLogin = [
     {
         type: "list",
         name: "method",
-        message: "You're already logged in, what you like to do?",
+        message: "What you like to do?",
         choices: [
-            { name: 'Login to a different account', value: 'login' },
-            { name: 'Change to a different existed account', value: 'select' }
+            { name: 'Login to an account', value: 'login' },
+            { name: 'Switch to an account', value: 'select' }
         ],
-        when: () => globalConfig.getCurrentSession() !== ''
+        when: () => globalConfig.getSessions().length >= 2
     },
     {
         type: "input",
@@ -570,12 +595,12 @@ const questionsPushResources = [
         name: "resource",
         message: "Which resources would you like to push?",
         choices: [
-            { name: 'Project', value: 'project' },
-            { name: 'Functions', value: 'functions' },
-            { name: 'Collections', value: 'collections' },
-            { name: 'Buckets', value: 'buckets' },
-            { name: 'Teams', value: 'teams' },
-            { name: 'Topics', value: 'messages' }
+            { name: `Settings ${chalk.blackBright(`(Project)`)}`, value: 'settings' },
+            { name: `Functions ${chalk.blackBright(`(Deployment)`)}`, value: 'functions' },
+            { name: `Collections ${chalk.blackBright(`(Databases)`)}`, value: 'collections' },
+            { name: `Buckets ${chalk.blackBright(`(Storage)`)}`, value: 'buckets' },
+            { name: `Teams ${chalk.blackBright(`(Auth)`)}`, value: 'teams' },
+            { name: `Topics ${chalk.blackBright(`(Messaging)`)}`, value: 'messages' }
         ]
     }
 ];
@@ -605,7 +630,7 @@ const questionsPushFunctions = [
             let functions = localConfig.getFunctions();
             checkDeployConditions(localConfig)
             if (functions.length === 0) {
-                throw new Error("No functions found in the current directory Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
+                throw new Error("No functions found Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
             }
             let choices = functions.map((func, idx) => {
                 return {
@@ -794,7 +819,7 @@ const questionsRunFunctions = [
         choices: () => {
             let functions = localConfig.getFunctions();
             if (functions.length === 0) {
-                throw new Error("No functions found in the current directory. Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
+                throw new Error("No functions found. Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
             }
             let choices = functions.map((func, idx) => {
                 return {
@@ -809,6 +834,7 @@ const questionsRunFunctions = [
 
 module.exports = {
     questionsInitProject,
+    questionsInitProjectAutopull,
     questionsCreateFunction,
     questionsCreateFunctionSelectTemplate,
     questionsCreateBucket,

@@ -6,7 +6,7 @@ const { localConfig, globalConfig } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
 const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
-const { cliConfig, actionRunner, success, log, error, commandDescriptions, drawTable } = require("../parser");
+const { cliConfig, actionRunner, success, warn, log, error, commandDescriptions, drawTable } = require("../parser");
 const { proxyListRules } = require('./proxy');
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
@@ -714,7 +714,7 @@ const createAttributes = async (attributes, collection) => {
 
 const pushResources = async () => {
     const actions = {
-        project: pushProject,
+        settings: pushSettings,
         functions: pushFunction,
         collections: pushCollection,
         buckets: pushBucket,
@@ -736,15 +736,16 @@ const pushResources = async () => {
     }
 };
 
-const pushProject = async () => {
+const pushSettings = async () => {
     try {
+        log("Pushing project settings ...");
+
         const projectId = localConfig.getProject().projectId;
         const projectName = localConfig.getProject().projectName;
         const settings = localConfig.getProject().projectSettings ?? {};
 
-        log(`Updating project ${projectId}`);
-
         if (projectName) {
+            log("Applying project name ...");
             await projectsUpdate({
                 projectId,
                 name: projectName,
@@ -753,7 +754,7 @@ const pushProject = async () => {
         }
 
         if (settings.services) {
-            log('Updating service statuses');
+            log("Applying service statuses ...");
             for (let [service, status] of Object.entries(settings.services)) {
                 await projectsUpdateServiceStatus({
                     projectId,
@@ -766,7 +767,7 @@ const pushProject = async () => {
 
         if (settings.auth) {
             if (settings.auth.security) {
-                log('Updating auth security settings');
+                log("Applying auth security settings ...");
                 await projectsUpdateAuthDuration({ projectId, duration: settings.auth.security.duration, parseOutput: false });
                 await projectsUpdateAuthLimit({ projectId, limit: settings.auth.security.limit, parseOutput: false });
                 await projectsUpdateAuthSessionsLimit({ projectId, limit: settings.auth.security.sessionsLimit, parseOutput: false });
@@ -776,7 +777,7 @@ const pushProject = async () => {
             }
 
             if (settings.auth.methods) {
-                log('Updating auth login methods');
+                log("Applying auth methods statuses ...");
 
                 for (let [method, status] of Object.entries(settings.auth.methods)) {
                     await projectsUpdateAuthStatus({
@@ -789,7 +790,7 @@ const pushProject = async () => {
             }
         }
 
-        success("Project configuration updated.");
+        success(`Successfully pushed ${chalk.bold('all')} project settings.`);
     } catch (e) {
         throw e;
     }
@@ -806,11 +807,9 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
         checkDeployConditions(localConfig);
         const functions = localConfig.getFunctions();
         if (functions.length === 0) {
-            if (returnOnZero) {
-                log('No functions found, skipping');
-                return;
-            }
-            throw new Error("No functions found in the current directory. Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
+            log("No functions found.");
+            hint("Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
+            return;
         }
         functionIds.push(...functions.map((func) => {
             return func.$id;
@@ -833,45 +832,19 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
         return func;
     });
 
-    log('Validating functions');
+    log('Validating functions ...');
     // Validation is done BEFORE pushing so the deployment process can be run in async with progress update
     for (let func of functions) {
 
         if (!func.entrypoint) {
-            log(`Function ${func.name} does not have an endpoint`);
+            log(`Function ${func.name} is missing an entrypoint.`);
             const answers = await inquirer.prompt(questionsGetEntrypoint)
             func.entrypoint = answers.entrypoint;
-            localConfig.updateFunction(func['$id'], func);
-        }
-
-        if (func.variables) {
-            func.pushVariables = cliConfig.force;
-
-            try {
-                const { total } = await functionsListVariables({
-                    functionId: func['$id'],
-                    queries: [JSON.stringify({ method: 'limit', values: [1] })],
-                    parseOutput: false
-                });
-
-                if (total === 0) {
-                    func.pushVariables = true;
-                } else if (total > 0 && !func.pushVariables) {
-                    log(`The function ${func.name} has remote variables setup`);
-                    const variableAnswers = await inquirer.prompt(questionsPushFunctions[1])
-                    func.pushVariables = variableAnswers.override.toLowerCase() === "yes";
-                }
-            } catch (e) {
-                if (e.code != 404) {
-                    throw e.message;
-                }
-            }
+            localConfig.addFunction(func);
         }
     }
 
-
-    log('All functions are validated');
-    log('Pushing functions\n');
+    log('Pushing functions ...');
 
     Spinner.start(false);
     let successfullyPushed = 0;
@@ -934,7 +907,7 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
 
             try {
                 response = await functionsCreate({
-                    functionId: func.$id || 'unique()',
+                    functionId: func.$id,
                     name: func.name,
                     runtime: func.runtime,
                     execute: func.execute,
@@ -949,51 +922,10 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                     parseOutput: false
                 });
 
-                localConfig.updateFunction(func['$id'], {
-                    "$id": response['$id'],
-                });
-                func["$id"] = response['$id'];
                 updaterRow.update({ status: 'Created' });
             } catch (e) {
                 updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
                 return;
-            }
-        }
-
-        if (func.variables) {
-            if (!func.pushVariables) {
-                updaterRow.update({ end: 'Skipping variables' });
-            } else {
-                updaterRow.update({ end: 'Pushing variables' });
-
-                const { variables } = await paginate(functionsListVariables, {
-                    functionId: func['$id'],
-                    parseOutput: false
-                }, 100, 'variables');
-
-                await Promise.all(variables.map(async variable => {
-                    await functionsDeleteVariable({
-                        functionId: func['$id'],
-                        variableId: variable['$id'],
-                        parseOutput: false
-                    });
-                }));
-
-                let result = await awaitPools.wipeVariables(func['$id']);
-                if (!result) {
-                    updaterRow.fail({ errorMessage: 'Variable deletion timed out' })
-                    return;
-                }
-
-                // Push local variables
-                await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
-                    await functionsCreateVariable({
-                        functionId: func['$id'],
-                        key: localVariableKey,
-                        value: func.variables[localVariableKey],
-                        parseOutput: false
-                    });
-                }));
             }
         }
 
@@ -1082,27 +1014,25 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
     }));
 
     Spinner.stop();
-    console.log('\n');
 
     failedDeployments.forEach((failed) => {
         const { name, deployment, $id } = failed;
         const failUrl = `${globalConfig.getEndpoint().replace('/v1', '')}/console/project-${localConfig.getProject().projectId}/functions/function-${$id}/deployment-${deployment}`;
 
         error(`Deployment of ${name} has failed. Check at ${failUrl} for more details\n`);
-    })
-
-    let message = chalk.green(`Pushed and deployed ${successfullyPushed} functions`);
+    });
 
     if (!async) {
-        if (successfullyDeployed < successfullyPushed) {
-            message = `${chalk.green(`Pushed and deployed ${successfullyPushed} functions.`)} ${chalk.red(`${successfullyPushed - successfullyDeployed}  failed to deploy`)}`;
+        if(successfullyPushed === 0) {
+            error('No functions were pushed.');
+        } else if(successfullyDeployed != successfullyPushed) {
+            warn(`Successfully pushed ${successfullyDeployed} of ${successfullyPushed} functions`)
         } else {
-            if (successfullyPushed === 0) {
-                message = chalk.red(`Error pushing ${functions.length} functions`)
-            }
+            success(`Successfully pushed ${successfullyPushed} functions.`);
         }
+    } else {
+        success(`Successfully pushed ${successfullyPushed} functions.`);
     }
-    log(message);
 }
 
 const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
@@ -1111,12 +1041,9 @@ const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (localConfig.getCollections().length === 0) {
-            if (returnOnZero) {
-                log('No collections found, skipping');
-                return;
-            }
-
-            throw new Error("No collections found in the current directory. Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
+            log("No collections found.");
+            hint("Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
+            return;
         }
         collections.push(...localConfig.getCollections());
     } else {
@@ -1131,7 +1058,8 @@ const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
         })
     }
     const databases = Array.from(new Set(collections.map(collection => collection['databaseId'])));
-    log('Checking for databases and collection changes');
+
+    log('Checking for changes ...');
 
     // Parallel db actions
     await Promise.all(databases.map(async (databaseId) => {
@@ -1153,7 +1081,7 @@ const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
                 success(`Updated ${localDatabase.name} ( ${databaseId} ) name`);
             }
         } catch (err) {
-            log(`Database ${databaseId} not found. Creating it now...`);
+            log(`Database ${databaseId} not found. Creating it now ...`);
 
             await databasesCreate({
                 databaseId: databaseId,
@@ -1243,11 +1171,9 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (configBuckets.length === 0) {
-            if (returnOnZero) {
-                log('No buckets found, skipping');
-                return;
-            }
-            throw new Error("No buckets found in the current directory. Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
+            log("No buckets found.");
+            hint("Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
+            return;
         }
         bucketIds.push(...configBuckets.map((b) => b.$id));
     }
@@ -1264,16 +1190,16 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
         buckets.push(...idBuckets);
     }
 
+    log('Pushing buckets ...');
+
     for (let bucket of buckets) {
-        log(`Pushing bucket ${bucket.name} ( ${bucket['$id']} )`)
+        log(`Pushing bucket ${chalk.bold(bucket['name'])} ...`);
 
         try {
             response = await storageGetBucket({
                 bucketId: bucket['$id'],
                 parseOutput: false,
             })
-
-            log(`Updating bucket ...`)
 
             await storageUpdateBucket({
                 bucketId: bucket['$id'],
@@ -1288,8 +1214,6 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
                 compression: bucket.compression,
                 parseOutput: false
             });
-
-            success(`Pushed ${bucket.name} ( ${bucket['$id']} )`);
         } catch (e) {
             if (Number(e.code) === 404) {
                 log(`Bucket ${bucket.name} does not exist in the project. Creating ... `);
@@ -1307,13 +1231,13 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
                     antivirus: bucket.antivirus,
                     parseOutput: false
                 })
-
-                success(`Pushed ${bucket.name} ( ${bucket['$id']} )`);
             } else {
                 throw e;
             }
         }
     }
+
+    success(`Successfully pushed ${buckets.length} buckets.`);
 }
 
 const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
@@ -1325,11 +1249,8 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (configTeams.length === 0) {
-            if (returnOnZero) {
-                log('No teams found, skipping');
-                return;
-            }
-            throw new Error("No teams found in the current directory. Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
+            log("No teams found.");
+            hint("Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
         }
         teamIds.push(...configTeams.map((t) => t.$id));
     }
@@ -1346,8 +1267,10 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
         teams.push(...idTeams);
     }
 
+    log('Pushing teams ...');
+
     for (let team of teams) {
-        log(`Pushing team ${team.name} ( ${team['$id']} )`)
+        log(`Pushing team ${chalk.bold(team['name'])} ...`);
 
         try {
             response = await teamsGet({
@@ -1355,15 +1278,11 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
                 parseOutput: false,
             })
 
-            log(`Updating team ...`)
-
             await teamsUpdateName({
                 teamId: team['$id'],
                 name: team.name,
                 parseOutput: false
             });
-
-            success(`Pushed ${team.name} ( ${team['$id']} )`);
         } catch (e) {
             if (Number(e.code) === 404) {
                 log(`Team ${team.name} does not exist in the project. Creating ... `);
@@ -1373,13 +1292,13 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
                     name: team.name,
                     parseOutput: false
                 })
-
-                success(`Pushed ${team.name} ( ${team['$id']} )`);
             } else {
                 throw e;
             }
         }
     }
+
+    success(`Successfully pushed ${teams.length} teams.`);
 }
 
 const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) => {
@@ -1392,11 +1311,8 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
         if (configTopics.length === 0) {
-            if (returnOnZero) {
-                log('No topics found, skipping');
-                return;
-            }
-            throw new Error("No topics found in the current directory. Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
+            log("No topics found.");
+            hint("Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
         }
         topicsIds.push(...configTopics.map((b) => b.$id));
     }
@@ -1420,8 +1336,10 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
         }
     }
 
+    log('Pushing topics ...');
+
     for (let topic of topics) {
-        log(`Pushing topic ${topic.name} ( ${topic['$id']} )`)
+        log(`Pushing topic ${chalk.bold(topic['name'])} ...`);
 
         try {
             response = await messagingGetTopic({
@@ -1435,16 +1353,12 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
                 continue;
             }
 
-            log(`Updating Topic ...`)
-
             await messagingUpdateTopic({
                 topicId: topic['$id'],
                 name: topic.name,
                 subscribe: topic.subscribe,
                 parseOutput: false
             });
-
-            success(`Pushed ${topic.name} ( ${topic['$id']} )`);
         } catch (e) {
             if (Number(e.code) === 404) {
                 log(`Topic ${topic.name} does not exist in the project. Creating ... `);
@@ -1462,6 +1376,8 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
             }
         }
     }
+
+    success(`Successfully pushed ${topics.length} topics.`);
 }
 
 const push = new Command("push")
@@ -1477,9 +1393,9 @@ push
     }));
 
 push
-    .command("project")
+    .command("settings")
     .description("Push project name, services and auth settings")
-    .action(actionRunner(pushProject));
+    .action(actionRunner(pushSettings));
 
 push
     .command("function")
@@ -1513,6 +1429,13 @@ push
     .description("Push messaging topics in the current project.")
     .action(actionRunner(pushMessagingTopic));
 
+const deploy = new Command("deploy")
+    .description(commandDescriptions['push'])
+    .action(actionRunner(async () => {
+        warn("Did you mean to run 'appwrite push' command?");
+    }));
+
 module.exports = {
-    push
+    push,
+    deploy
 }

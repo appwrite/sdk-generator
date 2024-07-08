@@ -4,6 +4,38 @@ const _path = require("path");
 const process = require("process");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
+const KeysFunction = ["path", "$id", "execute", "name", "enabled", "logging", "runtime", "scopes", "events", "schedule", "timeout", "entrypoint", "commands"];
+const KeysDatabase = ["$id", "name", "enabled"];
+const KeysCollection = ["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"];
+const KeysStorage = ["$id", "$permissions", "fileSecurity", "name", "enabled", "maximumFileSize", "allowedFileExtensions", "compression", "encryption", "antivirus"];
+const KeyTopics = ["$id", "name", "subscribe"];
+const KeyAttributes = ["key", "type", "required", "array", "size", "default"];
+const KeyIndexes = ["key", "type", "status", "attributes", "orders"];
+
+function whitelistKeys(value, keys, nestedKeys = []) {
+    if(Array.isArray(value)) {
+        const newValue = [];
+
+        for(const item of value) {
+            newValue.push(whitelistKeys(item, keys, nestedKeys));
+        }
+
+        return newValue;
+    }
+
+    const newValue = {};
+    Object.keys(value).forEach((key) => {
+        if(keys.includes(key)) {
+            if(nestedKeys[key]) {
+                newValue[key] = whitelistKeys(value[key], nestedKeys[key]);
+            } else {
+                newValue[key] = value[key];
+            }
+        }
+    });
+    return newValue;
+}
+
 class Config {
     constructor(path) {
         this.path = path;
@@ -94,6 +126,8 @@ class Local extends Config {
     }
 
     addFunction(props) {
+        props = whitelistKeys(props, KeysFunction);
+
         if (!this.has("functions")) {
             this.set("functions", []);
         }
@@ -101,21 +135,6 @@ class Local extends Config {
         let functions = this.get("functions");
         for (let i = 0; i < functions.length; i++) {
             if (functions[i]['$id'] == props['$id']) {
-                return;
-            }
-        }
-        functions.push(props);
-        this.set("functions", functions);
-    }
-
-    updateFunction(id, props) {
-        if (!this.has("functions")) {
-            return;
-        }
-
-        let functions = this.get("functions");
-        for (let i = 0; i < functions.length; i++) {
-            if (functions[i]['$id'] == id) {
                 functions[i] = {
                     ...functions[i],
                     ...props
@@ -124,6 +143,9 @@ class Local extends Config {
                 return;
             }
         }
+
+        functions.push(props);
+        this.set("functions", functions);
     }
 
     getCollections() {
@@ -149,6 +171,11 @@ class Local extends Config {
     }
 
     addCollection(props) {
+        props = whitelistKeys(props, KeysCollection, {
+            attributes: KeyAttributes,
+            indexes: KeyIndexes
+        });
+
         if (!this.has("collections")) {
             this.set("collections", []);
         }
@@ -188,6 +215,8 @@ class Local extends Config {
     }
 
     addBucket(props) {
+        props = whitelistKeys(props, KeysStorage);
+
         if (!this.has("buckets")) {
             this.set("buckets", []);
         }
@@ -227,6 +256,8 @@ class Local extends Config {
     }
 
     addMessagingTopic(props) {
+        props = whitelistKeys(props, KeyTopics);
+
         if (!this.has("topics")) {
             this.set("topics", []);
         }
@@ -266,6 +297,8 @@ class Local extends Config {
     }
 
     addDatabase(props) {
+        props = whitelistKeys(props, KeysDatabase);
+
         if (!this.has("databases")) {
             this.set("databases", []);
         }
@@ -329,7 +362,7 @@ class Local extends Config {
         return {
             projectId: this.get("projectId"),
             projectName: this.get("projectName"),
-            projectSettings: this.get('projectSettings')
+            projectSettings: this.get('settings')
         };
     }
 
@@ -357,7 +390,6 @@ class Local extends Config {
                 functions: projectSettings.serviceStatusForFunctions,
                 graphql: projectSettings.serviceStatusForGraphql,
                 messaging: projectSettings.serviceStatusForMessaging,
-
             },
             auth: {
                 methods: {
@@ -380,7 +412,7 @@ class Local extends Config {
             }
         };
 
-        this.set('projectSettings', settings)
+        this.set('settings', settings)
     }
 
 }
@@ -520,7 +552,7 @@ class Global extends Config {
         const current = this.getCurrentSession();
 
         if (current) {
-            const config = this.get(current);
+            const config = this.get(current) ?? {};
 
             return config[key] !== undefined;
         }
@@ -530,7 +562,7 @@ class Global extends Config {
         const current = this.getCurrentSession();
 
         if (current) {
-            const config = this.get(current);
+            const config = this.get(current) ?? {};
 
             return config[key];
         }

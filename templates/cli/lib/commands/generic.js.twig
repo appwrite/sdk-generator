@@ -3,7 +3,7 @@ const { Command } = require("commander");
 const Client = require("../client");
 const { sdkForConsole } = require("../sdks");
 const { globalConfig, localConfig } = require("../config");
-const { actionRunner, success, parseBool, commandDescriptions, error, parse, log, drawTable, cliConfig } = require("../parser");
+const { actionRunner, success, parseBool, commandDescriptions, error, parse, hint, log, drawTable, cliConfig } = require("../parser");
 const ID = require("../id");
 {% if sdk.test != "true" %}
 const { questionsLogin, questionsLogout, questionsListFactors, questionsMfaChallenge } = require("../questions");
@@ -15,7 +15,19 @@ const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
     const oldCurrent = globalConfig.getCurrentSession();
     let configEndpoint = endpoint ?? DEFAULT_ENDPOINT;
 
+    if(globalConfig.getCurrentSession() !== '') {
+        log('You are currently signed in as ' + globalConfig.getEmail());
+
+        if(globalConfig.getSessions().length === 1) {
+            hint('You can sign in and manage multiple accounts with Appwrite CLI');
+        }
+    }
+
     const answers = email && password ? { email, password } : await inquirer.prompt(questionsLogin);
+
+    if(!answers.method) {
+        answers.method = 'login';
+    }
 
     if (answers.method === 'select') {
         const accountId = answers.accountId;
@@ -88,15 +100,15 @@ const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
         }
     }
 
-    success("Signed in as user with ID: " + account.$id);
-    log("Next you can create or link to your project using 'appwrite init project'");
+    success("Successfully signed in as " + account.email);
+    hint("Next you can create or link to your project using 'appwrite init project'");
 };
 
 const whoami = new Command("whoami")
     .description(commandDescriptions['whoami'])
     .action(actionRunner(async () => {
         if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
-            error("No user is signed in. To sign in, run: appwrite login ");
+            error("No user is signed in. To sign in, run 'appwrite login'");
             return;
         }
 
@@ -110,7 +122,7 @@ const whoami = new Command("whoami")
                 parseOutput: false
             });
         } catch (error) {
-            error("No user is signed in. To sign in, run: appwrite login");
+            error("No user is signed in. To sign in, run 'appwrite login'");
             return;
         }
 
