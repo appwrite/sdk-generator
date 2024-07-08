@@ -36,23 +36,22 @@ mixin RealtimeMixin {
     if(_creatingSocket || _channels.isEmpty) return;
     _creatingSocket = true;
     final uri = _prepareUri();
-    if (_websok == null) {
-      _websok = await getWebSocket(uri);
-      _lastUrl = uri.toString();
-    } else {
-      if (_lastUrl == uri.toString() && _websok?.closeCode == null) {
-        _creatingSocket = false;
-        return;
-      }
-      _notifyDone = false;
-      await _closeConnection();
-      _lastUrl = uri.toString();
-      _websok = await getWebSocket(uri);
-      _notifyDone = true;
-    }
-    debugPrint('subscription: $_lastUrl');
-
     try {
+      if (_websok == null) {
+        _websok = await getWebSocket(uri);
+        _lastUrl = uri.toString();
+      } else {
+        if (_lastUrl == uri.toString() && _websok?.closeCode == null) {
+          _creatingSocket = false;
+          return;
+        }
+        _notifyDone = false;
+        await _closeConnection();
+        _lastUrl = uri.toString();
+        _websok = await getWebSocket(uri);
+        _notifyDone = true;
+      }
+      debugPrint('subscription: $_lastUrl');
       _websocketSubscription = _websok?.stream.listen((response) {
         final data = RealtimeResponse.fromJson(response);
         switch (data.type) {
