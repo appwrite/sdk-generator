@@ -57,8 +57,6 @@ async function dockerPull(func) {
 }
 
 async function dockerBuild(func, variables) {
-    log('Building function using Docker ...');
-
     const runtimeChunks = func.runtime.split("-");
     const runtimeVersion = runtimeChunks.pop();
     const runtimeName = runtimeChunks.join("-");
@@ -133,7 +131,6 @@ async function dockerStart(func, variables, port) {
 
     const params = [ 'run' ];
     params.push('--rm');
-    params.push('-d');
     params.push('--name', id);
     params.push('-p', `${port}:3000`);
     params.push('-l', 'appwrite-env=dev');
@@ -150,9 +147,17 @@ async function dockerStart(func, variables, port) {
     params.push('-v', `${functionDir}/.appwrite/build.tar.gz:/mnt/code/code.tar.gz:ro`);
     params.push(imageName, 'sh', '-c', `helpers/start.sh "${tool.startCommand}"`);
 
-    childProcess.spawn('docker', params, {
+    const startProcess = childProcess.spawn('docker', params, {
         stdio: 'pipe',
         pwd: functionDir
+    });
+
+    startProcess.stdout.on('data', (data) => {
+        process.stdout.write(chalk.blackBright(data));
+    });
+
+    startProcess.stderr.on('data', (data) => {
+        process.stdout.write(chalk.blackBright(data));
     });
 
     success(`Visit http://localhost:${port}/ to execute your function.`);
