@@ -4,15 +4,36 @@ const _path = require("path");
 const process = require("process");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
-const KeysFunction = ["path", "$id", "execute", "name", "enabled", "logging", "runtime", "scopes", "events", "schedule", "timeout", "entrypoint", "commands"];
-const KeysDatabase = ["$id", "name", "enabled"];
-const KeysCollection = ["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"];
-const KeysStorage = ["$id", "$permissions", "fileSecurity", "name", "enabled", "maximumFileSize", "allowedFileExtensions", "compression", "encryption", "antivirus"];
-const KeyTopics = ["$id", "name", "subscribe"];
-const KeyAttributes = ["key", "type", "required", "array", "size", "default"];
-const KeyIndexes = ["key", "type", "status", "attributes", "orders"];
+const KeysFunction = new Set(["path", "$id", "execute", "name", "enabled", "logging", "runtime", "scopes", "events", "schedule", "timeout", "entrypoint", "commands"]);
+const KeysDatabase = new Set(["$id", "name", "enabled"]);
+const KeysCollection = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"]);
+const KeysStorage = new Set(["$id", "$permissions", "fileSecurity", "name", "enabled", "maximumFileSize", "allowedFileExtensions", "compression", "encryption", "antivirus"]);
+const KeyTopics = new Set(["$id", "name", "subscribe"]);
+const KeyAttributes = new Set([
+    "key",
+    "type",
+    "required",
+    "array",
+    "size",
+    "default",
+    // integer and float
+    "min", 
+    "max",
+    // email, enum, URL, IP, and datetime
+    "format",
+    // enum
+    "elements",
+    // relationship
+    "relatedCollection",
+    "relationType",
+    "twoWay",
+    "twoWayKey",
+    "onDelete",
+    "side"
+]);
+const KeyIndexes = new Set(["key", "type", "status", "attributes", "orders"]);
 
-function whitelistKeys(value, keys, nestedKeys = []) {
+function whitelistKeys(value, keys, nestedKeys = {}) {
     if(Array.isArray(value)) {
         const newValue = [];
 
@@ -25,7 +46,7 @@ function whitelistKeys(value, keys, nestedKeys = []) {
 
     const newValue = {};
     Object.keys(value).forEach((key) => {
-        if(keys.includes(key)) {
+        if(keys.has(key)) {
             if(nestedKeys[key]) {
                 newValue[key] = whitelistKeys(value[key], nestedKeys[key]);
             } else {
