@@ -79,6 +79,8 @@ const pullFunctions = async () => {
         log(`Pulling function ${chalk.bold(func['name'])} ...`);
 
         const localFunction = localConfig.getFunction(func.$id);
+
+        func['path'] = localFunction['path'];
         if(!localFunction['path']) {
             func['path'] = `functions/${func.$id}`;
         }
@@ -109,7 +111,7 @@ const pullFunctions = async () => {
             fs.rmSync(compressedFileName);
         }
     }
-    
+
     success(`Successfully pulled ${chalk.bold(total)} functions.`);
 }
 
