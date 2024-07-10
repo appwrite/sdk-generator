@@ -4,7 +4,7 @@ const { localConfig } = require("../config");
 const path = require('path');
 const fs = require('fs');
 const { log, success, hint } = require("../parser");
-const { openRuntimesVersion, systemTools } = require("./utils");
+const { openRuntimesVersion, systemTools, Queue } = require("./utils");
 
 async function dockerStop(id) {
     const stopProcess = childProcess.spawn('docker', ['rm', '--force', id], {
@@ -94,8 +94,25 @@ async function dockerBuild(func, variables) {
         process.stderr.write(chalk.blackBright(`${data}\n`));
     });
 
+    const killInterval = setInterval(() => {
+        if(!Queue.isEmpty()) {
+            log('Cancelling build ...');
+            buildProcess.stdout.destroy();
+            buildProcess.stdin.destroy();
+            buildProcess.stderr.destroy();
+            buildProcess.kill("SIGKILL");
+            clearInterval(killInterval);
+        }
+    }, 100);
+
     await new Promise((res) => { buildProcess.on('close', res) });
 
+    clearInterval(interval);
+
+    if(!Queue.isEmpty()) {
+        return;
+    }
+    
     const copyPath = path.join(process.cwd(), func.path, '.appwrite', 'build.tar.gz');
     const copyDir = path.dirname(copyPath);
     if (!fs.existsSync(copyDir)) {
