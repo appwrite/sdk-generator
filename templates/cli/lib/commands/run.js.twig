@@ -86,12 +86,12 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     log("If you wish to change your local settings, update the appwrite.json file and rerun the 'appwrite run' command.");
     hint("Permissions, events, CRON and timeouts dont apply when running locally.");
 
-    await dockerCleanup();
+    await dockerCleanup(func.$id);
 
     process.on('SIGINT', async () => {
         log('Cleaning up ...');
-        await dockerCleanup();
-        success();
+        await dockerCleanup(func.$id);
+        success("Local function successfully stopped.");
         process.exit();
     });
 
@@ -135,7 +135,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     variables['APPWRITE_FUNCTION_RUNTIME_VERSION'] = func.runtime;
 
     try {
-        await JwtManager.setup(userId);
+        await JwtManager.setup(userId, func.scopes ?? []);
     } catch(err) {
         warn("Dynamic API key not generated. Header x-appwrite-key will not be set. Reason: " + err.message);
     }
@@ -149,14 +149,6 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     variables['OPEN_RUNTIMES_HEADERS'] = JSON.stringify(headers);
 
     await dockerPull(func);
-
-    log('Building function using Docker ...');
-    await dockerBuild(func, variables);
-
-    log('Starting function using Docker ...');
-    hint('Function automatically restarts when you edit your code.');
-
-    await dockerStart(func, variables, port);
 
     new Tail(logsPath).on("line", function(data) {
         process.stdout.write(chalk.white(`${data}\n`));
@@ -183,8 +175,14 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
 
             const dependencyFile = files.find((filePath) => tool.dependencyFiles.includes(filePath));
             if(tool.isCompiled || dependencyFile) {
-                log(`Rebuilding the function ...`);
+                log(`Rebuilding the function due to file changes ...`);
                 await dockerBuild(func, variables);
+
+                if(!Queue.isEmpty()) {
+                    Queue.unlock();
+                    return;
+                }
+
                 await dockerStart(func, variables, port);
             } else {
                 log('Hot-swapping function.. Files with change are ' + files.join(', '));
@@ -249,6 +247,22 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
             Queue.unlock();
         }
     });
+
+    Queue.lock();
+
+    log('Building function using Docker ...');
+    await dockerBuild(func, variables);
+
+    if(!Queue.isEmpty()) {
+        Queue.unlock();
+        return;
+    }
+
+    log('Starting function using Docker ...');
+    hint('Function automatically restarts when you edit your code.');
+    await dockerStart(func, variables, port);
+
+    Queue.unlock();
 }
 
 const run = new Command("run")

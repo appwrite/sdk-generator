@@ -67,7 +67,7 @@ const { checkDeployConditions } = require('../utils');
 
 const STEP_SIZE = 100;      // Resources
 const POLL_DEBOUNCE = 2000; // Milliseconds
-const POLL_MAX_DEBOUNCE = 30; // Times
+const POLL_MAX_DEBOUNCE = 1800; // Times of POLL_DEBOUNCE (1 hour)
 
 let pollMaxDebounces = 30;
 
@@ -354,8 +354,8 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: parseInt(attribute.min.toString()),
-                max: parseInt(attribute.max.toString()),
+                min: attribute.min,
+                max: attribute.max,
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -366,8 +366,8 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: parseFloat(attribute.min.toString()),
-                max: parseFloat(attribute.max.toString()),
+                min: attribute.min,
+                max: attribute.max,
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -471,8 +471,8 @@ const updateAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: parseInt(attribute.min.toString()),
-                max: parseInt(attribute.max.toString()),
+                min: attribute.min,
+                max: attribute.max,
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -483,8 +483,8 @@ const updateAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: parseFloat(attribute.min.toString()),
-                max: parseFloat(attribute.max.toString()),
+                min: attribute.min,
+                max: attribute.max,
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -884,6 +884,7 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                 logging: func.logging,
                 entrypoint: func.entrypoint,
                 commands: func.commands,
+                scopes: func.scopes,
                 providerRepositoryId: func.providerRepositoryId ?? "",
                 installationId: func.installationId ?? '',
                 providerBranch: func.providerBranch ?? '',

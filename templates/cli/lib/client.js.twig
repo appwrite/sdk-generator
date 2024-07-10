@@ -118,7 +118,7 @@ class Client {
 
       body = formData;
     } else {
-      body = JSON.stringify(params);
+      body = JSONbig.stringify(params);
     }
 
     let response = undefined;
@@ -174,7 +174,7 @@ class Client {
     const text = await response.text();
     let json = undefined;
     try {
-      json = JSON.parse(text);
+      json = JSONbig.parse(text);
     } catch (error) {
       return text;
     }

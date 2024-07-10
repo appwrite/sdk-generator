@@ -4,7 +4,7 @@ const { localConfig } = require("../config");
 const path = require('path');
 const fs = require('fs');
 const { log, success, hint } = require("../parser");
-const { openRuntimesVersion, systemTools } = require("./utils");
+const { openRuntimesVersion, systemTools, Queue } = require("./utils");
 
 async function dockerStop(id) {
     const stopProcess = childProcess.spawn('docker', ['rm', '--force', id], {
@@ -53,7 +53,6 @@ async function dockerBuild(func, variables) {
     params.push('-e', 'APPWRITE_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_SECRET=');
-    params.push('-l', 'appwrite-env=dev');
     params.push('-e', `OPEN_RUNTIMES_ENTRYPOINT=${func.entrypoint}`);
 
     for(const k of Object.keys(variables)) {
@@ -79,8 +78,25 @@ async function dockerBuild(func, variables) {
         process.stderr.write(chalk.blackBright(`${data}\n`));
     });
 
+    const killInterval = setInterval(() => {
+        if(!Queue.isEmpty()) {
+            log('Cancelling build ...');
+            buildProcess.stdout.destroy();
+            buildProcess.stdin.destroy();
+            buildProcess.stderr.destroy();
+            buildProcess.kill("SIGKILL");
+            clearInterval(killInterval);
+        }
+    }, 100);
+
     await new Promise((res) => { buildProcess.on('close', res) });
 
+    clearInterval(interval);
+
+    if(!Queue.isEmpty()) {
+        return;
+    }
+    
     const copyPath = path.join(process.cwd(), func.path, '.appwrite', 'build.tar.gz');
     const copyDir = path.dirname(copyPath);
     if (!fs.existsSync(copyDir)) {
@@ -122,7 +138,6 @@ async function dockerStart(func, variables, port) {
     params.push('--rm');
     params.push('--name', id);
     params.push('-p', `${port}:3000`);
-    params.push('-l', 'appwrite-env=dev');
     params.push('-e', 'APPWRITE_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_SECRET=');
@@ -156,54 +171,18 @@ async function dockerStart(func, variables, port) {
     success(`Visit http://localhost:${port}/ to execute your function.`);
 }
 
-async function dockerCleanup() {
-    await dockerStopActive();
+async function dockerCleanup(functionId) {
+    await dockerStop(functionId);
 
-    const functions = localConfig.getFunctions();
-    for(const func of functions) {
-        const appwritePath = path.join(process.cwd(), func.path, '.appwrite');
-        if (fs.existsSync(appwritePath)) {
-            fs.rmSync(appwritePath, { recursive: true, force: true });
-        }
-
-        const tempPath = path.join(process.cwd(), func.path, 'code.tar.gz');
-        if (fs.existsSync(tempPath)) {
-            fs.rmSync(tempPath, { force: true });
-        }
-    }
-}
-
-async function dockerStopActive() {
-    const listProcess = childProcess.spawn('docker', ['ps', '-a', '-q', '--filter', 'label=appwrite-env=dev'], {
-        stdio: 'pipe',
-        env: {
-            ...process.env,
-            DOCKER_CLI_HINTS: 'false'
-        }
-    });
-
-    const ids = [];
-    function handleOutput(data) {
-        const list = data.toString().split('\n');
-        for(const id of list) {
-            if(id && !id.includes(' ')) {
-                ids.push(id);
-            }
-        }
+    const func = localConfig.getFunction(functionId);
+    const appwritePath = path.join(process.cwd(), func.path, '.appwrite');
+    if (fs.existsSync(appwritePath)) {
+        fs.rmSync(appwritePath, { recursive: true, force: true });
     }
 
-    listProcess.stdout.on('data', (data) => {
-        handleOutput(data);
-    });
-
-    listProcess.stderr.on('data', (data) => {
-        handleOutput(data);
-    });
-
-    await new Promise((res) => { listProcess.on('close', res) });
-
-    for(const id of ids) {
-        await dockerStop(id);
+    const tempPath = path.join(process.cwd(), func.path, 'code.tar.gz');
+    if (fs.existsSync(tempPath)) {
+        fs.rmSync(tempPath, { force: true });
     }
 }
 
@@ -212,6 +191,5 @@ module.exports = {
     dockerBuild,
     dockerStart,
     dockerCleanup,
-    dockerStopActive,
     dockerStop,
 }

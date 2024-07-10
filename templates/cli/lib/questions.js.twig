@@ -258,6 +258,14 @@ const questionsPullFunctions = [
     }
 ];
 
+const questionsPullFunctionsCode = [
+    {
+        type: "confirm",
+        name: "override",
+        message: "Do you want to pull source code of active deployment?"
+    },
+];
+
 const questionsCreateFunction = [
     {
         type: "input",
@@ -841,6 +849,7 @@ module.exports = {
     questionsCreateCollection,
     questionsCreateMessagingTopic,
     questionsPullFunctions,
+    questionsPullFunctionsCode,
     questionsLogin,
     questionsPullResources,
     questionsLogout,
