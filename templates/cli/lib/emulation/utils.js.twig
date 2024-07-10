@@ -156,6 +156,9 @@ const Queue = {
         this.files = [];
         this.locked = true;
     },
+    isEmpty() {
+        return this.files.length === 0
+    },
     unlock() {
         this.locked = false;
         if(this.files.length > 0) {
