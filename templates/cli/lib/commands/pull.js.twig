@@ -11,7 +11,7 @@ const { databasesGet, databasesListCollections, databasesList } = require("./dat
 const { storageListBuckets } = require("./storage");
 const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
-const { questionsPullCollection, questionsPullFunctions, questionsPullResources } = require("../questions");
+const { questionsPullCollection, questionsPullFunctions, questionsPullFunctionsCode, questionsPullResources } = require("../questions");
 const { cliConfig, success, log, warn, actionRunner, commandDescriptions } = require("../parser");
 
 const pullResources = async () => {
@@ -56,7 +56,7 @@ const pullSettings = async () => {
     }
 }
 
-const pullFunctions = async () => {
+const pullFunctions = async ({ code }) => {
     log("Fetching functions ...");
     let total = 0;
 
@@ -74,6 +74,8 @@ const pullFunctions = async () => {
         ? (await paginate(functionsList, { parseOutput: false }, 100, 'functions')).functions
         : (await inquirer.prompt(questionsPullFunctions)).functions;
 
+    let allowCodePull = cliConfig.force === true ? true : null;
+
     for (let func of functions) {
         total++;
         log(`Pulling function ${chalk.bold(func['name'])} ...`);
@@ -90,26 +92,38 @@ const pullFunctions = async () => {
         if (!fs.existsSync(func['path'])) {
             fs.mkdirSync(func['path'], { recursive: true });
         }
+        
+        if(code === false) {
+            warn("Source code download skipped.");
+        } else if(!func['deployment']) {
+            warn("Source code download skipped because function doesn't have active deployment.");
+        } else {
+            if(allowCodePull === null) {
+                const codeAnswer = await inquirer.prompt(questionsPullFunctionsCode);
+                allowCodePull = codeAnswer.override;
+            }
 
-        if(func['deployment']) {
-            const compressedFileName = `${func['$id']}-${+new Date()}.tar.gz`
-            await functionsDownloadDeployment({
-                functionId: func['$id'],
-                deploymentId: func['deployment'],
-                destination: compressedFileName,
-                overrideForCli: true,
-                parseOutput: false
-            });
+            if(allowCodePull) {
+                log("Pulling active deployment's code ...");
 
-            tar.extract({
-                sync: true,
-                cwd: func['path'],
-                file: compressedFileName,
-                strict: false,
-            });
-
-            fs.rmSync(compressedFileName);
-        }
+                const compressedFileName = `${func['$id']}-${+new Date()}.tar.gz`
+                await functionsDownloadDeployment({
+                    functionId: func['$id'],
+                    deploymentId: func['deployment'],
+                    destination: compressedFileName,
+                    overrideForCli: true,
+                    parseOutput: false
+                });
+    
+                tar.extract({
+                    sync: true,
+                    cwd: func['path'],
+                    file: compressedFileName,
+                    strict: false,
+                });
+    
+                fs.rmSync(compressedFileName);
+            }
     }
 
     success(`Successfully pulled ${chalk.bold(total)} functions.`);
@@ -263,6 +277,7 @@ pull
     .command("function")
     .alias("functions")
     .description("Pulling your {{ spec.title|caseUcfirst }} cloud function")
+    .option("--no-code", "Don't pull the function's code")
     .action(actionRunner(pullFunctions))
 
 pull
