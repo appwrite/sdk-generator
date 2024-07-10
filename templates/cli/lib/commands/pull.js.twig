@@ -102,7 +102,7 @@ const pullFunctions = async ({ code }) => {
             }
 
             if(allowCodePull) {
-                log(`Pulling active deployment's code ...`);
+                log("Pulling active deployment's code ...");
 
                 const compressedFileName = `${func['$id']}-${+new Date()}.tar.gz`
                 await functionsDownloadDeployment({
@@ -275,7 +275,7 @@ pull
     .command("function")
     .alias("functions")
     .description("Pulling your {{ spec.title|caseUcfirst }} cloud function")
-    .option(`--no-code`, `Don't pull the function's code`)
+    .option("--no-code", "Don't pull the function's code")
     .action(actionRunner(pullFunctions))
 
 pull
