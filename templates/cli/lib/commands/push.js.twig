@@ -354,8 +354,8 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: parseInt(attribute.min.toString()),
-                max: parseInt(attribute.max.toString()),
+                min: attribute.min,
+                max: attribute.max,
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -366,8 +366,8 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: parseFloat(attribute.min.toString()),
-                max: parseFloat(attribute.max.toString()),
+                min: attribute.min,
+                max: attribute.max,
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -471,8 +471,8 @@ const updateAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: parseInt(attribute.min.toString()),
-                max: parseInt(attribute.max.toString()),
+                min: attribute.min,
+                max: attribute.max,
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -483,8 +483,8 @@ const updateAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: parseFloat(attribute.min.toString()),
-                max: parseFloat(attribute.max.toString()),
+                min: attribute.min,
+                max: attribute.max,
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
