@@ -9,6 +9,10 @@ const { openRuntimesVersion, systemTools, Queue } = require("./utils");
 async function dockerStop(id) {
     const stopProcess = childProcess.spawn('docker', ['rm', '--force', id], {
         stdio: 'pipe',
+        env: {
+            ...process.env,
+            DOCKER_CLI_HINTS: 'false'
+        }
     });
 
     await new Promise((res) => { stopProcess.on('close', res) });
@@ -20,37 +24,14 @@ async function dockerPull(func) {
     const runtimeName = runtimeChunks.join("-");
     const imageName = `openruntimes/${runtimeName}:${openRuntimesVersion}-${runtimeVersion}`;
 
-    const checkProcess = childProcess.spawn('docker', ['images', '--format', 'json', imageName], {
-        stdio: 'pipe',
-        pwd: path.join(process.cwd(), func.path)
-    });
-
-    let hasImage = false;
-
-    checkProcess.stdout.on('data', (data) => {
-        if(data) {
-            hasImage = false;
-        }
-    });
-
-    checkProcess.stderr.on('data', (data) => {
-        if(data) {
-            hasImage = false;
-        }
-    });
-
-    await new Promise((res) => { checkProcess.on('close', res) });
-
-    if(hasImage) {
-        return;
-    }
-
-    log('Pulling Docker image ...');
-    hint('This may take a few minutes, but we only need to do this once.');
+    log('Verifying Docker image ...');
 
     const pullProcess = childProcess.spawn('docker', ['pull', imageName], {
         stdio: 'pipe',
-        pwd: path.join(process.cwd(), func.path)
+        env: {
+            ...process.env,
+            DOCKER_CLI_HINTS: 'false'
+        }
     });
 
     await new Promise((res) => { pullProcess.on('close', res) });
@@ -82,7 +63,11 @@ async function dockerBuild(func, variables) {
 
     const buildProcess = childProcess.spawn('docker', params, {
         stdio: 'pipe',
-        pwd: functionDir
+        pwd: functionDir,
+        env: {
+            ...process.env,
+            DOCKER_CLI_HINTS: 'false'
+        }
     });
 
     buildProcess.stdout.on('data', (data) => {
@@ -120,7 +105,11 @@ async function dockerBuild(func, variables) {
 
     const copyProcess = childProcess.spawn('docker', ['cp', `${id}:/mnt/code/code.tar.gz`, copyPath], {
         stdio: 'pipe',
-        pwd: functionDir
+        pwd: functionDir,
+        env: {
+            ...process.env,
+            DOCKER_CLI_HINTS: 'false'
+        }
     });
 
     await new Promise((res) => { copyProcess.on('close', res) });
@@ -164,7 +153,11 @@ async function dockerStart(func, variables, port) {
 
     const startProcess = childProcess.spawn('docker', params, {
         stdio: 'pipe',
-        pwd: functionDir
+        pwd: functionDir,
+        env: {
+            ...process.env,
+            DOCKER_CLI_HINTS: 'false'
+        }
     });
 
     startProcess.stdout.on('data', (data) => {
