@@ -1,6 +1,8 @@
 const EventEmitter = require('node:events');
 const { projectsCreateJWT } = require('../commands/projects');
 const { localConfig } = require("../config");
+const { usersGet, usersCreateJWT } = require("../commands/users");
+const { log } = require("../parser");
 
 const openRuntimesVersion = 'v4';
 

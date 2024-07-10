@@ -149,18 +149,20 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     variables['OPEN_RUNTIMES_HEADERS'] = JSON.stringify(headers);
 
     await dockerPull(func);
+
+    log('Building function using Docker ...');
     await dockerBuild(func, variables);
 
-   log('Starting function using Docker ...');
-   hint('Function automatically restarts when you edit your code.');
+    log('Starting function using Docker ...');
+    hint('Function automatically restarts when you edit your code.');
 
     await dockerStart(func, variables, port);
 
     new Tail(logsPath).on("line", function(data) {
-        process.stdout.write(chalk.blackBright(`${data}\n`));
+        process.stdout.write(chalk.white(`${data}\n`));
     });
     new Tail(errorsPath).on("line", function(data) {
-        process.stdout.write(chalk.blackBright(`${data}\n`));
+        process.stdout.write(chalk.white(`${data}\n`));
     });
 
     if(!noReload) {
