@@ -86,12 +86,12 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     log("If you wish to change your local settings, update the appwrite.json file and rerun the 'appwrite run' command.");
     hint("Permissions, events, CRON and timeouts dont apply when running locally.");
 
-    await dockerCleanup();
+    await dockerCleanup(func.$id);
 
     process.on('SIGINT', async () => {
         log('Cleaning up ...');
-        await dockerCleanup();
-        success();
+        await dockerCleanup(func.$id);
+        success("Local function successfully stopped.");
         process.exit();
     });
 
