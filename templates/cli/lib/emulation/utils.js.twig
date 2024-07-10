@@ -97,7 +97,7 @@ const JwtManager = {
     timerWarn: null,
     timerError: null,
 
-    async setup(userId = null) {
+    async setup(userId = null, projectScopes = []) {
         if(this.timerWarn) {
             clearTimeout(this.timerWarn);
         }
@@ -130,8 +130,7 @@ const JwtManager = {
 
         const functionResponse = await projectsCreateJWT({
             projectId: localConfig.getProject().projectId,
-            // TODO: Once we have endpoint for this, use it
-            scopes: ["sessions.write","users.read","users.write","teams.read","teams.write","databases.read","databases.write","collections.read","collections.write","attributes.read","attributes.write","indexes.read","indexes.write","documents.read","documents.write","files.read","files.write","buckets.read","buckets.write","functions.read","functions.write","execution.read","execution.write","locale.read","avatars.read","health.read","providers.read","providers.write","messages.read","messages.write","topics.read","topics.write","subscribers.read","subscribers.write","targets.read","targets.write","rules.read","rules.write","migrations.read","migrations.write","vcs.read","vcs.write","assistant.read"],
+            scopes: projectScopes,
             duration: 60*60,
             parseOutput: false
         });

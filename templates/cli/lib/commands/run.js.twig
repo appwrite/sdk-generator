@@ -135,7 +135,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     variables['APPWRITE_FUNCTION_RUNTIME_VERSION'] = func.runtime;
 
     try {
-        await JwtManager.setup(userId);
+        await JwtManager.setup(userId, func.scopes ?? []);
     } catch(err) {
         warn("Dynamic API key not generated. Header x-appwrite-key will not be set. Reason: " + err.message);
     }
