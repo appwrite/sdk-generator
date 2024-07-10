@@ -67,7 +67,7 @@ const { checkDeployConditions } = require('../utils');
 
 const STEP_SIZE = 100;      // Resources
 const POLL_DEBOUNCE = 2000; // Milliseconds
-const POLL_MAX_DEBOUNCE = 30; // Times
+const POLL_MAX_DEBOUNCE = 1800; // Times of POLL_DEBOUNCE (1 hour)
 
 let pollMaxDebounces = 30;
 
