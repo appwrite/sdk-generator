@@ -124,6 +124,7 @@ const pullFunctions = async ({ code }) => {
     
                 fs.rmSync(compressedFileName);
             }
+        }
     }
 
     success(`Successfully pulled ${chalk.bold(total)} functions.`);
