@@ -22,5 +22,5 @@ const {{ service.name | caseCamel }} = new {{service.name | caseUcfirst}}(client
 {% endif %}
 
 {% if method.type != 'webAuth' %}
-console.log(result); // Updated to log the result variable
+console.log(result);
 {% endif %}
