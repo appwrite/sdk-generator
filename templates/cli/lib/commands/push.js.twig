@@ -812,8 +812,6 @@ const pushSettings = async () => {
 }
 
 const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero: false }) => {
-    let response = {};
-
     const functionIds = [];
 
     if (functionId) {
@@ -867,6 +865,8 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
     const failedDeployments = [];
 
     await Promise.all(functions.map(async (func) => {
+        let response = {};
+
         const ignore = func.ignore ? 'appwrite.json' : '.gitignore';
         let functionExists = false;
         let deploymentCreated = false;
@@ -874,7 +874,6 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
         const updaterRow = new Spinner({ status: '', resource: func.name, id: func['$id'], end: `Ignoring using: ${ignore}` });
 
         updaterRow.update({ status: 'Getting' }).startSpinner(SPINNER_DOTS);
-
         try {
             response = await functionsGet({
                 functionId: func['$id'],
