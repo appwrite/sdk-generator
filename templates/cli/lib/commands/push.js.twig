@@ -68,8 +68,9 @@ const { checkDeployConditions } = require('../utils');
 const STEP_SIZE = 100;      // Resources
 const POLL_DEBOUNCE = 2000; // Milliseconds
 const POLL_MAX_DEBOUNCE = 1800; // Times of POLL_DEBOUNCE (1 hour)
+const POLL_DEFAULT_VALUE = 30;
 
-let pollMaxDebounces = 30;
+let pollMaxDebounces = POLL_DEFAULT_VALUE;
 
 const changeableKeys = ['status', 'required', 'xdefault', 'elements', 'min', 'max', 'default', 'error'];
 
@@ -90,11 +91,13 @@ const awaitPools = {
             return true;
         }
 
-        let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
-        if (steps > 1 && iteration === 1) {
-            pollMaxDebounces *= steps;
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
 
-            log('Found a large number of attributes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+                log('Found a large number of attributes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
         }
 
         await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
@@ -121,11 +124,13 @@ const awaitPools = {
             return true;
         }
 
-        let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
-        if (steps > 1 && iteration === 1) {
-            pollMaxDebounces *= steps;
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
 
-            log('Found a large number of indexes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+                log('Found a large number of indexes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
         }
 
         await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
@@ -151,11 +156,13 @@ const awaitPools = {
             return true;
         }
 
-        let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
-        if (steps > 1 && iteration === 1) {
-            pollMaxDebounces *= steps;
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
 
-            log('Found a large number of variables, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+                log('Found a large number of variables, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
         }
 
         await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
@@ -170,11 +177,13 @@ const awaitPools = {
             return false;
         }
 
-        let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
-        if (steps > 1 && iteration === 1) {
-            pollMaxDebounces *= steps;
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
 
-            log('Found a large number of attributes to be deleted. Increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+                log('Found a large number of attributes to be deleted. Increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
         }
 
         const { attributes } = await paginate(databasesListAttributes, {
@@ -203,11 +212,13 @@ const awaitPools = {
             return false;
         }
 
-        let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
-        if (steps > 1 && iteration === 1) {
-            pollMaxDebounces *= steps;
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
 
-            log('Creating a large number of attributes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+                log('Creating a large number of attributes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
         }
 
         const { attributes } = await paginate(databasesListAttributes, {
@@ -248,11 +259,13 @@ const awaitPools = {
             return false;
         }
 
-        let steps = Math.max(1, Math.ceil(indexKeys.length / STEP_SIZE));
-        if (steps > 1 && iteration === 1) {
-            pollMaxDebounces *= steps;
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(indexKeys.length / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
 
-            log('Creating a large number of indexes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+                log('Creating a large number of indexes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
         }
 
         const { indexes } = await paginate(databasesListIndexes, {
@@ -648,7 +661,7 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection)
 
     if (changes.length > 0) {
         changedAttributes = changes.map((change) => change.attribute);
-        await Promise.all(changedAttributes.map((changed) => updateAttribute(collection['databaseId'],collection['$id'], changed)));
+        await Promise.all(changedAttributes.map((changed) => updateAttribute(collection['databaseId'], collection['$id'], changed)));
     }
 
     const deletingAttributes = deleting.map((change) => change.attribute);
@@ -1024,9 +1037,9 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
     });
 
     if (!async) {
-        if(successfullyPushed === 0) {
+        if (successfullyPushed === 0) {
             error('No functions were pushed.');
-        } else if(successfullyDeployed != successfullyPushed) {
+        } else if (successfullyDeployed != successfullyPushed) {
             warn(`Successfully pushed ${successfullyDeployed} of ${successfullyPushed} functions`)
         } else {
             success(`Successfully pushed ${successfullyPushed} functions.`);
@@ -1036,8 +1049,12 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
     }
 }
 
-const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
+const pushCollection = async ({ returnOnZero, debounce } = { returnOnZero: false }) => {
     const collections = [];
+
+    if (debounce) {
+        pollMaxDebounces = debounce;
+    }
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
@@ -1410,6 +1427,7 @@ push
     .command("collection")
     .alias("collections")
     .description("Push collections in the current project.")
+    .option(`-d, --debounce <maxDebounces>`, `Max number of debounces, default: 30.`)
     .action(actionRunner(pushCollection));
 
 push
