@@ -750,6 +750,8 @@ const pushResources = async () => {
 };
 
 const pushSettings = async () => {
+    checkDeployConditions(localConfig);
+
     try {
         log("Pushing project settings ...");
 
