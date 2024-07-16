@@ -27,7 +27,7 @@ const pullResources = async () => {
     if (cliConfig.all) {
         for (let action of Object.values(actions)) {
             cliConfig.all = true;
-            await action();
+            await action({});
         }
     } else {
         const answers = await inquirer.prompt(questionsPullResources[0]);
@@ -92,7 +92,7 @@ const pullFunctions = async ({ code }) => {
         if (!fs.existsSync(func['path'])) {
             fs.mkdirSync(func['path'], { recursive: true });
         }
-        
+
         if(code === false) {
             warn("Source code download skipped.");
         } else if(!func['deployment']) {
@@ -114,14 +114,14 @@ const pullFunctions = async ({ code }) => {
                     overrideForCli: true,
                     parseOutput: false
                 });
-    
+
                 tar.extract({
                     sync: true,
                     cwd: func['path'],
                     file: compressedFileName,
                     strict: false,
                 });
-    
+
                 fs.rmSync(compressedFileName);
             }
         }
