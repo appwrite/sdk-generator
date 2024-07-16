@@ -1032,7 +1032,7 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
 
     failedDeployments.forEach((failed) => {
         const { name, deployment, $id } = failed;
-        const failUrl = `${globalConfig.getEndpoint().replace('/v1', '')}/console/project-${localConfig.getProject().projectId}/functions/function-${$id}/deployment-${deployment}`;
+        const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/project-${localConfig.getProject().projectId}/functions/function-${$id}/deployment-${deployment}`;
 
         error(`Deployment of ${name} has failed. Check at ${failUrl} for more details\n`);
     });
