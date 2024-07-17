@@ -975,11 +975,6 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                 let pollChecks = 0;
 
                 while (true) {
-                    if (pollChecks >= POLL_MAX_DEBOUNCE) {
-                        updaterRow.update({ end: 'Deployment is taking too long. Please check the console for more details.' })
-                        break;
-                    }
-
                     response = await functionsGetDeployment({
                         functionId: func['$id'],
                         deploymentId: deploymentId,
@@ -1018,7 +1013,7 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                     }
 
                     pollChecks++;
-                    await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+                    await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE * 1.5));
                 }
             } catch (e) {
                 updaterRow.fail({ errorMessage: e.message ?? 'Unknown error occurred. Please try again' })
