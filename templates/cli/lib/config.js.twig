@@ -17,7 +17,7 @@ const KeyAttributes = new Set([
     "size",
     "default",
     // integer and float
-    "min", 
+    "min",
     "max",
     // email, enum, URL, IP, and datetime
     "format",
@@ -29,7 +29,10 @@ const KeyAttributes = new Set([
     "twoWay",
     "twoWayKey",
     "onDelete",
-    "side"
+    "side",
+    // Indexes
+    "attributes",
+    "orders"
 ]);
 const KeyIndexes = new Set(["key", "type", "status", "attributes", "orders"]);
 
@@ -604,4 +607,5 @@ class Global extends Config {
 module.exports = {
     localConfig: new Local(),
     globalConfig: new Global(),
+    KeyAttributes,
 };
