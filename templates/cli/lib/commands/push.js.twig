@@ -1049,11 +1049,11 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
     }
 }
 
-const pushCollection = async ({ returnOnZero, debounce } = { returnOnZero: false }) => {
+const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false }) => {
     const collections = [];
 
-    if (debounce) {
-        pollMaxDebounces = debounce;
+    if (attempts) {
+        pollMaxDebounces = attempts;
     }
 
     if (cliConfig.all) {
