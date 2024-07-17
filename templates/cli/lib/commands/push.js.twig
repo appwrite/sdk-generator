@@ -1427,7 +1427,7 @@ push
     .command("collection")
     .alias("collections")
     .description("Push collections in the current project.")
-    .option(`-d, --debounce <maxDebounces>`, `Max number of debounces, default: 30.`)
+    .option(`-a, --attempts <numberOfAttempts>`, `Max number of attempts before timing out collection attribute operations, default: 30.`)
     .action(actionRunner(pushCollection));
 
 push
