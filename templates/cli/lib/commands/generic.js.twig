@@ -188,7 +188,8 @@ const logout = new Command("logout")
         const sessions = globalConfig.getSessions();
         const current = globalConfig.getCurrentSession();
 
-        if (current === '') {
+        if (current === '' || !sessions.length) {
+            log('No active sessions found.');
             return;
         }
         if (sessions.length === 1) {

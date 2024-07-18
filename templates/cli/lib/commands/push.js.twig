@@ -750,6 +750,8 @@ const pushResources = async () => {
 };
 
 const pushSettings = async () => {
+    checkDeployConditions(localConfig);
+
     try {
         log("Pushing project settings ...");
 
@@ -810,8 +812,6 @@ const pushSettings = async () => {
 }
 
 const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero: false }) => {
-    let response = {};
-
     const functionIds = [];
 
     if (functionId) {
@@ -865,6 +865,8 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
     const failedDeployments = [];
 
     await Promise.all(functions.map(async (func) => {
+        let response = {};
+
         const ignore = func.ignore ? 'appwrite.json' : '.gitignore';
         let functionExists = false;
         let deploymentCreated = false;
@@ -872,7 +874,6 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
         const updaterRow = new Spinner({ status: '', resource: func.name, id: func['$id'], end: `Ignoring using: ${ignore}` });
 
         updaterRow.update({ status: 'Getting' }).startSpinner(SPINNER_DOTS);
-
         try {
             response = await functionsGet({
                 functionId: func['$id'],
@@ -974,11 +975,6 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                 let pollChecks = 0;
 
                 while (true) {
-                    if (pollChecks >= POLL_MAX_DEBOUNCE) {
-                        updaterRow.update({ end: 'Deployment is taking too long. Please check the console for more details.' })
-                        break;
-                    }
-
                     response = await functionsGetDeployment({
                         functionId: func['$id'],
                         deploymentId: deploymentId,
@@ -1017,7 +1013,7 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                     }
 
                     pollChecks++;
-                    await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+                    await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE * 1.5));
                 }
             } catch (e) {
                 updaterRow.fail({ errorMessage: e.message ?? 'Unknown error occurred. Please try again' })
@@ -1031,7 +1027,7 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
 
     failedDeployments.forEach((failed) => {
         const { name, deployment, $id } = failed;
-        const failUrl = `${globalConfig.getEndpoint().replace('/v1', '')}/console/project-${localConfig.getProject().projectId}/functions/function-${$id}/deployment-${deployment}`;
+        const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/project-${localConfig.getProject().projectId}/functions/function-${$id}/deployment-${deployment}`;
 
         error(`Deployment of ${name} has failed. Check at ${failUrl} for more details\n`);
     });
