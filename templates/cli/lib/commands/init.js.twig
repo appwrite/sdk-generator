@@ -20,6 +20,7 @@ const {
     questionsCreateCollection,
     questionsInitProject,
     questionsInitProjectAutopull,
+    questionsCreateOrganization,
     questionsInitResources,
     questionsCreateTeam
 } = require("../questions");
@@ -118,6 +119,27 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
 
     hint("Next you can use 'appwrite init' to create resources in your project, or use 'appwrite pull' and 'appwrite push' to synchronize your project.")
 }
+
+const initOrganization = async () => {
+    const answers = await inquirer.prompt(questionsCreateOrganization)
+
+    const sdk = await sdkForConsole();
+
+    localConfig.addTeam({
+        $id: answers.id === 'unique()' ? ID.unique() : answers.id,
+        name: answers.bucket,
+    });
+
+    await sdk.forConsole.billing.createOrganization(
+        organizationId: answers.id === 'unique()' ? ID.unique() : answers.id,
+        name: answers.name,
+        billingPlan: answers.plan,
+        paymentMethodId: ID.unique(),
+        billingAddressId: ID.unique(),
+    );
+    success();
+    log("Next you can create projects, teams, collections, functions, messaging, and buckets.");
+};
 
 const initBucket = async () => {
     const answers = await inquirer.prompt(questionsCreateBucket)
@@ -337,6 +359,13 @@ init
     .option("--projectId <projectId>", "{{ spec.title|caseUcfirst }} project ID")
     .option("--projectName <projectName>", "{{ spec.title|caseUcfirst }} project ID")
     .action(actionRunner(initProject));
+
+init
+    .command("organization")
+    .alias("organizations")
+    .description("Init a new {{ spec.title|caseUcfirst }} organization")
+    .option("--organizationId <organizationId>", "{{ spec.title|caseUcfirst }} organization ID")
+    .action(actionRunner(initOrganization));
 
 init
     .command("function")
