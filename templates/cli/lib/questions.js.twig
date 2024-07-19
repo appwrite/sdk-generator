@@ -672,13 +672,16 @@ const questionsPushCollections = [
                 }
             });
         }
-    },
+    }
+];
+
+const questionPushChanges = [
     {
         type: "input",
         name: "changes",
         message: `Would you like to apply these changes? Type "YES" to confirm.`
     }
-]
+];
 
 const questionsPushBuckets = [
     {
@@ -859,5 +862,6 @@ module.exports = {
     questionsRunFunctions,
     questionGetEndpoint,
     questionsInitResources,
-    questionsCreateTeam
+    questionsCreateTeam,
+    questionPushChanges
 };

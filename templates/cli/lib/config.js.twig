@@ -8,7 +8,8 @@ const KeysFunction = new Set(["path", "$id", "execute", "name", "enabled", "logg
 const KeysDatabase = new Set(["$id", "name", "enabled"]);
 const KeysCollection = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"]);
 const KeysStorage = new Set(["$id", "$permissions", "fileSecurity", "name", "enabled", "maximumFileSize", "allowedFileExtensions", "compression", "encryption", "antivirus"]);
-const KeyTopics = new Set(["$id", "name", "subscribe"]);
+const KeysTopics = new Set(["$id", "name", "subscribe"]);
+const KeysTeams = new Set(["$id", "name"]);
 const KeyAttributes = new Set([
     "key",
     "type",
@@ -280,7 +281,7 @@ class Local extends Config {
     }
 
     addMessagingTopic(props) {
-        props = whitelistKeys(props, KeyTopics);
+        props = whitelistKeys(props, KeysTopics);
 
         if (!this.has("topics")) {
             this.set("topics", []);
@@ -362,6 +363,7 @@ class Local extends Config {
     }
 
     addTeam(props) {
+        props = whitelistKeys(props, KeysTeams);
         if (!this.has("teams")) {
             this.set("teams", []);
         }
@@ -401,7 +403,11 @@ class Local extends Config {
             return;
         }
 
-        const settings = {
+        this.set('settings', this.createSettingsObject(settings));
+    }
+
+    createSettingsObject(projectSettings) {
+        return {
             services: {
                 account: projectSettings.serviceStatusForAccount,
                 avatars: projectSettings.serviceStatusForAvatars,
@@ -435,10 +441,7 @@ class Local extends Config {
                 }
             }
         };
-
-        this.set('settings', settings)
     }
-
 }
 
 class Global extends Config {
@@ -608,4 +611,9 @@ module.exports = {
     localConfig: new Local(),
     globalConfig: new Global(),
     KeyAttributes,
+    KeysFunction,
+    KeysTopics,
+    KeysStorage,
+    KeysTeams,
+    whitelistKeys
 };

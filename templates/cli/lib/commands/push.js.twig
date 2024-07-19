@@ -2,13 +2,13 @@ const chalk = require('chalk');
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
-const { localConfig, globalConfig, KeyAttributes } = require("../config");
+const { localConfig, globalConfig, KeyAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
-const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
 const { cliConfig, actionRunner, success, warn, log, hint, error, commandDescriptions, drawTable } = require("../parser");
 const { proxyListRules } = require('./proxy');
-const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
+const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
     databasesCreate,
@@ -54,6 +54,7 @@ const {
     teamsCreate
 } = require("./teams");
 const {
+    projectsGet,
     projectsUpdate,
     projectsUpdateServiceStatus,
     projectsUpdateAuthStatus,
@@ -337,6 +338,73 @@ const awaitPools = {
             iteration + 1
         );
     },
+}
+
+const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural) => {
+    log('Checking for changes');
+    const changes = [];
+
+    await Promise.all(resource.map(async (localResource) => {
+        try {
+            const remoteResource = await resourceGetFunction({
+                [resourceName]: localResource['$id'],
+                parseOutput: false,
+            });
+
+            for (let [key, value] of Object.entries(whitelistKeys(remoteResource, keys))) {
+                if (Array.isArray(value) && Array.isArray(localResource[key])) {
+                    if (JSON.stringify(value) !== JSON.stringify(localResource[key])) {
+                        changes.push({
+                            id: localResource['$id'],
+                            key,
+                            remote: chalk.red(value.join('\n')),
+                            local: chalk.green(localResource[key].join('\n'))
+                        })
+                    }
+                } else if (value !== localResource[key]) {
+                    changes.push({
+                        id: localResource['$id'],
+                        key,
+                        remote: chalk.red(value),
+                        local: chalk.green(localResource[key])
+                    })
+                }
+            }
+        } catch (e) {
+            if (Number(e.code) !== 404) {
+                throw e;
+            }
+        }
+    }));
+
+    if (changes.length === 0) {
+        return true;
+    }
+
+    drawTable(changes);
+    if (!cliConfig.force) {
+        const answers = await inquirer.prompt(questionPushChanges);
+        if (answers.changes.toLowerCase() === 'yes') {
+            return true;
+        }
+    }
+
+    success(`Successfully pushed 0 ${resourcePlural}.`);
+    return false;
+}
+
+const getObjectChanges = (remote, local, index, what) => {
+    const changes = [];
+
+    if (remote[index] && local[index]) {
+        for (let [service, status] of Object.entries(remote[index])) {
+            if (status !== local[index][service]) {
+                changes.push({ group: what,setting: service, remote: chalk.red(status), local: chalk.green(local[index][service]) })
+            }
+        }
+    }
+
+    return changes;
 }
 
 const createAttribute = async (databaseId, collectionId, attribute) => {
@@ -698,7 +766,7 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection,
             log(`Attribute recreation will cause ${chalk.red('loss of data')}`);
         }
 
-        const answers = await inquirer.prompt(questionsPushCollections[1]);
+        const answers = await inquirer.prompt(questionPushChanges);
 
         if (answers.changes.toLowerCase() !== 'yes') {
             return changedAttributes;
@@ -803,6 +871,35 @@ const pushResources = async () => {
 
 const pushSettings = async () => {
     checkDeployConditions(localConfig);
+
+    try {
+        let response = await projectsGet({
+            parseOutput: false,
+            projectId: localConfig.getProject().projectId
+        });
+
+        const remoteSettings = localConfig.createSettingsObject(response ?? {});
+        const localSettings = localConfig.getProject().projectSettings ?? {};
+
+        log('Checking for changes');
+        const changes = [];
+
+        changes.push(...(getObjectChanges(remoteSettings, localSettings, 'services', 'Service')));
+        changes.push(...(getObjectChanges(remoteSettings['auth'] ?? {}, localSettings['auth'] ?? {}, 'methods', 'Auth method')));
+        changes.push(...(getObjectChanges(remoteSettings['auth'] ?? {}, localSettings['auth'] ?? {}, 'security', 'Auth security')));
+
+        if (changes.length > 0) {
+            drawTable(changes);
+            if (!cliConfig.force) {
+                const answers = await inquirer.prompt(questionPushChanges);
+                if (answers.changes.toLowerCase() !== 'yes') {
+                    success(`Successfully pushed 0 project settings.`);
+                    return;
+                }
+            }
+        }
+    } catch (e) {
+    }
 
     try {
         log("Pushing project settings ...");
@@ -910,6 +1007,10 @@ const pushFunction = async ({ functionId, async, code } = { returnOnZero: false 
             func.entrypoint = answers.entrypoint;
             localConfig.addFunction(func);
         }
+    }
+
+    if (!(await approveChanges(functions, functionsGet, KeysFunction, 'functionId', 'functions'))) {
+        return;
     }
 
     log('Pushing functions ...');
@@ -1119,7 +1220,7 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
         checkDeployConditions(localConfig);
         collections.push(...localConfig.getCollections());
     } else {
-        const answers = await inquirer.prompt(questionsPushCollections[0])
+        const answers = await inquirer.prompt(questionsPushCollections)
         if (answers.collections) {
             const configCollections = new Map();
             localConfig.getCollections().forEach((c) => {
@@ -1279,6 +1380,10 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
         buckets.push(...idBuckets);
     }
 
+    if (!(await approveChanges(buckets, storageGetBucket, KeysStorage, 'bucketId', 'buckets'))) {
+        return;
+    }
+
     log('Pushing buckets ...');
 
     for (let bucket of buckets) {
@@ -1360,6 +1465,11 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
         teams.push(...idTeams);
     }
 
+    if (!(await approveChanges(teams, teamsGet, KeysTeams, 'teamId', 'teams'))) {
+        return;
+    }
+
+
     log('Pushing teams ...');
 
     for (let team of teams) {
@@ -1431,6 +1541,10 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
         if (answers.override.toLowerCase() === "yes") {
             overrideExisting = true;
         }
+    }
+
+    if (!(await approveChanges(topics, messagingGetTopic, KeysTopics, 'topicId', 'topics'))) {
+        return;
     }
 
     log('Pushing topics ...');
