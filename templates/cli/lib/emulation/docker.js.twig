@@ -91,12 +91,10 @@ async function dockerBuild(func, variables) {
 
     await new Promise((res) => { buildProcess.on('close', res) });
 
-    clearInterval(interval);
-
     if(!Queue.isEmpty()) {
         return;
     }
-    
+
     const copyPath = path.join(process.cwd(), func.path, '.appwrite', 'build.tar.gz');
     const copyDir = path.dirname(copyPath);
     if (!fs.existsSync(copyDir)) {
