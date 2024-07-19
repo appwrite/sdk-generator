@@ -634,12 +634,10 @@ const questionsPushFunctions = [
         name: "functions",
         message: "Which functions would you like to push?",
         validate: (value) => validateRequired('function', value),
+        when: () => localConfig.getFunctions().length > 0,
         choices: () => {
             let functions = localConfig.getFunctions();
             checkDeployConditions(localConfig)
-            if (functions.length === 0) {
-                throw new Error("No functions found Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
-            }
             let choices = functions.map((func, idx) => {
                 return {
                     name: `${func.name} (${func.$id})`,
@@ -662,13 +660,11 @@ const questionsPushCollections = [
         name: "collections",
         message: "Which collections would you like to push?",
         validate: (value) => validateRequired('collection', value),
+        when: () => localConfig.getCollections().length > 0,
         choices: () => {
             let collections = localConfig.getCollections();
             checkDeployConditions(localConfig)
 
-            if (collections.length === 0) {
-                throw new Error("No collections found in the current directory. Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
-            }
             return collections.map(collection => {
                 return {
                     name: `${collection.name} (${collection['databaseId']} - ${collection['$id']})`,
@@ -690,12 +686,11 @@ const questionsPushBuckets = [
         name: "buckets",
         message: "Which buckets would you like to push?",
         validate: (value) => validateRequired('bucket', value),
+        when: () => localConfig.getBuckets().length > 0,
         choices: () => {
             let buckets = localConfig.getBuckets();
             checkDeployConditions(localConfig)
-            if (buckets.length === 0) {
-                throw new Error("No buckets found in the current directory. Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
-            }
+
             return buckets.map(bucket => {
                 return {
                     name: `${bucket.name} (${bucket['$id']})`,
@@ -711,11 +706,10 @@ const questionsPushMessagingTopics = [
         type: "checkbox",
         name: "topics",
         message: "Which messaging topic would you like to push?",
+        when: () => localConfig.getMessagingTopics().length > 0,
         choices: () => {
             let topics = localConfig.getMessagingTopics();
-            if (topics.length === 0) {
-                throw new Error("No topics found in the current directory. Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
-            }
+
             return topics.map(topic => {
                 return {
                     name: `${topic.name} (${topic['$id']})`,
@@ -752,12 +746,11 @@ const questionsPushTeams = [
         name: "teams",
         message: "Which teams would you like to push?",
         validate: (value) => validateRequired('team', value),
+        when: () => localConfig.getTeams().length > 0,
         choices: () => {
             let teams = localConfig.getTeams();
             checkDeployConditions(localConfig);
-            if (teams.length === 0) {
-                throw new Error("No teams found in the current directory. Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
-            }
+
             return teams.map(team => {
                 return {
                     name: `${team.name} (${team['$id']})`,

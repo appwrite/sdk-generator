@@ -6,7 +6,7 @@ const { localConfig, globalConfig, KeyAttributes } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
 const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
-const { cliConfig, actionRunner, success, warn, log, error, commandDescriptions, drawTable } = require("../parser");
+const { cliConfig, actionRunner, success, warn, log, hint, error, commandDescriptions, drawTable } = require("../parser");
 const { proxyListRules } = require('./proxy');
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
@@ -871,11 +871,6 @@ const pushFunction = async ({ functionId, async, code } = { returnOnZero: false 
     } else if (cliConfig.all) {
         checkDeployConditions(localConfig);
         const functions = localConfig.getFunctions();
-        if (functions.length === 0) {
-            log("No functions found.");
-            hint("Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
-            return;
-        }
         functionIds.push(...functions.map((func) => {
             return func.$id;
         }));
@@ -883,7 +878,15 @@ const pushFunction = async ({ functionId, async, code } = { returnOnZero: false 
 
     if (functionIds.length <= 0) {
         const answers = await inquirer.prompt(questionsPushFunctions[0]);
-        functionIds.push(...answers.functions);
+        if (answers.functions) {
+            functionIds.push(...answers.functions);
+        }
+    }
+
+    if (functionIds.length === 0) {
+        log("No functions found.");
+        hint("Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
+        return;
     }
 
     let functions = functionIds.map((id) => {
@@ -1114,23 +1117,27 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (localConfig.getCollections().length === 0) {
-            log("No collections found.");
-            hint("Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
-            return;
-        }
         collections.push(...localConfig.getCollections());
     } else {
         const answers = await inquirer.prompt(questionsPushCollections[0])
-        const configCollections = new Map();
-        localConfig.getCollections().forEach((c) => {
-            configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
-        });
-        answers.collections.forEach((a) => {
-            const collection = configCollections.get(a);
-            collections.push(collection);
-        })
+        if (answers.collections) {
+            const configCollections = new Map();
+            localConfig.getCollections().forEach((c) => {
+                configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
+            });
+            answers.collections.forEach((a) => {
+                const collection = configCollections.get(a);
+                collections.push(collection);
+            })
+        }
     }
+
+    if (collections.length === 0) {
+        log("No collections found.");
+        hint("Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
+        return;
+    }
+
     const databases = Array.from(new Set(collections.map(collection => collection['databaseId'])));
 
     log('Checking for changes ...');
@@ -1205,7 +1212,7 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
             }
         }
     }))
-
+    let numberOfCollections = 0;
     // Serialize attribute actions
     for (let collection of collections) {
         let attributes = collection.attributes;
@@ -1234,9 +1241,11 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
         } catch (e) {
             throw e;
         }
-
+        numberOfCollections++;
         success(`Pushed ${collection.name} ( ${collection['$id']} )`);
     }
+
+    success(`Pushed ${numberOfCollections} collections`);
 }
 
 const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
@@ -1247,17 +1256,20 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (configBuckets.length === 0) {
-            log("No buckets found.");
-            hint("Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
-            return;
-        }
         bucketIds.push(...configBuckets.map((b) => b.$id));
     }
 
     if (bucketIds.length === 0) {
         const answers = await inquirer.prompt(questionsPushBuckets[0])
-        bucketIds.push(...answers.buckets);
+        if (answers.buckets) {
+            bucketIds.push(...answers.buckets);
+        }
+    }
+
+    if (bucketIds.length === 0) {
+        log("No buckets found.");
+        hint("Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
+        return;
     }
 
     let buckets = [];
@@ -1325,16 +1337,20 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (configTeams.length === 0) {
-            log("No teams found.");
-            hint("Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
-        }
         teamIds.push(...configTeams.map((t) => t.$id));
     }
 
     if (teamIds.length === 0) {
         const answers = await inquirer.prompt(questionsPushTeams[0])
-        teamIds.push(...answers.teams);
+        if (answers.teams) {
+            teamIds.push(...answers.teams);
+        }
+    }
+
+    if (teamIds.length === 0) {
+        log("No teams found.");
+        hint("Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
+        return;
     }
 
     let teams = [];
@@ -1387,16 +1403,20 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (configTopics.length === 0) {
-            log("No topics found.");
-            hint("Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
-        }
         topicsIds.push(...configTopics.map((b) => b.$id));
     }
 
     if (topicsIds.length === 0) {
         const answers = await inquirer.prompt(questionsPushMessagingTopics[0])
-        topicsIds.push(...answers.topics);
+        if (answers.topics) {
+            topicsIds.push(...answers.topics);
+        }
+    }
+
+    if (topicsIds.length === 0) {
+        log("No topics found.");
+        hint("Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
+        return;
     }
 
     let topics = [];
