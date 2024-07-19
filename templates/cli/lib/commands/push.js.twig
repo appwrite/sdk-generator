@@ -863,7 +863,7 @@ const pushSettings = async () => {
     }
 }
 
-const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero: false }) => {
+const pushFunction = async ({ functionId, async, code } = { returnOnZero: false }) => {
     const functionIds = [];
 
     if (functionId) {
@@ -996,6 +996,14 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
             }
         }
 
+        if (code === false) {
+            successfullyPushed++;
+            successfullyDeployed++;
+            updaterRow.update({ status: 'Pushed' });
+            updaterRow.stopSpinner();
+            return;
+        }
+
         try {
             updaterRow.update({ status: 'Pushing' }).replaceSpinner(SPINNER_ARC);
             response = await functionsCreateDeployment({
@@ -1087,7 +1095,7 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
     if (!async) {
         if (successfullyPushed === 0) {
             error('No functions were pushed.');
-        } else if (successfullyDeployed != successfullyPushed) {
+        } else if (successfullyDeployed !== successfullyPushed) {
             warn(`Successfully pushed ${successfullyDeployed} of ${successfullyPushed} functions`)
         } else {
             success(`Successfully pushed ${successfullyPushed} functions.`);
@@ -1472,6 +1480,7 @@ push
     .description("Push functions in the current directory.")
     .option(`-f, --functionId <functionId>`, `Function ID`)
     .option(`-A, --async`, `Don't wait for functions deployments status`)
+    .option("--no-code", "Don't push the function's code")
     .action(actionRunner(pushFunction));
 
 push
