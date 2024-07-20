@@ -17,6 +17,7 @@
     const func = localConfig.getFunction(functionId);
 
     ignorer.add('.appwrite');
+    ignorer.add('.DS_Store');
 
     if (func.ignore) {
         ignorer.add(func.ignore);

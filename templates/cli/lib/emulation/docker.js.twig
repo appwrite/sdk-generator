@@ -1,3 +1,5 @@
+const tar = require("tar");
+const ignore = require("ignore");
 const chalk = require('chalk');
 const childProcess = require('child_process');
 const { localConfig } = require("../config");
@@ -5,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const { log, success, hint } = require("../parser");
 const { openRuntimesVersion, systemTools, Queue } = require("./utils");
+const { getAllFiles } = require("../utils");
 
 async function dockerStop(id) {
     const stopProcess = childProcess.spawn('docker', ['rm', '--force', id], {
@@ -49,7 +52,7 @@ async function dockerBuild(func, variables) {
 
     const params = [ 'run' ];
     params.push('--name', id);
-    params.push('-v', `${functionDir}/:/mnt/code:rw`);
+    params.push('-v', `${tmpBuildPath}/:/mnt/code:rw`);
     params.push('-e', 'APPWRITE_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_SECRET=');
@@ -120,9 +123,40 @@ async function dockerBuild(func, variables) {
     if (fs.existsSync(tempPath)) {
         fs.rmSync(tempPath, { force: true });
     }
+
+    fs.rmSync(tmpBuildPath, { recursive: true, force: true });
 }
 
 async function dockerStart(func, variables, port) {
+    // Pack function files
+    const functionDir = path.join(process.cwd(), func.path);
+
+    const ignorer = ignore();
+    ignorer.add('.appwrite');
+    ignorer.add('.DS_Store');
+    if (func.ignore) {
+        ignorer.add(func.ignore);
+    } else if (fs.existsSync(path.join(functionDir, '.gitignore'))) {
+        ignorer.add(fs.readFileSync(path.join(functionDir, '.gitignore')).toString());
+    }
+
+    const files = getAllFiles(functionDir).map((file) => path.relative(functionDir, file)).filter((file) => !ignorer.ignores(file));
+    const tmpBuildPath = path.join(functionDir, '.appwrite/tmp-build');
+    if (!fs.existsSync(tmpBuildPath)) {
+        fs.mkdirSync(tmpBuildPath, { recursive: true });
+    }
+
+    for(const f of files) {
+        const filePath = path.join(tmpBuildPath, f);
+        const fileDir = path.dirname(filePath);
+        if (!fs.existsSync(fileDir)) {
+            fs.mkdirSync(fileDir, { recursive: true });
+        }
+
+        const sourcePath = path.join(functionDir, f);
+        fs.copyFileSync(sourcePath, filePath);
+    }
+
    const runtimeChunks = func.runtime.split("-");
    const runtimeVersion = runtimeChunks.pop();
    const runtimeName = runtimeChunks.join("-");
