@@ -1,4 +1,4 @@
-var net = require('net');
+const net = require('net');
 const chalk = require('chalk');
 const childProcess = require('child_process');
 const { localConfig } = require("../config");
@@ -172,7 +172,7 @@ async function dockerStart(func, variables, port) {
     try {
         await waitUntilPortOpen(port);
     } catch(err) {
-        error("Function does not appear to be started: " + err.message ? err.message : err.toString());
+        error("Failed to start function with error: " + err.message ? err.message : err.toString());
         return;
     }
 
