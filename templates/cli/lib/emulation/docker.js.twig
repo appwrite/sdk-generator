@@ -1,9 +1,10 @@
+var net = require('net');
 const chalk = require('chalk');
 const childProcess = require('child_process');
 const { localConfig } = require("../config");
 const path = require('path');
 const fs = require('fs');
-const { log, success, hint } = require("../parser");
+const { log, error, success, hint } = require("../parser");
 const { openRuntimesVersion, systemTools, Queue } = require("./utils");
 
 async function dockerStop(id) {
@@ -168,6 +169,13 @@ async function dockerStart(func, variables, port) {
         process.stdout.write(chalk.blackBright(data));
     });
 
+    try {
+        await waitUntilPortOpen(port);
+    } catch(err) {
+        error("Function does not appear to be started: " + err.message ? err.message : err.toString());
+        return;
+    }
+
     success(`Visit http://localhost:${port}/ to execute your function.`);
 }
 
@@ -184,6 +192,39 @@ async function dockerCleanup(functionId) {
     if (fs.existsSync(tempPath)) {
         fs.rmSync(tempPath, { force: true });
     }
+}
+
+function waitUntilPortOpen(port, iteration = 0) {
+    return new Promise((resolve, reject) => {
+        const client = new net.Socket();
+
+        client.once('connect', () => {
+            client.removeAllListeners('connect');
+            client.removeAllListeners('error');
+            client.end();
+            client.destroy();
+            client.unref();
+
+            resolve();
+        });
+
+        client.once('error', async (err) => {
+            client.removeAllListeners('connect');
+            client.removeAllListeners('error');
+            client.end();
+            client.destroy();
+            client.unref();
+
+            if(iteration > 100) {
+                reject(err);
+            } else {
+                await new Promise((res) => setTimeout(res, 100));
+                waitUntilPortOpen(port, iteration + 1).then(resolve).catch(reject);
+            }
+        });
+
+        client.connect({port, host: '127.0.0.1'}, function() {});
+    }); 
 }
 
 module.exports = {
