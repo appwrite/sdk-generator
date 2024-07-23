@@ -15,7 +15,7 @@ package {{ service.name | caseLower }}
 import (
 	"encoding/json"
 	"errors"
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/client"
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/appwrite"
 {% if requireModelsPkg %}
 	"github.com/{{sdk.gitUserName}}/sdk-for-go/models"
 {% endif %}
@@ -27,10 +27,10 @@ import (
 
 {{ ((service.name | caseUcfirst) ~ " service") | godocComment }}
 type {{ service.name | caseUcfirst }} struct {
-	client client.Client
+	client appwrite.Client
 }
 
-func New{{ service.name | caseUcfirst }}(clt client.Client) *{{ service.name | caseUcfirst }} {
+func New{{ service.name | caseUcfirst }}(clt appwrite.Client) *{{ service.name | caseUcfirst }} {
 	return &{{ service.name | caseUcfirst }}{
 		client: clt,
 	}
