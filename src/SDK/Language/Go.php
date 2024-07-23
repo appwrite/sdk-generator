@@ -150,7 +150,9 @@ class Go extends Language
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_OBJECT => 'interface{}',
-            self::TYPE_ARRAY => '[]interface{}',
+            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
+            ? '[]' . $this->getTypeName($parameter['array'])
+            : '[]string',
             default => $parameter['type'],
         };
     }
@@ -175,8 +177,10 @@ class Go extends Language
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
+                    $output .= "0";
+                    break;
                 case self::TYPE_BOOLEAN:
-                    $output .= 'null';
+                    $output .= 'false';
                     break;
                 case self::TYPE_STRING:
                     $output .= '""';
@@ -288,25 +292,38 @@ class Go extends Language
                 }
                 return implode("\n" . $indent, $value);
             }, ['is_safe' => ['html']]),
-            new TwigFilter('propertyType', function (array $property, array $spec, string $generic = 'interface{}') {
+            new TwigFilter('propertyType', function (array $property, array $spec, string $generic = 'map[string]interface{}') {
                 return $this->getPropertyType($property, $spec, $generic);
             }),
-            new TwigFilter('returnType', function (array $method, array $spec, string $namespace, string $generic = 'T') {
+            new TwigFilter('returnType', function (array $method, array $spec, string $namespace, string $generic = 'map[string]interface{}') {
                 return $this->getReturnType($method, $spec, $namespace, $generic);
             }),
             new TwigFilter('caseEnumKey', function (string $value) {
                 return $this->toUpperSnakeCase($value);
-            })
+            }),
         ];
     }
 
-    protected function getPropertyType(array $property, array $spec, string $generic = 'interface{}'): string
+    protected function getPropertyType(array $property, array $spec, string $generic = 'map[string]interface{}'): string
     {
-        $type = $this->getTypeName($property);
+        if (\array_key_exists('sub_schema', $property)) {
+            $type = $this->toPascalCase($property['sub_schema']);
+
+            if ($this->hasGenericType($property['sub_schema'], $spec)) {
+                $type = $generic;
+            }
+
+            if ($property['type'] === 'array') {
+                $type = '[]' . $type;
+            }
+        } else {
+            $type = $this->getTypeName($property);
+        }
+
         return $type;
     }
 
-    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
+    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'map[string]interface{}'): string
     {
         if ($method['type'] === 'webAuth') {
             return 'bool';
@@ -326,5 +343,28 @@ class Go extends Language
         $ret = ucfirst($method['responseModel']);
 
         return 'models.' . $ret;
+    }
+
+    protected function hasGenericType(?string $model, array $spec): string
+    {
+        if (empty($model) || $model === 'any') {
+            return false;
+        }
+
+        $model = $spec['definitions'][$model];
+
+        if ($model['additionalProperties']) {
+            return true;
+        }
+
+        foreach ($model['properties'] as $property) {
+            if (!\array_key_exists('sub_schema', $property) || !$property['sub_schema']) {
+                continue;
+            }
+
+            return $this->hasGenericType($property['sub_schema'], $spec);
+        }
+
+        return false;
     }
 }
