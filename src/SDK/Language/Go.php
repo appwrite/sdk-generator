@@ -65,11 +65,6 @@ class Go extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'example/main.go',
-                'template'      => 'go/main.go.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'go/README.md.twig',
             ],
