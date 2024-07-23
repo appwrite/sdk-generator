@@ -10,6 +10,6 @@ type {{ definition.name | caseUcfirst }} struct {
 
     {%~ if definition.additionalProperties %}
     // Additional properties
-    data interface{}
+    Data map[string]interface{}
     {%~ endif %}
 }
