@@ -304,10 +304,6 @@ class Go extends Language
         if (\array_key_exists('sub_schema', $property)) {
             $type = $this->toPascalCase($property['sub_schema']);
 
-            if ($this->hasGenericType($property['sub_schema'], $spec)) {
-                $type = $generic;
-            }
-
             if ($property['type'] === 'array') {
                 $type = '[]' . $type;
             }
