@@ -30,8 +30,8 @@ type {{ service.name | caseUcfirst }} struct {
 	client client.Client
 }
 
-func New(clt client.Client) {{ service.name | caseUcfirst }} {
-	return {{ service.name | caseUcfirst }}{
+func New(clt client.Client) *{{ service.name | caseUcfirst }} {
+	return &{{ service.name | caseUcfirst }}{
 		client: clt,
 	}
 }

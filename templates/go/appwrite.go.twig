@@ -11,8 +11,7 @@ import (
 
 {% for key,service in spec.services %}
 func New{{ service.name | caseUcfirst }}(clt client.Client) *{{ service.name | caseLower}}.{{ service.name | caseUcfirst }} {
-	service := {{ service.name | caseLower}}.New(clt)
-	return &service
+	return {{ service.name | caseLower}}.New(clt)
 }
 {% endfor %}
 
