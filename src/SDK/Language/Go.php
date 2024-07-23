@@ -85,8 +85,8 @@ class Go extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'client/client.go',
-                'template'      => 'go/client.go.twig',
+                'destination'   => 'appwrite/appwrite.go',
+                'template'      => 'go/appwrite.go.twig',
             ],
             [
                 'scope'         => 'default',
