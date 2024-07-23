@@ -90,6 +90,11 @@ class Go extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'client/client.go',
+                'template'      => 'go/client.go.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'file/inputFile.go',
                 'template'      => 'go/inputFile.go.twig',
             ],
