@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	stringInArray := []interface{}{"string in array"}
+	stringInArray := []string{"string in array"}
 
 	client := appwrite.NewClient(
 		appwrite.WithTimeout(60 * time.Second),
@@ -27,7 +27,7 @@ func main() {
 	testGeneralService(client, stringInArray)
 }
 
-func testFooService(client client.Client, stringInArray []interface{}) {
+func testFooService(client client.Client, stringInArray []string) {
 	foo := appwrite.NewFoo(client)
 	// Foo Service
 	response, err := foo.Get("string", 123, stringInArray)
@@ -61,7 +61,7 @@ func testFooService(client client.Client, stringInArray []interface{}) {
 	fmt.Printf("%s\n", response.Result)
 }
 
-func testBarService(client client.Client, stringInArray []interface{}) {
+func testBarService(client client.Client, stringInArray []string) {
 	bar := appwrite.NewBar(client)
 	// Bar Service
 	response, err := bar.Get("string", 123, stringInArray)
@@ -95,7 +95,7 @@ func testBarService(client client.Client, stringInArray []interface{}) {
 	fmt.Printf("%s\n", response.Result)
 }
 
-func testGeneralService(client client.Client, stringInArray []interface{}) {
+func testGeneralService(client client.Client, stringInArray []string) {
 	general := appwrite.NewGeneral(client)
 	// General Service
 	response, err := general.Redirect()
@@ -147,7 +147,7 @@ func testGeneralService(client client.Client, stringInArray []interface{}) {
 	fmt.Printf("%s\n", headersResponse.Result)
 }
 
-func testGeneralUpload(client client.Client, stringInArray []interface{}) {
+func testGeneralUpload(client client.Client, stringInArray []string) {
 	general := appwrite.NewGeneral(client)
 	uploadFile := path.Join("/app", "tests/resources/file.png")
 	inputFile := file.NewInputFile(uploadFile, "file.png")
@@ -168,7 +168,7 @@ func testGeneralDownload(client client.Client) {
 	fmt.Printf("%s\n", string(*response))
 }
 
-func testLargeUpload(client client.Client, stringInArray []interface{}) {
+func testLargeUpload(client client.Client, stringInArray []string) {
 	general := appwrite.NewGeneral(client)
 	uploadFile := path.Join("/app", "tests/resources/large_file.mp4")
 	inputFile := file.NewInputFile(uploadFile, "large_file.mp4")

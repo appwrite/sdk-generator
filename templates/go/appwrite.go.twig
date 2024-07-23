@@ -3,9 +3,9 @@ package appwrite
 import (
 	"time"
 
-	"github.com/appwrite/sdk-for-go/client"
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/client"
 {% for key,service in spec.services %}
-	"github.com/appwrite/sdk-for-go/{{ service.name | caseLower}}"
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/{{ service.name | caseLower}}"
 {% endfor %}
 )
 
