@@ -65,7 +65,7 @@ type Client struct {
 }
 
 // NewClient initializes a new {{ spec.title | caseUcfirst }} client with a given timeout
-func NewClient() Client {
+func NewClient(optionalSetters ...ClientOption) Client {
 	headers := map[string]string{
 {% for key,header in spec.global.defaultHeaders %}
 		"{{key}}" : "{{header}}",
@@ -80,13 +80,23 @@ func NewClient() Client {
 	if err != nil {
 		panic(err)
 	}
-	return Client{
+
+	client := Client{
 		endpoint:  "{{spec.endpoint}}",
 		client:    httpClient,
 		timeout:   defaultTimeout,
 		headers:   headers,
 		chunkSize: defaultChunkSize,
 	}
+
+	for _, opt := range optionalSetters {
+		err = opt(&client)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return client
 }
 
 func (clt *Client) String() string {
@@ -104,29 +114,41 @@ func getDefaultClient(timeout time.Duration) (*http.Client, error) {
 	}, nil
 }
 
-func (clt *Client) SetTimeout(timeout time.Duration) error {
-	clt.timeout = timeout
-	httpClient, err := getDefaultClient(timeout)
-	if err != nil {
-		return err
+type ClientOption func(*Client) error
+
+func (_ Client) WithTimeout(timeout time.Duration) ClientOption {
+	return func(clt *Client) error {
+		httpClient, err := getDefaultClient(timeout)
+		if err != nil {
+			return err
+		}
+
+		clt.timeout = timeout
+		clt.client = httpClient
+
+		return nil
 	}
-	clt.client = httpClient
-	return nil
 }
 
-// SetEndpoint sets the default endpoint to which the Client connects to
-func (clt *Client) SetEndpoint(endpoint string) {
-	clt.endpoint = endpoint
+func WithEndpoint(endpoint string) ClientOption {
+	return func(clt *Client) error {
+		clt.endpoint = endpoint
+		return nil
+	}
 }
 
-// SetSelfSigned sets the condition that specify if the Client should allow connections to a server using a self-signed certificate
-func (clt *Client) SetSelfSigned(status bool) {
-	clt.selfSigned = status
+func WithSelfSigned(status bool) ClientOption {
+	return func(clt *Client) error {
+		clt.selfSigned = status
+		return nil
+	}
 }
 
-// SetChunkSize sets the chunk size for file upload
-func (clt *Client) SetChunkSize(size int64) {
-	clt.chunkSize = size
+func WithChunkSize(size int64) ClientOption {
+	return func(clt *Client) error {
+		clt.chunkSize = size
+		return nil
+	}
 }
 
 // AddHeader add a new custom header that the Client should send on each request
@@ -138,8 +160,11 @@ func (clt *Client) AddHeader(key string, value string) {
 {% if header.description %}
 // {{header.description}}
 {% endif %}
-func (clt *Client) Set{{header.key | caseUcfirst}}(value string) {
-	clt.headers["{{header.name}}"] = value
+func With{{header.key | caseUcfirst}}(value string) ClientOption {
+	return func(clt *Client) error {
+		clt.headers["{{header.name}}"] = value
+		return nil
+	}
 }
 {% endfor %}
 
