@@ -5,11 +5,9 @@ import (
 	"path"
 	"time"
 
-	"github.com/repoowner/sdk-for-go/bar"
+	"github.com/repoowner/sdk-for-go/appwrite"
 	"github.com/repoowner/sdk-for-go/client"
 	"github.com/repoowner/sdk-for-go/file"
-	"github.com/repoowner/sdk-for-go/foo"
-	"github.com/repoowner/sdk-for-go/general"
 	"github.com/repoowner/sdk-for-go/id"
 	"github.com/repoowner/sdk-for-go/permission"
 	"github.com/repoowner/sdk-for-go/query"
@@ -19,11 +17,9 @@ import (
 func main() {
 	stringInArray := []interface{}{"string in array"}
 
-	client := client.NewClient()
-	err := client.SetTimeout(60 * time.Second)
-	if err != nil {
-		panic(err)
-	}
+	client := appwrite.NewClient(
+		appwrite.WithTimeout(60 * time.Second),
+	)
 	client.AddHeader("Origin", "http://localhost")
 	fmt.Print("\n\nTest Started\n")
 	testFooService(client, stringInArray)
@@ -32,7 +28,7 @@ func main() {
 }
 
 func testFooService(client client.Client, stringInArray []interface{}) {
-	foo := foo.NewFoo(client)
+	foo := appwrite.NewFoo(client)
 	// Foo Service
 	response, err := foo.Get("string", 123, stringInArray)
 	if err != nil {
@@ -66,7 +62,7 @@ func testFooService(client client.Client, stringInArray []interface{}) {
 }
 
 func testBarService(client client.Client, stringInArray []interface{}) {
-	bar := bar.NewBar(client)
+	bar := appwrite.NewBar(client)
 	// Bar Service
 	response, err := bar.Get("string", 123, stringInArray)
 	if err != nil {
@@ -100,7 +96,7 @@ func testBarService(client client.Client, stringInArray []interface{}) {
 }
 
 func testGeneralService(client client.Client, stringInArray []interface{}) {
-	general := general.NewGeneral(client)
+	general := appwrite.NewGeneral(client)
 	// General Service
 	response, err := general.Redirect()
 	if err != nil {
@@ -152,7 +148,7 @@ func testGeneralService(client client.Client, stringInArray []interface{}) {
 }
 
 func testGeneralUpload(client client.Client, stringInArray []interface{}) {
-	general := general.NewGeneral(client)
+	general := appwrite.NewGeneral(client)
 	uploadFile := path.Join("/app", "tests/resources/file.png")
 	inputFile := file.NewInputFile(uploadFile, "file.png")
 
@@ -164,7 +160,7 @@ func testGeneralUpload(client client.Client, stringInArray []interface{}) {
 }
 
 func testGeneralDownload(client client.Client) {
-	general := general.NewGeneral(client)
+	general := appwrite.NewGeneral(client)
 	response, err := general.Download()
 	if err != nil {
 		fmt.Printf("general.Download => error %v", err)
@@ -173,7 +169,7 @@ func testGeneralDownload(client client.Client) {
 }
 
 func testLargeUpload(client client.Client, stringInArray []interface{}) {
-	general := general.NewGeneral(client)
+	general := appwrite.NewGeneral(client)
 	uploadFile := path.Join("/app", "tests/resources/large_file.mp4")
 	inputFile := file.NewInputFile(uploadFile, "large_file.mp4")
 
