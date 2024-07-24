@@ -91,6 +91,7 @@ async function dockerBuild(func, variables) {
 
     await new Promise((res) => { buildProcess.on('close', res) });
 
+    clearInterval(killInterval);
     if(!Queue.isEmpty()) {
         return;
     }
