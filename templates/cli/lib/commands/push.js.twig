@@ -726,7 +726,7 @@ const generateChangesObject = (attribute, collection, isAdding) => {
     return {
         key: `${chalk.yellow(attribute.key)} in ${collection.name} (${collection['$id']})`,
         attribute: attribute,
-        reason: isAdding ? 'Field isn\'t available on the remote server' : 'Field isn\'t available on the appwrite.json file',
+        reason: isAdding ? 'Field isn\'t present on the remote server' : 'Field isn\'t present on the appwrite.json file',
         action: isAdding ? chalk.green('adding') : chalk.red('deleting')
     };
 
