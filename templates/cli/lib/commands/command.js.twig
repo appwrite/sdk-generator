@@ -86,11 +86,11 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
 {% endfor %}
 {% for method in service.methods %}
 {{service.name | caseLower }}
-    .command(`{{ method.name | caseCamel | cli_kebab }}`)
+    .command(`{{ method.name | caseKebab }}`)
 {% autoescape false %}
     .description(`{{ method.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`)
 {% for parameter in method.parameters.all %}
-    .{% if parameter.required and not parameter.nullable %}requiredOption{% else %}option{% endif %}(`--{{ parameter.name | escapeKeyword | cli_kebab }} {% if parameter.array.type|length > 0 %}[{% else %}<{% endif %}{{ parameter.name | escapeKeyword | cli_kebab }}{% if parameter.array.type|length > 0 %}...{% endif %}{% if parameter.array.type|length > 0 %}]{% else %}>{% endif %}`, `{{ parameter.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`{% if parameter | typeName == 'boolean' %}, parseBool{% elseif parameter | typeName == 'number' %}, parseInteger{% endif %})
+    .{% if parameter.required and not parameter.nullable %}requiredOption{% else %}option{% endif %}(`--{{ parameter.name | escapeKeyword | caseKebab }} {% if parameter.array.type|length > 0 %}[{% else %}<{% endif %}{{ parameter.name | escapeKeyword | caseKebab }}{% if parameter.array.type|length > 0 %}...{% endif %}{% if parameter.array.type|length > 0 %}]{% else %}>{% endif %}`, `{{ parameter.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`{% if parameter | typeName == 'boolean' %}, parseBool{% elseif parameter | typeName == 'number' %}, parseInteger{% endif %})
 {% endfor %}
 {% if method.type == 'location' %}
     .requiredOption(`--destination <path>`, `output file path.`)

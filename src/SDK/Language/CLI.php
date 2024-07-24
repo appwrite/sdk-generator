@@ -368,7 +368,7 @@ class CLI extends Node
     public function getFilters(): array
     {
         return array_merge(parent::getFilters(),[
-           new TwigFilter('cli_kebab', function ($value) {
+           new TwigFilter('caseKebab', function ($value) {
                return strtolower(preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z]|(?<=[A-Z])[0-9_])/', '-$1', $value));
            })
         ]);
