@@ -226,9 +226,9 @@ const client = new Command("client")
     .configureHelp({
         helpWidth: process.stdout.columns || 80
     })
-    .option("-ss, --selfSigned <value>", "Configure the CLI to use a self-signed certificate ( true or false )", parseBool)
+    .option("-ss, --self-signed <value>", "Configure the CLI to use a self-signed certificate ( true or false )", parseBool)
     .option("-e, --endpoint <endpoint>", "Set your Appwrite server endpoint")
-    .option("-p, --projectId <projectId>", "Set your Appwrite project ID")
+    .option("-p, --project-id <project-id>", "Set your Appwrite project ID")
     .option("-k, --key <key>", "Set your Appwrite server's API key")
     .option("-d, --debug", "Print CLI debug information")
     .option("-r, --reset", "Reset the CLI configuration")

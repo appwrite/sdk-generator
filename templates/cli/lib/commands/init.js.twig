@@ -333,9 +333,9 @@ const init = new Command("init")
 init
     .command("project")
     .description("Init a new {{ spec.title|caseUcfirst }} project")
-    .option("--organizationId <organizationId>", "{{ spec.title|caseUcfirst }} organization ID")
-    .option("--projectId <projectId>", "{{ spec.title|caseUcfirst }} project ID")
-    .option("--projectName <projectName>", "{{ spec.title|caseUcfirst }} project ID")
+    .option("--organization-id <organization-id>", "{{ spec.title|caseUcfirst }} organization ID")
+    .option("--project-id <project-id>", "{{ spec.title|caseUcfirst }} project ID")
+    .option("--project-name <project-name>", "{{ spec.title|caseUcfirst }} project ID")
     .action(actionRunner(initProject));
 
 init

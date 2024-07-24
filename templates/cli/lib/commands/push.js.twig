@@ -1612,7 +1612,7 @@ push
     .command("function")
     .alias("functions")
     .description("Push functions in the current directory.")
-    .option(`-f, --functionId <functionId>`, `Function ID`)
+    .option(`-f, --function-id <function-id>`, `Function ID`)
     .option(`-A, --async`, `Don't wait for functions deployments status`)
     .option("--no-code", "Don't push the function's code")
     .action(actionRunner(pushFunction));

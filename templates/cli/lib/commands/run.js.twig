@@ -278,11 +278,11 @@ run
     .command("function")
     .alias("functions")
     .description("Run functions in the current directory.")
-    .option(`--functionId <functionId>`, `Function ID`)
+    .option(`--function-id <function-id>`, `Function ID`)
     .option(`--port <port>`, `Local port`)
-    .option(`--userId <userId>`, `ID of user to impersonate`)
-    .option(`--noVariables`, `Prevent pulling variables from function settings`)
-    .option(`--noReload`, `Prevent live reloading of server when changes are made to function files`)
+    .option(`--user-id <user-id>`, `ID of user to impersonate`)
+    .option(`--no-variables`, `Prevent pulling variables from function settings`)
+    .option(`--no-reload`, `Prevent live reloading of server when changes are made to function files`)
     .action(actionRunner(runFunction));
 
 module.exports = {
