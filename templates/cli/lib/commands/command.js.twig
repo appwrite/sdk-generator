@@ -86,7 +86,7 @@ const {{ service.name | caseLower }}{{ method.name | caseUcfirst }} = async ({
 {% endfor %}
 {% for method in service.methods %}
 {{service.name | caseLower }}
-    .command(`{{ method.name | caseCamel }}`)
+    .command(`{{ method.name | caseCamel | cli_kebab }}`)
 {% autoescape false %}
     .description(`{{ method.description | replace({'`':'\''}) | replace({'\n':' '}) | replace({'\n \n':' '}) }}`)
 {% for parameter in method.parameters.all %}
