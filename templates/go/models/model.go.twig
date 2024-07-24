@@ -1,5 +1,6 @@
 package models
 
+import "encoding/json"
 
 {{ ((definition.description | caseUcfirst) ~ " Model") | godocComment }}
 type {{ definition.name | caseUcfirst }} struct {
@@ -8,8 +9,23 @@ type {{ definition.name | caseUcfirst }} struct {
     {{ property.name | caseUcfirst  }} {{ property | propertyType(spec) }} `json:"{{ property.name | escapeKeyword }}"`
     {%~ endfor %}
 
-    {%~ if definition.additionalProperties %}
-    // Additional properties
-    Data map[string]interface{}
-    {%~ endif %}
+    // Used by Decode() method
+    data []byte
+}
+
+func (model {{ definition.name | caseUcfirst }}) New(data []byte) *{{ definition.name | caseUcfirst }} {
+    model.data = data
+    return &model
+}
+
+{%~ if definition.additionalProperties %}
+// Use this method to get response in desired type
+{%~ endif %}
+func (model *{{ definition.name | caseUcfirst }}) Decode(value *any) error {
+    err := json.Unmarshal(model.data, value)
+    if err != nil {
+        return err
+    }
+
+    return nil
 }
