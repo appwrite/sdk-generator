@@ -26,7 +26,7 @@ func (model {{ definition.name | caseUcfirst }}) New(data []byte) *{{ definition
 {%~ endif %}
 func (model *{{ definition.name | caseUcfirst }}) Decode(value interface{}) error {
     if len(model.data) <= 0 {
-        return errors.New("method Decode() cannot be used on nested structs.")
+        return errors.New("method Decode() cannot be used on nested struct")
     }
 
     err := json.Unmarshal(model.data, value)
