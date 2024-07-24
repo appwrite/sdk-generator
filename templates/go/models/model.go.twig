@@ -1,6 +1,9 @@
 package models
 
-import "encoding/json"
+import (
+    "encoding/json"
+    "errors"
+)
 
 {{ ((definition.description | caseUcfirst) ~ " Model") | godocComment }}
 type {{ definition.name | caseUcfirst }} struct {
@@ -21,7 +24,11 @@ func (model {{ definition.name | caseUcfirst }}) New(data []byte) *{{ definition
 {%~ if definition.additionalProperties %}
 // Use this method to get response in desired type
 {%~ endif %}
-func (model *{{ definition.name | caseUcfirst }}) Decode(value *any) error {
+func (model *{{ definition.name | caseUcfirst }}) Decode(value interface{}) error {
+    if len(model.data) <= 0 {
+        return errors.New("method Decode() cannot be used on nested structs.")
+    }
+
     err := json.Unmarshal(model.data, value)
     if err != nil {
         return err
