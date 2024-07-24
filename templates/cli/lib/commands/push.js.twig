@@ -2,7 +2,7 @@ const chalk = require('chalk');
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
-const { localConfig, globalConfig, KeyAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, } = require("../config");
+const { localConfig, globalConfig, KeysAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
 const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
@@ -682,7 +682,7 @@ const checkAttributeChanges = (remote, local, collection, recraeting = true) => 
     let attribute = remote;
 
     for (let key of Object.keys(remote)) {
-        if (!KeyAttributes.has(key)) {
+        if (!KeysAttributes.has(key)) {
             continue;
         }
 

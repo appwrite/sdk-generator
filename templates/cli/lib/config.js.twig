@@ -10,7 +10,7 @@ const KeysCollection = new Set(["$id", "$permissions", "databaseId", "name", "en
 const KeysStorage = new Set(["$id", "$permissions", "fileSecurity", "name", "enabled", "maximumFileSize", "allowedFileExtensions", "compression", "encryption", "antivirus"]);
 const KeysTopics = new Set(["$id", "name", "subscribe"]);
 const KeysTeams = new Set(["$id", "name"]);
-const KeyAttributes = new Set([
+const KeysAttributes = new Set([
     "key",
     "type",
     "required",
@@ -197,7 +197,7 @@ class Local extends Config {
 
     addCollection(props) {
         props = whitelistKeys(props, KeysCollection, {
-            attributes: KeyAttributes,
+            attributes: KeysAttributes,
             indexes: KeyIndexes
         });
 
@@ -610,7 +610,7 @@ class Global extends Config {
 module.exports = {
     localConfig: new Local(),
     globalConfig: new Global(),
-    KeyAttributes,
+    KeysAttributes,
     KeysFunction,
     KeysTopics,
     KeysStorage,
