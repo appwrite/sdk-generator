@@ -30,7 +30,7 @@ type {{ service.name | caseUcfirst }} struct {
 	client client.Client
 }
 
-func New{{ service.name | caseUcfirst }}(clt client.Client) *{{ service.name | caseUcfirst }} {
+func New(clt client.Client) *{{ service.name | caseUcfirst }} {
 	return &{{ service.name | caseUcfirst }}{
 		client: clt,
 	}
@@ -38,7 +38,6 @@ func New{{ service.name | caseUcfirst }}(clt client.Client) *{{ service.name | c
 
 {% for method in service.methods %}
 {% if method.parameters.all|filter(v => not v.required)|length > 0 %}
-
 type {{ (method.name ~ "Options") | caseUcfirst }} struct {
 {% for parameter in method.parameters.all %}
 {% if not parameter.required %}
@@ -59,7 +58,7 @@ func (options {{ (method.name ~ "Options") | caseUcfirst }}) New() *{{ (method.n
 }
 type {{ (method.name ~ "Option" ) | caseUcfirst }} func(*{{ (method.name ~ "Options") | caseUcfirst }})
 {% for parameter in method.parameters.all|filter(v => not v.required) %}
-func With{{ method.name | caseUcfirst }}{{ parameter.name | caseUcfirst }}(v {{ (parameter | typeName) }}) {{ (method.name ~ "Option") | caseUcfirst }} {
+func (srv *{{ service.name | caseUcfirst }}) With{{ method.name | caseUcfirst }}{{ parameter.name | caseUcfirst }}(v {{ (parameter | typeName) }}) {{ (method.name ~ "Option") | caseUcfirst }} {
 	return func(o *{{ (method.name ~ "Options") | caseUcfirst }}) {
 		o.{{ parameter.name | caseUcfirst }} = v
 		o.enabledSetters["{{ parameter.name | caseUcfirst }}"] = true
