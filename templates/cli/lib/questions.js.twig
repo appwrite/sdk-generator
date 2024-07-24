@@ -247,11 +247,10 @@ const questionsPullFunctions = [
             if (functions.length === 0) {
                 throw "We couldn't find any functions in your {{ spec.title|caseUcfirst }} project";
             }
-
             return functions.map(func => {
                 return {
                     name: `${func.name} (${func.$id})`,
-                    value: func
+                    value: { ...func }
                 }
             });
         }
