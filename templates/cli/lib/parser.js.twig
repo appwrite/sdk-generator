@@ -90,20 +90,9 @@ const drawTable = (data) => {
             if (row[key] === null) {
                 rowValues.push("-");
             } else if (Array.isArray(row[key])) {
-                switch (row[key].length) {
-                    case 1:
-                        if (typeof row[key][0] === 'object') {
-                            rowValues.push(`array(${row[key].length})`);
-                        } else {
-                            rowValues.push(row[key][0]);
-                        }
-                        break;
-                    default:
-                        rowValues.push(`array(${row[key].length})`);
-                        break;
-                }
+                rowValues.push(JSON.stringify(row[key]));
             } else if (typeof row[key] === 'object') {
-                rowValues.push("object");
+                rowValues.push(JSON.stringify(row[key]));
             } else {
                 rowValues.push(row[key]);
             }

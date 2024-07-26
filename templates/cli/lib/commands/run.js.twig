@@ -1,4 +1,5 @@
 const Tail = require('tail').Tail;
+const { parse: parseDotenv } = require('dotenv');
 const chalk = require('chalk');
 const ignore = require("ignore");
 const tar = require("tar");
@@ -80,6 +81,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
         entrypoint: func.entrypoint,
         path: func.path,
         commands: func.commands,
+        scopes: func.scopes ?? []
     };
 
     drawTable([settings]);
@@ -110,7 +112,9 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
         fs.writeFileSync(errorsPath, '');
     }
 
+    const userVariables = {};
     const variables = {};
+
     if(!noVariables) {
         try {
             const { variables: remoteVariables } = await paginate(functionsListVariables, {
@@ -120,10 +124,22 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
 
             remoteVariables.forEach((v) => {
                 variables[v.key] = v.value;
+                userVariables[v.key] = v.value;
             });
         } catch(err) {
             warn("Remote variables not fetched. Production environment variables will not be avaiable. Reason: " + err.message);
         }
+    }
+
+    const functionPath = path.join(process.cwd(), func.path);
+    const envPath = path.join(functionPath, '.env');
+    if(fs.existsSync(envPath)) {
+        const env = parseDotenv(fs.readFileSync(envPath).toString() ?? '');
+
+        Object.keys(env).forEach((key) => {
+            variables[key] = env[key];
+            userVariables[key] = env[key];
+        });
     }
 
     variables['APPWRITE_FUNCTION_API_ENDPOINT'] = globalConfig.getFrom('endpoint');
@@ -148,6 +164,13 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     headers['x-appwrite-user-jwt'] = JwtManager.userJwt ?? '';
     variables['OPEN_RUNTIMES_HEADERS'] = JSON.stringify(headers);
 
+    if(Object.keys(userVariables).length > 0) {
+        drawTable(Object.keys(userVariables).map((key) => ({
+            key,
+            value: userVariables[key].split("").filter((_, i) => i < 16).map(() => "*").join("")
+        })));
+    }
+
     await dockerPull(func);
 
     new Tail(logsPath).on("line", function(data) {
@@ -158,10 +181,27 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     });
 
     if(!noReload) {
+        const ignorer = ignore();
+        ignorer.add('.appwrite');
+        ignorer.add('code.tar.gz');
+    
+        if (func.ignore) {
+            ignorer.add(func.ignore);
+        } else if (fs.existsSync(path.join(functionPath, '.gitignore'))) {
+            ignorer.add(fs.readFileSync(path.join(functionPath, '.gitignore')).toString());
+        }
+
         chokidar.watch('.', {
             cwd: path.join(process.cwd(), func.path),
             ignoreInitial: true,
-            ignored: [ ...(func.ignore ?? []), 'code.tar.gz', '.appwrite', '.appwrite/', '.appwrite/*', '.appwrite/**', '.appwrite/*.*', '.appwrite/**/*.*' ]
+            ignored: (xpath) => {
+                const relativePath = path.relative(functionPath, xpath);
+
+                if(!relativePath) {
+                    return false;
+                }
+                return ignorer.ignores(relativePath);
+            }
         }).on('all', async (_event, filePath) => {
             Queue.push(filePath);
         });
@@ -187,7 +227,6 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
             } else {
                 log('Hot-swapping function.. Files with change are ' + files.join(', '));
 
-                const functionPath = path.join(process.cwd(), func.path);
                 const hotSwapPath = path.join(functionPath, '.appwrite/hot-swap');
                 const buildPath = path.join(functionPath, '.appwrite/build.tar.gz');
 
@@ -201,6 +240,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
 
                 await tar
                     .extract({
+                        keep: true,
                         gzip: true,
                         sync: true,
                         cwd: hotSwapPath,
@@ -211,6 +251,8 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
                 ignorer.add('.appwrite');
                 if (func.ignore) {
                     ignorer.add(func.ignore);
+                } else if (fs.existsSync(path.join(functionPath, '.gitignore'))) {
+                    ignorer.add(fs.readFileSync(path.join(functionPath, '.gitignore')).toString());
                 }
 
                 const filesToCopy = getAllFiles(functionPath).map((file) => path.relative(functionPath, file)).filter((file) => !ignorer.ignores(file));
@@ -236,8 +278,6 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
                         cwd: hotSwapPath,
                         file: buildPath
                     }, ['.']);
-
-                fs.rmSync(hotSwapPath, { recursive: true, force: true });
 
                 await dockerStart(func, variables, port);
             }
