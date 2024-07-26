@@ -1,6 +1,5 @@
 <?php
 
-
 use Tests\Base;
 
 class PHP83Test extends Base
