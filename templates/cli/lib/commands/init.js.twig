@@ -110,6 +110,7 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         answers = await inquirer.prompt(questionsInitProjectAutopull);
         if(answers.autopull) {
             cliConfig.all = true;
+            cliConfig.force = true;
             await pullResources();
         } else {
             log("You can run 'appwrite pull all' to synchronize all of your existing resources.");
