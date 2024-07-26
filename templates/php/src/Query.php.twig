@@ -23,10 +23,10 @@ class Query implements \JsonSerializable
 
     public function __toString(): string
     {
-        return json_encode($this->jsonSerialize());
+        return json_encode($this);
     }
 
-    public function jsonSerialize(): array
+    public function jsonSerialize(): mixed
     {
         return array_filter([
             'method' => $this->method,
