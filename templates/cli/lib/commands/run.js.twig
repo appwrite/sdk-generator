@@ -183,7 +183,6 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     if(!noReload) {
         const ignorer = ignore();
         ignorer.add('.appwrite');
-        ignorer.add('.DS_Store');
         ignorer.add('code.tar.gz');
     
         if (func.ignore) {
@@ -250,7 +249,6 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
 
                 const ignorer = ignore();
                 ignorer.add('.appwrite');
-                ignorer.add('.DS_Store');
                 if (func.ignore) {
                     ignorer.add(func.ignore);
                 } else if (fs.existsSync(path.join(functionPath, '.gitignore'))) {

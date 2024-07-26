@@ -134,7 +134,6 @@ async function dockerStart(func, variables, port) {
 
     const ignorer = ignore();
     ignorer.add('.appwrite');
-    ignorer.add('.DS_Store');
     if (func.ignore) {
         ignorer.add(func.ignore);
     } else if (fs.existsSync(path.join(functionDir, '.gitignore'))) {
