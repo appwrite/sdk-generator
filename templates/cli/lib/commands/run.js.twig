@@ -1,10 +1,8 @@
 const Tail = require('tail').Tail;
-const EventEmitter = require('node:events');
+const chalk = require('chalk');
 const ignore = require("ignore");
 const tar = require("tar");
 const fs = require("fs");
-const ID = require("../id");
-const childProcess = require('child_process');
 const chokidar = require('chokidar');
 const inquirer = require("inquirer");
 const path = require("path");
@@ -12,13 +10,11 @@ const { Command } = require("commander");
 const { localConfig, globalConfig } = require("../config");
 const { paginate } = require('../paginate');
 const { functionsListVariables } = require('./functions');
-const { usersGet, usersCreateJWT } = require('./users');
-const { projectsCreateJWT } = require('./projects');
 const { questionsRunFunctions } = require("../questions");
-const { actionRunner, success, log, error, commandDescriptions, drawTable } = require("../parser");
+const { actionRunner, success, log, warn, error, hint, commandDescriptions, drawTable } = require("../parser");
 const { systemHasCommand, isPortTaken, getAllFiles } = require('../utils');
-const { openRuntimesVersion, runtimeNames, systemTools, JwtManager, Queue } = require('../emulation/utils');
-const { dockerStop, dockerCleanup, dockerStart, dockerBuild, dockerPull, dockerStopActive } = require('../emulation/docker');
+const { runtimeNames, systemTools, JwtManager, Queue } = require('../emulation/utils');
+const { dockerStop, dockerCleanup, dockerStart, dockerBuild, dockerPull } = require('../emulation/docker');
 
 const runFunction = async ({ port, functionId, noVariables, noReload, userId } = {}) => {
     // Selection
@@ -68,7 +64,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
         }
 
         if(!portFound) {
-            error('Could not find an available port. Please select a port with `appwrite run --port YOUR_PORT` command.');
+            error("Could not find an available port. Please select a port with 'appwrite run --port YOUR_PORT' command.");
             return;
         }
     }
@@ -86,16 +82,16 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
         commands: func.commands,
     };
 
-    log("Local function configuration:");
     drawTable([settings]);
-    log('If you wish to change your local settings, update the appwrite.json file and rerun the `appwrite run` command.');
+    log("If you wish to change your local settings, update the appwrite.json file and rerun the 'appwrite run' command.");
+    hint("Permissions, events, CRON and timeouts dont apply when running locally.");
 
-    await dockerCleanup();
+    await dockerCleanup(func.$id);
 
     process.on('SIGINT', async () => {
         log('Cleaning up ...');
-        await dockerCleanup();
-        success();
+        await dockerCleanup(func.$id);
+        success("Local function successfully stopped.");
         process.exit();
     });
 
@@ -116,22 +112,17 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
 
     const variables = {};
     if(!noVariables) {
-        if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
-            error("No user is signed in. To sign in, run: appwrite login. Function will run locally, but will not have your function's environment variables set.");
-        } else {
-            try {
-                const { variables: remoteVariables } = await paginate(functionsListVariables, {
-                    functionId: func['$id'],
-                    parseOutput: false
-                }, 100, 'variables');
+        try {
+            const { variables: remoteVariables } = await paginate(functionsListVariables, {
+                functionId: func['$id'],
+                parseOutput: false
+            }, 100, 'variables');
 
-                remoteVariables.forEach((v) => {
-                    variables[v.key] = v.value;
-                });
-            } catch(err) {
-                log("Could not fetch remote variables: " + err.message);
-                log("Function will run locally, but will not have your function's environment variables set.");
-            }
+            remoteVariables.forEach((v) => {
+                variables[v.key] = v.value;
+            });
+        } catch(err) {
+            warn("Remote variables not fetched. Production environment variables will not be avaiable. Reason: " + err.message);
         }
     }
 
@@ -143,7 +134,11 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     variables['APPWRITE_FUNCTION_RUNTIME_NAME'] = runtimeNames[runtimeName] ?? '';
     variables['APPWRITE_FUNCTION_RUNTIME_VERSION'] = func.runtime;
 
-    await JwtManager.setup(userId);
+    try {
+        await JwtManager.setup(userId, func.scopes ?? []);
+    } catch(err) {
+        warn("Dynamic API key not generated. Header x-appwrite-key will not be set. Reason: " + err.message);
+    }
 
     const headers = {};
     headers['x-appwrite-key'] = JwtManager.functionJwt ?? '';
@@ -154,14 +149,12 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     variables['OPEN_RUNTIMES_HEADERS'] = JSON.stringify(headers);
 
     await dockerPull(func);
-    await dockerBuild(func, variables);
-    await dockerStart(func, variables, port);
 
     new Tail(logsPath).on("line", function(data) {
-        console.log(data);
+        process.stdout.write(chalk.white(`${data}\n`));
     });
     new Tail(errorsPath).on("line", function(data) {
-        console.log(data);
+        process.stdout.write(chalk.white(`${data}\n`));
     });
 
     if(!noReload) {
@@ -177,23 +170,22 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     Queue.events.on('reload', async ({ files }) => {
         Queue.lock();
 
-        log('Live-reloading due to file changes: ');
-        for(const file of files) {
-            log(`- ${file}`);
-        }
-
         try {
-            log('Stopping the function ...');
-
-            await dockerStopActive();
+            await dockerStop(func.$id);
 
             const dependencyFile = files.find((filePath) => tool.dependencyFiles.includes(filePath));
             if(tool.isCompiled || dependencyFile) {
-                log(`Rebuilding the function due to cange in ${dependencyFile} ...`);
+                log(`Rebuilding the function due to file changes ...`);
                 await dockerBuild(func, variables);
+
+                if(!Queue.isEmpty()) {
+                    Queue.unlock();
+                    return;
+                }
+
                 await dockerStart(func, variables, port);
             } else {
-                log('Hot-swapping function files ...');
+                log('Hot-swapping function.. Files with change are ' + files.join(', '));
 
                 const functionPath = path.join(process.cwd(), func.path);
                 const hotSwapPath = path.join(functionPath, '.appwrite/hot-swap');
@@ -255,6 +247,22 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
             Queue.unlock();
         }
     });
+
+    Queue.lock();
+
+    log('Building function using Docker ...');
+    await dockerBuild(func, variables);
+
+    if(!Queue.isEmpty()) {
+        Queue.unlock();
+        return;
+    }
+
+    log('Starting function using Docker ...');
+    hint('Function automatically restarts when you edit your code.');
+    await dockerStart(func, variables, port);
+
+    Queue.unlock();
 }
 
 const run = new Command("run")

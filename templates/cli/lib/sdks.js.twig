@@ -1,43 +1,11 @@
-const inquirer = require("inquirer");
 const Client = require("./client");
 const { globalConfig, localConfig } = require("./config");
-
-const questionGetEndpoint = [
-  {
-    type: "input",
-    name: "endpoint",
-    message: "Enter the endpoint of your {{ spec.title|caseUcfirst }} server",
-    default: "http://localhost/v1",
-    async validate(value) {
-      if (!value) {
-        return "Please enter a valid endpoint.";
-      }
-      let client = new Client().setEndpoint(value);
-      try {
-        let response = await client.call('get', '/health/version');
-        if (response.version) {
-          return true;
-        } else {
-          throw new Error();
-        }
-      } catch (error) {
-        return "Invalid endpoint or your Appwrite server is not running as expected.";
-      }
-    }
-  }
-]
 
 const sdkForConsole = async (requiresAuth = true) => {
   let client = new Client();
   let endpoint = globalConfig.getEndpoint();
   let cookie = globalConfig.getCookie()
   let selfSigned = globalConfig.getSelfSigned()
-
-  if (!endpoint) {
-    const answers = await inquirer.prompt(questionGetEndpoint)
-    endpoint = answers.endpoint;
-    globalConfig.setEndpoint(endpoint);
-  }
 
   if (requiresAuth && cookie === "") {
     throw new Error("Session not found. Please run `{{ language.params.executableName }} login` to create a session");
@@ -61,14 +29,8 @@ const sdkForProject = async () => {
   let cookie = globalConfig.getCookie()
   let selfSigned = globalConfig.getSelfSigned()
 
-  if (!endpoint) {
-    const answers = await inquirer.prompt(questionGetEndpoint)
-    endpoint = answers.endpoint;
-    globalConfig.setEndpoint(endpoint);
-  }
-
   if (!project) {
-    throw new Error("Project is not set. Please run `{{ language.params.executableName }} init` to initialize the current directory with an {{ spec.title|caseUcfirst }} project.");
+    throw new Error("Project is not set. Please run `{{ language.params.executableName }} init project` to initialize the current directory with an {{ spec.title|caseUcfirst }} project.");
   }
 
   client
