@@ -120,7 +120,13 @@ class Client
      * @return array|string
      * @throws {{spec.title | caseUcfirst}}Exception
      */
-    public function call($method, $path = '', $headers = array(), array $params = array(), ?string $responseType = null)
+    public function call(
+        string $method,
+        string $path = '',
+        array $headers = [],
+        array $params = [],
+        ?string $responseType = null
+    )
     {
         $headers = array_merge($this->headers, $headers);
         $ch = curl_init($this->endpoint . $path . (($method == self::METHOD_GET && !empty($params)) ? '?' . http_build_query($params) : ''));
@@ -191,14 +197,14 @@ class Client
         }
 
         if (curl_errno($ch)) {
-            throw new {{spec.title | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody);
+            throw new {{spec.title | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody['type'] ?? '', $responseBody);
         }
         
         curl_close($ch);
 
         if($responseStatus >= 400) {
             if(is_array($responseBody)) {
-                throw new {{spec.title | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody['type'] ?? '', $responseBody);
+                throw new {{spec.title | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody['type'] ?? '', json_encode($responseBody));
             } else {
                 throw new {{spec.title | caseUcfirst}}Exception($responseBody, $responseStatus);
             }
