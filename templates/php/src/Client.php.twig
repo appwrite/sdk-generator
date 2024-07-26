@@ -14,28 +14,28 @@ class Client
     const METHOD_CONNECT = 'CONNECT';
     const METHOD_TRACE = 'TRACE';
 
-    const CHUNK_SIZE = 5*1024*1024;
+    const CHUNK_SIZE = 5 * 1024 * 1024;
 
     /**
      * Is Self Signed Certificates Allowed?
      *
      * @var bool
      */
-    protected $selfSigned = false;
+    protected bool $selfSigned = false;
 
     /**
      * Service host name
      *
      * @var string
      */
-    protected $endpoint = '{{spec.endpoint}}';
+    protected string $endpoint = '{{spec.endpoint}}';
 
     /**
      * Global Headers
      *
      * @var array
      */
-    protected $headers = [
+    protected array $headers = [
         'content-type' => '',
         'user-agent' => '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({{deviceInfo}})',
         'x-sdk-name'=> '{{ sdk.name }}',
@@ -45,7 +45,7 @@ class Client
     ];
 
     /**
-     * SDK constructor.
+     * Client constructor.
      */
     public function __construct()
     {
@@ -66,7 +66,7 @@ class Client
      *
      * @return Client
      */
-    public function set{{header.key | caseUcfirst}}($value)
+    public function set{{header.key | caseUcfirst}}(string $value): Client
     {
         $this->addHeader('{{header.name}}', $value);
 
@@ -79,7 +79,7 @@ class Client
      * @param bool $status
      * @return $this
      */
-    public function setSelfSigned($status = true)
+    public function setSelfSigned(bool $status = true): Client
     {
         $this->selfSigned = $status;
 
@@ -90,7 +90,7 @@ class Client
      * @param $endpoint
      * @return $this
      */
-    public function setEndpoint($endpoint)
+    public function setEndpoint(string $endpoint): Client
     {
         $this->endpoint = $endpoint;
 
@@ -101,7 +101,7 @@ class Client
      * @param $key
      * @param $value
      */
-    public function addHeader($key, $value)
+    public function addHeader(string $key, string $value): Client
     {
         $this->headers[strtolower($key)] = $value;
         
@@ -224,7 +224,7 @@ class Client
      * @param string $prefix
      * @return array
      */
-    protected function flatten(array $data, $prefix = '') {
+    protected function flatten(array $data, string $prefix = ''): array {
         $output = [];
 
         foreach($data as $key => $value) {
