@@ -1,8 +1,9 @@
 <?php
 
-namespace Tests;
 
-class PHP74Test extends Base
+use Tests\Base;
+
+class PHP83Test extends Base
 {
     protected string $sdkName = 'php';
     protected string $sdkPlatform = 'server';
@@ -13,7 +14,7 @@ class PHP74Test extends Base
     protected string $class = 'Appwrite\SDK\Language\PHP';
     protected array $build = [];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app php:7.4-cli-alpine php tests/languages/php/test.php';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app php:8.3-cli-alpine php tests/languages/php/test.php';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
