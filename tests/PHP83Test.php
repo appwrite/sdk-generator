@@ -1,6 +1,6 @@
 <?php
 
-use Tests\Base;
+namespace Tests;
 
 class PHP83Test extends Base
 {
