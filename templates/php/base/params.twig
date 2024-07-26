@@ -23,3 +23,10 @@
         }
 {% endfor %}
 {% endif %}
+        $apiHeaders = [];
+        {%~ for parameter in method.parameters.header %}
+        $apiHeaders['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
+        {%~ endfor %}
+        {%~ for key, header in method.headers %}
+        $apiHeaders['{{ key }}'] = '{{ header }}';
+        {%~ endfor %}
