@@ -27,7 +27,7 @@ class {{ service.name | caseUcfirst }} extends Service
 {
      public function __construct(Client $client)
      {
-          $this->client = $client;
+         parent::__construct($client);
      }
 
 {% for method in service.methods %}
