@@ -2,13 +2,13 @@ const chalk = require('chalk');
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
-const { localConfig, globalConfig, KeyAttributes } = require("../config");
+const { localConfig, globalConfig, KeysAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
-const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
-const { cliConfig, actionRunner, success, warn, log, error, commandDescriptions, drawTable } = require("../parser");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
+const { cliConfig, actionRunner, success, warn, log, hint, error, commandDescriptions, drawTable } = require("../parser");
 const { proxyListRules } = require('./proxy');
-const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
+const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
     databasesCreate,
@@ -54,6 +54,7 @@ const {
     teamsCreate
 } = require("./teams");
 const {
+    projectsGet,
     projectsUpdate,
     projectsUpdateServiceStatus,
     projectsUpdateAuthStatus,
@@ -339,6 +340,73 @@ const awaitPools = {
     },
 }
 
+const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural) => {
+    log('Checking for changes');
+    const changes = [];
+
+    await Promise.all(resource.map(async (localResource) => {
+        try {
+            const remoteResource = await resourceGetFunction({
+                [resourceName]: localResource['$id'],
+                parseOutput: false,
+            });
+
+            for (let [key, value] of Object.entries(whitelistKeys(remoteResource, keys))) {
+                if (Array.isArray(value) && Array.isArray(localResource[key])) {
+                    if (JSON.stringify(value) !== JSON.stringify(localResource[key])) {
+                        changes.push({
+                            id: localResource['$id'],
+                            key,
+                            remote: chalk.red(value.join('\n')),
+                            local: chalk.green(localResource[key].join('\n'))
+                        })
+                    }
+                } else if (value !== localResource[key]) {
+                    changes.push({
+                        id: localResource['$id'],
+                        key,
+                        remote: chalk.red(value),
+                        local: chalk.green(localResource[key])
+                    })
+                }
+            }
+        } catch (e) {
+            if (Number(e.code) !== 404) {
+                throw e;
+            }
+        }
+    }));
+
+    if (changes.length === 0) {
+        return true;
+    }
+
+    drawTable(changes);
+    if (!cliConfig.force) {
+        const answers = await inquirer.prompt(questionPushChanges);
+        if (answers.changes.toLowerCase() === 'yes') {
+            return true;
+        }
+    }
+
+    success(`Successfully pushed 0 ${resourcePlural}.`);
+    return false;
+}
+
+const getObjectChanges = (remote, local, index, what) => {
+    const changes = [];
+
+    if (remote[index] && local[index]) {
+        for (let [service, status] of Object.entries(remote[index])) {
+            if (status !== local[index][service]) {
+                changes.push({ group: what,setting: service, remote: chalk.red(status), local: chalk.green(local[index][service]) })
+            }
+        }
+    }
+
+    return changes;
+}
+
 const createAttribute = async (databaseId, collectionId, attribute) => {
     switch (attribute.type) {
         case 'string':
@@ -614,7 +682,7 @@ const checkAttributeChanges = (remote, local, collection, recraeting = true) => 
     let attribute = remote;
 
     for (let key of Object.keys(remote)) {
-        if (!KeyAttributes.has(key)) {
+        if (!KeysAttributes.has(key)) {
             continue;
         }
 
@@ -658,7 +726,7 @@ const generateChangesObject = (attribute, collection, isAdding) => {
     return {
         key: `${chalk.yellow(attribute.key)} in ${collection.name} (${collection['$id']})`,
         attribute: attribute,
-        reason: isAdding ? 'Field doesn\'t exist on the remote server' : 'Field doesn\'t exist in appwrite.json file',
+        reason: isAdding ? 'Field isn\'t present on the remote server' : 'Field isn\'t present on the appwrite.json file',
         action: isAdding ? chalk.green('adding') : chalk.red('deleting')
     };
 
@@ -698,7 +766,7 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection,
             log(`Attribute recreation will cause ${chalk.red('loss of data')}`);
         }
 
-        const answers = await inquirer.prompt(questionsPushCollections[1]);
+        const answers = await inquirer.prompt(questionPushChanges);
 
         if (answers.changes.toLowerCase() !== 'yes') {
             return changedAttributes;
@@ -805,6 +873,35 @@ const pushSettings = async () => {
     checkDeployConditions(localConfig);
 
     try {
+        let response = await projectsGet({
+            parseOutput: false,
+            projectId: localConfig.getProject().projectId
+        });
+
+        const remoteSettings = localConfig.createSettingsObject(response ?? {});
+        const localSettings = localConfig.getProject().projectSettings ?? {};
+
+        log('Checking for changes');
+        const changes = [];
+
+        changes.push(...(getObjectChanges(remoteSettings, localSettings, 'services', 'Service')));
+        changes.push(...(getObjectChanges(remoteSettings['auth'] ?? {}, localSettings['auth'] ?? {}, 'methods', 'Auth method')));
+        changes.push(...(getObjectChanges(remoteSettings['auth'] ?? {}, localSettings['auth'] ?? {}, 'security', 'Auth security')));
+
+        if (changes.length > 0) {
+            drawTable(changes);
+            if (!cliConfig.force) {
+                const answers = await inquirer.prompt(questionPushChanges);
+                if (answers.changes.toLowerCase() !== 'yes') {
+                    success(`Successfully pushed 0 project settings.`);
+                    return;
+                }
+            }
+        }
+    } catch (e) {
+    }
+
+    try {
         log("Pushing project settings ...");
 
         const projectId = localConfig.getProject().projectId;
@@ -863,7 +960,7 @@ const pushSettings = async () => {
     }
 }
 
-const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero: false }) => {
+const pushFunction = async ({ functionId, async, code } = { returnOnZero: false }) => {
     const functionIds = [];
 
     if (functionId) {
@@ -871,11 +968,6 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
     } else if (cliConfig.all) {
         checkDeployConditions(localConfig);
         const functions = localConfig.getFunctions();
-        if (functions.length === 0) {
-            log("No functions found.");
-            hint("Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
-            return;
-        }
         functionIds.push(...functions.map((func) => {
             return func.$id;
         }));
@@ -883,7 +975,15 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
 
     if (functionIds.length <= 0) {
         const answers = await inquirer.prompt(questionsPushFunctions[0]);
-        functionIds.push(...answers.functions);
+        if (answers.functions) {
+            functionIds.push(...answers.functions);
+        }
+    }
+
+    if (functionIds.length === 0) {
+        log("No functions found.");
+        hint("Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
+        return;
     }
 
     let functions = functionIds.map((id) => {
@@ -907,6 +1007,10 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
             func.entrypoint = answers.entrypoint;
             localConfig.addFunction(func);
         }
+    }
+
+    if (!(await approveChanges(functions, functionsGet, KeysFunction, 'functionId', 'functions'))) {
+        return;
     }
 
     log('Pushing functions ...');
@@ -994,6 +1098,14 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                 updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
                 return;
             }
+        }
+
+        if (code === false) {
+            successfullyPushed++;
+            successfullyDeployed++;
+            updaterRow.update({ status: 'Pushed' });
+            updaterRow.stopSpinner();
+            return;
         }
 
         try {
@@ -1087,7 +1199,7 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
     if (!async) {
         if (successfullyPushed === 0) {
             error('No functions were pushed.');
-        } else if (successfullyDeployed != successfullyPushed) {
+        } else if (successfullyDeployed !== successfullyPushed) {
             warn(`Successfully pushed ${successfullyDeployed} of ${successfullyPushed} functions`)
         } else {
             success(`Successfully pushed ${successfullyPushed} functions.`);
@@ -1106,23 +1218,27 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (localConfig.getCollections().length === 0) {
-            log("No collections found.");
-            hint("Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
-            return;
-        }
         collections.push(...localConfig.getCollections());
     } else {
-        const answers = await inquirer.prompt(questionsPushCollections[0])
-        const configCollections = new Map();
-        localConfig.getCollections().forEach((c) => {
-            configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
-        });
-        answers.collections.forEach((a) => {
-            const collection = configCollections.get(a);
-            collections.push(collection);
-        })
+        const answers = await inquirer.prompt(questionsPushCollections)
+        if (answers.collections) {
+            const configCollections = new Map();
+            localConfig.getCollections().forEach((c) => {
+                configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
+            });
+            answers.collections.forEach((a) => {
+                const collection = configCollections.get(a);
+                collections.push(collection);
+            })
+        }
     }
+
+    if (collections.length === 0) {
+        log("No collections found.");
+        hint("Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
+        return;
+    }
+
     const databases = Array.from(new Set(collections.map(collection => collection['databaseId'])));
 
     log('Checking for changes ...');
@@ -1197,7 +1313,7 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
             }
         }
     }))
-
+    let numberOfCollections = 0;
     // Serialize attribute actions
     for (let collection of collections) {
         let attributes = collection.attributes;
@@ -1226,9 +1342,11 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
         } catch (e) {
             throw e;
         }
-
+        numberOfCollections++;
         success(`Pushed ${collection.name} ( ${collection['$id']} )`);
     }
+
+    success(`Pushed ${numberOfCollections} collections`);
 }
 
 const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
@@ -1239,17 +1357,20 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (configBuckets.length === 0) {
-            log("No buckets found.");
-            hint("Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
-            return;
-        }
         bucketIds.push(...configBuckets.map((b) => b.$id));
     }
 
     if (bucketIds.length === 0) {
         const answers = await inquirer.prompt(questionsPushBuckets[0])
-        bucketIds.push(...answers.buckets);
+        if (answers.buckets) {
+            bucketIds.push(...answers.buckets);
+        }
+    }
+
+    if (bucketIds.length === 0) {
+        log("No buckets found.");
+        hint("Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
+        return;
     }
 
     let buckets = [];
@@ -1257,6 +1378,10 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
     for (const bucketId of bucketIds) {
         const idBuckets = configBuckets.filter((b) => b.$id === bucketId);
         buckets.push(...idBuckets);
+    }
+
+    if (!(await approveChanges(buckets, storageGetBucket, KeysStorage, 'bucketId', 'buckets'))) {
+        return;
     }
 
     log('Pushing buckets ...');
@@ -1317,16 +1442,20 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (configTeams.length === 0) {
-            log("No teams found.");
-            hint("Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
-        }
         teamIds.push(...configTeams.map((t) => t.$id));
     }
 
     if (teamIds.length === 0) {
         const answers = await inquirer.prompt(questionsPushTeams[0])
-        teamIds.push(...answers.teams);
+        if (answers.teams) {
+            teamIds.push(...answers.teams);
+        }
+    }
+
+    if (teamIds.length === 0) {
+        log("No teams found.");
+        hint("Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
+        return;
     }
 
     let teams = [];
@@ -1335,6 +1464,11 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
         const idTeams = configTeams.filter((t) => t.$id === teamId);
         teams.push(...idTeams);
     }
+
+    if (!(await approveChanges(teams, teamsGet, KeysTeams, 'teamId', 'teams'))) {
+        return;
+    }
+
 
     log('Pushing teams ...');
 
@@ -1379,16 +1513,20 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (configTopics.length === 0) {
-            log("No topics found.");
-            hint("Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
-        }
         topicsIds.push(...configTopics.map((b) => b.$id));
     }
 
     if (topicsIds.length === 0) {
         const answers = await inquirer.prompt(questionsPushMessagingTopics[0])
-        topicsIds.push(...answers.topics);
+        if (answers.topics) {
+            topicsIds.push(...answers.topics);
+        }
+    }
+
+    if (topicsIds.length === 0) {
+        log("No topics found.");
+        hint("Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
+        return;
     }
 
     let topics = [];
@@ -1403,6 +1541,10 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
         if (answers.override.toLowerCase() === "yes") {
             overrideExisting = true;
         }
+    }
+
+    if (!(await approveChanges(topics, messagingGetTopic, KeysTopics, 'topicId', 'topics'))) {
+        return;
     }
 
     log('Pushing topics ...');
@@ -1470,8 +1612,9 @@ push
     .command("function")
     .alias("functions")
     .description("Push functions in the current directory.")
-    .option(`-f, --functionId <functionId>`, `Function ID`)
+    .option(`-f, --function-id <function-id>`, `ID of function to run`)
     .option(`-A, --async`, `Don't wait for functions deployments status`)
+    .option("--no-code", "Don't push the function's code")
     .action(actionRunner(pushFunction));
 
 push
