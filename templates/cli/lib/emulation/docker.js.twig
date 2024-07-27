@@ -156,14 +156,12 @@ async function dockerStart(func, variables, port) {
         fs.copyFileSync(sourcePath, filePath);
     }
 
-   const runtimeChunks = func.runtime.split("-");
-   const runtimeVersion = runtimeChunks.pop();
-   const runtimeName = runtimeChunks.join("-");
+    const runtimeChunks = func.runtime.split("-");
+    const runtimeVersion = runtimeChunks.pop();
+    const runtimeName = runtimeChunks.join("-");
     const imageName = `openruntimes/${runtimeName}:${openRuntimesVersion}-${runtimeVersion}`;
 
     const tool = systemTools[runtimeName];
-
-    const functionDir = path.join(process.cwd(), func.path);
 
     const id = func.$id;
 
