@@ -51,6 +51,23 @@ async function dockerBuild(func, variables) {
 
     const id = func.$id;
 
+    const files = getAllFiles(functionDir).map((file) => path.relative(functionDir, file)).filter((file) => !ignorer.ignores(file));
+    const tmpBuildPath = path.join(functionDir, '.appwrite/tmp-build');
+    if (!fs.existsSync(tmpBuildPath)) {
+        fs.mkdirSync(tmpBuildPath, { recursive: true });
+    }
+
+    for(const f of files) {
+        const filePath = path.join(tmpBuildPath, f);
+        const fileDir = path.dirname(filePath);
+        if (!fs.existsSync(fileDir)) {
+            fs.mkdirSync(fileDir, { recursive: true });
+        }
+
+        const sourcePath = path.join(functionDir, f);
+        fs.copyFileSync(sourcePath, filePath);
+    }
+
     const params = [ 'run' ];
     params.push('--name', id);
     params.push('-v', `${tmpBuildPath}/:/mnt/code:rw`);
@@ -137,23 +154,6 @@ async function dockerStart(func, variables, port) {
         ignorer.add(func.ignore);
     } else if (fs.existsSync(path.join(functionDir, '.gitignore'))) {
         ignorer.add(fs.readFileSync(path.join(functionDir, '.gitignore')).toString());
-    }
-
-    const files = getAllFiles(functionDir).map((file) => path.relative(functionDir, file)).filter((file) => !ignorer.ignores(file));
-    const tmpBuildPath = path.join(functionDir, '.appwrite/tmp-build');
-    if (!fs.existsSync(tmpBuildPath)) {
-        fs.mkdirSync(tmpBuildPath, { recursive: true });
-    }
-
-    for(const f of files) {
-        const filePath = path.join(tmpBuildPath, f);
-        const fileDir = path.dirname(filePath);
-        if (!fs.existsSync(fileDir)) {
-            fs.mkdirSync(fileDir, { recursive: true });
-        }
-
-        const sourcePath = path.join(functionDir, f);
-        fs.copyFileSync(sourcePath, filePath);
     }
 
     const runtimeChunks = func.runtime.split("-");
