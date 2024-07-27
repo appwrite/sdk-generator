@@ -341,7 +341,7 @@ const awaitPools = {
 }
 
 const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural) => {
-    log('Checking for changes');
+    log('Checking for changes ...');
     const changes = [];
 
     await Promise.all(resource.map(async (localResource) => {
@@ -881,7 +881,7 @@ const pushSettings = async () => {
         const remoteSettings = localConfig.createSettingsObject(response ?? {});
         const localSettings = localConfig.getProject().projectSettings ?? {};
 
-        log('Checking for changes');
+        log('Checking for changes ...');
         const changes = [];
 
         changes.push(...(getObjectChanges(remoteSettings, localSettings, 'services', 'Service')));

@@ -51,6 +51,14 @@ async function dockerBuild(func, variables) {
 
     const id = func.$id;
 
+    const ignorer = ignore();
+    ignorer.add('.appwrite');
+    if (func.ignore) {
+        ignorer.add(func.ignore);
+    } else if (fs.existsSync(path.join(functionDir, '.gitignore'))) {
+        ignorer.add(fs.readFileSync(path.join(functionDir, '.gitignore')).toString());
+    }
+    
     const files = getAllFiles(functionDir).map((file) => path.relative(functionDir, file)).filter((file) => !ignorer.ignores(file));
     const tmpBuildPath = path.join(functionDir, '.appwrite/tmp-build');
     if (!fs.existsSync(tmpBuildPath)) {
@@ -147,14 +155,6 @@ async function dockerBuild(func, variables) {
 async function dockerStart(func, variables, port) {
     // Pack function files
     const functionDir = path.join(process.cwd(), func.path);
-
-    const ignorer = ignore();
-    ignorer.add('.appwrite');
-    if (func.ignore) {
-        ignorer.add(func.ignore);
-    } else if (fs.existsSync(path.join(functionDir, '.gitignore'))) {
-        ignorer.add(fs.readFileSync(path.join(functionDir, '.gitignore')).toString());
-    }
 
     const runtimeChunks = func.runtime.split("-");
     const runtimeVersion = runtimeChunks.pop();

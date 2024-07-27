@@ -17,7 +17,9 @@ const { systemHasCommand, isPortTaken, getAllFiles } = require('../utils');
 const { runtimeNames, systemTools, JwtManager, Queue } = require('../emulation/utils');
 const { dockerStop, dockerCleanup, dockerStart, dockerBuild, dockerPull } = require('../emulation/docker');
 
-const runFunction = async ({ port, functionId, noVariables, noReload, userId } = {}) => {
+const runFunction = async ({ port, functionId, variables, reload, userId } = {}) => {
+    console.log(variables);
+    console.log(reload);
     // Selection
     if(!functionId) {
         const answers = await inquirer.prompt(questionsRunFunctions[0]);
@@ -113,9 +115,9 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     }
 
     const userVariables = {};
-    const variables = {};
+    const allVariables = {};
 
-    if(!noVariables) {
+    if(variables) {
         try {
             const { variables: remoteVariables } = await paginate(functionsListVariables, {
                 functionId: func['$id'],
@@ -123,7 +125,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
             }, 100, 'variables');
 
             remoteVariables.forEach((v) => {
-                variables[v.key] = v.value;
+                allVariables[v.key] = v.value;
                 userVariables[v.key] = v.value;
             });
         } catch(err) {
@@ -137,18 +139,18 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
         const env = parseDotenv(fs.readFileSync(envPath).toString() ?? '');
 
         Object.keys(env).forEach((key) => {
-            variables[key] = env[key];
+            allVariables[key] = env[key];
             userVariables[key] = env[key];
         });
     }
 
-    variables['APPWRITE_FUNCTION_API_ENDPOINT'] = globalConfig.getFrom('endpoint');
-    variables['APPWRITE_FUNCTION_ID'] = func.$id;
-    variables['APPWRITE_FUNCTION_NAME'] = func.name;
-    variables['APPWRITE_FUNCTION_DEPLOYMENT'] = ''; // TODO: Implement when relevant
-    variables['APPWRITE_FUNCTION_PROJECT_ID'] = localConfig.getProject().projectId;
-    variables['APPWRITE_FUNCTION_RUNTIME_NAME'] = runtimeNames[runtimeName] ?? '';
-    variables['APPWRITE_FUNCTION_RUNTIME_VERSION'] = func.runtime;
+    allVariables['APPWRITE_FUNCTION_API_ENDPOINT'] = globalConfig.getFrom('endpoint');
+    allVariables['APPWRITE_FUNCTION_ID'] = func.$id;
+    allVariables['APPWRITE_FUNCTION_NAME'] = func.name;
+    allVariables['APPWRITE_FUNCTION_DEPLOYMENT'] = ''; // TODO: Implement when relevant
+    allVariables['APPWRITE_FUNCTION_PROJECT_ID'] = localConfig.getProject().projectId;
+    allVariables['APPWRITE_FUNCTION_RUNTIME_NAME'] = runtimeNames[runtimeName] ?? '';
+    allVariables['APPWRITE_FUNCTION_RUNTIME_VERSION'] = func.runtime;
 
     try {
         await JwtManager.setup(userId, func.scopes ?? []);
@@ -162,7 +164,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     headers['x-appwrite-event'] = '';
     headers['x-appwrite-user-id'] = userId ?? '';
     headers['x-appwrite-user-jwt'] = JwtManager.userJwt ?? '';
-    variables['OPEN_RUNTIMES_HEADERS'] = JSON.stringify(headers);
+    allVariables['OPEN_RUNTIMES_HEADERS'] = JSON.stringify(headers);
 
     if(Object.keys(userVariables).length > 0) {
         drawTable(Object.keys(userVariables).map((key) => ({
@@ -180,7 +182,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
         process.stdout.write(chalk.white(`${data}\n`));
     });
 
-    if(!noReload) {
+    if(reload) {
         const ignorer = ignore();
         ignorer.add('.appwrite');
         ignorer.add('code.tar.gz');
