@@ -18,8 +18,6 @@ const { runtimeNames, systemTools, JwtManager, Queue } = require('../emulation/u
 const { dockerStop, dockerCleanup, dockerStart, dockerBuild, dockerPull } = require('../emulation/docker');
 
 const runFunction = async ({ port, functionId, variables, reload, userId } = {}) => {
-    console.log(variables);
-    console.log(reload);
     // Selection
     if(!functionId) {
         const answers = await inquirer.prompt(questionsRunFunctions[0]);
