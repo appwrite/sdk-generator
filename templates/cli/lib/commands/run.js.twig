@@ -216,14 +216,14 @@ const runFunction = async ({ port, functionId, variables, reload, userId } = {})
             const dependencyFile = files.find((filePath) => tool.dependencyFiles.includes(filePath));
             if(tool.isCompiled || dependencyFile) {
                 log(`Rebuilding the function due to file changes ...`);
-                await dockerBuild(func, variables);
+                await dockerBuild(func, allVariables);
 
                 if(!Queue.isEmpty()) {
                     Queue.unlock();
                     return;
                 }
 
-                await dockerStart(func, variables, port);
+                await dockerStart(func, allVariables, port);
             } else {
                 log('Hot-swapping function.. Files with change are ' + files.join(', '));
 
@@ -279,7 +279,7 @@ const runFunction = async ({ port, functionId, variables, reload, userId } = {})
                         file: buildPath
                     }, ['.']);
 
-                await dockerStart(func, variables, port);
+                await dockerStart(func, allVariables, port);
             }
         } catch(err) {
             console.error(err);
@@ -291,7 +291,7 @@ const runFunction = async ({ port, functionId, variables, reload, userId } = {})
     Queue.lock();
 
     log('Building function using Docker ...');
-    await dockerBuild(func, variables);
+    await dockerBuild(func, allVariables);
 
     if(!Queue.isEmpty()) {
         Queue.unlock();
@@ -300,7 +300,7 @@ const runFunction = async ({ port, functionId, variables, reload, userId } = {})
 
     log('Starting function using Docker ...');
     hint('Function automatically restarts when you edit your code.');
-    await dockerStart(func, variables, port);
+    await dockerStart(func, allVariables, port);
 
     Queue.unlock();
 }
