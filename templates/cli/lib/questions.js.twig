@@ -189,11 +189,11 @@ const questionsInitProject = [
         message: "Choose your {{ spec.title|caseUcfirst }} project.",
         choices: async (answers) => {
             const queries = [
-                JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization.id] }),
-                JSON.stringify({ method: 'orderDesc', attribute: 'Id' })
+                JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization] }),
+                JSON.stringify({ method: 'orderDesc', attribute: '$id' })
             ]
 
-            const { projects } = await paginate(projectsList, { parseOutput: false, queries, }, 100, 'projects');
+            const { projects } = await paginate(projectsList, { parseOutput: false }, 100, 'projects', queries);
 
             let choices = projects.map((project) => {
                 return {
