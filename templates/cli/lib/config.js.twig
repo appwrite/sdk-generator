@@ -4,6 +4,7 @@ const _path = require("path");
 const process = require("process");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
+const KeysVars = new Set(["key", "value"]);
 const KeysFunction = new Set(["path", "$id", "execute", "name", "enabled", "logging", "runtime", "scopes", "events", "schedule", "timeout", "entrypoint", "commands", "vars"]);
 const KeysDatabase = new Set(["$id", "name", "enabled"]);
 const KeysCollection = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"]);
@@ -38,10 +39,10 @@ const KeysAttributes = new Set([
 const KeyIndexes = new Set(["key", "type", "status", "attributes", "orders"]);
 
 function whitelistKeys(value, keys, nestedKeys = {}) {
-    if(Array.isArray(value)) {
+    if (Array.isArray(value)) {
         const newValue = [];
 
-        for(const item of value) {
+        for (const item of value) {
             newValue.push(whitelistKeys(item, keys, nestedKeys));
         }
 
@@ -50,8 +51,8 @@ function whitelistKeys(value, keys, nestedKeys = {}) {
 
     const newValue = {};
     Object.keys(value).forEach((key) => {
-        if(keys.has(key)) {
-            if(nestedKeys[key]) {
+        if (keys.has(key)) {
+            if (nestedKeys[key]) {
                 newValue[key] = whitelistKeys(value[key], nestedKeys[key]);
             } else {
                 newValue[key] = value[key];
@@ -151,7 +152,9 @@ class Local extends Config {
     }
 
     addFunction(props) {
-        props = whitelistKeys(props, KeysFunction);
+        props = whitelistKeys(props, KeysFunction, {
+            vars: KeysVars
+        });
 
         if (!this.has("functions")) {
             this.set("functions", []);
