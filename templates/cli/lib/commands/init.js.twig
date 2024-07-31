@@ -129,7 +129,7 @@ const initBucket = async () => {
         fileSecurity: answers.fileSecurity.toLowerCase() === 'yes',
         enabled: true,
     });
-    success();
+    success("Initialing bucket");
     log("Next you can use 'appwrite push bucket' to deploy the changes.");
 };
 
@@ -141,7 +141,7 @@ const initTeam = async () => {
         name: answers.bucket,
     });
 
-    success();
+    success("Initialing team");
     log("Next you can use 'appwrite push team' to deploy the changes.");
 };
 
@@ -174,7 +174,7 @@ const initCollection = async () => {
         enabled: true,
     });
 
-    success();
+    success("Initialing collection");
     log("Next you can use 'appwrite push collection' to deploy the changes.");
 };
 
@@ -187,7 +187,7 @@ const initTopic = async () => {
 
     });
 
-    success();
+    success("Initialing topic");
     log("Next you can use 'appwrite push topic' to deploy the changes.");
 };
 
@@ -323,7 +323,7 @@ const initFunction = async () => {
     };
 
     localConfig.addFunction(data);
-    success();
+    success("Initialing function");
     log("Next you can use 'appwrite run function' to develop a function locally. To deploy the function, use 'appwrite push function'");
 }
 
