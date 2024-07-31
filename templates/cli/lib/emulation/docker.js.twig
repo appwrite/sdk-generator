@@ -162,8 +162,6 @@ async function dockerStart(func, variables, port) {
 
     const tool = systemTools[runtimeName];
 
-    const functionDir = path.join(process.cwd(), func.path);
-
     const id = func.$id;
 
     const params = [ 'run' ];
@@ -254,7 +252,7 @@ function waitUntilPortOpen(port, iteration = 0) {
         });
 
         client.connect({port, host: '127.0.0.1'}, function() {});
-    }); 
+    });
 }
 
 module.exports = {

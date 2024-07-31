@@ -35,7 +35,7 @@ function convertReadStreamToReadableStream(readStream) {
   });
 }
 
-const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description(commandDescriptions['{{ service.name | caseLower }}']).configureHelp({
+const {{ service.name | caseLower }} = new Command("{{ service.name | caseLower }}").description(commandDescriptions['{{ service.name | caseLower }}'] ?? '').configureHelp({
     helpWidth: process.stdout.columns || 80
 })
 
