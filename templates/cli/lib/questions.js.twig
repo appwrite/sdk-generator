@@ -301,22 +301,7 @@ const questionsCreateFunction = [
             })
             return choices;
         },
-    },
-    {
-        type: "list",
-        name: "template",
-        message: "How would you like to start your function code?",
-        choices: [
-            {
-                name: `Start from scratch ${chalk.blackBright(`(starter)`)}`,
-                value: "starter"
-            },
-            {
-                name: "Pick a template",
-                value: "custom"
-            }
-        ]
-    },
+    }
 ];
 
 const questionsCreateFunctionSelectTemplate = (templates) => {

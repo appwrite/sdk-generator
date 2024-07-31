@@ -223,21 +223,7 @@ const initFunction = async () => {
     fs.mkdirSync(templatesDir, "777");
     const repo = "https://github.com/{{ sdk.gitUserName }}/templates";
     const api = `https://api.github.com/repos/{{ sdk.gitUserName }}/templates/contents/${answers.runtime.name}`
-    let selected = undefined;
-
-    if(answers.template === 'starter') {
-        selected = { template: 'starter' };
-    } else {
-        try {
-            const res = await fetch(api);
-            const templates = [];
-            templates.push(...(await res.json()).map((template) => template.name));
-            selected = await inquirer.prompt(questionsCreateFunctionSelectTemplate(templates));
-        } catch {
-            // Not a problem will go with directory pulling
-            log('Loading templates...');
-        }
-    }
+    let selected = { template: 'starter' };
 
     const sparse = (selected ? `${answers.runtime.name}/${selected.template}` : answers.runtime.name).toLowerCase();
 
