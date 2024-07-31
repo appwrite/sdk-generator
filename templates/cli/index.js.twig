@@ -30,15 +30,16 @@ program
   .description(commandDescriptions['main'])
   .configureHelp({
     helpWidth: process.stdout.columns || 80,
-    sortSubcommands: true
+    sortSubcommands: true,
   })
-  .version(version, "-v, --version")
+  .helpOption('-h, --help', "Display help for command")
+  .version(version, "-v, --version", "Output the version number")
   .option("-V, --verbose", "Show complete error log")
   .option("-j, --json", "Output in JSON format")
   .hook('preAction', migrate)
   .option("-f,--force", "Flag to confirm all warnings")
   .option("-a,--all", "Flag to push all resources")
-  .option("--id [id...]", "Flag to pass list of ids for a giving action")
+  .option("--id [id...]", "Flag to pass a list of ids for a given action")
   .option("--report", "Enable reporting in case of CLI errors")
   .on("option:json", () => {
     cliConfig.json = true;
