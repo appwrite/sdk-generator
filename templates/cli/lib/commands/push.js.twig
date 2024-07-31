@@ -340,7 +340,7 @@ const awaitPools = {
     },
 }
 
-const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural) => {
+const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural, skipKeys = []) => {
     log('Checking for changes');
     const changes = [];
 
@@ -352,6 +352,9 @@ const approveChanges = async (resource, resourceGetFunction, keys, resourceName,
             });
 
             for (let [key, value] of Object.entries(whitelistKeys(remoteResource, keys))) {
+                if (skipKeys.includes(key)) {
+                    continue;
+                }
                 if (Array.isArray(value) && Array.isArray(localResource[key])) {
                     if (JSON.stringify(value) !== JSON.stringify(localResource[key])) {
                         changes.push({
@@ -399,7 +402,7 @@ const getObjectChanges = (remote, local, index, what) => {
     if (remote[index] && local[index]) {
         for (let [service, status] of Object.entries(remote[index])) {
             if (status !== local[index][service]) {
-                changes.push({ group: what,setting: service, remote: chalk.red(status), local: chalk.green(local[index][service]) })
+                changes.push({ group: what, setting: service, remote: chalk.red(status), local: chalk.green(local[index][service]) })
             }
         }
     }
@@ -960,7 +963,7 @@ const pushSettings = async () => {
     }
 }
 
-const pushFunction = async ({ functionId, async, code } = { returnOnZero: false }) => {
+const pushFunction = async ({ functionId, async, code, withVariables } = { returnOnZero: false }) => {
     const functionIds = [];
 
     if (functionId) {
@@ -1009,7 +1012,7 @@ const pushFunction = async ({ functionId, async, code } = { returnOnZero: false 
         }
     }
 
-    if (!(await approveChanges(functions, functionsGet, KeysFunction, 'functionId', 'functions'))) {
+    if (!(await approveChanges(functions, functionsGet, KeysFunction, 'functionId', 'functions', ['vars']))) {
         return;
     }
 
@@ -1098,6 +1101,39 @@ const pushFunction = async ({ functionId, async, code } = { returnOnZero: false 
                 updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
                 return;
             }
+        }
+
+        if (withVariables) {
+            updaterRow.update({ status: 'Updating variables' }).replaceSpinner(SPINNER_ARC);
+
+            const { variables } = await paginate(functionsListVariables, {
+                functionId: func['$id'],
+                parseOutput: false
+            }, 100, 'variables');
+
+            await Promise.all(variables.map(async variable => {
+                await functionsDeleteVariable({
+                    functionId: func['$id'],
+                    variableId: variable['$id'],
+                    parseOutput: false
+                });
+            }));
+
+            let result = await awaitPools.wipeVariables(func['$id']);
+            if (!result) {
+                updaterRow.fail({ errorMessage: `Variable deletion timed out.` })
+                return;
+            }
+
+            // Deploy local variables
+            await Promise.all((func['vars'] ?? []).map(async variable => {
+                await functionsCreateVariable({
+                    functionId: func['$id'],
+                    key: variable['key'],
+                    value: variable['value'],
+                    parseOutput: false
+                });
+            }));
         }
 
         if (code === false) {
@@ -1615,6 +1651,7 @@ push
     .option(`-f, --function-id <function-id>`, `ID of function to run`)
     .option(`-A, --async`, `Don't wait for functions deployments status`)
     .option("--no-code", "Don't push the function's code")
+    .option("--with-variables", `Push function variables.`)
     .action(actionRunner(pushFunction));
 
 push
