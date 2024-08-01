@@ -90,20 +90,9 @@ const drawTable = (data) => {
             if (row[key] === null) {
                 rowValues.push("-");
             } else if (Array.isArray(row[key])) {
-                switch (row[key].length) {
-                    case 1:
-                        if (typeof row[key][0] === 'object') {
-                            rowValues.push(`array(${row[key].length})`);
-                        } else {
-                            rowValues.push(row[key][0]);
-                        }
-                        break;
-                    default:
-                        rowValues.push(`array(${row[key].length})`);
-                        break;
-                }
+                rowValues.push(JSON.stringify(row[key]));
             } else if (typeof row[key] === 'object') {
-                rowValues.push("object");
+                rowValues.push(JSON.stringify(row[key]));
             } else {
                 rowValues.push(row[key]);
             }
@@ -189,15 +178,23 @@ const parseBool = (value) => {
 }
 
 const log = (message) => {
-    console.log(`${chalk.cyan.bold("ℹ Info")} ${chalk.cyan(message ?? "")}`);
+    console.log(`${chalk.cyan.bold("ℹ Info:")} ${chalk.cyan(message ?? "")}`);
+}
+
+const warn = (message) => {
+    console.log(`${chalk.yellow.bold("ℹ Warning:")} ${chalk.yellow(message ?? "")}`);
+}
+
+const hint = (message) => {
+    console.log(`${chalk.cyan.bold("♥ Hint:")} ${chalk.cyan(message ?? "")}`);
 }
 
 const success = (message) => {
-    console.log(`${chalk.green.bold("✓ Success")} ${chalk.green(message ?? "")}`);
+    console.log(`${chalk.green.bold("✓ Success:")} ${chalk.green(message ?? "")}`);
 }
 
 const error = (message) => {
-    console.error(`${chalk.red.bold("✗ Error")} ${chalk.red(message ?? "")}`);
+    console.error(`${chalk.red.bold("✗ Error:")} ${chalk.red(message ?? "")}`);
 }
 
 const logo = {{ language.params.logo | raw }};
@@ -206,29 +203,26 @@ const commandDescriptions = {
     "account": `The account command allows you to authenticate and manage a user account.`,
     "graphql": `The graphql command allows you to query and mutate any resource type on your Appwrite server.`,
     "avatars": `The avatars command aims to help you complete everyday tasks related to your app image, icons, and avatars.`,
-    "databases": `The databases command allows you to create structured collections of documents, query and filter lists of documents.`,
-    "init": `The init command provides a convenient wrapper for creating and initializing project, functions, collections, buckets, teams and messaging in Appwrite.`,
-    "push": `The push command provides a convenient wrapper for pushing your functions, collections, buckets, teams and messaging.`,
-    "run": `The run command allows you to run project locally to allow easy development and quick debugging.`,
-    "functions": `The functions command allows you view, create and manage your Cloud Functions.`,
+    "databases": `The databases command allows you to create structured collections of documents and query and filter lists of documents.`,
+    "init": `The init command provides a convenient wrapper for creating and initializing projects, functions, collections, buckets, teams, and messaging-topics in  {{ spec.title|caseUcfirst }}.`,
+    "push": `The push command provides a convenient wrapper for pushing your functions, collections, buckets, teams, and messaging-topics.`,
+    "run": `The run command allows you to run the project locally to allow easy development and quick debugging.`,
+    "functions": `The functions command allows you to view, create, and manage your Cloud Functions.`,
     "health": `The health command allows you to both validate and monitor your {{ spec.title|caseUcfirst }} server's health.`,
-    "pull": `The pull command helps you pull your {{ spec.title|caseUcfirst }} project, functions, collections, buckets, teams and messaging`,
+    "pull": `The pull command helps you pull your {{ spec.title|caseUcfirst }} project, functions, collections, buckets, teams, and messaging-topics`,
     "locale": `The locale command allows you to customize your app based on your users' location.`,
-    "projects": `The projects command allows you to view, create and manage your {{ spec.title|caseUcfirst }} projects.`,
     "storage": `The storage command allows you to manage your project files.`,
-    "teams": `The teams command allows you to group users of your project and to enable them to share read and write access to your project resources`,
+    "teams": `The teams command allows you to group users of your project to enable them to share read and write access to your project resources.`,
     "users": `The users command allows you to manage your project users.`,
     "client": `The client command allows you to configure your CLI`,
     "login": `The login command allows you to authenticate and manage a user account.`,
-    "logout": `The logout command allows you to logout of your {{ spec.title|caseUcfirst }} account.`,
-    "whoami": `The whoami command gives information about the currently logged in user.`,
-    "register": `Outputs the link to create an {{ spec.title|caseUcfirst }} account..`,
-    "console" : `The console command allows gives you access to the APIs used by the Appwrite console.`,
+    "logout": `The logout command allows you to log out of your {{ spec.title|caseUcfirst }} account.`,
+    "whoami": `The whomai command gives information about the currently logged-in user.`,
+    "register": `Outputs the link to create an {{ spec.title|caseUcfirst }} account.`,
+    "console" : `The console command gives you access to the APIs used by the Appwrite Console.`,
     "assistant": `The assistant command allows you to interact with the Appwrite Assistant AI`,
-    "messaging": `The messaging command allows you to send messages.`,
+    "messaging": `The messaging command allows you to manage topics and targets and send messages.`,
     "migrations": `The migrations command allows you to migrate data between services.`,
-    "project": `The project command is for overall project administration.`,
-    "proxy": `The proxy command allows you to configure behavior for your attached domains.`,
     "vcs": `The vcs command allows you to interact with VCS providers and manage your code repositories.`,
     "main": chalk.redBright(`${logo}${description}`),
 {% if sdk.test == "true" %}
@@ -245,6 +239,8 @@ module.exports = {
     parseInteger,
     parseBool,
     log,
+    warn,
+    hint,
     success,
     error,
     commandDescriptions,

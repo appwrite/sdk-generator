@@ -1,10 +1,9 @@
 const Tail = require('tail').Tail;
-const EventEmitter = require('node:events');
+const { parse: parseDotenv } = require('dotenv');
+const chalk = require('chalk');
 const ignore = require("ignore");
 const tar = require("tar");
 const fs = require("fs");
-const ID = require("../id");
-const childProcess = require('child_process');
 const chokidar = require('chokidar');
 const inquirer = require("inquirer");
 const path = require("path");
@@ -12,13 +11,11 @@ const { Command } = require("commander");
 const { localConfig, globalConfig } = require("../config");
 const { paginate } = require('../paginate');
 const { functionsListVariables } = require('./functions');
-const { usersGet, usersCreateJWT } = require('./users');
-const { projectsCreateJWT } = require('./projects');
 const { questionsRunFunctions } = require("../questions");
-const { actionRunner, success, log, error, commandDescriptions, drawTable } = require("../parser");
+const { actionRunner, success, log, warn, error, hint, commandDescriptions, drawTable } = require("../parser");
 const { systemHasCommand, isPortTaken, getAllFiles } = require('../utils');
-const { openRuntimesVersion, runtimeNames, systemTools, JwtManager, Queue } = require('../emulation/utils');
-const { dockerStop, dockerCleanup, dockerStart, dockerBuild, dockerPull, dockerStopActive } = require('../emulation/docker');
+const { runtimeNames, systemTools, JwtManager, Queue } = require('../emulation/utils');
+const { dockerStop, dockerCleanup, dockerStart, dockerBuild, dockerPull } = require('../emulation/docker');
 
 const runFunction = async ({ port, functionId, noVariables, noReload, userId } = {}) => {
     // Selection
@@ -68,7 +65,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
         }
 
         if(!portFound) {
-            error('Could not find an available port. Please select a port with `appwrite run --port YOUR_PORT` command.');
+            error("Could not find an available port. Please select a port with 'appwrite run --port YOUR_PORT' command.");
             return;
         }
     }
@@ -84,18 +81,19 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
         entrypoint: func.entrypoint,
         path: func.path,
         commands: func.commands,
+        scopes: func.scopes ?? []
     };
 
-    log("Local function configuration:");
     drawTable([settings]);
-    log('If you wish to change your local settings, update the appwrite.json file and rerun the `appwrite run` command.');
+    log("If you wish to change your local settings, update the appwrite.json file and rerun the 'appwrite run' command.");
+    hint("Permissions, events, CRON and timeouts dont apply when running locally.");
 
-    await dockerCleanup();
+    await dockerCleanup(func.$id);
 
     process.on('SIGINT', async () => {
         log('Cleaning up ...');
-        await dockerCleanup();
-        success();
+        await dockerCleanup(func.$id);
+        success("Local function successfully stopped.");
         process.exit();
     });
 
@@ -114,25 +112,34 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
         fs.writeFileSync(errorsPath, '');
     }
 
+    const userVariables = {};
     const variables = {};
-    if(!noVariables) {
-        if (globalConfig.getEndpoint() === '' || globalConfig.getCookie() === '') {
-            error("No user is signed in. To sign in, run: appwrite login. Function will run locally, but will not have your function's environment variables set.");
-        } else {
-            try {
-                const { variables: remoteVariables } = await paginate(functionsListVariables, {
-                    functionId: func['$id'],
-                    parseOutput: false
-                }, 100, 'variables');
 
-                remoteVariables.forEach((v) => {
-                    variables[v.key] = v.value;
-                });
-            } catch(err) {
-                log("Could not fetch remote variables: " + err.message);
-                log("Function will run locally, but will not have your function's environment variables set.");
-            }
+    if(!noVariables) {
+        try {
+            const { variables: remoteVariables } = await paginate(functionsListVariables, {
+                functionId: func['$id'],
+                parseOutput: false
+            }, 100, 'variables');
+
+            remoteVariables.forEach((v) => {
+                variables[v.key] = v.value;
+                userVariables[v.key] = v.value;
+            });
+        } catch(err) {
+            warn("Remote variables not fetched. Production environment variables will not be avaiable. Reason: " + err.message);
         }
+    }
+
+    const functionPath = path.join(process.cwd(), func.path);
+    const envPath = path.join(functionPath, '.env');
+    if(fs.existsSync(envPath)) {
+        const env = parseDotenv(fs.readFileSync(envPath).toString() ?? '');
+
+        Object.keys(env).forEach((key) => {
+            variables[key] = env[key];
+            userVariables[key] = env[key];
+        });
     }
 
     variables['APPWRITE_FUNCTION_API_ENDPOINT'] = globalConfig.getFrom('endpoint');
@@ -143,7 +150,11 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     variables['APPWRITE_FUNCTION_RUNTIME_NAME'] = runtimeNames[runtimeName] ?? '';
     variables['APPWRITE_FUNCTION_RUNTIME_VERSION'] = func.runtime;
 
-    await JwtManager.setup(userId);
+    try {
+        await JwtManager.setup(userId, func.scopes ?? []);
+    } catch(err) {
+        warn("Dynamic API key not generated. Header x-appwrite-key will not be set. Reason: " + err.message);
+    }
 
     const headers = {};
     headers['x-appwrite-key'] = JwtManager.functionJwt ?? '';
@@ -153,22 +164,44 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     headers['x-appwrite-user-jwt'] = JwtManager.userJwt ?? '';
     variables['OPEN_RUNTIMES_HEADERS'] = JSON.stringify(headers);
 
+    if(Object.keys(userVariables).length > 0) {
+        drawTable(Object.keys(userVariables).map((key) => ({
+            key,
+            value: userVariables[key].split("").filter((_, i) => i < 16).map(() => "*").join("")
+        })));
+    }
+
     await dockerPull(func);
-    await dockerBuild(func, variables);
-    await dockerStart(func, variables, port);
 
     new Tail(logsPath).on("line", function(data) {
-        console.log(data);
+        process.stdout.write(chalk.white(`${data}\n`));
     });
     new Tail(errorsPath).on("line", function(data) {
-        console.log(data);
+        process.stdout.write(chalk.white(`${data}\n`));
     });
 
     if(!noReload) {
+        const ignorer = ignore();
+        ignorer.add('.appwrite');
+        ignorer.add('code.tar.gz');
+    
+        if (func.ignore) {
+            ignorer.add(func.ignore);
+        } else if (fs.existsSync(path.join(functionPath, '.gitignore'))) {
+            ignorer.add(fs.readFileSync(path.join(functionPath, '.gitignore')).toString());
+        }
+
         chokidar.watch('.', {
             cwd: path.join(process.cwd(), func.path),
             ignoreInitial: true,
-            ignored: [ ...(func.ignore ?? []), 'code.tar.gz', '.appwrite', '.appwrite/', '.appwrite/*', '.appwrite/**', '.appwrite/*.*', '.appwrite/**/*.*' ]
+            ignored: (xpath) => {
+                const relativePath = path.relative(functionPath, xpath);
+
+                if(!relativePath) {
+                    return false;
+                }
+                return ignorer.ignores(relativePath);
+            }
         }).on('all', async (_event, filePath) => {
             Queue.push(filePath);
         });
@@ -177,25 +210,23 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     Queue.events.on('reload', async ({ files }) => {
         Queue.lock();
 
-        log('Live-reloading due to file changes: ');
-        for(const file of files) {
-            log(`- ${file}`);
-        }
-
         try {
-            log('Stopping the function ...');
-
-            await dockerStopActive();
+            await dockerStop(func.$id);
 
             const dependencyFile = files.find((filePath) => tool.dependencyFiles.includes(filePath));
             if(tool.isCompiled || dependencyFile) {
-                log(`Rebuilding the function due to cange in ${dependencyFile} ...`);
+                log(`Rebuilding the function due to file changes ...`);
                 await dockerBuild(func, variables);
+
+                if(!Queue.isEmpty()) {
+                    Queue.unlock();
+                    return;
+                }
+
                 await dockerStart(func, variables, port);
             } else {
-                log('Hot-swapping function files ...');
+                log('Hot-swapping function.. Files with change are ' + files.join(', '));
 
-                const functionPath = path.join(process.cwd(), func.path);
                 const hotSwapPath = path.join(functionPath, '.appwrite/hot-swap');
                 const buildPath = path.join(functionPath, '.appwrite/build.tar.gz');
 
@@ -209,6 +240,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
 
                 await tar
                     .extract({
+                        keep: true,
                         gzip: true,
                         sync: true,
                         cwd: hotSwapPath,
@@ -219,6 +251,8 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
                 ignorer.add('.appwrite');
                 if (func.ignore) {
                     ignorer.add(func.ignore);
+                } else if (fs.existsSync(path.join(functionPath, '.gitignore'))) {
+                    ignorer.add(fs.readFileSync(path.join(functionPath, '.gitignore')).toString());
                 }
 
                 const filesToCopy = getAllFiles(functionPath).map((file) => path.relative(functionPath, file)).filter((file) => !ignorer.ignores(file));
@@ -245,8 +279,6 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
                         file: buildPath
                     }, ['.']);
 
-                fs.rmSync(hotSwapPath, { recursive: true, force: true });
-
                 await dockerStart(func, variables, port);
             }
         } catch(err) {
@@ -255,6 +287,22 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
             Queue.unlock();
         }
     });
+
+    Queue.lock();
+
+    log('Building function using Docker ...');
+    await dockerBuild(func, variables);
+
+    if(!Queue.isEmpty()) {
+        Queue.unlock();
+        return;
+    }
+
+    log('Starting function using Docker ...');
+    hint('Function automatically restarts when you edit your code.');
+    await dockerStart(func, variables, port);
+
+    Queue.unlock();
 }
 
 const run = new Command("run")
@@ -270,11 +318,11 @@ run
     .command("function")
     .alias("functions")
     .description("Run functions in the current directory.")
-    .option(`--functionId <functionId>`, `Function ID`)
+    .option(`--function-id <function-id>`, `ID of function to run`)
     .option(`--port <port>`, `Local port`)
-    .option(`--userId <userId>`, `ID of user to impersonate`)
-    .option(`--noVariables`, `Prevent pulling variables from function settings`)
-    .option(`--noReload`, `Prevent live reloading of server when changes are made to function files`)
+    .option(`--user-id <user-id>`, `ID of user to impersonate`)
+    .option(`--no-variables`, `Prevent pulling variables from function settings`)
+    .option(`--no-reload`, `Prevent live reloading of server when changes are made to function files`)
     .action(actionRunner(runFunction));
 
 module.exports = {

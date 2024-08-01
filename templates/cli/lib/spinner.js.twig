@@ -22,6 +22,7 @@ class Spinner {
             hideCursor,
             clearOnComplete,
             stopOnComplete: true,
+            linewrap: true,
             noTTYOutput: true
         });
     }

@@ -2,13 +2,13 @@ const chalk = require('chalk');
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
-const { localConfig, globalConfig } = require("../config");
+const { localConfig, globalConfig, KeysAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
-const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
-const { cliConfig, actionRunner, success, log, error, commandDescriptions, drawTable } = require("../parser");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
+const { cliConfig, actionRunner, success, warn, log, hint, error, commandDescriptions, drawTable } = require("../parser");
 const { proxyListRules } = require('./proxy');
-const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
+const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
     databasesCreate,
@@ -37,6 +37,7 @@ const {
     databasesUpdateRelationshipAttribute,
     databasesCreateRelationshipAttribute,
     databasesDeleteAttribute,
+    databasesDeleteIndex,
     databasesListAttributes,
     databasesListIndexes,
     databasesUpdateCollection
@@ -53,6 +54,7 @@ const {
     teamsCreate
 } = require("./teams");
 const {
+    projectsGet,
     projectsUpdate,
     projectsUpdateServiceStatus,
     projectsUpdateAuthStatus,
@@ -67,9 +69,10 @@ const { checkDeployConditions } = require('../utils');
 
 const STEP_SIZE = 100;      // Resources
 const POLL_DEBOUNCE = 2000; // Milliseconds
-const POLL_MAX_DEBOUNCE = 30; // Times
+const POLL_MAX_DEBOUNCE = 1800; // Times of POLL_DEBOUNCE (1 hour)
+const POLL_DEFAULT_VALUE = 30;
 
-let pollMaxDebounces = 30;
+let pollMaxDebounces = POLL_DEFAULT_VALUE;
 
 const changeableKeys = ['status', 'required', 'xdefault', 'elements', 'min', 'max', 'default', 'error'];
 
@@ -90,11 +93,13 @@ const awaitPools = {
             return true;
         }
 
-        let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
-        if (steps > 1 && iteration === 1) {
-            pollMaxDebounces *= steps;
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
 
-            log('Found a large number of attributes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+                log('Found a large number of attributes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
         }
 
         await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
@@ -121,11 +126,13 @@ const awaitPools = {
             return true;
         }
 
-        let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
-        if (steps > 1 && iteration === 1) {
-            pollMaxDebounces *= steps;
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
 
-            log('Found a large number of indexes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+                log('Found a large number of indexes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
         }
 
         await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
@@ -151,11 +158,13 @@ const awaitPools = {
             return true;
         }
 
-        let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
-        if (steps > 1 && iteration === 1) {
-            pollMaxDebounces *= steps;
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(total / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
 
-            log('Found a large number of variables, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+                log('Found a large number of variables, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
         }
 
         await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
@@ -170,11 +179,13 @@ const awaitPools = {
             return false;
         }
 
-        let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
-        if (steps > 1 && iteration === 1) {
-            pollMaxDebounces *= steps;
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
 
-            log('Found a large number of attributes to be deleted. Increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+                log('Found a large number of attributes to be deleted. Increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
         }
 
         const { attributes } = await paginate(databasesListAttributes, {
@@ -203,11 +214,13 @@ const awaitPools = {
             return false;
         }
 
-        let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
-        if (steps > 1 && iteration === 1) {
-            pollMaxDebounces *= steps;
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
 
-            log('Creating a large number of attributes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+                log('Creating a large number of attributes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
         }
 
         const { attributes } = await paginate(databasesListAttributes, {
@@ -243,16 +256,53 @@ const awaitPools = {
             iteration + 1
         );
     },
+    deleteIndexes: async (databaseId, collectionId, indexesKeys, iteration = 1) => {
+        if (iteration > pollMaxDebounces) {
+            return false;
+        }
+
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(attributeKeys.length / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
+
+                log('Found a large number of indexes to be deleted. Increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
+        }
+
+        const { indexes } = await paginate(databasesListIndexes, {
+            databaseId,
+            collectionId,
+            parseOutput: false
+        }, 100, 'indexes');
+
+        const ready = indexesKeys.filter(index => indexes.includes(index.key));
+
+        if (ready.length === 0) {
+            return true;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+
+        return await awaitPools.expectIndexes(
+            databaseId,
+            collectionId,
+            indexesKeys,
+            iteration + 1
+        );
+    },
     expectIndexes: async (databaseId, collectionId, indexKeys, iteration = 1) => {
         if (iteration > pollMaxDebounces) {
             return false;
         }
 
-        let steps = Math.max(1, Math.ceil(indexKeys.length / STEP_SIZE));
-        if (steps > 1 && iteration === 1) {
-            pollMaxDebounces *= steps;
+        if (pollMaxDebounces === POLL_DEFAULT_VALUE) {
+            let steps = Math.max(1, Math.ceil(indexKeys.length / STEP_SIZE));
+            if (steps > 1 && iteration === 1) {
+                pollMaxDebounces *= steps;
 
-            log('Creating a large number of indexes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+                log('Creating a large number of indexes, increasing timeout to ' + (pollMaxDebounces * POLL_DEBOUNCE / 1000 / 60) + ' minutes')
+            }
         }
 
         const { indexes } = await paginate(databasesListIndexes, {
@@ -288,6 +338,76 @@ const awaitPools = {
             iteration + 1
         );
     },
+}
+
+const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural, skipKeys = []) => {
+    log('Checking for changes');
+    const changes = [];
+
+    await Promise.all(resource.map(async (localResource) => {
+        try {
+            const remoteResource = await resourceGetFunction({
+                [resourceName]: localResource['$id'],
+                parseOutput: false,
+            });
+
+            for (let [key, value] of Object.entries(whitelistKeys(remoteResource, keys))) {
+                if (skipKeys.includes(key)) {
+                    continue;
+                }
+                if (Array.isArray(value) && Array.isArray(localResource[key])) {
+                    if (JSON.stringify(value) !== JSON.stringify(localResource[key])) {
+                        changes.push({
+                            id: localResource['$id'],
+                            key,
+                            remote: chalk.red(value.join('\n')),
+                            local: chalk.green(localResource[key].join('\n'))
+                        })
+                    }
+                } else if (value !== localResource[key]) {
+                    changes.push({
+                        id: localResource['$id'],
+                        key,
+                        remote: chalk.red(value),
+                        local: chalk.green(localResource[key])
+                    })
+                }
+            }
+        } catch (e) {
+            if (Number(e.code) !== 404) {
+                throw e;
+            }
+        }
+    }));
+
+    if (changes.length === 0) {
+        return true;
+    }
+
+    drawTable(changes);
+    if (!cliConfig.force) {
+        const answers = await inquirer.prompt(questionPushChanges);
+        if (answers.changes.toLowerCase() === 'yes') {
+            return true;
+        }
+    }
+
+    success(`Successfully pushed 0 ${resourcePlural}.`);
+    return false;
+}
+
+const getObjectChanges = (remote, local, index, what) => {
+    const changes = [];
+
+    if (remote[index] && local[index]) {
+        for (let [service, status] of Object.entries(remote[index])) {
+            if (status !== local[index][service]) {
+                changes.push({ group: what, setting: service, remote: chalk.red(status), local: chalk.green(local[index][service]) })
+            }
+        }
+    }
+
+    return changes;
 }
 
 const createAttribute = async (databaseId, collectionId, attribute) => {
@@ -354,8 +474,8 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: parseInt(attribute.min.toString()),
-                max: parseInt(attribute.max.toString()),
+                min: attribute.min,
+                max: attribute.max,
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -366,8 +486,8 @@ const createAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: parseFloat(attribute.min.toString()),
-                max: parseFloat(attribute.max.toString()),
+                min: attribute.min,
+                max: attribute.max,
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -471,8 +591,8 @@ const updateAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: parseInt(attribute.min.toString()),
-                max: parseInt(attribute.max.toString()),
+                min: attribute.min,
+                max: attribute.max,
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -483,8 +603,8 @@ const updateAttribute = async (databaseId, collectionId, attribute) => {
                 collectionId,
                 key: attribute.key,
                 required: attribute.required,
-                min: parseFloat(attribute.min.toString()),
-                max: parseFloat(attribute.max.toString()),
+                min: attribute.min,
+                max: attribute.max,
                 xdefault: attribute.default,
                 array: attribute.array,
                 parseOutput: false
@@ -523,8 +643,18 @@ const updateAttribute = async (databaseId, collectionId, attribute) => {
             })
     }
 }
-const deleteAttribute = async (collection, attribute) => {
-    log(`Deleting attribute ${attribute.key} of ${collection.name} ( ${collection['$id']} )`);
+const deleteAttribute = async (collection, attribute, isIndex = false) => {
+    log(`Deleting ${isIndex ? 'index' : 'attribute'} ${attribute.key} of ${collection.name} ( ${collection['$id']} )`);
+
+    if (isIndex) {
+        await databasesDeleteIndex({
+            databaseId: collection['databaseId'],
+            collectionId: collection['$id'],
+            key: attribute.key,
+            parseOutput: false
+        });
+        return;
+    }
 
     await databasesDeleteAttribute({
         databaseId: collection['databaseId'],
@@ -555,6 +685,10 @@ const checkAttributeChanges = (remote, local, collection, recraeting = true) => 
     let attribute = remote;
 
     for (let key of Object.keys(remote)) {
+        if (!KeysAttributes.has(key)) {
+            continue;
+        }
+
         if (changeableKeys.includes(key)) {
             if (!recraeting) {
                 if (remote[key] !== local[key]) {
@@ -570,7 +704,12 @@ const checkAttributeChanges = (remote, local, collection, recraeting = true) => 
             continue;
         }
 
-        if (remote[key] !== local[key]) {
+        if (Array.isArray(remote[key]) && Array.isArray(local[key])) {
+            if (JSON.stringify(remote[key]) !== JSON.stringify(local[key])) {
+                const bol = reason === '' ? '' : '\n';
+                reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
+            }
+        } else if (remote[key] !== local[key]) {
             const bol = reason === '' ? '' : '\n';
             reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
         }
@@ -590,7 +729,7 @@ const generateChangesObject = (attribute, collection, isAdding) => {
     return {
         key: `${chalk.yellow(attribute.key)} in ${collection.name} (${collection['$id']})`,
         attribute: attribute,
-        reason: isAdding ? 'Field doesn\'t exist on the remote server' : 'Field doesn\'t exist in appwrite.json file',
+        reason: isAdding ? 'Field isn\'t present on the remote server' : 'Field isn\'t present on the appwrite.json file',
         action: isAdding ? chalk.green('adding') : chalk.red('deleting')
     };
 
@@ -599,12 +738,9 @@ const generateChangesObject = (attribute, collection, isAdding) => {
 /**
  * Filter deleted and recreated attributes,
  * return list of attributes to create
- * @param remoteAttributes
- * @param localAttributes
- * @param collection
  * @returns {Promise<*|*[]>}
  */
-const attributesToCreate = async (remoteAttributes, localAttributes, collection) => {
+const attributesToCreate = async (remoteAttributes, localAttributes, collection, isIndex = false) => {
 
     const deleting = remoteAttributes.filter((attribute) => !attributesContains(attribute, localAttributes)).map((attr) => generateChangesObject(attr, collection, false));
     const adding = localAttributes.filter((attribute) => !attributesContains(attribute, remoteAttributes)).map((attr) => generateChangesObject(attr, collection, true));
@@ -626,14 +762,14 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection)
     }));
 
     if (!cliConfig.force) {
-        if (deleting.length > 0) {
+        if (deleting.length > 0 && !isIndex) {
             log(`Attribute deletion will cause ${chalk.red('loss of data')}`);
         }
-        if (conflicts.length > 0) {
+        if (conflicts.length > 0 && !isIndex) {
             log(`Attribute recreation will cause ${chalk.red('loss of data')}`);
         }
 
-        const answers = await inquirer.prompt(questionsPushCollections[1]);
+        const answers = await inquirer.prompt(questionPushChanges);
 
         if (answers.changes.toLowerCase() !== 'yes') {
             return changedAttributes;
@@ -642,17 +778,17 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection)
 
     if (conflicts.length > 0) {
         changedAttributes = conflicts.map((change) => change.attribute);
-        await Promise.all(changedAttributes.map((changed) => deleteAttribute(collection, changed)));
+        await Promise.all(changedAttributes.map((changed) => deleteAttribute(collection, changed, isIndex)));
         remoteAttributes = remoteAttributes.filter((attribute) => !attributesContains(attribute, changedAttributes))
     }
 
     if (changes.length > 0) {
         changedAttributes = changes.map((change) => change.attribute);
-        await Promise.all(changedAttributes.map((changed) => updateAttribute(collection['databaseId'],collection['$id'], changed)));
+        await Promise.all(changedAttributes.map((changed) => updateAttribute(collection['databaseId'], collection['$id'], changed)));
     }
 
     const deletingAttributes = deleting.map((change) => change.attribute);
-    await Promise.all(deletingAttributes.map((attribute) => deleteAttribute(collection, attribute)));
+    await Promise.all(deletingAttributes.map((attribute) => deleteAttribute(collection, attribute, isIndex)));
     const attributeKeys = [...remoteAttributes.map(attribute => attribute.key), ...deletingAttributes.map(attribute => attribute.key)]
 
     if (attributeKeys.length) {
@@ -714,7 +850,7 @@ const createAttributes = async (attributes, collection) => {
 
 const pushResources = async () => {
     const actions = {
-        project: pushProject,
+        settings: pushSettings,
         functions: pushFunction,
         collections: pushCollection,
         buckets: pushBucket,
@@ -736,15 +872,47 @@ const pushResources = async () => {
     }
 };
 
-const pushProject = async () => {
+const pushSettings = async () => {
+    checkDeployConditions(localConfig);
+
     try {
+        let response = await projectsGet({
+            parseOutput: false,
+            projectId: localConfig.getProject().projectId
+        });
+
+        const remoteSettings = localConfig.createSettingsObject(response ?? {});
+        const localSettings = localConfig.getProject().projectSettings ?? {};
+
+        log('Checking for changes');
+        const changes = [];
+
+        changes.push(...(getObjectChanges(remoteSettings, localSettings, 'services', 'Service')));
+        changes.push(...(getObjectChanges(remoteSettings['auth'] ?? {}, localSettings['auth'] ?? {}, 'methods', 'Auth method')));
+        changes.push(...(getObjectChanges(remoteSettings['auth'] ?? {}, localSettings['auth'] ?? {}, 'security', 'Auth security')));
+
+        if (changes.length > 0) {
+            drawTable(changes);
+            if (!cliConfig.force) {
+                const answers = await inquirer.prompt(questionPushChanges);
+                if (answers.changes.toLowerCase() !== 'yes') {
+                    success(`Successfully pushed 0 project settings.`);
+                    return;
+                }
+            }
+        }
+    } catch (e) {
+    }
+
+    try {
+        log("Pushing project settings ...");
+
         const projectId = localConfig.getProject().projectId;
         const projectName = localConfig.getProject().projectName;
         const settings = localConfig.getProject().projectSettings ?? {};
 
-        log(`Updating project ${projectId}`);
-
         if (projectName) {
+            log("Applying project name ...");
             await projectsUpdate({
                 projectId,
                 name: projectName,
@@ -753,7 +921,7 @@ const pushProject = async () => {
         }
 
         if (settings.services) {
-            log('Updating service statuses');
+            log("Applying service statuses ...");
             for (let [service, status] of Object.entries(settings.services)) {
                 await projectsUpdateServiceStatus({
                     projectId,
@@ -766,7 +934,7 @@ const pushProject = async () => {
 
         if (settings.auth) {
             if (settings.auth.security) {
-                log('Updating auth security settings');
+                log("Applying auth security settings ...");
                 await projectsUpdateAuthDuration({ projectId, duration: settings.auth.security.duration, parseOutput: false });
                 await projectsUpdateAuthLimit({ projectId, limit: settings.auth.security.limit, parseOutput: false });
                 await projectsUpdateAuthSessionsLimit({ projectId, limit: settings.auth.security.sessionsLimit, parseOutput: false });
@@ -776,7 +944,7 @@ const pushProject = async () => {
             }
 
             if (settings.auth.methods) {
-                log('Updating auth login methods');
+                log("Applying auth methods statuses ...");
 
                 for (let [method, status] of Object.entries(settings.auth.methods)) {
                     await projectsUpdateAuthStatus({
@@ -789,15 +957,13 @@ const pushProject = async () => {
             }
         }
 
-        success("Project configuration updated.");
+        success(`Successfully pushed ${chalk.bold('all')} project settings.`);
     } catch (e) {
         throw e;
     }
 }
 
-const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero: false }) => {
-    let response = {};
-
+const pushFunction = async ({ functionId, async, code, withVariables } = { returnOnZero: false }) => {
     const functionIds = [];
 
     if (functionId) {
@@ -805,13 +971,6 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
     } else if (cliConfig.all) {
         checkDeployConditions(localConfig);
         const functions = localConfig.getFunctions();
-        if (functions.length === 0) {
-            if (returnOnZero) {
-                log('No functions found, skipping');
-                return;
-            }
-            throw new Error("No functions found in the current directory. Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
-        }
         functionIds.push(...functions.map((func) => {
             return func.$id;
         }));
@@ -819,7 +978,15 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
 
     if (functionIds.length <= 0) {
         const answers = await inquirer.prompt(questionsPushFunctions[0]);
-        functionIds.push(...answers.functions);
+        if (answers.functions) {
+            functionIds.push(...answers.functions);
+        }
+    }
+
+    if (functionIds.length === 0) {
+        log("No functions found.");
+        hint("Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
+        return;
     }
 
     let functions = functionIds.map((id) => {
@@ -833,52 +1000,33 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
         return func;
     });
 
-    log('Validating functions');
+    log('Validating functions ...');
     // Validation is done BEFORE pushing so the deployment process can be run in async with progress update
     for (let func of functions) {
 
         if (!func.entrypoint) {
-            log(`Function ${func.name} does not have an endpoint`);
+            log(`Function ${func.name} is missing an entrypoint.`);
             const answers = await inquirer.prompt(questionsGetEntrypoint)
             func.entrypoint = answers.entrypoint;
-            localConfig.updateFunction(func['$id'], func);
-        }
-
-        if (func.variables) {
-            func.pushVariables = cliConfig.force;
-
-            try {
-                const { total } = await functionsListVariables({
-                    functionId: func['$id'],
-                    queries: [JSON.stringify({ method: 'limit', values: [1] })],
-                    parseOutput: false
-                });
-
-                if (total === 0) {
-                    func.pushVariables = true;
-                } else if (total > 0 && !func.pushVariables) {
-                    log(`The function ${func.name} has remote variables setup`);
-                    const variableAnswers = await inquirer.prompt(questionsPushFunctions[1])
-                    func.pushVariables = variableAnswers.override.toLowerCase() === "yes";
-                }
-            } catch (e) {
-                if (e.code != 404) {
-                    throw e.message;
-                }
-            }
+            localConfig.addFunction(func);
         }
     }
 
+    if (!(await approveChanges(functions, functionsGet, KeysFunction, 'functionId', 'functions', ['vars']))) {
+        return;
+    }
 
-    log('All functions are validated');
-    log('Pushing functions\n');
+    log('Pushing functions ...');
 
     Spinner.start(false);
     let successfullyPushed = 0;
     let successfullyDeployed = 0;
     const failedDeployments = [];
+    const errors = [];
 
     await Promise.all(functions.map(async (func) => {
+        let response = {};
+
         const ignore = func.ignore ? 'appwrite.json' : '.gitignore';
         let functionExists = false;
         let deploymentCreated = false;
@@ -886,7 +1034,6 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
         const updaterRow = new Spinner({ status: '', resource: func.name, id: func['$id'], end: `Ignoring using: ${ignore}` });
 
         updaterRow.update({ status: 'Getting' }).startSpinner(SPINNER_DOTS);
-
         try {
             response = await functionsGet({
                 functionId: func['$id'],
@@ -911,6 +1058,7 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                 logging: func.logging,
                 entrypoint: func.entrypoint,
                 commands: func.commands,
+                scopes: func.scopes,
                 providerRepositoryId: func.providerRepositoryId ?? "",
                 installationId: func.installationId ?? '',
                 providerBranch: func.providerBranch ?? '',
@@ -924,6 +1072,7 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
             if (Number(e.code) === 404) {
                 functionExists = false;
             } else {
+                errors.push(e);
                 updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
                 return;
             }
@@ -934,7 +1083,7 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
 
             try {
                 response = await functionsCreate({
-                    functionId: func.$id || 'unique()',
+                    functionId: func.$id,
                     name: func.name,
                     runtime: func.runtime,
                     execute: func.execute,
@@ -949,52 +1098,53 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                     parseOutput: false
                 });
 
-                localConfig.updateFunction(func['$id'], {
-                    "$id": response['$id'],
-                });
-                func["$id"] = response['$id'];
                 updaterRow.update({ status: 'Created' });
             } catch (e) {
+                errors.push(e)
                 updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
                 return;
             }
         }
 
-        if (func.variables) {
-            if (!func.pushVariables) {
-                updaterRow.update({ end: 'Skipping variables' });
-            } else {
-                updaterRow.update({ end: 'Pushing variables' });
+        if (withVariables) {
+            updaterRow.update({ status: 'Updating variables' }).replaceSpinner(SPINNER_ARC);
 
-                const { variables } = await paginate(functionsListVariables, {
+            const { variables } = await paginate(functionsListVariables, {
+                functionId: func['$id'],
+                parseOutput: false
+            }, 100, 'variables');
+
+            await Promise.all(variables.map(async variable => {
+                await functionsDeleteVariable({
                     functionId: func['$id'],
+                    variableId: variable['$id'],
                     parseOutput: false
-                }, 100, 'variables');
+                });
+            }));
 
-                await Promise.all(variables.map(async variable => {
-                    await functionsDeleteVariable({
-                        functionId: func['$id'],
-                        variableId: variable['$id'],
-                        parseOutput: false
-                    });
-                }));
-
-                let result = await awaitPools.wipeVariables(func['$id']);
-                if (!result) {
-                    updaterRow.fail({ errorMessage: 'Variable deletion timed out' })
-                    return;
-                }
-
-                // Push local variables
-                await Promise.all(Object.keys(func.variables).map(async localVariableKey => {
-                    await functionsCreateVariable({
-                        functionId: func['$id'],
-                        key: localVariableKey,
-                        value: func.variables[localVariableKey],
-                        parseOutput: false
-                    });
-                }));
+            let result = await awaitPools.wipeVariables(func['$id']);
+            if (!result) {
+                updaterRow.fail({ errorMessage: `Variable deletion timed out.` })
+                return;
             }
+
+            // Deploy local variables
+            await Promise.all((func['vars'] ?? []).map(async variable => {
+                await functionsCreateVariable({
+                    functionId: func['$id'],
+                    key: variable['key'],
+                    value: variable['value'],
+                    parseOutput: false
+                });
+            }));
+        }
+
+        if (code === false) {
+            successfullyPushed++;
+            successfullyDeployed++;
+            updaterRow.update({ status: 'Pushed' });
+            updaterRow.stopSpinner();
+            return;
         }
 
         try {
@@ -1012,6 +1162,8 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
             deploymentCreated = true;
             successfullyPushed++;
         } catch (e) {
+            errors.push(e);
+
             switch (e.code) {
                 case 'ENOENT':
                     updaterRow.fail({ errorMessage: 'Not found in the current directory. Skipping...' })
@@ -1028,11 +1180,6 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                 let pollChecks = 0;
 
                 while (true) {
-                    if (pollChecks >= POLL_MAX_DEBOUNCE) {
-                        updaterRow.update({ end: 'Deployment is taking too long. Please check the console for more details.' })
-                        break;
-                    }
-
                     response = await functionsGetDeployment({
                         functionId: func['$id'],
                         deploymentId: deploymentId,
@@ -1071,9 +1218,10 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                     }
 
                     pollChecks++;
-                    await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE));
+                    await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE * 1.5));
                 }
             } catch (e) {
+                errors.push(e);
                 updaterRow.fail({ errorMessage: e.message ?? 'Unknown error occurred. Please try again' })
             }
         }
@@ -1082,56 +1230,66 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
     }));
 
     Spinner.stop();
-    console.log('\n');
 
     failedDeployments.forEach((failed) => {
         const { name, deployment, $id } = failed;
-        const failUrl = `${globalConfig.getEndpoint().replace('/v1', '')}/console/project-${localConfig.getProject().projectId}/functions/function-${$id}/deployment-${deployment}`;
+        const failUrl = `${globalConfig.getEndpoint().slice(0, -3)}/console/project-${localConfig.getProject().projectId}/functions/function-${$id}/deployment-${deployment}`;
 
         error(`Deployment of ${name} has failed. Check at ${failUrl} for more details\n`);
-    })
-
-    let message = chalk.green(`Pushed and deployed ${successfullyPushed} functions`);
+    });
 
     if (!async) {
-        if (successfullyDeployed < successfullyPushed) {
-            message = `${chalk.green(`Pushed and deployed ${successfullyPushed} functions.`)} ${chalk.red(`${successfullyPushed - successfullyDeployed}  failed to deploy`)}`;
+        if (successfullyPushed === 0) {
+            error('No functions were pushed.');
+        } else if (successfullyDeployed !== successfullyPushed) {
+            warn(`Successfully pushed ${successfullyDeployed} of ${successfullyPushed} functions`)
         } else {
-            if (successfullyPushed === 0) {
-                message = chalk.red(`Error pushing ${functions.length} functions`)
-            }
+            success(`Successfully pushed ${successfullyPushed} functions.`);
         }
+    } else {
+        success(`Successfully pushed ${successfullyPushed} functions.`);
     }
-    log(message);
+
+    if (cliConfig.verbose) {
+        errors.forEach(e => {
+            console.error(e);
+        })
+    }
 }
 
-const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
+const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false }) => {
     const collections = [];
+
+    if (attempts) {
+        pollMaxDebounces = attempts;
+    }
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (localConfig.getCollections().length === 0) {
-            if (returnOnZero) {
-                log('No collections found, skipping');
-                return;
-            }
-
-            throw new Error("No collections found in the current directory. Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
-        }
         collections.push(...localConfig.getCollections());
     } else {
-        const answers = await inquirer.prompt(questionsPushCollections[0])
-        const configCollections = new Map();
-        localConfig.getCollections().forEach((c) => {
-            configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
-        });
-        answers.collections.forEach((a) => {
-            const collection = configCollections.get(a);
-            collections.push(collection);
-        })
+        const answers = await inquirer.prompt(questionsPushCollections)
+        if (answers.collections) {
+            const configCollections = new Map();
+            localConfig.getCollections().forEach((c) => {
+                configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
+            });
+            answers.collections.forEach((a) => {
+                const collection = configCollections.get(a);
+                collections.push(collection);
+            })
+        }
     }
+
+    if (collections.length === 0) {
+        log("No collections found.");
+        hint("Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
+        return;
+    }
+
     const databases = Array.from(new Set(collections.map(collection => collection['databaseId'])));
-    log('Checking for databases and collection changes');
+
+    log('Checking for changes ...');
 
     // Parallel db actions
     await Promise.all(databases.map(async (databaseId) => {
@@ -1153,7 +1311,7 @@ const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
                 success(`Updated ${localDatabase.name} ( ${databaseId} ) name`);
             }
         } catch (err) {
-            log(`Database ${databaseId} not found. Creating it now...`);
+            log(`Database ${databaseId} not found. Creating it now ...`);
 
             await databasesCreate({
                 databaseId: databaseId,
@@ -1203,17 +1361,20 @@ const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
             }
         }
     }))
-
+    let numberOfCollections = 0;
     // Serialize attribute actions
     for (let collection of collections) {
         let attributes = collection.attributes;
+        let indexes = collection.indexes;
 
         if (collection.isExisted) {
             attributes = await attributesToCreate(collection.remoteVersion.attributes, collection.attributes, collection);
+            indexes = await attributesToCreate(collection.remoteVersion.indexes, collection.indexes, collection, true);
 
-            if (Array.isArray(attributes) && attributes.length <= 0) {
+            if ((Array.isArray(attributes) && attributes.length <= 0) && (Array.isArray(indexes) && indexes.length <= 0)) {
                 continue;
             }
+
         }
 
         log(`Pushing collection ${collection.name} ( ${collection['databaseId']} - ${collection['$id']} ) attributes`)
@@ -1225,13 +1386,15 @@ const pushCollection = async ({ returnOnZero } = { returnOnZero: false }) => {
         }
 
         try {
-            await createIndexes(collection.indexes, collection);
+            await createIndexes(indexes, collection);
         } catch (e) {
             throw e;
         }
-
+        numberOfCollections++;
         success(`Pushed ${collection.name} ( ${collection['$id']} )`);
     }
+
+    success(`Pushed ${numberOfCollections} collections`);
 }
 
 const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
@@ -1242,19 +1405,20 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (configBuckets.length === 0) {
-            if (returnOnZero) {
-                log('No buckets found, skipping');
-                return;
-            }
-            throw new Error("No buckets found in the current directory. Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
-        }
         bucketIds.push(...configBuckets.map((b) => b.$id));
     }
 
     if (bucketIds.length === 0) {
         const answers = await inquirer.prompt(questionsPushBuckets[0])
-        bucketIds.push(...answers.buckets);
+        if (answers.buckets) {
+            bucketIds.push(...answers.buckets);
+        }
+    }
+
+    if (bucketIds.length === 0) {
+        log("No buckets found.");
+        hint("Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
+        return;
     }
 
     let buckets = [];
@@ -1264,16 +1428,20 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
         buckets.push(...idBuckets);
     }
 
+    if (!(await approveChanges(buckets, storageGetBucket, KeysStorage, 'bucketId', 'buckets'))) {
+        return;
+    }
+
+    log('Pushing buckets ...');
+
     for (let bucket of buckets) {
-        log(`Pushing bucket ${bucket.name} ( ${bucket['$id']} )`)
+        log(`Pushing bucket ${chalk.bold(bucket['name'])} ...`);
 
         try {
             response = await storageGetBucket({
                 bucketId: bucket['$id'],
                 parseOutput: false,
             })
-
-            log(`Updating bucket ...`)
 
             await storageUpdateBucket({
                 bucketId: bucket['$id'],
@@ -1288,8 +1456,6 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
                 compression: bucket.compression,
                 parseOutput: false
             });
-
-            success(`Pushed ${bucket.name} ( ${bucket['$id']} )`);
         } catch (e) {
             if (Number(e.code) === 404) {
                 log(`Bucket ${bucket.name} does not exist in the project. Creating ... `);
@@ -1307,13 +1473,13 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
                     antivirus: bucket.antivirus,
                     parseOutput: false
                 })
-
-                success(`Pushed ${bucket.name} ( ${bucket['$id']} )`);
             } else {
                 throw e;
             }
         }
     }
+
+    success(`Successfully pushed ${buckets.length} buckets.`);
 }
 
 const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
@@ -1324,19 +1490,20 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (configTeams.length === 0) {
-            if (returnOnZero) {
-                log('No teams found, skipping');
-                return;
-            }
-            throw new Error("No teams found in the current directory. Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
-        }
         teamIds.push(...configTeams.map((t) => t.$id));
     }
 
     if (teamIds.length === 0) {
         const answers = await inquirer.prompt(questionsPushTeams[0])
-        teamIds.push(...answers.teams);
+        if (answers.teams) {
+            teamIds.push(...answers.teams);
+        }
+    }
+
+    if (teamIds.length === 0) {
+        log("No teams found.");
+        hint("Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
+        return;
     }
 
     let teams = [];
@@ -1346,8 +1513,15 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
         teams.push(...idTeams);
     }
 
+    if (!(await approveChanges(teams, teamsGet, KeysTeams, 'teamId', 'teams'))) {
+        return;
+    }
+
+
+    log('Pushing teams ...');
+
     for (let team of teams) {
-        log(`Pushing team ${team.name} ( ${team['$id']} )`)
+        log(`Pushing team ${chalk.bold(team['name'])} ...`);
 
         try {
             response = await teamsGet({
@@ -1355,15 +1529,11 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
                 parseOutput: false,
             })
 
-            log(`Updating team ...`)
-
             await teamsUpdateName({
                 teamId: team['$id'],
                 name: team.name,
                 parseOutput: false
             });
-
-            success(`Pushed ${team.name} ( ${team['$id']} )`);
         } catch (e) {
             if (Number(e.code) === 404) {
                 log(`Team ${team.name} does not exist in the project. Creating ... `);
@@ -1373,13 +1543,13 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
                     name: team.name,
                     parseOutput: false
                 })
-
-                success(`Pushed ${team.name} ( ${team['$id']} )`);
             } else {
                 throw e;
             }
         }
     }
+
+    success(`Successfully pushed ${teams.length} teams.`);
 }
 
 const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) => {
@@ -1391,19 +1561,20 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (configTopics.length === 0) {
-            if (returnOnZero) {
-                log('No topics found, skipping');
-                return;
-            }
-            throw new Error("No topics found in the current directory. Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
-        }
         topicsIds.push(...configTopics.map((b) => b.$id));
     }
 
     if (topicsIds.length === 0) {
         const answers = await inquirer.prompt(questionsPushMessagingTopics[0])
-        topicsIds.push(...answers.topics);
+        if (answers.topics) {
+            topicsIds.push(...answers.topics);
+        }
+    }
+
+    if (topicsIds.length === 0) {
+        log("No topics found.");
+        hint("Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
+        return;
     }
 
     let topics = [];
@@ -1420,8 +1591,14 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
         }
     }
 
+    if (!(await approveChanges(topics, messagingGetTopic, KeysTopics, 'topicId', 'topics'))) {
+        return;
+    }
+
+    log('Pushing topics ...');
+
     for (let topic of topics) {
-        log(`Pushing topic ${topic.name} ( ${topic['$id']} )`)
+        log(`Pushing topic ${chalk.bold(topic['name'])} ...`);
 
         try {
             response = await messagingGetTopic({
@@ -1435,16 +1612,12 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
                 continue;
             }
 
-            log(`Updating Topic ...`)
-
             await messagingUpdateTopic({
                 topicId: topic['$id'],
                 name: topic.name,
                 subscribe: topic.subscribe,
                 parseOutput: false
             });
-
-            success(`Pushed ${topic.name} ( ${topic['$id']} )`);
         } catch (e) {
             if (Number(e.code) === 404) {
                 log(`Topic ${topic.name} does not exist in the project. Creating ... `);
@@ -1462,6 +1635,8 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
             }
         }
     }
+
+    success(`Successfully pushed ${topics.length} topics.`);
 }
 
 const push = new Command("push")
@@ -1477,22 +1652,25 @@ push
     }));
 
 push
-    .command("project")
+    .command("settings")
     .description("Push project name, services and auth settings")
-    .action(actionRunner(pushProject));
+    .action(actionRunner(pushSettings));
 
 push
     .command("function")
     .alias("functions")
     .description("Push functions in the current directory.")
-    .option(`-f, --functionId <functionId>`, `Function ID`)
+    .option(`-f, --function-id <function-id>`, `ID of function to run`)
     .option(`-A, --async`, `Don't wait for functions deployments status`)
+    .option("--no-code", "Don't push the function's code")
+    .option("--with-variables", `Push function variables.`)
     .action(actionRunner(pushFunction));
 
 push
     .command("collection")
     .alias("collections")
     .description("Push collections in the current project.")
+    .option(`-a, --attempts <numberOfAttempts>`, `Max number of attempts before timing out. default: 30.`)
     .action(actionRunner(pushCollection));
 
 push
@@ -1513,6 +1691,13 @@ push
     .description("Push messaging topics in the current project.")
     .action(actionRunner(pushMessagingTopic));
 
+const deploy = new Command("deploy")
+    .description(commandDescriptions['push'])
+    .action(actionRunner(async () => {
+        warn("Did you mean to run 'appwrite push' command?");
+    }));
+
 module.exports = {
-    push
+    push,
+    deploy
 }

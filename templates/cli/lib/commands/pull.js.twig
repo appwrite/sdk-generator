@@ -1,4 +1,5 @@
 const fs = require("fs");
+const chalk = require('chalk');
 const tar = require("tar");
 const { Command } = require("commander");
 const inquirer = require("inquirer");
@@ -10,12 +11,12 @@ const { databasesGet, databasesListCollections, databasesList } = require("./dat
 const { storageListBuckets } = require("./storage");
 const { localConfig } = require("../config");
 const { paginate } = require("../paginate");
-const { questionsPullCollection, questionsPullFunctions, questionsPullResources } = require("../questions");
-const { cliConfig, success, log, actionRunner, commandDescriptions } = require("../parser");
+const { questionsPullCollection, questionsPullFunctions, questionsPullFunctionsCode, questionsPullResources } = require("../questions");
+const { cliConfig, success, log, warn, actionRunner, commandDescriptions } = require("../parser");
 
 const pullResources = async () => {
     const actions = {
-        project: pullProject,
+        settings: pullSettings,
         functions: pullFunctions,
         collections: pullCollection,
         buckets: pullBucket,
@@ -25,7 +26,8 @@ const pullResources = async () => {
 
     if (cliConfig.all) {
         for (let action of Object.values(actions)) {
-            await action();
+            cliConfig.all = true;
+            await action({ returnOnZero: true });
         }
     } else {
         const answers = await inquirer.prompt(questionsPullResources[0]);
@@ -37,75 +39,123 @@ const pullResources = async () => {
     }
 };
 
-const pullProject = async () => {
+const pullSettings = async () => {
+    log("Pulling project settings ...");
+
     try {
         let response = await projectsGet({
             parseOutput: false,
             projectId: localConfig.getProject().projectId
-
-        })
+        });
 
         localConfig.setProject(response.$id, response.name, response);
 
-        success();
+        success(`Successfully pulled ${chalk.bold('all')} project settings.`);
     } catch (e) {
         throw e;
     }
 }
 
-const pullFunctions = async () => {
-    const localFunctions = localConfig.getFunctions();
+const pullFunctions = async ({ code, withVariables }) => {
+    log("Fetching functions ...");
+    let total = 0;
+
+    const fetchResponse = await functionsList({
+        queries: [JSON.stringify({ method: 'limit', values: [1] })],
+        parseOutput: false
+    });
+    if (fetchResponse["functions"].length <= 0) {
+        log("No functions found.");
+        success(`Successfully pulled ${chalk.bold(total)} functions.`);
+        return;
+    }
 
     const functions = cliConfig.all
         ? (await paginate(functionsList, { parseOutput: false }, 100, 'functions')).functions
         : (await inquirer.prompt(questionsPullFunctions)).functions;
 
-    log(`Pulling ${functions.length} functions`);
+    let allowCodePull = cliConfig.force === true ? true : null;
 
     for (let func of functions) {
-        const functionExistLocally = localFunctions.find((localFunc) => localFunc['$id'] === func['$id']) !== undefined;
+        total++;
+        log(`Pulling function ${chalk.bold(func['name'])} ...`);
 
-        if (functionExistLocally) {
-            localConfig.updateFunction(func['$id'], func);
+        const localFunction = localConfig.getFunction(func.$id);
+
+        func['path'] = localFunction['path'];
+        if (!localFunction['path']) {
+            func['path'] = `functions/${func.$id}`;
+        }
+        if (!withVariables) {
+            delete func['vars'];
+        }
+        localConfig.addFunction(func);
+
+        if (!fs.existsSync(func['path'])) {
+            fs.mkdirSync(func['path'], { recursive: true });
+        }
+
+        if (code === false) {
+            warn("Source code download skipped.");
+        } else if (!func['deployment']) {
+            warn("Source code download skipped because function doesn't have active deployment.");
         } else {
-            func['path'] = `functions/${func['$id']}`;
-            localConfig.addFunction(func);
-            localFunctions.push(func);
+            if (allowCodePull === null) {
+                const codeAnswer = await inquirer.prompt(questionsPullFunctionsCode);
+                allowCodePull = codeAnswer.override;
+            }
+
+            if (allowCodePull) {
+                log("Pulling active deployment's code ...");
+
+                const compressedFileName = `${func['$id']}-${+new Date()}.tar.gz`
+                await functionsDownloadDeployment({
+                    functionId: func['$id'],
+                    deploymentId: func['deployment'],
+                    destination: compressedFileName,
+                    overrideForCli: true,
+                    parseOutput: false
+                });
+
+                tar.extract({
+                    sync: true,
+                    cwd: func['path'],
+                    file: compressedFileName,
+                    strict: false,
+                });
+
+                fs.rmSync(compressedFileName);
+
+                if (withVariables) {
+                    const envFileLocation = `${func['path']}/.env`
+                    try {
+                        fs.rmSync(envFileLocation);
+                    } catch {
+                    }
+
+                    fs.writeFileSync(envFileLocation, func['vars'].map(r => `${r.key}=${r.value}\n`).join(''))
+                }
+            }
         }
-
-        const localFunction = localFunctions.find((localFunc) => localFunc['$id'] === func['$id']);
-
-        if (localFunction['deployment'] === '') {
-            continue
-        }
-
-        const compressedFileName = `${func['$id']}-${+new Date()}.tar.gz`
-
-        await functionsDownloadDeployment({
-            functionId: func['$id'],
-            deploymentId: func['deployment'],
-            destination: compressedFileName,
-            overrideForCli: true,
-            parseOutput: false
-        })
-
-        if (!fs.existsSync(localFunction['path'])) {
-            fs.mkdirSync(localFunction['path'], { recursive: true });
-        }
-
-        tar.extract({
-            sync: true,
-            cwd: localFunction['path'],
-            file: compressedFileName,
-            strict: false,
-        });
-
-        fs.rmSync(compressedFileName);
-        success(`Pulled ${func['name']} code and settings`)
     }
+
+    success(`Successfully pulled ${chalk.bold(total)} functions.`);
 }
 
 const pullCollection = async () => {
+    log("Fetching collections ...");
+    let total = 0;
+
+    const fetchResponse = await databasesList({
+        queries: [JSON.stringify({ method: 'limit', values: [1] })],
+        parseOutput: false
+    });
+    if (fetchResponse["databases"].length <= 0) {
+        log("No collections found.");
+        success(`Successfully pulled ${chalk.bold(total)} collections.`);
+        return;
+    }
+
     let databases = cliConfig.ids;
 
     if (databases.length === 0) {
@@ -122,61 +172,101 @@ const pullCollection = async () => {
             parseOutput: false
         });
 
+        total++;
+        log(`Pulling all collections from ${chalk.bold(database['name'])} database ...`);
+
         localConfig.addDatabase(database);
 
-        const { collections, total } = await paginate(databasesListCollections, {
+        const { collections } = await paginate(databasesListCollections, {
             databaseId,
             parseOutput: false
         }, 100, 'collections');
 
-        log(`Found ${total} collections`);
-
-        collections.map(async collection => {
-            log(`Fetching ${collection.name} ...`);
+        for (const collection of collections) {
             localConfig.addCollection({
                 ...collection,
                 '$createdAt': undefined,
                 '$updatedAt': undefined
             });
-        });
+        }
     }
 
-    success();
+    success(`Successfully pulled ${chalk.bold(total)} collections.`);
 }
 
 const pullBucket = async () => {
+    log("Fetching buckets ...");
+    let total = 0;
+
+    const fetchResponse = await storageListBuckets({
+        queries: [JSON.stringify({ method: 'limit', values: [1] })],
+        parseOutput: false
+    });
+    if (fetchResponse["buckets"].length <= 0) {
+        log("No buckets found.");
+        success(`Successfully pulled ${chalk.bold(total)} buckets.`);
+        return;
+    }
+
     const { buckets } = await paginate(storageListBuckets, { parseOutput: false }, 100, 'buckets');
 
-    log(`Found ${buckets.length} buckets`);
+    for (const bucket of buckets) {
+        total++;
+        log(`Pulling bucket ${chalk.bold(bucket['name'])} ...`);
+        localConfig.addBucket(bucket);
+    }
 
-    buckets.forEach(bucket => localConfig.addBucket(bucket));
-
-    success();
+    success(`Successfully pulled ${chalk.bold(total)} buckets.`);
 }
 
 const pullTeam = async () => {
+    log("Fetching teams ...");
+    let total = 0;
+
+    const fetchResponse = await teamsList({
+        queries: [JSON.stringify({ method: 'limit', values: [1] })],
+        parseOutput: false
+    });
+    if (fetchResponse["teams"].length <= 0) {
+        log("No teams found.");
+        success(`Successfully pulled ${chalk.bold(total)} teams.`);
+        return;
+    }
+
     const { teams } = await paginate(teamsList, { parseOutput: false }, 100, 'teams');
 
-    log(`Found ${teams.length} teams`);
+    for (const team of teams) {
+        total++;
+        log(`Pulling team ${chalk.bold(team['name'])} ...`);
+        localConfig.addTeam(team);
+    }
 
-    teams.forEach(team => {
-        const { total, $updatedAt, $createdAt, prefs, ...rest } = team;
-        localConfig.addTeam(rest);
-    });
-
-    success();
+    success(`Successfully pulled ${chalk.bold(total)} teams.`);
 }
 
 const pullMessagingTopic = async () => {
+    log("Fetching topics ...");
+    let total = 0;
+
+    const fetchResponse = await messagingListTopics({
+        queries: [JSON.stringify({ method: 'limit', values: [1] })],
+        parseOutput: false
+    });
+    if (fetchResponse["topics"].length <= 0) {
+        log("No topics found.");
+        success(`Successfully pulled ${chalk.bold(total)} topics.`);
+        return;
+    }
+
     const { topics } = await paginate(messagingListTopics, { parseOutput: false }, 100, 'topics');
 
-    log(`Found ${topics.length} topics`);
-
-    topics.forEach(topic => {
+    for (const topic of topics) {
+        total++;
+        log(`Pulling topic ${chalk.bold(topic['name'])} ...`);
         localConfig.addMessagingTopic(topic);
-    });
+    }
 
-    success();
+    success(`Successfully pulled ${chalk.bold(total)} topics.`);
 }
 
 const pull = new Command("pull")
@@ -192,14 +282,16 @@ pull
     }));
 
 pull
-    .command("project")
+    .command("settings")
     .description("Pull your {{ spec.title|caseUcfirst }} project name, services and auth settings")
-    .action(actionRunner(pullProject));
+    .action(actionRunner(pullSettings));
 
 pull
     .command("function")
     .alias("functions")
     .description("Pulling your {{ spec.title|caseUcfirst }} cloud function")
+    .option("--no-code", "Don't pull the function's code")
+    .option("--with-variables", `Pull function variables. ${chalk.red('recommend for testing purposes only')}`)
     .action(actionRunner(pullFunctions))
 
 pull
@@ -228,4 +320,5 @@ pull
 
 module.exports = {
     pull,
+    pullResources
 };
