@@ -5,7 +5,7 @@ const { Command } = require("commander");
 const { localConfig, globalConfig, KeysAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
-const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionPushChangesFix, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionPushChangesConfirmation, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
 const { cliConfig, actionRunner, success, warn, log, hint, error, commandDescriptions, drawTable } = require("../parser");
 const { proxyListRules } = require('./proxy');
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
@@ -343,7 +343,7 @@ const awaitPools = {
 const getConfirmation = async () => {
     if (!cliConfig.force) {
         async function fixConfirmation() {
-            const answers = await inquirer.prompt(questionPushChangesFix);
+            const answers = await inquirer.prompt(questionPushChangesConfirmation);
             if(answers.changes !== 'YES' && answers.changes !== 'NO') {
                 return await fixConfirmation();
             }
