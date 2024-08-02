@@ -5,7 +5,7 @@ const { Command } = require("commander");
 const { localConfig, globalConfig, KeysAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
-const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionPushChangesFix, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
 const { cliConfig, actionRunner, success, warn, log, hint, error, commandDescriptions, drawTable } = require("../parser");
 const { proxyListRules } = require('./proxy');
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
@@ -340,6 +340,33 @@ const awaitPools = {
     },
 }
 
+const getConfirmation = async () => {
+    if (!cliConfig.force) {
+        async function fixConfirmation() {
+            const answers = await inquirer.prompt(questionPushChangesFix);
+            if(answers.changes !== 'YES' && answers.changes !== 'NO') {
+                return await fixConfirmation();
+            }
+
+            return answers.changes;
+        }
+
+        let answers = await inquirer.prompt(questionPushChanges);
+        if(answers.changes !== 'YES' && answers.changes !== 'NO') {
+            answers.changes = await fixConfirmation();
+        }
+
+        if (answers.changes === 'YES') {
+            return true;
+        }
+
+        warn('Skipping push action. Changes were not applied.');
+        return false;
+    }
+
+    return true;
+};
+
 const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural, skipKeys = []) => {
     log('Checking for changes');
     const changes = [];
@@ -385,11 +412,8 @@ const approveChanges = async (resource, resourceGetFunction, keys, resourceName,
     }
 
     drawTable(changes);
-    if (!cliConfig.force) {
-        const answers = await inquirer.prompt(questionPushChanges);
-        if (answers.changes.toLowerCase() === 'yes') {
-            return true;
-        }
+    if((await getConfirmation()) === true) {
+        return true;
     }
 
     success(`Successfully pushed 0 ${resourcePlural}.`);
@@ -769,9 +793,7 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection,
             log(`Attribute recreation will cause ${chalk.red('loss of data')}`);
         }
 
-        const answers = await inquirer.prompt(questionPushChanges);
-
-        if (answers.changes.toLowerCase() !== 'yes') {
+        if((await getConfirmation()) !== true) {
             return changedAttributes;
         }
     }
@@ -893,12 +915,9 @@ const pushSettings = async () => {
 
         if (changes.length > 0) {
             drawTable(changes);
-            if (!cliConfig.force) {
-                const answers = await inquirer.prompt(questionPushChanges);
-                if (answers.changes.toLowerCase() !== 'yes') {
-                    success(`Successfully pushed 0 project settings.`);
-                    return;
-                }
+            if((await getConfirmation()) !== true) {
+                success(`Successfully pushed 0 project settings.`);
+                return;
             }
         }
     } catch (e) {
@@ -1391,10 +1410,10 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
             throw e;
         }
         numberOfCollections++;
-        success(`Pushed ${collection.name} ( ${collection['$id']} )`);
+        success(`Successfully pushed ${collection.name} ( ${collection['$id']} )`);
     }
 
-    success(`Pushed ${numberOfCollections} collections`);
+    success(`Successfully pushed ${numberOfCollections} collections`);
 }
 
 const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
@@ -1557,7 +1576,6 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
 
     let topicsIds = [];
     const configTopics = localConfig.getMessagingTopics();
-    let overrideExisting = cliConfig.force;
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
@@ -1584,13 +1602,6 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
         topics.push(...idTopic);
     }
 
-    if (!cliConfig.force) {
-        const answers = await inquirer.prompt(questionsPushMessagingTopics[1])
-        if (answers.override.toLowerCase() === "yes") {
-            overrideExisting = true;
-        }
-    }
-
     if (!(await approveChanges(topics, messagingGetTopic, KeysTopics, 'topicId', 'topics'))) {
         return;
     }
@@ -1606,11 +1617,6 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
                 parseOutput: false
             })
             log(`Topic ${topic.name} ( ${topic['$id']} ) already exists.`);
-
-            if (!overrideExisting) {
-                log(`Skipping ${topic.name} ( ${topic['$id']} )`);
-                continue;
-            }
 
             await messagingUpdateTopic({
                 topicId: topic['$id'],
