@@ -631,11 +631,6 @@ const questionsPushFunctions = [
             return choices;
         }
     },
-    {
-        type: "input",
-        name: "override",
-        message: 'Are you sure you want to override this function\'s variables? This can lead to loss of secrets! Type "YES" to confirm.'
-    },
 ]
 
 const questionsPushCollections = [
@@ -663,7 +658,15 @@ const questionPushChanges = [
     {
         type: "input",
         name: "changes",
-        message: `Would you like to apply these changes? Type "YES" to confirm.`
+        message: `Are you sure you want to apply these changes? (YES/NO)`
+    }
+];
+
+const questionPushChangesFix = [
+    {
+        type: "input",
+        name: "changes",
+        message: `Please type 'YES' or 'NO':`
     }
 ];
 
@@ -693,6 +696,7 @@ const questionsPushMessagingTopics = [
         type: "checkbox",
         name: "topics",
         message: "Which messaging topic would you like to push?",
+        validate: (value) => validateRequired('topics', value),
         when: () => localConfig.getMessagingTopics().length > 0,
         choices: () => {
             let topics = localConfig.getMessagingTopics();
@@ -704,11 +708,6 @@ const questionsPushMessagingTopics = [
                 }
             });
         }
-    },
-    {
-        type: "input",
-        name: "override",
-        message: 'Would you like to override existing topics? This can lead to loss of data! Type "YES" to confirm.'
     }
 ]
 
@@ -847,5 +846,6 @@ module.exports = {
     questionGetEndpoint,
     questionsInitResources,
     questionsCreateTeam,
-    questionPushChanges
+    questionPushChanges,
+    questionPushChangesFix
 };

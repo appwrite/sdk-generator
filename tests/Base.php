@@ -143,7 +143,7 @@ abstract class Base extends TestCase
 
             \exec('
                 cd ./mock-server && \
-                docker-compose build && \
+                docker compose build && \
                 docker compose up -d --force-recreate
             ');
         }
