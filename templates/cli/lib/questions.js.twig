@@ -189,11 +189,11 @@ const questionsInitProject = [
         message: "Choose your {{ spec.title|caseUcfirst }} project.",
         choices: async (answers) => {
             const queries = [
-                JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization.id] }),
-                JSON.stringify({ method: 'orderDesc', attribute: 'Id' })
+                JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization] }),
+                JSON.stringify({ method: 'orderDesc', attribute: '$id' })
             ]
 
-            const { projects } = await paginate(projectsList, { parseOutput: false, queries, }, 100, 'projects');
+            const { projects } = await paginate(projectsList, { parseOutput: false }, 100, 'projects', queries);
 
             let choices = projects.map((project) => {
                 return {
@@ -301,22 +301,7 @@ const questionsCreateFunction = [
             })
             return choices;
         },
-    },
-    {
-        type: "list",
-        name: "template",
-        message: "How would you like to start your function code?",
-        choices: [
-            {
-                name: `Start from scratch ${chalk.blackBright(`(starter)`)}`,
-                value: "starter"
-            },
-            {
-                name: "Pick a template",
-                value: "custom"
-            }
-        ]
-    },
+    }
 ];
 
 const questionsCreateFunctionSelectTemplate = (templates) => {
@@ -646,11 +631,6 @@ const questionsPushFunctions = [
             return choices;
         }
     },
-    {
-        type: "input",
-        name: "override",
-        message: 'Are you sure you want to override this function\'s variables? This can lead to loss of secrets! Type "YES" to confirm.'
-    },
 ]
 
 const questionsPushCollections = [
@@ -678,7 +658,15 @@ const questionPushChanges = [
     {
         type: "input",
         name: "changes",
-        message: `Would you like to apply these changes? Type "YES" to confirm.`
+        message: `Are you sure you want to apply these changes? (YES/NO)`
+    }
+];
+
+const questionPushChangesFix = [
+    {
+        type: "input",
+        name: "changes",
+        message: `Please type 'YES' or 'NO':`
     }
 ];
 
@@ -708,6 +696,7 @@ const questionsPushMessagingTopics = [
         type: "checkbox",
         name: "topics",
         message: "Which messaging topic would you like to push?",
+        validate: (value) => validateRequired('topics', value),
         when: () => localConfig.getMessagingTopics().length > 0,
         choices: () => {
             let topics = localConfig.getMessagingTopics();
@@ -719,11 +708,6 @@ const questionsPushMessagingTopics = [
                 }
             });
         }
-    },
-    {
-        type: "input",
-        name: "override",
-        message: 'Would you like to override existing topics? This can lead to loss of data! Type "YES" to confirm.'
     }
 ]
 
@@ -862,5 +846,6 @@ module.exports = {
     questionGetEndpoint,
     questionsInitResources,
     questionsCreateTeam,
-    questionPushChanges
+    questionPushChanges,
+    questionPushChangesFix
 };

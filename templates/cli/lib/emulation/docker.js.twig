@@ -79,7 +79,6 @@ async function dockerBuild(func, variables) {
     const params = [ 'run' ];
     params.push('--name', id);
     params.push('-v', `${tmpBuildPath}/:/mnt/code:rw`);
-    params.push('-e', 'APPWRITE_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_SECRET=');
     params.push('-e', `OPEN_RUNTIMES_ENTRYPOINT=${func.entrypoint}`);
@@ -169,7 +168,6 @@ async function dockerStart(func, variables, port) {
     params.push('--rm');
     params.push('--name', id);
     params.push('-p', `${port}:3000`);
-    params.push('-e', 'APPWRITE_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_SECRET=');
 
@@ -254,7 +252,7 @@ function waitUntilPortOpen(port, iteration = 0) {
         });
 
         client.connect({port, host: '127.0.0.1'}, function() {});
-    }); 
+    });
 }
 
 module.exports = {
