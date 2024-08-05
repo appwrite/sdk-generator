@@ -17,7 +17,7 @@ const { systemHasCommand, isPortTaken, getAllFiles } = require('../utils');
 const { runtimeNames, systemTools, JwtManager, Queue } = require('../emulation/utils');
 const { dockerStop, dockerCleanup, dockerStart, dockerBuild, dockerPull } = require('../emulation/docker');
 
-const runFunction = async ({ port, functionId, noVariables, noReload, userId } = {}) => {
+const runFunction = async ({ port, functionId, withVariables, noReload, userId } = {}) => {
     // Selection
     if(!functionId) {
         const answers = await inquirer.prompt(questionsRunFunctions[0]);
@@ -115,7 +115,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
     const userVariables = {};
     const variables = {};
 
-    if(!noVariables) {
+    if(withVariables) {
         try {
             const { variables: remoteVariables } = await paginate(functionsListVariables, {
                 functionId: func['$id'],
@@ -127,7 +127,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
                 userVariables[v.key] = v.value;
             });
         } catch(err) {
-            warn("Remote variables not fetched. Production environment variables will not be avaiable. Reason: " + err.message);
+            warn("Remote variables not fetched. Production environment variables will not be available. Reason: " + err.message);
         }
     }
 
@@ -184,7 +184,7 @@ const runFunction = async ({ port, functionId, noVariables, noReload, userId } =
         const ignorer = ignore();
         ignorer.add('.appwrite');
         ignorer.add('code.tar.gz');
-    
+
         if (func.ignore) {
             ignorer.add(func.ignore);
         } else if (fs.existsSync(path.join(functionPath, '.gitignore'))) {
@@ -321,7 +321,7 @@ run
     .option(`--function-id <function-id>`, `ID of function to run`)
     .option(`--port <port>`, `Local port`)
     .option(`--user-id <user-id>`, `ID of user to impersonate`)
-    .option(`--no-variables`, `Prevent pulling variables from function settings`)
+    .option(`--with-variables`, `Run with function variables from function settings`)
     .option(`--no-reload`, `Prevent live reloading of server when changes are made to function files`)
     .action(actionRunner(runFunction));
 
