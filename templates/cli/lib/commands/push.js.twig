@@ -2,10 +2,10 @@ const chalk = require('chalk');
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
-const { localConfig, globalConfig, KeysAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, } = require("../config");
+const { localConfig, globalConfig, KeysAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, KeysCollection } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
-const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionPushChangesConfirmation, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionPushChangesFix, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
 const { cliConfig, actionRunner, success, warn, log, hint, error, commandDescriptions, drawTable } = require("../parser");
 const { proxyListRules } = require('./proxy');
 const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
@@ -341,42 +341,50 @@ const awaitPools = {
 }
 
 const getConfirmation = async () => {
-    if (!cliConfig.force) {
-        async function fixConfirmation() {
-            const answers = await inquirer.prompt(questionPushChangesConfirmation);
-            if (answers.changes !== 'YES' && answers.changes !== 'NO') {
-                return await fixConfirmation();
-            }
-
-            return answers.changes;
-        }
-
-        let answers = await inquirer.prompt(questionPushChanges);
-        if (answers.changes !== 'YES' && answers.changes !== 'NO') {
-            answers.changes = await fixConfirmation();
-        }
-
-        if (answers.changes === 'YES') {
-            return true;
-        }
-
-        warn('Skipping push action. Changes were not applied.');
-        return false;
+    if (cliConfig.force) {
+        return true;
     }
 
-    return true;
+    async function fixConfirmation() {
+        const answers = await inquirer.prompt(questionPushChangesFix);
+        if (answers.changes !== 'YES' && answers.changes !== 'NO') {
+            return await fixConfirmation();
+        }
+
+        return answers.changes;
+    }
+
+    let answers = await inquirer.prompt(questionPushChanges);
+
+    if (answers.changes !== 'YES' && answers.changes !== 'NO') {
+        answers.changes = await fixConfirmation();
+    }
+
+    if (answers.changes === 'YES') {
+        return true;
+    }
+
+    warn('Skipping push action. Changes were not applied.');
+    return false;
+
 };
 
-const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural, skipKeys = []) => {
+const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural, skipKeys = [], secondId = '', secondResourceName = '') => {
     log('Checking for changes ...');
     const changes = [];
 
     await Promise.all(resource.map(async (localResource) => {
         try {
-            const remoteResource = await resourceGetFunction({
+            const options = {
                 [resourceName]: localResource['$id'],
                 parseOutput: false,
-            });
+            };
+
+            if (secondId !== '' && secondResourceName !== '') {
+                options[secondResourceName] = localResource[secondId]
+            }
+
+            const remoteResource = await resourceGetFunction(options);
 
             for (let [key, value] of Object.entries(whitelistKeys(remoteResource, keys))) {
                 if (skipKeys.includes(key)) {
@@ -1310,8 +1318,6 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
 
     const databases = Array.from(new Set(collections.map(collection => collection['databaseId'])));
 
-    log('Checking for changes ...');
-
     // Parallel db actions
     await Promise.all(databases.map(async (databaseId) => {
         const localDatabase = localConfig.getDatabase(databaseId);
@@ -1342,6 +1348,10 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
         }
     }));
 
+
+    if (!(await approveChanges(collections, databasesGetCollection, KeysCollection, 'collectionId', 'collections', ['attributes', 'indexes'], 'databaseId', 'databaseId',))) {
+        return;
+    }
     // Parallel collection actions
     await Promise.all(collections.map(async (collection) => {
         try {
