@@ -344,7 +344,7 @@ const getConfirmation = async () => {
     if (!cliConfig.force) {
         async function fixConfirmation() {
             const answers = await inquirer.prompt(questionPushChangesConfirmation);
-            if(answers.changes !== 'YES' && answers.changes !== 'NO') {
+            if (answers.changes !== 'YES' && answers.changes !== 'NO') {
                 return await fixConfirmation();
             }
 
@@ -352,7 +352,7 @@ const getConfirmation = async () => {
         }
 
         let answers = await inquirer.prompt(questionPushChanges);
-        if(answers.changes !== 'YES' && answers.changes !== 'NO') {
+        if (answers.changes !== 'YES' && answers.changes !== 'NO') {
             answers.changes = await fixConfirmation();
         }
 
@@ -412,7 +412,7 @@ const approveChanges = async (resource, resourceGetFunction, keys, resourceName,
     }
 
     drawTable(changes);
-    if((await getConfirmation()) === true) {
+    if ((await getConfirmation()) === true) {
         return true;
     }
 
@@ -688,6 +688,20 @@ const deleteAttribute = async (collection, attribute, isIndex = false) => {
     });
 }
 
+const compareAttribute = (remote, local, reason, key) => {
+    if (Array.isArray(remote) && Array.isArray(local)) {
+        if (JSON.stringify(remote) !== JSON.stringify(local)) {
+            const bol = reason === '' ? '' : '\n';
+            reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
+        }
+    } else if (remote !== local) {
+        const bol = reason === '' ? '' : '\n';
+        reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
+    }
+
+    return reason
+}
+
 
 /**
  * Check if attribute non-changeable fields has been changed
@@ -715,11 +729,7 @@ const checkAttributeChanges = (remote, local, collection, recraeting = true) => 
 
         if (changeableKeys.includes(key)) {
             if (!recraeting) {
-                if (remote[key] !== local[key]) {
-                    const bol = reason === '' ? '' : '\n';
-                    reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
-                    attribute = local;
-                }
+                reason += compareAttribute(remote[key], local[key], reason, key)
             }
             continue;
         }
@@ -728,15 +738,7 @@ const checkAttributeChanges = (remote, local, collection, recraeting = true) => 
             continue;
         }
 
-        if (Array.isArray(remote[key]) && Array.isArray(local[key])) {
-            if (JSON.stringify(remote[key]) !== JSON.stringify(local[key])) {
-                const bol = reason === '' ? '' : '\n';
-                reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
-            }
-        } else if (remote[key] !== local[key]) {
-            const bol = reason === '' ? '' : '\n';
-            reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
-        }
+        reason += compareAttribute(remote[key], local[key], reason, key)
     }
 
     return reason === '' ? undefined : { key: keyName, attribute, reason, action };
@@ -793,7 +795,7 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection,
             log(`Attribute recreation will cause ${chalk.red('loss of data')}`);
         }
 
-        if((await getConfirmation()) !== true) {
+        if ((await getConfirmation()) !== true) {
             return changedAttributes;
         }
     }
@@ -915,7 +917,7 @@ const pushSettings = async () => {
 
         if (changes.length > 0) {
             drawTable(changes);
-            if((await getConfirmation()) !== true) {
+            if ((await getConfirmation()) !== true) {
                 success(`Successfully pushed 0 project settings.`);
                 return;
             }
