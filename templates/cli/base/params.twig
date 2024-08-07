@@ -26,15 +26,17 @@
 
     const files = getAllFiles({{ parameter.name | caseCamel | escapeKeyword }}).map((file) => pathLib.relative({{ parameter.name | caseCamel | escapeKeyword }}, file)).filter((file) => !ignorer.ignores(file));
 
+    const archiveFileName = `${functionId}-code.tar.gz`;
+
     await tar
         .create({
             gzip: true,
             sync: true,
             cwd: folderPath,
-            file: 'code.tar.gz'
+            file: archiveFileName
         }, files);
 
-    let archivePath = fs.realpathSync('code.tar.gz')
+    let archivePath = fs.realpathSync(archiveFileName)
     if (typeof archivePath !== 'undefined') {
         payload['{{ parameter.name }}'] = archivePath;
        {{ parameter.name | caseCamel | escapeKeyword }} = archivePath;
