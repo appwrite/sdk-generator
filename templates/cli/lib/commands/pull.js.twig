@@ -27,7 +27,7 @@ const pullResources = async () => {
     if (cliConfig.all) {
         for (let action of Object.values(actions)) {
             cliConfig.all = true;
-            await action({});
+            await action({ returnOnZero: true });
         }
     } else {
         const answers = await inquirer.prompt(questionsPullResources[0]);
@@ -56,7 +56,7 @@ const pullSettings = async () => {
     }
 }
 
-const pullFunctions = async ({ code }) => {
+const pullFunctions = async ({ code, withVariables }) => {
     log("Fetching functions ...");
     let total = 0;
 
@@ -83,27 +83,29 @@ const pullFunctions = async ({ code }) => {
         const localFunction = localConfig.getFunction(func.$id);
 
         func['path'] = localFunction['path'];
-        if(!localFunction['path']) {
+        if (!localFunction['path']) {
             func['path'] = `functions/${func.$id}`;
         }
-
+        if (!withVariables) {
+            delete func['vars'];
+        }
         localConfig.addFunction(func);
 
         if (!fs.existsSync(func['path'])) {
             fs.mkdirSync(func['path'], { recursive: true });
         }
 
-        if(code === false) {
+        if (code === false) {
             warn("Source code download skipped.");
-        } else if(!func['deployment']) {
+        } else if (!func['deployment']) {
             warn("Source code download skipped because function doesn't have active deployment.");
         } else {
-            if(allowCodePull === null) {
+            if (allowCodePull === null) {
                 const codeAnswer = await inquirer.prompt(questionsPullFunctionsCode);
                 allowCodePull = codeAnswer.override;
             }
 
-            if(allowCodePull) {
+            if (allowCodePull) {
                 log("Pulling active deployment's code ...");
 
                 const compressedFileName = `${func['$id']}-${+new Date()}.tar.gz`
@@ -123,6 +125,16 @@ const pullFunctions = async ({ code }) => {
                 });
 
                 fs.rmSync(compressedFileName);
+
+                if (withVariables) {
+                    const envFileLocation = `${func['path']}/.env`
+                    try {
+                        fs.rmSync(envFileLocation);
+                    } catch {
+                    }
+
+                    fs.writeFileSync(envFileLocation, func['vars'].map(r => `${r.key}=${r.value}\n`).join(''))
+                }
             }
         }
     }
@@ -170,7 +182,7 @@ const pullCollection = async () => {
             parseOutput: false
         }, 100, 'collections');
 
-        for(const collection of collections) {
+        for (const collection of collections) {
             localConfig.addCollection({
                 ...collection,
                 '$createdAt': undefined,
@@ -198,7 +210,7 @@ const pullBucket = async () => {
 
     const { buckets } = await paginate(storageListBuckets, { parseOutput: false }, 100, 'buckets');
 
-    for(const bucket of buckets) {
+    for (const bucket of buckets) {
         total++;
         log(`Pulling bucket ${chalk.bold(bucket['name'])} ...`);
         localConfig.addBucket(bucket);
@@ -223,7 +235,7 @@ const pullTeam = async () => {
 
     const { teams } = await paginate(teamsList, { parseOutput: false }, 100, 'teams');
 
-    for(const team of teams) {
+    for (const team of teams) {
         total++;
         log(`Pulling team ${chalk.bold(team['name'])} ...`);
         localConfig.addTeam(team);
@@ -248,7 +260,7 @@ const pullMessagingTopic = async () => {
 
     const { topics } = await paginate(messagingListTopics, { parseOutput: false }, 100, 'topics');
 
-    for(const topic of topics) {
+    for (const topic of topics) {
         total++;
         log(`Pulling topic ${chalk.bold(topic['name'])} ...`);
         localConfig.addMessagingTopic(topic);
@@ -279,6 +291,7 @@ pull
     .alias("functions")
     .description("Pulling your {{ spec.title|caseUcfirst }} cloud function")
     .option("--no-code", "Don't pull the function's code")
+    .option("--with-variables", `Pull function variables. ${chalk.red('recommend for testing purposes only')}`)
     .action(actionRunner(pullFunctions))
 
 pull

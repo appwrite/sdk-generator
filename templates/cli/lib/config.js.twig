@@ -4,12 +4,14 @@ const _path = require("path");
 const process = require("process");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 
-const KeysFunction = new Set(["path", "$id", "execute", "name", "enabled", "logging", "runtime", "scopes", "events", "schedule", "timeout", "entrypoint", "commands"]);
+const KeysVars = new Set(["key", "value"]);
+const KeysFunction = new Set(["path", "$id", "execute", "name", "enabled", "logging", "runtime", "scopes", "events", "schedule", "timeout", "entrypoint", "commands", "vars"]);
 const KeysDatabase = new Set(["$id", "name", "enabled"]);
 const KeysCollection = new Set(["$id", "$permissions", "databaseId", "name", "enabled", "documentSecurity", "attributes", "indexes"]);
 const KeysStorage = new Set(["$id", "$permissions", "fileSecurity", "name", "enabled", "maximumFileSize", "allowedFileExtensions", "compression", "encryption", "antivirus"]);
-const KeyTopics = new Set(["$id", "name", "subscribe"]);
-const KeyAttributes = new Set([
+const KeysTopics = new Set(["$id", "name", "subscribe"]);
+const KeysTeams = new Set(["$id", "name"]);
+const KeysAttributes = new Set([
     "key",
     "type",
     "required",
@@ -37,10 +39,10 @@ const KeyAttributes = new Set([
 const KeyIndexes = new Set(["key", "type", "status", "attributes", "orders"]);
 
 function whitelistKeys(value, keys, nestedKeys = {}) {
-    if(Array.isArray(value)) {
+    if (Array.isArray(value)) {
         const newValue = [];
 
-        for(const item of value) {
+        for (const item of value) {
             newValue.push(whitelistKeys(item, keys, nestedKeys));
         }
 
@@ -49,8 +51,8 @@ function whitelistKeys(value, keys, nestedKeys = {}) {
 
     const newValue = {};
     Object.keys(value).forEach((key) => {
-        if(keys.has(key)) {
-            if(nestedKeys[key]) {
+        if (keys.has(key)) {
+            if (nestedKeys[key]) {
                 newValue[key] = whitelistKeys(value[key], nestedKeys[key]);
             } else {
                 newValue[key] = value[key];
@@ -150,7 +152,9 @@ class Local extends Config {
     }
 
     addFunction(props) {
-        props = whitelistKeys(props, KeysFunction);
+        props = whitelistKeys(props, KeysFunction, {
+            vars: KeysVars
+        });
 
         if (!this.has("functions")) {
             this.set("functions", []);
@@ -196,7 +200,7 @@ class Local extends Config {
 
     addCollection(props) {
         props = whitelistKeys(props, KeysCollection, {
-            attributes: KeyAttributes,
+            attributes: KeysAttributes,
             indexes: KeyIndexes
         });
 
@@ -280,7 +284,7 @@ class Local extends Config {
     }
 
     addMessagingTopic(props) {
-        props = whitelistKeys(props, KeyTopics);
+        props = whitelistKeys(props, KeysTopics);
 
         if (!this.has("topics")) {
             this.set("topics", []);
@@ -362,6 +366,7 @@ class Local extends Config {
     }
 
     addTeam(props) {
+        props = whitelistKeys(props, KeysTeams);
         if (!this.has("teams")) {
             this.set("teams", []);
         }
@@ -401,7 +406,11 @@ class Local extends Config {
             return;
         }
 
-        const settings = {
+        this.set('settings', this.createSettingsObject(projectSettings));
+    }
+
+    createSettingsObject(projectSettings) {
+        return {
             services: {
                 account: projectSettings.serviceStatusForAccount,
                 avatars: projectSettings.serviceStatusForAvatars,
@@ -435,10 +444,7 @@ class Local extends Config {
                 }
             }
         };
-
-        this.set('settings', settings)
     }
-
 }
 
 class Global extends Config {
@@ -607,5 +613,10 @@ class Global extends Config {
 module.exports = {
     localConfig: new Local(),
     globalConfig: new Global(),
-    KeyAttributes,
+    KeysAttributes,
+    KeysFunction,
+    KeysTopics,
+    KeysStorage,
+    KeysTeams,
+    whitelistKeys
 };

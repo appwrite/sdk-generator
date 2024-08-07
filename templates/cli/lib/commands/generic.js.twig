@@ -7,7 +7,7 @@ const { actionRunner, success, parseBool, commandDescriptions, error, parse, hin
 const ID = require("../id");
 {% if sdk.test != "true" %}
 const { questionsLogin, questionsLogout, questionsListFactors, questionsMfaChallenge } = require("../questions");
-const {  accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
+const { accountUpdateMfaChallenge, accountCreateMfaChallenge, accountGet, accountCreateEmailPasswordSession, accountDeleteSession } = require("./account");
 
 const DEFAULT_ENDPOINT = 'https://cloud.appwrite.io/v1';
 
@@ -15,17 +15,17 @@ const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
     const oldCurrent = globalConfig.getCurrentSession();
     let configEndpoint = endpoint ?? DEFAULT_ENDPOINT;
 
-    if(globalConfig.getCurrentSession() !== '') {
+    if (globalConfig.getCurrentSession() !== '') {
         log('You are currently signed in as ' + globalConfig.getEmail());
 
-        if(globalConfig.getSessions().length === 1) {
+        if (globalConfig.getSessions().length === 1) {
             hint('You can sign in and manage multiple accounts with Appwrite CLI');
         }
     }
 
     const answers = email && password ? { email, password } : await inquirer.prompt(questionsLogin);
 
-    if(!answers.method) {
+    if (!answers.method) {
         answers.method = 'login';
     }
 
@@ -93,7 +93,7 @@ const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
         } else {
             globalConfig.removeSession(id);
             globalConfig.setCurrentSession(oldCurrent);
-            if(endpoint !== DEFAULT_ENDPOINT && error.response === 'user_invalid_credentials'){
+            if (endpoint !== DEFAULT_ENDPOINT && error.response === 'user_invalid_credentials') {
                 log('Use the --endpoint option for self-hosted instances')
             }
             throw error;
@@ -136,7 +136,7 @@ const whoami = new Command("whoami")
             }
         ];
 
-        if(cliConfig.json) {
+        if (cliConfig.json) {
             console.log(data);
             return;
         }
@@ -194,7 +194,7 @@ const logout = new Command("logout")
         }
         if (sessions.length === 1) {
             await deleteSession(current);
-            success();
+            success("Logging out");
 
             return;
         }
@@ -208,16 +208,16 @@ const logout = new Command("logout")
             }
         }
 
-        const remainingSessions  = globalConfig.getSessions();
+        const remainingSessions = globalConfig.getSessions();
 
-        if (remainingSessions .length > 0 && remainingSessions .filter(session => session.id === current).length !== 1) {
+        if (remainingSessions.length > 0 && remainingSessions.filter(session => session.id === current).length !== 1) {
             const accountId = remainingSessions [0].id;
             globalConfig.setCurrentSession(accountId);
 
             success(`Current account is ${accountId}`);
         }
 
-        success();
+        success("Logging out");
     }));
 {% endif %}
 
@@ -226,10 +226,10 @@ const client = new Command("client")
     .configureHelp({
         helpWidth: process.stdout.columns || 80
     })
-    .option("-ss, --selfSigned <value>", "Configure the CLI to use a self-signed certificate ( true or false )", parseBool)
-    .option("-e, --endpoint <endpoint>", "Set your Appwrite server endpoint")
-    .option("-p, --projectId <projectId>", "Set your Appwrite project ID")
-    .option("-k, --key <key>", "Set your Appwrite server's API key")
+    .option("-ss, --self-signed <value>", "Configure the CLI to use a self-signed certificate ( true or false )", parseBool)
+    .option("-e, --endpoint <endpoint>", "Set your {{ spec.title|caseUcfirst }} server endpoint")
+    .option("-p, --project-id <project-id>", "Set your {{ spec.title|caseUcfirst }} project ID")
+    .option("-k, --key <key>", "Set your {{ spec.title|caseUcfirst }} server's API key")
     .option("-d, --debug", "Print CLI debug information")
     .option("-r, --reset", "Reset the CLI configuration")
     .action(actionRunner(async ({ selfSigned, endpoint, projectId, key, debug, reset }, command) => {
@@ -294,7 +294,7 @@ const client = new Command("client")
             }
         }
 
-        success()
+        success("Setting client")
     }));
 
 const migrate = async () => {

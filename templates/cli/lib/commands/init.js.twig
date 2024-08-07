@@ -110,6 +110,7 @@ const initProject = async ({ organizationId, projectId, projectName } = {}) => {
         answers = await inquirer.prompt(questionsInitProjectAutopull);
         if(answers.autopull) {
             cliConfig.all = true;
+            cliConfig.force = true;
             await pullResources();
         } else {
             log("You can run 'appwrite pull all' to synchronize all of your existing resources.");
@@ -128,7 +129,7 @@ const initBucket = async () => {
         fileSecurity: answers.fileSecurity.toLowerCase() === 'yes',
         enabled: true,
     });
-    success();
+    success("Initialing bucket");
     log("Next you can use 'appwrite push bucket' to deploy the changes.");
 };
 
@@ -140,7 +141,7 @@ const initTeam = async () => {
         name: answers.bucket,
     });
 
-    success();
+    success("Initialing team");
     log("Next you can use 'appwrite push team' to deploy the changes.");
 };
 
@@ -173,7 +174,7 @@ const initCollection = async () => {
         enabled: true,
     });
 
-    success();
+    success("Initialing collection");
     log("Next you can use 'appwrite push collection' to deploy the changes.");
 };
 
@@ -186,7 +187,7 @@ const initTopic = async () => {
 
     });
 
-    success();
+    success("Initialing topic");
     log("Next you can use 'appwrite push topic' to deploy the changes.");
 };
 
@@ -222,21 +223,7 @@ const initFunction = async () => {
     fs.mkdirSync(templatesDir, "777");
     const repo = "https://github.com/{{ sdk.gitUserName }}/templates";
     const api = `https://api.github.com/repos/{{ sdk.gitUserName }}/templates/contents/${answers.runtime.name}`
-    let selected = undefined;
-
-    if(answers.template === 'starter') {
-        selected = { template: 'starter' };
-    } else {
-        try {
-            const res = await fetch(api);
-            const templates = [];
-            templates.push(...(await res.json()).map((template) => template.name));
-            selected = await inquirer.prompt(questionsCreateFunctionSelectTemplate(templates));
-        } catch {
-            // Not a problem will go with directory pulling
-            log('Loading templates...');
-        }
-    }
+    let selected = { template: 'starter' };
 
     const sparse = (selected ? `${answers.runtime.name}/${selected.template}` : answers.runtime.name).toLowerCase();
 
@@ -311,6 +298,7 @@ const initFunction = async () => {
         runtime: answers.runtime.id,
         execute: [],
         events: [],
+        scopes: [],
         schedule: "",
         timeout: 15,
         enabled: true,
@@ -322,7 +310,7 @@ const initFunction = async () => {
     };
 
     localConfig.addFunction(data);
-    success();
+    success("Initialing function");
     log("Next you can use 'appwrite run function' to develop a function locally. To deploy the function, use 'appwrite push function'");
 }
 
@@ -333,9 +321,9 @@ const init = new Command("init")
 init
     .command("project")
     .description("Init a new {{ spec.title|caseUcfirst }} project")
-    .option("--organizationId <organizationId>", "{{ spec.title|caseUcfirst }} organization ID")
-    .option("--projectId <projectId>", "{{ spec.title|caseUcfirst }} project ID")
-    .option("--projectName <projectName>", "{{ spec.title|caseUcfirst }} project ID")
+    .option("--organization-id <organization-id>", "{{ spec.title|caseUcfirst }} organization ID")
+    .option("--project-id <project-id>", "{{ spec.title|caseUcfirst }} project ID")
+    .option("--project-name <project-name>", "{{ spec.title|caseUcfirst }} project ID")
     .action(actionRunner(initProject));
 
 init

@@ -1,3 +1,5 @@
+const tar = require("tar");
+const ignore = require("ignore");
 const net = require('net');
 const chalk = require('chalk');
 const childProcess = require('child_process');
@@ -6,6 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const { log, error, success, hint } = require("../parser");
 const { openRuntimesVersion, systemTools, Queue } = require("./utils");
+const { getAllFiles } = require("../utils");
 
 async function dockerStop(id) {
     const stopProcess = childProcess.spawn('docker', ['rm', '--force', id], {
@@ -48,10 +51,34 @@ async function dockerBuild(func, variables) {
 
     const id = func.$id;
 
+    const ignorer = ignore();
+    ignorer.add('.appwrite');
+    if (func.ignore) {
+        ignorer.add(func.ignore);
+    } else if (fs.existsSync(path.join(functionDir, '.gitignore'))) {
+        ignorer.add(fs.readFileSync(path.join(functionDir, '.gitignore')).toString());
+    }
+    
+    const files = getAllFiles(functionDir).map((file) => path.relative(functionDir, file)).filter((file) => !ignorer.ignores(file));
+    const tmpBuildPath = path.join(functionDir, '.appwrite/tmp-build');
+    if (!fs.existsSync(tmpBuildPath)) {
+        fs.mkdirSync(tmpBuildPath, { recursive: true });
+    }
+
+    for(const f of files) {
+        const filePath = path.join(tmpBuildPath, f);
+        const fileDir = path.dirname(filePath);
+        if (!fs.existsSync(fileDir)) {
+            fs.mkdirSync(fileDir, { recursive: true });
+        }
+
+        const sourcePath = path.join(functionDir, f);
+        fs.copyFileSync(sourcePath, filePath);
+    }
+
     const params = [ 'run' ];
     params.push('--name', id);
-    params.push('-v', `${functionDir}/:/mnt/code:rw`);
-    params.push('-e', 'APPWRITE_ENV=development');
+    params.push('-v', `${tmpBuildPath}/:/mnt/code:rw`);
     params.push('-e', 'OPEN_RUNTIMES_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_SECRET=');
     params.push('-e', `OPEN_RUNTIMES_ENTRYPOINT=${func.entrypoint}`);
@@ -92,12 +119,11 @@ async function dockerBuild(func, variables) {
 
     await new Promise((res) => { buildProcess.on('close', res) });
 
-    clearInterval(interval);
-
+    clearInterval(killInterval);
     if(!Queue.isEmpty()) {
         return;
     }
-    
+
     const copyPath = path.join(process.cwd(), func.path, '.appwrite', 'build.tar.gz');
     const copyDir = path.dirname(copyPath);
     if (!fs.existsSync(copyDir)) {
@@ -121,17 +147,20 @@ async function dockerBuild(func, variables) {
     if (fs.existsSync(tempPath)) {
         fs.rmSync(tempPath, { force: true });
     }
+
+    fs.rmSync(tmpBuildPath, { recursive: true, force: true });
 }
 
 async function dockerStart(func, variables, port) {
-   const runtimeChunks = func.runtime.split("-");
-   const runtimeVersion = runtimeChunks.pop();
-   const runtimeName = runtimeChunks.join("-");
+    // Pack function files
+    const functionDir = path.join(process.cwd(), func.path);
+
+    const runtimeChunks = func.runtime.split("-");
+    const runtimeVersion = runtimeChunks.pop();
+    const runtimeName = runtimeChunks.join("-");
     const imageName = `openruntimes/${runtimeName}:${openRuntimesVersion}-${runtimeVersion}`;
 
     const tool = systemTools[runtimeName];
-
-    const functionDir = path.join(process.cwd(), func.path);
 
     const id = func.$id;
 
@@ -139,7 +168,6 @@ async function dockerStart(func, variables, port) {
     params.push('--rm');
     params.push('--name', id);
     params.push('-p', `${port}:3000`);
-    params.push('-e', 'APPWRITE_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_ENV=development');
     params.push('-e', 'OPEN_RUNTIMES_SECRET=');
 
@@ -224,7 +252,7 @@ function waitUntilPortOpen(port, iteration = 0) {
         });
 
         client.connect({port, host: '127.0.0.1'}, function() {});
-    }); 
+    });
 }
 
 module.exports = {
