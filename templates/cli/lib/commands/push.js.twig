@@ -1088,11 +1088,6 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                 entrypoint: func.entrypoint,
                 commands: func.commands,
                 scopes: func.scopes,
-                providerRepositoryId: func.providerRepositoryId ?? "",
-                installationId: func.installationId ?? '',
-                providerBranch: func.providerBranch ?? '',
-                providerRootDirectory: func.providerRootDirectory ?? '',
-                providerSilentMode: func.providerSilentMode ?? false,
                 vars: JSON.stringify(response.vars),
                 parseOutput: false
             });
