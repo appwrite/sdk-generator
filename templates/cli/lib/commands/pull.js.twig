@@ -6,7 +6,7 @@ const inquirer = require("inquirer");
 const { messagingListTopics } = require("./messaging");
 const { teamsList } = require("./teams");
 const { projectsGet } = require("./projects");
-const { functionsList, functionsDownloadDeployment, functionsListDeployments } = require("./functions");
+const { functionsList, functionsGetDeploymentDownload, functionsListDeployments } = require("./functions");
 const { databasesGet, databasesListCollections, databasesList } = require("./databases");
 const { storageListBuckets } = require("./storage");
 const { localConfig } = require("../config");
@@ -136,7 +136,7 @@ const pullFunctions = async ({ code, withVariables }) => {
         log("Pulling latest deployment code ...");
 
         const compressedFileName = `${func['$id']}-${+new Date()}.tar.gz`
-        await functionsDownloadDeployment({
+        await functionsGetDeploymentDownload({
             functionId: func['$id'],
             deploymentId,
             destination: compressedFileName,
