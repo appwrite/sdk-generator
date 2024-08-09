@@ -192,6 +192,8 @@ const initTopic = async () => {
 };
 
 const initFunction = async () => {
+    process.chdir(localConfig.configDirectoryPath)
+
     // TODO: Add CI/CD support (ID, name, runtime)
     const answers = await inquirer.prompt(questionsCreateFunction)
     const functionFolder = path.join(process.cwd(), 'functions');

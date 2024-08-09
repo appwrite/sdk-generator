@@ -123,10 +123,26 @@ class Config {
 
 class Local extends Config {
     static CONFIG_FILE_PATH = "{{ spec.title|caseLower }}.json";
+    configDirectoryPath = ""
 
     constructor(path = Local.CONFIG_FILE_PATH) {
-        let absolutePath = `${process.cwd()}/${path}`;
+        let currentPath = process.cwd();
+        let absolutePath = `${currentPath}/${path}`;
+
+        while (true) {
+            if (fs.existsSync(`${currentPath}/${path}`)) {
+                absolutePath = `${currentPath}/${path}`;
+                break
+            } else {
+                const parentDirectory = _path.dirname(currentPath);
+                if (parentDirectory === currentPath) { // we hit the top directory
+                    break;
+                }
+                currentPath = parentDirectory
+            }
+        }
         super(absolutePath);
+        this.configDirectoryPath =_path.dirname(absolutePath);
     }
 
     getFunctions() {

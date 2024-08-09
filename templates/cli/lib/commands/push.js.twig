@@ -1003,6 +1003,8 @@ const pushSettings = async () => {
 }
 
 const pushFunction = async ({ functionId, async, code, withVariables } = { returnOnZero: false }) => {
+    process.chdir(localConfig.configDirectoryPath)
+
     const functionIds = [];
 
     if (functionId) {

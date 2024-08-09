@@ -57,6 +57,8 @@ const pullSettings = async () => {
 }
 
 const pullFunctions = async ({ code, withVariables }) => {
+    process.chdir(localConfig.configDirectoryPath)
+
     log("Fetching functions ...");
     let total = 0;
 
