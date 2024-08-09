@@ -1,25 +1,21 @@
         $apiParams = [];
 {% if method.parameters.all | length %}
 {% for parameter in method.parameters.all %}
-{% if parameter.required and not parameter.nullable %}
-        if (!isset(${{ parameter.name | caseCamel | escapeKeyword }})) {
-            throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
+{% if not parameter.required and not parameter.nullable %}
+
+        if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
+            $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
         }
+{% else %}
+        $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
 {% endif %}
 {% endfor %}
-{% for parameter in method.parameters.query %}
-        if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
-            $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
-        }
-{% endfor %}
-{% for parameter in method.parameters.body %}
-        if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
-            $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
-        }
-{% endfor %}
-{% for parameter in method.parameters.formData %}
-        if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
-            $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
-        }
-{% endfor %}
 {% endif %}
+
+        $apiHeaders = [];
+        {%~ for parameter in method.parameters.header %}
+        $apiHeaders['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
+        {%~ endfor %}
+        {%~ for key, header in method.headers %}
+        $apiHeaders['{{ key }}'] = '{{ header }}';
+        {%~ endfor %}

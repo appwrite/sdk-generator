@@ -29,7 +29,7 @@ class InputFile {
         return $this->filename;
     }
 
-    public static function withPath(string $path, ?string $mimeType = null, ?string $filename = null)
+    public static function withPath(string $path, ?string $mimeType = null, ?string $filename = null): InputFile
     {
         $instance = new InputFile();
         $instance->path = $path;
@@ -39,7 +39,7 @@ class InputFile {
         return $instance;
     } 
 
-    public static function withData(string $data, ?string $mimeType = null, ?string $filename = null)
+    public static function withData(string $data, ?string $mimeType = null, ?string $filename = null): InputFile
     {
         $instance = new InputFile();
         $instance->path = null;
