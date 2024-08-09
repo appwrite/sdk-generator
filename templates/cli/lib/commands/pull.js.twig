@@ -84,7 +84,7 @@ const pullFunctions = async ({ code, withVariables }) => {
 
         func['path'] = localFunction['path'];
         if (!localFunction['path']) {
-            func['path'] = `functions/${func.$id}`;
+            func['path'] = `functions/${func.name}`;
         }
         if (!withVariables) {
             delete func['vars'];
