@@ -368,6 +368,7 @@ const getConfirmation = async () => {
     return false;
 
 };
+const isEmpty = (value) => (value === null || value === undefined || (typeof value === "string" && value.trim().length === 0) || (Array.isArray(value) && value.length === 0));
 
 const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural, skipKeys = [], secondId = '', secondResourceName = '') => {
     log('Checking for changes ...');
@@ -390,6 +391,11 @@ const approveChanges = async (resource, resourceGetFunction, keys, resourceName,
                 if (skipKeys.includes(key)) {
                     continue;
                 }
+
+                if (isEmpty(value) && isEmpty(localResource[key])) {
+                    continue;
+                }
+
                 if (Array.isArray(value) && Array.isArray(localResource[key])) {
                     if (JSON.stringify(value) !== JSON.stringify(localResource[key])) {
                         changes.push({
@@ -697,6 +703,10 @@ const deleteAttribute = async (collection, attribute, isIndex = false) => {
 }
 
 const compareAttribute = (remote, local, reason, key) => {
+    if (isEmpty(remote) && isEmpty(local)) {
+        return reason;
+    }
+
     if (Array.isArray(remote) && Array.isArray(local)) {
         if (JSON.stringify(remote) !== JSON.stringify(local)) {
             const bol = reason === '' ? '' : '\n';
