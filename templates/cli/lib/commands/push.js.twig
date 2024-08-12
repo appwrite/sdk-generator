@@ -1715,9 +1715,9 @@ push
     .action(actionRunner(pushMessagingTopic));
 
 const deploy = new Command("deploy")
-    .description(commandDescriptions['push'])
+    .description('Deprecated. Use appwrite push instead')
     .action(actionRunner(async () => {
-        warn("Did you mean to run 'appwrite push' command?");
+        warn("appwrite deploy has been deprecated. Please use 'appwrite push' instead");
     }));
 
 module.exports = {
