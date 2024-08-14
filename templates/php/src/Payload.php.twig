@@ -91,6 +91,8 @@ class Payload {
             }
         }
 
+        $data['responseStatusCode'] = (int) ($data['responseStatusCode'] ?? '');
+        $data['duration'] = ((float) $data['duration'] ?? '');
         $data['responseBody'] = self::fromString($data['responseBody'] ?? '');
 
         return $data;
