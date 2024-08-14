@@ -137,110 +137,110 @@ class PHP extends Language
     {
         return [
             [
-                'scope'         => 'default',
-                'destination'   => 'README.md',
-                'template'      => 'php/README.md.twig',
+                'scope' => 'default',
+                'destination' => 'README.md',
+                'template' => 'php/README.md.twig',
                 //'block'         => 'default',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'CHANGELOG.md',
-                'template'      => 'php/CHANGELOG.md.twig',
+                'scope' => 'default',
+                'destination' => 'CHANGELOG.md',
+                'template' => 'php/CHANGELOG.md.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'LICENSE',
-                'template'      => 'php/LICENSE.twig',
+                'scope' => 'default',
+                'destination' => 'LICENSE',
+                'template' => 'php/LICENSE.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'composer.json',
-                'template'      => 'php/composer.json.twig',
+                'scope' => 'default',
+                'destination' => 'composer.json',
+                'template' => 'php/composer.json.twig',
             ],
             [
-                'scope'         => 'service',
-                'destination'   => 'docs/{{service.name | caseLower}}.md',
-                'template'      => 'php/docs/service.md.twig',
+                'scope' => 'service',
+                'destination' => 'docs/{{service.name | caseLower}}.md',
+                'template' => 'php/docs/service.md.twig',
             ],
             [
-                'scope'         => 'method',
-                'destination'   => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => 'php/docs/example.md.twig',
+                'scope' => 'method',
+                'destination' => 'docs/examples/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template' => 'php/docs/example.md.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Client.php',
-                'template'      => 'php/src/Client.php.twig',
+                'scope' => 'default',
+                'destination' => 'src/{{ spec.title | caseUcfirst}}/Client.php',
+                'template' => 'php/src/Client.php.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Permission.php',
-                'template'      => 'php/src/Permission.php.twig',
+                'scope' => 'default',
+                'destination' => 'src/{{ spec.title | caseUcfirst}}/Permission.php',
+                'template' => 'php/src/Permission.php.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/PermissionTest.php',
-                'template'      => 'php/tests/PermissionTest.php.twig',
+                'scope' => 'default',
+                'destination' => 'tests/{{ spec.title | caseUcfirst}}/PermissionTest.php',
+                'template' => 'php/tests/PermissionTest.php.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Role.php',
-                'template'      => 'php/src/Role.php.twig',
+                'scope' => 'default',
+                'destination' => 'src/{{ spec.title | caseUcfirst}}/Role.php',
+                'template' => 'php/src/Role.php.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/RoleTest.php',
-                'template'      => 'php/tests/RoleTest.php.twig',
+                'scope' => 'default',
+                'destination' => 'tests/{{ spec.title | caseUcfirst}}/RoleTest.php',
+                'template' => 'php/tests/RoleTest.php.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/ID.php',
-                'template'      => 'php/src/ID.php.twig',
+                'scope' => 'default',
+                'destination' => 'src/{{ spec.title | caseUcfirst}}/ID.php',
+                'template' => 'php/src/ID.php.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/IDTest.php',
-                'template'      => 'php/tests/IDTest.php.twig',
+                'scope' => 'default',
+                'destination' => 'tests/{{ spec.title | caseUcfirst}}/IDTest.php',
+                'template' => 'php/tests/IDTest.php.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/Query.php',
-                'template'      => 'php/src/Query.php.twig',
+                'scope' => 'default',
+                'destination' => 'src/{{ spec.title | caseUcfirst}}/Query.php',
+                'template' => 'php/src/Query.php.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'tests/{{ spec.title | caseUcfirst}}/QueryTest.php',
-                'template'      => 'php/tests/QueryTest.php.twig',
+                'scope' => 'default',
+                'destination' => 'tests/{{ spec.title | caseUcfirst}}/QueryTest.php',
+                'template' => 'php/tests/QueryTest.php.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/InputFile.php',
-                'template'      => 'php/src/InputFile.php.twig',
+                'scope' => 'default',
+                'destination' => 'src/{{ spec.title | caseUcfirst}}/Payload.php',
+                'template' => 'php/src/Payload.php.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'src/{{ spec.title | caseUcfirst}}/{{ spec.title | caseUcfirst}}Exception.php',
-                'template'      => 'php/src/Exception.php.twig',
+                'scope' => 'default',
+                'destination' => 'src/{{ spec.title | caseUcfirst}}/{{ spec.title | caseUcfirst}}Exception.php',
+                'template' => 'php/src/Exception.php.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Service.php',
-                'template'      => 'php/src/Service.php.twig',
+                'scope' => 'default',
+                'destination' => '/src/{{ spec.title | caseUcfirst}}/Service.php',
+                'template' => 'php/src/Service.php.twig',
             ],
             [
-                'scope'         => 'service',
-                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
-                'template'      => 'php/src/Services/Service.php.twig',
+                'scope' => 'service',
+                'destination' => '/src/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}.php',
+                'template' => 'php/src/Services/Service.php.twig',
             ],
             [
-                'scope'         => 'service',
-                'destination'   => '/tests/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}Test.php',
-                'template'      => 'php/tests/Services/ServiceTest.php.twig',
+                'scope' => 'service',
+                'destination' => '/tests/{{ spec.title | caseUcfirst}}/Services/{{service.name | caseUcfirst}}Test.php',
+                'template' => 'php/tests/Services/ServiceTest.php.twig',
             ],
             [
-                'scope'         => 'enum',
-                'destination'   => '/src/{{ spec.title | caseUcfirst}}/Enums/{{ enum.name | caseUcfirst }}.php',
-                'template'      => 'php/src/Enums/Enum.php.twig',
+                'scope' => 'enum',
+                'destination' => '/src/{{ spec.title | caseUcfirst}}/Enums/{{ enum.name | caseUcfirst }}.php',
+                'template' => 'php/src/Enums/Enum.php.twig',
             ],
         ];
     }
@@ -258,6 +258,11 @@ class PHP extends Language
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
+
+        if ($parameter['name'] === 'body' && strpos($parameter['description'], 'body of execution') !== false) {
+            return 'Payload';
+        }
+
         return match ($parameter['type']) {
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
@@ -265,7 +270,7 @@ class PHP extends Language
             self::TYPE_INTEGER => 'int',
             self::TYPE_ARRAY,
             self::TYPE_OBJECT => 'array',
-            self::TYPE_FILE => 'InputFile',
+            self::TYPE_FILE => 'Payload',
             default => $parameter['type'],
         };
     }
@@ -276,9 +281,9 @@ class PHP extends Language
      */
     public function getParamDefault(array $param): string
     {
-        $type       = $param['type'] ?? '';
-        $default    = $param['default'] ?? '';
-        $required   = $param['required'] ?? '';
+        $type = $param['type'] ?? '';
+        $default = $param['default'] ?? '';
+        $required = $param['required'] ?? '';
 
         if ($required) {
             return '';
@@ -329,8 +334,8 @@ class PHP extends Language
      */
     public function getParamExample(array $param): string
     {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
+        $type = $param['type'] ?? '';
+        $example = $param['example'] ?? '';
 
         $output = '';
 
@@ -349,7 +354,7 @@ class PHP extends Language
                     $output .= '[]';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile::withPath('file.png')";
+                    $output .= "Payload::fromPath('file.png')";
                     break;
             }
         } else {
@@ -366,10 +371,14 @@ class PHP extends Language
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "'{$example}'";
+                    if ($param['name'] === 'body' && strpos($param['description'], 'body of execution') !== false) {
+                        $output .= "Payload::fromJson([])";
+                    } else {
+                        $output .= "'{$example}'";
+                    }
                     break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile::withPath('file.png')";
+                    $output .= "Payload::fromPath('file.png')";
                     break;
             }
         }

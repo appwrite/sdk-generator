@@ -7,6 +7,9 @@
                 {%~ endfor %}
                 {%~ for key, header in method.headers %}
                 '{{ key }}' => '{{ header }}',
+                {%~ if method.name | lower == "createexecution" %}
+                'accept' => 'multipart/form-data',
+                {%~ endif %}
                 {%~ endfor %}
             ],
             $apiParams{% if method.type == 'webAuth' -%}, 'location'{% endif %}

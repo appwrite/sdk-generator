@@ -51,7 +51,7 @@ class Client
     {
 {% for key,header in spec.global.defaultHeaders %}
         $this->headers['{{key}}'] = '{{header}}';
-{% endfor %} 
+{% endfor %}
     }
 
 {% for header in spec.global.headers %}
@@ -104,7 +104,7 @@ class Client
     public function addHeader($key, $value)
     {
         $this->headers[strtolower($key)] = $value;
-        
+
         return $this;
     }
 
@@ -183,17 +183,23 @@ class Client
                 echo 'Warning: ' . $warning . PHP_EOL;
             }
         }
-        
+
         switch(substr($contentType, 0, strpos($contentType, ';'))) {
             case 'application/json':
                 $responseBody = json_decode($responseBody, true);
             break;
         }
-
+        if ($contentType === 'multipart/form-data') {
+            $matches = [];
+            preg_match('/(?<boundary>[-]+[\w]+)--/m', $responseBody, $matches);
+            if (isset($matches['boundary'])) {
+                $responseBody = Payload::handleFormData($matches['boundary'], $responseBody);
+            }
+        }
         if (curl_errno($ch)) {
             throw new {{spec.title | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody);
         }
-        
+
         curl_close($ch);
 
         if($responseStatus >= 400) {
