@@ -7,7 +7,7 @@ import (
 
 	"github.com/repoowner/sdk-for-go/appwrite"
 	"github.com/repoowner/sdk-for-go/client"
-	"github.com/repoowner/sdk-for-go/file"
+	"github.com/repoowner/sdk-for-go/payload"
 	"github.com/repoowner/sdk-for-go/id"
 	"github.com/repoowner/sdk-for-go/permission"
 	"github.com/repoowner/sdk-for-go/query"
@@ -150,7 +150,7 @@ func testGeneralService(client client.Client, stringInArray []string) {
 func testGeneralUpload(client client.Client, stringInArray []string) {
 	general := appwrite.NewGeneral(client)
 	uploadFile := path.Join("/app", "tests/resources/file.png")
-	inputFile := file.NewInputFile(uploadFile, "file.png")
+	inputFile := payload.NewPayloadFromPath(uploadFile, "file.png")
 
 	response, err := general.Upload("string", 123, stringInArray, inputFile)
 	if err != nil {
@@ -171,7 +171,7 @@ func testGeneralDownload(client client.Client) {
 func testLargeUpload(client client.Client, stringInArray []string) {
 	general := appwrite.NewGeneral(client)
 	uploadFile := path.Join("/app", "tests/resources/large_file.mp4")
-	inputFile := file.NewInputFile(uploadFile, "large_file.mp4")
+	inputFile := payload.NewPayloadFromPath(uploadFile, "large_file.mp4")
 
 	response, err := general.Upload("string", 123, stringInArray, inputFile)
 	if err != nil {
