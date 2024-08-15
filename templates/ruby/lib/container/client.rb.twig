@@ -109,9 +109,9 @@ module {{ spec.title | caseUcfirst }}
         )
             input_file = params[param_name.to_sym]
 
-            size = input_file.path 
-                ? ::File.size(input_file.path) 
-                : input_file.data.bytesize
+            size = input_file.path.nil? 
+                ? input_file.data.bytesize
+                : ::File.size(input_file.path)
 
             if size < @chunk_size
                 if input_file.path
@@ -142,9 +142,9 @@ module {{ spec.title | caseUcfirst }}
             end
 
             while offset < size
-                string = input_file.path 
-                    ? IO.read(input_file.path, @chunk_size, offset)
-                    : input_file.data.byteslice(offset, [@chunk_size, size - offset].min)
+                string = input_file.path.nil? 
+                    ? input_file.data.byteslice(offset, [@chunk_size, size - offset].min)
+                    : IO.read(input_file.path, @chunk_size, offset)
 
                 params[param_name.to_sym] = Payload::from_string(
                     string,
