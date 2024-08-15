@@ -108,12 +108,7 @@ module {{ spec.title | caseUcfirst }}
             response_type: nil
         )
             input_file = params[param_name.to_sym]
-
-            size = if input_file.path.nil?
-                input_file.data.bytesize
-            else
-                ::File.size(input_file.path)
-            end
+            size = input_file.size
 
             if size < @chunk_size
                 if input_file.path
@@ -144,14 +139,14 @@ module {{ spec.title | caseUcfirst }}
             end
 
             while offset < size
-                string = if input_file.path.nil?
-                    input_file.data.byteslice(offset, [@chunk_size, size - offset].min)
+                chunk_data = unless input_file.path.nil?
+                    File.binread(input_file.path, @chunk_size, offset)
                 else
-                    IO.read(input_file.path, @chunk_size, offset)
+                    input_file.data.byteslice(offset, [@chunk_size, size - offset].min)
                 end
 
                 params[param_name.to_sym] = Payload::from_data(
-                    string,
+                    chunk_data,
                     filename: input_file.filename,
                     mime_type: input_file.mime_type
                 )

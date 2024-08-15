@@ -2,6 +2,16 @@ module {{ spec.title | caseUcfirst }}
   class Payload
     attr_accessor :data, :mime_type, :filename, :path
 
+    def size 
+      unless @data.nil?
+        return @data.bytesize
+      end
+      unless @path.nil?
+        return File.size(@path)
+      end
+      return 0
+    end
+
     def initialize(data: nil, mime_type: nil, filename: nil, path: nil)
       @data = data
       @mime_type = mime_type
@@ -10,7 +20,7 @@ module {{ spec.title | caseUcfirst }}
     end
 
     def self.from_path(path, mime_type = nil, filename = nil)
-      filename = File.basename(path) if filename.nil?
+      filename ||= File.basename(path)
       new(path: path, mime_type: mime_type, filename: filename)
     end
 
@@ -18,12 +28,12 @@ module {{ spec.title | caseUcfirst }}
       new(data: data, mime_type: mime_type, filename: filename)
     end
 
-    def self.from_json(data)
-      new(data: JSON.generate(data))
+    def self.from_json(data, mime_type = 'application/json', filename = nil)
+      new(data: JSON.generate(data), mime_type: mime_type, filename: filename)
     end
 
-    def self.from_string(data)
-      new(data: data)
+    def self.from_string(data, mime_type = 'text/plain', filename = nil)
+      new(data: data, mime_type: mime_type, filename: filename)
     end
 
     def to_binary
@@ -32,6 +42,10 @@ module {{ spec.title | caseUcfirst }}
 
     def to_json
       JSON.parse(@data)
+    end
+
+    def to_s
+      @data
     end
 
     def to_string
