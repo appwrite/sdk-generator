@@ -90,8 +90,8 @@ class Go extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'file/inputFile.go',
-                'template'      => 'go/inputFile.go.twig',
+                'destination'   => 'payload/payload.go',
+                'template'      => 'go/payload.go.twig',
             ],
             [
                 'scope'         => 'default',
@@ -138,10 +138,13 @@ class Go extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        if (strpos(($parameter['description']??''),'HTTP body of execution') !== false){
+            return '*payload.Payload';
+        }
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'int',
             self::TYPE_NUMBER => 'float64',
-            self::TYPE_FILE => 'file.InputFile',
+            self::TYPE_FILE => '*payload.Payload',
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_OBJECT => 'interface{}',
@@ -239,7 +242,7 @@ class Go extends Language
                     $output .= '[]interface{}{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'file.NewInputFile("/path/to/file.png", "file.png")';
+                    $output .= 'payload.NewPayloadFromPath("/path/to/file.png", "file.png")';
                     break;
             }
         } else {
@@ -264,10 +267,14 @@ class Go extends Language
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "\"{$example}\"";
+                    if ($param['name'] === 'body' && strpos(($param['description']??''), 'body of execution') !== false) {
+                        $output .= 'payload.NewPayloadFromString("<BODY>")';
+                    } else {
+                        $output .= '"{$example}"';
+                    }
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'file.NewInputFile("/path/to/file.png", "file.png")';
+                    $output .= 'payload.NewPayloadFromPath("/path/to/file.png", "file.png")';
                     break;
             }
         }
@@ -301,6 +308,10 @@ class Go extends Language
 
     protected function getPropertyType(array $property, array $spec, string $generic = 'map[string]interface{}'): string
     {
+
+        if (strpos($property['description'],'HTTP response body. This will return empty unless execution') !== false){
+            return '*payload.Payload';
+        }
         if (\array_key_exists('sub_schema', $property)) {
             $type = $this->toPascalCase($property['sub_schema']);
 

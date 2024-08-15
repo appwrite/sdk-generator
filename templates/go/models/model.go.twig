@@ -3,6 +3,9 @@ package models
 import (
     "encoding/json"
     "errors"
+{%~ if definition.name | caseLower == 'execution' %}
+    "github.com/appwrite/sdk-for-go/payload"
+{%~ endif %}
 )
 
 {{ ((definition.description | caseUcfirst) ~ " Model") | godocComment }}

@@ -1,0 +1,91 @@
+	if strings.Contains(resp.Type, "multipart/form-data") {
+		bytesData, ok := resp.Result.([]byte)
+
+		if !ok {
+			return nil, errors.New("unexpected response type")
+		}
+		responseData := string(bytesData)
+
+		matches := regexp.MustCompile("(-+\\w+)--").FindStringSubmatch(responseData)
+
+		if len(matches) != 2 {
+			return nil, errors.New("unexpected response type")
+		}
+
+		parts := strings.Split(responseData, matches[1])
+
+		if len(parts) == 0 {
+			return nil, errors.New("unexpected response type")
+		}
+		execution := make(map[string]string, 10)
+
+		for _, part := range parts {
+			cleanPart := strings.TrimSpace(part)
+			partName := regexp.MustCompile("name=\"?(\\w+)").FindStringSubmatch(cleanPart)
+
+			if len(partName) != 2 {
+				continue
+			}
+
+			name := strings.TrimSpace(partName[1])
+			lines := strings.Split(strings.ReplaceAll(cleanPart, "\r\n", "\n"), "\n")
+
+		Inner:
+			for i, line := range lines[1:] {
+				if line == "" {
+					continue
+				}
+
+				if line == "Content-Type: application/json" {
+					for _, line := range lines[i:] {
+						if line == "" {
+							continue
+						}
+
+						execution[name] = line
+					}
+					continue Inner
+				}
+				execution[name] += line
+			}
+		}
+
+		statusCode, err := strconv.Atoi(execution["responseStatusCode"])
+		if err != nil {
+			statusCode = 0
+		}
+
+		duration, err := strconv.ParseFloat(execution["duration"], 64)
+		if err != nil {
+			duration = 0.0
+		}
+
+		var requestHeaders []models.Headers
+		var responseHeaders []models.Headers
+
+		buffer := bytes.NewBuffer([]byte(execution["requestHeaders"]))
+		decoder := json.NewDecoder(buffer)
+		_ = decoder.Decode(&requestHeaders)
+
+		buffer = bytes.NewBuffer([]byte(execution["responseHeaders"]))
+		decoder = json.NewDecoder(buffer)
+		_ = decoder.Decode(&responseHeaders)
+
+		results := models.Execution{
+			FunctionId:         execution["functionId"],
+			Trigger:            execution["trigger"],
+			Status:             execution["status"],
+			RequestMethod:      execution["requestMethod"],
+			RequestPath:        execution["requestPath"],
+			RequestHeaders:     requestHeaders,
+			ResponseStatusCode: statusCode,
+			ResponseBody:       payload.NewPayloadFromString(execution["responseBody"]),
+			ResponseHeaders:    responseHeaders,
+			Logs:               execution["logs"],
+			Errors:             execution["errors"],
+			Duration:           duration,
+			ScheduledAt:        execution["scheduledAt"],
+		}
+
+		return &results, nil
+	}
