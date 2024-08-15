@@ -138,7 +138,7 @@ class Go extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
-        if (strpos(($parameter['description']??''),'HTTP body of execution') !== false){
+        if (strpos(($parameter['description'] ?? ''), 'HTTP body of execution') !== false) {
             return '*payload.Payload';
         }
         return match ($parameter['type']) {
@@ -267,7 +267,7 @@ class Go extends Language
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    if ($param['name'] === 'body' && strpos(($param['description']??''), 'body of execution') !== false) {
+                    if ($param['name'] === 'body' && strpos(($param['description'] ?? ''), 'body of execution') !== false) {
                         $output .= 'payload.NewPayloadFromString("<BODY>")';
                     } else {
                         $output .= '"{$example}"';
@@ -309,7 +309,7 @@ class Go extends Language
     protected function getPropertyType(array $property, array $spec, string $generic = 'map[string]interface{}'): string
     {
 
-        if (strpos($property['description'],'HTTP response body. This will return empty unless execution') !== false){
+        if (strpos($property['description'], 'HTTP response body. This will return empty unless execution') !== false) {
             return '*payload.Payload';
         }
         if (\array_key_exists('sub_schema', $property)) {
