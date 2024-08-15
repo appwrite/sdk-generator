@@ -150,7 +150,7 @@ module {{ spec.title | caseUcfirst }}
                     IO.read(input_file.path, @chunk_size, offset)
                 end
 
-                params[param_name.to_sym] = Payload::from_string(
+                params[param_name.to_sym] = Payload::from_data(
                     string,
                     filename: input_file.filename,
                     mime_type: input_file.mime_type
