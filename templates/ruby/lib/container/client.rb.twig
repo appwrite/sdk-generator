@@ -108,9 +108,15 @@ module {{ spec.title | caseUcfirst }}
             response_type: nil
         )
             input_file = params[param_name.to_sym]
-            size = input_file.data.size
+
+            size = input_file.path 
+                ? ::File.size(input_file.path) 
+                : input_file.data.bytesize
 
             if size < @chunk_size
+                if input_file.path
+                    input_file.data = IO.read(input_file.path)
+                end
                 params[param_name.to_sym] = input_file
                 return call(
                     method: 'POST',
@@ -136,6 +142,10 @@ module {{ spec.title | caseUcfirst }}
             end
 
             while offset < size
+                string = input_file.path 
+                    ? IO.read(input_file.path, @chunk_size, offset)
+                    : input_file.data.byteslice(offset, [@chunk_size, size - offset].min)
+
                 params[param_name.to_sym] = Payload::from_string(
                     string,
                     filename: input_file.filename,
