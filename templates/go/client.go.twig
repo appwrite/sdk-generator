@@ -162,11 +162,12 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 		if err == nil {
 			currentChunk = int64(resp.Result.(map[string]interface{})["chunksUploaded"].(float64))
 		}
-
-		headers["x-appwrite-id"] = uploadId
 	}
 
 	if fileInfo.Size() <= client.ChunkSize {
+		if uploadId != "" && uploadId != "unique()" {
+			headers["x-appwrite-id"] = uploadId
+		}
 		payload.Data = make([]byte, fileInfo.Size())
 		_, err := file.Read(payload.Data)
 		if err != nil && err != io.EOF {
@@ -202,6 +203,9 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 			return nil, err
 		}
 		params[paramName] = payload
+		if uploadId != "" && uploadId != "unique()" {
+			headers["x-appwrite-id"] = uploadId
+		}
 		totalSize := fileInfo.Size()
 		start := offset
 		end := offset + client.ChunkSize - 1
