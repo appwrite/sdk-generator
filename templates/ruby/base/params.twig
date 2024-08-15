@@ -12,9 +12,14 @@
 {% endif %}
 {% endfor %}
             api_params = {
-{% for parameter in method.parameters.query | merge(method.parameters.body)  %}
-                {{ parameter.name }}: {{ parameter.name | caseSnake | escapeKeyword }},
-{% endfor %}
+            {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
+              {# TODO: Update this using a better flag from the spec #}
+              {%~ if method.name == "createExecution" and parameter.name == 'body' %}
+              {{ parameter.name }}: {{ parameter.name | caseCamel | escapeKeyword }}.to_binary,
+              {%~ else %}
+              {{ parameter.name }}: {{ parameter.name | caseSnake | escapeKeyword }},
+              {%~ endif %}
+            {%~ endfor %}
             }
             
             api_headers = {

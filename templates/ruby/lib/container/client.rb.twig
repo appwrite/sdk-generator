@@ -152,7 +152,7 @@ module {{ spec.title | caseUcfirst }}
                     string = input_file.data.byteslice(offset, [@chunk_size, size - offset].min)
                 end
 
-                params[param_name.to_sym] = InputFile::from_string(
+                params[param_name.to_sym] = Payload::from_string(
                     string,
                     filename: input_file.filename,
                     mime_type: input_file.mime_type
@@ -262,6 +262,13 @@ module {{ spec.title | caseUcfirst }}
                 return response_type.from(map: result)
             end
 
+            if response.content_type == 'multipart/form-data'
+                matches = response.body.match(/(?<boundary>[-]+[\w]+)--/m)
+                if matches && matches[:boundary]
+                    response.body = Payload.handle_form_data(matches[:boundary], response.body)
+                end
+            end
+
             if response.code.to_i >= 400
                 raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, response)
             end
@@ -283,7 +290,7 @@ module {{ spec.title | caseUcfirst }}
                 ''
             else
                 post_body = []
-                if value.instance_of? InputFile
+                if value.instance_of? Payload
                     post_body << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{value.filename}\"\r\n"
                     post_body << "Content-Type: #{value.mime_type}\r\n\r\n"
                     post_body << value.data

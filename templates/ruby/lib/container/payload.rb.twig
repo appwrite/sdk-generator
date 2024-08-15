@@ -1,0 +1,60 @@
+module {{ spec.title | caseUcfirst }}
+  class Payload
+    attr_accessor :data, :mime_type, :filename, :path
+
+    def initialize(data: nil, mime_type: nil, filename: nil, path: nil)
+      @data = data
+      @mime_type = mime_type
+      @filename = filename
+      @path = path
+    end
+
+    def self.from_path(path, mime_type = nil, filename = nil)
+      new(path: path, mime_type: mime_type, filename: filename)
+    end
+
+    def self.from_data(data, mime_type = nil, filename = nil)
+      new(data: data, mime_type: mime_type, filename: filename)
+    end
+
+    def self.from_json(data)
+      new(data: JSON.generate(data))
+    end
+
+    def self.from_string(data)
+      new(data: data)
+    end
+
+    def to_binary
+      @data
+    end
+
+    def to_json
+      JSON.parse(@data)
+    end
+
+    def to_string
+      @data
+    end
+
+    def self.handle_form_data(boundary, response_body)
+      parts = response_body.split(boundary)
+      data = {}
+      
+      parts.each do |part|
+        lines = part.split("\r\n").reject(&:empty?)
+        match_data = /name="?(?<name>\w+)/.match(part)
+        
+        if match_data
+          name = match_data[:name]
+          data[name] = lines[1] || ''
+        end
+      end
+
+      data['responseStatusCode'] = data['responseStatusCode'].to_i
+      data['duration'] = data['duration'].to_f
+      data['responseBody'] = from_string(data['responseBody'] || '')
+      data
+    end
+  end
+end
