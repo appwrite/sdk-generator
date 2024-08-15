@@ -1,5 +1,8 @@
 import { Models } from './models';
 import { Service } from './service';
+import JsonBigInt from 'json-bigint';
+
+const jsonBigInt = JsonBigInt({ storeAsString: false })
 
 /**
  * Payload type representing a key-value pair with string keys and any values.
@@ -443,7 +446,7 @@ class Client {
         },
         onMessage: (event) => {
             try {
-                const message: RealtimeResponse = JSON.parse(event.data);
+                const message: RealtimeResponse = jsonBigInt.parse(event.data);
                 this.realtime.lastMessage = message;
                 switch (message.type) {
                     case 'connected':
@@ -452,7 +455,7 @@ class Client {
                         const messageData = <RealtimeResponseConnected>message.data;
 
                         if (session && !messageData.user) {
-                            this.realtime.socket?.send(JSON.stringify(<RealtimeRequest>{
+                            this.realtime.socket?.send(jsonBigInt.stringify(<RealtimeRequest>{
                                 type: 'authentication',
                                 data: {
                                     session
@@ -579,7 +582,7 @@ class Client {
         } else {
             switch (headers['content-type']) {
                 case 'application/json':
-                    options.body = JSON.stringify(params);
+                    options.body = jsonBigInt.stringify(params);
                     break;
 
                 case 'multipart/form-data':
@@ -604,6 +607,7 @@ class Client {
         try {
             let data = null;
             const response = await fetch(url.toString(), options);
+            const responseData = await response.text()
 
             const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
             if (warnings) {
@@ -611,10 +615,10 @@ class Client {
             }
 
             if (response.headers.get('content-type')?.includes('application/json')) {
-                data = await response.json();
+                data = jsonBigInt.parse(responseData)
             } else {
                 data = {
-                    message: await response.text()
+                    message: responseData
                 };
             }
 

@@ -24,8 +24,12 @@
     "build:types": "tsc --declaration --emitDeclarationOnly --outDir types",
     "build:libs": "rollup -c"
   },
+  "dependencies": {
+    "json-bigint": "^1.0.0"
+  },
   "devDependencies": {
     "@rollup/plugin-typescript": "8.3.2",
+    "@types/json-bigint": "^1.0.4",
     "playwright": "1.15.0",
     "rollup": "2.75.4",
     "serve-handler": "6.1.0",
