@@ -10,6 +10,7 @@ module {{ spec.title | caseUcfirst }}
     end
 
     def self.from_path(path, mime_type = nil, filename = nil)
+      filename = File.basename(path) if filename.nil?
       new(path: path, mime_type: mime_type, filename: filename)
     end
 
