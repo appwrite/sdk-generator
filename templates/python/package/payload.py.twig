@@ -44,7 +44,7 @@ class Payload:
         return instance
 
     @classmethod
-    def from_bytes(cls, bytes, filename, mime_type=None):
+    def from_binary(cls, bytes, filename, mime_type=None):
         instance = cls()
         instance.data = bytes
         instance.filename = filename
