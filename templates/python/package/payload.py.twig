@@ -1,0 +1,96 @@
+import os
+import mimetypes
+import json
+import re
+
+class Payload:
+    def size(self):
+        if self.data:
+            return len(self.data)
+        if self.path:
+            return os.stat(self.path).st_size
+        raise Exception('Empty payload')
+
+    @classmethod
+    def handle_form_data(cls, boundary, response_body):
+        parts = response_body.split(boundary)
+        data = {}
+        for part in parts:
+            lines = [line for line in part.split('\r\n') if line]
+            if not lines:
+                continue
+            match = re.search(r'name="?(?P<name>\w+)', part)
+            if match:
+                name = match.group('name')
+                lines = lines[1:]  # Remove the first line (Content-Disposition)
+                if lines and lines[0] == 'Content-Type: application/json':
+                    lines = lines[1:]  # Remove the Content-Type line
+                    headers = json.loads(''.join(lines))
+                    data[name] = {header['name']: header['value'] for header in headers}
+                else:
+                    data[name] = ''.join(lines) if lines else ''
+
+        data['responseStatusCode'] = int(data.get('responseStatusCode', 0))
+        data['duration'] = float(data.get('duration', 0))
+        data['responseBody'] = cls.from_string(data.get('responseBody', ''))
+        return data
+
+    @classmethod
+    def from_path(cls, path):
+        instance = cls()
+        instance.path = path
+        instance.filename = os.path.basename(path)
+        instance.mime_type = mimetypes.guess_type(path)[0]
+        return instance
+
+    @classmethod
+    def from_bytes(cls, bytes, filename, mime_type=None):
+        instance = cls()
+        instance.data = bytes
+        instance.filename = filename
+        instance.mime_type = mime_type
+        return instance
+
+    @classmethod
+    def from_string(cls, string, filename=None, mime_type='text/plain'):
+        instance = cls()
+        instance.data = string
+        instance.filename = filename
+        instance.mime_type = mime_type
+        return instance
+
+    @classmethod
+    def from_json(cls, json_data, filename=None, mime_type='application/json'):
+        instance = cls()
+        instance.data = json.dumps(json_data)
+        instance.filename = filename
+        instance.mime_type = mime_type
+        return instance
+
+    def to_string(self):
+        return self.data
+
+    def to_json(self):
+        return json.loads(self.data)
+
+    def to_binary(self):
+        if self.data:
+            return self.data.encode() if isinstance(self.data, str) else self.data
+        if self.path:
+            with open(self.path, 'rb') as file:
+                return file.read()
+        raise Exception('Empty payload')
+
+    def __init__(self, data=None, path=None, filename=None, mime_type=None):
+        self.data = data
+        self.path = path
+
+        if not filename and path:
+            self.filename = os.path.basename(path)
+        else:
+            self.filename = filename
+
+        if not mime_type and path:
+            self.mime_type = mimetypes.guess_type(path)[0]
+        else:
+            self.mime_type = mime_type
