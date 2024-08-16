@@ -1,7 +1,7 @@
 module Appwrite
   class Payload
-    accessors :data
-    
+    attr_reader :data
+
     def initialize(data)
       @data = data
     end

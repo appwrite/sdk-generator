@@ -136,7 +136,7 @@ module {{ spec.title | caseUcfirst }}
 
             while offset < size
                 params[param_name.to_sym] = Payload::from_binary(
-                    payload.read(offset: offset, length: [@chunk_size, size - offset].min),
+                    payload.data.read(offset: offset, length: [@chunk_size, size - offset].min),
                     filename: payload.data.filename,
                     mime_type: payload.data.mime_type
                 )
