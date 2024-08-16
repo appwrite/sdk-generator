@@ -107,12 +107,10 @@ module {{ spec.title | caseUcfirst }}
             on_progress: nil,
             response_type: nil
         )
-            input_file = params[param_name.to_sym]
-            size = input_file.size
+            payload = params[param_name.to_sym]
+            size = params[param_name.to_sym].size
 
             if size < @chunk_size
-                input_file.data = IO.read(input_file.path) if input_file.path
-                params[param_name.to_sym] = input_file
                 return call(
                     method: 'POST',
                     path: path,
@@ -137,16 +135,10 @@ module {{ spec.title | caseUcfirst }}
             end
 
             while offset < size
-                string = unless input_file.path.nil?
-                    IO.read(input_file.path, @chunk_size, offset)
-                else
-                    input_file.data.byteslice(offset, [@chunk_size, size - offset].min)
-                end
-
-                params[param_name.to_sym] = Payload::from_string(
-                    string,
-                    filename: input_file.filename,
-                    mime_type: input_file.mime_type
+                params[param_name.to_sym] = Payload::from_binary(
+                    payload.read(offset: offset, length: [@chunk_size, size - offset].min),
+                    filename: payload.data.filename,
+                    mime_type: payload.data.mime_type
                 )
 
                 headers['content-range'] = "bytes #{offset}-#{[offset + @chunk_size - 1, size - 1].min}/#{size}"
@@ -274,6 +266,8 @@ module {{ spec.title | caseUcfirst }}
         
         def encode_form_data(value, key=nil)
             case value
+            when Payload
+                value.data.to_multipart(@boundary, key)
             when Hash
                 value.map { |k,v| encode_form_data(v,k) }.join
             when Array
@@ -283,15 +277,7 @@ module {{ spec.title | caseUcfirst }}
             else
                 post_body = []
                 post_body << "--#{@boundary}\r\n"
-                post_body << "Content-Disposition: form-data; name=\"#{key}\"";
-                if value.is_a?(Payload) and value.filename then
-                    post_body << "; filename=\"#{value.filename}\""
-                end
-                post_body << "\r\n"
-                if value.is_a?(Payload) and value.mime_type then
-                    post_body << "Content-Type: #{value.mime_type}\r\n"
-                end
-                post_body << "\r\n"
+                post_body << "Content-Disposition: form-data; name=\"#{key}\"\r\n\r\n";
                 post_body << value.to_s
                 post_body << "\r\n"
                 post_body.join
