@@ -106,7 +106,7 @@ class Kotlin extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
-        if(str_contains($parameter['description'] ?? '', 'body of execution')){
+        if (str_contains($parameter['description'] ?? '', 'body of execution')) {
             return 'Payload';
         }
 
