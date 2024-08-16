@@ -12,7 +12,7 @@ module Appwrite
       raise "Empty payload"
     end
 
-    def initialize(data = nil, path = nil, mime_type = nil, filename = nil)
+    def initialize(data = nil, path = nil, filename = nil, mime_type = nil)
       @path = path
       @data = data
 
@@ -29,21 +29,21 @@ module Appwrite
       end
     end
 
-    def self.from_path(path, mime_type = nil, filename = nil)
+    def self.from_path(path, filename: nil, mime_type: nil)
       raise "File not found" unless File.exist?(path)
-      new(nil, path, mime_type, filename)
+      new(nil, path, filename, mime_type)
     end
 
-    def self.from_data(data, mime_type = nil, filename = nil)
-      new(data, nil, mime_type, filename)
+    def self.from_data(data, filename: nil, mime_type: nil)
+      new(data, nil, filename, mime_type)
     end
 
-    def self.from_json(data, mime_type = 'application/json', filename = nil)
-      new(JSON.generate(data), nil, mime_type, filename)
+    def self.from_json(data, filename: nil, mime_type: 'application/json')
+      new(JSON.generate(data), nil, filename, mime_type)
     end
 
-    def self.from_string(data, mime_type = 'text/plain', filename = nil)
-      new(data, nil, mime_type, filename)
+    def self.from_string(data, filename: nil, mime_type: 'text/plain')
+      new(data, nil, filename, mime_type)
     end
 
     def to_binary
