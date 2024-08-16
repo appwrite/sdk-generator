@@ -93,8 +93,8 @@ module Appwrite
         File.size(@path)
       end
     
-      def read(offset: nil, length: nil)
-        IO.read(@path, length, offset)
+      def read(offset: 0, length: nil)
+        IO.read(@path, length || File.size(@path), offset)
       end
 
       def to_multipart(boundary, name)
@@ -111,7 +111,7 @@ module Appwrite
 
     class MemoryPayload
       attr_reader :filename, :mime_type
-      
+
       def initialize(data, filename: nil, mime_type: nil)
         @data = data
         @filename = filename
@@ -122,8 +122,8 @@ module Appwrite
         @data.bytesize
       end
     
-      def read(offset: nil, length: nil)
-        @data.byteslice(offset, length)
+      def read(offset: 0, length: nil)
+        @data.byteslice(offset, length || @data.bytesize)
       end
 
       def to_multipart(boundary, name)
