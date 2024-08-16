@@ -2,7 +2,7 @@ import io
 import json
 import os
 import requests
-from .input_file import InputFile
+from .payload import Payload
 from .exception import {{spec.title | caseUcfirst}}Exception
 from .encoders.value_class_encoder import ValueClassEncoder
 
@@ -71,7 +71,7 @@ class Client:
             del headers['content-type']
             stringify = True
             for key in data.copy():
-                if isinstance(data[key], InputFile):
+                if isinstance(data[key], Payload):
                     files[key] = (data[key].filename, data[key].data)
                     del data[key]
             data = self.flatten(data, stringify=stringify)
@@ -126,16 +126,11 @@ class Client:
     ):
         input_file = params[param_name]
 
-        if input_file.source_type == 'path':
-            size = os.stat(input_file.path).st_size
-            input = open(input_file.path, 'rb')
-        elif input_file.source_type == 'bytes':
-            size = len(input_file.data)
-            input = input_file.data
+        size = input_file.size()
 
         if size < self._chunk_size:
-            if input_file.source_type == 'path':
-                input_file.data = input.read()
+            if input_file.path:
+                input_file.data = open(input_file.path, 'rb').read()        
 
             params[param_name] = input_file
             return self.call(
@@ -160,9 +155,10 @@ class Client:
             input.seek(offset)
 
         while offset < size:
-            if input_file.source_type == 'path':
+
+            if input_file.path:
                 input_file.data = input.read(self._chunk_size) or input.read(size - offset)
-            elif input_file.source_type == 'bytes':
+            elif input_file.data:
                 if offset + self._chunk_size < size:
                     end = offset + self._chunk_size
                 else:

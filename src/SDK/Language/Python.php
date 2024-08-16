@@ -157,8 +157,8 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/input_file.py',
-                'template' => 'python/package/input_file.py.twig',
+                'destination' => '{{ spec.title | caseSnake}}/payload.py',
+                'template' => 'python/package/payload.py.twig',
             ],
             [
                 'scope' => 'default',
