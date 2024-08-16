@@ -1,7 +1,7 @@
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.coroutines.CoroutineCallback
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
-import {{ sdk.namespace | caseDot }}.models.InputFile
+import {{ sdk.namespace | caseDot }}.models.Payload
 {% endif %}
 import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }}
 {% set added = [] %}

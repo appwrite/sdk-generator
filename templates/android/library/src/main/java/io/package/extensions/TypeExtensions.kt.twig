@@ -1,9 +1,76 @@
 package {{ sdk.namespace | caseDot }}.extensions
 
+import {{ sdk.namespace | caseDot }}.models.Payload
 import kotlin.reflect.KClass
 import kotlin.reflect.typeOf
 
 inline fun <reified T : Any> classOf(): Class<T> {
     @Suppress("UNCHECKED_CAST")
     return (typeOf<T>().classifier!! as KClass<T>).java
+}
+
+
+fun String.fromMultiPart(): Map<String, Any> {
+    val match = Regex("(-+\\w+)--").find(this) ?: return emptyMap()
+
+    val boundary = match.groupValues[1]
+
+    var map = mutableMapOf<String, Any>(
+        "\$id" to "",
+        "\$createdAt" to "",
+        "\$updatedAt" to "",
+        "\$permissions" to emptyList<String>(),
+        "functionId" to "",
+        "trigger" to "",
+        "status" to "",
+        "requestMethod" to "",
+        "requestPath" to "",
+        "requestHeaders" to emptyList<HashMap<String, Any>>(),
+        "statusCode" to 0,
+        "responseBody" to Payload.fromString(""),
+        "responseHeaders" to emptyList<HashMap<String, Any>>(),
+        "logs" to "",
+        "errors" to "",
+        "duration" to 0.0,
+        "scheduledAt" to "",
+    )
+    val parts = this.split(boundary)
+    for (part in parts) {
+        var lines = part.replace("\r\n", "\n").split("\n")
+
+        val name = Regex("name=\"?(\\w+)").find(part) ?: continue
+
+        lines = lines.dropWhile { it.isEmpty() }.drop(1).dropWhile { it.isEmpty() }.dropLastWhile { it.isEmpty() }
+        val key = name.groupValues[1];
+
+        if (lines.isEmpty()) {
+            continue
+        }
+
+        if (key == "response") {
+            map["responseBody"] = Payload.fromString(lines.joinToString("\n"))
+            continue
+        }
+
+        if (lines[0] == "Content-Type: application/json") {
+            lines = lines.drop(1).dropWhile { it.isEmpty() }
+            val list = lines.joinToString("\n").fromJson<List<String>>()
+            map[key] = list
+            continue
+        }
+
+        val value = lines.joinToString("\n");
+
+        map[key] = when (key) {
+            "statusCode" -> value.toInt()
+            "duration" -> value.toFloat()
+            else -> value
+        }
+
+
+    }
+
+    map["responseStatusCode"] = map["statusCode"] ?: 0
+
+    return map
 }

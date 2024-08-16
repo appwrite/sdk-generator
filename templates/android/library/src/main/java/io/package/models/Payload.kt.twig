@@ -1,0 +1,67 @@
+package {{ sdk.namespace | caseDot }}.models
+
+package {{ sdk.namespace | caseDot }}.extensions.gson
+import java.io.File
+import java.net.URLConnection
+import java.nio.file.Files
+import java.nio.file.Paths
+
+class Payload private constructor() {
+
+    lateinit var path: String
+    lateinit var filename: String
+    lateinit var mimeType: String
+    lateinit var sourceType: String
+    lateinit var data: Any
+
+    override fun toString(): String {
+        if (sourceType != "bytes") {
+            throw IllegalArgumentException("source type is not supported: $sourceType")
+        }
+
+        return String(data as ByteArray)
+    }
+
+    fun toBinary(): ByteArray {
+        if (sourceType != "bytes") {
+            throw IllegalArgumentException("source type is not supported: $sourceType")
+        }
+
+        return data as ByteArray
+    }
+
+    fun toJSON(): MutableMap<String, Any> {
+        if (sourceType != "bytes") {
+            throw IllegalArgumentException("source type is not supported: $sourceType")
+        }
+
+        return gson.fromJson(toString(), MutableMap::class.java) as MutableMap<String, Any>
+    }
+
+
+    companion object {
+        fun fromFile(file: File) = Payload().apply {
+            path = file.canonicalPath
+            filename = file.name
+            mimeType = Files.probeContentType(Paths.get(file.canonicalPath))
+                ?: URLConnection.guessContentTypeFromName(filename)
+                        ?: ""
+            sourceType = "file"
+        }
+
+        fun fromPath(path: String): Payload = fromFile(File(path)).apply {
+            sourceType = "path"
+        }
+
+        fun fromBinary(bytes: ByteArray, filename: String = "", mimeType: String = "") = Payload().apply {
+            this.filename = filename
+            this.mimeType = mimeType
+            data = bytes
+            sourceType = "bytes"
+        }
+
+        fun fromString(string: String) = fromBinary(string.toByteArray())
+
+        fun fromJSON(data: Any) = fromString(gson.toJson(data))
+    }
+}
