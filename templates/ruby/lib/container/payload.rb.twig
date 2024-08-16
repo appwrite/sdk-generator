@@ -70,6 +70,8 @@ module Appwrite
     end
 
     class FilePayload
+      attr_reader :filename, :mime_type
+
       def initialize(path, filename: nil, mime_type: nil)
         raise "File not found" unless File.exist?(path)
         @path = path
@@ -108,6 +110,8 @@ module Appwrite
     end
 
     class MemoryPayload
+      attr_reader :filename, :mime_type
+      
       def initialize(data, filename: nil, mime_type: nil)
         @data = data
         @filename = filename
