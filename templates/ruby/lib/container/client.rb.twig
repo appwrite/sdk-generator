@@ -111,9 +111,7 @@ module {{ spec.title | caseUcfirst }}
             size = input_file.size
 
             if size < @chunk_size
-                if input_file.path
-                    input_file.data = IO.read(input_file.path)
-                end
+                input_file.data = IO.read(input_file.path) if input_file.path
                 params[param_name.to_sym] = input_file
                 return call(
                     method: 'POST',
@@ -139,14 +137,14 @@ module {{ spec.title | caseUcfirst }}
             end
 
             while offset < size
-                chunk_data = unless input_file.path.nil?
-                    File.binread(input_file.path, @chunk_size, offset)
+                string = unless input_file.path.nil?
+                    IO.read(input_file.path, @chunk_size, offset)
                 else
                     input_file.data.byteslice(offset, [@chunk_size, size - offset].min)
                 end
 
-                params[param_name.to_sym] = Payload::from_data(
-                    chunk_data,
+                params[param_name.to_sym] = Payload::from_string(
+                    string,
                     filename: input_file.filename,
                     mime_type: input_file.mime_type
                 )
@@ -196,18 +194,19 @@ module {{ spec.title | caseUcfirst }}
             @http.use_ssl = !@self_signed
             payload = ''
             
-            headers = @headers.merge(headers)
+            headers = @headers.merge(headers.transform_keys(&:to_s))
 
             params.compact!
 
-            @boundary = "----A30#3ad1"
+            @boundary = "RubySDK#{SecureRandom.hex(16)}"
             if method != "GET"
-                case headers[:'content-type']
+                case headers['content-type']
                     when 'application/json'
                         payload = params.to_json
                     when 'multipart/form-data'
-                        payload = "--#{@boundary}\r\n" + encode_form_data(params)
-                        headers[:'content-type'] = "multipart/form-data; boundary=#{@boundary}"
+                        payload = encode_form_data(params)
+                        payload += "--#{@boundary}--\r\n"
+                        headers['content-type'] = "multipart/form-data; boundary=#{@boundary}"
                     else
                         payload = encode(params)
                 end
@@ -232,8 +231,8 @@ module {{ spec.title | caseUcfirst }}
             end
             
             # Handle Redirects
-            if (response.class == Net::HTTPRedirection || response.class == Net::HTTPMovedPermanently)
-                uri = URI.parse(uri.scheme + "://" + uri.host + "" + location)
+            if response.is_a?(Net::HTTPRedirection) || response.is_a?(Net::HTTPMovedPermanently)
+                uri = URI.parse(uri.scheme + '://' + uri.host + location)
                 return fetch(method, uri, headers, {}, response_type, limit - 1)
             end
 
@@ -266,33 +265,33 @@ module {{ spec.title | caseUcfirst }}
                 raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, response)
             end
 
-            if response.respond_to?("body_permitted?")
-                return response.body if response.body_permitted?
-            end
+            return response.body if response.respond_to?("body_permitted?")
 
-            return response
+            response
         end
         
         def encode_form_data(value, key=nil)
             case value
             when Hash
-                value.map { |k,v| encode_form_data(v,k) }.join
+                value.map { |k,v| encode_form_data(v, k) }.join
             when Array
                 value.map { |v| encode_form_data(v, "#{key}[]") }.join
             when nil
                 ''
             else
                 post_body = []
-                if value.instance_of? Payload
-                    post_body << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{value.filename}\"\r\n"
-                    post_body << "Content-Type: #{value.mime_type}\r\n\r\n"
-                    post_body << value.data
-                    post_body << "\r\n--#{@boundary}--\r\n"
-                else          
-                    post_body << "Content-Disposition: form-data; name=\"#{key}\"\r\n\r\n"
-                    post_body << "#{value.to_s}" 
-                    post_body << "\r\n--#{@boundary}\r\n"
+                post_body << "--#{@boundary}\r\n"
+                post_body << "Content-Disposition: form-data; name=\"#{key}\"";
+                if value.is_a?(Payload) and value.filename then
+                    post_body << "; filename=\"#{value.filename}\""
                 end
+                post_body << "\r\n"
+                if value.is_a?(Payload) and value.mime_type then
+                    post_body << "Content-Type: #{value.mime_type}\r\n"
+                end
+                post_body << "\r\n"
+                post_body << value.to_s
+                post_body << "\r\n"
                 post_body.join
             end
         end
