@@ -231,8 +231,8 @@ module {{ spec.title | caseUcfirst }}
             end
             
             # Handle Redirects
-            if response.is_a?(Net::HTTPRedirection) || response.is_a?(Net::HTTPMovedPermanently)
-                uri = URI.parse(uri.scheme + '://' + uri.host + location)
+            if (response.class == Net::HTTPRedirection || response.class == Net::HTTPMovedPermanently)
+                uri = URI.parse(uri.scheme + "://" + uri.host + "" + location)
                 return fetch(method, uri, headers, {}, response_type, limit - 1)
             end
 
@@ -265,15 +265,17 @@ module {{ spec.title | caseUcfirst }}
                 raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, response)
             end
 
-            return response.body if response.respond_to?("body_permitted?")
+            if response.respond_to?("body_permitted?")
+                return response.body if response.body_permitted?
+            end
 
-            response
+            return response
         end
         
         def encode_form_data(value, key=nil)
             case value
             when Hash
-                value.map { |k,v| encode_form_data(v, k) }.join
+                value.map { |k,v| encode_form_data(v,k) }.join
             when Array
                 value.map { |v| encode_form_data(v, "#{key}[]") }.join
             when nil
