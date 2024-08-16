@@ -145,8 +145,8 @@ module {{ spec.title | caseUcfirst }}
 
                 params[param_name.to_sym] = Payload::from_string(
                     string,
-                    filename: input_file.filename,
-                    mime_type: input_file.mime_type
+                    input_file.filename,
+                    input_file.mime_type
                 )
 
                 headers['content-range'] = "bytes #{offset}-#{[offset + @chunk_size - 1, size - 1].min}/#{size}"

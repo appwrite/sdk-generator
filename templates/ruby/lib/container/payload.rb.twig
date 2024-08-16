@@ -16,14 +16,14 @@ module Appwrite
       @path = path
       @data = data
 
-      @filename = if filename.nil? and @path then
-        File.basename(@path)
+      @filename = if filename.nil? and path then
+        File.basename(path)
       else
         filename
       end
 
-      @mime_type = if mime_type.nil? and @path then
-        MIME::Types.type_for(@path).first.content_type rescue nil
+      @mime_type = if mime_type.nil? and path then
+        MIME::Types.type_for(path).first.content_type rescue nil
       else
         mime_type
       end
@@ -47,7 +47,7 @@ module Appwrite
     end
 
     def to_binary
-      @data
+      @data || File.binread(@path)
     end
 
     def to_json
