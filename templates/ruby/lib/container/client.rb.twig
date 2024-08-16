@@ -108,7 +108,7 @@ module {{ spec.title | caseUcfirst }}
             response_type: nil
         )
             payload = params[param_name.to_sym]
-            size = params[param_name.to_sym].size
+            size = params[param_name.to_sym].data.size
 
             if size < @chunk_size
                 return call(
