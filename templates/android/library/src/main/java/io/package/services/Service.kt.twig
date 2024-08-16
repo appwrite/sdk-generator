@@ -113,7 +113,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
                 .domain(Uri.parse(client.endpoint).host!!)
                 .httpOnly()
                 .build()
-            
+
             client.http.cookieJar.saveFromResponse(
                 client.endpoint.toHttpUrl(),
                 listOf(cookie)
@@ -144,7 +144,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ endif %}
         {%~ if 'multipart/form-data' in method.consumes %}
         val idParamName: String? = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}null{% endif %}
-    
+
         {%~ for parameter in method.parameters.all %}
         {%~ if parameter.type == 'file' %}
         val paramName = "{{ parameter.name }}"

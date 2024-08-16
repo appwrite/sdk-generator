@@ -10,7 +10,7 @@ import io.appwrite.exceptions.AppwriteException
 import io.appwrite.extensions.fromJson
 import io.appwrite.extensions.toJson
 import io.appwrite.models.Error
-import io.appwrite.models.InputFile
+import io.appwrite.models.Payload
 import io.appwrite.models.Mock
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
@@ -75,27 +75,27 @@ class ServiceTest {
             writeToFile((result as Map<String, Any>)["result"] as String)
 
             try {
-                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../resources/file.png"))
+                mock = general.upload("string", 123, listOf("string in array"), Payload.fromPath("../../resources/file.png"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
             try {
-                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../resources/large_file.mp4"))
+                mock = general.upload("string", 123, listOf("string in array"), Payload.fromPath("../../resources/large_file.mp4"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
             try {
                 var bytes = File("../../resources/file.png").readBytes()
-                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(bytes, "file.png", "image/png"))
+                mock = general.upload("string", 123, listOf("string in array"), Payload.fromBytes(bytes, "file.png", "image/png"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
             try {
                 var bytes = File("../../resources/large_file.mp4").readBytes()
-                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(bytes, "large_file.mp4", "video/mp4"))
+                mock = general.upload("string", 123, listOf("string in array"), Payload.fromBytes(bytes, "large_file.mp4", "video/mp4"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
