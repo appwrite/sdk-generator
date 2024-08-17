@@ -6,7 +6,7 @@ const inquirer = require("inquirer");
 const { messagingListTopics } = require("./messaging");
 const { teamsList } = require("./teams");
 const { projectsGet } = require("./projects");
-const { functionsList, functionsDownloadDeployment } = require("./functions");
+const { functionsList, functionsGetDeploymentDownload, functionsListDeployments } = require("./functions");
 const { databasesGet, databasesListCollections, databasesList } = require("./databases");
 const { storageListBuckets } = require("./storage");
 const { localConfig } = require("../config");
@@ -57,6 +57,8 @@ const pullSettings = async () => {
 }
 
 const pullFunctions = async ({ code, withVariables }) => {
+    process.chdir(localConfig.configDirectoryPath)
+
     log("Fetching functions ...");
     let total = 0;
 
@@ -84,7 +86,7 @@ const pullFunctions = async ({ code, withVariables }) => {
 
         func['path'] = localFunction['path'];
         if (!localFunction['path']) {
-            func['path'] = `functions/${func.$id}`;
+            func['path'] = `functions/${func.name}`;
         }
         if (!withVariables) {
             delete func['vars'];
@@ -97,45 +99,70 @@ const pullFunctions = async ({ code, withVariables }) => {
 
         if (code === false) {
             warn("Source code download skipped.");
-        } else if (!func['deployment']) {
-            warn("Source code download skipped because function doesn't have active deployment.");
-        } else {
-            if (allowCodePull === null) {
-                const codeAnswer = await inquirer.prompt(questionsPullFunctionsCode);
-                allowCodePull = codeAnswer.override;
+            continue;
+        }
+
+        if (allowCodePull === null) {
+            const codeAnswer = await inquirer.prompt(questionsPullFunctionsCode);
+            allowCodePull = codeAnswer.override;
+        }
+
+        if (!allowCodePull) {
+            continue;
+        }
+
+        let deploymentId = null;
+
+        try {
+            const fetchResponse = await functionsListDeployments({
+                functionId: func['$id'],
+                queries: [
+                    JSON.stringify({ method: 'limit', values: [1] }),
+                    JSON.stringify({ method: 'orderDesc', values: ['$id'] })
+                ],
+                parseOutput: false
+            });
+
+            if (fetchResponse['total'] > 0) {
+                deploymentId = fetchResponse['deployments'][0]['$id'];
             }
 
-            if (allowCodePull) {
-                log("Pulling active deployment's code ...");
+        } catch {
+        }
 
-                const compressedFileName = `${func['$id']}-${+new Date()}.tar.gz`
-                await functionsDownloadDeployment({
-                    functionId: func['$id'],
-                    deploymentId: func['deployment'],
-                    destination: compressedFileName,
-                    overrideForCli: true,
-                    parseOutput: false
-                });
+        if (deploymentId === null) {
+            log("Source code download skipped because function doesn't have any available deployment");
+            continue;
+        }
 
-                tar.extract({
-                    sync: true,
-                    cwd: func['path'],
-                    file: compressedFileName,
-                    strict: false,
-                });
+        log("Pulling latest deployment code ...");
 
-                fs.rmSync(compressedFileName);
+        const compressedFileName = `${func['$id']}-${+new Date()}.tar.gz`
+        await functionsGetDeploymentDownload({
+            functionId: func['$id'],
+            deploymentId,
+            destination: compressedFileName,
+            overrideForCli: true,
+            parseOutput: false
+        });
 
-                if (withVariables) {
-                    const envFileLocation = `${func['path']}/.env`
-                    try {
-                        fs.rmSync(envFileLocation);
-                    } catch {
-                    }
+        tar.extract({
+            sync: true,
+            cwd: func['path'],
+            file: compressedFileName,
+            strict: false,
+        });
 
-                    fs.writeFileSync(envFileLocation, func['vars'].map(r => `${r.key}=${r.value}\n`).join(''))
-                }
+        fs.rmSync(compressedFileName);
+
+        if (withVariables) {
+            const envFileLocation = `${func['path']}/.env`
+            try {
+                fs.rmSync(envFileLocation);
+            } catch {
             }
+
+            fs.writeFileSync(envFileLocation, func['vars'].map(r => `${r.key}=${r.value}\n`).join(''))
         }
     }
 
@@ -289,7 +316,7 @@ pull
 pull
     .command("function")
     .alias("functions")
-    .description("Pulling your {{ spec.title|caseUcfirst }} cloud function")
+    .description("Pull your {{ spec.title|caseUcfirst }} cloud function")
     .option("--no-code", "Don't pull the function's code")
     .option("--with-variables", `Pull function variables. ${chalk.red('recommend for testing purposes only')}`)
     .action(actionRunner(pullFunctions))
@@ -297,25 +324,25 @@ pull
 pull
     .command("collection")
     .alias("collections")
-    .description("Pulling your {{ spec.title|caseUcfirst }} collections")
+    .description("Pull your {{ spec.title|caseUcfirst }} collections")
     .action(actionRunner(pullCollection))
 
 pull
     .command("bucket")
     .alias("buckets")
-    .description("Pulling your Appwrite buckets")
+    .description("Pull your Appwrite buckets")
     .action(actionRunner(pullBucket))
 
 pull
     .command("team")
     .alias("teams")
-    .description("Pulling your Appwrite teams")
+    .description("Pull your Appwrite teams")
     .action(actionRunner(pullTeam))
 
 pull
     .command("topic")
     .alias("topics")
-    .description("Initialise your Appwrite messaging topics")
+    .description("Pull your Appwrite messaging topics")
     .action(actionRunner(pullMessagingTopic))
 
 module.exports = {

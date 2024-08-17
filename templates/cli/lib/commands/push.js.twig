@@ -2,7 +2,7 @@ const chalk = require('chalk');
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
-const { localConfig, globalConfig, KeysAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, } = require("../config");
+const { localConfig, globalConfig, KeysAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, KeysCollection } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
 const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionPushChangesConfirmation, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
@@ -341,47 +341,61 @@ const awaitPools = {
 }
 
 const getConfirmation = async () => {
-    if (!cliConfig.force) {
-        async function fixConfirmation() {
-            const answers = await inquirer.prompt(questionPushChangesConfirmation);
-            if(answers.changes !== 'YES' && answers.changes !== 'NO') {
-                return await fixConfirmation();
-            }
-
-            return answers.changes;
-        }
-
-        let answers = await inquirer.prompt(questionPushChanges);
-        if(answers.changes !== 'YES' && answers.changes !== 'NO') {
-            answers.changes = await fixConfirmation();
-        }
-
-        if (answers.changes === 'YES') {
-            return true;
-        }
-
-        warn('Skipping push action. Changes were not applied.');
-        return false;
+    if (cliConfig.force) {
+        return true;
     }
 
-    return true;
-};
+    async function fixConfirmation() {
+        const answers = await inquirer.prompt(questionPushChangesConfirmation);
+        if (answers.changes !== 'YES' && answers.changes !== 'NO') {
+            return await fixConfirmation();
+        }
 
-const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural, skipKeys = []) => {
+        return answers.changes;
+    }
+
+    let answers = await inquirer.prompt(questionPushChanges);
+
+    if (answers.changes !== 'YES' && answers.changes !== 'NO') {
+        answers.changes = await fixConfirmation();
+    }
+
+    if (answers.changes === 'YES') {
+        return true;
+    }
+
+    warn('Skipping push action. Changes were not applied.');
+    return false;
+
+};
+const isEmpty = (value) => (value === null || value === undefined || (typeof value === "string" && value.trim().length === 0) || (Array.isArray(value) && value.length === 0));
+
+const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural, skipKeys = [], secondId = '', secondResourceName = '') => {
     log('Checking for changes ...');
     const changes = [];
 
     await Promise.all(resource.map(async (localResource) => {
         try {
-            const remoteResource = await resourceGetFunction({
+            const options = {
                 [resourceName]: localResource['$id'],
                 parseOutput: false,
-            });
+            };
+
+            if (secondId !== '' && secondResourceName !== '') {
+                options[secondResourceName] = localResource[secondId]
+            }
+
+            const remoteResource = await resourceGetFunction(options);
 
             for (let [key, value] of Object.entries(whitelistKeys(remoteResource, keys))) {
                 if (skipKeys.includes(key)) {
                     continue;
                 }
+
+                if (isEmpty(value) && isEmpty(localResource[key])) {
+                    continue;
+                }
+
                 if (Array.isArray(value) && Array.isArray(localResource[key])) {
                     if (JSON.stringify(value) !== JSON.stringify(localResource[key])) {
                         changes.push({
@@ -412,7 +426,7 @@ const approveChanges = async (resource, resourceGetFunction, keys, resourceName,
     }
 
     drawTable(changes);
-    if((await getConfirmation()) === true) {
+    if ((await getConfirmation()) === true) {
         return true;
     }
 
@@ -688,6 +702,24 @@ const deleteAttribute = async (collection, attribute, isIndex = false) => {
     });
 }
 
+const compareAttribute = (remote, local, reason, key) => {
+    if (isEmpty(remote) && isEmpty(local)) {
+        return reason;
+    }
+
+    if (Array.isArray(remote) && Array.isArray(local)) {
+        if (JSON.stringify(remote) !== JSON.stringify(local)) {
+            const bol = reason === '' ? '' : '\n';
+            reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
+        }
+    } else if (remote !== local) {
+        const bol = reason === '' ? '' : '\n';
+        reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
+    }
+
+    return reason
+}
+
 
 /**
  * Check if attribute non-changeable fields has been changed
@@ -715,11 +747,7 @@ const checkAttributeChanges = (remote, local, collection, recraeting = true) => 
 
         if (changeableKeys.includes(key)) {
             if (!recraeting) {
-                if (remote[key] !== local[key]) {
-                    const bol = reason === '' ? '' : '\n';
-                    reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
-                    attribute = local;
-                }
+                reason += compareAttribute(remote[key], local[key], reason, key)
             }
             continue;
         }
@@ -728,15 +756,7 @@ const checkAttributeChanges = (remote, local, collection, recraeting = true) => 
             continue;
         }
 
-        if (Array.isArray(remote[key]) && Array.isArray(local[key])) {
-            if (JSON.stringify(remote[key]) !== JSON.stringify(local[key])) {
-                const bol = reason === '' ? '' : '\n';
-                reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
-            }
-        } else if (remote[key] !== local[key]) {
-            const bol = reason === '' ? '' : '\n';
-            reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
-        }
+        reason += compareAttribute(remote[key], local[key], reason, key)
     }
 
     return reason === '' ? undefined : { key: keyName, attribute, reason, action };
@@ -793,7 +813,7 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection,
             log(`Attribute recreation will cause ${chalk.red('loss of data')}`);
         }
 
-        if((await getConfirmation()) !== true) {
+        if ((await getConfirmation()) !== true) {
             return changedAttributes;
         }
     }
@@ -915,7 +935,7 @@ const pushSettings = async () => {
 
         if (changes.length > 0) {
             drawTable(changes);
-            if((await getConfirmation()) !== true) {
+            if ((await getConfirmation()) !== true) {
                 success(`Successfully pushed 0 project settings.`);
                 return;
             }
@@ -983,6 +1003,8 @@ const pushSettings = async () => {
 }
 
 const pushFunction = async ({ functionId, async, code, withVariables } = { returnOnZero: false }) => {
+    process.chdir(localConfig.configDirectoryPath)
+
     const functionIds = [];
 
     if (functionId) {
@@ -1078,11 +1100,6 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                 entrypoint: func.entrypoint,
                 commands: func.commands,
                 scopes: func.scopes,
-                providerRepositoryId: func.providerRepositoryId ?? "",
-                installationId: func.installationId ?? '',
-                providerBranch: func.providerBranch ?? '',
-                providerRootDirectory: func.providerRootDirectory ?? '',
-                providerSilentMode: func.providerSilentMode ?? false,
                 vars: JSON.stringify(response.vars),
                 parseOutput: false
             });
@@ -1308,8 +1325,6 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
 
     const databases = Array.from(new Set(collections.map(collection => collection['databaseId'])));
 
-    log('Checking for changes ...');
-
     // Parallel db actions
     await Promise.all(databases.map(async (databaseId) => {
         const localDatabase = localConfig.getDatabase(databaseId);
@@ -1340,6 +1355,10 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
         }
     }));
 
+
+    if (!(await approveChanges(collections, databasesGetCollection, KeysCollection, 'collectionId', 'collections', ['attributes', 'indexes'], 'databaseId', 'databaseId',))) {
+        return;
+    }
     // Parallel collection actions
     await Promise.all(collections.map(async (collection) => {
         try {
@@ -1698,9 +1717,9 @@ push
     .action(actionRunner(pushMessagingTopic));
 
 const deploy = new Command("deploy")
-    .description(commandDescriptions['push'])
+    .description('Removed. Use appwrite push instead')
     .action(actionRunner(async () => {
-        warn("Did you mean to run 'appwrite push' command?");
+        warn("appwrite deploy has been removed. Please use 'appwrite push' instead");
     }));
 
 module.exports = {

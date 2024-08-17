@@ -192,6 +192,8 @@ const initTopic = async () => {
 };
 
 const initFunction = async () => {
+    process.chdir(localConfig.configDirectoryPath)
+
     // TODO: Add CI/CD support (ID, name, runtime)
     const answers = await inquirer.prompt(questionsCreateFunction)
     const functionFolder = path.join(process.cwd(), 'functions');
@@ -203,12 +205,13 @@ const initFunction = async () => {
     }
 
     const functionId = answers.id === 'unique()' ? ID.unique() : answers.id;
-    const functionDir = path.join(functionFolder, functionId);
+    const functionName = answers.name;
+    const functionDir = path.join(functionFolder, functionName);
     const templatesDir = path.join(functionFolder, `${functionId}-templates`);
     const runtimeDir = path.join(templatesDir, answers.runtime.name);
 
     if (fs.existsSync(functionDir)) {
-        throw new Error(`( ${functionId} ) already exists in the current directory. Please choose another name.`);
+        throw new Error(`( ${functionName} ) already exists in the current directory. Please choose another name.`);
     }
 
     if (!answers.runtime.entrypoint) {
@@ -285,7 +288,7 @@ const initFunction = async () => {
 
     fs.rmSync(templatesDir, { recursive: true, force: true });
 
-    const readmePath = path.join(process.cwd(), 'functions', functionId, 'README.md');
+    const readmePath = path.join(process.cwd(), 'functions', functionName, 'README.md');
     const readmeFile = fs.readFileSync(readmePath).toString();
     const newReadmeFile = readmeFile.split('\n');
     newReadmeFile[0] = `# ${answers.name}`;
@@ -306,7 +309,7 @@ const initFunction = async () => {
         entrypoint: answers.runtime.entrypoint || '',
         commands: answers.runtime.commands || '',
         ignore: answers.runtime.ignore || null,
-        path: `functions/${functionId}`,
+        path: `functions/${functionName}`,
     };
 
     localConfig.addFunction(data);
