@@ -1,96 +1,86 @@
 import os
-import mimetypes
 import json
+import mimetypes
 import re
+from abc import ABC, abstractmethod
+from typing import Union, Dict, List, Optional
+
+class PayloadData(ABC):
+    def __init__(self, data: Union[str, bytes], filename: Optional[str] = None, mime_type: Optional[str] = None):
+        self.data = data.encode() if isinstance(data, str) else data
+        self.filename = filename
+        self.mime_type = mime_type
+
+    @abstractmethod
+    def size(self) -> int:
+        pass
+
+    @abstractmethod
+    def read(self, offset: int = 0, length: Optional[int] = None) -> bytes:
+        pass
+
+class FileData(PayloadData):
+    def __init__(self, path: str, filename: Optional[str] = None, mime_type: Optional[str] = None):
+        if not os.path.exists(path):
+            raise FileNotFoundError("File not found")
+        super().__init__(path, filename or os.path.basename(path), mime_type or mimetypes.guess_type(path)[0])
+
+    def size(self) -> int:
+        return os.path.getsize(self.data)
+
+    def read(self, offset: int = 0, length: Optional[int] = None) -> bytes:
+        with open(self.data, 'rb') as f:
+            f.seek(offset)
+            return f.read(length) if length is not None else f.read()
+
+class MemoryData(PayloadData):
+    def size(self) -> int:
+        return len(self.data)
+
+    def read(self, offset: int = 0, length: Optional[int] = None) -> bytes:
+        return self.data[offset:offset + length] if length is not None else self.data[offset:]
 
 class Payload:
-    def size(self):
-        if self.data:
-            return len(self.data)
-        if self.path:
-            return os.stat(self.path).st_size
-        raise Exception('Empty payload')
+    def __init__(self, data: PayloadData):
+        self._data = data
 
     @classmethod
-    def handle_form_data(cls, boundary, response_body):
+    def from_path(cls, path: str, filename: Optional[str] = None, mime_type: Optional[str] = None):
+        return cls(FileData(path, filename=filename, mime_type=mime_type))
+
+    @classmethod
+    def from_binary(cls, binary: bytes, filename: Optional[str] = None, mime_type: Optional[str] = None):
+        return cls(MemoryData(binary, filename=filename, mime_type=mime_type))
+
+    @classmethod
+    def from_json(cls, obj: Union[Dict, List], filename: Optional[str] = None, mime_type: str = 'application/json'):
+        json_data = json.dumps(obj) if isinstance(obj, (dict, list)) else obj
+        return cls(MemoryData(json_data, filename=filename, mime_type=mime_type))
+
+    @classmethod
+    def from_string(cls, string: str, filename: Optional[str] = None, mime_type: str = 'text/plain'):
+        return cls(MemoryData(string, filename=filename, mime_type=mime_type))
+
+    def to_string(self) -> str:
+        return self._data.read().decode()
+
+    __str__ = to_binary = to_string
+
+    def to_json(self) -> Union[Dict, List]:
+        return json.loads(self._data.read())
+
+    @staticmethod
+    def handle_form_data(boundary: str, response_body: str) -> Dict:
         parts = response_body.split(boundary)
         data = {}
         for part in parts:
-            lines = [line for line in part.split('\r\n') if line]
-            if not lines:
-                continue
-            match = re.search(r'name="?(?P<name>\w+)', part)
+            match = re.search(r'name="?(\w+)"?', part)
             if match:
-                name = match.group('name')
-                lines = lines[1:]  # Remove the first line (Content-Disposition)
-                if lines and lines[0] == 'Content-Type: application/json':
-                    lines = lines[1:]  # Remove the Content-Type line
-                    headers = json.loads(''.join(lines))
-                    data[name] = {header['name']: header['value'] for header in headers}
-                else:
-                    data[name] = ''.join(lines) if lines else ''
+                name = match.group(1)
+                content = part.split('\r\n\r\n', 1)[-1].strip()
+                data[name] = content
 
         data['responseStatusCode'] = int(data.get('responseStatusCode', 0))
         data['duration'] = float(data.get('duration', 0))
-        data['responseBody'] = cls.from_string(data.get('responseBody', ''))
+        data['responseBody'] = Payload.from_string(data.get('responseBody', ''))
         return data
-
-    @classmethod
-    def from_path(cls, path):
-        instance = cls()
-        instance.path = path
-        instance.filename = os.path.basename(path)
-        instance.mime_type = mimetypes.guess_type(path)[0]
-        return instance
-
-    @classmethod
-    def from_binary(cls, bytes, filename, mime_type=None):
-        instance = cls()
-        instance.data = bytes
-        instance.filename = filename
-        instance.mime_type = mime_type
-        return instance
-
-    @classmethod
-    def from_string(cls, string, filename=None, mime_type='text/plain'):
-        instance = cls()
-        instance.data = string
-        instance.filename = filename
-        instance.mime_type = mime_type
-        return instance
-
-    @classmethod
-    def from_json(cls, json_data, filename=None, mime_type='application/json'):
-        instance = cls()
-        instance.data = json.dumps(json_data)
-        instance.filename = filename
-        instance.mime_type = mime_type
-        return instance
-
-    def to_string(self):
-        return self.data
-
-    def to_json(self):
-        return json.loads(self.data)
-
-    def to_binary(self):
-        if self.data:
-            return self.data.encode() if isinstance(self.data, str) else self.data
-        if self.path:
-            with open(self.path, 'rb') as file:
-                return file.read()
-        raise Exception('Empty payload')
-
-    def __init__(self, data=None, path=None, filename=None, mime_type=None):
-        self.data = data
-        self.path = path
-
-        if not filename and path:
-            self.filename = os.path.basename(path)
-        else:
-            self.filename = filename
-
-        if not mime_type and path:
-            self.mime_type = mimetypes.guess_type(path)[0]
-        else:
-            self.mime_type = mime_type
