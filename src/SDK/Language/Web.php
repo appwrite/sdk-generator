@@ -254,7 +254,7 @@ class Web extends JS
         if ($method['type'] === 'webAuth') {
             return 'Promise<void | string>';
         }
-        
+
         if ($method['type'] === 'location') {
             return 'string';
         }
