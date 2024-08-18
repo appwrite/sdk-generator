@@ -47,7 +47,7 @@ type RealtimeRequest = {
 /**
  * Realtime event response structure with generic payload type.
  */
-export type RealtimeResponseEvent<T extends unknown> = {
+type RealtimeResponseEvent<T extends unknown> = {
     /**
      * List of event names associated with the response.
      */
@@ -214,7 +214,7 @@ type Realtime = {
 /**
  * Type representing upload progress information.
  */
-export type UploadProgress = {
+type UploadProgress = {
     /**
      * Identifier for the upload progress.
      */
@@ -696,4 +696,5 @@ class Client {
 export { Client, {{spec.title | caseUcfirst}}Exception };
 export { Query } from './query';
 export type { Models, Payload, UploadProgress };
+export type { RealtimeResponseEvent };
 export type { QueryTypes, QueryTypesList } from './query';
