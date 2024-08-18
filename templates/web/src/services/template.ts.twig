@@ -1,4 +1,3 @@
-import { Service } from '../service';
 import { {{ spec.title | caseUcfirst}}Exception, Client, type Payload, UploadProgress } from '../client';
 import type { Models } from '../models';
 {% set added = [] %}
@@ -60,49 +59,6 @@ export class {{ service.name | caseUcfirst }} {
         }
         {%~ endfor %}
         const uri = new URL(this.client.config.endpoint + apiPath);
-        {%~ if method.type == 'location' or method.type == 'webAuth' %}
-        {%~ if method.auth|length > 0 %}
-        {%~ for node in method.auth %}
-        {%~ for key,header in node|keys %}
-        payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
-
-        {%~ endfor %}
-        {%~ endfor %}
-        {%~ endif %}
-
-        for (const [key, value] of Object.entries(Service.flatten(payload))) {
-            uri.searchParams.append(key, value);
-        }
-        {%~ endif %}
-        {%~ if method.type == 'webAuth' %}
-            if (typeof window !== 'undefined' && window?.location) {
-                window.location.href = uri.toString();
-            } else {
-                return uri;
-            }
-        {%~ elseif method.type == 'location' %}
-            return uri;
-        {%~ else %}
-        {%~ if 'multipart/form-data' in method.consumes %}
-        {%~ for parameter in method.parameters.all %}
-        {%~ if parameter.type == 'file' %}
-
-        if(!({{ parameter.name | caseCamel | escapeKeyword }} instanceof File)) {
-            throw new {{spec.title | caseUcfirst}}Exception('Parameter "{{ parameter.name | caseCamel | escapeKeyword }}" has to be a File.');
-        }
-
-        const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
-
-        if (size <= Service.CHUNK_SIZE) {
-            return await this.client.call('{{ method.method | caseLower }}', uri, {  
-                {% for parameter in method.parameters.header %}
-                '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
-                {%~ endfor %}
-                {%~ for key, header in method.headers %}
-                '{{ key }}': '{{ header }}',
-                {%~ endfor %}
-            }, payload);
-        }
 
         const apiHeaders: { [header: string]: string } = {
             {%~ for parameter in method.parameters.header %}
@@ -114,12 +70,29 @@ export class {{ service.name | caseUcfirst }} {
         }
 
         {%~ if method.type == 'webAuth' %}
-        return await this.client.redirect(
+        const location = await this.client.redirect(
             '{{ method.method | caseLower }}',
             uri,
             apiHeaders,
             payload
         );
+        if (typeof window !== 'undefined') {
+            window.location.href = location;
+        } else {
+            return location;
+        }
+        {%~ elseif method.type == 'location' %}
+        {%~ for node in method.auth %}
+        {%~ for key, header in node|keys %}
+        payload['{{ header|caseLower }}'] = this.client.config.{{ header|caseLower }};
+        {%~ endfor %}
+        {%~ endfor %}
+
+        for (const [key, value] of Object.entries(Client.flatten(payload))) {
+            uri.searchParams.append(key, value);
+        }
+
+        return uri.toString();
         {%~ elseif 'multipart/form-data' in method.consumes %}
         return await this.client.chunkedUpload(
             '{{ method.method | caseLower }}',
@@ -130,9 +103,9 @@ export class {{ service.name | caseUcfirst }} {
         );
         {%~ else %}
         return await this.client.call(
-            '{{ method.method | caseLower }}', 
+            '{{ method.method | caseLower }}',
             uri,
-            apiHeaders, 
+            apiHeaders,
             payload
         );
         {%~ endif %}
