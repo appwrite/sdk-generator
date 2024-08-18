@@ -73,7 +73,7 @@ try {
         ])
     ;
 
-    $sdk->generate(__DIR__ . '/examples/php');
+    // $sdk->generate(__DIR__ . '/examples/php');
 
     // // Web
     $sdk  = new SDK(new Web(), new Swagger2($spec));
