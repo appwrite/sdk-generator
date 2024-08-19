@@ -15,7 +15,9 @@
             var apiHeaders = new Dictionary<string, string>()
             {
                 {%~ for key, header in method.headers %}
+	            {%~ if method.name | lower == "createexecution" %}
+                {"accept", "multipart/form-data"},
+	            {%~ endif %}
                 { "{{ key }}", "{{ header }}" }{% if not loop.last %},{% endif %}
-
                 {%~ endfor %}
             };

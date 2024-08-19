@@ -3,7 +3,7 @@ using Appwrite.Extensions;
 
 namespace {{ spec.title | caseUcfirst }}.Models
 {
-    public class InputFile
+    public class Payload
     {
         public string Path { get; set; }
         public string Filename { get; set; }
@@ -11,7 +11,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
         public string SourceType { get; set; }
         public object Data { get; set; }
 
-        public static InputFile FromPath(string path) => new InputFile
+        public static Payload FromPath(string path) => new Payload
         {
             Path = path,
             Filename = System.IO.Path.GetFileName(path),
@@ -19,10 +19,10 @@ namespace {{ spec.title | caseUcfirst }}.Models
             SourceType = "path"
         };
 
-        public static InputFile FromFileInfo(FileInfo fileInfo) =>
-            InputFile.FromPath(fileInfo.FullName);
+        public static Payload FromFileInfo(FileInfo fileInfo) =>
+            Payload.FromPath(fileInfo.FullName);
 
-        public static InputFile FromStream(Stream stream, string filename, string mimeType) => new InputFile
+        public static Payload FromStream(Stream stream, string filename, string mimeType) => new Payload
         {
             Data = stream,
             Filename = filename,
@@ -30,7 +30,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
             SourceType = "stream"
         };
 
-        public static InputFile FromBytes(byte[] bytes, string filename, string mimeType) => new InputFile
+        public static Payload FromBytes(byte[] bytes, string filename, string mimeType) => new Payload
         {
             Data = bytes,
             Filename = filename,

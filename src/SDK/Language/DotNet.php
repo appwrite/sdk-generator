@@ -171,7 +171,7 @@ class DotNet extends Language
             self::TYPE_NUMBER => 'double',
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
-            self::TYPE_FILE => 'InputFile',
+            self::TYPE_FILE => 'Payload',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? 'List<' . $this->getTypeName($parameter['array']) . '>'
                 : 'List<object>',
@@ -243,7 +243,7 @@ class DotNet extends Language
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'InputFile.FromPath("./path-to-files/image.jpg")';
+                    $output .= 'Payload.FromFile("./path-to-files/image.jpg")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -287,7 +287,11 @@ class DotNet extends Language
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "\"{$example}\"";
+                    if ($param['name'] === 'body' && strpos(($param['description'] ?? ''), 'body of execution') !== false) {
+                        $output .= 'Payload.fromString("<BODY>")';
+                    } else {
+                        $output .= '"{$example}"';
+                    }
                     break;
             }
         }
@@ -393,8 +397,8 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseUcfirst }}/Models/InputFile.cs',
-                'template'      => 'dotnet/Package/Models/InputFile.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Models/Payload.cs',
+                'template'      => 'dotnet/Package/Models/Payload.cs.twig',
             ],
             [
                 'scope'         => 'default',

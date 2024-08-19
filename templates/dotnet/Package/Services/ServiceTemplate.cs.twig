@@ -49,7 +49,7 @@ namespace {{ spec.title | caseUcfirst }}.Services
             {{~ include('dotnet/base/requests/location.twig') }}
             {%~ elseif method.type == 'webAuth' %}
             {{~ include('dotnet/base/requests/oauth.twig') }}
-            {%~ elseif 'multipart/form-data' in method.consumes %}
+            {%~ elseif 'multipart/form-data' in method.consumes and method.name | lower != "createexecution" %}
             {{~ include('dotnet/base/requests/file.twig') }}
             {%~ else %}
             {{~ include('dotnet/base/requests/api.twig')}}
