@@ -28,6 +28,7 @@
 {% endif %}
 {% if method.parameters.body | length > 0 %}
 {% for parameter in method.parameters.body %}
+{{ dump(parameter) }}
 | {{ parameter.name }} | {{ parameter.type }} | {{ parameter.description | raw }} | {{ parameter.default }} |
 {% endfor %}
 {% endif %}

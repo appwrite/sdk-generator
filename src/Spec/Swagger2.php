@@ -238,7 +238,8 @@ class Swagger2 extends Spec
                                 $output['parameters']['query'][] = $param;
                                 break;
                             case 'formData':
-                                $output['parameters']['body'][] = $param;
+                                $param['default'] = (is_array($param['default']) || $param['default'] instanceof stdClass) ? json_encode($param['default']) : $param['default'];
+                                $output['parameters']['body'][] = $param['default'];
                                 break;
                             case 'body':
                                 $bodyProperties = $parameter['schema']['properties'] ?? [];
@@ -266,6 +267,8 @@ class Swagger2 extends Spec
                                         $temp['enumKeys'] = $value['x-enum-keys'];
                                     }
 
+                                    var_dump("----------------------------------");
+                                    var_dump($method["x-appwrite"]["method"], $value['default']);
                                     $temp['default'] = (is_array($value['default']) || $value['default'] instanceof stdClass) ? json_encode($value['default']) : $value['default'];
 
                                     $output['parameters']['body'][] = $temp;
