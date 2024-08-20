@@ -238,6 +238,7 @@ class Swagger2 extends Spec
                                 $output['parameters']['query'][] = $param;
                                 break;
                             case 'formData':
+                                // $param['default'] = (is_array($param['default']) || $param['default'] instanceof stdClass) ? json_encode($param['default']) : $param['default'];
                                 $output['parameters']['body'][] = $param;
                                 break;
                             case 'body':
