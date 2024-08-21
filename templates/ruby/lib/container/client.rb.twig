@@ -213,7 +213,7 @@ module {{ spec.title | caseUcfirst }}
                     when 'application/json'
                         payload = params.to_json
                     when 'multipart/form-data'
-                        payload = encode_form_data(params) + "--#{@boundary}--"
+                        payload = encode_form_data(params) + "\r\n--#{@boundary}--"
                         headers[:'content-type'] = "multipart/form-data; boundary=#{@boundary}"
                     else
                         payload = encode(params)
