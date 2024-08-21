@@ -32,7 +32,7 @@
       "description": "Your project ID",
       "in": "header",
       "x-appwrite": {
-        "demo": "5df5acd0d48c2"
+        "demo": "<YOUR_PROJECT_ID>"
       }
     },
     "Key": {
