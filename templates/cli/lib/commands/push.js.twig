@@ -64,6 +64,8 @@ const {
     projectsUpdateAuthPasswordDictionary,
     projectsUpdateAuthPasswordHistory,
     projectsUpdatePersonalDataCheck,
+    projectsUpdateSessionAlerts,
+    projectsUpdateMockNumbers,
 } = require("./projects");
 const { checkDeployConditions } = require('../utils');
 
@@ -980,6 +982,8 @@ const pushSettings = async () => {
                 await projectsUpdateAuthPasswordDictionary({ projectId, enabled: settings.auth.security.passwordDictionary, parseOutput: false });
                 await projectsUpdateAuthPasswordHistory({ projectId, limit: settings.auth.security.passwordHistory, parseOutput: false });
                 await projectsUpdatePersonalDataCheck({ projectId, enabled: settings.auth.security.personalDataCheck, parseOutput: false });
+                await projectsUpdateSessionAlerts({ projectId, alerts: settings.auth.security.sessionAlerts, parseOutput: false });
+                await projectsUpdateMockNumbers({ projectId, numbers: settings.auth.security.mockNumbers, parseOutput: false });
             }
 
             if (settings.auth.methods) {
