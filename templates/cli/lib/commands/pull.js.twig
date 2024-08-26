@@ -88,9 +88,9 @@ const pullFunctions = async ({ code, withVariables }) => {
         if (!localFunction['path']) {
             func['path'] = `functions/${func.name}`;
         }
-        if (!withVariables) {
-            delete func['vars'];
-        }
+        const holdingVars = func['vars'];
+        // We don't save var in to the config
+        delete func['vars'];
         localConfig.addFunction(func);
 
         if (!fs.existsSync(func['path'])) {
@@ -162,7 +162,7 @@ const pullFunctions = async ({ code, withVariables }) => {
             } catch {
             }
 
-            fs.writeFileSync(envFileLocation, func['vars'].map(r => `${r.key}=${r.value}\n`).join(''))
+            fs.writeFileSync(envFileLocation, holdingVars.map(r => `${r.key}=${r.value}\n`).join(''))
         }
     }
 
