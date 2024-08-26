@@ -1,3 +1,4 @@
+import { Service } from '../service';
 import { {{ spec.title | caseUcfirst}}Exception, Client, type Payload, UploadProgress } from '../client';
 import type { Models } from '../models';
 {% set added = [] %}
@@ -69,17 +70,25 @@ export class {{ service.name | caseUcfirst }} {
             {%~ endfor %}
         }
 
-        {%~ if method.type == 'webAuth' %}
-        const location = await this.client.redirect(
-            '{{ method.method | caseLower }}',
-            uri,
-            apiHeaders,
-            payload
-        );
-        if (typeof window !== 'undefined') {
-            window.location.href = location;
+        {%~ if method.type == 'location' or method.type == 'webAuth' %}
+        {%~ if method.auth|length > 0 %}
+        {%~ for node in method.auth %}
+        {%~ for key,header in node|keys %}
+        payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
+        {%~ endfor %}
+        {%~ endfor %}
+        {%~ endif %}
+        for (const [key, value] of Object.entries(Service.flatten(payload))) {
+            uri.searchParams.append(key, value);
         }
-        return location.toString();
+        {%~ endif %}
+
+        {%~ if method.type == 'webAuth' %}
+        if (typeof window !== 'undefined' && window?.location) {
+            window.location.href = uri.toString();
+        } else {
+            return uri.toString();
+        }
         {%~ elseif method.type == 'location' %}
         {%~ for node in method.auth %}
         {%~ for key, header in node|keys %}
