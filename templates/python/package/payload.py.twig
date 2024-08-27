@@ -6,11 +6,6 @@ from abc import ABC, abstractmethod
 from typing import Union, Dict, List, Optional
 
 class PayloadData(ABC):
-    def __init__(self, data: Union[str, bytes], filename: Optional[str] = None, mime_type: Optional[str] = None):
-        self.data = data.encode() if isinstance(data, str) else data
-        self.filename = filename
-        self.mime_type = mime_type
-
     @abstractmethod
     def size(self) -> int:
         pass
@@ -23,7 +18,9 @@ class FileData(PayloadData):
     def __init__(self, path: str, filename: Optional[str] = None, mime_type: Optional[str] = None):
         if not os.path.exists(path):
             raise FileNotFoundError("File not found")
-        super().__init__(path, filename or os.path.basename(path), mime_type or mimetypes.guess_type(path)[0])
+        self.path = path
+        self.filename = filename or os.path.basename(path)
+        self.mime_type = mime_type or mimetypes.guess_type(path)[0]
 
     def size(self) -> int:
         return os.path.getsize(self.data)
@@ -34,6 +31,11 @@ class FileData(PayloadData):
             return f.read(length) if length is not None else f.read()
 
 class MemoryData(PayloadData):
+    def __init__(self, data: Union[str, bytes], filename: Optional[str] = None, mime_type: Optional[str] = None):
+        self.data = data.encode() if isinstance(data, str) else data
+        self.filename = filename
+        self.mime_type = mime_type
+
     def size(self) -> int:
         return len(self.data)
 
