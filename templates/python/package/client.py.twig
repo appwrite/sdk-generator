@@ -72,7 +72,7 @@ class Client:
             stringify = True
             for key in data.copy():
                 if isinstance(data[key], Payload):
-                    files[key] = (data[key].filename, str(data[key]), data[key].mime_type)
+                    files[key] = (data[key].filename, data[key]._data.read(), data[key].mime_type)
                     del data[key]
             data = self.flatten(data, stringify=stringify)
 

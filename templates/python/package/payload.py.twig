@@ -45,6 +45,8 @@ class MemoryData(PayloadData):
 class Payload:
     def __init__(self, data: PayloadData):
         self._data = data
+        self.filename = data.filename
+        self.mime_type = data.mime_type
 
     @classmethod
     def from_path(cls, path: str, filename: Optional[str] = None, mime_type: Optional[str] = None):
