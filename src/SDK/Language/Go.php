@@ -148,8 +148,8 @@ class Go extends Language
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
             self::TYPE_OBJECT => 'interface{}',
-            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
-            ? '[]' . $this->getTypeName($parameter['array'])
+            self::TYPE_ARRAY => (!empty(($parameter['items'] ?? [])['type']) && !\is_array($parameter['items']['type']))
+            ? '[]' . $this->getTypeName($parameter['items'])
             : '[]string',
             default => $parameter['type'],
         };
