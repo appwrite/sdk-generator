@@ -23,7 +23,7 @@ class FileData(PayloadData):
         self.mime_type = mime_type or mimetypes.guess_type(path)[0]
 
     def size(self) -> int:
-        return os.path.getsize(self.data)
+        return os.path.getsize(self.path)
 
     def read(self, offset: int = 0, length: Optional[int] = None) -> bytes:
         with open(self.data, 'rb') as f:
