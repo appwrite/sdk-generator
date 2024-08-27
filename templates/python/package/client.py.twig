@@ -132,7 +132,6 @@ class Client:
         size = params[param_name]._data.size()
 
         if size < self._chunk_size:    
-            params[param_name] = input_file
             return self.call(
                 'post',
                 path,
