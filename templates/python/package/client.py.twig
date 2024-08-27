@@ -129,7 +129,7 @@ class Client:
         upload_id = ''
     ):
         payload = params[param_name]
-        size = params[param_name].data.size()
+        size = params[param_name]._data.size()
 
         if size < self._chunk_size:    
             params[param_name] = input_file
