@@ -456,8 +456,10 @@ class Local extends Config {
                     sessionsLimit: projectSettings.authSessionsLimit,
                     passwordHistory: projectSettings.authPasswordHistory,
                     passwordDictionary: projectSettings.authPasswordDictionary,
-                    personalDataCheck: projectSettings.authPersonalDataCheck
-                }
+                    personalDataCheck: projectSettings.authPersonalDataCheck,
+                    sessionAlerts: projectSettings.authSessionAlerts,
+                    mockNumbers: projectSettings.authMockNumbers
+                },
             }
         };
     }

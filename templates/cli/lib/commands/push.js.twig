@@ -64,6 +64,8 @@ const {
     projectsUpdateAuthPasswordDictionary,
     projectsUpdateAuthPasswordHistory,
     projectsUpdatePersonalDataCheck,
+    projectsUpdateSessionAlerts,
+    projectsUpdateMockNumbers,
 } = require("./projects");
 const { checkDeployConditions } = require('../utils');
 
@@ -980,6 +982,8 @@ const pushSettings = async () => {
                 await projectsUpdateAuthPasswordDictionary({ projectId, enabled: settings.auth.security.passwordDictionary, parseOutput: false });
                 await projectsUpdateAuthPasswordHistory({ projectId, limit: settings.auth.security.passwordHistory, parseOutput: false });
                 await projectsUpdatePersonalDataCheck({ projectId, enabled: settings.auth.security.personalDataCheck, parseOutput: false });
+                await projectsUpdateSessionAlerts({ projectId, alerts: settings.auth.security.sessionAlerts, parseOutput: false });
+                await projectsUpdateMockNumbers({ projectId, numbers: settings.auth.security.mockNumbers, parseOutput: false });
             }
 
             if (settings.auth.methods) {
@@ -1717,9 +1721,9 @@ push
     .action(actionRunner(pushMessagingTopic));
 
 const deploy = new Command("deploy")
-    .description(commandDescriptions['push'])
+    .description('Removed. Use appwrite push instead')
     .action(actionRunner(async () => {
-        warn("Did you mean to run 'appwrite push' command?");
+        warn("appwrite deploy has been removed. Please use 'appwrite push' instead");
     }));
 
 module.exports = {
