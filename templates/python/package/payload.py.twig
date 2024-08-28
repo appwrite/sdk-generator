@@ -29,15 +29,15 @@ class FileData(PayloadData):
             return f.read(length) if length is not None else f.read()
 
 class MemoryData(PayloadData):
-    def __init__(self, bytes: Union[str, bytes], filename: Optional[str] = None):
-        self.bytes = bytes.encode() if isinstance(bytes, str) else bytes
+    def __init__(self, b: Union[str, bytes], filename: Optional[str] = None):
+        self.b = b.encode() if isinstance(b, str) else b
         self.filename = filename
 
     def size(self) -> int:
-        return len(self.bytes)
+        return len(self.b)
 
     def read(self, offset: int = 0, length: Optional[int] = None) -> bytes:
-        return self.bytes[offset:offset + length] if length is not None else self.bytes[offset:]
+        return self.b[offset:offset + length] if length is not None else self.b[offset:]
 
 class Payload:
     def __init__(self, data: PayloadData):
@@ -49,8 +49,8 @@ class Payload:
         return cls(FileData(path, filename=filename))
 
     @classmethod
-    def from_binary(cls, binary: bytes, filename: Optional[str] = None):
-        return cls(MemoryData(binary, filename=filename))
+    def from_bytes(cls, b: bytes, filename: Optional[str] = None):
+        return cls(MemoryData(b, filename=filename))
 
     @classmethod
     def from_json(cls, obj: Union[Dict, List], filename: Optional[str] = FileNotFoundError):
@@ -64,7 +64,7 @@ class Payload:
     def to_string(self) -> str:
         return self._data.read().decode()
 
-    __str__ = to_binary = to_string
+    __str__ = to_bytes = to_string
 
     def to_json(self) -> Union[Dict, List]:
         return json.loads(self._data.read())
