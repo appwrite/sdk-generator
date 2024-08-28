@@ -1,39 +1,57 @@
 module Appwrite
   class Payload
     attr_reader :data
+    attr_reader :filename
 
-    def initialize(data)
+    def initialize(data: nil, path: nil, filename: nil)
+      @path = path
       @data = data
+      @filename = filename
+
+      @size = if @data then
+        @data.bytesize
+      else
+        File.size(@path)
+      end
+    end
+
+    def read(offset: 0, length: nil)
+      if @data then
+        @data.byteslice(offset, length || @data.bytesize)
+      else
+        IO.read(@path, length || File.size(@path), offset)
+      end
     end
 
     # @param [String] path
     # @param [String, nil] filename
-    # @param [String, nil] mime_type
     # @return [Payload]
-    def self.from_path(path, filename: nil, mime_type: nil)
-      new(FilePayload.new(path, filename: filename, mime_type: mime_type))
+    def self.from_path(path, filename: nil)
+        filename = if filename.nil? then
+          File.basename(path)
+        else
+          filename
+        end
+      new(FilePayload.new(path), filename: filename)
     end
 
-    # @param [String] binary
+    # @param [String] b
     # @param [String, nil] filename
-    # @param [String, nil] mime_type
-    def self.from_binary(binary, filename: nil, mime_type: nil)
-      new(MemoryPayload.new(binary, filename: filename, mime_type: mime_type))
+    def self.from_binary(b, filename: nil)
+      new(b, nil, filename)
     end
 
     # @param [Hash, Array] object
     # @param [String, nil] filename
-    # @param [String, nil] mime_type
-    def self.from_json(object, filename: nil, mime_type: 'application/json')
+    def self.from_json(object, filename: nil)
       json = JSON.generate(object) if object.is_a?(Hash) || object.is_a?(Array)
-      new(MemoryPayload.new(json, filename: filename, mime_type: mime_type))
+      new(json, nil, filename)
     end
 
     # @param [String] string
     # @param [String, nil] filename
-    # @param [String, nil] mime_type
-    def self.from_string(string, filename: nil, mime_type: 'text/plain')
-      new(MemoryPayload.new(string, filename: filename, mime_type: mime_type))
+    def self.from_string(string, filename: nil)
+      new(string, nil, filename)
     end
 
     # @return [String]
@@ -48,98 +66,6 @@ module Appwrite
     def to_json
       JSON.parse(@data.read())
     end
-
-    def self.handle_form_data(boundary, response_body)
-      parts = response_body.split(boundary)
-      data = {}
-      
-      parts.each do |part|
-        lines = part.split("\r\n").reject(&:empty?)
-        match_data = /name="?(?<name>\w+)/.match(part)
-        
-        if match_data
-          name = match_data[:name]
-          data[name] = lines[1] || ''
-        end
-      end
-
-      data['responseStatusCode'] = data['responseStatusCode'].to_i
-      data['duration'] = data['duration'].to_f
-      data['responseBody'] = from_string(data['responseBody'] || '')
-      data
-    end
-
-    class FilePayload
-      attr_reader :filename, :mime_type
-
-      def initialize(path, filename: nil, mime_type: nil)
-        raise "File not found" unless File.exist?(path)
-        @path = path
-  
-        @filename = if filename.nil? then
-          File.basename(path)
-        else
-          filename
-        end
-  
-        @mime_type = if mime_type.nil? then
-          MIME::Types.type_for(path).first.content_type rescue nil
-        else
-          mime_type
-        end
-      end
-  
-      def size 
-        File.size(@path)
-      end
-    
-      def read(offset: 0, length: nil)
-        IO.read(@path, length || File.size(@path), offset)
-      end
-
-      def to_multipart(boundary, name)
-        [
-          "--#{boundary}",
-          "Content-Disposition: form-data; name=\"#{name}\";" + (@filename ? " filename=\"#{@filename}\"" : ''),
-          (@mime_type ? "Content-Type: #{@mime_type}\r\n" : ''),
-          self.read(),
-          "--#{boundary}--",
-          ''
-        ].join("\r\n")
-      end
-    end
-
-    class MemoryPayload
-      attr_reader :filename, :mime_type
-
-      def initialize(data, filename: nil, mime_type: nil)
-        @data = data
-        @filename = filename
-        @mime_type = mime_type
-      end
-  
-      def size 
-        @data.bytesize
-      end
-    
-      def read(offset: 0, length: nil)
-        @data.byteslice(offset, length || @data.bytesize)
-      end
-
-      def to_multipart(boundary, name)
-        [
-          "--#{boundary}",
-          "Content-Disposition: form-data; name=\"#{name}\";" + (@filename ? " filename=\"#{@filename}\"" : ''),
-          (@mime_type ? "Content-Type: #{@mime_type}\r\n" : ''),
-          self.read(),
-          "--#{boundary}--",
-          ''
-        ].join("\r\n")
-      end
-    end
-
-    private_constant :FilePayload
-    private_constant :MemoryPayload
 
     private_class_method :new
   end

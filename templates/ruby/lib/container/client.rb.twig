@@ -137,8 +137,7 @@ module {{ spec.title | caseUcfirst }}
             while offset < size
                 params[param_name.to_sym] = Payload::from_binary(
                     payload.data.read(offset: offset, length: [@chunk_size, size - offset].min),
-                    filename: payload.data.filename,
-                    mime_type: payload.data.mime_type
+                    filename: payload.data.filename
                 )
 
                 headers['content-range'] = "bytes #{offset}-#{[offset + @chunk_size - 1, size - 1].min}/#{size}"
@@ -249,7 +248,24 @@ module {{ spec.title | caseUcfirst }}
             if response.content_type == 'multipart/form-data'
                 matches = response.body.match(/(?<boundary>[-]+[\w]+)--/m)
                 if matches && matches[:boundary]
-                    response.body = Payload.handle_form_data(matches[:boundary], response.body)
+                    parts = response_body.split(boundary)
+                    data = {}
+
+                    parts.each do |part|
+                        lines = part.split("\r\n").reject(&:empty?)
+                        match_data = /name="?(?<name>\w+)/.match(part)
+                        
+                        if match_data
+                        name = match_data[:name]
+                        data[name] = lines[1] || ''
+                        end
+                    end
+
+                    data['responseStatusCode'] = data['responseStatusCode'].to_i
+                    data['duration'] = data['duration'].to_f
+                    data['responseBody'] = Payload::from_binary(data['responseBody'])
+
+                    response.body = data
                 end
             end
 
@@ -267,7 +283,10 @@ module {{ spec.title | caseUcfirst }}
         def encode_form_data(value, key=nil)
             case value
             when Payload
-                value.data.to_multipart(@boundary, key)
+                post_body << "--#{boundary}\r\n",
+                post_body << "Content-Disposition: form-data; name=\"#{name}\";" + (@filename ? " filename=\"#{@filename}\"" : '') + "\r\n\r\n",
+                post_body << value.data.read(),
+                post_body << "\r\n"
             when Hash
                 value.map { |k,v| encode_form_data(v,k) }.join
             when Array
