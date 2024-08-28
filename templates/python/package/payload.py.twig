@@ -49,7 +49,7 @@ class Payload:
         return cls(FileData(path, filename=filename))
 
     @classmethod
-    def from_bytes(cls, b: bytes, filename: Optional[str] = None):
+    def from_binary(cls, b: bytes, filename: Optional[str] = None):
         return cls(MemoryData(b, filename=filename))
 
     @classmethod
@@ -64,7 +64,7 @@ class Payload:
     def to_string(self) -> str:
         return self._data.read().decode()
 
-    __str__ = to_bytes = to_string
+    __str__ = to_binary = to_string
 
     def to_json(self) -> Union[Dict, List]:
         return json.loads(self._data.read())

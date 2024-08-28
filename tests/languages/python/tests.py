@@ -68,11 +68,11 @@ response = general.upload('string', 123, ['string in array'], Payload.from_path(
 print(response['result'])
 
 data = open('./tests/resources/file.png', 'rb').read()
-response = general.upload('string', 123, ['string in array'], Payload.from_bytes(data, 'file.png', 'image/png'))
+response = general.upload('string', 123, ['string in array'], Payload.from_binary(data, 'file.png'))
 print(response['result'])
 
 data = open('./tests/resources/large_file.mp4', 'rb').read()
-response = general.upload('string', 123, ['string in array'], Payload.from_bytes(data, 'large_file.mp4','video/mp4'))
+response = general.upload('string', 123, ['string in array'], Payload.from_binary(data, 'large_file.mp4'))
 print(response['result'])
 
 response = general.enum(MockType.FIRST)
