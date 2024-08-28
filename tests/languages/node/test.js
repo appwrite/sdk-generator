@@ -65,18 +65,18 @@ async function start() {
     response = await general.redirect();
     console.log(response.result);
 
-    response = await general.upload('string', 123, ['string in array'], Payload.fromFile(__dirname + '/../../resources/file.png', 'file.png'));
+    response = await general.upload('string', 123, ['string in array'], Payload.fromFile(__dirname + '/../../resources/file.png', 'file.png').toFile());
     console.log(response.result);
 
-    response = await general.upload('string', 123, ['string in array'], Payload.fromFile(__dirname + '/../../resources/large_file.mp4', 'large_file.mp4'));
+    response = await general.upload('string', 123, ['string in array'], Payload.fromFile(__dirname + '/../../resources/large_file.mp4', 'large_file.mp4').toFile());
     console.log(response.result);
 
     const smallBuffer = await readFile('./tests/resources/file.png');
-    response = await general.upload('string', 123, ['string in array'], Payload.fromBinary(smallBuffer, 'file.png'))
+    response = await general.upload('string', 123, ['string in array'], Payload.fromBinary(smallBuffer, 'file.png').toFile())
     console.log(response.result);
 
     const largeBuffer = await readFile('./tests/resources/large_file.mp4');
-    response = await general.upload('string', 123, ['string in array'], Payload.fromBinary(largeBuffer, 'large_file.mp4'))
+    response = await general.upload('string', 123, ['string in array'], Payload.fromBinary(largeBuffer, 'large_file.mp4').toFile())
     console.log(response.result);
 
     response = await general.enum(MockType.First);

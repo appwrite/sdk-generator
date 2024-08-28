@@ -1,9 +1,9 @@
 import { fetch, FormData, File } from 'node-fetch-native-with-agent';
 import { createAgent } from 'node-fetch-native-with-agent/agent';
 import { Models } from './models';
-import { Payload } from './Payload';
+import { Payload } from './payload';
 import * as multipart from 'parse-multipart-data';
-const { buffer } = require('node:stream/consumers');
+import { buffer } from 'node:stream/consumers';
 
 type JSONPayload = {
     [key: string]: any;
@@ -275,28 +275,26 @@ class Client {
         } else if (responseType === 'arrayBuffer') {
             data = await response.arrayBuffer();
         } else if (response.headers.get('content-type')?.includes('multipart/form-data')) {
-            const body = await buffer(response.body);
+            const body = Buffer.from(await response.text() ?? '', 'utf8');
             const boundary = multipart.getBoundary(
                 response.headers.get("content-type") || ""
             );
             const parts = multipart.parse(body, boundary);
-            const partsObject = {};
-            let fileName;
+            const partsObject: { [key: string]: Buffer | string } = {};
+            let filename = '';
             for (const part of parts) {
                 if (part.name) {
                     if (part.name === "responseBody") {
                         partsObject[part.name] = part.data;
-                    } else if (part.name === "filename") {
-                        fileName = part.data.toString();
-                        partsObject[part.name] = fileName;
+                        filename = part.filename || '';
                     } else {
                         partsObject[part.name] = part.data.toString();
                     }
                 }
             }
             data = {
-                ...partsObject,
-                responseBody: new Payload(partsObject.responseBody, fileName),
+              ...partsObject,
+              responseBody: new Payload(partsObject.responseBody as Buffer, filename),
             };
         } else {
             data = {

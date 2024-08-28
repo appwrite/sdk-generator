@@ -20,6 +20,9 @@ class Node extends Web
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
+        if (($parameter['name'] ?? '') === 'body') {
+            return 'Payload';
+        }
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
@@ -79,7 +82,7 @@ class Node extends Web
             $this->populateGenerics($method['responseModel'], $spec, $models);
 
             $models = array_unique($models);
-            $models = array_filter($models, fn ($model) => $model != $this->toPascalCase($method['responseModel']));
+            $models = array_filter($models, fn($model) => $model != $this->toPascalCase($method['responseModel']));
 
             if (!empty($models)) {
                 $ret .= '<' . implode(', ', $models) . '>';
@@ -92,7 +95,7 @@ class Node extends Web
         return 'Promise<{}>';
     }
 
-        /**
+    /**
      * @param array $param
      * @return string
      */

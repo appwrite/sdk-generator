@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync } from "fs";
+import { File } from "node-fetch-native-with-agent";
 import { basename } from "path";
 
 export class Payload {
@@ -30,12 +31,12 @@ export class Payload {
     return this.data.toString("utf-8");
   }
 
-  public toFile(path: string): void {
-    writeFileSync(path, this.data);
+  public toFile(path: string): File {
+    return new File([this.data], this.name);
   }
 
   public static fromBinary(bytes: Buffer, name?: string): Payload {
-    return new Payload(Buffer.from(bytes), name);
+    return new Payload(bytes, name);
   }
 
   public static fromJson(object: any, name?: string): Payload {
