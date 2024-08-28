@@ -165,7 +165,7 @@ class Node extends Web
             [
                 'scope'         => 'default',
                 'destination'   => 'src/payload.ts',
-                'template'      => 'node/src/payload.ts.twig',
+                'template'      => 'node/src/Payload.ts.twig',
             ],
             [
                 'scope'         => 'service',
