@@ -1,9 +1,10 @@
 import { Models } from './models';
+import { Payload } from './payload';
 
 /**
  * Payload type representing a key-value pair with string keys and any values.
  */
-type Payload = {
+type RequestPayload = {
     [key: string]: any;
 }
 
@@ -539,7 +540,7 @@ class Client {
         }
     }
 
-    prepareRequest(method: string, url: URL, headers: Headers = {}, params: Payload = {}): { uri: string, options: RequestInit } {
+    prepareRequest(method: string, url: URL, headers: Headers = {}, params: RequestPayload = {}): { uri: string, options: RequestInit } {
         method = method.toUpperCase();
 
         headers = Object.assign({}, this.headers, headers);
@@ -570,7 +571,7 @@ class Client {
                     const formData = new FormData();
 
                     for (const [key, value] of Object.entries(params)) {
-                        if (value instanceof File) {
+                        if (value instanceof Payload) {
                             formData.append(key, value, value.name);
                         } else if (Array.isArray(value)) {
                             for (const nestedValue of value) {
@@ -590,11 +591,10 @@ class Client {
         return { uri: url.toString(), options };
     }
 
-    async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: Payload = {}, onProgress: (progress: UploadProgress) => void) {
-        const file = Object.values(originalPayload).find((value) => value instanceof File);
-
+    async chunkedUpload(method: string, url: URL, headers: Headers = {}, payload: RequestPayload = {}, onProgress: (progress: UploadProgress) => void) {
+        const file = Object.values(payload).find((value) => value instanceof Payload);
         if (file.size <= Client.CHUNK_SIZE) {
-            return await this.call(method, url, headers, originalPayload);
+            return await this.call(method, url, headers, payload);
         }
 
         let start = 0;
@@ -607,11 +607,10 @@ class Client {
             }
 
             headers['content-range'] = `bytes ${start}-${end-1}/${file.size}`;
-            const chunk = file.slice(start, end);
 
-            let payload = { ...originalPayload, file: new File([chunk], file.name)};
-
-            response = await this.call(method, url, headers, payload);
+            response = await this.call(method, url, headers, {
+                file: Payload.fromBinary([file.slice(start, end)], file.name);
+            });
 
             if (onProgress && typeof onProgress === 'function') {
                 onProgress({
@@ -633,7 +632,7 @@ class Client {
         return response;
     }
 
-    async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}, responseType = 'json'): Promise<any> {
+    async call(method: string, url: URL, headers: Headers = {}, params: RequestPayload = {}, responseType = 'json'): Promise<any> {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
 
         let data: any = null;
@@ -669,8 +668,8 @@ class Client {
         return data;
     }
 
-    static flatten(data: Payload, prefix = ''): Payload {
-        let output: Payload = {};
+    static flatten(data: RequestPayload, prefix = ''): RequestPayload {
+        let output: RequestPayload = {};
 
         for (const [key, value] of Object.entries(data)) {
             let finalKey = prefix ? prefix + '[' + key +']' : key;
@@ -687,6 +686,6 @@ class Client {
 
 export { Client, {{spec.title | caseUcfirst}}Exception };
 export { Query } from './query';
-export type { Models, Payload, UploadProgress };
+export type { Models, RequestPayload, UploadProgress };
 export type { RealtimeResponseEvent };
 export type { QueryTypes, QueryTypesList } from './query';

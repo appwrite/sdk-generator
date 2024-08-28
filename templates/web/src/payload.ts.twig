@@ -1,0 +1,40 @@
+export class Payload extends Blob {
+    public name: string | null = null;
+
+    constructor(data: BlobPart[], name?: string) {
+        super(data);
+        this.name = name || null;
+    }
+
+    public async toString() {
+        return await this.text();
+    }
+
+    public async toJson<T = unknown>(): Promise<T> {
+        return JSON.parse(await this.text());
+    }
+
+    public async toBinary(): Promise<Uint8Array> {
+        return new Uint8Array(await this.arrayBuffer());
+    }
+
+    public async toFile(): Promise<File> {
+        return new File([this], this.name || "file");
+    }
+
+    public static fromFile(file: File): Payload {
+        return new Payload([file], file.name);
+    }
+
+    public static fromString(data: string, name?: string): Payload {
+        return new Payload([data], name);
+    }
+
+    public static fromJson(data: unknown, name?: string): Payload {
+        return new Payload([JSON.stringify(data)], name);
+    }
+
+    public static fromBinary(data: Uint8Array, name?: string): Payload {
+        return new Payload([data], name);
+    }
+}
