@@ -1,0 +1,58 @@
+import { readFileSync, writeFileSync } from "fs";
+import { basename } from "path";
+
+export class Payload {
+  private data: Buffer;
+  public name?: string;
+
+  constructor(data: Buffer, name?: string) {
+    this.data = data;
+    this.name = name;
+  }
+
+  public getData(): Buffer {
+    return this.data;
+  }
+
+  public getName(): string | undefined {
+    return this.name;
+  }
+
+  public toBinary(): Buffer {
+    return this.data;
+  }
+
+  public toJson(): any {
+    return JSON.parse(this.data.toString("utf-8"));
+  }
+
+  public toString(): string {
+    return this.data.toString("utf-8");
+  }
+
+  public toFile(path: string): void {
+    writeFileSync(path, this.data);
+  }
+
+  public static fromBinary(bytes: Buffer, name?: string): Payload {
+    return new Payload(Buffer.from(bytes), name);
+  }
+
+  public static fromJson(object: any, name?: string): Payload {
+    const data = Buffer.from(JSON.stringify(object), "utf-8");
+    return new Payload(data, name);
+  }
+
+  public static fromString(text: string, name?: string): Payload {
+    const data = Buffer.from(text, "utf-8");
+    return new Payload(data, name);
+  }
+
+  public static fromFile(file: string, name?: string): Payload {
+    const data = readFileSync(file);
+    if (!name) {
+      name = basename(file);
+    }
+    return new Payload(data, name);
+  }
+}

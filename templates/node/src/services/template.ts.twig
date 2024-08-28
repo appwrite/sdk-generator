@@ -1,4 +1,4 @@
-import { {{ spec.title | caseUcfirst}}Exception, Client, type Payload, UploadProgress } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, Client, type JSONPayload, UploadProgress } from '../client';
 import type { Models } from '../models';
 {% set added = [] %}
 {% for method in service.methods %}
@@ -47,7 +47,7 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endif %}
         {%~ endfor %}
         const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-        const payload: Payload = {};
+        const payload: JSONPayload = {};
         {%~ for parameter in method.parameters.query %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
             payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};

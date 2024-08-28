@@ -120,7 +120,7 @@ class Node extends Web
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.fromPath('/path/to/file', 'filename')";
+                    $output .= "Payload.fromFile('/path/to/file', 'filename')";
                     break;
             }
         } else {
@@ -138,7 +138,7 @@ class Node extends Web
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.fromPath('/path/to/file', 'filename')";
+                    $output .= "Payload.fromFile('/path/to/file', 'filename')";
                     break;
             }
         }
@@ -164,8 +164,8 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/inputFile.ts',
-                'template'      => 'node/src/inputFile.ts.twig',
+                'destination'   => 'src/payload.ts',
+                'template'      => 'node/src/payload.ts.twig',
             ],
             [
                 'scope'         => 'service',

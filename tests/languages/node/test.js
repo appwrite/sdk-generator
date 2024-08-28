@@ -9,7 +9,7 @@ const {
     Bar,
     General
 } = require('./dist/index.js');
-const { InputFile } = require('./dist/inputFile.js');
+const { Payload } = require('./dist/payload.js');
 const { readFile } = require('fs/promises');
 
 async function start() {
@@ -65,18 +65,18 @@ async function start() {
     response = await general.redirect();
     console.log(response.result);
 
-    response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../resources/file.png', 'file.png'));
+    response = await general.upload('string', 123, ['string in array'], Payload.fromFile(__dirname + '/../../resources/file.png', 'file.png'));
     console.log(response.result);
 
-    response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../resources/large_file.mp4', 'large_file.mp4'));
+    response = await general.upload('string', 123, ['string in array'], Payload.fromFile(__dirname + '/../../resources/large_file.mp4', 'large_file.mp4'));
     console.log(response.result);
 
     const smallBuffer = await readFile('./tests/resources/file.png');
-    response = await general.upload('string', 123, ['string in array'], InputFile.fromBuffer(smallBuffer, 'file.png'))
+    response = await general.upload('string', 123, ['string in array'], Payload.fromBinary(smallBuffer, 'file.png'))
     console.log(response.result);
 
     const largeBuffer = await readFile('./tests/resources/large_file.mp4');
-    response = await general.upload('string', 123, ['string in array'], InputFile.fromBuffer(largeBuffer, 'large_file.mp4'))
+    response = await general.upload('string', 123, ['string in array'], Payload.fromBinary(largeBuffer, 'large_file.mp4'))
     console.log(response.result);
 
     response = await general.enum(MockType.First);

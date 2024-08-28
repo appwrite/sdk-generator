@@ -1,8 +1,11 @@
 import { fetch, FormData, File } from 'node-fetch-native-with-agent';
 import { createAgent } from 'node-fetch-native-with-agent/agent';
 import { Models } from './models';
+import { Payload } from './Payload';
+import * as multipart from 'parse-multipart-data';
+const { buffer } = require('node:stream/consumers');
 
-type Payload = {
+type JSONPayload = {
     [key: string]: any;
 }
 
@@ -152,7 +155,7 @@ class Client {
     }
     {%~ endfor %}
 
-    prepareRequest(method: string, url: URL, headers: Headers = {}, params: Payload = {}): { uri: string, options: RequestInit } {
+    prepareRequest(method: string, url: URL, headers: Headers = {}, params: JSONPayload = {}): { uri: string, options: RequestInit } {
         method = method.toUpperCase();
 
         headers = Object.assign({}, this.headers, headers);
@@ -197,7 +200,7 @@ class Client {
         return { uri: url.toString(), options };
     }
 
-    async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: Payload = {}, onProgress: (progress: UploadProgress) => void) {
+    async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: JSONPayload = {}, onProgress: (progress: UploadProgress) => void) {
         const file = Object.values(originalPayload).find((value) => value instanceof File);
 
         if (file.size <= Client.CHUNK_SIZE) {
@@ -240,7 +243,7 @@ class Client {
         return response;
     }
 
-    async redirect(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<string> {
+    async redirect(method: string, url: URL, headers: Headers = {}, params: JSONPayload = {}): Promise<string> {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
         
         const response = await fetch(uri, {
@@ -255,7 +258,7 @@ class Client {
         return response.headers.get('location') || '';
     }
 
-    async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}, responseType = 'json'): Promise<any> {
+    async call(method: string, url: URL, headers: Headers = {}, params: JSONPayload = {}, responseType = 'json'): Promise<any> {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
 
         let data: any = null;
@@ -271,6 +274,30 @@ class Client {
             data = await response.json();
         } else if (responseType === 'arrayBuffer') {
             data = await response.arrayBuffer();
+        } else if (response.headers.get('content-type')?.includes('multipart/form-data')) {
+            const body = await buffer(response.body);
+            const boundary = multipart.getBoundary(
+                response.headers.get("content-type") || ""
+            );
+            const parts = multipart.parse(body, boundary);
+            const partsObject = {};
+            let fileName;
+            for (const part of parts) {
+                if (part.name) {
+                    if (part.name === "responseBody") {
+                        partsObject[part.name] = part.data;
+                    } else if (part.name === "filename") {
+                        fileName = part.data.toString();
+                        partsObject[part.name] = fileName;
+                    } else {
+                        partsObject[part.name] = part.data.toString();
+                    }
+                }
+            }
+            data = {
+                ...partsObject,
+                responseBody: new Payload(partsObject.responseBody, fileName),
+            };
         } else {
             data = {
                 message: await response.text()
@@ -284,8 +311,8 @@ class Client {
         return data;
     }
 
-    static flatten(data: Payload, prefix = ''): Payload {
-        let output: Payload = {};
+    static flatten(data: JSONPayload, prefix = ''): JSONPayload {
+        let output: JSONPayload = {};
 
         for (const [key, value] of Object.entries(data)) {
             let finalKey = prefix ? prefix + '[' + key +']' : key;
@@ -302,5 +329,5 @@ class Client {
 
 export { Client, {{spec.title | caseUcfirst}}Exception };
 export { Query } from './query';
-export type { Models, Payload, UploadProgress };
+export type { Models, JSONPayload, UploadProgress };
 export type { QueryTypes, QueryTypesList } from './query';
