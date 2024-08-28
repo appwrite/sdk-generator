@@ -10,8 +10,6 @@ from appwrite.role import Role
 from appwrite.id import ID
 from appwrite.enums.mock_type import MockType
 
-import os.path
-
 client = Client()
 foo = Foo(client)
 bar = Bar(client)
