@@ -1,6 +1,5 @@
 import os
 import json
-import mimetypes
 import re
 from abc import ABC, abstractmethod
 from typing import Union, Dict, List, Optional
@@ -15,55 +14,52 @@ class PayloadData(ABC):
         pass
 
 class FileData(PayloadData):
-    def __init__(self, path: str, filename: Optional[str] = None, mime_type: Optional[str] = None):
+    def __init__(self, path: str, filename: Optional[str] = None):
         if not os.path.exists(path):
             raise FileNotFoundError("File not found")
         self.path = path
         self.filename = filename or os.path.basename(path)
-        self.mime_type = mime_type or mimetypes.guess_type(path)[0]
 
     def size(self) -> int:
         return os.path.getsize(self.path)
 
     def read(self, offset: int = 0, length: Optional[int] = None) -> bytes:
-        with open(self.data, 'rb') as f:
+        with open(self.path, 'rb') as f:
             f.seek(offset)
             return f.read(length) if length is not None else f.read()
 
 class MemoryData(PayloadData):
-    def __init__(self, data: Union[str, bytes], filename: Optional[str] = None, mime_type: Optional[str] = None):
-        self.data = data.encode() if isinstance(data, str) else data
+    def __init__(self, bytes: Union[str, bytes], filename: Optional[str] = None):
+        self.bytes = bytes.encode() if isinstance(bytes, str) else bytes
         self.filename = filename
-        self.mime_type = mime_type
 
     def size(self) -> int:
-        return len(self.data)
+        return len(self.bytes)
 
     def read(self, offset: int = 0, length: Optional[int] = None) -> bytes:
-        return self.data[offset:offset + length] if length is not None else self.data[offset:]
+        return self.bytes[offset:offset + length] if length is not None else self.bytes[offset:]
 
 class Payload:
     def __init__(self, data: PayloadData):
         self._data = data
         self.filename = data.filename
-        self.mime_type = data.mime_type
 
     @classmethod
-    def from_path(cls, path: str, filename: Optional[str] = None, mime_type: Optional[str] = None):
-        return cls(FileData(path, filename=filename, mime_type=mime_type))
+    def from_path(cls, path: str, filename: Optional[str] = None):
+        return cls(FileData(path, filename=filename))
 
     @classmethod
-    def from_binary(cls, binary: bytes, filename: Optional[str] = None, mime_type: Optional[str] = None):
-        return cls(MemoryData(binary, filename=filename, mime_type=mime_type))
+    def from_binary(cls, binary: bytes, filename: Optional[str] = None):
+        return cls(MemoryData(binary, filename=filename))
 
     @classmethod
-    def from_json(cls, obj: Union[Dict, List], filename: Optional[str] = None, mime_type: str = 'application/json'):
+    def from_json(cls, obj: Union[Dict, List], filename: Optional[str] = FileNotFoundError):
         json_data = json.dumps(obj) if isinstance(obj, (dict, list)) else obj
-        return cls(MemoryData(json_data, filename=filename, mime_type=mime_type))
+        return cls(MemoryData(json_data, filename=filename))
 
     @classmethod
-    def from_string(cls, string: str, filename: Optional[str] = None, mime_type: str = 'text/plain'):
-        return cls(MemoryData(string, filename=filename, mime_type=mime_type))
+    def from_string(cls, string: str, filename: Optional[str] = None):
+        return cls(MemoryData(string, filename=filename))
 
     def to_string(self) -> str:
         return self._data.read().decode()
