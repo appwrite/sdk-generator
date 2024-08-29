@@ -17,9 +17,6 @@
 package {{ service.name | caseLower }}
 
 import (
-{% if requireParsingLibes %}
-	"bytes"
-{% endif %}
 	"encoding/json"
 	"errors"
 	"github.com/{{sdk.gitUserName}}/sdk-for-go/client"
@@ -28,10 +25,6 @@ import (
 {% endif %}
 {% if requirePayloadPkg %}
 	"github.com/{{sdk.gitUserName}}/sdk-for-go/payload"
-{% endif %}
-{% if requireParsingLibes %}
-	"regexp"
-	"strconv"
 {% endif %}
 	"strings"
 )

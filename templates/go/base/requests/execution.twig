@@ -46,8 +46,9 @@
 					}
 					continue Inner
 				}
-				execution[name] += line
+				execution[name] += line + "\r\n"
 			}
+			execution[name] = strings.TrimSuffix(execution[name],"\r\n")
 		}
 
 		statusCode, err := strconv.Atoi(execution["responseStatusCode"])

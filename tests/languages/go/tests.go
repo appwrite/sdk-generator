@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"path"
 	"time"
-
+	"errors"
+	"regexp"
+	"strings"
+	"crypto/md5"
 	"github.com/repoowner/sdk-for-go/appwrite"
 	"github.com/repoowner/sdk-for-go/client"
 	"github.com/repoowner/sdk-for-go/payload"
@@ -12,6 +15,7 @@ import (
 	"github.com/repoowner/sdk-for-go/permission"
 	"github.com/repoowner/sdk-for-go/query"
 	"github.com/repoowner/sdk-for-go/role"
+	"github.com/repoowner/sdk-for-go/general"
 )
 
 func main() {
@@ -130,6 +134,9 @@ func testGeneralService(client client.Client, stringInArray []string) {
 
 	general.Empty()
 
+    // Test Multipart
+    testMultipart(client)
+
 	// Test Queries
 	testQueries()
 
@@ -178,6 +185,23 @@ func testLargeUpload(client client.Client, stringInArray []string) {
 		fmt.Printf("general.Upload => error %v\n", err)
 	}
 	fmt.Printf("%s\n", response.Result)
+}
+
+func testMultipart(client client.Client){
+    g := general.New(client)
+    mp, err := g.Multipart()
+
+    if err != nil { return }
+
+    np := *mp
+    bytesValue, ok := np.([]byte)
+    if  !ok { return }
+
+    data, err :=parse(bytesValue)
+    if err != nil { return }
+
+    fmt.Println(data["x"])
+    fmt.Println(fmt.Sprintf("%x",md5.Sum([]byte(data["responseBody"]))))
 }
 
 func testQueries() {
@@ -230,3 +254,58 @@ func testIdHelpers() {
 	fmt.Println(id.Unique())
 	fmt.Println(id.Custom("custom_id"))
 }
+
+
+func parse(bytesData []byte) (map[string]string, error) {
+
+	responseData := string(bytesData)
+
+	matches := regexp.MustCompile("(-+\\w+)--").FindStringSubmatch(responseData)
+
+	if len(matches) != 2 {
+		return nil, errors.New("unexpected response type")
+	}
+
+	parts := strings.Split(responseData, matches[1])
+
+	if len(parts) == 0 {
+		return nil, errors.New("unexpected response type")
+	}
+	execution := make(map[string]string, 10)
+
+	for _, part := range parts {
+		cleanPart := strings.TrimSpace(part)
+		partName := regexp.MustCompile("name=\"?(\\w+)").FindStringSubmatch(cleanPart)
+
+		if len(partName) != 2 {
+			continue
+		}
+
+		name := strings.TrimSpace(partName[1])
+		lines := strings.Split(cleanPart, "\r\n")
+
+	Inner:
+		for i, line := range lines[1:] {
+			if line == "" {
+				continue
+			}
+
+			if line == "Content-Type: application/json" {
+				for _, line := range lines[i:] {
+					if line == "" {
+						continue
+					}
+
+					execution[name] = line
+				}
+				continue Inner
+			}
+
+			execution[name] += line + "\r\n"
+		}
+        execution[name] = strings.TrimSuffix(execution[name],"\r\n")
+	}
+
+	return execution, nil
+}
+
