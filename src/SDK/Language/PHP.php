@@ -354,7 +354,7 @@ class PHP extends Language
                     $output .= '[]';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "Payload::fromPath('file.png')";
+                    $output .= "Payload::fromFile('file.png')";
                     break;
             }
         } else {
@@ -378,7 +378,7 @@ class PHP extends Language
                     }
                     break;
                 case self::TYPE_FILE:
-                    $output .= "Payload::fromPath('file.png')";
+                    $output .= "Payload::fromFile('file.png')";
                     break;
             }
         }

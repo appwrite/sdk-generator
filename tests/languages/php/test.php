@@ -73,17 +73,17 @@ $response = $general->redirect();
 echo "{$response['result']}\n";
 
 $data = file_get_contents(__DIR__ . '/../../resources/file.png');
-$response = $general->upload('string', 123, ['string in array'], Payload::fromData($data, 'image/png', 'file.png'));
+$response = $general->upload('string', 123, ['string in array'], Payload::fromBinary($data, 'image/png', 'file.png'));
 echo "{$response['result']}\n";
 
 $data = file_get_contents(__DIR__ . '/../../resources/large_file.mp4');
-$response = $general->upload('string', 123, ['string in array'], Payload::fromData($data, 'video/mp4', 'large_file.mp4'));
+$response = $general->upload('string', 123, ['string in array'], Payload::fromBinary($data, 'video/mp4', 'large_file.mp4'));
 echo "{$response['result']}\n";
 
-$response = $general->upload('string', 123, ['string in array'], Payload::fromPath(__DIR__ . '/../../resources/file.png'));
+$response = $general->upload('string', 123, ['string in array'], Payload::fromFile(__DIR__ . '/../../resources/file.png'));
 echo "{$response['result']}\n";
 
-$response = $general->upload('string', 123, ['string in array'], Payload::fromPath(__DIR__ . '/../../resources/large_file.mp4'));
+$response = $general->upload('string', 123, ['string in array'], Payload::fromFile(__DIR__ . '/../../resources/large_file.mp4'));
 echo "{$response['result']}\n";
 
 $response = $general->enum(MockType::FIRST());
