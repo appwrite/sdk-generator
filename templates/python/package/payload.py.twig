@@ -71,30 +71,3 @@ class Payload:
 
     def to_json(self) -> Union[Dict, List]:
         return json.loads(self._data.read())
-
-    @staticmethod
-    def handle_form_data(boundary: str, response_body: str) -> Dict:
-        parts = response_body.split(f'--{boundary}')
-        data = {}
-        for part in parts[1:-1]:  # Skip the first (empty) and last (boundary end) parts
-            # Remove leading newlines
-            part = part.lstrip('\r\n')
-
-            # Split headers and content
-            headers, content = part.split('\r\n\r\n', 1)
-
-            # Extract name from headers
-            match = re.search(r'name="?(\w+)"?', headers)
-
-            if match:
-                name = match.group(1)
-                
-                # Remove any trailing newlines or '--'
-                content = content.rstrip('\r\n-')
-                data[name] = content
-
-        # Convert specific fields
-        data['responseStatusCode'] = int(data.get('responseStatusCode', 0))
-        data['duration'] = float(data.get('duration', 0))
-        data['responseBody'] = Payload.from_string(data.get('responseBody', ''))
-        return data

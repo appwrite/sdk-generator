@@ -2047,15 +2047,6 @@
           "default": null,
           "x-example": null
         },
-        "z": {
-          "type": "array",
-          "description": "Sample array param",
-          "default": null,
-          "x-example": null,
-          "items": {
-            "type": "string"
-          }
-        },
         "body": {
           "type": "file",
           "description": "Sample file param",

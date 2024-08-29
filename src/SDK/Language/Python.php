@@ -162,6 +162,11 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
+                'destination' => '{{ spec.title | caseSnake}}/formdata.py',
+                'template' => 'python/package/formdata.py.twig',
+            ],
+            [
+                'scope' => 'default',
                 'destination' => '{{ spec.title | caseSnake}}/service.py',
                 'template' => 'python/package/service.py.twig',
             ],

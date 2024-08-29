@@ -403,12 +403,11 @@ App::get('/v1/mock/tests/general/multipart')
     ->label('sdk.mock', true)
     ->inject('response')
     ->action(function (Response $response) {
-        $file = \fread(\fopen(\getcwd() . '/resources/file.png', 'r'), \filesize(\getcwd() . '/resources/file.png'));
+        $file = \file_get_contents(\getcwd() . '/resources/file.png');
 
         $response->multipart([
             'x' => 'abc',
             'y' => 123,
-            'z' => ['one', 'two', 'three'],
             'responseBody' => $file,
         ]);
     });
