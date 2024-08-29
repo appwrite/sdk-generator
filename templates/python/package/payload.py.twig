@@ -30,7 +30,7 @@ class FileData(PayloadData):
 
 class MemoryData(PayloadData):
     def __init__(self, b: Union[str, bytes], filename: Optional[str] = None):
-        self.b = b.encode() if isinstance(b, str) else b
+        self.b = b.encode("utf-8") if isinstance(b, str) else b
         self.filename = filename
 
     def size(self) -> int:
@@ -62,24 +62,38 @@ class Payload:
         return cls(MemoryData(string, filename=filename))
 
     def to_string(self) -> str:
-        return self._data.read().decode()
+        return self._data.read().decode("utf-8")
 
-    __str__ = to_binary = to_string
+    def to_binary(self) -> bytes:
+        return self._data.read()
+
+    __str__ = to_string
 
     def to_json(self) -> Union[Dict, List]:
         return json.loads(self._data.read())
 
     @staticmethod
     def handle_form_data(boundary: str, response_body: str) -> Dict:
-        parts = response_body.split(boundary)
+        parts = response_body.split(f'--{boundary}')
         data = {}
-        for part in parts:
-            match = re.search(r'name="?(\w+)"?', part)
+        for part in parts[1:-1]:  # Skip the first (empty) and last (boundary end) parts
+            # Remove leading newlines
+            part = part.lstrip('\r\n')
+
+            # Split headers and content
+            headers, content = part.split('\r\n\r\n', 1)
+
+            # Extract name from headers
+            match = re.search(r'name="?(\w+)"?', headers)
+
             if match:
                 name = match.group(1)
-                content = part.split('\r\n\r\n', 1)[-1].strip()
+                
+                # Remove any trailing newlines or '--'
+                content = content.rstrip('\r\n-')
                 data[name] = content
 
+        # Convert specific fields
         data['responseStatusCode'] = int(data.get('responseStatusCode', 0))
         data['duration'] = float(data.get('duration', 0))
         data['responseBody'] = Payload.from_string(data.get('responseBody', ''))

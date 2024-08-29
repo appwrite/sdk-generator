@@ -2,15 +2,17 @@
 
 namespace Utopia\MockServer\Utopia;
 
-use Appwrite\Utopia\Fetch\BodyMultipart;
-use Utopia\Swoole\Response as SwooleResponse;
+use Utopia\MockServer\Utopia\BodyMultipart;
+use Swoole\Http\Response as SwooleResponse;
+use Utopia\CLI\Console;
 use Utopia\Database\Document;
+use Utopia\Swoole\Response as UtopiaResponse;
 
 /**
  * @method int getStatusCode()
  * @method Response setStatusCode(int $code = 200)
  */
-class Response extends SwooleResponse
+class Response extends UtopiaResponse
 {
     // General
     public const MODEL_NONE = 'none';
@@ -41,6 +43,7 @@ class Response extends SwooleResponse
      */
     public function __construct(SwooleResponse $response)
     {
+        parent::__construct($response);
     }
 
     /**
@@ -100,6 +103,8 @@ class Response extends SwooleResponse
         foreach ($data as $key => $value) {
             $multipart->setPart($key, $value);
         }
+
+        Console::log('Multipart\n'. $multipart->exportBody());
 
         $this
             ->setContentType($multipart->exportHeader())

@@ -1,0 +1,118 @@
+import re
+from typing import Dict, Union, Optional
+from dataclasses import dataclass
+
+@dataclass
+class FormDataValue:
+    headers: Dict[str, str]
+    body: Union[str, bytes]
+
+class FormData:
+    def __init__(self, values: Dict[str, FormDataValue] = None):
+        self.values = values or {}
+
+    def get(self, name: str) -> Optional[FormDataValue]:
+        return self.values.get(name)
+
+    def set(self, name: str, value: Union[str, bytes], filename: Optional[str] = None):
+        if isinstance(value, bytes):
+            self.set_file(name, value, filename)
+        else:
+            self.values[name] = FormDataValue(
+                headers={
+                    "Content-Disposition": f'form-data; name="{name}"'
+                },
+                body=value
+            )
+
+    def set_file(self, name: str, file: bytes, filename: Optional[str] = None):
+        headers = {
+            "Content-Disposition": f'form-data; name="{name}"{f"; filename=\"{filename}\"" if filename else ""}'
+        }
+
+        if filename:
+            extension = filename.split('.')[-1]
+            content_type = extension_to_content_type.get(extension)
+            if content_type:
+                headers["Content-Type"] = content_type
+
+        self.values[name] = FormDataValue(headers=headers, body=file)
+
+    @staticmethod
+    def from_multipart(body: str, boundary: Optional[str] = None) -> 'FormData':
+        if not boundary:
+            boundary_match = re.search(r'boundary=(?:"([^"]+)"|([^;]+))', body)
+            if not boundary_match:
+                raise ValueError("No boundary found in Content-Type")
+            boundary = boundary_match.group(1) or boundary_match.group(2)
+
+        raw_parts = re.split(f'--{boundary}(?:--)?\\r?\\n', body)[1:-1]
+
+        parsed_parts = {}
+        for raw_part in raw_parts:
+            value = FormData.parse_part(raw_part)
+            name = FormData.parse_value_name(value)
+            parsed_parts[name] = value
+
+        return FormData(parsed_parts)
+
+    @staticmethod
+    def parse_part(raw_part: str) -> FormDataValue:
+        raw_headers, body = re.split(r'\r?\n\r?\n', raw_part, 1)
+
+        headers = {}
+        for header in raw_headers.split('\r\n'):
+            key, value = header.split(': ', 1)
+            headers[key.lower()] = value
+
+        return FormDataValue(headers=headers, body=body)
+
+    def to_multipart_string(self, boundary: Optional[str] = None) -> str:
+        if not boundary:
+            import random
+            boundary = f"----{''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=32))}"
+
+        parts = [FormData.value_to_multipart_string(value, boundary) for value in self.values.values()]
+        return ''.join(parts) + f'--{boundary}--\r\n'
+
+    async def to_object(self):
+        # Note: This method uses async/await which requires Python 3.5+
+        obj = {}
+
+        for name, value in self.values.items():
+            if name == "body":
+                value.body = value.body.encode() if isinstance(value.body, str) else value.body
+
+            if isinstance(value.body, bytes):
+                # Note: This assumes you have a Payload class defined elsewhere
+                obj[name] = Payload.from_binary(value.body, name)
+            else:
+                obj[name] = value.body
+
+        return obj
+
+    @staticmethod
+    def parse_value_name(part: FormDataValue) -> str:
+        disposition = part.headers.get("content-disposition")
+        if not disposition:
+            raise ValueError("Part is missing Content-Disposition header")
+
+        name_match = re.search(r'name="([^"]+)"', disposition)
+        if not name_match:
+            raise ValueError("Content-Disposition header is missing name")
+
+        return name_match.group(1)
+
+    @staticmethod
+    def parse_value_filename(part: FormDataValue) -> Optional[str]:
+        disposition = part.headers.get("content-disposition")
+        if not disposition:
+            raise ValueError("Part is missing Content-Disposition header")
+
+        filename_match = re.search(r'filename="([^"]+)"', disposition)
+        return filename_match.group(1) if filename_match else None
+
+    @staticmethod
+    def value_to_multipart_string(value: FormDataValue, boundary: str) -> str:
+        headers = '\r\n'.join(f'{key}: {val}' for key, val in value.headers.items())
+        return f'--{boundary}\r\n{headers}\r\n\r\n{value.body}\r\n'

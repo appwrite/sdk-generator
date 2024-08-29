@@ -106,7 +106,12 @@ print(url)
 # Multipart response tests
 response = general.multipart()
 print(response['x']) # should be "abc"
-print(md5(response['body'].to_binary()).hexdigest()) # should be d80e7e6999a3eb2ae0d631a96fe135a4
+
+binary = (response['responseBody'].to_binary())
+hash = md5()
+hash.update(binary)
+print(hash.hexdigest()) # should be d80e7e6999a3eb2ae0d631a96fe135a4
+
 
 # Query helper tests
 print(Query.equal("released", [True]))
