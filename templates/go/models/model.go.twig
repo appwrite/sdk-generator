@@ -3,8 +3,8 @@ package models
 import (
     "encoding/json"
     "errors"
-{%~ if definition.name | caseLower == 'execution' %}
-    "github.com/appwrite/sdk-for-go/payload"
+{%~ if definition.name | caseLower == 'execution' or definition.name | caseLower == 'multipart' %}
+    "github.com/{{sdk.gitUserName}}/sdk-for-go/payload"
 {%~ endif %}
 )
 

@@ -141,12 +141,11 @@ class Go extends Language
         if (str_contains($parameter['description'] ?? '', 'Collection attributes') || str_contains($parameter['description'] ?? '', 'List of attributes')) {
             return '[]map[string]any';
         }
-        if (strpos(($parameter['description'] ?? ''), 'HTTP body of execution') !== false) {
-            return '*payload.Payload';
-        }
+
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'int',
             self::TYPE_NUMBER => 'float64',
+            self::TYPE_PAYLOAD,
             self::TYPE_FILE => '*payload.Payload',
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
@@ -244,6 +243,9 @@ class Go extends Language
                 case self::TYPE_ARRAY:
                     $output .= '[]interface{}{}';
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'payload.NewPayloadFromString("<BODY>")';
+                    break;
                 case self::TYPE_FILE:
                     $output .= 'payload.NewPayloadFromPath("/path/to/file.png", "file.png")';
                     break;
@@ -270,11 +272,10 @@ class Go extends Language
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    if ($param['name'] === 'body' && strpos(($param['description'] ?? ''), 'body of execution') !== false) {
-                        $output .= 'payload.NewPayloadFromString("<BODY>")';
-                    } else {
-                        $output .= '"{$example}"';
-                    }
+                    $output .= '"{$example}"';
+                    break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'payload.NewPayloadFromString("<BODY>")';
                     break;
                 case self::TYPE_FILE:
                     $output .= 'payload.NewPayloadFromPath("/path/to/file.png", "file.png")';
