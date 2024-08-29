@@ -1,8 +1,8 @@
 <?php
 
 use {{ spec.title | caseUcfirst }}\Client;
-{% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
-use {{ spec.title | caseUcfirst }}\InputFile;
+{% if method.parameters.all | filter((param) => param.type == 'file' or param.type == 'payload') | length > 0 %}
+use {{ spec.title | caseUcfirst }}\Payload;
 {% endif %}
 use {{ spec.title | caseUcfirst }}\Services\{{ service.name | caseUcfirst }};
 {% set added = [] %}
@@ -27,7 +27,7 @@ $client = (new Client())
     ->setEndpoint('https://cloud.appwrite.io/v1') // Your API Endpoint
     {%~ for node in method.auth %}
     {%~ for key,header in node|keys %}
-    ->set{{header}}('{{node[header]['x-appwrite']['demo']}}'){% if loop.last%};{% endif%} // {{node[header].description}}
+    ->set{{header}}('{{node[header]['x-appwrite']['demo'] | raw }}'){% if loop.last%};{% endif%} // {{node[header].description}}
     {%~ endfor %}
     {%~ endfor %}
     {%~ endif %}

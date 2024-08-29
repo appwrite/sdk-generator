@@ -138,6 +138,9 @@ class Go extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        if (str_contains($parameter['description'] ?? '', 'Collection attributes') || str_contains($parameter['description'] ?? '', 'List of attributes')) {
+            return '[]map[string]any';
+        }
         if (strpos(($parameter['description'] ?? ''), 'HTTP body of execution') !== false) {
             return '*payload.Payload';
         }
