@@ -63,8 +63,8 @@ App::get('/v1/health/version')
     ->label('sdk.response.code', Response::STATUS_CODE_OK)
     ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
     ->inject('response')
-    ->action(function (UtopiaSwooleResponse $response) {
-        $response->json([ 'version' => '1.0.0' ]);
+    ->action(function (Response $response) {
+        $response->json(['version' => '1.0.0']);
     });
 
 // Mock Routes
@@ -263,7 +263,7 @@ App::get('/v1/mock/tests/general/headers')
     ->label('sdk.mock', true)
     ->inject('request')
     ->inject('response')
-    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+    ->action(function (Request $request, Response $response) {
         $res = [
             'x-sdk-name' => $request->getHeader('x-sdk-name'),
             'x-sdk-platform' => $request->getHeader('x-sdk-platform'),
@@ -291,8 +291,7 @@ App::get('/v1/mock/tests/general/download')
     ->label('sdk.response.code', Response::STATUS_CODE_OK)
     ->label('sdk.mock', true)
     ->inject('response')
-    ->action(function (UtopiaSwooleResponse $response) {
-
+    ->action(function (Response $response) {
         $response
             ->setContentType('text/plain')
             ->addHeader('Content-Disposition', 'attachment; filename="test.txt"')
@@ -317,12 +316,11 @@ App::post('/v1/mock/tests/general/upload')
     ->param('x', '', new Text(100), 'Sample string param')
     ->param('y', '', new Integer(true), 'Sample numeric param')
     ->param('z', null, new ArrayList(new Text(256), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Sample array param')
-    ->param('file', [], new File(), 'Sample file param', skipValidation: true)
+    ->param('payload', [], new File(), 'Sample file param', skipValidation: true)
     ->inject('request')
     ->inject('response')
-    ->action(function (string $x, int $y, array $z, mixed $file, Request $request, UtopiaSwooleResponse $response) {
-
-        $file = $request->getFiles('file');
+    ->action(function (string $x, int $y, array $z, mixed $file, Request $request, Response $response) {
+        $file = $request->getFiles('payload');
 
         $contentRange = $request->getHeader('content-range');
 
@@ -366,7 +364,7 @@ App::post('/v1/mock/tests/general/upload')
             if ($end !== $size - 1) {
                 $response->json([
                     '$id' => ID::custom('newfileid'),
-                    'chunksTotal' => (int) ceil($size / ($end + 1 - $start)),
+                    'chunksTotal' => (int)ceil($size / ($end + 1 - $start)),
                     'chunksUploaded' => ceil($start / $chunkSize) + 1
                 ]);
             }
@@ -388,6 +386,30 @@ App::post('/v1/mock/tests/general/upload')
             }
         }
     });
+
+App::get('/v1/mock/tests/general/multipart')
+    ->desc('Multipart')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'multipart')
+    ->label('sdk.description', 'Mock a multipart request.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_MULTIPART)
+    ->label('sdk.response.model', Response::MODEL_MULTIPART)
+    ->label('sdk.mock', true)
+    ->inject('response')
+    ->action(function (Response $response) {
+        $file = \fread(\fopen(\getcwd() . '/resources/file.png', 'r'), \filesize(\getcwd() . '/resources/file.png'));
+
+        $response->multipart([
+            'x' => 'abc',
+            'y' => 123,
+            'responseBody' => $file,
+        ]);
+    });
+
 
 App::get('/v1/mock/tests/general/redirect')
     ->desc('Redirect')
@@ -548,7 +570,6 @@ App::get('/v1/mock/tests/general/502-error')
     ->label('sdk.mock', true)
     ->inject('response')
     ->action(function (UtopiaSwooleResponse $response) {
-
         $response
             ->setStatusCode(502)
             ->text('This is a text error');
@@ -645,7 +666,6 @@ App::get('/v1/mock/tests/general/oauth2/success')
     ->label('docs', false)
     ->inject('response')
     ->action(function (UtopiaSwooleResponse $response) {
-
         $response->json([
             'result' => 'success',
         ]);
@@ -658,7 +678,6 @@ App::get('/v1/mock/tests/general/oauth2/failure')
     ->label('docs', false)
     ->inject('response')
     ->action(function (UtopiaSwooleResponse $response) {
-
         $response
             ->setStatusCode(Response::STATUS_CODE_BAD_REQUEST)
             ->json([
@@ -672,11 +691,10 @@ App::shutdown()
     ->inject('response')
     ->inject('request')
     ->action(function (App $utopia, UtopiaSwooleResponse $response, Request $request) {
-
         $result = [];
-        $route  = $utopia->getRoute();
-        $path   = APP_STORAGE_CACHE . '/tests.json';
-        $tests  = (\file_exists($path)) ? \json_decode(\file_get_contents($path), true) : [];
+        $route = $utopia->getRoute();
+        $path = APP_STORAGE_CACHE . '/tests.json';
+        $tests = (\file_exists($path)) ? \json_decode(\file_get_contents($path), true) : [];
 
         if (!\is_array($tests)) {
             throw new Exception(Exception::GENERAL_MOCK, 'Failed to read results', 500);
@@ -779,8 +797,7 @@ $http->on(Constant::EVENT_START, function (Server $http) use ($payloadSize) {
 
 $http->on(Constant::EVENT_REQUEST, function (SwooleRequest $swooleRequest, SwooleResponse $swooleResponse) {
     $request = new Request($swooleRequest);
-    $response = new UtopiaSwooleResponse($swooleResponse);
-
+    $response = new Response($swooleResponse);
     $app = new App('UTC');
 
     $app->run($request, $response);
