@@ -29,7 +29,7 @@ Host: {{ spec.host }}
 {% endfor %}
 {% for node in method.security %}
 {% for key,header in node | keys %}
-{{ node[header]['name'] }}: {{ node[header]['x-appwrite']['demo'] }}
+{{ node[header]['name'] }}: {{ node[header]['x-appwrite']['demo'] | raw }}
 {% endfor %}
 {% endfor %}
 Content-Length: *Length of your entity body in bytes*

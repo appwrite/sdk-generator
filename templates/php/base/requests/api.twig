@@ -1,17 +1,7 @@
         return $this->client->call(
             Client::METHOD_{{ method.method | caseUpper }},
             $apiPath,
-            [
-                {%~ for parameter in method.parameters.header %}
-                '{{ parameter.name }}' => ${{ parameter.name | caseCamel | escapeKeyword }},
-                {%~ endfor %}
-                {%~ for key, header in method.headers %}
-                '{{ key }}' => '{{ header }}',
-                {%~ if method.name | lower == "createexecution" %}
-                'accept' => 'multipart/form-data',
-                {%~ endif %}
-                {%~ endfor %}
-            ],
+            $apiHeaders,
             $apiParams{% if method.type == 'webAuth' -%}, 'location'{% endif %}
 
         );
