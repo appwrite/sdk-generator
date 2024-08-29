@@ -9,6 +9,7 @@ from appwrite.permission import Permission
 from appwrite.role import Role
 from appwrite.id import ID
 from appwrite.enums.mock_type import MockType
+from hashlib import md5
 
 client = Client()
 foo = Foo(client)
@@ -101,6 +102,11 @@ url = general.oauth2(
     'https://localhost'
 )
 print(url)
+
+# Multipart response tests
+response = general.multipart()
+print(response['x']) # should be "abc"
+print(md5(response['body'].to_binary()).hexdigest()) # should be d80e7e6999a3eb2ae0d631a96fe135a4
 
 # Query helper tests
 print(Query.equal("released", [True]))

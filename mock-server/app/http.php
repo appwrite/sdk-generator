@@ -317,12 +317,12 @@ App::post('/v1/mock/tests/general/upload')
     ->param('x', '', new Text(100), 'Sample string param')
     ->param('y', '', new Integer(true), 'Sample numeric param')
     ->param('z', null, new ArrayList(new Text(256), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Sample array param')
-    ->param('file', [], new File(), 'Sample file param', skipValidation: true)
+    ->param('payload', [], new File(), 'Sample file param', skipValidation: true)
     ->inject('request')
     ->inject('response')
     ->action(function (string $x, int $y, array $z, mixed $file, Request $request, UtopiaSwooleResponse $response) {
 
-        $file = $request->getFiles('file');
+        $file = $request->getFiles('payload');
 
         $contentRange = $request->getHeader('content-range');
 
@@ -387,6 +387,30 @@ App::post('/v1/mock/tests/general/upload')
                 throw new Exception(Exception::GENERAL_MOCK, 'Wrong file uploaded');
             }
         }
+    });
+
+App::get('/v1/mock/tests/general/multipart')
+    ->desc('Multipart')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'multipart')
+    ->label('sdk.description', 'Mock a multipart request.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_MULTIPART)
+    ->label('sdk.response.model', Response::MODEL_MULTIPART)
+    ->label('sdk.mock', true)
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $file = \fread(\fopen(\getcwd() . '/resources/file.png', 'r'), \filesize(\getcwd() . '/resources/file.png'));
+
+        $response->multipart([
+            'x' => 'abc',
+            'y' => 123,
+            'z' => ['one', 'two', 'three'],
+            'body' => $file,
+        ]);
     });
 
 App::get('/v1/mock/tests/general/redirect')
@@ -690,7 +714,9 @@ App::shutdown()
             throw new Exception(Exception::GENERAL_MOCK, 'Failed to save results', 500);
         }
 
-        $response->json(['result' => $route->getMethod() . ':' . $route->getPath() . ':passed']);
+        if ($route->getPath() !== '/v1/mock/tests/general/multipart') {
+            $response->json(['result' => $route->getMethod() . ':' . $route->getPath() . ':passed']);
+        }
     });
 
 App::error()
