@@ -26,7 +26,7 @@ val client = Client()
     .setEndpoint("https://cloud.appwrite.io/v1") // Your API Endpoint
 {% for node in method.auth %}
 {% for key,header in node|keys %}
-    .set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo']}}") // {{node[header].description}}
+    .set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo'] | raw }}") // {{node[header].description}}
 {% endfor %}{% endfor %}{% endif %}
 
 val {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client)

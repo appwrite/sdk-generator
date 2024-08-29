@@ -30,6 +30,7 @@ COPY --from=composer /usr/local/src/vendor /usr/src/code/vendor
 # Add Source Code
 COPY ./src /usr/src/code/src
 COPY ./app /usr/src/code/app
+COPY ./resources /usr/src/code/resources
 
 EXPOSE 80
 

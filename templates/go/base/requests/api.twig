@@ -3,12 +3,12 @@
 		return nil, err
 	}
 	if strings.HasPrefix(resp.Type, "application/json") {
-		bytes := []byte(resp.Result.(string))
+		bytesData := []byte(resp.Result.(string))
 
 {%~ if method | returnType(spec, spec.title | caseLower) != 'interface{}' and method | returnType(spec, spec.title | caseLower) != '[]byte' and method | returnType(spec, spec.title | caseLower) != 'bool' %}
-		parsed := {{ method | returnType(spec, spec.title | caseLower) }}{}.New(bytes)
+		parsed := {{ method | returnType(spec, spec.title | caseLower) }}{}.New(bytesData)
 
-		err = json.Unmarshal(bytes, parsed)
+		err = json.Unmarshal(bytesData, parsed)
 		if err != nil {
 			return nil, err
 		}
@@ -17,13 +17,16 @@
 {%~ else %}
 		var parsed {{ method | returnType(spec, spec.title | caseLower) }}
 
-		err = json.Unmarshal(bytes, &parsed)
+		err = json.Unmarshal(bytesData, &parsed)
 		if err != nil {
 			return nil, err
 		}
 		return &parsed, nil
 {%~ endif %}
 	}
+{%~ if method.name | lower == "createexecution" %}
+{{ include('go/base/requests/execution.twig') }}
+{%~ endif %}
 	var parsed {{ method | returnType(spec, spec.title | caseLower) }}
 	parsed, ok := resp.Result.({{ method | returnType(spec, spec.title | caseLower) }})
 	if !ok {

@@ -1,12 +1,16 @@
 {%- set requireModelsPkg = false -%}
-{%- set requireFilesPkg = false -%}
+{%- set requirePayloadPkg = false -%}
+{%- set requireParsingLibes = false -%}
+{%- if service.name | lower == "functions" -%}
+	{%- set requireParsingLibes = true -%}
+{%- endif -%}
 {%- for method in service.methods -%}
 {%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
 		{%- set requireModelsPkg = true -%}
 {%- endif -%}
 {% for parameter in method.parameters.all %}
-	{%- if (parameter | typeName) ends with "InputFile"  -%}
-		{%- set requireFilesPkg = true -%}
+	{%- if (parameter | typeName) ends with "Payload"  -%}
+		{%- set requirePayloadPkg = true -%}
 	{%- endif -%}
 {% endfor %}
 {%- endfor -%}
@@ -19,8 +23,8 @@ import (
 {% if requireModelsPkg %}
 	"github.com/{{sdk.gitUserName}}/sdk-for-go/models"
 {% endif %}
-{% if requireFilesPkg %}
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
+{% if requirePayloadPkg %}
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/payload"
 {% endif %}
 	"strings"
 )
@@ -95,7 +99,7 @@ func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ 
 	path := "{{ method.path }}"
 {% endif %}
 {{include('go/base/params.twig')}}
-{% if 'multipart/form-data' in method.consumes %}
+{% if 'multipart/form-data' in method.consumes and method.name | lower != "createexecution" %}
 {{ include('go/base/requests/file.twig') }}
 {% else %}
 {{ include('go/base/requests/api.twig') }}
