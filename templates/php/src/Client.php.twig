@@ -189,11 +189,11 @@ class Client
                 $responseBody = json_decode($responseBody, true);
             break;
         }
-        if ($contentType === 'multipart/form-data') {
+        if (str_contains($contentType, 'multipart/form-data')) {
             $matches = [];
             preg_match('/(?<boundary>[-]+[\w]+)--/m', $responseBody, $matches);
             if (isset($matches['boundary'])) {
-                $responseBody = Payload::handleFormData($matches['boundary'], $responseBody);
+                $responseBody = self::handleFormData($matches['boundary'], $responseBody);
             }
         }
         if (curl_errno($ch)) {
@@ -239,5 +239,36 @@ class Client
         }
 
         return $output;
+    }
+
+    public static function handleFormData(string $boundary, mixed $responseBody)
+    {
+        $parts = explode($boundary, $responseBody);
+        $data = [];
+        foreach ($parts as $part) {
+            $lines = array_values(array_filter(explode("\r\n", $part)));
+            $matches = [];
+            $matched = preg_match('/name="?(?<name>\w+)/s', $part, $matches);
+            if ($matched) {
+                array_shift($lines);
+                if(isset($lines[0]) && $lines[0] === 'Content-Type: application/json'){
+                    array_shift($lines);
+                    $headers = json_decode(implode($lines), true);
+                    $headers = array_combine(
+                        array_map(fn($header)=>  $header['name'], $headers),
+                        array_map(fn($header)=>  $header['value'], $headers)
+                    );
+                    $data[$matches['name']] = $headers;
+                    continue;
+                }
+                $data[$matches['name']] = implode("\r\n",$lines) ?? '';;
+            }
+        }
+
+        $data['responseStatusCode'] = (int) ($data['responseStatusCode'] ?? '');
+        $data['duration'] = ((float) ($data['duration'] ?? ''));
+        $data['responseBody'] = Payload::fromString($data['responseBody'] ?? '');
+
+        return $data;
     }
 }
