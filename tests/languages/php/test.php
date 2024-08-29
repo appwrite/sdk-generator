@@ -80,10 +80,10 @@ $data = file_get_contents(__DIR__ . '/../../resources/large_file.mp4');
 $response = $general->upload('string', 123, ['string in array'], Payload::fromData($data, 'video/mp4', 'large_file.mp4'));
 echo "{$response['result']}\n";
 
-$response = $general->upload('string', 123, ['string in array'], Payload::fromPath(__DIR__ .'/../../resources/file.png'));
+$response = $general->upload('string', 123, ['string in array'], Payload::fromPath(__DIR__ . '/../../resources/file.png'));
 echo "{$response['result']}\n";
 
-$response = $general->upload('string', 123, ['string in array'], Payload::fromPath(__DIR__ .'/../../resources/large_file.mp4'));
+$response = $general->upload('string', 123, ['string in array'], Payload::fromPath(__DIR__ . '/../../resources/large_file.mp4'));
 echo "{$response['result']}\n";
 
 $response = $general->enum(MockType::FIRST());
@@ -118,6 +118,11 @@ $url = $general->oauth2(
 );
 echo $url . "\n";
 
+$response = $general->multipart();
+echo "{$response['x']}\n";
+$hash = md5($response['responseBody']->toBinary());
+echo "{$hash}\n";
+
 // Query helper tests
 echo Query::equal('released', [true]) . "\n";
 echo Query::equal('title', ['Spiderman', 'Dr. Strange']) . "\n";
@@ -142,13 +147,13 @@ echo Query::offset(20) . "\n";
 echo Query::contains('title', ['Spider']) . "\n";
 echo Query::contains('labels', ['first']) . "\n";
 echo Query::or([
-    Query::equal('released', [true]),
-    Query::lessThan('releasedYear', 1990)
-]) . "\n";
+        Query::equal('released', [true]),
+        Query::lessThan('releasedYear', 1990)
+    ]) . "\n";
 echo Query::and([
-    Query::equal('released', [false]),
-    Query::greaterThan('releasedYear', 2015)
-]) . "\n";
+        Query::equal('released', [false]),
+        Query::greaterThan('releasedYear', 2015)
+    ]) . "\n";
 
 // Permission & Role helper tests
 echo Permission::read(Role::any()) . "\n";

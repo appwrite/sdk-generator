@@ -65,7 +65,7 @@
                 fseek($handle, $start);
                 $chunk = @fread($handle, Client::CHUNK_SIZE);
             } else {
-                $chunk = substr($file->getData(), $start, Client::CHUNK_SIZE);
+                $chunk = substr($payload->getData(), $start, Client::CHUNK_SIZE);
             }
             $apiParams['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode($chunk), $mimeType, $postedName);
             $apiHeaders['content-range'] = 'bytes ' . ($counter * Client::CHUNK_SIZE) . '-' . min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size - 1) . '/' . $size;
@@ -84,7 +84,7 @@
                     'progress' => min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE)), $size) / $size * 100,
                     'sizeUploaded' => min($counter * Client::CHUNK_SIZE),
                     'chunksTotal' => $response['chunksTotal'],
-                    'chunksUploaded' => $response['chunksUploaded'], 
+                    'chunksUploaded' => $response['chunksUploaded'],
                 ]);
             }
         }
