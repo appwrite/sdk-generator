@@ -13,7 +13,7 @@ class PHP80Test extends Base
     protected string $class = 'Appwrite\SDK\Language\PHP';
     protected array $build = [];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app php:8.0-cli-alpine php tests/languages/php/test.php';
+        'docker run --network="mockapi" --rm -v %cd%:/app -w /app php:8.0-cli-alpine php tests/languages/php/test.php';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

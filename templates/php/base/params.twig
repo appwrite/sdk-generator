@@ -4,7 +4,7 @@
 {% if not parameter.required and not parameter.nullable %}
 
         if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
-            {%~ if method.name | caseLower == "createexecution" and parameter.name == 'body' %}
+            {%~ if param.type == 'payload' %}
                 $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }}->toBinary();
             {%~ else %}
                 $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
@@ -21,7 +21,7 @@
         $apiHeaders['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
         {%~ endfor %}
         {%~ if method.name | lower == "createexecution" %}
-        'accept' => 'multipart/form-data',
+        $apiHeaders['accept'] = 'multipart/form-data';
         {%~ endif %}
         {%~ for key, header in method.headers %}
         $apiHeaders['{{ key }}'] = '{{ header }}';

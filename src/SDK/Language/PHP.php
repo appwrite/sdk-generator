@@ -259,9 +259,6 @@ class PHP extends Language
             return \ucfirst($parameter['name']);
         }
 
-        if ($parameter['name'] === 'body' && strpos($parameter['description'], 'body of execution') !== false) {
-            return 'Payload';
-        }
 
         return match ($parameter['type']) {
             self::TYPE_STRING => 'string',
@@ -270,7 +267,8 @@ class PHP extends Language
             self::TYPE_INTEGER => 'int',
             self::TYPE_ARRAY,
             self::TYPE_OBJECT => 'array',
-            self::TYPE_FILE => 'Payload',
+            self::TYPE_FILE,
+            self::TYPE_PAYLOAD => 'Payload',
             default => $parameter['type'],
         };
     }
@@ -353,6 +351,9 @@ class PHP extends Language
                 case self::TYPE_OBJECT:
                     $output .= '[]';
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= "Payload::fromString('<BODY>')";
+                    break;
                 case self::TYPE_FILE:
                     $output .= "Payload::fromFile('file.png')";
                     break;
@@ -371,11 +372,10 @@ class PHP extends Language
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    if ($param['name'] === 'body' && strpos($param['description'], 'body of execution') !== false) {
-                        $output .= "Payload::fromJson([])";
-                    } else {
-                        $output .= "'{$example}'";
-                    }
+                    $output .= "'{$example}'";
+                    break;
+                case self::TYPE_PAYLOAD:
+                    $output .= "Payload::fromJson([])";
                     break;
                 case self::TYPE_FILE:
                     $output .= "Payload::fromFile('file.png')";
