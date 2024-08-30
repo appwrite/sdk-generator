@@ -9,7 +9,7 @@ public class {{ definition | modelType(spec) | raw }} {
 
     {%~ for property in definition.properties %}
     /// {{ property.description }}
-    public let {{ property.name | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}
+    public let {{ property.name | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not property.required %}?{% endif %}
 
 
     {%~ endfor %}
