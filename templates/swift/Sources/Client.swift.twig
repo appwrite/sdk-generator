@@ -287,7 +287,6 @@ open class Client {
         var request = HTTPClientRequest(url: endPoint + path + queryParameters)
         request.method = .RAW(value: method)
 
-
         for (key, value) in self.headers.merging(headers, uniquingKeysWith: { $1 }) {
             request.headers.add(name: key, value: value)
         }
@@ -327,6 +326,19 @@ open class Client {
             }
         }
 
+        if let contentType = response.headers["content-type"].first, contentType.contains("multipart/form-data") {
+            let data = try await response.body.collect(upTo: Int.max)
+            let body = String(buffer: data)
+            let lines = body.components(separatedBy: .newlines)
+
+            if let boundaryLine = lines.first(where: { $0.hasPrefix("--") }) {
+                let boundary = boundaryLine.trimmingCharacters(in: .whitespacesAndNewlines)
+                let dict = parseFormData(with: boundary, for: body)
+
+                return converter?(dict) ?? dict as! T
+            }
+        }
+
         switch response.status.code {
         case 0..<400:
             switch T.self {
@@ -350,7 +362,6 @@ open class Client {
 
             do {
                 let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-
                 message = dict?["message"] as? String ?? response.status.reasonPhrase
                 type = dict?["type"] as? String ?? ""
             } catch {
