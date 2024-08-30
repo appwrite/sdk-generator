@@ -491,6 +491,6 @@ class Apple extends Swift
         if ($method['type'] === 'webAuth') {
             return 'Bool';
         }
-        return parent::getReturnType($method, $spec, $generic);
+        return parent::getReturnType($method, $spec, $namespace, $generic);
     }
 }
