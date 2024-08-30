@@ -1,0 +1,65 @@
+import re
+from email.parser import BytesParser
+from email.policy import default
+from .payload import Payload
+
+class Multipart:
+    def __init__(self, parts):
+        self.parts = parts
+
+    @staticmethod
+    def from_bytes(data: bytes, content_type: str):
+        boundary = Multipart._extract_boundary(content_type)
+        boundary = boundary.encode('utf-8')
+        parts = data.split(b'--' + boundary)
+        parsed_parts = {}
+
+        for part in parts[1:-1]:  # Skip the first empty part and the last boundary
+            # Remove leading newlines and trailing -- if present
+            part = part.strip(b'\r\n')
+            if part.endswith(b'--'):
+                part = part[:-2]
+
+            # Parse the part using email.parser.BytesParser
+            parser = BytesParser(policy=default)
+            parsed_part = parser.parsebytes(part)
+
+            # Extract headers and body
+            headers = dict(parsed_part.items())
+            body = parsed_part.get_payload(decode=True)
+
+            # Extract part name from Content-Disposition header
+            content_disposition = headers.get('Content-Disposition', '')
+            name_match = re.search(r'name="?(.+?)"?(?:\s*;|$)', content_disposition)
+            if name_match:
+                part_name = name_match.group(1)
+            else:
+                # If no name is found, use a default naming scheme
+                part_name = f"unnamed_part_{len(parsed_parts)}"
+
+            parsed_parts[part_name] = {
+                'headers': headers,
+                'body': body
+            }
+
+        return Multipart(parsed_parts)
+
+    def to_dict(self):
+        d = {}
+        for part_name, part_data in self.parts.items():
+            if part_name == 'responseBody':
+                d[part_name] = Payload.from_binary(part_data['body'])
+            else:
+                try: 
+                    d[part_name] = part_data['body'].decode('utf-8')
+                except:
+                    d[part_name] = part_data['body']
+                
+        return d
+
+    @staticmethod
+    def _extract_boundary(content_type: str) -> str:
+        match = re.search(r'boundary="?(.+?)"?(?:\s*;|$)', content_type)
+        if match:
+            return match.group(1)
+        raise ValueError("Boundary not found in Content-Type header")
