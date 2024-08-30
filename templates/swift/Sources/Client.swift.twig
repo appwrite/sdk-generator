@@ -561,6 +561,62 @@ open class Client {
         }
         request.headers.add(name: "Content-Type", value: "multipart/form-data;boundary=\"\(Client.boundary)\"")
         request.body = .bytes(bodyBuffer)
+
+    private func parseFormData(with boundary: String, for body: String) -> [String: Any] {
+        var data: [String: Any] = [:]
+
+        for part in body.components(separatedBy: boundary) {
+            var lines = part.components(separatedBy: CRLF).filter { !$0.isEmpty }
+
+            guard let disposition = lines.first(where: { $0.contains("Content-Disposition: form-data;") }) else {
+                continue;
+            }
+
+            // Find part name
+            if let nameStart = disposition.range(of: "name=\""),
+               let nameEnd = disposition.range(of: "\"", range: nameStart.upperBound..<disposition.endIndex) {
+                let name = String(disposition[nameStart.upperBound..<nameEnd.lowerBound])
+
+                // Remove disposition
+                lines.removeFirst()
+
+                if lines.first == "Content-Type: application/json" {
+                    // Remove content type
+                    lines.removeFirst()
+
+                    if let json = lines.joined().data(using: .utf8),
+                       let map = try? JSONSerialization.jsonObject(with: json, options: []) {
+
+                        if let pairs = map as? [[String: String]], pairs.allSatisfy({ $0.keys.contains("name") && $0.keys.contains("value") }) {
+                            // Extract if all entries have "name" and "value"
+                            let headers = Dictionary(uniqueKeysWithValues: pairs.map { ($0["name"]!, $0["value"]!) })
+
+                            data[name] = headers
+                        } else {
+                            // Otherwise add the raw values
+                            data[name] = map
+                        }
+                    }
+
+                    continue
+                }
+
+                data[name] = lines.joined(separator: CRLF)
+            }
+        }
+
+        // Convert specific fields to their appropriate types if present
+        if let responseStatusCode = data["responseStatusCode"] as? String {
+            data["responseStatusCode"] = Int(responseStatusCode)
+        }
+        if let duration = data["duration"] as? String {
+            data["duration"] = Float(duration)
+        }
+        if let responseBody = data["responseBody"] as? String {
+            data["responseBody"] = Payload.fromString(responseBody)
+        }
+
+        return data
     }
 
     private func addUserAgentHeader() {
