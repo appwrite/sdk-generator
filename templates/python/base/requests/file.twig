@@ -1,5 +1,5 @@
         {%~ for parameter in method.parameters.all %}
-        {%~ if parameter.type == 'file' or parameter.type == 'payload' %}
+        {%~ if parameter.type == 'file' %}
         param_name = '{{ parameter.name }}'
 
         {%- endif %}

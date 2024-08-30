@@ -14,7 +14,7 @@ class {{ service.name | caseUcfirst }}(Service):
         {%- endif %}        
         api_path = '{{ method.path }}'
 {{ include('python/base/params.twig') }}
-        {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if 'multipart/form-data' in method.consumes and method.name != 'createExecution' %}
 {{ include('python/base/requests/file.twig') }}
         {%~ else %}
 {{ include('python/base/requests/api.twig') }}
