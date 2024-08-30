@@ -385,18 +385,9 @@ open class Client {
         converter: ((Any) -> T)? = nil,
         onProgress: ((UploadProgress) -> Void)? = nil
     ) async throws -> T {
-        let input = params[paramName] as! Payload
-
-        switch(input.sourceType) {
-        case "path":
-            input.data = ByteBuffer(data: try! Data(contentsOf: URL(fileURLWithPath: input.path)))
-        case "data":
-            input.data = ByteBuffer(data: input.data as! Data)
-        default:
-            break
-        }
-
-        let size = (input.data as! ByteBuffer).readableBytes
+        let payload = params[paramName] as! Payload
+        let buffer = payload.toByteBuffer()
+        let size = buffer.readableBytes
 
         if size < Client.chunkSize {
             params[paramName] = input

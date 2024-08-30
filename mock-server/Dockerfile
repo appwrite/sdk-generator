@@ -1,4 +1,4 @@
-FROM composer:2.0 as composer
+FROM composer:2.0 AS composer
 
 LABEL maintainer="team@appwrite.io"
 
@@ -14,7 +14,7 @@ RUN composer install --ignore-platform-reqs --optimize-autoloader \
     --no-plugins --no-scripts --prefer-dist \
     `if [ "$TESTING" != "true" ]; then echo "--no-dev"; fi`
 
-FROM phpswoole/swoole:5.1.2-php8.3-alpine as final
+FROM phpswoole/swoole:5.1.2-php8.3-alpine AS final
 
 RUN apk add docker
 

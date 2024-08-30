@@ -1698,7 +1698,7 @@
           "method": "upload",
           "weight": 277,
           "cookies": false,
-          "type": "",
+          "type": "upload",
           "demo": "general\/upload.md",
           "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a file upload request.",
           "rate-limit": 0,

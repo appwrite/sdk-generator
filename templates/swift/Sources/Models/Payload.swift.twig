@@ -14,11 +14,12 @@ open class Payload {
 
     internal init() {}
 
-    public static func fromPath(_ path: String) -> Payload {
+    public static func fromPath(_ path: String) throws -> Payload {
         let instance = Payload()
         instance.path = path
         instance.filename = URL(fileURLWithPath: path, isDirectory: false).lastPathComponent
         instance.mimeType = path.mimeType()
+        instance.data = ByteBuffer(data: try Data(contentsOf: URL(fileURLWithPath: path)))
         return instance
     }
 
