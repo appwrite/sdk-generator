@@ -71,6 +71,7 @@ class Client:
 
         if headers['content-type'].startswith('multipart/form-data'):
             del headers['content-type']
+            headers['accept'] = 'multipart/form-data'
             stringify = True
             for key in data.copy():
                 if isinstance(data[key], Payload):
