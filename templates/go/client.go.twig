@@ -122,7 +122,7 @@ func (client *Client) AddHeader(key string, value string) {
 	client.Headers[key] = value
 }
 
-func isFileUpload(headers map[string]interface{}) bool {
+func isMultipart(headers map[string]interface{}) bool {
 	contentType, ok := headers["content-type"].(string)
 	if ok {
 		return strings.Contains(strings.ToLower(contentType), "multipart/form-data")
@@ -248,11 +248,12 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 	isGet := strings.ToUpper(method) == "GET"
 	isPost := strings.ToUpper(method) == "POST"
 	isJsonRequest := headers["content-type"] == "application/json"
-	isFileUpload := isFileUpload(headers)
+	isMultipart := isMultipart(headers)
 
 	var req *http.Request
 	var err error
-	if isFileUpload {
+	if isMultipart {
+		headers["accept"] = "multipart/form-data"
 		if !isPost {
 			return nil, errors.New("fileupload needs POST Request")
 		}

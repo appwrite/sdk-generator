@@ -24,7 +24,7 @@
 		return &parsed, nil
 {%~ endif %}
 	}
-{%~ if method.name | lower == "createexecution" %}
+{% if 'multipart/form-data' in method.consumes and method.type != "upload" %}
 {{ include('go/base/requests/execution.twig') }}
 {%~ endif %}
 	var parsed {{ method | returnType(spec, spec.title | caseLower) }}
