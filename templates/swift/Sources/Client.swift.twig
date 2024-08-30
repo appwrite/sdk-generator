@@ -506,61 +506,65 @@ open class Client {
         with params: [String: Any?] = [:],
         chunked: Bool = false
     ) {
-        func addPart(name: String, value: Any) {
-            bodyBuffer.writeString(DASHDASH)
-            bodyBuffer.writeString(Client.boundary)
-            bodyBuffer.writeString(CRLF)
-            bodyBuffer.writeString("Content-Disposition: form-data; name=\"\(name)\"")
+        func addPart(name: String, value: Any, body: inout ByteBuffer) {
+            body.writeString(DASHDASH)
+            body.writeString(Client.boundary)
+            body.writeString(CRLF)
+            body.writeString("Content-Disposition: form-data; name=\"\(name)\"")
 
-            if let file = value as? Payload {
-                bodyBuffer.writeString("; filename=\"\(file.filename)\"")
-                bodyBuffer.writeString(CRLF)
-                bodyBuffer.writeString("Content-Length: \(bodyBuffer.readableBytes)")
-                bodyBuffer.writeString(CRLF+CRLF)
-
-                var buffer = file.data! as! ByteBuffer
-
-                bodyBuffer.writeBuffer(&buffer)
-                bodyBuffer.writeString(CRLF)
-                return
+            switch value {
+            case is Payload:
+                let payload = value as! Payload
+                var buffer = payload.data! as! ByteBuffer
+                body.writeString("; filename=\"\(payload.filename!)\"")
+                body.writeString(CRLF)
+                body.writeString("Content-Length: \(buffer.readableBytes)")
+                body.writeString(CRLF+CRLF)
+                body.writeBuffer(&buffer)
+                body.writeString(CRLF)
+            case is ByteBuffer:
+                var buffer = value as! ByteBuffer
+                body.writeString(CRLF)
+                body.writeString("Content-Length: \(buffer.readableBytes)")
+                body.writeString(CRLF+CRLF)
+                body.writeBuffer(&buffer)
+                body.writeString(CRLF)
+            default:
+                let string = String(describing: value)
+                body.writeString(CRLF)
+                body.writeString("Content-Length: \(string.count)")
+                body.writeString(CRLF+CRLF)
+                body.writeString(string)
+                body.writeString(CRLF)
             }
-
-            let string = String(describing: value)
-            bodyBuffer.writeString(CRLF)
-            bodyBuffer.writeString("Content-Length: \(string.count)")
-            bodyBuffer.writeString(CRLF+CRLF)
-            bodyBuffer.writeString(string)
-            bodyBuffer.writeString(CRLF)
         }
 
-        var bodyBuffer = ByteBuffer()
+        var body = ByteBuffer()
 
         for (key, value) in params {
-            switch key {
-            case "file":
-                addPart(name: key, value: value!)
-            default:
-                if let list = value as? [Any] {
-                    for listValue in list {
-                        addPart(name: "\(key)[]", value: listValue)
-                    }
-                    continue
+            if let list = value as? [Any] {
+                for listValue in list {
+                    addPart(name: "\(key)[]", value: listValue, body: &body)
                 }
-                addPart(name: key, value: value!)
+                continue
             }
+            addPart(name: key, value: value!, body: &body)
         }
 
-        bodyBuffer.writeString(DASHDASH)
-        bodyBuffer.writeString(Client.boundary)
-        bodyBuffer.writeString(DASHDASH)
-        bodyBuffer.writeString(CRLF)
+        body.writeString(DASHDASH)
+        body.writeString(Client.boundary)
+        body.writeString(DASHDASH)
+        body.writeString(CRLF)
 
         request.headers.remove(name: "content-type")
+
         if !chunked {
-            request.headers.add(name: "Content-Length", value: bodyBuffer.readableBytes.description)
+            request.headers.add(name: "Content-Length", value: body.readableBytes.description)
         }
-        request.headers.add(name: "Content-Type", value: "multipart/form-data;boundary=\"\(Client.boundary)\"")
-        request.body = .bytes(bodyBuffer)
+
+        request.headers.add(name: "Content-Type", value: "multipart/form-data; boundary=\"\(Client.boundary)\"")
+        request.body = .bytes(body)
+    }
 
     private func parseFormData(with boundary: String, for body: String) -> [String: Any] {
         var data: [String: Any] = [:]
