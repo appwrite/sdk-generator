@@ -26,13 +26,13 @@ module Appwrite
     # @param [String] path
     # @param [String, nil] filename
     # @return [Payload]
-    def self.from_path(path, filename: nil)
+    def self.from_file(path, filename: nil)
         filename = if filename.nil? then
           File.basename(path)
         else
           filename
         end
-      new(FilePayload.new(path), filename: filename)
+      new(nil, path, filename)
     end
 
     # @param [String] b
@@ -65,6 +65,11 @@ module Appwrite
     # @return [Hash]
     def to_json
       JSON.parse(@data.read())
+    end
+
+    # @param [String] path  
+    def to_file(path)
+      File.open(path, 'w') { |f| f.write(@data.read()) }
     end
 
     private_class_method :new

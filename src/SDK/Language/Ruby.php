@@ -159,6 +159,11 @@ class Ruby extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/multipart.rb',
+                'template'      => 'ruby/lib/container/multipart.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.title | caseDash }}/exception.rb',
                 'template'      => 'ruby/lib/container/exception.rb.twig',
             ],

@@ -195,9 +195,18 @@ module {{ spec.title | caseUcfirst }}
                     when 'application/json'
                         payload = params.to_json
                     when 'multipart/form-data'
-                        payload = encode_form_data(params)
-                        payload += "--#{@boundary}--\r\n"
-                        headers['content-type'] = "multipart/form-data; boundary=#{@boundary}"
+                        multipart = MultipartBuilder.new(@boundary)
+                        
+                        params.each do |name, value|
+                            if value is Payload then
+                                multipart.add(name, value.to_binary(), value.filename)
+                            else
+                                multipart.add(name, value)
+                            end
+                        end
+
+                        headers['content-type'] = multipart.content_type
+                        payload = multipart.body
                     else
                         payload = encode(params)
                 end
@@ -245,28 +254,8 @@ module {{ spec.title | caseUcfirst }}
                 return response_type.from(map: result)
             end
 
-            if response.content_type == 'multipart/form-data'
-                matches = response.body.match(/(?<boundary>[-]+[\w]+)--/m)
-                if matches && matches[:boundary]
-                    parts = response_body.split(boundary)
-                    data = {}
-
-                    parts.each do |part|
-                        lines = part.split("\r\n").reject(&:empty?)
-                        match_data = /name="?(?<name>\w+)/.match(part)
-                        
-                        if match_data
-                        name = match_data[:name]
-                        data[name] = lines[1] || ''
-                        end
-                    end
-
-                    data['responseStatusCode'] = data['responseStatusCode'].to_i
-                    data['duration'] = data['duration'].to_f
-                    data['responseBody'] = Payload::from_binary(data['responseBody'])
-
-                    response.body = data
-                end
+            if response.content_type.start_with?('multipart/form-data')
+                response.body = MultipartParser.new(response.body, response.content_type).to_dict
             end
 
             if response.code.to_i >= 400
@@ -278,29 +267,6 @@ module {{ spec.title | caseUcfirst }}
             end
 
             return response
-        end
-        
-        def encode_form_data(value, key=nil)
-            case value
-            when Payload
-                post_body << "--#{boundary}\r\n",
-                post_body << "Content-Disposition: form-data; name=\"#{name}\";" + (@filename ? " filename=\"#{@filename}\"" : '') + "\r\n\r\n",
-                post_body << value.data.read(),
-                post_body << "\r\n"
-            when Hash
-                value.map { |k,v| encode_form_data(v,k) }.join
-            when Array
-                value.map { |v| encode_form_data(v, "#{key}[]") }.join
-            when nil
-                ''
-            else
-                post_body = []
-                post_body << "--#{@boundary}\r\n"
-                post_body << "Content-Disposition: form-data; name=\"#{key}\"\r\n\r\n";
-                post_body << value.to_s
-                post_body << "\r\n"
-                post_body.join
-            end
         end
 
         def encode(value, key = nil)
