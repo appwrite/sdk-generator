@@ -162,8 +162,8 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
-                'destination' => '{{ spec.title | caseSnake}}/formdata.py',
-                'template' => 'python/package/formdata.py.twig',
+                'destination' => '{{ spec.title | caseSnake}}/multipart.py',
+                'template' => 'python/package/multipart.py.twig',
             ],
             [
                 'scope' => 'default',

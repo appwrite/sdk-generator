@@ -4,7 +4,7 @@ import os
 import requests
 import re
 from .payload import Payload
-from .formdata import FormData
+from .multipart import Multipart
 from .exception import {{spec.title | caseUcfirst}}Exception
 from .encoders.value_class_encoder import ValueClassEncoder
 
@@ -106,10 +106,8 @@ class Client:
             if content_type.startswith('application/json'):
                 return response.json()
 
-            if content_type.startswith('multipart/form-data'):
-                boundary = content_type.split('boundary=')[1]
-                formdata = FormData.from_multipart(response.text, boundary)
-                return formdata.to_object()
+            if content_type.startswith('multipart/form-data'): 
+                return Multipart.from_bytes(response.content, content_type).to_dict()
 
             return response._content
         except Exception as e:

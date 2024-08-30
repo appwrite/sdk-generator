@@ -60,10 +60,10 @@ print(response['result'])
 response = general.redirect()
 print(response['result'])
 
-response = general.upload('string', 123, ['string in array'], Payload.from_path('./tests/resources/file.png'))
+response = general.upload('string', 123, ['string in array'], Payload.from_file('./tests/resources/file.png'))
 print(response['result'])
 
-response = general.upload('string', 123, ['string in array'], Payload.from_path('./tests/resources/large_file.mp4'))
+response = general.upload('string', 123, ['string in array'], Payload.from_file('./tests/resources/large_file.mp4'))
 print(response['result'])
 
 data = open('./tests/resources/file.png', 'rb').read()
@@ -106,12 +106,7 @@ print(url)
 # Multipart response tests
 response = general.multipart()
 print(response['x']) # should be "abc"
-
-binary = (response['responseBody'].to_binary())
-hash = md5()
-hash.update(binary)
-print(hash.hexdigest()) # should be d80e7e6999a3eb2ae0d631a96fe135a4
-
+print(md5(response['responseBody'].to_binary()).hexdigest()) # should be d80e7e6999a3eb2ae0d631a96fe135a4
 
 # Query helper tests
 print(Query.equal("released", [True]))
