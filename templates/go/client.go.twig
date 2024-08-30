@@ -163,6 +163,34 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 			currentChunk = int64(resp.Result.(map[string]interface{})["chunksUploaded"].(float64))
 		}
 	}
+
+	if fileInfo.Size() <= client.ChunkSize {
+		if uploadId != "" && uploadId != "unique()" {
+			headers["x-appwrite-id"] = uploadId
+		}
+		inputFile.Data = make([]byte, fileInfo.Size())
+		_, err := file.Read(inputFile.Data)
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+		params[paramName] = inputFile
+
+		result, err = client.Call("POST", url, headers, params)
+		if err != nil {
+			return nil, err
+		}
+
+		var parsed map[string]interface{}
+		if strings.HasPrefix(result.Type, "application/json") {
+			err = json.Unmarshal([]byte(result.Result.(string)), &parsed)
+			if err == nil {
+				uploadId, _ = parsed["$id"].(string)
+			}
+		}
+
+		return result, nil
+	}
+
 	for i := currentChunk; i < numChunks; i++ {
 		chunkSize := client.ChunkSize
 		offset := int64(i) * chunkSize

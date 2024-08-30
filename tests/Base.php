@@ -74,6 +74,11 @@ abstract class Base extends TestCase
         'WS:/v1/realtime:passed',
     ];
 
+    protected const MULTIPART_RESPONSES = [
+        'abc',
+        'd80e7e6999a3eb2ae0d631a96fe135a4' #
+    ];
+
     protected const QUERY_HELPER_RESPONSES = [
         '{"method":"equal","attribute":"released","values":[true]}',
         '{"method":"equal","attribute":"title","values":["Spiderman","Dr. Strange"]}',

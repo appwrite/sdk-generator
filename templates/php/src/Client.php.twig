@@ -14,28 +14,28 @@ class Client
     const METHOD_CONNECT = 'CONNECT';
     const METHOD_TRACE = 'TRACE';
 
-    const CHUNK_SIZE = 5*1024*1024;
+    const CHUNK_SIZE = 5 * 1024 * 1024;
 
     /**
      * Is Self Signed Certificates Allowed?
      *
      * @var bool
      */
-    protected $selfSigned = false;
+    protected bool $selfSigned = false;
 
     /**
      * Service host name
      *
      * @var string
      */
-    protected $endpoint = '{{spec.endpoint}}';
+    protected string $endpoint = '{{spec.endpoint}}';
 
     /**
      * Global Headers
      *
      * @var array
      */
-    protected $headers = [
+    protected array $headers = [
         'content-type' => '',
         'user-agent' => '{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} ({{deviceInfo}})',
         'x-sdk-name'=> '{{ sdk.name }}',
@@ -45,13 +45,13 @@ class Client
     ];
 
     /**
-     * SDK constructor.
+     * Client constructor.
      */
     public function __construct()
     {
 {% for key,header in spec.global.defaultHeaders %}
         $this->headers['{{key}}'] = '{{header}}';
-{% endfor %} 
+{% endfor %}
     }
 
 {% for header in spec.global.headers %}
@@ -66,7 +66,7 @@ class Client
      *
      * @return Client
      */
-    public function set{{header.key | caseUcfirst}}($value)
+    public function set{{header.key | caseUcfirst}}(string $value): Client
     {
         $this->addHeader('{{header.name}}', $value);
 
@@ -79,7 +79,7 @@ class Client
      * @param bool $status
      * @return $this
      */
-    public function setSelfSigned($status = true)
+    public function setSelfSigned(bool $status = true): Client
     {
         $this->selfSigned = $status;
 
@@ -90,7 +90,7 @@ class Client
      * @param $endpoint
      * @return $this
      */
-    public function setEndpoint($endpoint)
+    public function setEndpoint(string $endpoint): Client
     {
         $this->endpoint = $endpoint;
 
@@ -101,10 +101,10 @@ class Client
      * @param $key
      * @param $value
      */
-    public function addHeader($key, $value)
+    public function addHeader(string $key, string $value): Client
     {
         $this->headers[strtolower($key)] = $value;
-        
+
         return $this;
     }
 
@@ -120,7 +120,13 @@ class Client
      * @return array|string
      * @throws {{spec.title | caseUcfirst}}Exception
      */
-    public function call($method, $path = '', $headers = array(), array $params = array(), ?string $responseType = null)
+    public function call(
+        string $method,
+        string $path = '',
+        array $headers = [],
+        array $params = [],
+        ?string $responseType = null
+    )
     {
         $headers = array_merge($this->headers, $headers);
         $ch = curl_init($this->endpoint . $path . (($method == self::METHOD_GET && !empty($params)) ? '?' . http_build_query($params) : ''));
@@ -132,6 +138,7 @@ class Client
                 break;
 
             case 'multipart/form-data':
+                $headers['accept'] = 'multipart/form-data';
                 $query = $this->flatten($params);
                 break;
 
@@ -183,22 +190,28 @@ class Client
                 echo 'Warning: ' . $warning . PHP_EOL;
             }
         }
-        
+
         switch(substr($contentType, 0, strpos($contentType, ';'))) {
             case 'application/json':
                 $responseBody = json_decode($responseBody, true);
             break;
         }
-
-        if (curl_errno($ch)) {
-            throw new {{spec.title | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody);
+        if (str_contains($contentType, 'multipart/form-data')) {
+            $matches = [];
+            preg_match('/(?<boundary>[-]+[\w]+)--/m', $responseBody, $matches);
+            if (isset($matches['boundary'])) {
+                $responseBody = self::handleFormData($matches['boundary'], $responseBody);
+            }
         }
-        
+        if (curl_errno($ch)) {
+            throw new {{spec.title | caseUcfirst}}Exception(curl_error($ch), $responseStatus, $responseBody['type'] ?? '', $responseBody);
+        }
+
         curl_close($ch);
 
         if($responseStatus >= 400) {
             if(is_array($responseBody)) {
-                throw new {{spec.title | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody['type'] ?? '', $responseBody);
+                throw new {{spec.title | caseUcfirst}}Exception($responseBody['message'], $responseStatus, $responseBody['type'] ?? '', json_encode($responseBody));
             } else {
                 throw new {{spec.title | caseUcfirst}}Exception($responseBody, $responseStatus);
             }
@@ -218,7 +231,7 @@ class Client
      * @param string $prefix
      * @return array
      */
-    protected function flatten(array $data, $prefix = '') {
+    protected function flatten(array $data, string $prefix = ''): array {
         $output = [];
 
         foreach($data as $key => $value) {
@@ -233,5 +246,46 @@ class Client
         }
 
         return $output;
+    }
+
+    public static function handleFormData(string $boundary, mixed $responseBody)
+    {
+        $parts = explode($boundary, $responseBody);
+        $data = [];
+        foreach ($parts as $part) {
+            $lines = array_values(array_filter(explode("\r\n", $part)));
+            $matches = [];
+            $matched = preg_match('/name="?(?<name>\w+)/s', $part, $matches);
+            if ($matched) {
+                array_shift($lines);
+                if(isset($lines[0]) && $lines[0] === 'Content-Type: application/json'){
+                    array_shift($lines);
+                    $json = json_decode(implode($lines), true);
+
+                    if (count($json) > 0 && isset($json[0]['name']) && isset($json[0]['value'])) {
+                        $json = array_combine(
+                            array_map(fn($header) => $header['name'], $json),
+                            array_map(fn($header) => $header['value'], $json)
+                        );
+                    }
+
+                    $data[$matches['name']] = $json;
+                    continue;
+                }
+                $data[$matches['name']] = implode("\r\n",$lines) ?? '';;
+            }
+        }
+
+        if(isset($data['responseStatusCode'])) {
+            $data['responseStatusCode'] = (int) ($data['responseStatusCode'] ?? '');
+        }
+        if(isset($data['duration'])) {
+            $data['duration'] = ((float) ($data['duration'] ?? ''));
+        }
+        if(isset($data['responseBody'])) {
+            $data['responseBody'] = Payload::fromString($data['responseBody'] ?? '');
+        }
+
+        return $data;
     }
 }

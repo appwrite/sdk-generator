@@ -14,7 +14,7 @@ Client client = new Client()
     .SetEndPoint("https://cloud.appwrite.io/v1") // Your API Endpoint
 {% for node in method.auth %}
 {% for key,header in node|keys %}
-    .Set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo']}}"){% if loop.last %};{% endif %} // {{node[header].description}}
+    .Set{{header | caseUcfirst}}("{{node[header]['x-appwrite']['demo'] | raw }}"){% if loop.last %};{% endif %} // {{node[header].description}}
 {% endfor %}{% endfor %}{% endif %}
 
 {{ service.name | caseUcfirst }} {{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}(client);

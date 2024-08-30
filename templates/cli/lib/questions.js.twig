@@ -261,7 +261,7 @@ const questionsPullFunctionsCode = [
     {
         type: "confirm",
         name: "override",
-        message: "Do you want to pull source code of active deployment?"
+        message: "Do you want to pull source code of the latest deployment?"
     },
 ];
 
