@@ -18,5 +18,5 @@
             {%- endfor %}
             {%~ for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
-            {%- endfor %}
+            {%~ endfor %}
         }, api_params, param_name, on_progress, upload_id)

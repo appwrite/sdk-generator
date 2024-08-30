@@ -4,5 +4,5 @@
             {%- endfor %}
             {%~ for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
-            {%- endfor %}
+            {%~ endfor %}
         }, api_params{% if method.type == 'webAuth' %}, response_type='location'{% endif %})
