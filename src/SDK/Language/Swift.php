@@ -311,7 +311,8 @@ class Swift extends Language
             self::TYPE_INTEGER => 'Int',
             self::TYPE_NUMBER => 'Double',
             self::TYPE_STRING => 'String',
-            self::TYPE_FILE => 'InputFile',
+            self::TYPE_FILE,
+            self::TYPE_PAYLOAD => 'Payload',
             self::TYPE_BOOLEAN => 'Bool',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? '[' . $this->getTypeName($parameter['array']) . ']'
