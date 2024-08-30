@@ -27,7 +27,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     {%~ endif %}
     open func {{ method.name | caseCamel | overrideIdentifier }}{% if method.responseModel | hasGenericType(spec) %}<T>{% endif %}(
         {%~ for parameter in method.parameters.all %}
-        {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes or method.responseModel | hasGenericType(spec) %},{% endif %}
+        {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or ('multipart/form-data' in method.consumes and method.type == 'upload') or method.responseModel | hasGenericType(spec) %},{% endif %}
 
         {%~ endfor %}
         {%~ if method.responseModel | hasGenericType(spec) %}
@@ -46,7 +46,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         {%~ if method.headers | length <= 0 %}
         let apiHeaders: [String: String] = [:]
         {%~ else %}
-        {% if 'multipart/form-data' in method.consumes -%} var
+        {% if 'multipart/form-data' in method.consumes and method.type == 'upload' -%} var
         {%- else -%} let
         {%- endif %} apiHeaders: [String: String] = [
         {%~ if 'multipart/form-data' in method.consumes and method.type != 'upload' %}
@@ -99,7 +99,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
 
         {%~ endfor %}
-        {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if 'multipart/form-data' in method.consumes and method.type == 'upload' %}
         onProgress: ((UploadProgress) -> Void)? = nil
         {%~ endif %}
     ) async throws -> {{ method | returnType(spec, '[String: AnyCodable]') | raw }} {
@@ -108,7 +108,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
             {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter.name | caseCamel | escapeSwiftKeyword }},
             {%~ endfor %}
             nestedType: [String: AnyCodable].self
-            {%~ if 'multipart/form-data' in method.consumes %}
+            {%~ if 'multipart/form-data' in method.consumes and method.type == 'upload' %}
             onProgress: onProgress
             {%~ endif %}
         )

@@ -6,7 +6,7 @@
         {%~ if method.parameters.query | merge(method.parameters.body) | length <= 0 %}
         let apiParams: [String: Any] = [:]
         {%~ else %}
-        {% if 'multipart/form-data' in method.consumes -%} var
+        {% if 'multipart/form-data' in method.consumes and method.type == 'upload' -%} var
         {%- else -%} let
         {%- endif %} apiParams: [String: Any?] = [
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
