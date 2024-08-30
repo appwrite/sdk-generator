@@ -1,4 +1,4 @@
-import { {{ spec.title | caseUcfirst}}Exception, Client, type JSONPayload, UploadProgress } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, Client, type Params, UploadProgress } from '../client';
 import { Payload } from '../payload';
 import type { Models } from '../models';
 {% set added = [] %}
@@ -48,23 +48,24 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endif %}
         {%~ endfor %}
         const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-        const payload: JSONPayload = {};
+        const originalPayload: Params = {};
         {%~ for parameter in method.parameters.query %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            originalPayload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
         {%~ endfor %}
         {%~ for parameter in method.parameters.body %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            {%~ if parameter.type == 'payload' %}
+            originalPayload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}.toBinary();
+            {%~ else %}
+            originalPayload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            {%~ endif %}
         }
         {%~ endfor %}
         const uri = new URL(this.client.config.endpoint + apiPath);
 
         const apiHeaders: { [header: string]: string } = {
-            {%~ if method.name | lower == "createexecution" %}
-            'accept': 'multipart/form-data',
-            {%~ endif %}
             {%~ for parameter in method.parameters.header %}
             '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
             {%~ endfor %}
@@ -78,14 +79,14 @@ export class {{ service.name | caseUcfirst }} {
             '{{ method.method | caseLower }}',
             uri,
             apiHeaders,
-            payload
+            originalPayload
         );
-        {%~ elseif 'multipart/form-data' in method.consumes %}
+        {%~ elseif 'multipart/form-data' in method.consumes and method.name | lower != "createexecution" %}
         return await this.client.chunkedUpload(
             '{{ method.method | caseLower }}',
             uri,
             apiHeaders,
-            payload,
+            originalPayload,
             onProgress
         );
         {%~ else %}
@@ -93,7 +94,7 @@ export class {{ service.name | caseUcfirst }} {
             '{{ method.method | caseLower }}',
             uri,
             apiHeaders,
-            payload,
+            originalPayload,
             {%~ if method.type == 'location' %}
             'arrayBuffer'
             {%~ endif %}

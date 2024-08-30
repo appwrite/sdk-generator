@@ -20,9 +20,6 @@ class Node extends Web
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
-        if (($parameter['name'] ?? '') === 'body') {
-            return 'Payload';
-        }
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
@@ -34,6 +31,8 @@ class Node extends Web
                 return 'string[]';
             case self::TYPE_FILE:
                 return "File";
+            case self::TYPE_PAYLOAD:
+                return "Payload";
             case self::TYPE_OBJECT:
                 if (empty($method)) {
                     return $parameter['type'];
@@ -168,7 +167,7 @@ class Node extends Web
             [
                 'scope'         => 'default',
                 'destination'   => 'src/payload.ts',
-                'template'      => 'node/src/Payload.ts.twig',
+                'template'      => 'node/src/payload.ts.twig',
             ],
             [
                 'scope'         => 'service',

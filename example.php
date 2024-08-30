@@ -42,7 +42,7 @@ try {
      $platform = 'console';
     // $platform = 'server';
 
-    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/chore-change-response-type-to-multipart/app/config/specs/swagger2-latest-{$platform}.json");
+    $spec = getSSLPage("https://raw.githubusercontent.com/appwrite/appwrite/1.6.x/app/config/specs/swagger2-latest-{$platform}.json");
 
     if(empty($spec)) {
         throw new Exception('Failed to fetch spec from Appwrite server');
@@ -141,7 +141,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => 'dev-chore-change-response-type-to-multipart',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 

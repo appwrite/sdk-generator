@@ -2,7 +2,7 @@ export { Client, Query, {{spec.title | caseUcfirst}}Exception } from './client';
 {% for service in spec.services %}
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseDash}}';
 {% endfor %}
-export type { Models, JSONPayload, UploadProgress } from './client';
+export type { Models, Params, UploadProgress } from './client';
 export type { QueryTypes, QueryTypesList } from './query';
 export { Permission } from './permission';
 export { Role } from './role';

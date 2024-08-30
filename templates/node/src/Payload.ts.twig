@@ -2,21 +2,22 @@ import { readFileSync } from "fs";
 import { File } from "node-fetch-native-with-agent";
 import { basename } from "path";
 
-export class Payload {
+export class Payload extends File {
   private data: Buffer;
-  public name?: string;
+  private fileName: string;
 
   constructor(data: Buffer, name?: string) {
+    super([data], name || 'unnamed');
     this.data = data;
-    this.name = name;
+    this.fileName = name || 'unnamed';
   }
 
   public getData(): Buffer {
     return this.data;
   }
 
-  public getName(): string | undefined {
-    return this.name;
+  public getName(): string {
+    return this.fileName;
   }
 
   public toBinary(): Buffer {
@@ -31,8 +32,8 @@ export class Payload {
     return this.data.toString("utf-8");
   }
 
-  public toFile(path: string): File {
-    return new File([this.data], this.name);
+  public toFile(): File {
+    return new File([this.data], this.fileName);
   }
 
   public static fromBinary(bytes: Buffer, name?: string): Payload {
@@ -49,11 +50,9 @@ export class Payload {
     return new Payload(data, name);
   }
 
-  public static fromFile(file: string, name?: string): Payload {
-    const data = readFileSync(file);
-    if (!name) {
-      name = basename(file);
-    }
-    return new Payload(data, name);
+  public static fromFile(filePath: string, name?: string): Payload {
+    const data = readFileSync(filePath);
+    const fileName = name || basename(filePath);
+    return new Payload(data, fileName);
   }
 }

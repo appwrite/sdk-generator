@@ -5,7 +5,7 @@ import { Payload } from './payload';
 import * as multipart from 'parse-multipart-data';
 import { buffer } from 'node:stream/consumers';
 
-type JSONPayload = {
+type Params = {
     [key: string]: any;
 }
 
@@ -155,7 +155,7 @@ class Client {
     }
     {%~ endfor %}
 
-    prepareRequest(method: string, url: URL, headers: Headers = {}, params: JSONPayload = {}): { uri: string, options: RequestInit } {
+    prepareRequest(method: string, url: URL, headers: Headers = {}, params: Params = {}): { uri: string, options: RequestInit } {
         method = method.toUpperCase();
 
         headers = Object.assign({}, this.headers, headers);
@@ -193,6 +193,7 @@ class Client {
 
                     options.body = formData;
                     delete headers['content-type'];
+                    headers['accept'] = 'multipart/form-data';
                     break;
             }
         }
@@ -200,7 +201,7 @@ class Client {
         return { uri: url.toString(), options };
     }
 
-    async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: JSONPayload = {}, onProgress: (progress: UploadProgress) => void) {
+    async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: Params = {}, onProgress: (progress: UploadProgress) => void) {
         const file = Object.values(originalPayload).find((value) => value instanceof File);
 
         if (file.size <= Client.CHUNK_SIZE) {
@@ -243,7 +244,7 @@ class Client {
         return response;
     }
 
-    async redirect(method: string, url: URL, headers: Headers = {}, params: JSONPayload = {}): Promise<string> {
+    async redirect(method: string, url: URL, headers: Headers = {}, params: Params = {}): Promise<string> {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
         
         const response = await fetch(uri, {
@@ -258,7 +259,7 @@ class Client {
         return response.headers.get('location') || '';
     }
 
-    async call(method: string, url: URL, headers: Headers = {}, params: JSONPayload = {}, responseType = 'json'): Promise<any> {
+    async call(method: string, url: URL, headers: Headers = {}, params: Params = {}, responseType = 'json'): Promise<any> {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
 
         let data: any = null;
@@ -280,22 +281,33 @@ class Client {
                 response.headers.get("content-type") || ""
             );
             const parts = multipart.parse(body, boundary);
-            const partsObject: { [key: string]: Buffer | string } = {};
-            let filename = '';
+            const partsObject: { [key: string]: any } = {};
+            
             for (const part of parts) {
                 if (part.name) {
                     if (part.name === "responseBody") {
-                        partsObject[part.name] = part.data;
-                        filename = part.filename || '';
+                        partsObject[part.name] = new Payload(part.data, part.filename || undefined);
+                    } else if (part.name === "responseStatusCode") {
+                        partsObject[part.name] = parseInt(part.data.toString(), 10);
+                    } else if (part.name === "duration") {
+                        partsObject[part.name] = parseFloat(part.data.toString());
+                    } else if (part.type === 'application/json') {
+                        try {
+                            let jsonData = JSON.parse(part.data.toString());
+                            if (Array.isArray(jsonData) && jsonData.length > 0 && 'name' in jsonData[0] && 'value' in jsonData[0]) {
+                                jsonData = Object.fromEntries(jsonData.map(item => [item.name, item.value]));
+                            }
+                            partsObject[part.name] = jsonData;
+                        } catch (e) {
+                            console.error('Error parsing JSON:', e);
+                            partsObject[part.name] = part.data.toString();
+                        }
                     } else {
                         partsObject[part.name] = part.data.toString();
                     }
                 }
             }
-            data = {
-              ...partsObject,
-              responseBody: new Payload(partsObject.responseBody as Buffer, filename),
-            };
+            data = partsObject;
         } else {
             data = {
                 message: await response.text()
@@ -309,8 +321,8 @@ class Client {
         return data;
     }
 
-    static flatten(data: JSONPayload, prefix = ''): JSONPayload {
-        let output: JSONPayload = {};
+    static flatten(data: Params, prefix = ''): Params {
+        let output: Params = {};
 
         for (const [key, value] of Object.entries(data)) {
             let finalKey = prefix ? prefix + '[' + key +']' : key;
@@ -327,5 +339,5 @@ class Client {
 
 export { Client, {{spec.title | caseUcfirst}}Exception };
 export { Query } from './query';
-export type { Models, JSONPayload, UploadProgress };
+export type { Models, Params, UploadProgress };
 export type { QueryTypes, QueryTypesList } from './query';
