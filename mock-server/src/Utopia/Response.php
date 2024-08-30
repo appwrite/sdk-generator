@@ -25,6 +25,7 @@ class Response extends UtopiaResponse
     public const MODEL_ERROR_DEV = 'errorDev';
     public const MODEL_BASE_LIST = 'baseList';
     public const MODEL_MULTIPART = 'multipart';
+
     // Mock
     public const MODEL_MOCK = 'mock';
 
@@ -51,6 +52,7 @@ class Response extends UtopiaResponse
     public const CONTENT_TYPE_YAML = 'application/x-yaml';
     public const CONTENT_TYPE_NULL = 'null';
     public const CONTENT_TYPE_MULTIPART = 'multipart/form-data';
+
     /**
      * List of defined output objects
      */
@@ -147,6 +149,8 @@ class Response extends UtopiaResponse
                 break;
         }
     }
+
+
 
     /**
      * Generate valid response object from document data
