@@ -138,6 +138,7 @@ class Client
                 break;
 
             case 'multipart/form-data':
+                $headers['accept'] = 'multipart/form-data';
                 $query = $this->flatten($params);
                 break;
 
@@ -259,21 +260,31 @@ class Client
                 array_shift($lines);
                 if(isset($lines[0]) && $lines[0] === 'Content-Type: application/json'){
                     array_shift($lines);
-                    $headers = json_decode(implode($lines), true);
-                    $headers = array_combine(
-                        array_map(fn($header)=>  $header['name'], $headers),
-                        array_map(fn($header)=>  $header['value'], $headers)
-                    );
-                    $data[$matches['name']] = $headers;
+                    $json = json_decode(implode($lines), true);
+
+                    if (count($json) > 0 && isset($json[0]['name']) && isset($json[0]['value'])) {
+                        $json = array_combine(
+                            array_map(fn($header) => $header['name'], $json),
+                            array_map(fn($header) => $header['value'], $json)
+                        );
+                    }
+
+                    $data[$matches['name']] = $json;
                     continue;
                 }
                 $data[$matches['name']] = implode("\r\n",$lines) ?? '';;
             }
         }
 
-        $data['responseStatusCode'] = (int) ($data['responseStatusCode'] ?? '');
-        $data['duration'] = ((float) ($data['duration'] ?? ''));
-        $data['responseBody'] = Payload::fromString($data['responseBody'] ?? '');
+        if(isset($data['responseStatusCode'])) {
+            $data['responseStatusCode'] = (int) ($data['responseStatusCode'] ?? '');
+        }
+        if(isset($data['duration'])) {
+            $data['duration'] = ((float) ($data['duration'] ?? ''));
+        }
+        if(isset($data['responseBody'])) {
+            $data['responseBody'] = Payload::fromString($data['responseBody'] ?? '');
+        }
 
         return $data;
     }
