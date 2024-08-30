@@ -107,7 +107,8 @@ class Client:
                 return response.json()
 
             if content_type.startswith('multipart/form-data'):
-                formdata = FormData.from_multipart(response.text)
+                boundary = content_type.split('boundary=')[1]
+                formdata = FormData.from_multipart(response.text, boundary)
                 return formdata.to_object()
 
             return response._content

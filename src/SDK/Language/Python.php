@@ -237,7 +237,8 @@ class Python extends Language
             return \ucfirst($parameter['name']);
         }
         return match ($parameter['type'] ?? '') {
-            self::TYPE_FILE => 'InputFile',
+            self::TYPE_PAYLOAD,
+            self::TYPE_FILE => 'Payload',
             self::TYPE_NUMBER,
             self::TYPE_INTEGER => 'float',
             self::TYPE_BOOLEAN => 'bool',
@@ -332,8 +333,11 @@ class Python extends Language
                 case self::TYPE_OBJECT:
                     $output .= '{}';
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.from_json({ "key": "value" })';
+                    break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.from_path('file.png')";
+                    $output .= "Payload.from_file('file.png')";
                     break;
             }
         } else {
@@ -350,8 +354,11 @@ class Python extends Language
                 case self::TYPE_STRING:
                     $output .= "'{$example}'";
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.from_json({ "key": "value" })';
+                    break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.from_path('file.png')";
+                    $output .= "Payload.from_file('file.png')";
                     break;
             }
         }

@@ -104,8 +104,6 @@ class Response extends UtopiaResponse
             $multipart->setPart($key, $value);
         }
 
-        Console::log('Multipart\n'. $multipart->exportBody());
-
         $this
             ->setContentType($multipart->exportHeader())
             ->send($multipart->exportBody());
