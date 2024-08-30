@@ -1,7 +1,7 @@
 import Foundation
 import NIO
 
-open class InputFile {
+open class Payload {
 
     public var path: String = ""
     public var filename: String = ""
@@ -12,8 +12,8 @@ open class InputFile {
     internal init() {
     }
 
-    public static func fromPath(_ path: String) -> InputFile {
-        let instance = InputFile()
+    public static func fromPath(_ path: String) -> Payload {
+        let instance = Payload()
         instance.path = path
         instance.filename = URL(fileURLWithPath: path, isDirectory: false).lastPathComponent
         instance.mimeType = path.mimeType()
@@ -21,8 +21,8 @@ open class InputFile {
         return instance
     }
 
-    public static func fromData(_ data: Data, filename: String, mimeType: String) -> InputFile {
-        let instance = InputFile()
+    public static func fromData(_ data: Data, filename: String, mimeType: String) -> Payload {
+        let instance = Payload()
         instance.filename = filename
         instance.mimeType = mimeType
         instance.sourceType = "data"
@@ -30,8 +30,8 @@ open class InputFile {
         return instance
     }
 
-    public static func fromBuffer(_ buffer: ByteBuffer, filename: String, mimeType: String) -> InputFile {
-        let instance = InputFile()
+    public static func fromBuffer(_ buffer: ByteBuffer, filename: String, mimeType: String) -> Payload {
+        let instance = Payload()
         instance.filename = filename
         instance.mimeType = mimeType
         instance.sourceType = "buffer"

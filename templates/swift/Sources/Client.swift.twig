@@ -374,7 +374,7 @@ open class Client {
         converter: ((Any) -> T)? = nil,
         onProgress: ((UploadProgress) -> Void)? = nil
     ) async throws -> T {
-        let input = params[paramName] as! InputFile
+        let input = params[paramName] as! Payload
 
         switch(input.sourceType) {
         case "path":
@@ -422,7 +422,7 @@ open class Client {
             let slice = (input.data as! ByteBuffer).getSlice(at: offset, length: Client.chunkSize)
                 ?? (input.data as! ByteBuffer).getSlice(at: offset, length: Int(size - offset))
 
-            params[paramName] = InputFile.fromBuffer(slice!, filename: input.filename, mimeType: input.mimeType)
+            params[paramName] = Payload.fromBuffer(slice!, filename: input.filename, mimeType: input.mimeType)
             headers["content-range"] = "bytes \(offset)-\(min((offset + Client.chunkSize) - 1, size - 1))/\(size)"
 
             result = try await call(
@@ -501,7 +501,7 @@ open class Client {
             bodyBuffer.writeString(CRLF)
             bodyBuffer.writeString("Content-Disposition: form-data; name=\"\(name)\"")
 
-            if let file = value as? InputFile {
+            if let file = value as? Payload {
                 bodyBuffer.writeString("; filename=\"\(file.filename)\"")
                 bodyBuffer.writeString(CRLF)
                 bodyBuffer.writeString("Content-Length: \(bodyBuffer.readableBytes)")

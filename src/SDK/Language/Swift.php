@@ -149,8 +149,8 @@ class Swift extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/InputFile.swift',
-                'template'      => 'swift/Sources/Models/InputFile.swift.twig',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/Payload.swift',
+                'template'      => 'swift/Sources/Models/Payload.swift.twig',
             ],
             [
                 'scope'         => 'default',
@@ -397,7 +397,7 @@ class Swift extends Language
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'InputFile.fromPath("file.png")';
+                    $output .= 'Payload.fromPath("file.png")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:

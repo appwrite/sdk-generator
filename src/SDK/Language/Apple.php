@@ -52,8 +52,8 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/InputFile.swift',
-                'template'      => 'swift/Sources/Models/InputFile.swift.twig',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/Payload.swift',
+                'template'      => 'swift/Sources/Models/Payload.swift.twig',
             ],
             [
                 'scope'         => 'default',
