@@ -32,7 +32,7 @@
       "description": "Your project ID",
       "in": "header",
       "x-appwrite": {
-        "demo": "5df5acd0d48c2"
+        "demo": "<YOUR_PROJECT_ID>"
       }
     },
     "Key": {
@@ -1562,6 +1562,58 @@
         ]
       }
     },
+    "\/mock\/tests\/general\/multipart": {
+      "get": {
+        "summary": "Multipart",
+        "operationId": "generalMultipart",
+        "consumes": [
+          "application\/json"
+        ],
+        "produces": [
+          "multipart\/form-data"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "",
+        "responses": {
+          "301": {
+            "description": "No content"
+          }
+        },
+        "x-appwrite": {
+          "method": "multipart",
+          "weight": 278,
+          "cookies": false,
+          "type": "",
+          "demo": "general\/multipart.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a multipart request.",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/redirect\/done": {
       "get": {
         "summary": "Redirected",
@@ -1754,7 +1806,7 @@
             "in": "formData"
           },
           {
-            "name": "file",
+            "name": "payload",
             "description": "Sample file param",
             "required": true,
             "type": "file",
@@ -1978,6 +2030,30 @@
         "type",
         "version"
       ]
+    },
+    "multipart": {
+      "description": "Multipart",
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "string",
+          "description": "Sample string param",
+          "default": null,
+          "x-example": "[]"
+        },
+        "y": {
+          "type": "integer",
+          "description": "Sample numeric param",
+          "default": null,
+          "x-example": null
+        },
+        "body": {
+          "type": "file",
+          "description": "Sample file param",
+          "default": null,
+          "x-example": null
+        }
+      }
     },
     "mock": {
       "description": "Mock",
