@@ -3,14 +3,13 @@ from appwrite.services.foo import Foo
 from appwrite.services.bar import Bar
 from appwrite.services.general import General
 from appwrite.exception import AppwriteException
-from appwrite.input_file import InputFile
+from appwrite.payload import Payload
 from appwrite.query import Query
 from appwrite.permission import Permission
 from appwrite.role import Role
 from appwrite.id import ID
 from appwrite.enums.mock_type import MockType
-
-import os.path
+from hashlib import md5
 
 client = Client()
 foo = Foo(client)
@@ -61,18 +60,18 @@ print(response['result'])
 response = general.redirect()
 print(response['result'])
 
-response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/file.png'))
+response = general.upload('string', 123, ['string in array'], Payload.from_file('./tests/resources/file.png'))
 print(response['result'])
 
-response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/large_file.mp4'))
+response = general.upload('string', 123, ['string in array'], Payload.from_file('./tests/resources/large_file.mp4'))
 print(response['result'])
 
 data = open('./tests/resources/file.png', 'rb').read()
-response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'file.png', 'image/png'))
+response = general.upload('string', 123, ['string in array'], Payload.from_binary(data, 'file.png'))
 print(response['result'])
 
 data = open('./tests/resources/large_file.mp4', 'rb').read()
-response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'large_file.mp4','video/mp4'))
+response = general.upload('string', 123, ['string in array'], Payload.from_binary(data, 'large_file.mp4'))
 print(response['result'])
 
 response = general.enum(MockType.FIRST)
@@ -103,6 +102,11 @@ url = general.oauth2(
     'https://localhost'
 )
 print(url)
+
+# Multipart response tests
+response = general.multipart()
+print(response['x']) # should be "abc"
+print(md5(response['responseBody'].to_binary()).hexdigest()) # should be d80e7e6999a3eb2ae0d631a96fe135a4
 
 # Query helper tests
 print(Query.equal("released", [True]))

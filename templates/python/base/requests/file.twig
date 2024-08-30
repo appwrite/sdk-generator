@@ -1,22 +1,22 @@
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.type == 'file' %}
         param_name = '{{ parameter.name }}'
 
-{% endif %}
-{% endfor %}
+        {%- endif %}
+        {%- endfor %}
 
         upload_id = ''
-{% for parameter in method.parameters.all %}
-{% if parameter.isUploadID %}
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.isUploadID %}
         upload_id = {{ parameter.name | escapeKeyword | caseSnake }}
-{% endif %}
-{% endfor %}
+        {%- endif %}
+        {%- endfor %}
 
         return self.client.chunked_upload(api_path, {
-{% for parameter in method.parameters.header %}
+            {%~ for parameter in method.parameters.header %}
             '{{ parameter.name }}': {{ parameter.name | escapeKeyword | caseSnake }},
-{% endfor %}
-{% for key, header in method.headers %}
+            {%- endfor %}
+            {%~ for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
-{% endfor %}
+            {%- endfor %}
         }, api_params, param_name, on_progress, upload_id)
