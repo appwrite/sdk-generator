@@ -30,7 +30,7 @@ class Payload private constructor() {
         return data as ByteArray
     }
 
-    fun toJSON(): MutableMap<String, Any> {
+    fun toJson(): MutableMap<String, Any> {
         if (sourceType != "bytes") {
             throw IllegalArgumentException("source type is not supported: $sourceType")
         }
@@ -62,6 +62,6 @@ class Payload private constructor() {
 
         fun fromString(string: String) = fromBinary(string.toByteArray())
 
-        fun fromJSON(data: Any) = fromString(gson.toJson(data))
+        fun fromJson(data: Any) = fromString(gson.toJson(data))
     }
 }

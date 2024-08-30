@@ -106,10 +106,6 @@ class Kotlin extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
-        if (str_contains($parameter['description'] ?? '', 'body of execution')) {
-            return 'Payload';
-        }
-
         if (isset($parameter['enumName'])) {
             return 'io.appwrite.enums.' . \ucfirst($parameter['enumName']);
         }
@@ -120,6 +116,7 @@ class Kotlin extends Language
             self::TYPE_INTEGER => 'Long',
             self::TYPE_NUMBER => 'Double',
             self::TYPE_STRING => 'String',
+            self::TYPE_PAYLOAD,
             self::TYPE_FILE => 'Payload',
             self::TYPE_BOOLEAN => 'Boolean',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
@@ -202,6 +199,9 @@ class Kotlin extends Language
 
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
+                case self::TYPE_PAYLOAD:
+                    $output .= 'payload.fromString("<BODY>")';
+                    break;
                 case self::TYPE_FILE:
                     $output .= 'payload.fromPath("file.png")';
                     break;
@@ -244,12 +244,11 @@ class Kotlin extends Language
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'payload.fromString("<BODY>")';
+                    break;
                 case self::TYPE_STRING:
-                    if ($param['name'] === 'body' && strpos(($param['description'] ?? ''), 'body of execution') !== false) {
-                        $output .= 'Payload.fromString("<BODY>")';
-                    } else {
-                        $output .= '"{$example}"';
-                    }
+                    $output .= '"{$example}"';
                     break;
             }
         }

@@ -34,7 +34,7 @@ fun String.fromMultiPart(): Map<String, Any> {
     )
     val parts = this.split(boundary)
     for (part in parts) {
-        var lines = part.replace("\r\n", "\n").split("\n")
+        var lines = part.split("\r\n")
 
         val name = Regex("name=\"?(\\w+)").find(part) ?: continue
 
@@ -45,27 +45,25 @@ fun String.fromMultiPart(): Map<String, Any> {
             continue
         }
 
-        if (key == "response") {
-            map["responseBody"] = Payload.fromString(lines.joinToString("\n"))
+        if (key == "responseBody") {
+            map["responseBody"] = Payload.fromString(lines.joinToString("\r\n"))
             continue
         }
 
         if (lines[0] == "Content-Type: application/json") {
             lines = lines.drop(1).dropWhile { it.isEmpty() }
-            val list = lines.joinToString("\n").fromJson<List<String>>()
+            val list = lines.joinToString("\r\n").fromJson<List<String>>()
             map[key] = list
             continue
         }
 
-        val value = lines.joinToString("\n");
+        val value = lines.joinToString("\r\n");
 
         map[key] = when (key) {
             "statusCode" -> value.toInt()
             "duration" -> value.toFloat()
             else -> value
         }
-
-
     }
 
     map["responseStatusCode"] = map["statusCode"] ?: 0
