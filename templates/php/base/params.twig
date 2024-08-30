@@ -20,9 +20,6 @@
         {%~ for parameter in method.parameters.header %}
         $apiHeaders['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
         {%~ endfor %}
-        {%~ if method.name | lower == "createexecution" %}
-        $apiHeaders['accept'] = 'multipart/form-data';
-        {%~ endif %}
         {%~ for key, header in method.headers %}
         $apiHeaders['{{ key }}'] = '{{ header }}';
         {%~ endfor %}
