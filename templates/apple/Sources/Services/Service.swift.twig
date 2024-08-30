@@ -33,7 +33,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         {%~ if method.responseModel | hasGenericType(spec) %}
         nestedType: T.Type
         {%~ endif %}
-        {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if 'multipart/form-data' in method.consumes and method.type == 'upload' %}
         onProgress: ((UploadProgress) -> Void)? = nil
         {%~ endif %}
     ) async throws -> {{ method | returnType(spec) | raw }} {
@@ -49,6 +49,9 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         {% if 'multipart/form-data' in method.consumes -%} var
         {%- else -%} let
         {%- endif %} apiHeaders: [String: String] = [
+        {%~ if 'multipart/form-data' in method.consumes and method.type != 'upload' %}
+            "accept": "multipart/form-data",
+        {%~ endif %}
         {%~ for key, header in method.headers %}
             "{{ key }}": "{{ header }}"{% if not loop.last %},{% endif %}
 
@@ -66,7 +69,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         }
 
         {%~ endif %}
-        {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if 'multipart/form-data' in method.consumes and method.type == 'upload' %}
         {{~ include('swift/base/requests/file.twig') }}
         {%~ else %}
         {{~ include('swift/base/requests/api.twig') }}
