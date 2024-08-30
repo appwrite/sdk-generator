@@ -53,7 +53,7 @@ class {{ service.name | caseUcfirst }} extends Service
         );
 
         {{~ include('php/base/params.twig') -}}
-        {%~ if 'multipart/form-data' in method.consumes and method.type != "upload" %}
+        {%~ if 'multipart/form-data' in method.consumes and method.name | lower != "createexecution" %}
         {{~ include('php/base/requests/file.twig') }}
         {%~ else %}
 
