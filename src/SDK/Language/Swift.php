@@ -526,10 +526,6 @@ class Swift extends Language
             $type = $this->getTypeName($property);
         }
 
-        if (!$property['required']) {
-            $type .= '?';
-        }
-
         return $type;
     }
 
