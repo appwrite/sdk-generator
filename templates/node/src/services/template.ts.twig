@@ -1,5 +1,5 @@
 import { {{ spec.title | caseUcfirst}}Exception, Client, type Params, UploadProgress } from '../client';
-import { Payload } from '../payload';
+import { Payload } from '../Payload';
 import type { Models } from '../models';
 {% set added = [] %}
 {% for method in service.methods %}

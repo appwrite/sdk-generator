@@ -9,8 +9,10 @@ const {
     Bar,
     General
 } = require('./dist/index.js');
-const { Payload } = require('./dist/payload.js');
+const { Payload } = require('./dist/Payload.js');
 const { readFile } = require('fs/promises');
+const crypto = require('crypto');
+const fs = require('fs');
 
 async function start() {
     let response;
@@ -161,6 +163,12 @@ async function start() {
 
     response = await general.headers();
     console.log(response.result);
+
+    response = await general.multipart();
+    console.log(response.x); // should be abc
+    const responseBodyBinary = response.responseBody.toBinary();
+    const hash = crypto.createHash('md5').update(responseBodyBinary).digest('hex');
+    console.log(hash); // should be d80e7e6999a3eb2ae0d631a96fe135a4
 }
 
 start().catch((err) => {

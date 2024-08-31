@@ -3,7 +3,7 @@ import { createAgent } from 'node-fetch-native-with-agent/agent';
 import { Models } from './models';
 import { Payload } from './payload';
 import * as multipart from 'parse-multipart-data';
-import { buffer } from 'node:stream/consumers';
+const { buffer } = require('node:stream/consumers');  
 
 type Params = {
     [key: string]: any;
@@ -276,7 +276,7 @@ class Client {
         } else if (responseType === 'arrayBuffer') {
             data = await response.arrayBuffer();
         } else if (response.headers.get('content-type')?.includes('multipart/form-data')) {
-            const body = Buffer.from(await response.text() ?? '', 'utf8');
+            const body = await buffer(response.body);
             const boundary = multipart.getBoundary(
                 response.headers.get("content-type") || ""
             );
