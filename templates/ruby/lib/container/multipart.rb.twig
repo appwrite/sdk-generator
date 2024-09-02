@@ -90,7 +90,7 @@ module Appwrite
         end
 
         def to_hash
-            h = {}
+            h = Hash.new
 
             @parts.each do |name, part|
                 case name

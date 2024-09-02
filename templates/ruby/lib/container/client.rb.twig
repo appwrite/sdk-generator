@@ -254,12 +254,12 @@ module {{ spec.title | caseUcfirst }}
                 return response_type.from(map: result)
             end
 
-            if response.content_type.start_with?('multipart/form-data')
-                response.body = MultipartParser.new(response.body, response.content_type).to_dict
-            end
-
             if response.code.to_i >= 400
                 raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, response)
+            end
+
+            if response.content_type == 'multipart/form-data'
+                return MultipartParser.new(response.body, response['content-type']).parse
             end
 
             if response.respond_to?("body_permitted?")
