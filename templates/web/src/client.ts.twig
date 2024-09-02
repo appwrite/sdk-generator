@@ -4,7 +4,7 @@ import { Payload } from './payload';
 /**
  * Payload type representing a key-value pair with string keys and any values.
  */
-type RequestPayload = {
+type Params = {
     [key: string]: any;
 }
 
@@ -540,7 +540,7 @@ class Client {
         }
     }
 
-    prepareRequest(method: string, url: URL, headers: Headers = {}, params: RequestPayload = {}): { uri: string, options: RequestInit } {
+    prepareRequest(method: string, url: URL, headers: Headers = {}, params: Params = {}): { uri: string, options: RequestInit } {
         method = method.toUpperCase();
 
         headers = Object.assign({}, this.headers, headers);
@@ -591,7 +591,7 @@ class Client {
         return { uri: url.toString(), options };
     }
 
-    async chunkedUpload(method: string, url: URL, headers: Headers = {}, payload: RequestPayload = {}, onProgress: (progress: UploadProgress) => void) {
+    async chunkedUpload(method: string, url: URL, headers: Headers = {}, payload: Params = {}, onProgress: (progress: UploadProgress) => void) {
         const file = Object.values(payload).find((value) => value instanceof Payload);
         if (file.size <= Client.CHUNK_SIZE) {
             return await this.call(method, url, headers, payload);
@@ -632,7 +632,7 @@ class Client {
         return response;
     }
 
-    async call(method: string, url: URL, headers: Headers = {}, params: RequestPayload = {}, responseType = 'json'): Promise<any> {
+    async call(method: string, url: URL, headers: Headers = {}, params: Params = {}, responseType = 'json'): Promise<any> {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
 
         let data: any = null;
@@ -668,8 +668,8 @@ class Client {
         return data;
     }
 
-    static flatten(data: RequestPayload, prefix = ''): RequestPayload {
-        let output: RequestPayload = {};
+    static flatten(data: Params, prefix = ''): Params {
+        let output: Params = {};
 
         for (const [key, value] of Object.entries(data)) {
             let finalKey = prefix ? prefix + '[' + key +']' : key;
@@ -686,6 +686,6 @@ class Client {
 
 export { Client, {{spec.title | caseUcfirst}}Exception };
 export { Query } from './query';
-export type { Models, RequestPayload, UploadProgress };
+export type { Models, Params, UploadProgress };
 export type { RealtimeResponseEvent };
 export type { QueryTypes, QueryTypesList } from './query';

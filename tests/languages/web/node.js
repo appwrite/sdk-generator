@@ -1,4 +1,5 @@
 const { Client, Foo, Bar, General, Query, Permission, Role, ID, MockType } = require('./dist/cjs/sdk.js');
+const crypto = require('crypto');
 
 async function start() {
     let response;
@@ -74,6 +75,12 @@ async function start() {
     }
 
     console.log('WS:/v1/realtime:passed'); // Skip realtime test on Node.js
+
+    // Multipart tests
+    response = await general.multipart();
+    console.log(response.x);
+
+    console.log(crypto.createHash('md5').update(response['responseBody']).digest("hex"));
 
     // Query helper tests
     console.log(Query.equal("released", [true]));
