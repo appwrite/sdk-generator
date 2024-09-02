@@ -2,8 +2,6 @@
 
 namespace Appwrite\SDK\Language;
 
-use Twig\TwigFilter;
-
 class Deno extends JS
 {
     /**
@@ -72,8 +70,8 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/inputFile.ts',
-                'template'      => 'deno/src/inputFile.ts.twig',
+                'destination'   => 'src/payload.ts',
+                'template'      => 'deno/src/payload.ts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -143,7 +141,8 @@ class Deno extends JS
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'number',
             self::TYPE_STRING => 'string',
-            self::TYPE_FILE => 'InputFile',
+            self::TYPE_FILE => 'Payload',
+            self::TYPE_PAYLOAD => 'Payload',
             self::TYPE_BOOLEAN => 'boolean',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? $this->getTypeName($parameter['array']) . '[]'
@@ -180,8 +179,11 @@ class Deno extends JS
                 case self::TYPE_OBJECT:
                     $output .= '{}';
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.fromJson({ "key": "value" })';
+                    break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.fromPath('/path/to/file.png', 'file.png')";
+                    $output .= "Payload.fromFile('/path/to/file.png')";
                     break;
             }
         } else {
@@ -198,8 +200,11 @@ class Deno extends JS
                 case self::TYPE_STRING:
                     $output .= "'{$example}'";
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.fromJson({ "key": "value" })';
+                    break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.fromPath('/path/to/file.png', 'file.png')";
+                    $output .= "Payload.fromFile('/path/to/file.png')";
                     break;
             }
         }

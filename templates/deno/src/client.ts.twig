@@ -1,6 +1,6 @@
 import { {{ spec.title | caseUcfirst}}Exception } from './exception.ts';
 
-export interface Payload {
+export interface Params {
     [key: string]: any;
 }
 
@@ -9,7 +9,7 @@ export class Client {
     static DENO_READ_CHUNK_SIZE = 16384; // 16kb; refference: https://github.com/denoland/deno/discussions/9906
     
     endpoint: string = '{{spec.endpoint}}';
-    headers: Payload = {
+    headers: Params = {
         'content-type': '',
         'user-agent' : `{{spec.title | caseUcfirst}}{{ language.name | caseUcfirst }}SDK/{{ sdk.version }} (${Deno.build.os}; ${Deno.build.arch})`,
         'x-sdk-name': '{{ sdk.name }}',
@@ -61,7 +61,7 @@ export class Client {
         return this;
     }
 
-    async call(method: string, path: string = "", headers: Payload = {}, params: Payload = {}, responseType: string = "json") {
+    async call(method: string, path: string = "", headers: Params = {}, params: Params = {}, responseType: string = "json") {
         headers = {...this.headers, ...headers};
         const url = new URL(this.endpoint + path);
 
@@ -135,8 +135,8 @@ export class Client {
         return json;
     }
 
-    static flatten(data: Payload, prefix = ''): Payload {
-        let output: Payload = {};
+    static flatten(data: Params, prefix = ''): Params {
+        let output: Params = {};
 
         for (const [key, value] of Object.entries(data)) {
             let finalKey = prefix ? prefix + '[' + key +']' : key;

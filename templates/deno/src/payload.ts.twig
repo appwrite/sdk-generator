@@ -1,0 +1,52 @@
+
+
+export class Payload {
+    public filename: string | undefined = undefined;
+    private data: Blob 
+
+    constructor(data: Blob, name?: string) {
+        this.data = data;
+        this.filename = name || undefined;
+    }
+
+    public _size(): number {
+        return this.data.size;
+    }
+
+    public _read(offset: number, length: number): Blob {
+        const end = Math.min(offset + length, this.data.size);
+        return this.data.slice(offset, end);
+    }
+
+    public async toString() {
+        return await this.data.text();
+    }
+
+    public async toJson<T = unknown>(): Promise<T> {
+        return JSON.parse(await this.data.text());
+    }
+
+    public async toBinary(): Promise<ArrayBuffer> {
+        return await this.data.arrayBuffer();
+    }
+
+    public async toFile(): Promise<Blob> {
+        return this.data;
+    }
+
+    public static fromFile(file: File | Blob, name?: string): Payload {
+        return new Payload(file, name ?? file.name ?? "file");
+    }
+
+    public static fromString(data: string, name?: string): Payload {
+        return new Payload(new Blob([data]), name);
+    }
+
+    public static fromJson(data: unknown, name?: string): Payload {
+        return new Payload(new Blob([JSON.stringify(data)]), name);
+    }
+
+    public static fromBinary(data: ArrayBuffer, name?: string): Payload {
+        return new Payload(new Blob([data]), name);
+    }
+}
