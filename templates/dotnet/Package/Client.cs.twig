@@ -154,6 +154,12 @@ namespace {{ spec.title | caseUcfirst }}
 
                 foreach (var parameter in parameters)
                 {
+                    // Skip parameters with no value
+                    if (parameter.Value == null)
+                    {
+                        continue;
+                    }
+
                     if (parameter.Key == "file")
                     {
                         form.Add(((MultipartFormDataContent)parameters["file"]).First()!);
@@ -377,14 +383,26 @@ namespace {{ spec.title | caseUcfirst }}
             if (!string.IsNullOrEmpty(idParamName) && (string)parameters[idParamName] != "unique()")
             {
                 // Make a request to check if a file already exists
-                var current = await Call<Dictionary<string, object?>>(
-                    method: "GET",
-                    path: "$path/${params[idParamName]}",
-                    headers,
-                    parameters = new Dictionary<string, object?>()
-                );
-                var chunksUploaded = (long)current["chunksUploaded"];
-                offset = chunksUploaded * ChunkSize;
+                var isIdAlreadyUsed = false;
+                try
+                {
+                    await Call<Dictionary<string, object?>>(
+                        method: "GET",
+                        path: $"{path}/{parameters[idParamName]}",
+                        headers,
+                        new Dictionary<string, object?>()
+                    );
+                    isIdAlreadyUsed = true;
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
+
+                if (isIdAlreadyUsed)
+                {
+                    throw new Exception("A file with this Id already exists.");
+                }
             }
 
             while (offset < size)
