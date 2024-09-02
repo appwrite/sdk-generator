@@ -1,6 +1,6 @@
 from {{ spec.title | caseSnake }}.client import Client
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
-from {{ spec.title | caseSnake }}.input_file import InputFile
+from {{ spec.title | caseSnake }}.payload import Payload
 {% endif %}
 {% set added = [] %}
 {% for parameter in method.parameters.all %}
@@ -24,7 +24,7 @@ client = Client()
 client.set_endpoint('https://cloud.appwrite.io/v1') # Your API Endpoint
 {% for node in method.auth %}
 {% for key,header in node|keys %}
-client.set_{{header | caseSnake}}('{{node[header]['x-appwrite']['demo']}}') # {{node[header].description}}
+client.set_{{header | caseSnake}}('{{node[header]['x-appwrite']['demo'] | raw }}') # {{node[header].description}}
 {% endfor %}
 {% endfor %}
 
