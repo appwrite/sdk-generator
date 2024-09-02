@@ -5,7 +5,7 @@ namespace {{ spec.title | caseUcfirst }}\Services;
 use {{ spec.title | caseUcfirst }}\{{spec.title | caseUcfirst}}Exception;
 use {{ spec.title | caseUcfirst }}\Client;
 use {{ spec.title | caseUcfirst }}\Service;
-use {{ spec.title | caseUcfirst }}\InputFile;
+use {{ spec.title | caseUcfirst }}\Payload;
 {% set added = [] %}
 {% for method in service.methods %}
 {% for parameter in method.parameters.all %}
@@ -53,7 +53,7 @@ class {{ service.name | caseUcfirst }} extends Service
         );
 
         {{~ include('php/base/params.twig') -}}
-        {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if 'multipart/form-data' in method.consumes and method.name | lower != "createexecution" %}
         {{~ include('php/base/requests/file.twig') }}
         {%~ else %}
 

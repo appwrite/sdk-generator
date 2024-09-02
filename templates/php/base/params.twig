@@ -4,7 +4,11 @@
 {% if not parameter.required and not parameter.nullable %}
 
         if (!is_null(${{ parameter.name | caseCamel | escapeKeyword }})) {
-            $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
+            {%~ if param.type == 'payload' %}
+                $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }}->toBinary();
+            {%~ else %}
+                $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};
+            {%~ endif %}
         }
 {% else %}
         $apiParams['{{ parameter.name }}'] = ${{ parameter.name | caseCamel | escapeKeyword }};

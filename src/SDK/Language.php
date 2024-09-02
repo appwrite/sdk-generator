@@ -11,6 +11,7 @@ abstract class Language
     public const TYPE_ARRAY = 'array';
     public const TYPE_OBJECT = 'object';
     public const TYPE_FILE = 'file';
+    public const TYPE_PAYLOAD = 'payload';
 
     /**
      * @var array
