@@ -3,7 +3,7 @@ module Appwrite
     attr_reader :data
     attr_reader :filename
 
-    def initialize(data: nil, path: nil, filename: nil)
+    def initialize(data, path, filename)
       @path = path
       @data = data
       @filename = filename
@@ -27,18 +27,18 @@ module Appwrite
     # @param [String, nil] filename
     # @return [Payload]
     def self.from_file(path, filename: nil)
-        filename = if filename.nil? then
-          File.basename(path)
-        else
-          filename
-        end
+      filename = if filename.nil? then
+        File.basename(path)
+      else
+        filename
+      end
       new(nil, path, filename)
     end
 
-    # @param [String] b
+    # @param [String] bytes
     # @param [String, nil] filename
-    def self.from_binary(b, filename: nil)
-      new(b, nil, filename)
+    def self.from_binary(bytes, filename: nil)
+      new(bytes, nil, filename)
     end
 
     # @param [Hash, Array] object
@@ -71,7 +71,5 @@ module Appwrite
     def to_file(path)
       File.open(path, 'w') { |f| f.write(@data.read()) }
     end
-
-    private_class_method :new
   end
 end

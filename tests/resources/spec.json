@@ -1566,9 +1566,6 @@
       "get": {
         "summary": "Multipart",
         "operationId": "generalMultipart",
-        "consumes": [
-          "application\/json"
-        ],
         "produces": [
           "multipart\/form-data"
         ],

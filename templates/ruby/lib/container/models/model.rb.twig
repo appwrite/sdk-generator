@@ -6,7 +6,7 @@ module {{ spec.title | caseUcfirst }}
         class {{ definition.name | caseUcfirst }}
             {%~ for property in definition.properties %}
             attr_reader :{{ property.name | caseSnake | escapeKeyword }}
-            {%- endfor %}
+            {%~ endfor %}
             {%~ if definition.additionalProperties %}
             attr_reader :data
             {%- endif %}
@@ -22,7 +22,7 @@ module {{ spec.title | caseUcfirst }}
             )
                 {%~ for property in definition.properties %}
                 @{{ property.name | caseSnake | escapeKeyword }} = {{ property.name | caseSnake | escapeKeyword }}
-                {%- endfor %}
+                {%~ endfor %}
                 {%~ if definition.additionalProperties %}
                 @data = data
                 {%- endif %}

@@ -136,8 +136,8 @@ module {{ spec.title | caseUcfirst }}
 
             while offset < size
                 params[param_name.to_sym] = Payload::from_binary(
-                    payload.data.read(offset: offset, length: [@chunk_size, size - offset].min),
-                    filename: payload.data.filename
+                    payload.read(offset: offset, length: [@chunk_size, size - offset].min),
+                    payload.filename
                 )
 
                 headers['content-range'] = "bytes #{offset}-#{[offset + @chunk_size - 1, size - 1].min}/#{size}"
@@ -248,7 +248,7 @@ module {{ spec.title | caseUcfirst }}
                 end
 
                 if response_type.respond_to?("from")
-                    response_type.from(map: result)
+                    return response_type.from(map: result)
                 end
 
                 return result
@@ -269,7 +269,7 @@ module {{ spec.title | caseUcfirst }}
                 return result
             end
 
-            if response.respond_to?("body_permitted?")
+            if response.class.body_permitted?
                 return response.body
             end
 
