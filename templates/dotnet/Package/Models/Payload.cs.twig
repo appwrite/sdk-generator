@@ -1,4 +1,6 @@
+using System;
 using System.IO;
+
 using Appwrite.Extensions;
 
 namespace {{ spec.title | caseUcfirst }}.Models
@@ -20,7 +22,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
         };
 
         public static Payload FromFileInfo(FileInfo fileInfo) =>
-            Payload.FromPath(fileInfo.FullName);
+            FromPath(fileInfo.FullName);
 
         public static Payload FromStream(Stream stream, string filename, string mimeType) => new Payload
         {
@@ -30,12 +32,26 @@ namespace {{ spec.title | caseUcfirst }}.Models
             SourceType = "stream"
         };
 
-        public static Payload FromBytes(byte[] bytes, string filename, string mimeType) => new Payload
+        public static Payload FromBinary(byte[] bytes) => new Payload
         {
             Data = bytes,
-            Filename = filename,
-            MimeType = mimeType,
             SourceType = "bytes"
         };
+
+        public static Payload FromString(string multipart)
+        {
+            return FromBinary(System.Text.Encoding.UTF8.GetBytes(multipart));
+        }
+
+        public  byte[] ToBinary()
+        {
+            return Data as byte[] ?? Array.Empty<byte>();
+        }
+
+        public override string ToString()
+        {
+            return System.Text.Encoding.UTF8.GetString(ToBinary() , 0, ToBinary().Length);
+        }
+
     }
 }

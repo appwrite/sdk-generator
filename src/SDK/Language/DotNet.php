@@ -160,6 +160,10 @@ class DotNet extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
+        if (strpos(($parameter['description'] ?? ''), 'This will return empty unless execution') !== false) {
+            return 'Payload';
+        }
+
         if (isset($parameter['enumName'])) {
             return 'Appwrite.Enums.' . \ucfirst($parameter['enumName']);
         }
@@ -171,6 +175,7 @@ class DotNet extends Language
             self::TYPE_NUMBER => 'double',
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
+            self::TYPE_PAYLOAD,
             self::TYPE_FILE => 'Payload',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? 'List<' . $this->getTypeName($parameter['array']) . '>'
@@ -242,6 +247,8 @@ class DotNet extends Language
 
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.fromString("<BODY>")';
                 case self::TYPE_FILE:
                     $output .= 'Payload.FromFile("./path-to-files/image.jpg")';
                     break;
@@ -286,12 +293,11 @@ class DotNet extends Language
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.fromString("<BODY>")';
+                    break;
                 case self::TYPE_STRING:
-                    if ($param['name'] === 'body' && strpos(($param['description'] ?? ''), 'body of execution') !== false) {
-                        $output .= 'Payload.fromString("<BODY>")';
-                    } else {
-                        $output .= '"{$example}"';
-                    }
+                    $output .= '"{$example}"';
                     break;
             }
         }

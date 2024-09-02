@@ -10,6 +10,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using {{ spec.title | caseUcfirst }}.Converters;
 using {{ spec.title | caseUcfirst }}.Extensions;
 using {{ spec.title | caseUcfirst }}.Models;
@@ -284,6 +285,7 @@ namespace {{ spec.title | caseUcfirst }}
             }
 
             var isJson = contentType.Contains("application/json");
+            var isFormData = contentType.Contains("multipart/form-data");
 
             if (code >= 400) {
                 var message = await response.Content.ReadAsStringAsync();
@@ -310,10 +312,12 @@ namespace {{ spec.title | caseUcfirst }}
 
                 return (dict as T)!;
             }
-            else
-            {
-                return ((await response.Content.ReadAsByteArrayAsync()) as T)!;
-            }
+
+            if (!isFormData) return ((await response.Content.ReadAsByteArrayAsync()) as T)!;
+
+            var data = HandleMultipart<Dictionary<string, object>>(await response.Content.ReadAsByteArrayAsync());
+
+            return convert != null ? convert(data as Dictionary<string, object>) : data as T;
         }
 
         public async Task<T> ChunkedUpload<T>(
@@ -445,6 +449,77 @@ namespace {{ spec.title | caseUcfirst }}
             }
 
             return converter(result);
+        }
+public static T HandleMultipart<T>(byte[] multipart) where T : class
+        {
+            var str = Encoding.UTF8.GetString(multipart);
+            var data = new Dictionary<string, object>();
+            var boundarySearch = new Regex(@"(-+\w+)--").Match(str);
+
+            if (boundarySearch.Groups.Count != 2)
+            {
+                return new object() as T;
+            }
+
+            var boundary = boundarySearch.Groups[1].Value;
+            var parts = str.Split(new string[] { boundary }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var part in parts)
+            {
+                var lines = part.Split(new string[]{"\r\n"}, StringSplitOptions.RemoveEmptyEntries);
+                var nameMatch = new Regex(@"name=""?(\w+)").Match(part);
+
+                if (lines.Length <= 1 || nameMatch.Groups.Count != 2)
+                {
+                    continue;
+                }
+                lines = lines.Skip(1).ToArray();
+                var name = nameMatch.Groups[1].Value;
+                if (lines[0] == "Content-Type: application/json")
+                {
+                    lines = lines.Skip(1).ToArray();
+                    data.Add(name, JsonConvert.DeserializeObject<List<dynamic>>(string.Join("\r\n", lines)) ?? new List<dynamic>());
+                    continue;
+                }
+                if (name == "responseBody")
+                {
+                    var indexOf = str.IndexOf("name=\"responseBody\"", StringComparison.Ordinal)+"name=\"responseBody\"".Length;
+                    var sliced = str.Substring(indexOf);
+                    var indexOfEnd = sliced.IndexOf("---", StringComparison.Ordinal);
+                    List<byte> list = new List<byte>();
+                    multipart = multipart.Skip(indexOf).ToArray();
+                    var alreadyPassFirstSapce = false;
+                    for (var i = 0; i < indexOfEnd - indexOf; i++)
+                    {
+                        var current = multipart[i];
+                        if (!alreadyPassFirstSapce)
+                        {
+                            if (current == 10 || current == 13)
+                            {
+                                continue;
+                            }
+                            alreadyPassFirstSapce = true;
+                        }
+
+                        list.Add(current);
+                    }
+                    data.Add(name, Payload.FromBinary(list.ToArray()));
+
+                    continue;
+                }
+                var value = string.Join("\r\n", lines);
+
+                data.Add(name, value);
+            }
+            // Adding to match Execution model
+            data.Add("$id","");
+            data.Add("$createdAt","");
+            data.Add("$updatedAt","");
+            data.Add("logs","");
+            data.Add("errors","");
+            data.Add("scheduledAt","");
+            data.Add("$permissions",new List<Object>());
+            return data as T;
         }
     }
 }
