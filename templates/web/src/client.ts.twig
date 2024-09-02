@@ -584,6 +584,7 @@ class Client {
 
                     options.body = formData;
                     delete headers['content-type'];
+                    headers['accept'] = 'multipart/form-data';
                     break;
             }
         }
@@ -646,6 +647,13 @@ class Client {
 
         if (response.headers.get('content-type')?.includes('application/json')) {
             data = await response.json();
+
+        } else if (response.headers.get('content-type')?.includes('multipart/form-data')) {
+            const formdata = await response.formData();
+            data = {};
+            for (const [key, value] of formdata.entries()) {
+                data[key] = value;
+            }
         } else if (responseType === 'arrayBuffer') {
             data = await response.arrayBuffer();
         } else {
