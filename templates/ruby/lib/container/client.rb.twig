@@ -247,11 +247,11 @@ module {{ spec.title | caseUcfirst }}
                     raise {{spec.title | caseUcfirst}}::Exception.new(result['message'], result['status'], result['type'], result)
                 end
 
-                unless response_type.respond_to?("from")
-                    return result
+                if response_type.respond_to?("from")
+                    response_type.from(map: result)
                 end
 
-                return response_type.from(map: result)
+                return result
             end
 
             if response.code.to_i >= 400
@@ -259,11 +259,18 @@ module {{ spec.title | caseUcfirst }}
             end
 
             if response.content_type == 'multipart/form-data'
-                return MultipartParser.new(response.body, response['content-type']).parse
+                multipart = MultipartParser.new(response.body, response['content-type'])
+                result = multipart.to_hash
+
+                if response_type.respond_to?("from")
+                    return response_type.from(map: result)
+                end
+                
+                return result
             end
 
             if response.respond_to?("body_permitted?")
-                return response.body if response.body_permitted?
+                return response.body
             end
 
             return response
