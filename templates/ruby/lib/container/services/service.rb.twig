@@ -17,7 +17,7 @@ module {{spec.title | caseUcfirst}}
         # @return [{{ method.responseModel | caseUcfirst }}]
         def {{ method.name | caseSnake }}({% for parameter in method.parameters.all %}{{ parameter.name | caseSnake | escapeKeyword }}:{% if not parameter.required %} nil{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, on_progress: nil{% endif %})
         {{~ include('ruby/base/params.twig')}}
-        {%~ if 'multipart/form-data' in method.consumes and method.name != "createExecution" %}
+        {%~ if 'multipart/form-data' in method.consumes and method.type != "upload" %}
         {{~ include('ruby/base/requests/file.twig')}}
         {%~ else %}
         {{~ include('ruby/base/requests/api.twig')}}
