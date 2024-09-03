@@ -203,7 +203,7 @@ class Kotlin extends Language
                     $output .= 'payload.fromString("<BODY>")';
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'payload.fromPath("file.png")';
+                    $output .= 'Payload.fromFile("file.png")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -245,7 +245,7 @@ class Kotlin extends Language
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'payload.fromString("<BODY>")';
+                    $output .= 'Payload.fromString("<BODY>")';
                     break;
                 case self::TYPE_STRING:
                     $output .= '"{$example}"';
@@ -487,7 +487,7 @@ class Kotlin extends Language
 
     protected function getPropertyType(array $property, array $spec, string $generic = 'T'): string
     {
-        if (str_contains($property['description'] ?? '', 'HTTP response body. This will return empty unless execution')) {
+        if ($property['name'] == 'responseBody') {
             return 'Payload';
         }
 

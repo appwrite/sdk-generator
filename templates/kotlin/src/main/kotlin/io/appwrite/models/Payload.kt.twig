@@ -38,24 +38,19 @@ class Payload private constructor() {
         return gson.fromJson(toString(), MutableMap::class.java) as MutableMap<String, Any>
     }
 
+    fun toFile(path: String): File {
+        val file = File(path)
+        file.appendBytes(toBinary())
+        return file
+    }
 
     companion object {
-        fun fromFile(file: File) = Payload().apply {
-            path = file.canonicalPath
-            filename = file.name
-            mimeType = Files.probeContentType(Paths.get(file.canonicalPath))
-                ?: URLConnection.guessContentTypeFromName(filename)
-                        ?: ""
-            sourceType = "file"
-        }
-
-        fun fromPath(path: String): Payload = fromFile(File(path)).apply {
+        fun fromFile(path: String,filename: String = ""): Payload = fromFileObject(File(path), filename).apply {
             sourceType = "path"
         }
 
-        fun fromBinary(bytes: ByteArray, filename: String = "", mimeType: String = "") = Payload().apply {
+        fun fromBinary(bytes: ByteArray, filename: String = "") = Payload().apply {
             this.filename = filename
-            this.mimeType = mimeType
             data = bytes
             sourceType = "bytes"
         }
@@ -63,5 +58,14 @@ class Payload private constructor() {
         fun fromString(string: String) = fromBinary(string.toByteArray())
 
         fun fromJson(data: Any) = fromString(gson.toJson(data))
+
+        fun fromFileObject(file: File, name: String = "") = Payload().apply {
+            path = file.canonicalPath
+            filename = if (name != "") name else file.name
+            mimeType = Files.probeContentType(Paths.get(file.canonicalPath))
+                ?: URLConnection.guessContentTypeFromName(filename)
+                        ?: ""
+            sourceType = "file"
+        }
     }
 }

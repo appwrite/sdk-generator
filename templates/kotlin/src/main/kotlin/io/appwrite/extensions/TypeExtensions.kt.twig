@@ -1,6 +1,6 @@
-package io.appwrite.extensions
+package {{ sdk.namespace | caseDot }}.extensions
 
-import io.appwrite.models.Payload
+import {{ sdk.namespace | caseDot }}.models.Payload
 import kotlin.reflect.KClass
 import kotlin.reflect.typeOf
 
@@ -24,7 +24,7 @@ fun String.fromMultiPart(): Map<String, Any> {
         "requestMethod" to "",
         "requestPath" to "",
         "requestHeaders" to emptyList<HashMap<String, Any>>(),
-        "statusCode" to 0,
+        "responseStatusCode" to 0,
         "responseBody" to Payload.fromString(""),
         "responseHeaders" to emptyList<HashMap<String, Any>>(),
         "logs" to "",
@@ -66,7 +66,7 @@ fun String.fromMultiPart(): Map<String, Any> {
         }
     }
 
-    map["responseStatusCode"] = map["statusCode"] ?: 0
+    map["responseStatusCode"] = map["responseStatusCode"] ?: 0
 
     return map
 }
