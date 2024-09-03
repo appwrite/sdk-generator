@@ -6,7 +6,7 @@ open class {{ spec.title | caseUcfirst}}Error : Swift.Error, Decodable {
     public let code: Int?
     public let type: String?
 
-    init(message: String, code: Int? = nil, type: String? = nil) {
+    public init(message: String, code: Int? = nil, type: String? = nil) {
         self.message = message
         self.code = code
         self.type = type

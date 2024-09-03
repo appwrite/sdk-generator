@@ -16,8 +16,8 @@ let package = Package(
             targets: [
                 "{{spec.title | caseUcfirst}}",
                 "{{spec.title | caseUcfirst}}Enums",
-                "{{spec.title | caseUcfirst}}Models",
-                "JSONCodable"
+                "{{spec.title | caseUcfirst}}Extensions",
+                "{{spec.title | caseUcfirst}}Models"
             ]
         ),
     ],
@@ -37,14 +37,14 @@ let package = Package(
                 {%~ if spec.enums is not empty %}
                 "{{spec.title | caseUcfirst}}Enums",
                 {%~ endif %}
-                "JSONCodable"
+                "{{spec.title | caseUcfirst}}Extensions"
             ]
         ),
         {%~ if spec.definitions is not empty %}
         .target(
             name: "{{spec.title | caseUcfirst}}Models",
             dependencies: [
-                "JSONCodable"
+                "{{spec.title | caseUcfirst}}Extensions"
             ]
         ),
         {%~ endif %}
@@ -54,7 +54,10 @@ let package = Package(
         ),
         {%~ endif %}
         .target(
-            name: "JSONCodable"
+            name: "{{spec.title | caseUcfirst}}Extensions",
+            dependencies: [
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
+            ]
         ),
         .testTarget(
             name: "{{spec.title | caseUcfirst}}Tests",
