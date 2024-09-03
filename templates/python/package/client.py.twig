@@ -2,7 +2,9 @@ import io
 import json
 import os
 import requests
-from .input_file import InputFile
+import re
+from .payload import Payload
+from .multipart import Multipart
 from .exception import {{spec.title | caseUcfirst}}Exception
 from .encoders.value_class_encoder import ValueClassEncoder
 
@@ -69,10 +71,11 @@ class Client:
 
         if headers['content-type'].startswith('multipart/form-data'):
             del headers['content-type']
+            headers['accept'] = 'multipart/form-data'
             stringify = True
             for key in data.copy():
-                if isinstance(data[key], InputFile):
-                    files[key] = (data[key].filename, data[key].data)
+                if isinstance(data[key], Payload):
+                    files[key] = (data[key].filename, data[key]._data.read())
                     del data[key]
             data = self.flatten(data, stringify=stringify)
 
@@ -104,6 +107,9 @@ class Client:
             if content_type.startswith('application/json'):
                 return response.json()
 
+            if content_type.startswith('multipart/form-data'): 
+                return Multipart.from_bytes(response.content, content_type).to_dict()
+
             return response._content
         except Exception as e:
             if response != None:
@@ -124,20 +130,10 @@ class Client:
         on_progress = None,
         upload_id = ''
     ):
-        input_file = params[param_name]
+        payload = params[param_name]
+        size = params[param_name]._data.size()
 
-        if input_file.source_type == 'path':
-            size = os.stat(input_file.path).st_size
-            input = open(input_file.path, 'rb')
-        elif input_file.source_type == 'bytes':
-            size = len(input_file.data)
-            input = input_file.data
-
-        if size < self._chunk_size:
-            if input_file.source_type == 'path':
-                input_file.data = input.read()
-
-            params[param_name] = input_file
+        if size < self._chunk_size:    
             return self.call(
                 'post',
                 path,
@@ -160,16 +156,10 @@ class Client:
             input.seek(offset)
 
         while offset < size:
-            if input_file.source_type == 'path':
-                input_file.data = input.read(self._chunk_size) or input.read(size - offset)
-            elif input_file.source_type == 'bytes':
-                if offset + self._chunk_size < size:
-                    end = offset + self._chunk_size
-                else:
-                    end = size - offset
-                input_file.data = input[offset:end]
-
-            params[param_name] = input_file
+            params[param_name] = Payload.from_binary(
+                payload._data.read(offset, min(self._chunk_size, size - offset)),
+                payload.filename
+            )
             headers["content-range"] = f'bytes {offset}-{min((offset + self._chunk_size) - 1, size - 1)}/{size}'
 
             result = self.call(

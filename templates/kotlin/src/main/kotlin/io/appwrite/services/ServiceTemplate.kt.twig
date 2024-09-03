@@ -54,7 +54,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 
         val apiParams = mutableMapOf<String, Any?>(
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
-            {%~ if method.name | caseLower == "createexecution" and parameter.name == 'body' %}
+            {%~ if parameter.type == 'payload' %}
             "{{ parameter.name }}" to ({{ parameter.name | caseCamel }}?.toBinary() ?: ""),
             {%~ else %}
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
@@ -64,7 +64,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         val apiHeaders = mutableMapOf(
         {%~ for key, header in method.headers %}
             "{{ key }}" to "{{ header }}",
-            {%~ if method.name | lower == "createexecution" %}
+            {%~ if 'multipart/form-data' in method.consumes and method.type != "upload" %}
             "accept" to "multipart/form-data",
             {%~ endif %}
         {%~ endfor %}
@@ -83,7 +83,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ endif %}
         }
         {%~ endif %}
-        {%~ if 'multipart/form-data' in method.consumes and method.name | caseLower != 'createexecution'%}
+            {%~ if 'multipart/form-data' in method.consumes and method.type == "upload" %}
             {{~ include('kotlin/base/requests/file.twig') }}
         {%~ else %}
             {{~ include('kotlin/base/requests/api.twig') }}

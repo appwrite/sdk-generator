@@ -10,7 +10,11 @@
 	params["{{ parameter.name }}"] = {{ parameter.name | caseUcfirst }}
 {% else %}
 	if options.enabledSetters["{{ parameter.name | caseUcfirst}}"] {
+	{%~ if method.name | caseLower == "createexecution" and parameter.name == "body" %}
+		params["{{ parameter.name }}"] = string(options.{{ parameter.name | caseUcfirst }}.Data)
+	{%~ else %}
 		params["{{ parameter.name }}"] = options.{{ parameter.name | caseUcfirst }}
+	{%~ endif %}
 	}
 {% endif %}
 {% endfor %}

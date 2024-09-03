@@ -1,6 +1,6 @@
-package io.appwrite.extensions
+package {{ sdk.namespace | caseDot }}.extensions
 
-import io.appwrite.models.Payload
+import {{ sdk.namespace | caseDot }}.models.Payload
 import kotlin.reflect.KClass
 import kotlin.reflect.typeOf
 
@@ -8,8 +8,10 @@ inline fun <reified T : Any> classOf(): Class<T> {
     return (typeOf<T>().classifier!! as KClass<T>).java
 }
 
-fun String.fromMultiPart(): Map<String, Any> {
-    val match = Regex("(-+\\w+)--").find(this) ?: return emptyMap()
+fun String.fromMultiPart(binaryBody: ByteArray): Map<String, Any> {
+    val str = this.replace("Content-Disposition: form-data; name=\"response\"", "Content-Disposition: form-data; name=\"responseBody\"")
+    val match = Regex("(-+\\w+)--").find(str) ?: return emptyMap()
+    // For kotlin
 
     val boundary = match.groupValues[1]
 
@@ -25,16 +27,16 @@ fun String.fromMultiPart(): Map<String, Any> {
         "requestPath" to "",
         "requestHeaders" to emptyList<HashMap<String, Any>>(),
         "statusCode" to 0,
-        "responseBody" to Payload.fromString(""),
+        "responseBody" to Payload.fromBinary(ByteArray(0)),
         "responseHeaders" to emptyList<HashMap<String, Any>>(),
         "logs" to "",
         "errors" to "",
         "duration" to 0.0,
         "scheduledAt" to "",
     )
-    val parts = this.split(boundary)
+    val parts = str.split(boundary)
     for (part in parts) {
-        var lines = part.replace("\r\n", "\n").split("\n")
+        var lines = part.split("\r\n")
 
         val name = Regex("name=\"?(\\w+)").find(part) ?: continue
 
@@ -45,27 +47,46 @@ fun String.fromMultiPart(): Map<String, Any> {
             continue
         }
 
-        if (key == "response") {
-            map["responseBody"] = Payload.fromString(lines.joinToString("\n"))
+        if (key == "responseBody") {
+            val indexOfStart = str.indexOf("name=\"responseBody\"") + "name=\"responseBody\"".length
+            val sliced = str.substring(indexOfStart)
+            val indexOfEnd = sliced.indexOf("---")
+            val list = ByteArray(indexOfEnd - indexOfStart)
+
+            var alreadyPassedFirstSpaces = false
+            var j = 0
+            for (i in indexOfStart .. indexOfEnd) {
+                val current = binaryBody[i];
+                if (!alreadyPassedFirstSpaces)
+                {
+                    if (current.toInt() == 10 || current.toInt() == 13)
+                    {
+                        continue;
+                    }
+                    alreadyPassedFirstSpaces = true;
+                }
+
+                list[j++] = current;
+            }
+
+            map["responseBody"] = Payload.fromBinary(list)
             continue
         }
 
         if (lines[0] == "Content-Type: application/json") {
             lines = lines.drop(1).dropWhile { it.isEmpty() }
-            val list = lines.joinToString("\n").fromJson<List<String>>()
+            val list = lines.joinToString("\r\n").fromJson<List<String>>()
             map[key] = list
             continue
         }
 
-        val value = lines.joinToString("\n");
+        val value = lines.joinToString("\r\n");
 
         map[key] = when (key) {
             "statusCode" -> value.toInt()
             "duration" -> value.toFloat()
             else -> value
         }
-
-
     }
 
     map["responseStatusCode"] = map["statusCode"] ?: 0
