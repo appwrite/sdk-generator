@@ -386,11 +386,11 @@ open class Client {
         onProgress: ((UploadProgress) -> Void)? = nil
     ) async throws -> T {
         let payload = params[paramName] as! Payload
-        let buffer = payload.toByteBuffer()
+        let buffer = try payload.toByteBuffer()
         let size = buffer.readableBytes
 
         if size < Client.chunkSize {
-            params[paramName] = input
+            params[paramName] = payload
             return try await call(
                 method: "POST",
                 path: path,
@@ -421,10 +421,15 @@ open class Client {
         }
 
         while offset < size {
-            let slice = (input.data as! ByteBuffer).getSlice(at: offset, length: Client.chunkSize)
-                ?? (input.data as! ByteBuffer).getSlice(at: offset, length: Int(size - offset))
+            let slice = buffer.getSlice(at: offset, length: Client.chunkSize)
+                ?? buffer.getSlice(at: offset, length: Int(size - offset))
 
-            params[paramName] = Payload.fromBuffer(slice!, filename: input.filename, mimeType: input.mimeType)
+            params[paramName] = Payload.fromBuffer(
+                slice!,
+                filename: payload.filename ?? "",
+                mimeType: payload.mimeType ?? ""
+            )
+
             headers["content-range"] = "bytes \(offset)-\(min((offset + Client.chunkSize) - 1, size - 1))/\(size)"
 
             result = try await call(
