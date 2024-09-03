@@ -5,7 +5,7 @@ module Appwrite
         attr_reader :boundary
 
         def initialize(boundary: nil)
-            @boundary = boundary or "----RubyMultipartPost#{rand(1000000)}"
+            @boundary = boundary ||= "----RubyMultipartPost#{rand(1000000)}"
             @parts = []
         end
 
@@ -79,7 +79,7 @@ module Appwrite
                 name = content_disposition[/name="([^"]*)"/, 1]
 
                 # If no name is found, use a default naming scheme
-                name = name or "unnamed_part_#{parts.length}"
+                name ||= "unnamed_part_#{@parts.length}"
 
                 # Store the parsed data
                 @parts[name] = {
@@ -90,7 +90,7 @@ module Appwrite
         end
 
         def to_hash
-            h = Hash.new
+            h = {}
 
             @parts.each do |name, part|
                 case name

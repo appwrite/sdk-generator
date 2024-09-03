@@ -4,6 +4,7 @@ require 'net/http'
 require 'uri'
 require 'json'
 require 'cgi'
+require 'securerandom'
 
 module {{ spec.title | caseUcfirst }}
     class Client
@@ -188,17 +189,16 @@ module {{ spec.title | caseUcfirst }}
 
             params.compact!
 
-            @boundary = "RubySDK#{SecureRandom.hex(16)}"
             if method != "GET"
                 case headers['content-type']
                     when 'application/json'
                         payload = params.to_json
                     when 'multipart/form-data'
-                        multipart = MultipartBuilder.new(@boundary)
+                        multipart = MultipartBuilder.new()
                         
                         params.each do |name, value|
-                            if value is Payload then
-                                multipart.add(name, value.to_binary(), value.filename)
+                            if value.is_a?(Payload)
+                                multipart.add(name, value.to_binary(), filename: value.filename)
                             else
                                 multipart.add(name, value)
                             end
