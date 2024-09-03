@@ -1,77 +1,63 @@
-import os
-import json
-import re
-from abc import ABC, abstractmethod
-from typing import Union, Dict, List, Optional
-
-class PayloadData(ABC):
-    @abstractmethod
-    def size(self) -> int:
-        pass
-
-    @abstractmethod
-    def read(self, offset: int = 0, length: Optional[int] = None) -> bytes:
-        pass
-
-class FileData(PayloadData):
-    def __init__(self, path: str, filename: Optional[str] = None):
-        if not os.path.exists(path):
-            raise FileNotFoundError("File not found")
-        self.path = path
-        self.filename = filename or os.path.basename(path)
-
-    def size(self) -> int:
-        return os.path.getsize(self.path)
-
-    def read(self, offset: int = 0, length: Optional[int] = None) -> bytes:
-        with open(self.path, 'rb') as f:
-            f.seek(offset)
-            return f.read(length) if length is not None else f.read()
-
-class MemoryData(PayloadData):
-    def __init__(self, b: Union[str, bytes], filename: Optional[str] = None):
-        self.b = b.encode("utf-8") if isinstance(b, str) else b
-        self.filename = filename
-
-    def size(self) -> int:
-        return len(self.b)
-
-    def read(self, offset: int = 0, length: Optional[int] = None) -> bytes:
-        return self.b[offset:offset + length] if length is not None else self.b[offset:]
+from typing import Optional, Dict, Any
+import os, json
 
 class Payload:
-    def __init__(self, data: PayloadData):
+    size: int
+    filename: Optional[str] = None
+
+    _path: Optional[str] = None 
+    _data: Optional[bytes] = None
+
+    def __init__(self, path: Optional[str] = None, data: Optional[bytes] = None, filename: Optional[str] = None):
+        if not path and not data:
+            raise ValueError("One of path or data must be provided")
+
+        self._path = path
         self._data = data
-        self.filename = data.filename
 
-    @classmethod
-    def from_file(cls, path: str, filename: Optional[str] = None):
-        return cls(FileData(path, filename=filename))
-
-    @classmethod
-    def from_binary(cls, b: bytes, filename: Optional[str] = None):
-        return cls(MemoryData(b, filename=filename))
-
-    @classmethod
-    def from_json(cls, obj: Union[Dict, List], filename: Optional[str] = FileNotFoundError):
-        json_data = json.dumps(obj) if isinstance(obj, (dict, list)) else obj
-        return cls(MemoryData(json_data, filename=filename))
-
-    @classmethod
-    def from_string(cls, string: str, filename: Optional[str] = None):
-        return cls(MemoryData(string, filename=filename))
-
+        self.filename = filename
+        if not self._data:
+            self.size = os.path.getsize(self._path)
+        else:
+            self.size = len(self._data)
+  
+    def to_binary(self, offset: Optional[int] = 0, length: Optional[int] = None) -> bytes:
+        if not length:
+            length = self.size
+        
+        if not self._data:
+            with open(self._path, 'rb') as f:
+                f.seek(offset)
+                return f.read(length)
+        
+        return self._data[offset:offset + length]
+    
     def to_string(self) -> str:
-        return self._data.read().decode("utf-8")
+        return str(self.to_binary())
 
-    def to_binary(self) -> bytes:
-        return self._data.read()
-
-    def to_file(self, path: str):
+    def to_json(self) -> Dict[str, Any]:
+        return json.loads(self.to_string())
+    
+    def to_file(self, path: str) -> None: # in the client SDKs, this is def to_file() -> File:
         with open(path, 'wb') as f:
-            f.write(self._data.read())
+            return f.write(self.to_binary())
 
-    __str__ = to_string
+    @classmethod
+    def from_binary(cls, data: bytes, filename: Optional[str] = None) -> 'Payload':
+        return cls(data=data, filename=filename)
 
-    def to_json(self) -> Union[Dict, List]:
-        return json.loads(self._data.read())
+    @classmethod
+    def from_string(cls, data: str) -> 'Payload':
+        return cls(data=data.encode())
+       
+    @classmethod
+    def from_file(cls, path: str, filename: Optional[str] = None) -> 'Payload':
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"File {path} not found")
+        if not filename:
+            filename = os.path.basename(path)
+        return cls(path=path, filename=filename)
+
+    @classmethod
+    def from_json(cls, json: Dict[str, Any]) -> 'Payload':
+        return cls(data=json.dumps(json))

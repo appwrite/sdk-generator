@@ -1,10 +1,7 @@
-import io
 import json
-import os
 import requests
-import re
 from .payload import Payload
-from .multipart import Multipart
+from .multipart import MultipartParser
 from .exception import {{spec.title | caseUcfirst}}Exception
 from .encoders.value_class_encoder import ValueClassEncoder
 
@@ -75,7 +72,10 @@ class Client:
             stringify = True
             for key in data.copy():
                 if isinstance(data[key], Payload):
-                    files[key] = (data[key].filename, data[key]._data.read())
+                    if data[key].filename:
+                        files[key] = (data[key].filename, data[key].to_binary())
+                    else:
+                        data[key] = data[key].to_binary()
                     del data[key]
             data = self.flatten(data, stringify=stringify)
 
@@ -108,7 +108,7 @@ class Client:
                 return response.json()
 
             if content_type.startswith('multipart/form-data'): 
-                return Multipart.from_bytes(response.content, content_type).to_dict()
+                return MultipartParser(response.content, content_type).to_dict()
 
             return response._content
         except Exception as e:
@@ -131,7 +131,7 @@ class Client:
         upload_id = ''
     ):
         payload = params[param_name]
-        size = params[param_name]._data.size()
+        size = params[param_name].size
 
         if size < self._chunk_size:    
             return self.call(
@@ -157,7 +157,7 @@ class Client:
 
         while offset < size:
             params[param_name] = Payload.from_binary(
-                payload._data.read(offset, min(self._chunk_size, size - offset)),
+                payload.to_binary(offset, min(self._chunk_size, size - offset)),
                 payload.filename
             )
             headers["content-range"] = f'bytes {offset}-{min((offset + self._chunk_size) - 1, size - 1)}/{size}'
