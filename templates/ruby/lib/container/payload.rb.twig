@@ -4,6 +4,10 @@ module Appwrite
     attr_reader :size
 
     def initialize(data, path, filename)
+      if @data.nil? && @path.nil? then
+        raise ArgumentError.new('Payload must have one of data or path')
+      end
+
       @path = path
       @data = data
 
@@ -27,17 +31,15 @@ module Appwrite
       end
     end
 
-    # @param [String] encoding
     # @return [String]
-    def to_s(encoding: 'UTF-8')
-      to_binary().force_encoding(encoding)
+    def to_s()
+      to_binary().force_encoding('UTF-8')
     end
 
     alias to_string to_s
 
-    # @param [String] encoding
     # @return [Hash]
-    def to_json(encoding: 'UTF-8')
+    def to_json()
       JSON.parse(to_s())
     end
 
@@ -57,25 +59,24 @@ module Appwrite
     # @param [String] string
     # @param [String, nil] filename
     # @return [Payload]
-    def self.from_string(string, encoding: 'UTF-8', filename: nil)
-      bytes = string.encode(encoding)
+    def self.from_string(string, filename: nil)
+      bytes = string.encode('UTF-8')
       new(bytes, nil, filename)
     end
 
     # @param [Hash, Array] object
-    # @param [String] encoding
     # @param [String, nil] filename
     # @return [Payload]
-    def self.from_json(json, encoding: 'UTF-8', filename: nil)
+    def self.from_json(json, filename: nil)
       json = JSON.generate(object) if object.is_a?(Hash) || object.is_a?(Array)
-      self.from_string(json, encoding: encoding, filename: filename)
+      self.from_string(json, filename: filename)
     end
-
 
     # @param [String] path
     # @param [String, nil] filename
     # @return [Payload]
     def self.from_file(path, filename: nil)
+      raise ArgumentError.new('File not found') if !File.exists?(path)
       filename = if filename.nil? then
         File.basename(path)
       else
