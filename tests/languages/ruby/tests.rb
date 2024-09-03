@@ -117,11 +117,14 @@ url = general.oauth2(
 puts url
 
 # Multipart response tests
-response = general.multipart()
-puts response['x']
-
-# generate md5 hash from response["responseBody"]
-puts Digest::MD5.hexdigest(response["responseBody"].to_binary)
+begin
+    response = general.multipart()
+   
+    puts response.x
+    puts Digest::MD5.hexdigest(response.response_body.to_binary)
+rescue => e
+    puts e
+end
 
 # Query helper tests
 puts Query.equal('released', [true])

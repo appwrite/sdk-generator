@@ -108,9 +108,8 @@ module {{ spec.title | caseUcfirst }}
             response_type: nil
         )
             payload = params[param_name.to_sym]
-            size = params[param_name.to_sym].data.size
 
-            if size < @chunk_size
+            if payload.size < @chunk_size
                 return call(
                     method: 'POST',
                     path: path,
@@ -134,13 +133,13 @@ module {{ spec.title | caseUcfirst }}
                 offset = chunks_uploaded * @chunk_size
             end
 
-            while offset < size
+            while offset < payload.size
                 params[param_name.to_sym] = Payload::from_binary(
-                    payload.read(offset: offset, length: [@chunk_size, size - offset].min),
+                    payload.read(offset: offset, length: [@chunk_size, payload.size - offset].min),
                     payload.filename
                 )
 
-                headers['content-range'] = "bytes #{offset}-#{[offset + @chunk_size - 1, size - 1].min}/#{size}"
+                headers['content-range'] = "bytes #{offset}-#{[offset + @chunk_size - 1, payload.size - 1].min}/#{payload.size}"
 
                 result = call(
                     method: 'POST',
@@ -157,8 +156,8 @@ module {{ spec.title | caseUcfirst }}
 
                 on_progress.call({
                     id: result['$id'],
-                    progress: ([offset, size].min).to_f/size.to_f * 100.0,
-                    size_uploaded: [offset, size].min,
+                    progress: ([offset, payload.size].min).to_f/size.to_f * 100.0,
+                    size_uploaded: [offset, payload.size].min,
                     chunks_total: result['chunksTotal'],
                     chunks_uploaded: result['chunksUploaded']
                 }) unless on_progress.nil?

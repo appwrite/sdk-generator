@@ -1,7 +1,7 @@
 module Appwrite
   class Payload
-    attr_reader :data
     attr_reader :filename
+    attr_reader :size
 
     def initialize(data, path, filename)
       @path = path
@@ -56,7 +56,7 @@ module Appwrite
 
     # @return [String]
     def to_s
-      @data.read()
+      read()
     end
 
     alias :to_string :to_s
@@ -64,12 +64,12 @@ module Appwrite
 
     # @return [Hash]
     def to_json
-      JSON.parse(@data.read())
+      JSON.parse(read())
     end
 
     # @param [String] path  
     def to_file(path)
-      File.open(path, 'w') { |f| f.write(@data.read()) }
+      File.open(path, 'w') { |f| f.write(read()) }
     end
   end
 end
