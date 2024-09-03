@@ -4,7 +4,7 @@ module Appwrite
     attr_reader :size
 
     def initialize(data, path, filename)
-      if @data.nil? && @path.nil? then
+      if data.nil? && path.nil? then
         raise ArgumentError.new('Payload must have one of data or path')
       end
 
