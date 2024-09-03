@@ -10,9 +10,9 @@ class Payload private constructor() {
 
     lateinit var path: String
     lateinit var filename: String
-    lateinit var mimeType: String
     lateinit var sourceType: String
     lateinit var data: Any
+    var mimeType: String? = null
 
     override fun toString(): String {
         if (sourceType != "bytes") {

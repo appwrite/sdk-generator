@@ -77,27 +77,27 @@ class ServiceTest {
             writeToFile((result as Map<String, Any>)["result"] as String)
 
             try {
-                mock = general.upload("string", 123, listOf("string in array"), Payload.fromPath("../../resources/file.png"))
+                mock = general.upload("string", 123, listOf("string in array"), Payload.fromFile("../../resources/file.png"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
             try {
-                mock = general.upload("string", 123, listOf("string in array"), Payload.fromPath("../../resources/large_file.mp4"))
+                mock = general.upload("string", 123, listOf("string in array"), Payload.fromFile("../../resources/large_file.mp4"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
             try {
                 var bytes = File("../../resources/file.png").readBytes()
-                mock = general.upload("string", 123, listOf("string in array"), Payload.fromBinary(bytes, "file.png", "image/png"))
+                mock = general.upload("string", 123, listOf("string in array"), Payload.fromBinary(bytes, "file.png"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
             try {
                 var bytes = File("../../resources/large_file.mp4").readBytes()
-                mock = general.upload("string", 123, listOf("string in array"), Payload.fromBinary(bytes, "large_file.mp4", "video/mp4"))
+                mock = general.upload("string", 123, listOf("string in array"), Payload.fromBinary(bytes, "large_file.mp4"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
