@@ -30,9 +30,9 @@ class Node extends Web
                 }
                 return 'string[]';
             case self::TYPE_FILE:
-                return "File";
+                return 'Payload';
             case self::TYPE_PAYLOAD:
-                return "Payload";
+                return 'Payload';
             case self::TYPE_OBJECT:
                 if (empty($method)) {
                     return $parameter['type'];

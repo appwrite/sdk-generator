@@ -286,7 +286,7 @@ class Client {
             for (const part of parts) {
                 if (part.name) {
                     if (part.name === "responseBody") {
-                        partsObject[part.name] = new Payload(part.data, part.filename || undefined);
+                        partsObject[part.name] = new Payload(part.data, part.filename);
                     } else if (part.name === "responseStatusCode") {
                         partsObject[part.name] = parseInt(part.data.toString(), 10);
                     } else if (part.name === "duration") {
@@ -299,8 +299,11 @@ class Client {
                             }
                             partsObject[part.name] = jsonData;
                         } catch (e) {
-                            console.error('Error parsing JSON:', e);
-                            partsObject[part.name] = part.data.toString();
+                            if (e instanceof Error) {
+                                throw new Error(`Error parsing JSON for part ${part.name}: ${e.message}`);
+                            } else {
+                                throw new Error(`Error parsing JSON for part ${part.name}: Unknown error`);
+                            }
                         }
                     } else {
                         partsObject[part.name] = part.data.toString();

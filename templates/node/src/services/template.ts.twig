@@ -1,5 +1,5 @@
 import { {{ spec.title | caseUcfirst}}Exception, Client, type Params, UploadProgress } from '../client';
-import { Payload } from '../Payload';
+import { Payload } from '../payload';
 import type { Models } from '../models';
 {% set added = [] %}
 {% for method in service.methods %}
@@ -81,7 +81,7 @@ export class {{ service.name | caseUcfirst }} {
             apiHeaders,
             originalPayload
         );
-        {%~ elseif 'multipart/form-data' in method.consumes and method.name | lower != "createexecution" %}
+        {%~ elseif 'multipart/form-data' in method.consumes and method.type != "upload" %}
         return await this.client.chunkedUpload(
             '{{ method.method | caseLower }}',
             uri,
