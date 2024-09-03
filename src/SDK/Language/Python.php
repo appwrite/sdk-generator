@@ -282,6 +282,9 @@ class Python extends Language
                 case self::TYPE_FILE:
                     $output .= '{}';
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= '{}';
+                    break;
             }
         } else {
             switch ($type) {
@@ -292,6 +295,9 @@ class Python extends Language
                     $output .= $default;
                     break;
                 case self::TYPE_FILE:
+                    $output .= '{}';
+                    break;
+                case self::TYPE_PAYLOAD:
                     $output .= '{}';
                     break;
                 case self::TYPE_BOOLEAN:
@@ -334,7 +340,7 @@ class Python extends Language
                     $output .= '{}';
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'Payload.from_json({ "key": "value" })';
+                    $output .= 'Payload.from_json({"x": "y"})';
                     break;
                 case self::TYPE_FILE:
                     $output .= "Payload.from_file('file.png')";
@@ -355,7 +361,7 @@ class Python extends Language
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'Payload.from_json({ "key": "value" })';
+                    $output .= 'Payload.from_json({"x": "y"})';
                     break;
                 case self::TYPE_FILE:
                     $output .= "Payload.from_file('file.png')";
