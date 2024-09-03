@@ -42,7 +42,9 @@ jobs:
           Ruby30,
           Ruby31,
           AppleSwift56,
+          AppleSwift510,
           Swift56,
+          Swift510,
           WebChromium,
           WebNode
         ]
