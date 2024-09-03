@@ -2056,7 +2056,12 @@
           "default": null,
           "x-example": null
         }
-      }
+      },
+      "required": [
+        "x",
+        "y",
+        "body"
+      ]
     },
     "mock": {
       "description": "Mock",
