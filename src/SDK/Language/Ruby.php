@@ -299,8 +299,11 @@ class Ruby extends Language
                 case self::TYPE_OBJECT:
                     $output .= '{}';
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= "Payload.from_json({ \"x\": \"y\" })";
+                    break;
                 case self::TYPE_FILE:
-                    $output .= "Payload.from_path('dir/file.png')";
+                    $output .= "Payload.from_file('dir/file.png')";
                     break;
             }
         } else {
@@ -319,8 +322,11 @@ class Ruby extends Language
                 case self::TYPE_STRING:
                     $output .= "'{$example}'";
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= "Payload.from_json({ \"x\": \"y\" })";
+                    break;
                 case self::TYPE_FILE:
-                    $output .= "Payload.from_path('dir/file.png')";
+                    $output .= "Payload.from_file('dir/file.png')";
                     break;
             }
         }
