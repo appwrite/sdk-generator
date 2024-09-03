@@ -550,17 +550,21 @@ class Client @JvmOverloads constructor(
                         return
                     }
                 }
+                println(response.headers["content-type"])
+                if (response.headers["content-type"]?.contains("multipart/form-data") == true) {
+                    val binaryBody = response.body!!.bytes()
+                    val body = String(binaryBody)
+                    val map = body.fromMultiPart(binaryBody)
+                    it.resume(converter?.invoke(map) ?: map as T)
+                    return
+                }
+
                 val body = response.body!!
                     .charStream()
                     .buffered()
                     .use(BufferedReader::readText)
                 if (body.isEmpty()) {
                     it.resume(true as T)
-                    return
-                }
-                if (response.headers["content-type"]?.contains("multipart/form-data") == true) {
-                    val map = body.fromMultiPart()
-                    it.resume(converter?.invoke(map) ?: map as T)
                     return
                 }
 

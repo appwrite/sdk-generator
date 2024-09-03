@@ -140,8 +140,6 @@ class ServiceTest {
 
             writeToFile((mp as Map<String, Any>)["x"] as String)
             writeToFile(md5(((mp as Map<String, Any>)["responseBody"] as Payload).toBinary()))
-             File("a.png").appendText(((mp as Map<String, Any>)["responseBody"] as Payload).toString())
-
 
             // Query helper tests
             writeToFile(Query.equal("released", listOf(true)))
