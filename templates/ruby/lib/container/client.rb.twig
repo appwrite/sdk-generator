@@ -136,7 +136,7 @@ module {{ spec.title | caseUcfirst }}
 
             while offset < payload.size
                 params[param_name.to_sym] = Payload::from_binary(
-                    payload.read(offset: offset, length: [@chunk_size, payload.size - offset].min),
+                    payload.to_binary(offset, [@chunk_size, payload.size - offset].min),
                     payload.filename
                 )
 
@@ -157,7 +157,7 @@ module {{ spec.title | caseUcfirst }}
 
                 on_progress.call({
                     id: result['$id'],
-                    progress: ([offset, payload.size].min).to_f/size.to_f * 100.0,
+                    progress: ([offset, payload.size].min).to_f/payload.size.to_f * 100.0,
                     size_uploaded: [offset, payload.size].min,
                     chunks_total: result['chunksTotal'],
                     chunks_uploaded: result['chunksUploaded']
@@ -198,7 +198,7 @@ module {{ spec.title | caseUcfirst }}
                         
                         params.each do |name, value|
                             if value.is_a?(Payload)
-                                multipart.add(name, value.to_binary(), filename: value.filename)
+                                multipart.add(name, value.to_s, filename: value.filename)
                             else
                                 multipart.add(name, value)
                             end

@@ -6,8 +6,8 @@ module Appwrite
     def initialize(data, path, filename)
       @path = path
       @data = data
-      @filename = filename
 
+      @filename = filename
       @size = if @data then
         @data.bytesize
       else
@@ -15,13 +15,62 @@ module Appwrite
       end
     end
 
-    def read(offset: 0, length: nil)
+    # @param [Integer] offset
+    # @param [Integer, nil] length
+    # @return [String]
+    def to_binary(offset: 0, length: nil)
+      length = length || @size
       if @data then
-        @data.byteslice(offset, length || @data.bytesize)
+        @data.byteslice(offset, length)
       else
-        IO.read(@path, length || File.size(@path), offset)
+        IO.read(@path, length, offset)
       end
     end
+
+    # @param [String] encoding
+    # @return [String]
+    def to_s(encoding: 'UTF-8')
+      to_binary().force_encoding(encoding)
+    end
+
+    alias to_string to_s
+
+    # @param [String] encoding
+    # @return [Hash]
+    def to_json(encoding: 'UTF-8')
+      JSON.parse(to_s())
+    end
+
+    # @param [String] path 
+    # @return [void]
+    def to_file(path)
+      File.open(path, 'wb') { |f| f.write(to_binary()) }
+    end
+
+    # @param [String] bytes
+    # @param [String, nil] filename
+    # @return [Payload]
+    def self.from_binary(bytes, filename: nil)
+      new(bytes, nil, filename)
+    end
+
+    # @param [String] string
+    # @param [String, nil] filename
+    # @return [Payload]
+    def self.from_string(string, encoding: 'UTF-8', filename: nil)
+      bytes = string.encode(encoding)
+      new(bytes, nil, filename)
+    end
+
+    # @param [Hash, Array] object
+    # @param [String] encoding
+    # @param [String, nil] filename
+    # @return [Payload]
+    def self.from_json(json, encoding: 'UTF-8', filename: nil)
+      json = JSON.generate(object) if object.is_a?(Hash) || object.is_a?(Array)
+      self.from_string(json, encoding: encoding, filename: filename)
+    end
+
 
     # @param [String] path
     # @param [String, nil] filename
@@ -33,43 +82,6 @@ module Appwrite
         filename
       end
       new(nil, path, filename)
-    end
-
-    # @param [String] bytes
-    # @param [String, nil] filename
-    def self.from_binary(bytes, filename: nil)
-      new(bytes, nil, filename)
-    end
-
-    # @param [Hash, Array] object
-    # @param [String, nil] filename
-    def self.from_json(object, filename: nil)
-      json = JSON.generate(object) if object.is_a?(Hash) || object.is_a?(Array)
-      new(json, nil, filename)
-    end
-
-    # @param [String] string
-    # @param [String, nil] filename
-    def self.from_string(string, filename: nil)
-      new(string, nil, filename)
-    end
-
-    # @return [String]
-    def to_s
-      read()
-    end
-
-    alias :to_string :to_s
-    alias :to_binary :to_s
-
-    # @return [Hash]
-    def to_json
-      JSON.parse(read())
-    end
-
-    # @param [String] path  
-    def to_file(path)
-      File.open(path, 'w') { |f| f.write(read()) }
     end
   end
 end
