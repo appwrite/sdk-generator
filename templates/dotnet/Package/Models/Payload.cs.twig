@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using Newtonsoft.Json;
 
-using Appwrite.Extensions;
+using {{ spec.title | caseUcfirst }}.Extensions;
 
 namespace {{ spec.title | caseUcfirst }}.Models
 {
@@ -13,7 +15,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
         public string SourceType { get; set; }
         public object Data { get; set; }
 
-        public static Payload FromPath(string path) => new Payload
+        public static Payload FromFile(string path) => new Payload
         {
             Path = path,
             Filename = System.IO.Path.GetFileName(path),
@@ -22,7 +24,7 @@ namespace {{ spec.title | caseUcfirst }}.Models
         };
 
         public static Payload FromFileInfo(FileInfo fileInfo) =>
-            FromPath(fileInfo.FullName);
+            FromFile(fileInfo.FullName);
 
         public static Payload FromStream(Stream stream, string filename, string mimeType) => new Payload
         {
@@ -43,6 +45,11 @@ namespace {{ spec.title | caseUcfirst }}.Models
             return FromBinary(System.Text.Encoding.UTF8.GetBytes(multipart));
         }
 
+        public static Payload FromJson(object json)
+        {
+            return FromString(JsonConvert.SerializeObject(json));
+        }
+
         public  byte[] ToBinary()
         {
             return Data as byte[] ?? Array.Empty<byte>();
@@ -51,6 +58,16 @@ namespace {{ spec.title | caseUcfirst }}.Models
         public override string ToString()
         {
             return System.Text.Encoding.UTF8.GetString(ToBinary() , 0, ToBinary().Length);
+        }
+
+        public Dictionary<string, object?> ToJson()
+        {
+            return JsonConvert.DeserializeObject<Dictionary<string, object?>>(ToString()) ?? new Dictionary<string, object?>();
+        }
+
+        public void ToFile(string path)
+        {
+            System.IO.File.WriteAllBytes(path, ToBinary());
         }
 
     }

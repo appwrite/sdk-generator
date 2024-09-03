@@ -67,10 +67,10 @@ namespace AppwriteTests
             var result = await general.Redirect();
             TestContext.WriteLine((result as Dictionary<string, object>)["result"]);
 
-            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, Payload.FromPath("../../../../../../resources/file.png"));
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, Payload.File("../../../../../../resources/file.png"));
             TestContext.WriteLine(mock.Result);
 
-            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, Payload.FromPath("../../../../../../resources/large_file.mp4"));
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, Payload.File("../../../../../../resources/large_file.mp4"));
             TestContext.WriteLine(mock.Result);
 
             var info = new FileInfo("../../../../../../resources/file.png");
