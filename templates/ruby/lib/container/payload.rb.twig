@@ -16,10 +16,10 @@ module Appwrite
     end
 
     # @param [Integer] offset
-    # @param [Integer, nil] length
+    # @param [Integer] length
     # @return [String]
-    def to_binary(offset: 0, length: nil)
-      length = length || @size
+    def to_binary(offset = 0, length = nil)
+      length ||= @size - offset
       if @data then
         @data.byteslice(offset, length)
       else

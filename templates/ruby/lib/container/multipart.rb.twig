@@ -10,6 +10,13 @@ module Appwrite
         end
 
         def add(name, contents, filename: nil, content_type: nil)
+            if contents.is_a?(Array)
+                contents.each_with_index do |element, index|
+                    add("#{name}[#{index}]", element)
+                end
+                return
+            end
+
             part = "--#{@boundary}\r\n"
             part << "Content-Disposition: form-data; name=\"#{name}\""
             part << "; filename=\"#{filename}\"" if filename
@@ -21,7 +28,7 @@ module Appwrite
             part << "Content-Type: #{content_type}\r\n"
             end
             part << "\r\n"
-            part << contents
+            part << contents.to_s
             part << "\r\n"
 
             @parts << part

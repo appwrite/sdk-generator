@@ -135,9 +135,9 @@ module {{ spec.title | caseUcfirst }}
             end
 
             while offset < payload.size
-                params[param_name.to_sym] = Payload::from_binary(
+                params[param_name.to_sym] = Payload.from_binary(
                     payload.to_binary(offset, [@chunk_size, payload.size - offset].min),
-                    payload.filename
+                    filename: payload.filename
                 )
 
                 headers['content-range'] = "bytes #{offset}-#{[offset + @chunk_size - 1, payload.size - 1].min}/#{payload.size}"
