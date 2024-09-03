@@ -334,7 +334,7 @@ class Client @JvmOverloads constructor(
                 file.length()
             }
             "bytes" -> {
-                (input.data as ByteArray).size.toLong()
+                input.toBinary().size.toLong()
             }
             else -> throw UnsupportedOperationException()
         }
@@ -342,7 +342,7 @@ class Client @JvmOverloads constructor(
         if (size < CHUNK_SIZE) {
             val data = when(input.sourceType) {
                 "file", "path" -> File(input.path).asRequestBody()
-                "bytes" -> (input.data as ByteArray).toRequestBody(input.mimeType.toMediaType())
+                "bytes" -> input.toBinary().toRequestBody(input.mimeType?.toMediaType())
                 else -> throw UnsupportedOperationException()
             }
             params[paramName] = MultipartBody.Part.createFormData(
@@ -389,7 +389,7 @@ class Client @JvmOverloads constructor(
                     } else {
                         size - 1
                     }
-                    (input.data as ByteArray).copyInto(
+                    input.toBinary().copyInto(
                         buffer,
                         startIndex = offset.toInt(),
                         endIndex = end.toInt()
@@ -503,17 +503,21 @@ class Client @JvmOverloads constructor(
                         return
                     }
                 }
+                println(response.headers["content-type"])
+                if (response.headers["content-type"]?.contains("multipart/form-data") == true) {
+                    val binaryBody = response.body!!.bytes()
+                    val body = String(binaryBody)
+                    val map = body.fromMultiPart(binaryBody)
+                    it.resume(converter?.invoke(map) ?: map as T)
+                    return
+                }
+
                 val body = response.body!!
                     .charStream()
                     .buffered()
                     .use(BufferedReader::readText)
                 if (body.isEmpty()) {
                     it.resume(true as T)
-                    return
-                }
-                if (response.headers["content-type"]?.contains("multipart/form-data") == true) {
-                    val map = body.fromMultiPart()
-                    it.resume(converter?.invoke(map) ?: map as T)
                     return
                 }
 

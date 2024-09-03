@@ -53,7 +53,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ if method.responseModel | hasGenericType(spec) %}
         nestedType: Class<T>,
         {%~ endif %}
-        {%~ if 'multipart/form-data' in method.consumes and method.name | caseLower != 'createexecution' %}
+        {% if 'multipart/form-data' in method.consumes and method.type == "upload" %}
         onProgress: ((UploadProgress) -> Unit)? = null
         {%~ endif %}
     ){% if method.type != "webAuth" %}: {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}{% endif %} {
@@ -64,7 +64,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 
         val apiParams = mutableMapOf<String, Any?>(
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
-            {%~ if method.name | caseLower == "createexecution" and parameter.name == 'body' %}
+            {% if 'multipart/form-data' in method.consumes and method.type != "upload" and parameter.name == 'body' %}
                 "{{ parameter.name }}" to ({{ parameter.name | caseCamel }}?.toBinary() ?: ""),
             {%~ else %}
                 "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
@@ -134,7 +134,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         val apiHeaders = mutableMapOf(
         {%~ for key, header in method.headers %}
             "{{ key }}" to "{{ header }}",
-            {%~ if method.name | lower == "createexecution" %}
+            {% if 'multipart/form-data' in method.consumes and method.type != "upload" %}
             "accept" to "multipart/form-data",
             {%~ endif %}
         {%~ endfor %}
@@ -149,7 +149,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ endif %}
         }
         {%~ endif %}
-        {%~ if 'multipart/form-data' in method.consumes and method.name | caseLower != 'createexecution' %}
+        {% if 'multipart/form-data' in method.consumes and method.type == "upload" %}
         val idParamName: String? = {% if method.parameters.all | filter(p => p.isUploadID) | length > 0 %}{% for parameter in method.parameters.all | filter(parameter => parameter.isUploadID) %}"{{ parameter.name }}"{% endfor %}{% else %}null{% endif %}
 
         {%~ for parameter in method.parameters.all %}
@@ -212,7 +212,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ for parameter in method.parameters.all %}
         {{ parameter.name | caseCamel }}: {{ parameter | typeName }}{%~ if not parameter.required or parameter.nullable %}? = null{% endif %},
         {%~ endfor %}
-        {%~ if 'multipart/form-data' in method.consumes and method.name | caseLower != 'createexecution' %}
+        {% if 'multipart/form-data' in method.consumes and method.type == "upload" %}
         onProgress: ((UploadProgress) -> Unit)? = null
         {%~ endif %}
     ): {{ method | returnType(spec, sdk.namespace | caseDot, 'Map<String, Any>') | raw }} = {{ method.name | caseCamel }}(
@@ -225,7 +225,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ if method.responseModel | hasGenericType(spec) %}
         nestedType = classOf(),
         {%~ endif %}
-        {%~ if 'multipart/form-data' in method.consumes and method.name | caseLower != 'createexecution' %}
+        {% if 'multipart/form-data' in method.consumes and method.type == "upload" %}
         onProgress = onProgress
         {%~ endif %}
     )
