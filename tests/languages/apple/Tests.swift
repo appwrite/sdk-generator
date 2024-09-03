@@ -80,7 +80,7 @@ class Tests: XCTestCase {
         print((result as! [String: Any])["result"] as! String)
 
         do {
-            var file = Payload.fromPath("\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
+            var file = try Payload.fromPath("\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
             mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
             print(mock.result)
         } catch {
@@ -88,7 +88,7 @@ class Tests: XCTestCase {
         }
 
         do {
-            var file = Payload.fromPath("\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
+            var file = try Payload.fromPath("\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
             mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
             print(mock.result)
         } catch {
