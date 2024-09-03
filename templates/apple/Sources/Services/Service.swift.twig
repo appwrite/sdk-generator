@@ -49,7 +49,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         {% if 'multipart/form-data' in method.consumes and method.type == 'upload' -%} var
         {%- else -%} let
         {%- endif %} apiHeaders: [String: String] = [
-        {%~ if 'multipart/form-data' in method.consumes and method.type != 'upload' %}
+        {%~ if 'multipart/form-data' in method.produces %}
             "accept": "multipart/form-data",
         {%~ endif %}
         {%~ for key, header in method.headers %}
