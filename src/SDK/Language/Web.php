@@ -31,14 +31,14 @@ class Web extends JS
                 'template'      => 'web/src/client.ts.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'src/service.ts',
-                'template'      => 'web/src/service.ts.twig',
-            ],
-            [
                 'scope'         => 'service',
                 'destination'   => 'src/services/{{service.name | caseDash}}.ts',
                 'template'      => 'web/src/services/template.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/payload.ts',
+                'template'      => 'web/src/payload.ts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -150,8 +150,10 @@ class Web extends JS
                 case self::TYPE_OBJECT:
                     $output .= '{}';
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.fromJson({"x": "y"})';
                 case self::TYPE_FILE:
-                    $output .= "document.getElementById('uploader').files[0]";
+                    $output .= "Payload.fromFile(document.getElementById('uploader').files[0])";
                     break;
             }
         } else {
@@ -168,8 +170,10 @@ class Web extends JS
                 case self::TYPE_STRING:
                     $output .= "'{$example}'";
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.fromJson({"x": "y"})';
                 case self::TYPE_FILE:
-                    $output .= "document.getElementById('uploader').files[0]";
+                    $output .= "Payload.fromFile(document.getElementById('uploader').files[0])";
                     break;
             }
         }
@@ -195,7 +199,8 @@ class Web extends JS
                 }
                 return 'string[]';
             case self::TYPE_FILE:
-                return 'File';
+            case self::TYPE_PAYLOAD:
+                return 'Payload';
             case self::TYPE_OBJECT:
                 if (empty($method)) {
                     return $parameter['type'];

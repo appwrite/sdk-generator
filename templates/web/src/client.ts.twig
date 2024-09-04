@@ -540,7 +540,7 @@ class Client {
         }
     }
 
-    prepareRequest(method: string, url: URL, headers: Headers = {}, params: Params = {}): { uri: string, options: RequestInit } {
+    async prepareRequest(method: string, url: URL, headers: Headers = {}, params: Params = {}): Promise<{ uri: string, options: RequestInit }> {
         method = method.toUpperCase();
 
         headers = Object.assign({}, this.headers, headers);
@@ -570,15 +570,15 @@ class Client {
                 case 'multipart/form-data':
                     const formData = new FormData();
 
-                    for (const [key, value] of Object.entries(params)) {
+                    for (const [name, value] of Object.entries(params)) {
                         if (value instanceof Payload) {
-                            formData.append(key, value, value.name);
+                            formData.append(name, await value.toFile(), value.filename);
                         } else if (Array.isArray(value)) {
                             for (const nestedValue of value) {
-                                formData.append(`${key}[]`, nestedValue);
+                                formData.append(`${name}[]`, nestedValue);
                             }
                         } else {
-                            formData.append(key, value);
+                            formData.append(name, value);
                         }
                     }
 
@@ -592,39 +592,40 @@ class Client {
         return { uri: url.toString(), options };
     }
 
-    async chunkedUpload(method: string, url: URL, headers: Headers = {}, payload: Params = {}, onProgress: (progress: UploadProgress) => void) {
-        const file = Object.values(payload).find((value) => value instanceof Payload);
-        if (file.size <= Client.CHUNK_SIZE) {
-            return await this.call(method, url, headers, payload);
+    async chunkedUpload(method: string, url: URL, headers: Headers = {}, params: Params = {}, onProgress: (progress: UploadProgress) => void) {
+        const [paramName, payload] = Object.entries(params).find(([_key, value]) => value instanceof Payload)!;
+
+        if (payload.size <= Client.CHUNK_SIZE) {
+            return await this.call(method, url, headers, params);
         }
 
         let start = 0;
         let response = null;
 
-        while (start < file.size) {
-            let end = start + Client.CHUNK_SIZE; // Prepare end for the next chunk
-            if (end >= file.size) {
-                end = file.size; // Adjust for the last chunk to include the last byte
-            }
+        while (start < payload.size) {
+            const end = Math.min(start + Client.CHUNK_SIZE, payload.size);
 
-            headers['content-range'] = `bytes ${start}-${end-1}/${file.size}`;
+            headers['content-range'] = `bytes ${start}-${end-1}/${payload.size}`;
 
-            response = await this.call(method, url, headers, {
-                file: Payload.fromBinary([file.slice(start, end)], file.name);
-            });
+            params[paramName] = Payload.fromBinary(
+                await payload.toBinary(start, end - start),
+                payload.filename,
+            );
+
+            response = await this.call(method, url, headers, params);
 
             if (onProgress && typeof onProgress === 'function') {
                 onProgress({
                     $id: response.$id,
-                    progress: Math.round((end / file.size) * 100),
+                    progress: Math.round((end / payload.size) * 100),
                     sizeUploaded: end,
-                    chunksTotal: Math.ceil(file.size / Client.CHUNK_SIZE),
+                    chunksTotal: Math.ceil(payload.size / Client.CHUNK_SIZE),
                     chunksUploaded: Math.ceil(end / Client.CHUNK_SIZE)
                 });
             }
 
             if (response && response.$id) {
-                headers['x-{{spec.title | caseLower }}-id'] = response.$id;
+                headers['x-appwrite-id'] = response.$id;
             }
 
             start = end;
@@ -634,13 +635,13 @@ class Client {
     }
 
     async call(method: string, url: URL, headers: Headers = {}, params: Params = {}, responseType = 'json'): Promise<any> {
-        const { uri, options } = this.prepareRequest(method, url, headers, params);
+        const { uri, options } = await this.prepareRequest(method, url, headers, params);
 
         let data: any = null;
 
         const response = await fetch(uri, options);
 
-        const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
+        const warnings = response.headers.get('x-appwrite-warning');
         if (warnings) {
             warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
         }
@@ -650,10 +651,22 @@ class Client {
 
         } else if (response.headers.get('content-type')?.includes('multipart/form-data')) {
             const formdata = await response.formData();
+
             data = {};
-            for (const [key, value] of formdata.entries()) {
-                data[key] = value;
-            }
+
+            formdata.forEach(async (value, name) => {
+                if (name === "responseBody" && value instanceof Blob) {
+                    data[name] = Payload.fromBinary(await value.arrayBuffer());
+                } else if (name === "responseHeaders" && !(value instanceof Blob)) {
+                    data[name] = JSON.parse(value);
+                } else if (name === "responseStatusCode") {
+                    data[name] = parseInt(value as string, 10);
+                } else if (name === "duration") {
+                    data[name] = parseFloat(value as string);
+                } else {
+                    data[name] = value;
+                }
+            })
         } else if (responseType === 'arrayBuffer') {
             data = await response.arrayBuffer();
         } else {
@@ -663,13 +676,13 @@ class Client {
         }
 
         if (400 <= response.status) {
-            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, data);
+            throw new AppwriteException(data?.message, response.status, data?.type, data);
         }
 
         const cookieFallback = response.headers.get('X-Fallback-Cookies');
 
         if (typeof window !== 'undefined' && window.localStorage && cookieFallback) {
-            window.console.warn('{{spec.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
+            window.console.warn('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
             window.localStorage.setItem('cookieFallback', cookieFallback);
         }
 

@@ -1,4 +1,3 @@
-import { Service } from '../service';
 import { Payload } from '../payload';
 import { {{ spec.title | caseUcfirst}}Exception, Client, type Params, UploadProgress } from '../client';
 import type { Models } from '../models';
@@ -49,15 +48,15 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endif %}
         {%~ endfor %}
         const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-        const payload: Params = {};
+        const params: Params = {};
         {%~ for parameter in method.parameters.query %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            params['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
         {%~ endfor %}
         {%~ for parameter in method.parameters.body %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            params['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
         {%~ endfor %}
         const uri = new URL(this.client.config.endpoint + apiPath);
@@ -75,11 +74,11 @@ export class {{ service.name | caseUcfirst }} {
         {%~ if method.auth|length > 0 %}
         {%~ for node in method.auth %}
         {%~ for key,header in node|keys %}
-        payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
+        params['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
         {%~ endfor %}
         {%~ endfor %}
         {%~ endif %}
-        for (const [key, value] of Object.entries(Client.flatten(payload))) {
+        for (const [key, value] of Object.entries(Client.flatten(params))) {
             uri.searchParams.append(key, value);
         }
         {%~ endif %}
@@ -94,21 +93,21 @@ export class {{ service.name | caseUcfirst }} {
         {%~ elseif method.type == 'location' %}
         {%~ for node in method.auth %}
         {%~ for key, header in node|keys %}
-        payload['{{ header|caseLower }}'] = this.client.config.{{ header|caseLower }};
+        params['{{ header|caseLower }}'] = this.client.config.{{ header|caseLower }};
         {%~ endfor %}
         {%~ endfor %}
 
-        for (const [key, value] of Object.entries(Client.flatten(payload))) {
+        for (const [key, value] of Object.entries(Client.flatten(params))) {
             uri.searchParams.append(key, value);
         }
 
         return uri.toString();
-        {%~ elseif 'multipart/form-data' in method.consumes %}
+        {%~ elseif 'multipart/form-data' in method.consumes and method.type != 'upload' %}
         return await this.client.chunkedUpload(
             '{{ method.method | caseLower }}',
             uri,
             apiHeaders,
-            payload,
+            params,
             onProgress
         );
         {%~ else %}
@@ -116,7 +115,7 @@ export class {{ service.name | caseUcfirst }} {
             '{{ method.method | caseLower }}',
             uri,
             apiHeaders,
-            payload
+            params
         );
         {%~ endif %}
     }

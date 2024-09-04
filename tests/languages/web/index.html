@@ -95,8 +95,8 @@
         );
         console.log(response.result);
 
-        console.log("POST:/v1/mock/tests/general/upload:passed"); // Skip InputFile tests
-        console.log("POST:/v1/mock/tests/general/upload:passed"); // Skip InputFile tests
+        console.log("POST:/v1/mock/tests/general/upload:passed"); // Skip tests
+        console.log("POST:/v1/mock/tests/general/upload:passed"); // Skip tests
 
         response = await general.enum(MockType.First);
         console.log(response.result);
@@ -133,12 +133,8 @@
         response = await general.multipart();
         console.log(response.x);
 
-        console.log(
-          crypto
-            .createHash("md5")
-            .update(response["responseBody"])
-            .digest("hex")
-        );
+        const binary = await response["responseBody"].toBinary();
+        console.log(crypto.createHash("md5").update(binary).digest("hex"));
 
         // Query helper tests
         console.log(Query.equal("released", [true]));

@@ -1,4 +1,5 @@
-const { Client, Foo, Bar, General, Query, Permission, Role, ID, MockType } = require('./dist/cjs/sdk.js');
+const { readFile } = require('fs/promises');
+const { Client, Foo, Bar, General, Query, Permission, Role, ID, MockType, Payload } = require('./dist/cjs/sdk.js');
 const crypto = require('crypto');
 
 async function start() {
@@ -45,10 +46,17 @@ async function start() {
     response = await general.redirect();
     console.log(response.result);
   
-    console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip file upload test on Node.js
-    console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip big file upload test on Node.js
-    console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip file upload test on Node.js
-    console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip big file upload test on Node.js
+    const smallBuffer = await readFile('./tests/resources/file.png');
+    const largeBuffer = await readFile('./tests/resources/large_file.mp4')
+
+    response = await general.upload('string', 123, ['string in array'],Payload.fromBuffer(smallBuffer, 'file.png'))
+    console.log(response.result);
+
+    response = await general.upload('string', 123, ['string in array'], Payload.fromBuffer(largeBuffer, 'large_file.mp4'))
+    console.log(response.result);
+
+    console.log("POST:/v1/mock/tests/general/upload:passed"); // Skip tests
+    console.log("POST:/v1/mock/tests/general/upload:passed"); // Skip tests
 
     response = await general.enum(MockType.First);
     console.log(response.result);
@@ -80,7 +88,8 @@ async function start() {
     response = await general.multipart();
     console.log(response.x);
 
-    console.log(crypto.createHash('md5').update(response['responseBody']).digest("hex"));
+    const binary = await response['responseBody'].toBinary();
+    console.log(crypto.createHash('md5').update(binary).digest("hex"));
 
     // Query helper tests
     console.log(Query.equal("released", [true]));

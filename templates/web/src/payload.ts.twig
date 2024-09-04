@@ -1,40 +1,47 @@
-export class Payload extends Blob {
-    public name: string | null = null;
+export class Payload {
+    public filename?: string;
+    public size: number;
 
-    constructor(data: BlobPart[], name?: string) {
-        super(data);
-        this.name = name || null;
+    private data: Blob;
+
+    constructor(data: Blob, filename?: string) {
+        this.data = data;
+        this.filename = filename;
+        this.size = data.size;
     }
 
-    public async toString() {
-        return await this.text();
+    public async toString(): Promise<string> {
+        return await this.data.text();
     }
 
     public async toJson<T = unknown>(): Promise<T> {
-        return JSON.parse(await this.text());
+        return JSON.parse(await this.data.text());
     }
 
-    public async toBinary(): Promise<Uint8Array> {
-        return new Uint8Array(await this.arrayBuffer());
+    public async toBinary(offset: number = 0, length?: number): Promise<ArrayBuffer> {
+        return this.data.slice(offset, length).arrayBuffer();
     }
 
-    public async toFile(): Promise<File> {
-        return new File([this], this.name || "file");
+    public async toFile(filename?: string): Promise<File> {
+        if (!filename && !this.filename) {
+            throw new Error('Filename is required');
+        }
+        return new File([this.data], filename || this.filename);
     }
 
     public static fromFile(file: File): Payload {
-        return new Payload([file], file.name);
+        return new Payload(file, file.name);
     }
 
-    public static fromString(data: string, name?: string): Payload {
-        return new Payload([data], name);
+    public static fromString(data: string, filename?: string): Payload {
+        return new Payload(new Blob([data]), filename);
     }
 
-    public static fromJson(data: unknown, name?: string): Payload {
-        return new Payload([JSON.stringify(data)], name);
+    public static fromJson<T = unknown>(data: T, filename?: string): Payload {
+        return new Payload(new Blob([JSON.stringify(data)]), filename);
     }
 
-    public static fromBinary(data: Uint8Array, name?: string): Payload {
-        return new Payload([data], name);
+    public static fromBinary(data: ArrayBuffer, filename?: string): Payload {
+        return new Payload(new Blob([data]), filename);
     }
 }
