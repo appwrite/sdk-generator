@@ -488,7 +488,11 @@ class Kotlin extends Language
     protected function getPropertyType(array $property, array $spec, string $generic = 'T'): string
     {
         if ($property['name'] == 'responseBody') {
-            return 'Payload';
+            $type = 'Payload';
+            if (!$property['required']) {
+                $type .= '?';
+            }
+            return $type;
         }
 
         if (\array_key_exists('sub_schema', $property)) {
