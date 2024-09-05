@@ -4,71 +4,71 @@
 module {{ spec.title | caseUcfirst }}
     module Models
         class {{ definition.name | caseUcfirst }}
-{% for property in definition.properties %}
+            {%~ for property in definition.properties %}
             attr_reader :{{ property.name | caseSnake | escapeKeyword }}
-{% endfor %}
-{% if definition.additionalProperties %}
+            {%~ endfor %}
+            {%~ if definition.additionalProperties %}
             attr_reader :data
-{% endif %}
+            {%- endif %}
 
             def initialize(
-{% for property in definition.properties %}
+                {%~ for property in definition.properties %}
                 {{ property.name | caseSnake | escapeKeyword }}:{% if not property.required %} {{ property.default }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
-{% endfor %}
-{% if definition.additionalProperties %}
+                {%~ endfor %}
+                {%~ if definition.additionalProperties %}
                 data:
-{% endif %}
+                {%- endif %}
             )
-{% for property in definition.properties %}
+                {%~ for property in definition.properties %}
                 @{{ property.name | caseSnake | escapeKeyword }} = {{ property.name | caseSnake | escapeKeyword }}
-{% endfor %}
-{% if definition.additionalProperties %}
+                {%~ endfor %}
+                {%~ if definition.additionalProperties %}
                 @data = data
-{% endif %}
+                {%- endif %}
             end
 
             def self.from(map:)
                 {{ definition.name | caseUcfirst }}.new(
-{% for property in definition.properties %}
+                    {%~ for property in definition.properties %}
                     {{ property.name | caseSnake | escapeKeyword | removeDollarSign }}: {% if property.sub_schema %}{% if property.type == 'array' %}map["{{ property.name }}"].map { |it| {{ property.sub_schema | caseUcfirst }}.from(map: it) }{% else %}{{property.sub_schema | caseUcfirst}}.from(map: map["{{property.name }}"]){% endif %}{% else %}map["{{ property.name }}"]{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
-{% endfor %}
-{% if definition.additionalProperties %}
+                    {%~ endfor %}
+                    {%~ if definition.additionalProperties %}
                     data: map
-{% endif %}
+                    {%- endif %}
                 )
             end
 
             def to_map
                 {
-{% for property in definition.properties %}
+                    {%~ for property in definition.properties %}
                     "{{ property.name }}": {% if property.sub_schema %}{% if property.type == 'array' %}@{{ property.name | caseSnake | escapeKeyword | removeDollarSign }}.map { |it| it.to_map }{% else %}@{{property.name | caseSnake | escapeKeyword | removeDollarSign }}.to_map{% endif %}{% else %}@{{property.name | caseSnake | escapeKeyword }}{% endif %}{% if not loop.last or (loop.last and definition.additionalProperties) %},{% endif %}
 
-{% endfor %}
-{% if definition.additionalProperties %}
+                    {%~ endfor %}
+                    {%~ if definition.additionalProperties %}
                     "data": @data
-{% endif %}
+                    {%- endif %}
                 }
             end
-{% if definition.additionalProperties %}
+            {%~ if definition.additionalProperties %}
 
             def convert_to(from_json)
                 from_json.call(data)
             end
-{% endif %}
-{% for property in definition.properties %}
-{% if property.sub_schema %}
-{% for def in spec.definitions %}
-{% if def.name == property.sub_schema and def.additionalProperties and property.type == 'array' %}
+            {%~ endif %}
+            {%~ for property in definition.properties %}
+            {%~ if property.sub_schema %}
+            {%~ for def in spec.definitions %}
+            {%~ if def.name == property.sub_schema and def.additionalProperties and property.type == 'array' %}
 
             def convert_to(from_json)
                 {{ property.name | caseSnake | escapeKeyword }}.map { |it| it.convert_to(from_json) }
             end
-{% endif %}
-{% endfor %}
-{% endif %}
-{% endfor %}
+            {%- endif %}
+            {%- endfor %}
+            {%- endif %}
+            {%- endfor %}
         end
     end
 end
