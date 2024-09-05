@@ -157,7 +157,7 @@ func testGeneralService(client client.Client, stringInArray []string) {
 func testGeneralUpload(client client.Client, stringInArray []string) {
 	general := appwrite.NewGeneral(client)
 	uploadFile := path.Join("/app", "tests/resources/file.png")
-	inputFile := payload.NewPayloadFromPath(uploadFile, "file.png")
+	inputFile := payload.NewPayloadFromFile(uploadFile, "file.png")
 
 	response, err := general.Upload("string", 123, stringInArray, inputFile)
 	if err != nil {
@@ -178,7 +178,7 @@ func testGeneralDownload(client client.Client) {
 func testLargeUpload(client client.Client, stringInArray []string) {
 	general := appwrite.NewGeneral(client)
 	uploadFile := path.Join("/app", "tests/resources/large_file.mp4")
-	inputFile := payload.NewPayloadFromPath(uploadFile, "large_file.mp4")
+	inputFile := payload.NewPayloadFromFile(uploadFile, "large_file.mp4")
 
 	response, err := general.Upload("string", 123, stringInArray, inputFile)
 	if err != nil {
