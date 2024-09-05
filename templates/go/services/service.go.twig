@@ -1,9 +1,5 @@
 {%- set requireModelsPkg = false -%}
 {%- set requirePayloadPkg = false -%}
-{%- set requireParsingLibes = false -%}
-{%- if service.name | lower == "functions" -%}
-	{%- set requireParsingLibes = true -%}
-{%- endif -%}
 {%- for method in service.methods -%}
 {%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
 		{%- set requireModelsPkg = true -%}
