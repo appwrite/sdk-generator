@@ -122,7 +122,8 @@ class Node extends Web
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "Payload.fromFile('/path/to/file', 'filename')";
+                    $blob = file_get_contents('path/to/file');
+                    $output .= "Payload.fromFile(" . $blob . ", 'filename')";
                     break;
             }
         } else {
@@ -140,7 +141,8 @@ class Node extends Web
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "Payload.fromFile('/path/to/file', 'filename')";
+                    $blob = file_get_contents('path/to/file');
+                    $output .= "Payload.fromFile(" . $blob . ", 'filename')";
                     break;
             }
         }

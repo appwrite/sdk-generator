@@ -67,10 +67,14 @@ async function start() {
     response = await general.redirect();
     console.log(response.result);
 
-    response = await general.upload('string', 123, ['string in array'], Payload.fromFile(__dirname + '/../../resources/file.png', 'file.png'));
+    const fileBuffer = await fs.promises.readFile(__dirname + '/../../resources/file.png');
+    const payload = await Payload.fromFile(new Blob([fileBuffer], { type: 'image/png' }), 'file.png');
+    response = await general.upload('string', 123, ['string in array'], payload);
     console.log(response.result);
 
-    response = await general.upload('string', 123, ['string in array'], Payload.fromFile(__dirname + '/../../resources/large_file.mp4', 'large_file.mp4'));
+    const largeFileBuffer = await fs.promises.readFile(__dirname + '/../../resources/large_file.mp4');
+    const largePayload = await Payload.fromFile(new Blob([largeFileBuffer], { type: 'video/mp4' }), 'large_file.mp4');
+    response = await general.upload('string', 123, ['string in array'], largePayload);
     console.log(response.result);
 
     const smallBuffer = await readFile('./tests/resources/file.png');
