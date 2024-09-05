@@ -450,7 +450,8 @@ namespace {{ spec.title | caseUcfirst }}
 
             return converter(result);
         }
-public static T HandleMultipart<T>(byte[] multipart) where T : class
+
+        public static T HandleMultipart<T>(byte[] multipart) where T : class
         {
             var str = Encoding.UTF8.GetString(multipart);
             var data = new Dictionary<string, object>();
@@ -483,27 +484,12 @@ public static T HandleMultipart<T>(byte[] multipart) where T : class
                 }
                 if (name == "responseBody")
                 {
-                    var indexOf = str.IndexOf("name=\"responseBody\"", StringComparison.Ordinal)+"name=\"responseBody\"".Length;
-                    var sliced = str.Substring(indexOf);
-                    var indexOfEnd = sliced.IndexOf("---", StringComparison.Ordinal);
-                    List<byte> list = new List<byte>();
+                    const string needle = "name=\"responseBody\"\r\n\r\n";
+                    var indexOf = str.IndexOf(needle, StringComparison.Ordinal) + needle.Length;
+                    var endBytes = Encoding.UTF8.GetBytes("\r\n-------");
                     multipart = multipart.Skip(indexOf).ToArray();
-                    var alreadyPassFirstSapce = false;
-                    for (var i = 0; i < indexOfEnd - indexOf; i++)
-                    {
-                        var current = multipart[i];
-                        if (!alreadyPassFirstSapce)
-                        {
-                            if (current == 10 || current == 13)
-                            {
-                                continue;
-                            }
-                            alreadyPassFirstSapce = true;
-                        }
 
-                        list.Add(current);
-                    }
-                    data.Add(name, Payload.FromBinary(list.ToArray()));
+                    data.Add(name, Payload.FromBinary(multipart.TakeWhile((t, i) => !DidFinishedBinaryData(multipart, endBytes, i)).ToArray()));
 
                     continue;
                 }
@@ -520,6 +506,25 @@ public static T HandleMultipart<T>(byte[] multipart) where T : class
             data.Add("scheduledAt","");
             data.Add("$permissions",new List<Object>());
             return data as T;
+        }
+
+        private static bool DidFinishedBinaryData(byte[] multipart, byte[] endBytes, int i)
+        {
+            if (multipart.Length > i + endBytes.Length)
+            {
+                for (var j = 0; j < endBytes.Length; j++)
+                {
+                    if (multipart[i + j] != endBytes[j])
+                    {
+                        break;
+                    }
+
+                    if (j != endBytes.Length - 1) continue;
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

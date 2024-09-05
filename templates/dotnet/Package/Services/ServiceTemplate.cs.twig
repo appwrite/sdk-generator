@@ -37,7 +37,7 @@ namespace {{ spec.title | caseUcfirst }}.Services
             {{~ include('dotnet/base/params.twig') }}
 
             {%~ if method.responseModel %}
-            {%~ if method.name | caseLower == 'createexecution' %}
+            {%~ if 'multipart/form-data' in method.consumes and method.type != "upload" %}
             static Models.Execution Convert(Dictionary<string, object> it) =>
                 new Execution(
                     id: it["$id"].ToString(),
@@ -72,7 +72,7 @@ namespace {{ spec.title | caseUcfirst }}.Services
             {{~ include('dotnet/base/requests/location.twig') }}
             {%~ elseif method.type == 'webAuth' %}
             {{~ include('dotnet/base/requests/oauth.twig') }}
-            {%~ elseif 'multipart/form-data' in method.consumes and method.name | lower != "createexecution" %}
+            {%~ elseif 'multipart/form-data' in method.consumes and method.type == "upload" %}
             {{~ include('dotnet/base/requests/file.twig') }}
             {%~ else %}
             {{~ include('dotnet/base/requests/api.twig')}}
