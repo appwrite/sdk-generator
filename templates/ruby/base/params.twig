@@ -12,9 +12,9 @@
 {% endif %}
 {% endfor %}
             api_params = {
-{% for parameter in method.parameters.query | merge(method.parameters.body)  %}
-                {{ parameter.name }}: {{ parameter.name | caseSnake | escapeKeyword }},
-{% endfor %}
+              {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
+              {{ parameter.name }}: {{ parameter.name | caseSnake | escapeKeyword }},
+              {%~ endfor %}
             }
             
             api_headers = {
