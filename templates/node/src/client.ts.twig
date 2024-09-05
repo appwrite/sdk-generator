@@ -180,8 +180,9 @@ class Client {
                     const formData = new FormData();
 
                     for (const [key, value] of Object.entries(params)) {
-                        if (value instanceof File) {
-                            formData.append(key, value, value.name);
+                        if (value && typeof value === 'object' && 
+                        value.constructor.name === 'Payload') {
+                            formData.append(key, new Blob([value.getData()]), value.getFileName());
                         } else if (Array.isArray(value)) {
                             for (const nestedValue of value) {
                                 formData.append(`${key}[]`, nestedValue);
@@ -205,9 +206,6 @@ class Client {
         let file;
         for (const value of Object.values(originalPayload)) {
             if (value && typeof value === 'object' && 
-                'data' in value && 
-                'fileName' in value && 
-                'size' in value &&
                 value.constructor.name === 'Payload') {
                 file = value;
                 break;
@@ -228,9 +226,9 @@ class Client {
             }
 
             headers['content-range'] = `bytes ${start}-${end-1}/${file.size}`;
-            const chunk = file.slice(start, end);
+            const chunk = file.toBinary(start, end - start);
 
-            let payload = { ...originalPayload, file: new File([chunk], file.name)};
+            let payload = { ...originalPayload, file: new Payload(Buffer.from(chunk), file.getFileName())};
 
             response = await this.call(method, url, headers, payload);
 

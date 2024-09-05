@@ -140,8 +140,6 @@ class Client
             case 'multipart/form-data':
                 $headers['accept'] = 'multipart/form-data';
                 $query = $this->flatten($params);
-                var_dump("printing query here);
-                var_dump($query);
                 break;
 
             default:
