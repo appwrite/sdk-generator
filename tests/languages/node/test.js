@@ -9,7 +9,7 @@ const {
     Bar,
     General
 } = require('./dist/index.js');
-const { Payload } = require('./dist/Payload.js');
+const { Payload } = require('./dist/payload.js');
 const { readFile } = require('fs/promises');
 const crypto = require('crypto');
 const fs = require('fs');
