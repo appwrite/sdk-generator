@@ -48,18 +48,18 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endif %}
         {%~ endfor %}
         const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-        const originalPayload: Params = {};
+        const payload: Params = {};
         {%~ for parameter in method.parameters.query %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            originalPayload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
         {%~ endfor %}
         {%~ for parameter in method.parameters.body %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
             {%~ if parameter.type == 'payload' %}
-            originalPayload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}.toBinary();
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}.toBinary();
             {%~ else %}
-            originalPayload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
             {%~ endif %}
         }
         {%~ endfor %}
@@ -79,14 +79,14 @@ export class {{ service.name | caseUcfirst }} {
             '{{ method.method | caseLower }}',
             uri,
             apiHeaders,
-            originalPayload
+            payload
         );
         {%~ elseif 'multipart/form-data' in method.consumes and method.type == "upload" %}
         return await this.client.chunkedUpload(
             '{{ method.method | caseLower }}',
             uri,
             apiHeaders,
-            originalPayload,
+            payload,
             onProgress
         );
         {%~ else %}
@@ -94,7 +94,7 @@ export class {{ service.name | caseUcfirst }} {
             '{{ method.method | caseLower }}',
             uri,
             apiHeaders,
-            originalPayload,
+            payload,
             {%~ if method.type == 'location' %}
             'arrayBuffer'
             {%~ endif %}
