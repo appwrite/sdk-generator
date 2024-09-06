@@ -29,6 +29,7 @@
           Role,
           ID,
           MockType,
+          Payload,
         } = Appwrite;
         const client = new Client();
 
@@ -83,7 +84,7 @@
           "string",
           123,
           ["string in array"],
-          document.getElementById("file").files[0]
+          Payload.fromFile(document.getElementById("file").files[0])
         );
         console.log(response.result);
 
@@ -91,7 +92,7 @@
           "string",
           123,
           ["string in array"],
-          document.getElementById("file2").files[0]
+          Payload.fromFile(document.getElementById("file2").files[0])
         );
         console.log(response.result);
 

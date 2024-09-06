@@ -19,18 +19,19 @@ export class Payload {
     }
 
     public async toBinary(offset: number = 0, length?: number): Promise<ArrayBuffer> {
-        return this.data.slice(offset, length).arrayBuffer();
+        const end = length ? offset + length : this.size;
+        return await this.data.slice(offset, end).arrayBuffer();
     }
 
-    public async toFile(filename?: string): Promise<File> {
-        if (!filename && !this.filename) {
-            throw new Error('Filename is required');
+    public async toFile(filename?: string): Promise<Blob> {
+        return this.data;
+    }
+
+    public static fromFile(file: File | Blob, filename?: string): Payload {
+        if (file instanceof File && !filename) {
+            filename = file.name;
         }
-        return new File([this.data], filename || this.filename);
-    }
-
-    public static fromFile(file: File): Payload {
-        return new Payload(file, file.name);
+        return new Payload(file, filename);
     }
 
     public static fromString(data: string, filename?: string): Payload {

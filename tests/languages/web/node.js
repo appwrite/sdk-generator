@@ -46,13 +46,13 @@ async function start() {
     response = await general.redirect();
     console.log(response.result);
   
-    const smallBuffer = await readFile('./tests/resources/file.png');
-    const largeBuffer = await readFile('./tests/resources/large_file.mp4')
+    const smallBuffer = await readFile('../../resources/file.png');
+    const largeBuffer = await readFile('../../resources/large_file.mp4')
 
-    response = await general.upload('string', 123, ['string in array'],Payload.fromBuffer(smallBuffer, 'file.png'))
+    response = await general.upload('string', 123, ['string in array'], Payload.fromBinary(smallBuffer, 'file.png'))
     console.log(response.result);
 
-    response = await general.upload('string', 123, ['string in array'], Payload.fromBuffer(largeBuffer, 'large_file.mp4'))
+    response = await general.upload('string', 123, ['string in array'], Payload.fromBinary(largeBuffer, 'large_file.mp4'))
     console.log(response.result);
 
     console.log("POST:/v1/mock/tests/general/upload:passed"); // Skip tests

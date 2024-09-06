@@ -581,7 +581,7 @@ class Client {
                             formData.append(name, value);
                         }
                     }
-
+                    
                     options.body = formData;
                     delete headers['content-type'];
                     headers['accept'] = 'multipart/form-data';
@@ -593,7 +593,12 @@ class Client {
     }
 
     async chunkedUpload(method: string, url: URL, headers: Headers = {}, params: Params = {}, onProgress: (progress: UploadProgress) => void) {
-        const [paramName, payload] = Object.entries(params).find(([_key, value]) => value instanceof Payload)!;
+        const entry = Object.entries(params).find(([_key, value]) => value instanceof Payload);
+        if (!entry) {
+            throw new Error('No payload found in params');
+        }
+
+        const [paramName, payload] = entry as [string, Payload];
 
         if (payload.size <= Client.CHUNK_SIZE) {
             return await this.call(method, url, headers, params);
@@ -607,10 +612,8 @@ class Client {
 
             headers['content-range'] = `bytes ${start}-${end-1}/${payload.size}`;
 
-            params[paramName] = Payload.fromBinary(
-                await payload.toBinary(start, end - start),
-                payload.filename,
-            );
+            const buffer = await payload.toBinary(start, end - start);
+            params[paramName] = Payload.fromBinary(buffer, payload.filename);
 
             response = await this.call(method, url, headers, params);
 

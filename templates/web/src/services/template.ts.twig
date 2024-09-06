@@ -102,7 +102,7 @@ export class {{ service.name | caseUcfirst }} {
         }
 
         return uri.toString();
-        {%~ elseif 'multipart/form-data' in method.consumes and method.type != 'upload' %}
+        {%~ elseif 'multipart/form-data' in method.consumes and method.type == 'upload' %}
         return await this.client.chunkedUpload(
             '{{ method.method | caseLower }}',
             uri,
