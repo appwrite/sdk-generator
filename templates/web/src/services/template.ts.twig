@@ -69,7 +69,6 @@ export class {{ service.name | caseUcfirst }} {
             '{{ key }}': '{{ header }}',
             {%~ endfor %}
         }
-
         {%~ if method.type == 'location' or method.type == 'webAuth' %}
         {%~ if method.auth|length > 0 %}
         {%~ for node in method.auth %}

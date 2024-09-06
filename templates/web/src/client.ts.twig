@@ -628,7 +628,7 @@ class Client {
             }
 
             if (response && response.$id) {
-                headers['x-appwrite-id'] = response.$id;
+                headers['x-{{spec.title | caseLower }}-id'] = response.$id;
             }
 
             start = end;
@@ -649,27 +649,38 @@ class Client {
             warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
         }
 
-        if (response.headers.get('content-type')?.includes('application/json')) {
+        if (response.headers.get('content-type')?.startsWith('application/json')) {
             data = await response.json();
 
-        } else if (response.headers.get('content-type')?.includes('multipart/form-data')) {
-            const formdata = await response.formData();
+        } else if (response.headers.get('content-type')?.startsWith('multipart/form-data')) {
+            try {
+                const formData = await response.formData();
 
-            data = {};
+                const formDataEntries: Record<string, FormDataEntryValue> = {};
+                formData.forEach((value, key) => {
+                    formDataEntries[key] = value;
+                })
 
-            formdata.forEach(async (value, name) => {
-                if (name === "responseBody" && value instanceof Blob) {
-                    data[name] = Payload.fromBinary(await value.arrayBuffer());
-                } else if (name === "responseHeaders" && !(value instanceof Blob)) {
-                    data[name] = JSON.parse(value);
-                } else if (name === "responseStatusCode") {
-                    data[name] = parseInt(value as string, 10);
-                } else if (name === "duration") {
-                    data[name] = parseFloat(value as string);
-                } else {
-                    data[name] = value;
+                console.log('multipart iterated')
+
+                for (const [key, value] of Object.entries(formDataEntries)) {
+                    if (key === "responseBody" && value instanceof Blob) {
+                        data[key] = Payload.fromBinary(await value.arrayBuffer());
+                    } else if (key === "responseHeaders") {
+                        console.log(value)
+                        data[key] = JSON.parse(value as string);
+                    } else if (key === "responseStatusCode") {
+                        data[key] = parseInt(value as string, 10);
+                    } else if (key === "duration") {
+                        data[key] = parseFloat(value as string);
+                    } else {
+                        data[key] = value;
+                    }
                 }
-            })
+            } catch (e) {
+                console.log(e);
+            }
+
         } else if (responseType === 'arrayBuffer') {
             data = await response.arrayBuffer();
         } else {
@@ -679,13 +690,13 @@ class Client {
         }
 
         if (400 <= response.status) {
-            throw new AppwriteException(data?.message, response.status, data?.type, data);
+            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, data);
         }
 
         const cookieFallback = response.headers.get('X-Fallback-Cookies');
 
         if (typeof window !== 'undefined' && window.localStorage && cookieFallback) {
-            window.console.warn('Appwrite is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
+            window.console.warn('{{spec.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.');
             window.localStorage.setItem('cookieFallback', cookieFallback);
         }
 
