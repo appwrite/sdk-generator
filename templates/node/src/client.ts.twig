@@ -4,7 +4,7 @@ import { Models } from './models';
 import { Payload } from './payload';
 import { Blob } from 'node:buffer';
 import * as multipart from 'parse-multipart-data';
-const { buffer } = require('node:stream/consumers');  
+import { buffer } from 'node:stream/consumers';
 
 type Params = {
     [key: string]: any;
@@ -285,7 +285,7 @@ class Client {
         } else if (responseType === 'arrayBuffer') {
             data = await response.arrayBuffer();
         } else if (response.headers.get('content-type')?.includes('multipart/form-data')) {
-            const body = await buffer(response.body);
+            const body = await buffer(response.body as AsyncIterable<any>);
             const boundary = multipart.getBoundary(
                 response.headers.get("content-type") || ""
             );
@@ -293,30 +293,23 @@ class Client {
             const partsObject: { [key: string]: any } = {};
             
             for (const part of parts) {
-                if (part.name) {
-                    if (part.name === "responseBody") {
-                        partsObject[part.name] = Payload.fromBinary(part.data, part.filename);
-                    } else if (part.name === "responseStatusCode") {
-                        partsObject[part.name] = parseInt(part.data.toString(), 10);
-                    } else if (part.name === "duration") {
-                        partsObject[part.name] = parseFloat(part.data.toString());
-                    } else if (part.type === 'application/json') {
-                        try {
-                            let jsonData = JSON.parse(part.data.toString());
-                            if (Array.isArray(jsonData) && jsonData.length > 0 && 'name' in jsonData[0] && 'value' in jsonData[0]) {
-                                jsonData = Object.fromEntries(jsonData.map(item => [item.name, item.value]));
-                            }
-                            partsObject[part.name] = jsonData;
-                        } catch (e) {
-                            if (e instanceof Error) {
-                                throw new Error(`Error parsing JSON for part ${part.name}: ${e.message}`);
-                            } else {
-                                throw new Error(`Error parsing JSON for part ${part.name}: Unknown error`);
-                            }
-                        }
-                    } else {
-                        partsObject[part.name] = part.data.toString();
+                if (!part.name) {
+                    continue;
+                }
+                if (part.name === "responseBody") {
+                    partsObject[part.name] = Payload.fromBinary(part.data, part.filename);
+                } else if (part.name === "responseStatusCode") {
+                    partsObject[part.name] = parseInt(part.data.toString());
+                } else if (part.name === "duration") {
+                    partsObject[part.name] = parseFloat(part.data.toString());
+                } else if (part.type === 'application/json') {
+                    try {
+                        partsObject[part.name] = JSON.parse(part.data.toString());
+                    } catch (e) {
+                        throw new Error(`Error parsing JSON for part ${part.name}: ${e instanceof Error ? e.message : 'Unknown error'}`);
                     }
+                } else {
+                    partsObject[part.name] = part.data.toString();
                 }
             }
             data = partsObject;
