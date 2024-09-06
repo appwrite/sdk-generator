@@ -89,7 +89,7 @@ async function start() {
     console.log(response.x);
 
     const binary = await response['responseBody'].toBinary();
-    console.log(crypto.createHash('md5').update(binary).digest("hex"));
+    console.log(crypto.createHash('md5').update(Buffer.from(binary)).digest("hex"));
 
     // Query helper tests
     console.log(Query.equal("released", [true]));

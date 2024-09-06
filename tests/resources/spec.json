@@ -2053,7 +2053,12 @@
           "default": null,
           "x-example": null
         }
-      }
+      },
+      "required": [
+        "x",
+        "y",
+        "responseBody"
+      ]
     },
     "mock": {
       "description": "Mock",

@@ -42,6 +42,11 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/multipart.ts',
+                'template'      => 'web/src/multipart.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/models.ts',
                 'template'      => 'web/src/models.ts.twig',
             ],

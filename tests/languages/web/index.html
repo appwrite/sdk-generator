@@ -5,6 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="./dist/iife/sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-md5@0.7.3/build/md5.min.js"></script>
     <title>Appwrite</title>
   </head>
 
@@ -135,7 +136,7 @@
         console.log(response.x);
 
         const binary = await response["responseBody"].toBinary();
-        console.log(crypto.createHash("md5").update(binary).digest("hex"));
+        console.log(md5(binary));
 
         // Query helper tests
         console.log(Query.equal("released", [true]));

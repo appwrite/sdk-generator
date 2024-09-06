@@ -1,0 +1,80 @@
+import { Payload } from "payload";
+
+export class MultipartParser {
+  private buffer: ArrayBuffer
+  private boundary: string
+  private parts: Record<string, any>
+
+  constructor(buffer: ArrayBuffer, contentType: string) {
+    this.buffer = buffer;
+    this.boundary = this._extractBoundary(contentType);
+    this.parts = {};
+    this.parse();
+  }
+
+  private _extractBoundary(contentType: string) {
+    const match = contentType.match(/boundary="?(.+?)"?(?:\s*;|$)/);
+    if (match) {
+      return match[1];
+    }
+    throw new Error("Boundary not found in Content-Type header");
+  }
+
+  parse() {
+    const decoder = new TextDecoder('utf-8');
+    const multipartString = decoder.decode(this.buffer);
+    const parts = multipartString.split(`--${this.boundary}`);
+
+    // Remove the first (empty) and last (boundary end) elements
+    parts.slice(1, -1).forEach((part, index) => {
+      const [headers, content] = part.trim().split('\r\n\r\n');
+
+      // Parse headers
+      const headersHash: Record<string, string> = {};
+      headers.split('\r\n').forEach(header => {
+        const [key, value] = header.split(': ');
+        headersHash[key.toLowerCase()] = value;
+      });
+
+      // Extract name from Content-Disposition header
+      const contentDisposition = headersHash['content-disposition'] || '';
+      const nameMatch = contentDisposition.match(/name="([^"]*)"/);
+      const name = nameMatch ? nameMatch[1] : `unnamed_part_${index}`;
+
+      // Store the parsed data
+      this.parts[name] = {
+        contents: content.trim(),
+        headers: headersHash
+      };
+    });
+  }
+
+  toObject() {
+    const result: Record<string, any> = {};
+
+    for (const [name, part] of Object.entries(this.parts)) {
+      switch (name) {
+        case "responseBody":
+          result[name] = Payload.fromBinary(part.contents);
+          break;
+        case "responseHeaders":
+          result[name] = JSON.parse(part.contents);
+          break;
+        case "responseStatusCode":
+          result[name] = parseInt(part.contents, 10);
+          break;
+        case "duration":
+          result[name] = parseFloat(part.contents);
+          break;
+        default:
+          try {
+            result[name] = part.contents;
+          } catch {
+            result[name] = part.contents;
+          }
+      }
+    }
+
+    return result;
+  }
+}
