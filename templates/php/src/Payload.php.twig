@@ -79,4 +79,9 @@ class Payload {
     {
         return $this->data;
     }
+
+    public function toFile(string $path): void
+    {
+        file_put_contents($path, $this->data);
+    }
 }
