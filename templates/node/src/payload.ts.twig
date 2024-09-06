@@ -19,9 +19,12 @@ export class Payload {
     return this.fileName;
   }
 
-  public toBinary(offset: number = 0, length: number = 0): Buffer {
-    const subData = this.data.slice(offset, offset + length);
-    return subData;
+  public toBinary(offset: number = 0, length?: number): Buffer {
+    if (length === undefined) {
+      return this.data.slice(offset);
+    } else {
+      return this.data.slice(offset, offset + length);
+    }
   }
 
   public toJson(): any {
