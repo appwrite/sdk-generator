@@ -1,6 +1,7 @@
 package payload
 
 import (
+	"os"
 	"encoding/json"
 )
 
@@ -12,6 +13,10 @@ type Payload struct {
 
 func (p *Payload) ToBinary() []byte {
 	return p.Data
+}
+
+func (p *Payload) ToFile(path string) error {
+	return os.WriteFile(path, p.ToBinary(), 0755)
 }
 
 func (p *Payload) ToString() string {
@@ -26,7 +31,7 @@ func (p *Payload) ToJson() map[string]any {
 	return data
 }
 
-func NewPayloadFromPath(path string, name string) *Payload {
+func NewPayloadFromFile(path string, name string) *Payload {
 	return &Payload{
 		Name: name,
 		Path: path,
@@ -34,7 +39,7 @@ func NewPayloadFromPath(path string, name string) *Payload {
 	}
 }
 
-func NewPayloadFromData(data []byte, name string) *Payload {
+func NewPayloadFromBinary(data []byte, name string) *Payload {
 	return &Payload{
 		Name: name,
 		Data: data,

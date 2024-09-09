@@ -247,7 +247,7 @@ class Go extends Language
                     $output .= 'payload.NewPayloadFromString("<BODY>")';
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'payload.NewPayloadFromPath("/path/to/file.png", "file.png")';
+                    $output .= 'payload.NewPayloadFromFile("/path/to/file.png", "file.png")';
                     break;
             }
         } else {
@@ -278,7 +278,7 @@ class Go extends Language
                     $output .= 'payload.NewPayloadFromString("<BODY>")';
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'payload.NewPayloadFromPath("/path/to/file.png", "file.png")';
+                    $output .= 'payload.NewPayloadFromFile("/path/to/file.png", "file.png")';
                     break;
             }
         }
