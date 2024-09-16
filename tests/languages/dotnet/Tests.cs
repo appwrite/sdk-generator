@@ -122,7 +122,7 @@ namespace AppwriteTests
             );
             TestContext.WriteLine(url);
             // Multipart tests
-            var response = await general.Multipart();
+            var response = await general.MultipartComplied();
             var res = (response as Dictionary<string, object>);
             TestContext.WriteLine(res["x"]);
             var pl = res["responseBody"] as Payload;
