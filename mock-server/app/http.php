@@ -390,6 +390,7 @@ App::post('/v1/mock/tests/general/upload')
     });
 
 App::get('/v1/mock/tests/general/multipart')
+    ->alias('/v1/mock/tests/general/multipartcomplied')
     ->desc('Multipart')
     ->groups(['mock'])
     ->label('scope', 'public')
