@@ -143,8 +143,8 @@ class Dart extends Language
             case self::TYPE_BOOLEAN:
                 return 'bool';
             case self::TYPE_ARRAY:
-                if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
-                    return 'List<' . $this->getTypeName($parameter['array']) . '>';
+                if (!empty(($parameter['items'] ?? [])['type']) && !\is_array($parameter['items']['type'])) {
+                    return 'List<' . $this->getTypeName($parameter['items']) . '>';
                 }
                 return 'List';
             case self::TYPE_OBJECT:

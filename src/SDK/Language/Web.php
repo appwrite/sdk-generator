@@ -190,8 +190,8 @@ class Web extends JS
             case self::TYPE_NUMBER:
                 return 'number';
             case self::TYPE_ARRAY:
-                if (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type'])) {
-                    return $this->getTypeName($parameter['array']) . '[]';
+                if (!empty(($parameter['items'] ?? [])['type']) && !\is_array($parameter['items']['type'])) {
+                    return $this->getTypeName($parameter['items']) . '[]';
                 }
                 return 'string[]';
             case self::TYPE_FILE:

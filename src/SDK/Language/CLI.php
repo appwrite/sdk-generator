@@ -294,8 +294,8 @@ class CLI extends Node
             self::TYPE_FILE => 'string',
             self::TYPE_BOOLEAN => 'boolean',
             self::TYPE_OBJECT => 'object',
-            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
-                ? $this->getTypeName($parameter['array']) . '[]'
+            self::TYPE_ARRAY => (!empty(($parameter['items'] ?? [])['type']) && !\is_array($parameter['items']['type']))
+                ? $this->getTypeName($parameter['items']) . '[]'
                 : 'string[]',
             default => $parameter['type'],
         };

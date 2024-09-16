@@ -313,8 +313,8 @@ class Swift extends Language
             self::TYPE_STRING => 'String',
             self::TYPE_FILE => 'InputFile',
             self::TYPE_BOOLEAN => 'Bool',
-            self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
-                ? '[' . $this->getTypeName($parameter['array']) . ']'
+            self::TYPE_ARRAY => (!empty(($parameter['items'] ?? [])['type']) && !\is_array($parameter['items']['type']))
+                ? '[' . $this->getTypeName($parameter['items']) . ']'
                 : '[Any]',
             self::TYPE_OBJECT => 'Any',
             default => $parameter['type'],
