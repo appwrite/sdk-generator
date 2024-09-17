@@ -1566,9 +1566,6 @@
       "get": {
         "summary": "Multipart",
         "operationId": "generalMultipart",
-        "consumes": [
-          "application\/json"
-        ],
         "produces": [
           "multipart\/form-data"
         ],
@@ -1577,8 +1574,11 @@
         ],
         "description": "",
         "responses": {
-          "301": {
-            "description": "No content"
+          "200": {
+            "description": "Multipart",
+            "schema": {
+              "$ref": "#\/definitions\/multipart"
+            }
           }
         },
         "x-appwrite": {

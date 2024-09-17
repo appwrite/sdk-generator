@@ -23,7 +23,7 @@ class Payload {
         return $this->filename;
     }
 
-    public static function fromFile(string $path, ?string, ?string $filename = null): self
+    public static function fromFile(string $path, ?string $filename = null): self
     {
         $instance = new Payload();
         $instance->path = $path;
@@ -32,7 +32,7 @@ class Payload {
         return $instance;
     }
 
-    public static function fromBinary(string $data, ?string, ?string $filename = null): self
+    public static function fromBinary(string $data, ?string $filename = null): self
     {
         $instance = new Payload();
         $instance->path = null;

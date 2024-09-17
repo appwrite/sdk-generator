@@ -1,14 +1,12 @@
 {% for parameter in method.parameters.all %}
 {% if parameter.type == 'file' %}
         $size = 0;
-        $mimeType = null;
         $postedName = null;
         if(empty(${{ parameter.name | caseCamel }}->getPath() ?? null)) {
             $size = strlen(${{ parameter.name | caseCamel }}->getData());
-            $mimeType = mime_content_type(${{ parameter.name | caseCamel }}->getPath());
             $postedName = ${{ parameter.name | caseCamel }}->getFilename();
             if ($size <= Client::CHUNK_SIZE) {
-                $apiParams['{{ parameter.name | caseCamel }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(${{ parameter.name | caseCamel }}->getData()), $mimeType, $postedName);
+                $apiParams['{{ parameter.name | caseCamel }}'] = new \CURLFile('data://text/plain;base64,' . base64_encode(${{ parameter.name | caseCamel }}->getData()), null, $postedName);
                 return $this->client->call(Client::METHOD_POST, $apiPath, [
     {% for param in method.parameters.header %}
                     '{{ param.name }}' => ${{ param.name | caseCamel }},
@@ -20,11 +18,10 @@
             }
         } else {
             $size = filesize(${{ parameter.name | caseCamel }}->getPath());
-            $mimeType = mime_content_type(${{ parameter.name | caseCamel }}->getPath());
             $postedName = ${{ parameter.name | caseCamel }}->getFilename() ?? basename(${{ parameter.name | caseCamel }}->getPath());
             //send single file if size is less than or equal to 5MB
             if ($size <= Client::CHUNK_SIZE) {
-                $apiParams['{{ parameter.name }}'] = new \CURLFile(${{ parameter.name | caseCamel }}->getPath(), $mimeType, $postedName);
+                $apiParams['{{ parameter.name | caseCamel }}'] = new \CURLFile(${{ parameter.name | caseCamel }}->getPath(), null, $postedName);
                 return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $apiPath, [
     {% for param in method.parameters.header %}
                     '{{ param.name }}' => ${{ param.name | caseCamel }},
@@ -67,7 +64,7 @@
             } else {
                 $chunk = substr(${{parameter.name}}->getData(), $start, Client::CHUNK_SIZE);
             }
-            $apiParams['{{ parameter.name }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode($chunk), $mimeType, $postedName);
+            $apiParams['{{ parameter.name }}'] = new \CURLFile('data://text/plain;base64,' . base64_encode($chunk), null, $postedName);
             $apiHeaders['content-range'] = 'bytes ' . ($counter * Client::CHUNK_SIZE) . '-' . min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size - 1) . '/' . $size;
             if(!empty($id)) {
                 $apiHeaders['x-{{spec.title | caseLower }}-id'] = $id;
