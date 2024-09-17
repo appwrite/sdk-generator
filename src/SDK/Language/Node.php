@@ -120,8 +120,10 @@ class Node extends Web
                 case self::TYPE_OBJECT:
                     $output .= '{}';
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.fromJson({ x: "y" })';
                 case self::TYPE_FILE:
-                    $output .= "Payload.fromBinary(fs.readFileSync('/path/to/file'))";
+                    $output .= "Payload.fromBinary(fs.readFileSync('/path/to/file.png'), 'file.png')";
                     break;
             }
         } else {
@@ -138,8 +140,10 @@ class Node extends Web
                 case self::TYPE_STRING:
                     $output .= "'{$example}'";
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.fromJson({ x: "y" })';
                 case self::TYPE_FILE:
-                    $output .= "Payload.fromBinary(fs.readFileSync('/path/to/file'))";
+                    $output .= "Payload.fromBinary(fs.readFileSync('/path/to/file.png'), 'file.png')";
                     break;
             }
         }
