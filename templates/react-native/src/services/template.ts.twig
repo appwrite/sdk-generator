@@ -131,7 +131,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
             }
 
             let chunkBuffer = {{ parameter.name | caseCamel | escapeKeyword }}.toBinary(offset, end - offset + 1);
-            let chunk = chunkBuffer.toString('base64');
+            let chunk = btoa(String.fromCharCode(...chunkBuffer));
 
             var path = `data:${{ parameter.name | caseCamel | escapeKeyword }}.type};base64,${chunk}`;
             if (Platform.OS.toLowerCase() === 'android') {

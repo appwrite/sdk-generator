@@ -1634,7 +1634,7 @@
           }
         },
         "x-appwrite": {
-          "method": "multipartComplied",
+          "method": "multipartCompiled",
           "weight": 278,
           "cookies": false,
           "type": "",

@@ -70,6 +70,11 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/multipart.ts',
+                'template'      => 'react-native/src/multipart.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'react-native/README.md.twig',
             ],

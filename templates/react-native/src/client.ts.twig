@@ -1,6 +1,5 @@
 import { Platform } from 'react-native';
-import { getBoundary, parse as parseMultipart} from 'parse-multipart-data';
-import { Buffer } from 'buffer';
+import { getBoundary, parse as parseMultipart} from './multipart';
 import { Service } from './service';
 import { Payload } from './payload';
 import { Models } from './models';
@@ -402,11 +401,12 @@ class Client {
             if (response.headers.get('content-type')?.includes('application/json')) {
                 data = await response.json();
             } else if (response.headers.get('content-type')?.includes('multipart/form-data')) {
-                const body = await response.arrayBuffer();
                 const boundary = getBoundary(
                     response.headers.get("content-type") || ""
                 );
-                const parts = parseMultipart(Buffer.from(body), boundary);
+                
+                const body = new Uint8Array(await response.arrayBuffer());
+                const parts = parseMultipart(body, boundary);
                 const partsObject: { [key: string]: any } = {};
                 
                 for (const part of parts) {
