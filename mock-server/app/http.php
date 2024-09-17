@@ -8,7 +8,6 @@ if (\file_exists(__DIR__ . '/../vendor/autoload.php')) {
 
 use Swoole\Constant;
 use Utopia\App;
-use Utopia\Database\Document;
 use Utopia\Database\Helpers\ID;
 use Utopia\MockServer\Utopia\Exception;
 use Utopia\MockServer\Utopia\File;
@@ -17,7 +16,6 @@ use Swoole\Http\Response as SwooleResponse;
 use Utopia\CLI\Console;
 use Utopia\MockServer\Utopia\Response;
 use Utopia\Swoole\Request;
-use Utopia\Swoole\Response as UtopiaSwooleResponse;
 use Utopia\Validator\Text;
 use Utopia\Validator\Integer;
 use Utopia\Validator\ArrayList;
