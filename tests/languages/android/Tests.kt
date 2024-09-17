@@ -12,7 +12,7 @@ import io.appwrite.enums.MockType
 import io.appwrite.extensions.fromJson
 import io.appwrite.extensions.toJson
 import io.appwrite.models.Error
-import io.appwrite.models.InputFile
+import io.appwrite.models.Payload
 import io.appwrite.models.Mock
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
@@ -34,6 +34,8 @@ import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 data class TestPayload(val response: String)
 
@@ -106,14 +108,14 @@ class ServiceTest {
             writeToFile((result as Map<String, Any>)["result"] as String)
 
             try {
-                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../resources/file.png"))
+                mock = general.upload("string", 123, listOf("string in array"), Payload.fromFile("../../../resources/file.png"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
 
             try {
-                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../resources/large_file.mp4"))
+                mock = general.upload("string", 123, listOf("string in array"), Payload.fromFile("../../../resources/large_file.mp4"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
@@ -121,7 +123,7 @@ class ServiceTest {
 
             try {
                 var bytes = File("../../../resources/file.png").readBytes()
-                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(bytes, "file.png", "image/png"))
+                mock = general.upload("string", 123, listOf("string in array"), Payload.fromBinary(bytes, "file.png"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
@@ -129,7 +131,7 @@ class ServiceTest {
 
             try {
                 var bytes = File("../../../resources/large_file.mp4").readBytes()
-                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(bytes, "large_file.mp4", "video/mp4"))
+                mock = general.upload("string", 123, listOf("string in array"), Payload.fromBinary(bytes, "large_file.mp4"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
@@ -166,6 +168,13 @@ class ServiceTest {
             // writeToFile(mock.result)
 
             general.empty()
+
+            // Multipart tests
+            val mp = general.multipartComplied()
+
+            writeToFile((mp as Map<String, Any>)["x"] as String)
+            writeToFile(md5(((mp as Map<String, Any>)["responseBody"] as Payload).toBinary()))
+
 
             // Query helper tests
             writeToFile(Query.equal("released", listOf(true)))
@@ -219,4 +228,30 @@ class ServiceTest {
         File("result.txt").appendText(text)
     }
 
+    private fun md5(bytes: ByteArray): String {
+        var md5Digest: MessageDigest? = null
+        try {
+            md5Digest = MessageDigest.getInstance("MD5")
+        } catch (e: NoSuchAlgorithmException) {
+        }
+        md5Digest!!.update(bytes)
+        val digestBytes: ByteArray = md5Digest!!.digest()
+        return bytesToHex(digestBytes).lowercase()
+    }
+
+    fun bytesToHex(bytes: ByteArray): String {
+        val result = CharArray(bytes.size * 2)
+
+        for (index in bytes.indices) {
+            val v = bytes[index].toInt()
+
+            val upper = (v ushr 4) and 0xF
+            result[index * 2] = (upper + (if (upper < 10) 48 else 65 - 10)).toChar()
+
+            val lower = v and 0xF
+            result[index * 2 + 1] = (lower + (if (lower < 10) 48 else 65 - 10)).toChar()
+        }
+
+        return kotlin.text.String(result)
+    }
 }
