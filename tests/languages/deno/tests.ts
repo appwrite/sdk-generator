@@ -144,12 +144,12 @@ async function start() {
   )
   console.log(url)
 
-   // Multipart tests
-   response = await general.multipart();
-   console.log(response.x);
+  // Multipart tests
+  response = await general.multipart();
+  console.log(response.x);
 
-   const binary = await response['responseBody'].toBinary();
-   console.log(createHash("md5").update(binary).toString('hex'));
+  const binary = await response['responseBody'].toBinary();
+  console.log(createHash("md5").update(binary).toString('hex'));
 
   // Query helper tests
   console.log(Query.equal("released", [true]));
