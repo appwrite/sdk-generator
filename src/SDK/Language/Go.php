@@ -312,10 +312,6 @@ class Go extends Language
 
     protected function getPropertyType(array $property, array $spec, string $generic = 'map[string]interface{}'): string
     {
-
-        if (strpos($property['description'], 'HTTP response body. This will return empty unless execution') !== false) {
-            return '*payload.Payload';
-        }
         if (\array_key_exists('sub_schema', $property)) {
             $type = $this->toPascalCase($property['sub_schema']);
 
