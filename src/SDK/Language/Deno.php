@@ -141,7 +141,7 @@ class Deno extends JS
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'number',
             self::TYPE_STRING => 'string',
-            self::TYPE_FILE => 'Payload',
+            self::TYPE_FILE,
             self::TYPE_PAYLOAD => 'Payload',
             self::TYPE_BOOLEAN => 'boolean',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
