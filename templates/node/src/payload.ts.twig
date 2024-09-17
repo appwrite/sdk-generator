@@ -1,11 +1,11 @@
 export class Payload {
   private data: Buffer;
-  private fileName: string;
+  private fileName?: string;
   public size: number;
 
   constructor(data: Buffer, name?: string) {
     this.data = data;
-    this.fileName = name || 'unnamed';
+    this.fileName = name;
     this.size = data.byteLength;
   }
 
