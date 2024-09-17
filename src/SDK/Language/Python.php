@@ -340,10 +340,10 @@ class Python extends Language
                     $output .= '{}';
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'Payload.from_json({"x": "y"})';
+                    $output .= 'Payload.from_string({"x": "y"})';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "Payload.from_file('file.png')";
+                    $output .= "Payload.from_file('/path/to/file.png')";
                     break;
             }
         } else {
@@ -361,10 +361,10 @@ class Python extends Language
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'Payload.from_json({"x": "y"})';
+                    $output .= 'Payload.from_string({"x": "y"})';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "Payload.from_file('file.png')";
+                    $output .= "Payload.from_file('/path/to/file.png')";
                     break;
             }
         }

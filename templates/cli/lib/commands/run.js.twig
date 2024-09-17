@@ -97,8 +97,8 @@ const runFunction = async ({ port, functionId, withVariables, reload, userId } =
         process.exit();
     });
 
-    const logsPath = path.join(process.cwd(), func.path, '.appwrite/logs.txt');
-    const errorsPath = path.join(process.cwd(), func.path, '.appwrite/errors.txt');
+    const logsPath = path.join(localConfig.getDirname(), func.path, '.appwrite/logs.txt');
+    const errorsPath = path.join(localConfig.getDirname(), func.path, '.appwrite/errors.txt');
 
     if(!fs.existsSync(path.dirname(logsPath))) {
         fs.mkdirSync(path.dirname(logsPath), { recursive: true });
@@ -131,7 +131,7 @@ const runFunction = async ({ port, functionId, withVariables, reload, userId } =
         }
     }
 
-    const functionPath = path.join(process.cwd(), func.path);
+    const functionPath = path.join(localConfig.getDirname(), func.path);
     const envPath = path.join(functionPath, '.env');
     if(fs.existsSync(envPath)) {
         const env = parseDotenv(fs.readFileSync(envPath).toString() ?? '');
@@ -192,7 +192,7 @@ const runFunction = async ({ port, functionId, withVariables, reload, userId } =
         }
 
         chokidar.watch('.', {
-            cwd: path.join(process.cwd(), func.path),
+            cwd: path.join(localConfig.getDirname(), func.path),
             ignoreInitial: true,
             ignored: (xpath) => {
                 const relativePath = path.relative(functionPath, xpath);

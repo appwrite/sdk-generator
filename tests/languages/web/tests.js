@@ -15,7 +15,8 @@ server.listen(3000, async () => {
             "--allow-insecure-localhost",
             "--disable-web-security",
         ]
-    });    const context = await browser.newContext();
+    });
+    const context = await browser.newContext();
     const page = await context.newPage();
     page.on('console', message => {
         if (message.type() == 'log') {
