@@ -5,7 +5,7 @@ import '../lib/packageName.dart';
 import '../lib/client_io.dart';
 import '../lib/models.dart';
 import '../lib/enums.dart';
-import '../lib/src/input_file.dart';
+import '../lib/payload.dart';
 import 'dart:io';
 
 class FakePathProvider extends PathProviderPlatform {
@@ -82,23 +82,23 @@ void main() async {
   final res = await general.redirect();
   print(res['result']);
 
-  var file = InputFile.fromPath(path: '../../resources/file.png', filename: 'file.png');
+  var file = await Payload.fromFile('../../resources/file.png', fileName: 'file.png');
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
-  file = InputFile.fromPath(path: '../../resources/large_file.mp4', filename: 'large_file.mp4');
+  file = await Payload.fromFile('../../resources/large_file.mp4', fileName: 'large_file.mp4');
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
   var resource = File.fromUri(Uri.parse('../../resources/file.png'));
   var bytes = await resource.readAsBytes();
-  file = InputFile.fromBytes(bytes: bytes, filename: 'file.png');
+  file = Payload.fromBinary(data: bytes, fileName: 'file.png');
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
   resource = File.fromUri(Uri.parse('../../resources/large_file.mp4'));
   bytes = await resource.readAsBytes();
-  file = InputFile.fromBytes(bytes: bytes, filename: 'large_file.mp4');
+  file = Payload.fromBinary(data: bytes, fileName: 'large_file.mp4');
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
