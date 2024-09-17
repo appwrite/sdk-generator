@@ -128,12 +128,11 @@ export class Client {
         }
 
         if (response.headers.get('content-type')?.includes('multipart/form-data')) {
+            const body = await response.arrayBuffer();
             const boundary = multipart.getBoundary(
                 response.headers.get("content-type") || ""
             );
-            
-            const body = new Uint8Array(await response.arrayBuffer());
-            const parts = multipart.parse(body, boundary);
+            const parts = multipart.parse(Buffer.from(body), boundary);
             const partsObject: { [key: string]: any } = {};
 
             for (const part of parts) {

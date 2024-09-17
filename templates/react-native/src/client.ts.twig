@@ -401,15 +401,11 @@ class Client {
             if (response.headers.get('content-type')?.includes('application/json')) {
                 data = await response.json();
             } else if (response.headers.get('content-type')?.includes('multipart/form-data')) {
-                const chunks = [];
-                for await (const chunk of (response.body as AsyncIterable<any>)) {
-                    chunks.push(chunk instanceof Buffer ? chunk : Buffer.from(chunk));
-                }
-                const body = Buffer.concat(chunks);
+                const body = await response.arrayBuffer();
                 const boundary = getBoundary(
                     response.headers.get("content-type") || ""
                 );
-                const parts = parseMultipart(body, boundary);
+                const parts = parseMultipart(Buffer.from(body), boundary);
                 const partsObject: { [key: string]: any } = {};
                 
                 for (const part of parts) {
