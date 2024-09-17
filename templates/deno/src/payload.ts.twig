@@ -1,17 +1,17 @@
 import { basename } from "https://deno.land/std@0.224.0/path/mod.ts";
 
 export class Payload {
-  private data: Buffer;
+  private data: Uint8Array;
   public filename?: string;
   public size: number;
 
-  constructor(data: Buffer, filename?: string) {
+  constructor(data: Uint8Array, filename?: string) {
     this.data = data;
     this.filename = filename;
     this.size = data.byteLength;
   }
 
-  public toBinary(offset: number = 0, length?: number): Buffer {
+  public toBinary(offset: number = 0, length?: number): Uint8Array {
     if (offset === 0 && length === undefined) {
       return this.data;
     } else if (length === undefined) {
@@ -26,24 +26,24 @@ export class Payload {
   }
 
   public toString(): string {
-    return this.data.toString("utf-8");
+    return new TextDecoder().decode(this.data);
   }
 
-  public toFile(path: string) {
-    return this.data.toString("utf-8");
+  public async toFile(path: string): Promise<void> {
+    await Deno.writeFile(path, this.data);
   }
 
-  public static fromBinary(bytes: Buffer, filename?: string): Payload {
+  public static fromBinary(bytes: Uint8Array, filename?: string): Payload {
     return new Payload(bytes, filename);
   }
 
   public static fromJson(object: any, filename?: string): Payload {
-    const data = Buffer.from(JSON.stringify(object), "utf-8");
+    const data = new TextEncoder().encode(JSON.stringify(object));
     return new Payload(data, filename);
   }
 
   public static fromString(text: string, filename?: string): Payload {
-    const data = Buffer.from(text, "utf-8");
+    const data = new TextEncoder().encode(text);
     return new Payload(data, filename);
   }
 

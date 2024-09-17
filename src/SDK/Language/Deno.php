@@ -85,6 +85,11 @@ class Deno extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/multipart.ts',
+                'template'      => 'deno/src/multipart.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/exception.ts',
                 'template'      => 'deno/src/exception.ts.twig',
             ],

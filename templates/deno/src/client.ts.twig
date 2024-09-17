@@ -1,6 +1,6 @@
 import { {{ spec.title | caseUcfirst}}Exception } from './exception.ts';
 import { Payload } from './payload.ts';
-import * as multipart from 'npm:parse-multipart-data@1.5.0';
+import * as multipart from './multipart.ts';
 
 export interface Params {
     [key: string]: any;
@@ -153,7 +153,7 @@ export class Client {
                         throw new Error(`Error parsing JSON for part ${part.name}: ${e instanceof Error ? e.message : 'Unknown error'}`);
                     }
                 } else {
-                    partsObject[part.name] = part.data.toString();
+                    partsObject[part.name] = new TextDecoder().decode(part.data);
                 }
             }
 
