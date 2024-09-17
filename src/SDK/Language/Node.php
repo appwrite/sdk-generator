@@ -122,6 +122,7 @@ class Node extends Web
                     break;
                 case self::TYPE_PAYLOAD:
                     $output .= 'Payload.fromJson({ x: "y" })';
+                    break;
                 case self::TYPE_FILE:
                     $output .= "Payload.fromBinary(fs.readFileSync('/path/to/file.png'), 'file.png')";
                     break;
@@ -142,6 +143,7 @@ class Node extends Web
                     break;
                 case self::TYPE_PAYLOAD:
                     $output .= 'Payload.fromJson({ x: "y" })';
+                    break;
                 case self::TYPE_FILE:
                     $output .= "Payload.fromBinary(fs.readFileSync('/path/to/file.png'), 'file.png')";
                     break;
