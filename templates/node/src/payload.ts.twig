@@ -1,0 +1,49 @@
+export class Payload {
+  private data: Buffer;
+  private fileName?: string;
+  public size: number;
+
+  constructor(data: Buffer, name?: string) {
+    this.data = data;
+    this.fileName = name;
+    this.size = data.byteLength;
+  }
+
+  public getData(): Buffer {
+    return this.data;
+  }
+
+  public getFileName(): string {
+    return this.fileName;
+  }
+
+  public toBinary(offset: number = 0, length?: number): Buffer {
+    if (length === undefined) {
+      return this.data.subarray(offset);
+    } else {
+      return this.data.subarray(offset, offset + length);
+    }
+  }
+
+  public toJson(): any {
+    return JSON.parse(this.data.toString("utf-8"));
+  }
+
+  public toString(): string {
+    return this.data.toString("utf-8");
+  }
+
+  public static fromBinary(bytes: Buffer, name?: string): Payload {
+    return new Payload(bytes, name);
+  }
+
+  public static fromJson(object: any, name?: string): Payload {
+    const data = Buffer.from(JSON.stringify(object), "utf-8");
+    return new Payload(data, name);
+  }
+
+  public static fromString(text: string, name?: string): Payload {
+    const data = Buffer.from(text, "utf-8");
+    return new Payload(data, name);
+  }
+}
