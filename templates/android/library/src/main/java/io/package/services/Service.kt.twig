@@ -129,7 +129,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java
         )
         {%~ else %}
-        val apiHeaders = mutableMapOf(
+        val apiHeaders = mutableMapOf<String, String>(
         {%~ for key, header in method.headers %}
             "{{ key }}" to "{{ header }}",
             {%~ if 'multipart/form-data' in method.consumes and method.type != "upload" %}
