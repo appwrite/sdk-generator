@@ -122,8 +122,7 @@ class Node extends Web
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $blob = file_get_contents('path/to/file');
-                    $output .= "Payload.fromFile(" . $blob . ", 'filename')";
+                    $output .= "Payload.fromBinary(fs.readFileSync('/path/to/file'))";
                     break;
             }
         } else {
@@ -141,8 +140,7 @@ class Node extends Web
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $blob = file_get_contents('path/to/file');
-                    $output .= "Payload.fromFile(" . $blob . ", 'filename')";
+                    $output .= "Payload.fromBinary(fs.readFileSync('/path/to/file'))";
                     break;
             }
         }

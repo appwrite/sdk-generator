@@ -1,5 +1,3 @@
-import { File } from "node-fetch-native-with-agent";
-
 export class Payload {
   private data: Buffer;
   private fileName: string;
@@ -35,13 +33,6 @@ export class Payload {
     return this.data.toString("utf-8");
   }
 
-  public toFile(filename?: string): File {
-    if (!filename && !this.fileName) {
-      throw new Error("Filename is required to convert payload to file");
-    }
-    return new File([this.data], filename || this.fileName);
-  }
-
   public static fromBinary(bytes: Buffer, name?: string): Payload {
     return new Payload(bytes, name);
   }
@@ -54,10 +45,5 @@ export class Payload {
   public static fromString(text: string, name?: string): Payload {
     const data = Buffer.from(text, "utf-8");
     return new Payload(data, name);
-  }
-
-  public static async fromFile(blob: Blob, name?: string): Promise<Payload> {
-    const buffer = await blob.arrayBuffer().then(arrayBuffer => Buffer.from(arrayBuffer));
-    return new Payload(buffer, name);
   }
 }

@@ -13,6 +13,7 @@ const { Payload } = require('./dist/payload.js');
 const { readFile } = require('fs/promises');
 const crypto = require('crypto');
 const fs = require('fs');
+const path = require('path');
 
 async function start() {
     let response;
@@ -67,14 +68,12 @@ async function start() {
     response = await general.redirect();
     console.log(response.result);
 
-    const fileBuffer = await fs.promises.readFile(__dirname + '/../../resources/file.png');
-    const payload = await Payload.fromFile(new Blob([fileBuffer], { type: 'image/png' }), 'file.png');
-    response = await general.upload('string', 123, ['string in array'], payload);
+    let buffer = fs.readFileSync(path.join(__dirname, '/../../resources/file.png'));
+    response = await general.upload('string', 123, ['string in array'], Payload.fromBinary(buffer, 'file.png'));
     console.log(response.result);
 
-    const largeFileBuffer = await fs.promises.readFile(__dirname + '/../../resources/large_file.mp4');
-    const largePayload = await Payload.fromFile(new Blob([largeFileBuffer], { type: 'video/mp4' }), 'large_file.mp4');
-    response = await general.upload('string', 123, ['string in array'], largePayload);
+    buffer = fs.readFileSync(path.join(__dirname, '/../../resources/large_file.mp4'));
+    response = await general.upload('string', 123, ['string in array'], Payload.fromBinary(buffer, 'large_file.mp4'));
     console.log(response.result);
 
     const smallBuffer = await readFile('./tests/resources/file.png');
