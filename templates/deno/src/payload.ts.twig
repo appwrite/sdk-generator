@@ -1,52 +1,43 @@
-
-
 export class Payload {
-    public filename: string | undefined = undefined;
-    private data: Blob 
+  private data: Buffer;
+  public name?: string;
+  public size: number;
 
-    constructor(data: Blob, name?: string) {
-        this.data = data;
-        this.filename = name || undefined;
-    }
+  constructor(data: Buffer, name?: string) {
+    this.data = data;
+    this.name = name;
+    this.size = data.byteLength;
+  }
 
-    public _size(): number {
-        return this.data.size;
+  public toBinary(offset: number = 0, length?: number): Buffer {
+    if (offset === 0 && length === undefined) {
+      return this.data;
+    } else if (length === undefined) {
+      return this.data.subarray(offset);
+    } else {
+      return this.data.subarray(offset, offset + length);
     }
+  }
 
-    public _read(offset: number, length: number): Blob {
-        const end = Math.min(offset + length, this.data.size);
-        return this.data.slice(offset, end);
-    }
+  public toJson<T = unknown>(): Promise<T> {
+    return JSON.parse(this.toString());
+  }
 
-    public async toString() {
-        return await this.data.text();
-    }
+  public toString(): string {
+    return this.data.toString("utf-8");
+  }
 
-    public async toJson<T = unknown>(): Promise<T> {
-        return JSON.parse(await this.data.text());
-    }
+  public static fromBinary(bytes: Buffer, name?: string): Payload {
+    return new Payload(bytes, name);
+  }
 
-    public async toBinary(): Promise<ArrayBuffer> {
-        return await this.data.arrayBuffer();
-    }
+  public static fromJson(object: any, name?: string): Payload {
+    const data = Buffer.from(JSON.stringify(object), "utf-8");
+    return new Payload(data, name);
+  }
 
-    public async toFile(): Promise<Blob> {
-        return this.data;
-    }
-
-    public static fromFile(file: File | Blob, name?: string): Payload {
-        return new Payload(file, name ?? file.name ?? "file");
-    }
-
-    public static fromString(data: string, name?: string): Payload {
-        return new Payload(new Blob([data]), name);
-    }
-
-    public static fromJson(data: unknown, name?: string): Payload {
-        return new Payload(new Blob([JSON.stringify(data)]), name);
-    }
-
-    public static fromBinary(data: ArrayBuffer, name?: string): Payload {
-        return new Payload(new Blob([data]), name);
-    }
+  public static fromString(text: string, name?: string): Payload {
+    const data = Buffer.from(text, "utf-8");
+    return new Payload(data, name);
+  }
 }
