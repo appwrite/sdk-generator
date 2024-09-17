@@ -2,22 +2,22 @@
 
 namespace Tests;
 
-class WebNodeTest extends Base
+class ReactNativeStableTest extends Base
 {
-    protected string $sdkName = 'web';
+    protected string $sdkName = 'react-native';
     protected string $sdkPlatform = 'client';
-    protected string $sdkLanguage = 'web';
+    protected string $sdkLanguage = 'react-native';
     protected string $version = '0.0.1';
 
-    protected string $language = 'web';
-    protected string $class = 'Appwrite\SDK\Language\Web';
+    protected string $language = 'javascript';
+    protected string $class = 'Appwrite\SDK\Language\ReactNative';
     protected array $build = [
-        'cp -R tests/languages/web/* tests/sdks/web/',
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web node:18-alpine npm install',
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web node:18-alpine npm run build',
+        'cp -R tests/languages/react-native/* tests/sdks/react-native/',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/react-native node:16-alpine npm install',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/react-native node:16-alpine npm run build'
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/web node:18-alpine node node.js';
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/react-native node:16-alpine node node.js';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

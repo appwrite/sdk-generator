@@ -2,7 +2,7 @@ import { Models } from './models';
 import { Service } from './service';
 import { Platform } from 'react-native';
 
-type Payload = {
+type Params = {
     [key: string]: any;
 }
 
@@ -345,7 +345,7 @@ class Client {
         }
     }
 
-    async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<any> {
+    async call(method: string, url: URL, headers: Headers = {}, params: Params = {}): Promise<any> {
         method = method.toUpperCase();
 
         headers = Object.assign({}, this.headers, headers);
@@ -425,4 +425,4 @@ class Client {
 }
 
 export { Client, {{spec.title | caseUcfirst}}Exception };
-export type { Models, Payload };
+export type { Models, Params };
