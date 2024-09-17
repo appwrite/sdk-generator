@@ -1,8 +1,8 @@
 import { fetch, FormData, Blob } from 'node-fetch-native-with-agent';
+import { getBoundary, parse as parseMultipart} from 'parse-multipart-data';
 import { createAgent } from 'node-fetch-native-with-agent/agent';
 import { Models } from './models';
 import { Payload } from './payload';
-import * as multipart from 'parse-multipart-data';
 
 type Params = {
     [key: string]: any;
@@ -290,10 +290,10 @@ class Client {
                 chunks.push(chunk instanceof Buffer ? chunk : Buffer.from(chunk));
             }
             const body = Buffer.concat(chunks);
-            const boundary = multipart.getBoundary(
+            const boundary = getBoundary(
                 response.headers.get("content-type") || ""
             );
-            const parts = multipart.parse(body, boundary);
+            const parts = parseMultipart(body, boundary);
             const partsObject: { [key: string]: any } = {};
             
             for (const part of parts) {

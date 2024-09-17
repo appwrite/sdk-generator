@@ -1,7 +1,9 @@
-import { Models } from './models';
+import { Platform } from 'react-native';
+import { getBoundary, parse as parseMultipart} from 'parse-multipart-data';
 import { Service } from './service';
 import { Payload } from './payload';
-import { Platform } from 'react-native';
+import { Models } from './models';
+
 
 type Params = {
     [key: string]: any;
@@ -398,6 +400,39 @@ class Client {
 
             if (response.headers.get('content-type')?.includes('application/json')) {
                 data = await response.json();
+            } else if (response.headers.get('content-type')?.includes('multipart/form-data')) {
+                const chunks = [];
+                for await (const chunk of (response.body as AsyncIterable<any>)) {
+                    chunks.push(chunk instanceof Buffer ? chunk : Buffer.from(chunk));
+                }
+                const body = Buffer.concat(chunks);
+                const boundary = getBoundary(
+                    response.headers.get("content-type") || ""
+                );
+                const parts = parseMultipart(body, boundary);
+                const partsObject: { [key: string]: any } = {};
+                
+                for (const part of parts) {
+                    if (!part.name) {
+                        continue;
+                    }
+                    if (part.name === "responseBody") {
+                        partsObject[part.name] = Payload.fromBinary(part.data, part.filename);
+                    } else if (part.name === "responseStatusCode") {
+                        partsObject[part.name] = parseInt(part.data.toString());
+                    } else if (part.name === "duration") {
+                        partsObject[part.name] = parseFloat(part.data.toString());
+                    } else if (part.type === 'application/json') {
+                        try {
+                            partsObject[part.name] = JSON.parse(part.data.toString());
+                        } catch (e) {
+                            throw new Error(`Error parsing JSON for part ${part.name}: ${e instanceof Error ? e.message : 'Unknown error'}`);
+                        }
+                    } else {
+                        partsObject[part.name] = part.data.toString();
+                    }
+                }
+                data = partsObject;
             } else {
                 data = {
                     message: await response.text()
