@@ -160,10 +160,6 @@ class DotNet extends Language
      */
     public function getTypeName(array $parameter, array $spec = []): string
     {
-        if (strpos(($parameter['description'] ?? ''), 'This will return empty unless execution') !== false) {
-            return 'Payload';
-        }
-
         if (isset($parameter['enumName'])) {
             return 'Appwrite.Enums.' . \ucfirst($parameter['enumName']);
         }
@@ -175,8 +171,8 @@ class DotNet extends Language
             self::TYPE_NUMBER => 'double',
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
-            self::TYPE_PAYLOAD,
             self::TYPE_FILE => 'Payload',
+            self::TYPE_PAYLOAD => 'Payload',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? 'List<' . $this->getTypeName($parameter['array']) . '>'
                 : 'List<object>',
@@ -248,9 +244,9 @@ class DotNet extends Language
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_PAYLOAD:
-                    $output .= 'Payload.fromString("<BODY>")';
+                    $output .= 'Payload.fromJson(new KeyValuePair<string, string>("x", "y"))';
                 case self::TYPE_FILE:
-                    $output .= 'Payload.FromFile("./path-to-files/image.jpg")';
+                    $output .= 'Payload.FromFile("/path/to/file.png")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -294,7 +290,10 @@ class DotNet extends Language
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'Payload.fromString("<BODY>")';
+                    $output .= 'Payload.fromJson(new KeyValuePair<string, string>("x", "y"))';
+                    break;
+                case self::TYPE_FILE:
+                    $output .= 'Payload.FromFile("/path/to/file.png")';
                     break;
                 case self::TYPE_STRING:
                     $output .= '"{$example}"';

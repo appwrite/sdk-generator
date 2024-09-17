@@ -5,7 +5,7 @@
         $postedName = null;
         if(empty(${{ parameter.name | caseCamel }}->getPath() ?? null)) {
             $size = strlen(${{ parameter.name | caseCamel }}->getData());
-            $mimeType = ${{ parameter.name | caseCamel }}->getMimeType();
+            $mimeType = mime_content_type(${{ parameter.name | caseCamel }}->getPath());
             $postedName = ${{ parameter.name | caseCamel }}->getFilename();
             if ($size <= Client::CHUNK_SIZE) {
                 $apiParams['{{ parameter.name | caseCamel }}'] = new \CURLFile('data://' . $mimeType . ';base64,' . base64_encode(${{ parameter.name | caseCamel }}->getData()), $mimeType, $postedName);
@@ -20,7 +20,7 @@
             }
         } else {
             $size = filesize(${{ parameter.name | caseCamel }}->getPath());
-            $mimeType = ${{ parameter.name | caseCamel }}->getMimeType() ?? mime_content_type(${{ parameter.name | caseCamel }}->getPath());
+            $mimeType = mime_content_type(${{ parameter.name | caseCamel }}->getPath());
             $postedName = ${{ parameter.name | caseCamel }}->getFilename() ?? basename(${{ parameter.name | caseCamel }}->getPath());
             //send single file if size is less than or equal to 5MB
             if ($size <= Client::CHUNK_SIZE) {

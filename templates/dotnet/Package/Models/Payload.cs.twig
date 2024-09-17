@@ -11,53 +11,52 @@ namespace {{ spec.title | caseUcfirst }}.Models
     {
         public string Path { get; set; }
         public string Filename { get; set; }
-        public string MimeType { get; set; }
         public string SourceType { get; set; }
         public object Data { get; set; }
 
-        public static Payload FromFile(string path) => new Payload
+        public static Payload FromFile(string path, string filename = null) => new Payload
         {
             Path = path,
-            Filename = System.IO.Path.GetFileName(path),
-            MimeType = path.GetMimeType(),
+            Filename = filename == null ? System.IO.Path.GetFileName(path) : filename,
             SourceType = "path"
         };
 
-        public static Payload FromFileInfo(FileInfo fileInfo) =>
-            FromFile(fileInfo.FullName);
+        public static Payload FromFileInfo(FileInfo fileInfo, string filename = null) =>
+            FromFile(fileInfo.FullName, filename);
 
-        public static Payload FromStream(Stream stream, string filename, string mimeType) => new Payload
+        public static Payload FromStream(Stream stream, string filename = null) => new Payload
         {
             Data = stream,
             Filename = filename,
-            MimeType = mimeType,
             SourceType = "stream"
         };
 
-        public static Payload FromBinary(byte[] bytes) => new Payload
+        public static Payload FromBinary(byte[] bytes, string filename = null) => new Payload
         {
             Data = bytes,
+            Filename = filename,
             SourceType = "bytes"
         };
 
-        public static Payload FromString(string multipart)
+        public static Payload FromString(string multipart, string filename = null)
         {
-            return FromBinary(System.Text.Encoding.UTF8.GetBytes(multipart));
+            return FromBinary(System.Text.Encoding.UTF8.GetBytes(multipart), filename);
         }
 
-        public static Payload FromJson(object json)
+        public static Payload FromJson(object json, string filename = null)
         {
-            return FromString(JsonConvert.SerializeObject(json));
+            return FromString(JsonConvert.SerializeObject(json), filename);
         }
 
-        public  byte[] ToBinary()
+        public byte[] ToBinary()
         {
             return Data as byte[] ?? Array.Empty<byte>();
         }
 
         public override string ToString()
         {
-            return System.Text.Encoding.UTF8.GetString(ToBinary() , 0, ToBinary().Length);
+            var binary = ToBinary();
+            return System.Text.Encoding.UTF8.GetString(binary, 0, binary.Length);
         }
 
         public Dictionary<string, object?> ToJson()

@@ -319,7 +319,6 @@ App::post('/v1/mock/tests/general/upload')
     ->inject('request')
     ->inject('response')
     ->action(function (string $x, int $y, array $z, mixed $file, Request $request, Response $response) {
-
         $file = $request->getFiles('file');
 
         $contentRange = $request->getHeader('content-range');
