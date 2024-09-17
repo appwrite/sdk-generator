@@ -180,7 +180,7 @@ class Client {
 
                     for (const [key, value] of Object.entries(params)) {
                         if (value instanceof Payload) {
-                            formData.append(key, new Blob([value.toBiary()]), value.getFileName());
+                            formData.append(key, new Blob([value.toBinary()]), value.getFileName());
                         } else if (Array.isArray(value)) {
                             for (const nestedValue of value) {
                                 formData.append(`${key}[]`, nestedValue);
@@ -207,6 +207,10 @@ class Client {
                 file = value;
                 break;
             }
+        }
+
+        if (!file) {
+            throw new Error('No payload found in params');
         }
 
         if (file.size <= Client.CHUNK_SIZE) {

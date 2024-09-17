@@ -9,7 +9,7 @@ export class Payload {
     this.size = data.byteLength;
   }
 
-  public getFileName(): string {
+  public getFileName(): string | undefined {
     return this.fileName;
   }
 
