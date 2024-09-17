@@ -45,7 +45,7 @@ class Payload private constructor() {
     }
 
     companion object {
-        fun fromFile(path: String,filename: String = ""): Payload = fromFileObject(File(path), filename).apply {
+        fun fromFile(path: String, filename: String = ""): Payload = fromFileObject(File(path), filename).apply {
             sourceType = "path"
         }
 
