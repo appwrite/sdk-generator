@@ -317,12 +317,11 @@ App::post('/v1/mock/tests/general/upload')
     ->param('x', '', new Text(100), 'Sample string param')
     ->param('y', '', new Integer(true), 'Sample numeric param')
     ->param('z', null, new ArrayList(new Text(256), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Sample array param')
-    ->param('payload', [], new File(), 'Sample file param', skipValidation: true)
+    ->param('file', [], new File(), 'Sample file param', skipValidation: true)
     ->inject('request')
     ->inject('response')
     ->action(function (string $x, int $y, array $z, mixed $file, Request $request, Response $response) {
-
-        $file = $request->getFiles('payload');
+        $file = $request->getFiles('file');
 
         $contentRange = $request->getHeader('content-range');
 
@@ -390,6 +389,7 @@ App::post('/v1/mock/tests/general/upload')
     });
 
 App::get('/v1/mock/tests/general/multipart')
+    ->alias('/v1/mock/tests/general/multipartcomplied')
     ->desc('Multipart')
     ->groups(['mock'])
     ->label('scope', 'public')
