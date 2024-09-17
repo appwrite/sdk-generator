@@ -1,5 +1,5 @@
 import * as appwrite from "../../sdks/deno/mod.ts";
-import { createHash } from "https://deno.land/std/hash/mod.ts"
+import { createHash } from "https://deno.land/std@0.119.0/hash/mod.ts"
 
 // TODO: Correct test typings and remove '// @ts-ignore'
 
@@ -74,7 +74,7 @@ async function start() {
     "string",
     123,
     ["string in array"],
-    appwrite.Payload.fromPath("./tests/resources/file.png", "file.png")
+    (await appwrite.Payload.fromFile("./tests/resources/file.png", "file.png"))
   );
   // @ts-ignore
   console.log(response.result);
@@ -83,10 +83,10 @@ async function start() {
     "string",
     123,
     ["string in array"],
-    appwrite.Payload.fromPath(
+    (await appwrite.Payload.fromFile(
       "./tests/resources/large_file.mp4",
       "large_file.mp4"
-    )
+    ))
   );
   // @ts-ignore
   console.log(response.result);
@@ -149,7 +149,7 @@ async function start() {
    console.log(response.x);
 
    const binary = await response['responseBody'].toBinary();
-   console.log(createHash("md5").update(Buffer.from(binary)).hex());
+   console.log(createHash("md5").update(binary).toString('hex'));
 
   // Query helper tests
   console.log(Query.equal("released", [true]));

@@ -174,7 +174,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 apiHeaders['x-{{spec.title | caseLower }}-id'] = id;
             }
 
-            payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
+            payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.filename ?? ''), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename ?? '' };
 
             response = await this.client.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% elseif method.type == 'webAuth' %}, 'location'{% endif %});
 
@@ -197,19 +197,18 @@ export class {{ service.name | caseUcfirst }} extends Service {
             currentChunk++;
         }
 
-        for await (const chunk of {{ parameter.name | caseCamel | escapeKeyword }}.stream) {
-            let i = 0;
-            for(const b of chunk) {
-                uploadableChunk[currentPosition] = chunk[i];
+        const chunk = {{ parameter.name | caseCamel | escapeKeyword }}.toBinary();
+        let i = 0;
+        for(const _ of chunk) {
+            uploadableChunk[currentPosition] = chunk[i];
 
-                if(currentPosition + 1 >= Client.CHUNK_SIZE) {
-                    await uploadChunk();
-                    currentPosition--;
-                }
-
-                i++;
-                currentPosition++;
+            if(currentPosition + 1 >= Client.CHUNK_SIZE) {
+                await uploadChunk();
+                currentPosition--;
             }
+
+            i++;
+            currentPosition++;
         }
 
         await uploadChunk(true);

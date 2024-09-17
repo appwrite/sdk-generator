@@ -1,11 +1,13 @@
+import { basename } from "https://deno.land/std@0.224.0/path/mod.ts";
+
 export class Payload {
   private data: Buffer;
-  public name?: string;
+  public filename?: string;
   public size: number;
 
-  constructor(data: Buffer, name?: string) {
+  constructor(data: Buffer, filename?: string) {
     this.data = data;
-    this.name = name;
+    this.filename = filename;
     this.size = data.byteLength;
   }
 
@@ -19,7 +21,7 @@ export class Payload {
     }
   }
 
-  public toJson<T>(): T {
+  public toJson<T = unknown>(): T {
     return JSON.parse(this.toString());
   }
 
@@ -27,17 +29,31 @@ export class Payload {
     return this.data.toString("utf-8");
   }
 
-  public static fromBinary(bytes: Buffer, name?: string): Payload {
-    return new Payload(bytes, name);
+  public toFile(path: string) {
+    return this.data.toString("utf-8");
   }
 
-  public static fromJson(object: any, name?: string): Payload {
+  public static fromBinary(bytes: Buffer, filename?: string): Payload {
+    return new Payload(bytes, filename);
+  }
+
+  public static fromJson(object: any, filename?: string): Payload {
     const data = Buffer.from(JSON.stringify(object), "utf-8");
-    return new Payload(data, name);
+    return new Payload(data, filename);
   }
 
-  public static fromString(text: string, name?: string): Payload {
+  public static fromString(text: string, filename?: string): Payload {
     const data = Buffer.from(text, "utf-8");
-    return new Payload(data, name);
+    return new Payload(data, filename);
+  }
+
+  public static async fromFile(path: string, filename?: string): Promise<Payload> {
+    const data = await Deno.readFile(path);
+
+    if(!filename) {
+      filename = basename(path);
+    }
+
+    return new Payload(data, filename);
   }
 }

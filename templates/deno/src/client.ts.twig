@@ -1,4 +1,6 @@
 import { {{ spec.title | caseUcfirst}}Exception } from './exception.ts';
+import { Payload } from './payload.ts';
+import * as multipart from 'npm:parse-multipart-data@1.5.0';
 
 export interface Params {
     [key: string]: any;
@@ -123,6 +125,40 @@ export class Client {
 
         if (responseType === "location") {
             return response.headers.get("location");
+        }
+
+        if (response.headers.get('content-type')?.includes('multipart/form-data')) {
+            const boundary = multipart.getBoundary(
+                response.headers.get("content-type") || ""
+            );
+            
+            const body = new Uint8Array(await response.arrayBuffer());
+            const parts = multipart.parse(body, boundary);
+            const partsObject: { [key: string]: any } = {};
+
+            for (const part of parts) {
+                if (!part.name) {
+                    continue;
+                }
+                if (part.name === "responseBody") {
+                    partsObject[part.name] = Payload.fromBinary(part.data, part.filename);
+                } else if (part.name === "responseStatusCode") {
+                    partsObject[part.name] = parseInt(part.data.toString());
+                } else if (part.name === "duration") {
+                    partsObject[part.name] = parseFloat(part.data.toString());
+                } else if (part.type === 'application/json') {
+                    try {
+                        partsObject[part.name] = JSON.parse(part.data.toString());
+                    } catch (e) {
+                        throw new Error(`Error parsing JSON for part ${part.name}: ${e instanceof Error ? e.message : 'Unknown error'}`);
+                    }
+                } else {
+                    partsObject[part.name] = part.data.toString();
+                }
+            }
+
+            const data = partsObject;
+            return data;
         }
 
         const text = await response.text();
