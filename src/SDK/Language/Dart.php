@@ -139,7 +139,7 @@ class Dart extends Language
             case self::TYPE_STRING:
                 return 'String';
             case self::TYPE_FILE:
-                return 'InputFile';
+                return 'Payload';
             case self::TYPE_BOOLEAN:
                 return 'bool';
             case self::TYPE_ARRAY:
@@ -227,7 +227,7 @@ class Dart extends Language
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')';
+                    $output .= 'Payload(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -465,8 +465,8 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/test/src/input_file_test.dart',
-                'template'      => 'dart/test/src/input_file_test.dart.twig',
+                'destination'   => '/test/src/payload_test.dart',
+                'template'      => 'dart/test/src/payload_test.dart.twig',
             ],
             [
                 'scope'         => 'default',
@@ -485,8 +485,8 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/src/input_file.dart',
-                'template'      => 'dart/lib/src/input_file.dart.twig',
+                'destination'   => 'lib/src/payload.dart',
+                'template'      => 'dart/lib/src/payload.dart.twig',
             ],
             [
                 'scope'         => 'enum',

@@ -15,7 +15,7 @@ import 'exception.dart';
 import 'interceptor.dart';
 import 'response.dart';
 import 'package:flutter/foundation.dart';
-import 'input_file.dart';
+import 'payload.dart';
 import 'upload_progress.dart';
 
 ClientBase createClient({
@@ -218,7 +218,7 @@ class ClientIO extends ClientBase with ClientMixin {
     required Map<String, String> headers,
     Function(UploadProgress)? onProgress,
   }) async {
-    InputFile file = params[paramName];
+    Payload file = params[paramName];
     if (file.path == null && file.bytes == null) {
       throw {{spec.title | caseUcfirst}}Exception("File path or bytes must be provided");
     }

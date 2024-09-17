@@ -7,7 +7,7 @@ import 'client_base.dart';
 import 'enums.dart';
 import 'exception.dart';
 import 'response.dart';
-import 'input_file.dart';
+import 'payload.dart';
 import 'upload_progress.dart';
 
 ClientBase createClient({
@@ -98,20 +98,20 @@ class ClientIO extends ClientBase with ClientMixin {
     required Map<String, String> headers,
     Function(UploadProgress)? onProgress,
   }) async {
-    InputFile file = params[paramName];
-    if (file.path == null && file.bytes == null) {
-      throw {{spec.title | caseUcfirst}}Exception("File path or bytes must be provided");
+    Payload file = params[paramName];
+    if (file.data == null) {
+      throw {{spec.title | caseUcfirst}}Exception("File bytes must be provided");
     }
 
     int size = 0;
-    if (file.bytes != null) {
-      size = file.bytes!.length;
+    if (file.data != null) {
+      size = file.data!.length;
     }
 
     File? iofile;
 
     if (file.path != null) {
-      iofile = File(file.path!);
+      iofile = File(file.data!);
       size = await iofile.length();
     }
 
@@ -120,10 +120,10 @@ class ClientIO extends ClientBase with ClientMixin {
       if (file.path != null) {
         params[paramName] = await http.MultipartFile.fromPath(
             paramName, file.path!,
-            filename: file.filename);
+            filename: file.fileName);
       } else {
         params[paramName] = http.MultipartFile.fromBytes(paramName, file.bytes!,
-            filename: file.filename);
+            filename: file.fileName);
       }
       return call(
         HttpMethod.post,
