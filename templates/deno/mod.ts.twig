@@ -3,7 +3,7 @@ import { Query } from "./src/query.ts";
 import { Permission } from "./src/permission.ts";
 import { Role } from "./src/role.ts";
 import { ID } from "./src/id.ts";
-import { InputFile } from "./src/inputFile.ts";
+import { Payload } from "./src/payload.ts";
 import { {{spec.title | caseUcfirst}}Exception } from "./src/exception.ts";
 {% for service in spec.services %}
 import { {{service.name | caseUcfirst}} } from "./src/services/{{service.name | caseDash}}.ts";
@@ -18,7 +18,7 @@ export {
     Permission,
     Role,
     ID,
-    InputFile,
+    Payload,
     {{spec.title | caseUcfirst}}Exception,
 {% for service in spec.services %}
     {{service.name | caseUcfirst}},

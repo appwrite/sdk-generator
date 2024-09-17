@@ -15,10 +15,10 @@ class WebChromiumTest extends Base
         'cp tests/languages/web/tests.js tests/sdks/web/tests.js',
         'cp tests/languages/web/node.js tests/sdks/web/node.js',
         'cp tests/languages/web/index.html tests/sdks/web/index.html',
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal sh -c "npm install && npm run build"',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.46.0-jammy sh -c "npm install && npm run build"',
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.46.0-jammy node tests.js';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
@@ -28,6 +28,7 @@ class WebChromiumTest extends Base
         ...Base::ENUM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
+        ...Base::MULTIPART_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES

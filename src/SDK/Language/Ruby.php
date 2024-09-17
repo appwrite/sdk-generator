@@ -303,7 +303,7 @@ class Ruby extends Language
                     $output .= "Payload.from_json({ \"x\": \"y\" })";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "Payload.from_file('dir/file.png')";
+                    $output .= "Payload.from_file('/path/to/file.png')";
                     break;
             }
         } else {
@@ -326,7 +326,7 @@ class Ruby extends Language
                     $output .= "Payload.from_json({ \"x\": \"y\" })";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "Payload.from_file('dir/file.png')";
+                    $output .= "Payload.from_file('/path/to/file.png')";
                     break;
             }
         }
