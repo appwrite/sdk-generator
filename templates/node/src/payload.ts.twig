@@ -19,7 +19,7 @@ export class Payload {
     }
   }
 
-  public toJson<T = unknown>(): Promise<T> {
+  public toJson<T = unknown>(): T {
     return JSON.parse(this.toString());
   }
 
@@ -27,17 +27,17 @@ export class Payload {
     return this.data.toString("utf-8");
   }
 
-  public static fromBinary(bytes: Buffer, name?: string): Payload {
-    return new Payload(bytes, name);
+  public static fromBinary(bytes: Buffer, filename?: string): Payload {
+    return new Payload(bytes, filename);
   }
 
-  public static fromJson(object: any, name?: string): Payload {
+  public static fromJson(object: any, filename?: string): Payload {
     const data = Buffer.from(JSON.stringify(object), "utf-8");
-    return new Payload(data, name);
+    return new Payload(data, filename);
   }
 
-  public static fromString(text: string, name?: string): Payload {
+  public static fromString(text: string, filename?: string): Payload {
     const data = Buffer.from(text, "utf-8");
-    return new Payload(data, name);
+    return new Payload(data, filename);
   }
 }
