@@ -245,6 +245,7 @@ class DotNet extends Language
             switch ($type) {
                 case self::TYPE_PAYLOAD:
                     $output .= 'Payload.fromJson(new KeyValuePair<string, string>("x", "y"))';
+                    break;
                 case self::TYPE_FILE:
                     $output .= 'Payload.FromFile("/path/to/file.png")';
                     break;
