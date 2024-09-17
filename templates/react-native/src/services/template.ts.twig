@@ -1,7 +1,8 @@
 import { Service } from '../service';
 import { {{ spec.title | caseUcfirst}}Exception, Client } from '../client';
+import { Payload } from '../payload';
 import type { Models } from '../models';
-import type { UploadProgress, Payload } from '../client';
+import type { UploadProgress, Params } from '../client';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 
@@ -54,17 +55,17 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endif %}
 {% endfor %}
         const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-        const payload: Payload = {};
+        const params: Params = {};
 
 {% for parameter in method.parameters.query %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            params['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
 
 {% endfor %}
 {% for parameter in method.parameters.body %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            params['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
 
 {% endfor %}
@@ -73,13 +74,13 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% if method.auth|length > 0 %}
 {% for node in method.auth %}
 {% for key,header in node|keys %}
-        payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
+        params['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
 
 {% endfor %}
 {% endfor %}
 {% endif %}
 
-        for (const [key, value] of Object.entries(Service.flatten(payload))) {
+        for (const [key, value] of Object.entries(Service.flatten(params))) {
             uri.searchParams.append(key, value);
         }
 {% endif %}
@@ -102,7 +103,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% for key, header in method.headers %}
                 '{{ key }}': '{{ header }}',
 {% endfor %}
-            }, payload);
+            }, params);
         }
 
         const apiHeaders: { [header: string]: string } = {
@@ -148,9 +149,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 await FileSystem.writeAsStringAsync(path, chunk, {encoding: FileSystem.EncodingType.Base64});
             }
 
-            payload['{{ parameter.name }}'] = {{ '{' }} uri: path, name: {{ parameter.name | caseCamel | escapeKeyword }}.name, type: {{ parameter.name | caseCamel | escapeKeyword }}.type {{ '}' }};
+            params['{{ parameter.name }}'] = {{ '{' }} uri: path, name: {{ parameter.name | caseCamel | escapeKeyword }}.name, type: {{ parameter.name | caseCamel | escapeKeyword }}.type {{ '}' }};
 
-            response = await this.client.call('{{ method.method | caseLower }}', uri, apiHeaders, payload);
+            response = await this.client.call('{{ method.method | caseLower }}', uri, apiHeaders, params);
 
             if (onProgress) {
                 onProgress({
@@ -174,7 +175,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
 {% endfor %}
-        }, payload);
+        }, params);
 {% endif %}
 {% endif %}
     }

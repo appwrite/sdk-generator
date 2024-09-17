@@ -9,15 +9,15 @@ class ReactNativeStableTest extends Base
     protected string $sdkLanguage = 'react-native';
     protected string $version = '0.0.1';
 
-    protected string $language = 'javascript';
+    protected string $language = 'react-native';
     protected string $class = 'Appwrite\SDK\Language\ReactNative';
     protected array $build = [
         'cp -R tests/languages/react-native/* tests/sdks/react-native/',
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/react-native node:16-alpine npm install',
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/react-native node:16-alpine npm run build'
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/react-native node:18-alpine npm install',
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/react-native node:18-alpine npm run build'
     ];
     protected string $command =
-        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/react-native node:16-alpine node node.js';
+        'docker run --rm -v $(pwd):/app -w /app/tests/sdks/react-native node:18-alpine node node.js';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
