@@ -19,9 +19,9 @@ export class Payload {
 
   public toBinary(offset: number = 0, length?: number): Buffer {
     if (length === undefined) {
-      return this.data.slice(offset);
+      return this.data.subarray(offset);
     } else {
-      return this.data.slice(offset, offset + length);
+      return this.data.subarray(offset, offset + length);
     }
   }
 

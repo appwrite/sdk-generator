@@ -1,10 +1,8 @@
-import { fetch, FormData } from 'node-fetch-native-with-agent';
+import { fetch, FormData, Blob } from 'node-fetch-native-with-agent';
 import { createAgent } from 'node-fetch-native-with-agent/agent';
 import { Models } from './models';
 import { Payload } from './payload';
-import { Blob } from 'node:buffer';
 import * as multipart from 'parse-multipart-data';
-import { buffer } from 'node:stream/consumers';
 
 type Params = {
     [key: string]: any;
@@ -285,7 +283,11 @@ class Client {
         } else if (responseType === 'arrayBuffer') {
             data = await response.arrayBuffer();
         } else if (response.headers.get('content-type')?.includes('multipart/form-data')) {
-            const body = await buffer(response.body as AsyncIterable<any>);
+            const chunks = [];
+            for await (const chunk of (response.body as AsyncIterable<any>)) {
+                chunks.push(chunk instanceof Buffer ? chunk : Buffer.from(chunk));
+            }
+            const body = Buffer.concat(chunks);
             const boundary = multipart.getBoundary(
                 response.headers.get("content-type") || ""
             );
