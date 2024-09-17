@@ -1,3 +1,5 @@
+library {{ language.params.packageName }}.payload;
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -9,11 +11,6 @@ class Payload {
   // Constructor to initialize with binary data
   Payload(this._data, {this.fileName}) : size = _data.length;
 
-  // Get binary data
-  List<int> getData() {
-    return _data;
-  }
-
   // Get filename
   String? getFileName() {
     return fileName;
@@ -21,7 +18,9 @@ class Payload {
 
   // Convert to binary, with optional offset and length
   List<int> toBinary({int offset = 0, int? length}) {
-    if (length == null) {
+    if(offset == 0 && length == null) {
+      return _data;
+    } else if (length == null) {
       return _data.sublist(offset);
     } else {
       return _data.sublist(offset, offset + length);
