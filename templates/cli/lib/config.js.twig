@@ -145,6 +145,10 @@ class Local extends Config {
         this.configDirectoryPath =_path.dirname(absolutePath);
     }
 
+    getDirname() {
+        return _path.dirname(this.path)
+    }
+
     getFunctions() {
         if (!this.has("functions")) {
             return [];
