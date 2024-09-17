@@ -1,63 +1,78 @@
 interface ReactNativeFileObject {
-  uri: string;
-  type?: string;
-  name?: string;
+    uri: string;
+    type?: string;
+    name?: string;
 }
 
 export class Payload {
-  private data: Buffer;
-  public filename?: string;
-  public size: number;
+    private data: Buffer;
+    public filename?: string;
+    public size: number;
+    public type?: string;
 
-  constructor(data: Buffer, filename?: string) {
-    this.data = data;
-    this.filename = filename;
-    this.size = data.byteLength;
-  }
-
-  public toBinary(offset: number = 0, length?: number): Buffer {
-    if (offset === 0 && length === undefined) {
-      return this.data;
-    } else if (length === undefined) {
-      return this.data.subarray(offset);
-    } else {
-      return this.data.subarray(offset, offset + length);
+    constructor(data: Buffer, filename?: string, type?: string) {
+        this.data = data;
+        this.filename = filename;
+        this.size = data.byteLength;
+        this.type = type;
     }
-  }
 
-  public toFileObject(type: string): ReactNativeFileObject {
-    return {
-      uri: `data:${type};base64,${this.data.toString("base64")}`,
-      type: type,
-      name: this.filename,
-    };
-  }
+    public toBinary(offset: number = 0, length?: number): Buffer {
+        if (offset === 0 && length === undefined) {
+            return this.data;
+        } else if (length === undefined) {
+            return this.data.subarray(offset);
+        } else {
+            return this.data.subarray(offset, offset + length);
+        }
+    }
 
-  public toJson<T = unknown>(): Promise<T> {
-    return JSON.parse(this.toString());
-  }
+    public toFileObject(): ReactNativeFileObject {
+        const base64Data = this.data.toString("base64");
+        const uri = `data:${this.type};base64,${base64Data}`;
+        return {
+            uri: uri,
+            type: this.type,
+            name: this.filename,
+        };
+    }
 
-  public toString(): string {
-    return this.data.toString("utf-8");
-  }
+    public toJson<T = unknown>(): T {
+        return JSON.parse(this.toString());
+    }
 
-  public static fromBinary(bytes: Buffer, name?: string): Payload {
-    return new Payload(bytes, name);
-  }
+    public toString(): string {
+        return this.data.toString("utf-8");
+    }
 
-  public static fromJson(object: any, name?: string): Payload {
-    const data = Buffer.from(JSON.stringify(object), "utf-8");
-    return new Payload(data, name);
-  }
+    public static fromBinary(
+        bytes: Buffer,
+        name?: string,
+        type?: string
+    ): Payload {
+        return new Payload(bytes, name, type);
+    }
 
-  public static fromString(text: string, name?: string): Payload {
-    const data = Buffer.from(text, "utf-8");
-    return new Payload(data, name);
-  }
+    public static fromJson(object: any, name?: string): Payload {
+        const data = Buffer.from(JSON.stringify(object), "utf-8");
+        return new Payload(data, name, "application/json");
+    }
 
-  public static async fromFileObject(file: ReactNativeFileObject): Promise<Payload> {
-    const response = await fetch(file.uri);
-    const data = Buffer.from(await response.arrayBuffer());
-    return new Payload(data, file.name);
-  }
+    public static fromString(
+        text: string,
+        name?: string,
+        type?: string
+    ): Payload {
+        const data = Buffer.from(text, "utf-8");
+        return new Payload(data, name, type || "text/plain");
+    }
+
+    public static async fromFileObject(
+        file: ReactNativeFileObject
+    ): Promise<Payload> {
+        const response = await fetch(file.uri);
+        const arrayBuffer = await response.arrayBuffer();
+        const data = Buffer.from(arrayBuffer);
+        return new Payload(data, file.name, file.type);
+    }
 }
