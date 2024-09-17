@@ -19,7 +19,7 @@ export class Payload {
     }
   }
 
-  public toJson<T = unknown>(): Promise<T> {
+  public toJson<T>(): T {
     return JSON.parse(this.toString());
   }
 

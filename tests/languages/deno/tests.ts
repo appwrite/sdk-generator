@@ -1,4 +1,5 @@
 import * as appwrite from "../../sdks/deno/mod.ts";
+import { createHash } from "https://deno.land/std/hash/mod.ts"
 
 // TODO: Correct test typings and remove '// @ts-ignore'
 
@@ -73,7 +74,7 @@ async function start() {
     "string",
     123,
     ["string in array"],
-    appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png")
+    appwrite.Payload.fromPath("./tests/resources/file.png", "file.png")
   );
   // @ts-ignore
   console.log(response.result);
@@ -82,7 +83,7 @@ async function start() {
     "string",
     123,
     ["string in array"],
-    appwrite.InputFile.fromPath(
+    appwrite.Payload.fromPath(
       "./tests/resources/large_file.mp4",
       "large_file.mp4"
     )
@@ -95,7 +96,7 @@ async function start() {
     "string",
     123,
     ["string in array"],
-    appwrite.InputFile.fromBuffer(buffer, "file.png")
+    appwrite.Payload.fromBinary(buffer, "file.png")
   );
   // @ts-ignore
   console.log(response.result);
@@ -105,7 +106,7 @@ async function start() {
     "string",
     123,
     ["string in array"],
-    appwrite.InputFile.fromBuffer(buffer, "large_file.mp4")
+    appwrite.Payload.fromBinary(buffer, "large_file.mp4")
   );
   // @ts-ignore
   console.log(response.result);
@@ -142,6 +143,13 @@ async function start() {
       'https://localhost'
   )
   console.log(url)
+
+   // Multipart tests
+   response = await general.multipart();
+   console.log(response.x);
+
+   const binary = await response['responseBody'].toBinary();
+   console.log(createHash("md5").update(Buffer.from(binary)).hex());
 
   // Query helper tests
   console.log(Query.equal("released", [true]));

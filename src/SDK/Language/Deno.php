@@ -180,7 +180,7 @@ class Deno extends JS
                     $output .= '{}';
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'Payload.fromJson({ "key": "value" })';
+                    $output .= 'Payload.fromJson({ x: "y" })';
                     break;
                 case self::TYPE_FILE:
                     $output .= "Payload.fromFile('/path/to/file.png')";
@@ -201,7 +201,7 @@ class Deno extends JS
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'Payload.fromJson({ "key": "value" })';
+                    $output .= 'Payload.fromJson({ x: "y" })';
                     break;
                 case self::TYPE_FILE:
                     $output .= "Payload.fromFile('/path/to/file.png')";
