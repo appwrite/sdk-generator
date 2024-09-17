@@ -67,18 +67,18 @@ namespace AppwriteTests
             var result = await general.Redirect();
             TestContext.WriteLine((result as Dictionary<string, object>)["result"]);
 
-            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromPath("../../../../../../resources/file.png"));
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, Payload.FromFile("../../../../../../resources/file.png"));
             TestContext.WriteLine(mock.Result);
 
-            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromPath("../../../../../../resources/large_file.mp4"));
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, Payload.FromFile("../../../../../../resources/large_file.mp4"));
             TestContext.WriteLine(mock.Result);
 
             var info = new FileInfo("../../../../../../resources/file.png");
-            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "file.png", "image/png"));
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, Payload.FromStream(info.OpenRead(), "file.png"));
             TestContext.WriteLine(mock.Result);
 
             info = new FileInfo("../../../../../../resources/large_file.mp4");
-            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, Payload.FromStream(info.OpenRead(), "large_file.mp4"));
             TestContext.WriteLine(mock.Result);
 
             mock = await general.Enum(MockType.First);
@@ -121,6 +121,18 @@ namespace AppwriteTests
                 failure: "https://localhost"
             );
             TestContext.WriteLine(url);
+            // Multipart tests
+            var response = await general.MultipartComplied();
+            var res = (response as Dictionary<string, object>);
+            TestContext.WriteLine(res["x"]);
+            var pl = res["responseBody"] as Payload;
+            byte[] hash;
+            using (var md5 = System.Security.Cryptography.MD5.Create())
+            {
+                md5.TransformFinalBlock(pl.ToBinary(), 0, pl.ToBinary().Length);
+                hash = md5.Hash;
+            }
+            TestContext.WriteLine(BitConverter.ToString(hash).Replace("-", "").ToLower());
 
             // Query helper tests
             TestContext.WriteLine(Query.Equal("released", new List<bool> { true }));

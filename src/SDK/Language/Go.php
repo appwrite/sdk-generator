@@ -244,10 +244,10 @@ class Go extends Language
                     $output .= '[]interface{}{}';
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'payload.NewPayloadFromString("<BODY>")';
+                    $output .= 'payload.NewPayloadFromJson(map[string]interface{}{ "x": "y" })';
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'payload.NewPayloadFromFile("/path/to/file.png", "file.png")';
+                    $output .= 'payload.NewPayloadFromFile("/path/to/file.png")';
                     break;
             }
         } else {
@@ -275,10 +275,10 @@ class Go extends Language
                     $output .= '"{$example}"';
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'payload.NewPayloadFromString("<BODY>")';
+                    $output .= 'payload.NewPayloadFromJson(map[string]interface{}{ "x": "y" })';
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'payload.NewPayloadFromFile("/path/to/file.png", "file.png")';
+                    $output .= 'payload.NewPayloadFromFile("/path/to/file.png")';
                     break;
             }
         }

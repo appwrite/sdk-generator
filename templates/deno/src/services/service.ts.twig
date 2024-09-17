@@ -27,8 +27,8 @@
 {% endmacro %}
 import { basename } from "https://deno.land/std@0.122.0/path/mod.ts";
 import { Service } from '../service.ts';
-import { Payload, Client } from '../client.ts';
-import { InputFile } from '../inputFile.ts';
+import { Params, Client } from '../client.ts';
+import { Payload } from '../payload.ts';
 import { AppwriteException } from '../exception.ts';
 import type { Models } from '../models.d.ts';
 import { Query } from '../query.ts';
@@ -64,58 +64,58 @@ export class {{ service.name | caseUcfirst }} extends Service {
         super(client);
      }
 
-{% for method in service.methods %}
-{% set generics = _self.get_generics(spec.definitions[method.responseModel], spec, true, true) %}
-{% set generics_return = _self.get_generics_return(spec.definitions[method.responseModel], spec) %}
+    {%~ for method in service.methods %}
+    {%- set generics = _self.get_generics(spec.definitions[method.responseModel], spec, true, true) %}
+    {%- set generics_return = _self.get_generics_return(spec.definitions[method.responseModel], spec) %}
     /**
      * {{ method.title }}
      *
-{% if method.description %}
-{{ method.description|comment1 }}
+    {%~ if method.description %}
+     * {{ method.description}}
      *
-{% endif %}
-{% for parameter in method.parameters.all%}
+    {%- endif %}
+    {%~ for parameter in method.parameters.all%}
      * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
-{% endfor %}
+    {%- endfor %}
      * @throws {AppwriteException}
      * @returns {Promise}
      */
     async {{ method.name | caseCamel }}{% if generics %}<{{generics}}>{% endif %}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | typeName }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): Promise<{% if method.type == 'webAuth' %}string{% elseif method.type == 'location' %}ArrayBuffer{% else %}{% if method.responseModel and method.responseModel != 'any' %}{% if not spec.definitions[method.responseModel].additionalProperties %}Models.{% endif %}{{method.responseModel | caseUcfirst}}{% if generics_return %}<{{generics_return}}>{% endif %}{% else %}Response{% endif %}{% endif %}> {
-{% for parameter in method.parameters.all %}
-{% if parameter.required %}
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.required %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
             throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
         }
 
-{% endif %}
-{% endfor %}
+        {%~ endif %}
+        {%- endfor %}
         const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-        const payload: Payload = {};
+        const payload: Params = {};
 
-{% for parameter in method.parameters.query %}
+        {%~ for parameter in method.parameters.query %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
             payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" and parameter.type != "file" ) %}.toString(){% endif %};
         }
 
-{% endfor %}
-{% for parameter in method.parameters.body %}
+        {%~ endfor %}
+        {%~ for parameter in method.parameters.body %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
             payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" and parameter.type != "file" ) %}.toString(){% endif %};
         }
-{% endfor %}
-{% if 'multipart/form-data' in method.consumes %}
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
+        {%~ endfor %}
+        {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.type == 'file' %}
 
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
         
         const apiHeaders: { [header: string]: string } = {
-{% for parameter in method.parameters.header %}
+            {%~ for parameter in method.parameters.header %}
             '{{ parameter.name }}': ${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
+            {%- endfor %}
+            {%~ for key, header in method.headers %}
             '{{ key }}': '{{ header }}',
-{% endfor %}
+            {%- endfor %}
         };
 
         let id: string | undefined = undefined;
@@ -123,8 +123,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
         let chunksUploaded = 0;
 
-{% for parameter in method.parameters.all %}
-{% if parameter.isUploadID %}
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.isUploadID %}
         if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
                 response = await this.client.call(
@@ -136,8 +136,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
             } catch(e) {
             }
         }
-{% endif %}
-{% endfor %}
+        {%- endif %}
+        {%- endfor %}
 
         let currentChunk = 1;
         let currentPosition = 0;
@@ -174,7 +174,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 apiHeaders['x-{{spec.title | caseLower }}-id'] = id;
             }
 
-            payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.filename), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename };
+            payload['{{ parameter.name }}'] = { type: 'file', file: new File([uploadableChunkTrimmed], {{ parameter.name | caseCamel | escapeKeyword }}.filename ?? ''), filename: {{ parameter.name | caseCamel | escapeKeyword }}.filename ?? '' };
 
             response = await this.client.call('{{ method.method | caseLower }}', apiPath, apiHeaders, payload{% if method.type == 'location' %}, 'arraybuffer'{% elseif method.type == 'webAuth' %}, 'location'{% endif %});
 
@@ -197,27 +197,26 @@ export class {{ service.name | caseUcfirst }} extends Service {
             currentChunk++;
         }
 
-        for await (const chunk of {{ parameter.name | caseCamel | escapeKeyword }}.stream) {
-            let i = 0;
-            for(const b of chunk) {
-                uploadableChunk[currentPosition] = chunk[i];
+        const chunk = {{ parameter.name | caseCamel | escapeKeyword }}.toBinary();
+        let i = 0;
+        for(const _ of chunk) {
+            uploadableChunk[currentPosition] = chunk[i];
 
-                if(currentPosition + 1 >= Client.CHUNK_SIZE) {
-                    await uploadChunk();
-                    currentPosition--;
-                }
-
-                i++;
-                currentPosition++;
+            if(currentPosition + 1 >= Client.CHUNK_SIZE) {
+                await uploadChunk();
+                currentPosition--;
             }
+
+            i++;
+            currentPosition++;
         }
 
         await uploadChunk(true);
 
         return response;
-{% endif %}
-{% endfor %}
-{% else %}
+        {%- endif %}
+        {%- endfor %}
+        {%~ else %}
         return await this.client.call(
             '{{ method.method | caseLower }}',
             apiPath,
@@ -238,7 +237,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
             'json'
             {%~ endif %}
         );
-{% endif %}
+        {%- endif %}
     }
-{% endfor %}
+    {%- endfor %}
 }

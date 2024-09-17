@@ -84,7 +84,9 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
                     return@forEach
                 }
                 is List<*> -> {
-                    apiQuery.add("${it.key}[]=${it.value.toString()}")
+                    (it.value as List<*>).forEach { v ->
+                        apiQuery.add("${it.key}[]=${v.toString()}")
+                    }
                 }
                 else -> {
                    apiQuery.add("${it.key}=${it.value.toString()}")
