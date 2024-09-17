@@ -116,7 +116,8 @@ class Kotlin extends Language
             self::TYPE_INTEGER => 'Long',
             self::TYPE_NUMBER => 'Double',
             self::TYPE_STRING => 'String',
-            self::TYPE_FILE => 'InputFile',
+            self::TYPE_PAYLOAD,
+            self::TYPE_FILE => 'Payload',
             self::TYPE_BOOLEAN => 'Boolean',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? 'List<' . $this->getTypeName($parameter['array']) . '>'
@@ -132,9 +133,9 @@ class Kotlin extends Language
      */
     public function getParamDefault(array $param): string
     {
-        $type       = $param['type'] ?? '';
-        $default    = $param['default'] ?? '';
-        $required   = $param['required'] ?? '';
+        $type = $param['type'] ?? '';
+        $default = $param['default'] ?? '';
+        $required = $param['required'] ?? '';
 
         if ($required) {
             return '';
@@ -191,15 +192,18 @@ class Kotlin extends Language
      */
     public function getParamExample(array $param): string
     {
-        $type       = $param['type'] ?? '';
-        $example    = $param['example'] ?? '';
+        $type = $param['type'] ?? '';
+        $example = $param['example'] ?? '';
 
         $output = '';
 
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.fromJson(mapOf("x" to "y" as Any))';
+                    break;
                 case self::TYPE_FILE:
-                    $output .= 'InputFile.fromPath("file.png")';
+                    $output .= 'Payload.fromFile("/path/to/file.png")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -240,8 +244,14 @@ class Kotlin extends Language
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.fromJson(mapOf("x" to "y" as Any))';
+                    break;
+                case self::TYPE_FILE:
+                    $output .= 'Payload.fromFile("/path/to/file.png")';
+                    break;
                 case self::TYPE_STRING:
-                    $output .= "\"{$example}\"";
+                    $output .= '"{$example}"';
                     break;
             }
         }
@@ -257,165 +267,165 @@ class Kotlin extends Language
         return [
             // Config for root project
             [
-                'scope'         => 'copy',
-                'destination'   => '.github/workflows/publish.yml',
-                'template'      => '/kotlin/.github/workflows/publish.yml',
+                'scope' => 'copy',
+                'destination' => '.github/workflows/publish.yml',
+                'template' => '/kotlin/.github/workflows/publish.yml',
             ],
             [
-                'scope'         => 'method',
-                'destination'   => 'docs/examples/kotlin/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => '/kotlin/docs/kotlin/example.md.twig',
+                'scope' => 'method',
+                'destination' => 'docs/examples/kotlin/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template' => '/kotlin/docs/kotlin/example.md.twig',
             ],
             [
-                'scope'         => 'method',
-                'destination'   => 'docs/examples/java/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
-                'template'      => '/kotlin/docs/java/example.md.twig',
+                'scope' => 'method',
+                'destination' => 'docs/examples/java/{{service.name | caseLower}}/{{method.name | caseDash}}.md',
+                'template' => '/kotlin/docs/java/example.md.twig',
             ],
             [
-                'scope'         => 'copy',
-                'destination'   => 'gradle/wrapper/gradle-wrapper.jar',
-                'template'      => 'kotlin/gradle/wrapper/gradle-wrapper.jar',
+                'scope' => 'copy',
+                'destination' => 'gradle/wrapper/gradle-wrapper.jar',
+                'template' => 'kotlin/gradle/wrapper/gradle-wrapper.jar',
             ],
             [
-                'scope'         => 'copy',
-                'destination'   => 'gradle/wrapper/gradle-wrapper.properties',
-                'template'      => '/kotlin/gradle/wrapper/gradle-wrapper.properties',
+                'scope' => 'copy',
+                'destination' => 'gradle/wrapper/gradle-wrapper.properties',
+                'template' => '/kotlin/gradle/wrapper/gradle-wrapper.properties',
             ],
             [
-                'scope'         => 'copy',
-                'destination'   => 'scripts/configure.gradle',
-                'template'      => '/kotlin/scripts/configure.gradle',
+                'scope' => 'copy',
+                'destination' => 'scripts/configure.gradle',
+                'template' => '/kotlin/scripts/configure.gradle',
             ],
             [
-                'scope'         => 'copy',
-                'destination'   => 'scripts/publish.gradle',
-                'template'      => '/kotlin/scripts/publish.gradle',
+                'scope' => 'copy',
+                'destination' => 'scripts/publish.gradle',
+                'template' => '/kotlin/scripts/publish.gradle',
             ],
             [
-                'scope'         => 'copy',
-                'destination'   => 'scripts/setup.gradle',
-                'template'      => '/kotlin/scripts/setup.gradle',
+                'scope' => 'copy',
+                'destination' => 'scripts/setup.gradle',
+                'template' => '/kotlin/scripts/setup.gradle',
             ],
             [
-                'scope'         => 'copy',
-                'destination'   => '.gitignore',
-                'template'      => '/kotlin/.gitignore',
+                'scope' => 'copy',
+                'destination' => '.gitignore',
+                'template' => '/kotlin/.gitignore',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'build.gradle',
-                'template'      => '/kotlin/build.gradle.twig',
+                'scope' => 'default',
+                'destination' => 'build.gradle',
+                'template' => '/kotlin/build.gradle.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'CHANGELOG.md',
-                'template'      => '/kotlin/CHANGELOG.md.twig',
+                'scope' => 'default',
+                'destination' => 'CHANGELOG.md',
+                'template' => '/kotlin/CHANGELOG.md.twig',
             ],
             [
-                'scope'         => 'copy',
-                'destination'   => 'gradle.properties',
-                'template'      => '/kotlin/gradle.properties',
+                'scope' => 'copy',
+                'destination' => 'gradle.properties',
+                'template' => '/kotlin/gradle.properties',
             ],
             [
-                'scope'         => 'copy',
-                'destination'   => 'gradlew',
-                'template'      => '/kotlin/gradlew',
+                'scope' => 'copy',
+                'destination' => 'gradlew',
+                'template' => '/kotlin/gradlew',
             ],
             [
-                'scope'         => 'copy',
-                'destination'   => 'gradlew.bat',
-                'template'      => '/kotlin/gradlew.bat',
+                'scope' => 'copy',
+                'destination' => 'gradlew.bat',
+                'template' => '/kotlin/gradlew.bat',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'LICENSE.md',
-                'template'      => '/kotlin/LICENSE.md.twig',
+                'scope' => 'default',
+                'destination' => 'LICENSE.md',
+                'template' => '/kotlin/LICENSE.md.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'README.md',
-                'template'      => '/kotlin/README.md.twig',
+                'scope' => 'default',
+                'destination' => 'README.md',
+                'template' => '/kotlin/README.md.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'settings.gradle',
-                'template'      => '/kotlin/settings.gradle.twig',
+                'scope' => 'default',
+                'destination' => 'settings.gradle',
+                'template' => '/kotlin/settings.gradle.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Client.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Client.kt.twig',
+                'scope' => 'default',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Client.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/Client.kt.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Permission.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Permission.kt.twig',
+                'scope' => 'default',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Permission.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/Permission.kt.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Role.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Role.kt.twig',
+                'scope' => 'default',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Role.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/Role.kt.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/ID.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/ID.kt.twig',
+                'scope' => 'default',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/ID.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/ID.kt.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Query.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Query.kt.twig',
+                'scope' => 'default',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Query.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/Query.kt.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/coroutines/Callback.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/coroutines/Callback.kt.twig',
+                'scope' => 'default',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/coroutines/Callback.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/coroutines/Callback.kt.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.title | caseUcfirst}}Exception.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/exceptions/Exception.kt.twig',
+                'scope' => 'default',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/exceptions/{{spec.title | caseUcfirst}}Exception.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/exceptions/Exception.kt.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/JsonExtensions.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/extensions/JsonExtensions.kt.twig',
+                'scope' => 'default',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/JsonExtensions.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/extensions/JsonExtensions.kt.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/TypeExtensions.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/extensions/TypeExtensions.kt.twig',
-                'minify'        => false,
+                'scope' => 'default',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/extensions/TypeExtensions.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/extensions/TypeExtensions.kt.twig',
+                'minify' => false,
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/Service.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/Service.kt.twig',
+                'scope' => 'default',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/Service.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/services/Service.kt.twig',
             ],
             [
-                'scope'         => 'service',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/services/ServiceTemplate.kt.twig',
+                'scope' => 'service',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/services/ServiceTemplate.kt.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/InputFile.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/InputFile.kt.twig',
+                'scope' => 'default',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/Payload.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/models/Payload.kt.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/UploadProgress.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/UploadProgress.kt.twig',
+                'scope' => 'default',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/UploadProgress.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/models/UploadProgress.kt.twig',
             ],
             [
-                'scope'         => 'definition',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ definition.name | caseUcfirst }}.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/models/Model.kt.twig',
+                'scope' => 'definition',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/models/{{ definition.name | caseUcfirst }}.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/models/Model.kt.twig',
             ],
             [
-                'scope'         => 'enum',
-                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/enums/{{ enum.name | caseUcfirst }}.kt',
-                'template'      => '/kotlin/src/main/kotlin/io/appwrite/enums/Enum.kt.twig',
+                'scope' => 'enum',
+                'destination' => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/enums/{{ enum.name | caseUcfirst }}.kt',
+                'template' => '/kotlin/src/main/kotlin/io/appwrite/enums/Enum.kt.twig',
             ],
         ];
     }
