@@ -30,7 +30,6 @@ class Node extends Web
                 }
                 return 'string[]';
             case self::TYPE_FILE:
-                return 'Payload';
             case self::TYPE_PAYLOAD:
                 return 'Payload';
             case self::TYPE_OBJECT:
