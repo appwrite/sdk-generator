@@ -573,7 +573,7 @@ class Client {
 
                     for (const [name, value] of Object.entries(params)) {
                         if (value instanceof Payload) {
-                            formData.append(name, await value.toFile(), value.filename);
+                            formData.append(name, await value.toFile(), value.getFileName());
                         } else if (Array.isArray(value)) {
                             for (const nestedValue of value) {
                                 formData.append(`${name}[]`, nestedValue);
@@ -614,7 +614,7 @@ class Client {
             headers['content-range'] = `bytes ${start}-${end-1}/${payload.size}`;
 
             const buffer = await payload.toBinary(start, end - start);
-            params[paramName] = Payload.fromBinary(buffer, payload.filename);
+            params[paramName] = Payload.fromBinary(buffer, payload.getFileName());
 
             response = await this.call(method, url, headers, params);
 
@@ -645,15 +645,15 @@ class Client {
 
         const response = await fetch(uri, options);
 
-        const warnings = response.headers.get('x-appwrite-warning');
+        const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
         if (warnings) {
             warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
         }
 
-        if (response.headers.get('content-type')?.startsWith('application/json')) {
+        if (response.headers.get('content-type')?.includes('application/json')) {
             data = await response.json();
 
-        } else if (response.headers.get('content-type')?.startsWith('multipart/form-data')) {
+        } else if (response.headers.get('content-type')?.includes('multipart/form-data')) {
             const buffer = await response.arrayBuffer();
             const multipart = new MultipartParser(buffer, response.headers.get('content-type')!);
             data = multipart.toObject();

@@ -156,7 +156,7 @@ class Web extends JS
                     $output .= '{}';
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'Payload.fromJson({"x": "y"})';
+                    $output .= 'Payload.fromJson({ x: "y" })';
                     break;
                 case self::TYPE_FILE:
                     $output .= "Payload.fromFile(document.getElementById('uploader').files[0])";
@@ -177,7 +177,7 @@ class Web extends JS
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'Payload.fromJson({"x": "y"})';
+                    $output .= 'Payload.fromJson({ x: "y" })';
                     break;
                 case self::TYPE_FILE:
                     $output .= "Payload.fromFile(document.getElementById('uploader').files[0])";

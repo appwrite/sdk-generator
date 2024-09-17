@@ -179,9 +179,8 @@ class Client {
                     const formData = new FormData();
 
                     for (const [key, value] of Object.entries(params)) {
-                        if (value && typeof value === 'object' && 
-                        value.constructor.name === 'Payload') {
-                            formData.append(key, new Blob([value.getData()]), value.getFileName());
+                        if (value instanceof Payload) {
+                            formData.append(key, new Blob([value.toBiary()]), value.getFileName());
                         } else if (Array.isArray(value)) {
                             for (const nestedValue of value) {
                                 formData.append(`${key}[]`, nestedValue);
@@ -204,8 +203,7 @@ class Client {
     async chunkedUpload(method: string, url: URL, headers: Headers = {}, originalPayload: Params = {}, onProgress: (progress: UploadProgress) => void) {
         let file;
         for (const value of Object.values(originalPayload)) {
-            if (value && typeof value === 'object' && 
-                value.constructor.name === 'Payload') {
+            if (value instanceof Payload) {
                 file = value;
                 break;
             }
