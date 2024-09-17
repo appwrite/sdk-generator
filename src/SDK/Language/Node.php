@@ -30,7 +30,8 @@ class Node extends Web
                 }
                 return 'string[]';
             case self::TYPE_FILE:
-                return "File";
+            case self::TYPE_PAYLOAD:
+                return 'Payload';
             case self::TYPE_OBJECT:
                 if (empty($method)) {
                     return $parameter['type'];
@@ -79,7 +80,7 @@ class Node extends Web
             $this->populateGenerics($method['responseModel'], $spec, $models);
 
             $models = array_unique($models);
-            $models = array_filter($models, fn ($model) => $model != $this->toPascalCase($method['responseModel']));
+            $models = array_filter($models, fn($model) => $model != $this->toPascalCase($method['responseModel']));
 
             if (!empty($models)) {
                 $ret .= '<' . implode(', ', $models) . '>';
@@ -92,7 +93,7 @@ class Node extends Web
         return 'Promise<{}>';
     }
 
-        /**
+    /**
      * @param array $param
      * @return string
      */
@@ -120,7 +121,7 @@ class Node extends Web
                     $output .= '{}';
                     break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.fromPath('/path/to/file', 'filename')";
+                    $output .= "Payload.fromBinary(fs.readFileSync('/path/to/file'))";
                     break;
             }
         } else {
@@ -138,7 +139,7 @@ class Node extends Web
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.fromPath('/path/to/file', 'filename')";
+                    $output .= "Payload.fromBinary(fs.readFileSync('/path/to/file'))";
                     break;
             }
         }
@@ -164,8 +165,8 @@ class Node extends Web
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/inputFile.ts',
-                'template'      => 'node/src/inputFile.ts.twig',
+                'destination'   => 'src/payload.ts',
+                'template'      => 'node/src/payload.ts.twig',
             ],
             [
                 'scope'         => 'service',
