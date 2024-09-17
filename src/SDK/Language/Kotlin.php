@@ -200,10 +200,10 @@ class Kotlin extends Language
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_PAYLOAD:
-                    $output .= 'payload.fromString("<BODY>")';
+                    $output .= 'Payload.fromJson(mapOf("x" to "y" as Any))';
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'Payload.fromFile("file.png")';
+                    $output .= 'Payload.fromFile("/path/to/file.png")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -245,7 +245,10 @@ class Kotlin extends Language
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'Payload.fromString("<BODY>")';
+                    $output .= 'Payload.fromJson(mapOf("x" to "y" as Any))';
+                    break;
+                case self::TYPE_FILE:
+                    $output .= 'Payload.fromFile("/path/to/file.png")';
                     break;
                 case self::TYPE_STRING:
                     $output .= '"{$example}"';

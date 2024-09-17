@@ -550,7 +550,6 @@ class Client @JvmOverloads constructor(
                         return
                     }
                 }
-                println(response.headers["content-type"])
                 if (response.headers["content-type"]?.contains("multipart/form-data") == true) {
                     val binaryBody = response.body!!.bytes()
                     val body = String(binaryBody)
