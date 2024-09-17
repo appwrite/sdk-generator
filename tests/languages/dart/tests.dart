@@ -4,6 +4,9 @@ import '../lib/enums.dart';
 import '../lib/payload.dart';
 
 import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:crypto/crypto.dart';
 
 void main() async {
   Client client = Client().setSelfSigned();
@@ -112,6 +115,13 @@ void main() async {
       failure: 'https://localhost'
   );
   print(url);
+
+  // Multipart tests
+  Multipart responseMultipart;
+  responseMultipart = await general.multipart();
+  print(responseMultipart.x);
+  final hash = md5.convert(responseMultipart.responseBody.toBinary()).toString();
+  print(hash);
 
   // Query helper tests
   print(Query.equal('released', [true]));
