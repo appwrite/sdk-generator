@@ -573,7 +573,7 @@ class Client {
 
                     for (const [name, value] of Object.entries(params)) {
                         if (value instanceof Payload) {
-                            formData.append(name, await value.toFile(), value.getFileName());
+                            formData.append(name, await value.toFile(), value.filename);
                         } else if (Array.isArray(value)) {
                             for (const nestedValue of value) {
                                 formData.append(`${name}[]`, nestedValue);
@@ -614,7 +614,7 @@ class Client {
             headers['content-range'] = `bytes ${start}-${end-1}/${payload.size}`;
 
             const buffer = await payload.toBinary(start, end - start);
-            params[paramName] = Payload.fromBinary(buffer, payload.getFileName());
+            params[paramName] = Payload.fromBinary(buffer, payload.filename);
 
             response = await this.call(method, url, headers, params);
 

@@ -1,17 +1,13 @@
 export class Payload {
-    public fileName?: string;
+    public filename?: string;
     public size: number;
 
     private data: Blob;
 
-    constructor(data: Blob, fileName?: string) {
+    constructor(data: Blob, filename?: string) {
         this.data = data;
-        this.fileName = fileName;
+        this.filename = filename;
         this.size = data.size;
-    }
-
-    public getFileName(): string | undefined {
-        return this.fileName;
     }
 
     public async toString(): Promise<string> {
@@ -27,26 +23,26 @@ export class Payload {
         return await this.data.slice(offset, end).arrayBuffer();
     }
 
-    public async toFile(fileName?: string): Promise<Blob> {
+    public async toFile(filename?: string): Promise<Blob> {
         return this.data;
     }
 
-    public static fromFile(file: File | Blob, fileName?: string): Payload {
-        if (file instanceof File && !fileName) {
-            fileName = file.name;
+    public static fromFile(file: File | Blob, filename?: string): Payload {
+        if (file instanceof File && !filename) {
+            filename = file.name;
         }
-        return new Payload(file, fileName);
+        return new Payload(file, filename);
     }
 
-    public static fromString(data: string, fileName?: string): Payload {
-        return new Payload(new Blob([data]), fileName);
+    public static fromString(data: string, filename?: string): Payload {
+        return new Payload(new Blob([data]), filename);
     }
 
-    public static fromJson<T = unknown>(data: T, fileName?: string): Payload {
-        return new Payload(new Blob([JSON.stringify(data)]), fileName);
+    public static fromJson<T = unknown>(data: T, filename?: string): Payload {
+        return new Payload(new Blob([JSON.stringify(data)]), filename);
     }
 
-    public static fromBinary(data: ArrayBuffer, fileName?: string): Payload {
-        return new Payload(new Blob([data]), fileName);
+    public static fromBinary(data: ArrayBuffer, filename?: string): Payload {
+        return new Payload(new Blob([data]), filename);
     }
 }

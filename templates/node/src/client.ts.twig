@@ -180,7 +180,7 @@ class Client {
 
                     for (const [key, value] of Object.entries(params)) {
                         if (value instanceof Payload) {
-                            formData.append(key, new Blob([value.toBinary()]), value.getFileName());
+                            formData.append(key, new Blob([value.toBinary()]), value.filename);
                         } else if (Array.isArray(value)) {
                             for (const nestedValue of value) {
                                 formData.append(`${key}[]`, nestedValue);
@@ -229,7 +229,7 @@ class Client {
             headers['content-range'] = `bytes ${start}-${end-1}/${file.size}`;
             const chunk = file.toBinary(start, end - start);
 
-            let payload = { ...originalPayload, file: new Payload(Buffer.from(chunk), file.getFileName())};
+            let payload = { ...originalPayload, file: new Payload(Buffer.from(chunk), file.filename)};
 
             response = await this.call(method, url, headers, payload);
 
