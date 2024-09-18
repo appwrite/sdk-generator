@@ -97,11 +97,6 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/src/payload_io.dart',
-                'template'      => 'dart/lib/src/payload_io.dart.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'flutter/README.md.twig',
             ],

@@ -497,11 +497,6 @@ class Dart extends Language
                 'template'      => 'dart/lib/payload.dart.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'lib/src/payload_io.dart',
-                'template'      => 'dart/lib/src/payload_io.dart.twig',
-            ],
-            [
                 'scope'         => 'enum',
                 'destination'   => 'lib/src/enums/{{ enum.name | caseSnake }}.dart',
                 'template'      => 'dart/lib/src/enums/enum.dart.twig',
