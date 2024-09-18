@@ -194,11 +194,6 @@ class Swift extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Extensions/String+MimeTypes.swift',
-                'template'      => 'swift/Sources/Extensions/String+MimeTypes.swift.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/StreamingDelegate.swift',
                 'template'      => 'swift/Sources/StreamingDelegate.swift.twig',
             ],
@@ -398,7 +393,9 @@ class Swift extends Language
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'Payload.fromPath("file.png")';
+                    $output .= 'Payload.fromFile("/path/to/file.png")';
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.fromString("<BODY>")'; // TODO: Update to fromJson()
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:

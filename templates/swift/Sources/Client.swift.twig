@@ -386,7 +386,7 @@ open class Client {
         onProgress: ((UploadProgress) -> Void)? = nil
     ) async throws -> T {
         let payload = params[paramName] as! Payload
-        let buffer = try payload.toByteBuffer()
+        let buffer = try payload.toBinary()
         let size = buffer.readableBytes
 
         if size < Client.chunkSize {
@@ -424,10 +424,9 @@ open class Client {
             let slice = buffer.getSlice(at: offset, length: Client.chunkSize)
                 ?? buffer.getSlice(at: offset, length: Int(size - offset))
 
-            params[paramName] = Payload.fromBuffer(
+            params[paramName] = Payload.fromBinary(
                 slice!,
-                filename: payload.filename ?? "",
-                mimeType: payload.mimeType ?? ""
+                filename: payload.filename ?? ""
             )
 
             headers["content-range"] = "bytes \(offset)-\(min((offset + Client.chunkSize) - 1, size - 1))/\(size)"

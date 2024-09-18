@@ -110,8 +110,7 @@ extension ExampleView {
 
             let file = Payload.fromData(
                 image.data,
-                filename: fileName,
-                mimeType: mime
+                filename: fileName
             )
 
             do {

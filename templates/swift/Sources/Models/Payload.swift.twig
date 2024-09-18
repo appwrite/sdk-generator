@@ -11,43 +11,43 @@ open class Payload {
 
     public var path: String? = nil
     public var filename: String? = nil
-    public var mimeType: String? = nil
     public var data: Any? = nil
 
     internal init() {}
 
-    public static func fromPath(_ path: String) throws -> Payload {
+    public static func fromFile(_ path: String, filename: String? = "") throws -> Payload {
         let instance = Payload()
         instance.path = path
-        instance.filename = URL(fileURLWithPath: path, isDirectory: false).lastPathComponent
-        instance.mimeType = path.mimeType()
+        instance.filename = filename
+        if instance.filename == "" {
+            instance.filename = URL(fileURLWithPath: path, isDirectory: false).lastPathComponent
+        }
         instance.data = ByteBuffer(data: try Data(contentsOf: URL(fileURLWithPath: path)))
         return instance
     }
 
-    public static func fromData(_ data: Data, filename: String, mimeType: String) -> Payload {
+    public static func fromData(_ data: Data, filename: String? = "") -> Payload {
         let instance = Payload()
         instance.filename = filename
-        instance.mimeType = mimeType
         instance.data = data
         return instance
     }
 
-    public static func fromBuffer(_ buffer: ByteBuffer, filename: String, mimeType: String) -> Payload {
+    public static func fromBinary(_ buffer: ByteBuffer, filename: String? = "") -> Payload {
         let instance = Payload()
         instance.filename = filename
-        instance.mimeType = mimeType
         instance.data = buffer
         return instance
     }
 
-    public static func fromString(_ data: String) -> Payload {
+    public static func fromString(_ data: String, filename: String? = "") -> Payload {
         let instance = Payload()
+        instance.filename = filename
         instance.data = data
         return instance
     }
 
-    public static func fromJson(_ data: [String: Any?]) throws -> Payload {
+    public static func fromJson(_ data: [String: Any?], filename: String? = "") throws -> Payload {
         let instance = Payload()
         let string = try JSONSerialization.data(withJSONObject: data)
         let json = String(data: string, encoding: .utf8)
@@ -63,11 +63,11 @@ open class Payload {
         return try convertDataTo(Data.self)
     }
 
-    public func toByteBuffer() throws -> ByteBuffer {
+    public func toBinary() throws -> ByteBuffer {
         return try convertDataTo(ByteBuffer.self)
     }
 
-    public func toMap() throws -> [String: Any?] {
+    public func toJson() throws -> [String: Any?] {
         guard let stringData = try? toData() else {
             throw Error.invalidType("Payload can not be converted to a map")
         }

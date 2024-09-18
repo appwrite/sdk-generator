@@ -7,6 +7,7 @@ import Appwrite
 import AppwriteEnums
 import AsyncHTTPClient
 import NIO
+import CryptoKit
 
 class Tests: XCTestCase {
 
@@ -80,7 +81,7 @@ class Tests: XCTestCase {
         print((result as! [String: Any])["result"] as! String)
 
         do {
-            var file = try Payload.fromPath("\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
+            var file = try Payload.fromFile("\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
             mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
             print(mock.result)
         } catch {
@@ -88,7 +89,7 @@ class Tests: XCTestCase {
         }
 
         do {
-            var file = try Payload.fromPath("\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
+            var file = try Payload.fromFile("\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
             mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
             print(mock.result)
         } catch {
@@ -98,7 +99,7 @@ class Tests: XCTestCase {
         do {
             var url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/file.png")
             var buffer = ByteBuffer(data: try! Data(contentsOf: url))
-            var file = Payload.fromBuffer(buffer, filename: "file.png", mimeType: "image/png")
+            var file = Payload.fromBinary(buffer, filename: "file.png")
             mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
             print(mock.result)
         } catch {
@@ -108,7 +109,7 @@ class Tests: XCTestCase {
         do {
             var url = URL(fileURLWithPath: "\(FileManager.default.currentDirectoryPath)/../../resources/large_file.mp4")
             var buffer = ByteBuffer(data: try! Data(contentsOf: url))
-            var file = Payload.fromBuffer(buffer, filename: "large_file.mp4", mimeType: "video/mp4")
+            var file = Payload.fromBinary(buffer, filename: "large_file.mp4")
             mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
             print(mock.result)
         } catch {
@@ -146,6 +147,18 @@ class Tests: XCTestCase {
         print(mock.result)
 
         try! await general.empty()
+
+        // Multipart tests
+        do {
+            var response = try await general.multipart()
+            print(response.x)
+            let data = Data(response.responseBody.toBinary())
+            let hash = Insecure.MD5.hash(data: data)
+            let hexHash = hashed.map { String(format: "%02hhx", $0) }.joined()
+            print(hexHash)
+        } catch {
+            print(error.localizedDescription)
+        }
 
         // Query helper tests
         print(Query.equal("released", value: [true]))

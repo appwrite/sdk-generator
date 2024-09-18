@@ -97,11 +97,6 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Extensions/String+MimeTypes.swift',
-                'template'      => 'swift/Sources/Extensions/String+MimeTypes.swift.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/StreamingDelegate.swift',
                 'template'      => 'swift/Sources/StreamingDelegate.swift.twig',
             ],
