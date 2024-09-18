@@ -6,6 +6,7 @@ import FoundationNetworking
 import Appwrite
 import AsyncHTTPClient
 import NIO
+import CryptoKit
 
 class Tests: XCTestCase {
 
@@ -136,6 +137,18 @@ class Tests: XCTestCase {
             failure: "https://localhost"
         )
         print(url!)
+
+        // Multipart tests
+        do {
+            var response = try await general.multipart()
+            print(response.x)
+            let data = Data(response.responseBody.toBinary())
+            let hash = Insecure.MD5.hash(data: data)
+            let hexHash = hashed.map { String(format: "%02hhx", $0) }.joined()
+            print(hexHash)
+        } catch {
+            print(error.localizedDescription)
+        }
 
         // Query helper tests
         print(Query.equal("released", value: [true]))
