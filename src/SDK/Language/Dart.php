@@ -232,7 +232,7 @@ class Dart extends Language
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= "Payload.fromFile(path: '../../resources/file.png')";
+                    $output .= "Payload.fromFile(path: '/path/to/file.png')";
                     break;
                 case self::TYPE_PAYLOAD:
                     $output .= "Payload.fromJson({ 'x': 'y' })";
