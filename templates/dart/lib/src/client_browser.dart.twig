@@ -129,7 +129,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
     while (offset < size) {
       List<int> chunk = [];
       final end = min(offset + CHUNK_SIZE, size);
-      chunk = file.fromBinary(length: offset, length: min(CHUNK_SIZE, size - offset));
+      chunk = file.toBinary(length: offset, length: min(CHUNK_SIZE, size - offset));
       params[paramName] =
           http.MultipartFile.fromBytes(paramName, chunk, filename: file.filename);
       headers['content-range'] =

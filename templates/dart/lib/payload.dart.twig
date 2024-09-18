@@ -5,9 +5,8 @@ class Payload {
   late final String? path;
   late final List<int>? data;
   final String? filename;
-  final String? contentType;
 
-  Payload._({this.path, this.filename, this.contentType, this.data}) {
+  Payload._({this.path, this.filename, this.data}) {
     if (path == null && data == null) {
       throw {{spec.title | caseUcfirst}}Exception('One of `path` or `data` is required');
     }
@@ -58,8 +57,8 @@ class Payload {
   }
 
   // Create a Payload from a file
-  factory Payload.fromFile({required String path, String? filename, String? contentType}) {
-    return Payload._(path: path, filename: filename, contentType: contentType);
+  factory Payload.fromFile({required String path, String? filename}) {
+    return Payload._(path: path, filename: filename);
   }
 
   // Create a Payload from a JSON object
@@ -72,8 +71,8 @@ class Payload {
   }
 
   // Create a Payload from a string
-  factory Payload.fromString(String string, {String? filename, String? contentType}) {
+  factory Payload.fromString({required String string, String? filename}) {
     final data = utf8.encode(string);
-    return Payload._(data: data, filename: filename, contentType: contentType);
+    return Payload._(data: data, filename: filename);
   }
 }
