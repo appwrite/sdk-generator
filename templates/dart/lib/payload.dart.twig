@@ -67,7 +67,7 @@ class Payload {
     String? filename,
   }) {
     final jsonString = jsonEncode(data);
-    return Payload.fromString(jsonString, filename: filename);
+    return Payload.fromString(string: jsonString, filename: filename);
   }
 
   // Create a Payload from a string
