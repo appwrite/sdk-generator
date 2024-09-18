@@ -232,7 +232,7 @@ class Dart extends Language
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= "Payload.fromFile('../../resources/file.png')";
+                    $output .= "Payload.fromFile(path: '../../resources/file.png')";
                     break;
                 case self::TYPE_PAYLOAD:
                     $output .= "Payload.fromJson({ 'x': 'y' })";
@@ -495,6 +495,11 @@ class Dart extends Language
                 'scope'         => 'default',
                 'destination'   => 'lib/payload.dart',
                 'template'      => 'dart/lib/payload.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/src/payload_io.dart',
+                'template'      => 'dart/lib/src/payload_io.dart.twig',
             ],
             [
                 'scope'         => 'enum',
