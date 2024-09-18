@@ -119,7 +119,7 @@ class ClientIO extends ClientBase with ClientMixin {
     late Response res;
     if (size <= CHUNK_SIZE) {
       if (file.path != null) {
-        params[paramName] = await http.MultipartFile.fromFile(
+        params[paramName] = await http.MultipartFile.fromPath(
             paramName, file.path!,
             filename: file.filename);
       } else {
