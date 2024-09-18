@@ -63,7 +63,8 @@ let package = Package(
         .testTarget(
             name: "{{spec.title | caseUcfirst}}Tests",
             dependencies: [
-                "{{ spec.title | caseUcfirst }}"
+                "{{ spec.title | caseUcfirst }}",
+                "swift-crypto"
             ]
         )
     ],

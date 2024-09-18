@@ -394,6 +394,7 @@ class Swift extends Language
             switch ($type) {
                 case self::TYPE_FILE:
                     $output .= 'Payload.fromFile("/path/to/file.png")';
+                    break;
                 case self::TYPE_PAYLOAD:
                     $output .= 'Payload.fromString("<BODY>")'; // TODO: Update to fromJson()
                     break;
