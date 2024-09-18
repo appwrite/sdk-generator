@@ -1,8 +1,6 @@
 /// {{spec.title | caseUcfirst}} Models
 library {{ language.params.packageName }}.models;
 
-import 'payload.dart';
-
 part 'src/models/model.dart';
 {% for definition in spec.definitions %}
 part 'src/models/{{definition.name | caseSnake}}.dart';
