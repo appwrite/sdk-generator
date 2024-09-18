@@ -8,44 +8,20 @@ import 'package:{{language.params.packageName}}/payload.dart';
 
 void main() {
   group('Payload', () {
-    test('throws exception when neither path nor bytes are provided', () {
-      expect(
-        () => Payload(),
-        throwsA(isA<{{spec.title | caseUcfirst}}Exception>().having(
-          (e) => e.message,
-          'message',
-          'One of `path` or `bytes` is required',
-        )),
-      );
-    });
-
-    test('throws exception when path and bytes are both null', () {
-      expect(
-        () => Payload(path: null, bytes: null),
-        throwsA(isA<{{spec.title | caseUcfirst}}Exception>().having(
-          (e) => e.message,
-          'message',
-          'One of `path` or `bytes` is required',
-        )),
-      );
-    });
-
     test('creates Payload from path', () {
-      final payload = Payload.fromPath(path: '/path/to/file');
+      final payload = Payload.fromFile(path: '/path/to/file');
 
       expect(payload.path, '/path/to/file');
       expect(payload.filename, isNull);
-      expect(payload.contentType, isNull);
-      expect(payload.bytes, isNull);
+      expect(payload.data, isNull);
     });
 
-    test('creates Payload from bytes', () {
-      final payload = Payload.fromBytes(bytes: [1, 2, 3], filename: 'file.txt');
+    test('creates Payload from binary', () {
+      final payload = Payload.fromBinary(data: [1, 2, 3], filename: 'file.txt');
 
       expect(payload.path, isNull);
       expect(payload.filename, 'file.txt');
-      expect(payload.contentType, isNull);
-      expect(payload.bytes, [1, 2, 3]);
+      expect(payload.data, [1, 2, 3]);
     });
   });
 }
