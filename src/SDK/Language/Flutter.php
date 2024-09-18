@@ -97,6 +97,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/src/payload_io.dart',
+                'template'      => 'dart/lib/src/payload_io.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'README.md',
                 'template'      => 'flutter/README.md.twig',
             ],
@@ -143,12 +148,12 @@ class Flutter extends Dart
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/client_mixin.dart',
-                'template'      => 'flutter/lib/src/client_mixin.dart.twig',
+                'template'      => 'dart/lib/src/client_mixin.dart.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/client_stub.dart',
-                'template'      => 'flutter/lib/src/client_stub.dart.twig',
+                'template'      => 'dart/lib/src/client_stub.dart.twig',
             ],
             [
                 'scope'         => 'default',
@@ -218,12 +223,12 @@ class Flutter extends Dart
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/client_io.dart',
-                'template'      => 'flutter/lib/client_io.dart.twig',
+                'template'      => 'dart/lib/client_io.dart.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/client_browser.dart',
-                'template'      => 'flutter/lib/client_browser.dart.twig',
+                'template'      => 'dart/lib/client_browser.dart.twig',
             ],
             [
                 'scope'         => 'default',

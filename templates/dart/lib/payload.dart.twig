@@ -1,42 +1,44 @@
-library {{ language.params.packageName }}.payload;
-
 import 'dart:convert';
-import 'dart:io';
+import 'src/exception.dart';
 
 class Payload {
-  final List<int> _data;
-  final String? fileName;
-  final int size;
+  late final String? path;
+  late final List<int>? data;
+  final String? filename;
+  final String? contentType;
 
-  // Constructor to initialize with binary data
-  Payload(this._data, {this.fileName}) : size = _data.length;
+  Payload._({this.path, this.filename, this.contentType, this.data}) {
+    if (path == null && data == null) {
+      throw {{spec.title | caseUcfirst}}Exception('One of `path` or `data` is required');
+    }
+  }
 
   // Get filename
-  String? getFileName() {
-    return fileName;
+  String? getFilename() {
+    return filename;
   }
 
   // Convert to binary, with optional offset and length
   List<int> toBinary({int offset = 0, int? length}) {
+    if(data == null) {
+      throw {{spec.title | caseUcfirst}}Exception('`data` is not defined.');
+    }
     if(offset == 0 && length == null) {
-      return _data;
+      return data!;
     } else if (length == null) {
-      return _data.sublist(offset);
+      return data!.sublist(offset);
     } else {
-      return _data.sublist(offset, offset + length);
+      return data!.sublist(offset, offset + length);
     }
   }
 
   // Convert binary data to string (utf8)
   @override
   String toString() {
-    return utf8.decode(_data);
-  }
-
-  // Write Payload to a file
-  Future<File> toFile(String path) async {
-    final file = File(path);
-    return await file.writeAsBytes(_data);
+    if(data == null) {
+      return '';
+    }
+    return utf8.decode(data!);
   }
 
   Map<String, dynamic> toJson() {
@@ -50,30 +52,28 @@ class Payload {
   // Create a Payload from binary data
   factory Payload.fromBinary({
     required List<int> data,
-    String? fileName,
+    String? filename,
   }) {
-    return Payload(data, fileName: fileName);
+    return Payload._(data: data, filename: filename);
   }
 
   // Create a Payload from a file
-  static Future<Payload> fromFile(String filePath, {String? fileName}) async {
-    final file = File(filePath);
-    final bytes = await file.readAsBytes();
-    return Payload(bytes, fileName: fileName ?? file.path);
+  factory Payload.fromFile({required String path, String? filename, String? contentType}) {
+    return Payload._(path: path, filename: filename, contentType: contentType);
   }
 
   // Create a Payload from a JSON object
   factory Payload.fromJson({
     required Map<String, dynamic> data,
-    String? fileName,
+    String? filename,
   }) {
     final jsonString = jsonEncode(data);
-    return Payload.fromString(jsonString, fileName: fileName);
+    return Payload.fromString(jsonString, filename: filename);
   }
 
   // Create a Payload from a string
-  factory Payload.fromString(String string, {String? fileName}) {
+  factory Payload.fromString(String string, {String? filename, String? contentType}) {
     final data = utf8.encode(string);
-    return Payload(data, fileName: fileName);
+    return Payload._(data: data, filename: filename, contentType: contentType);
   }
 }

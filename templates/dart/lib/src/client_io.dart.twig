@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
+
 import 'client_mixin.dart';
 import 'client_base.dart';
 import 'enums.dart';
@@ -99,16 +100,32 @@ class ClientIO extends ClientBase with ClientMixin {
     Function(UploadProgress)? onProgress,
   }) async {
     Payload file = params[paramName];
-    if (file == null) {
-      throw {{spec.title | caseUcfirst}}Exception("File bytes must be provided");
+    if (file.path == null && file.data == null) {
+      throw {{spec.title | caseUcfirst}}Exception("File path or data must be provided");
     }
 
-    int size = file.toBinary().length;
+    int size = 0;
+    if (file.data != null) {
+      size = file.data!.length;
+    }
+
+    File? iofile;
+
+    if (file.path != null) {
+      iofile = File(file.path!);
+      size = await iofile.length();
+    }
 
     late Response res;
     if (size <= CHUNK_SIZE) {
-      params[paramName] = http.MultipartFile.fromBytes(paramName, file.toBinary(), filename: file.fileName);
-
+      if (file.path != null) {
+        params[paramName] = await http.MultipartFile.fromPath(
+            paramName, file.path!,
+            filename: file.filename);
+      } else {
+        params[paramName] = http.MultipartFile.fromBytes(paramName, file.data!,
+            filename: file.filename);
+      }
       return call(
         HttpMethod.post,
         path: path,
@@ -131,12 +148,22 @@ class ClientIO extends ClientBase with ClientMixin {
       } on {{spec.title | caseUcfirst}}Exception catch (_) {}
     }
 
+    RandomAccessFile? raf;
+    // read chunk and upload each chunk
+    if (iofile != null) {
+      raf = await iofile.open(mode: FileMode.read);
+    }
+
     while (offset < size) {
       List<int> chunk = [];
-      final end = min(offset + CHUNK_SIZE, size);
-      chunk = file.toBinary(offset: offset, length: end-offset).toList();
+      if (file.data != null) {
+        chunk = file.toBinary(offset: offset, length: min(CHUNK_SIZE, size - offset));
+      } else {
+        raf!.setPositionSync(offset);
+        chunk = raf.readSync(CHUNK_SIZE);
+      }
       params[paramName] =
-          http.MultipartFile.fromBytes(paramName, chunk, filename: file.fileName);
+          http.MultipartFile.fromBytes(paramName, chunk, filename: file.filename);
       headers['content-range'] =
           'bytes $offset-${min<int>((offset + CHUNK_SIZE - 1), size - 1)}/$size';
       res = await call(HttpMethod.post,
@@ -154,6 +181,7 @@ class ClientIO extends ClientBase with ClientMixin {
       );
       onProgress?.call(progress);
     }
+    raf?.close();
     return res;
   }
 

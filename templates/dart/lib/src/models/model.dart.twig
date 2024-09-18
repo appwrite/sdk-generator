@@ -32,7 +32,13 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
                     {{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(map['{{property.name | escapeDollarSign }}'])
                 {%- endif -%}
             {%- else -%}
+                {%- if property.type == "integer" -%}
+                    int.tryParse(
+                {%- endif -%}
                 map['{{property.name | escapeDollarSign }}']
+                {%- if property.type == "integer" -%}
+                    ?? ''){%- if property.required %} ?? 0{% endif %}
+                {%- endif -%}
                 {%- if property.type == "number" -%}
                     {%- if not property.required %}?{% endif %}.toDouble()
                 {%- endif -%}
