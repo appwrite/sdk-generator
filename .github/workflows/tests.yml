@@ -38,7 +38,6 @@ jobs:
           Python38,
           Python39,
           Python310,
-          ReactNativeStable,
           Ruby27,
           Ruby30,
           Ruby31,
