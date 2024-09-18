@@ -33,11 +33,12 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
                 {%- endif -%}
             {%- else -%}
                 {%- if property.type == "integer" -%}
-                    int.tryParse(
+                    (map['{{property.name | escapeDollarSign }}'] is String) ?
+                        int.tryParse(map['{{property.name | escapeDollarSign }}']) {%- if property.required %} ?? 0{% endif %}:
                 {%- endif -%}
                 map['{{property.name | escapeDollarSign }}']
                 {%- if property.type == "integer" -%}
-                    ?? ''){%- if property.required %} ?? 0{% endif %}
+                    {%- if property.required %} ?? 0{% endif %}
                 {%- endif -%}
                 {%- if property.type == "number" -%}
                     {%- if not property.required %}?{% endif %}.toDouble()
