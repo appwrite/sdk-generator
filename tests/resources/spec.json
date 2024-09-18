@@ -1566,6 +1566,58 @@
       "get": {
         "summary": "Multipart",
         "operationId": "generalMultipart",
+        "produces": [
+          "multipart\/form-data"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "Multipart",
+            "schema": {
+              "$ref": "#\/definitions\/multipart"
+            }
+          }
+        },
+        "x-appwrite": {
+          "method": "multipart",
+          "weight": 278,
+          "cookies": false,
+          "type": "",
+          "demo": "general\/multipart.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a multipart request.",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ]
+      }
+    },
+    "\/mock\/tests\/general\/multipartcomplied": {
+      "get": {
+        "summary": "MultipartComplied",
+        "operationId": "generalMultipartComplied",
         "consumes": [
           "application\/json"
         ],
@@ -1585,7 +1637,7 @@
           }
         },
         "x-appwrite": {
-          "method": "multipart",
+          "method": "multipartComplied",
           "weight": 278,
           "cookies": false,
           "type": "",
@@ -2050,8 +2102,8 @@
           "default": null,
           "x-example": null
         },
-        "body": {
-          "type": "file",
+        "responseBody": {
+          "type": "payload",
           "description": "Sample file param",
           "default": null,
           "x-example": null
@@ -2060,7 +2112,7 @@
       "required": [
         "x",
         "y",
-        "body"
+        "responseBody"
       ]
     },
     "mock": {

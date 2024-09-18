@@ -352,7 +352,7 @@ class PHP extends Language
                     $output .= '[]';
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= "Payload::fromString('<BODY>')";
+                    $output .= "Payload::fromJson([ 'x' => 'y' ])";
                     break;
                 case self::TYPE_FILE:
                     $output .= "Payload::fromFile('file.png')";
@@ -375,7 +375,7 @@ class PHP extends Language
                     $output .= "'{$example}'";
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= "Payload::fromJson([])";
+                    $output .= "Payload::fromJson([ 'x' => 'y' ])";
                     break;
                 case self::TYPE_FILE:
                     $output .= "Payload::fromFile('file.png')";

@@ -147,8 +147,8 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/InputFile.kt',
-                'template'      => '/android/library/src/main/java/io/package/models/InputFile.kt.twig',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/models/Payload.kt',
+                'template'      => '/android/library/src/main/java/io/package/models/Payload.kt.twig',
             ],
             [
                 'scope'         => 'default',

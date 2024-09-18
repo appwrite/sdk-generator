@@ -1,4 +1,5 @@
 require_relative '../../sdks/ruby/lib/appwrite'
+require 'digest'
 
 include Appwrite
 include Appwrite::Enums
@@ -54,14 +55,14 @@ response = general.redirect()
 puts response["result"]
 
 begin
-    response = general.upload(x: 'string', y: 123, z:['string in array'], file: InputFile.from_path('./tests/resources/file.png'))
+    response = general.upload(x: 'string', y: 123, z:['string in array'], file: Payload.from_file('./tests/resources/file.png'))
     puts response.result
 rescue => e
     puts e
 end
 
 begin
-    response = general.upload(x: 'string', y: 123, z:['string in array'], file: InputFile.from_path('./tests/resources/large_file.mp4'))
+    response = general.upload(x: 'string', y: 123, z:['string in array'], file: Payload.from_file('./tests/resources/large_file.mp4'))
     puts response.result
 rescue => e
     puts e
@@ -69,7 +70,7 @@ end
 
 begin
     string = IO.read('./tests/resources/file.png')
-    response = general.upload(x: 'string', y: 123, z:['string in array'], file: InputFile.from_string(string, filename:'file.png', mime_type: 'image/png'))
+    response = general.upload(x: 'string', y: 123, z:['string in array'], file: Payload.from_string(string, filename:'file.png'))
     puts response.result
 rescue => e
     puts e
@@ -77,7 +78,7 @@ end
 
 begin
     string = IO.read('./tests/resources/large_file.mp4')
-    response = general.upload(x: 'string', y: 123, z:['string in array'], file: InputFile.from_string(string, filename:'large_file.mp4', mime_type: 'video/mp4'))
+    response = general.upload(x: 'string', y: 123, z:['string in array'], file: Payload.from_string(string, filename:'large_file.mp4'))
     puts response.result
 rescue => e
     puts e
@@ -114,6 +115,16 @@ url = general.oauth2(
     failure: 'https://localhost'
 )
 puts url
+
+# Multipart response tests
+begin
+    response = general.multipart()
+   
+    puts response.x
+    puts Digest::MD5.hexdigest(response.response_body.to_binary)
+rescue => e
+    puts e
+end
 
 # Query helper tests
 puts Query.equal('released', [true])

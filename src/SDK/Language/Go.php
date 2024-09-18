@@ -244,10 +244,10 @@ class Go extends Language
                     $output .= '[]interface{}{}';
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'payload.NewPayloadFromString("<BODY>")';
+                    $output .= 'payload.NewPayloadFromJson(map[string]interface{}{ "x": "y" })';
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'payload.NewPayloadFromPath("/path/to/file.png", "file.png")';
+                    $output .= 'payload.NewPayloadFromFile("/path/to/file.png")';
                     break;
             }
         } else {
@@ -275,10 +275,10 @@ class Go extends Language
                     $output .= '"{$example}"';
                     break;
                 case self::TYPE_PAYLOAD:
-                    $output .= 'payload.NewPayloadFromString("<BODY>")';
+                    $output .= 'payload.NewPayloadFromJson(map[string]interface{}{ "x": "y" })';
                     break;
                 case self::TYPE_FILE:
-                    $output .= 'payload.NewPayloadFromPath("/path/to/file.png", "file.png")';
+                    $output .= 'payload.NewPayloadFromFile("/path/to/file.png")';
                     break;
             }
         }
@@ -312,10 +312,6 @@ class Go extends Language
 
     protected function getPropertyType(array $property, array $spec, string $generic = 'map[string]interface{}'): string
     {
-
-        if (strpos($property['description'], 'HTTP response body. This will return empty unless execution') !== false) {
-            return '*payload.Payload';
-        }
         if (\array_key_exists('sub_schema', $property)) {
             $type = $this->toPascalCase($property['sub_schema']);
 
