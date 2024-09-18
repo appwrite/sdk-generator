@@ -12,11 +12,6 @@ class Payload {
     }
   }
 
-  /// Get filename
-  String? getFilename() {
-    return filename;
-  }
-
   /// Convert to binary, with optional offset and length
   List<int> toBinary({int offset = 0, int? length}) {
     if(data == null) {
