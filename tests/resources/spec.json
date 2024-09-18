@@ -1629,11 +1629,8 @@
         ],
         "description": "",
         "responses": {
-          "200": {
-            "description": "Multipart",
-            "schema": {
-              "$ref": "#/definitions/multipart"
-            }
+          "301": {
+            "description": "No content"
           }
         },
         "x-appwrite": {
