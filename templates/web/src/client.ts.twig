@@ -584,8 +584,6 @@ class Client {
                     }
                     
                     options.body = formData;
-                    delete headers['content-type'];
-                    headers['accept'] = 'multipart/form-data';
                     break;
             }
         }
