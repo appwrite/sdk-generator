@@ -32,6 +32,7 @@ let package = Package(
             dependencies: [
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "NIOWebSocket", package: "swift-nio"),
+                .product(name: "Crypto", package: "swift-crypto"),
                 {%~ if spec.definitions is not empty %}
                 "{{spec.title | caseUcfirst}}Models",
                 {%~ endif %}

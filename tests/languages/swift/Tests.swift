@@ -6,7 +6,7 @@ import FoundationNetworking
 import Appwrite
 import AsyncHTTPClient
 import NIO
-import CryptoKit
+import Crypto
 
 class Tests: XCTestCase {
 
@@ -142,10 +142,11 @@ class Tests: XCTestCase {
         do {
             var response = try await general.multipart()
             print(response.x)
-            let data = Data(response.responseBody.toBinary())
-            let hash = Insecure.MD5.hash(data: data)
-            let hexHash = hashed.map { String(format: "%02hhx", $0) }.joined()
-            print(hexHash)
+
+            let bytes = try! response.responseBody.toBinary()
+            let bytesData = Data(bytes.readableBytesView)
+            let hex = Insecure.MD5.hash(data: bytesData).map { String(format: "%02hhx", $0) }.joined()
+            print(hex)
         } catch {
             print(error.localizedDescription)
         }
