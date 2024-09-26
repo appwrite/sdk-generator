@@ -77,8 +77,8 @@ abstract class Base extends TestCase
     protected const MULTIPART_RESPONSES = [
         'abc',
         'd80e7e6999a3eb2ae0d631a96fe135a4',
-        '{"key": "value", "key2": "value2"}',
-        'value',
+        '{"key": "stringPayloadValue", "key2": "stringPayloadValue2"}',
+        'stringPayloadValue',
     ];
 
     protected const QUERY_HELPER_RESPONSES = [

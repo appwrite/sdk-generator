@@ -429,8 +429,8 @@ App::get('/v1/mock/tests/general/multipart-json')
             'x' => 'abc',
             'y' => 123,
             'responseBody' => [
-                'key' => 'value',
-                'key2' => 'value2',
+                'key' => 'stringPayloadValue',
+                'key2' => 'stringPayloadValue2',
             ],
         ]);
     });
