@@ -32,8 +32,11 @@ class Payload:
         
         return self._data[offset:offset + length]
     
-    def to_string(self, encoding='utf-8') -> str:
+    def to_string(self, encoding="utf-8") -> str:
         return self.to_binary().decode(encoding)
+
+    def __str__(self) -> str:
+        return self.to_string()
 
     def to_json(self) -> Dict[str, Any]:
         return json.loads(self.to_string())
@@ -60,4 +63,4 @@ class Payload:
 
     @classmethod
     def from_json(cls, data: Dict[str, Any]) -> 'Payload':
-        return cls(data=json.dumps(data))
+        return cls.from_string(json.dumps(data))

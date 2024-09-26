@@ -108,9 +108,15 @@ response = general.multipart()
 print(response['x']) # should be "abc"
 print(md5(response['responseBody'].to_binary()).hexdigest()) # should be d80e7e6999a3eb2ae0d631a96fe135a4
 
-response = general.multipart_json()
+response = general.multipart_echo(Payload.from_string("Hello, World!"))
 print(response['responseBody'].to_string())
+
+response = general.multipart_echo(Payload.from_json({"key": "myStringValue"}))
 print(response['responseBody'].to_json()['key'])
+
+response = general.multipart_echo(Payload.from_file('./tests/resources/file.png'))
+response['responseBody'].to_file('./tests/resources/file_copy.png')
+print(md5(open('./tests/resources/file.png', 'rb').read()).hexdigest())
 
 # Query helper tests
 print(Query.equal("released", [True]))

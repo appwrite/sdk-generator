@@ -410,7 +410,7 @@ App::get('/v1/mock/tests/general/multipart')
         ]);
     });
 
-App::get('/v1/mock/tests/general/multipart-echo')
+App::post('/v1/mock/tests/general/multipart-echo')
     ->desc('Multipart echo')
     ->groups(['mock'])
     ->label('scope', 'public')
@@ -422,7 +422,7 @@ App::get('/v1/mock/tests/general/multipart-echo')
     ->label('sdk.response.type', Response::CONTENT_TYPE_MULTIPART)
     ->label('sdk.response.model', Response::MODEL_MULTIPART)
     ->label('sdk.mock', true)
-    ->param('body', '', new Text(100), 'Sample string param', false, [], true)
+    ->param('body', '', new File(), 'Sample file param', false, [], true)
     ->inject('response')
     ->action(function (string $body, Response $response) {
 

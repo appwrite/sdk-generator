@@ -1664,7 +1664,7 @@
       }
     },
     "\/mock\/tests\/general\/multipart-echo": {
-      "get": {
+      "post": {
         "summary": "MultipartEcho",
         "operationId": "generalMultipartEcho",
         "consumes": [
