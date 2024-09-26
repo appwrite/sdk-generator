@@ -67,8 +67,11 @@ module Appwrite
     # @param [Hash, Array] object
     # @param [String, nil] filename
     # @return [Payload]
-    def self.from_json(json, filename: nil)
-      json = JSON.generate(object) if object.is_a?(Hash) || object.is_a?(Array)
+    def self.from_json(object, filename: nil)
+      if !object.is_a?(Hash) && !object.is_a?(Array) then
+        raise ArgumentError.new('Object must be a Hash or Array')
+      end
+      json = JSON.generate(object)
       self.from_string(json, filename: filename)
     end
 

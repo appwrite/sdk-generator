@@ -1667,6 +1667,9 @@
       "get": {
         "summary": "MultipartEcho",
         "operationId": "generalMultipartEcho",
+        "consumes": [
+          "multipart\/form-data"
+        ],
         "produces": [
           "multipart\/form-data"
         ],
@@ -1676,9 +1679,9 @@
         "description": "",
         "responses": {
           "200": {
-            "description": "Multipart",
+            "description": "Multipart echo",
             "schema": {
-              "$ref": "#\/definitions\/multipart"
+              "$ref": "#\/definitions\/multipart-echo"
             }
           }
         },
@@ -2167,6 +2170,21 @@
       "required": [
         "x",
         "y",
+        "responseBody"
+      ]
+    },
+    "multipart-echo": {
+      "description": "Multipart echo",
+      "type": "object",
+      "properties": {
+        "responseBody": {
+          "type": "payload",
+          "description": "Sample file param",
+          "default": null,
+          "x-example": null
+        }
+      },
+      "required": [
         "responseBody"
       ]
     },
