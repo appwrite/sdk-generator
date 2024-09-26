@@ -5,9 +5,8 @@ use Utopia\Fetch\Client;
 
 class SpecsTest extends TestCase
 {
-
     public function testSpecs()
-        {
+    {
             $specsPath = dirname(__FILE__) . '/resources/spec.json';
             $specs = json_decode(file_get_contents($specsPath), true);
 
@@ -15,8 +14,8 @@ class SpecsTest extends TestCase
             $client->addHeader('content-type', 'application/json');
 
             $response = $client->fetch(
-                url: 'https://validator.swagger.io/validator/debug', 
-                method: Client::METHOD_POST, 
+                url: 'https://validator.swagger.io/validator/debug',
+                method: Client::METHOD_POST,
                 body: $specs
             );
 
@@ -24,6 +23,5 @@ class SpecsTest extends TestCase
 
             $body = $response->json();
             $this->assertEmpty($body['schemaValidationMessages'], 'Schema validation failed: ' . json_encode($body['schemaValidationMessages'], JSON_PRETTY_PRINT));
-        }
-
+    }
 }
