@@ -117,6 +117,6 @@ jobs:
       - name: Install
         run: composer install
 
-      - name: Lint
+      - name: Validate specs
         run: composer test tests/SpecsTest.php
       
