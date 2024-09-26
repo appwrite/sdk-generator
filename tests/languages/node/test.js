@@ -172,6 +172,10 @@ async function start() {
     const responseBodyBinary = response.responseBody.toBinary();
     const hash = crypto.createHash('md5').update(responseBodyBinary).digest('hex');
     console.log(hash); // should be d80e7e6999a3eb2ae0d631a96fe135a4
+
+    response = await general.multipartJson();
+    console.log(response.responseBody.toString());
+    console.log(response.responseBody.toJson()['key']);
 }
 
 start().catch((err) => {

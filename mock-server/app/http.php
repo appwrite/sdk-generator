@@ -410,6 +410,31 @@ App::get('/v1/mock/tests/general/multipart')
         ]);
     });
 
+App::get('/v1/mock/tests/general/multipart-json')
+    ->desc('Multipart')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'multipartJson')
+    ->label('sdk.description', 'Mock a multipart request.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_MULTIPART)
+    ->label('sdk.response.model', Response::MODEL_MULTIPART)
+    ->label('sdk.mock', true)
+    ->inject('response')
+    ->action(function (Response $response) {
+
+        $response->multipart([
+            'x' => 'abc',
+            'y' => 123,
+            'responseBody' => [
+                'key' => 'value',
+                'key2' => 'value2',
+            ],
+        ]);
+    });
+
 App::get('/v1/mock/tests/general/redirect')
     ->desc('Redirect')
     ->groups(['mock'])

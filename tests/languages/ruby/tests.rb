@@ -126,6 +126,15 @@ rescue => e
     puts e
 end
 
+begin
+    response = general.multipart_json()
+   
+    puts response.response_body.to_string
+    puts response.response_body.to_json['key']
+rescue => e
+    puts e
+end
+
 # Query helper tests
 puts Query.equal('released', [true])
 puts Query.equal('title', ['Spiderman', 'Dr. Strange'])

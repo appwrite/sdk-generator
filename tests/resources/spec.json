@@ -1618,9 +1618,6 @@
       "get": {
         "summary": "MultipartCompiled",
         "operationId": "generalMultipartCompiled",
-        "consumes": [
-          "application\/json"
-        ],
         "produces": [
           "multipart\/form-data"
         ],
@@ -1666,6 +1663,58 @@
         ]
       }
     },
+	"\/mock\/tests\/general\/multipart-json": {
+		"get": {
+		  "summary": "MultipartJson",
+		  "operationId": "generalMultipartJson",
+		  "produces": [
+			  "multipart\/form-data"
+		  ],
+		  "tags": [
+			  "general"
+		  ],
+		  "description": "",
+      "responses": {
+        "200": {
+          "description": "Multipart",
+          "schema": {
+            "$ref": "#\/definitions\/multipart"
+          }
+        }
+      },
+		  "x-appwrite": {
+        "method": "multipartJson",
+        "weight": 278,
+        "cookies": false,
+        "type": "",
+        "demo": "general\/multipart.md",
+        "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a multipart request.",
+        "rate-limit": 0,
+        "rate-time": 3600,
+        "rate-key": "url:{url},ip:{ip}",
+        "scope": "public",
+        "platforms": [
+          "client",
+          "server",
+          "server"
+        ],
+        "packaging": false,
+        "offline-model": "",
+        "offline-key": "",
+        "offline-response-key": "$id",
+        "auth": {
+          "Project": []
+        }
+		  },
+		  "security": [
+        {
+          "Project": [],
+          "Key": [],
+          "JWT": []
+        }
+		  ]
+		}
+	},
     "\/mock\/tests\/general\/redirect\/done": {
       "get": {
         "summary": "Redirected",

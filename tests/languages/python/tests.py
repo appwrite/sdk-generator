@@ -108,6 +108,10 @@ response = general.multipart()
 print(response['x']) # should be "abc"
 print(md5(response['responseBody'].to_binary()).hexdigest()) # should be d80e7e6999a3eb2ae0d631a96fe135a4
 
+response = general.multipart_json()
+print(response['responseBody'].to_string())
+print(response['responseBody'].to_json()['key'])
+
 # Query helper tests
 print(Query.equal("released", [True]))
 print(Query.equal("title", ["Spiderman", "Dr. Strange"]))
