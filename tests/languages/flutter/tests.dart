@@ -145,6 +145,11 @@ void main() async {
   final hash = md5.convert(responseMultipart.responseBody.toBinary()).toString();
   print(hash);
 
+  MultipartJson responseMultipartJson;
+  responseMultipartJson = await general.multipartJson();
+  print(responseMultipartJson.responseBody.toString());
+  print(responseMultipartJson.responseBody.toJson()['key']);
+
   // Query helper tests
   print(Query.equal('released', [true]));
   print(Query.equal('title', ['Spiderman', 'Dr. Strange']));

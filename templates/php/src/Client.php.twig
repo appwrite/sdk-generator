@@ -283,7 +283,7 @@ class Client
             $data['duration'] = ((float) ($data['duration'] ?? ''));
         }
         if(isset($data['responseBody'])) {
-            $data['responseBody'] = Payload::fromString($data['responseBody'] ?? '');
+            $data['responseBody'] = Payload::fromBinary($data['responseBody'] ?? '');
         }
 
         return $data;
