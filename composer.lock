@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9283e0faa88dc724e482a15d92771eb7",
+    "content-hash": "542c1fbb222c159cfc8e1cfb32d8f757",
     "packages": [
         {
             "name": "matthiasmullie/minify",
@@ -510,6 +510,45 @@
                 }
             ],
             "time": "2024-09-09T17:55:12+00:00"
+        },
+        {
+            "name": "utopia-php/fetch",
+            "version": "0.2.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/utopia-php/fetch.git",
+                "reference": "1423c0ee3eef944d816ca6e31706895b585aea82"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/utopia-php/fetch/zipball/1423c0ee3eef944d816ca6e31706895b585aea82",
+                "reference": "1423c0ee3eef944d816ca6e31706895b585aea82",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.0"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.5.0",
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^9.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Utopia\\Fetch\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "A simple library that provides an interface for making HTTP Requests.",
+            "support": {
+                "issues": "https://github.com/utopia-php/fetch/issues",
+                "source": "https://github.com/utopia-php/fetch/tree/0.2.1"
+            },
+            "time": "2024-03-18T11:50:59+00:00"
         }
     ],
     "packages-dev": [
