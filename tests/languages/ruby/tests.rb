@@ -130,7 +130,7 @@ begin
     response = general.multipart_json()
    
     puts response.response_body.to_string
-    puts response.response_body.to_json['key']
+    puts response.response_body.to_json()['key']
 rescue => e
     puts e
 end

@@ -151,6 +151,10 @@ async function start() {
   const binary = await response['responseBody'].toBinary();
   console.log(createHash("md5").update(binary).toString('hex'));
 
+  response = await general.multipartJson();
+  console.log(response.responseBody.toString());
+  console.log(response.responseBody.toJson()["key"]);
+
   // Query helper tests
   console.log(Query.equal("released", [true]));
   console.log(Query.equal("title", ["Spiderman", "Dr. Strange"]));

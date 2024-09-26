@@ -123,6 +123,10 @@ echo "{$response['x']}\n";
 $hash = md5($response['responseBody']->toBinary());
 echo "{$hash}\n";
 
+$response = $general->multipartJson();
+echo "{$response['responseBody']->toString()}\n";
+echo "{$response['responseBody']->toJson()['key']}\n";
+
 // Query helper tests
 echo Query::equal('released', [true]) . "\n";
 echo Query::equal('title', ['Spiderman', 'Dr. Strange']) . "\n";
