@@ -93,7 +93,7 @@ async function start() {
 
     response = await general.multipartJson();
     console.log(await response["responseBody"].toString());
-    console.log(await response["responseBody"].toJson()["key"]);
+    console.log((await response["responseBody"].toJson())["key"]);
 
     // Query helper tests
     console.log(Query.equal("released", [true]));
