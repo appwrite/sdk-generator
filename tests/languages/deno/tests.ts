@@ -151,9 +151,11 @@ async function start() {
   const binary = await response['responseBody'].toBinary();
   console.log(createHash("md5").update(binary).toString('hex'));
 
-  response = await general.multipartJson();
-  console.log(response.responseBody.toString());
-  console.log(response.responseBody.toJson<{ key: string, key2: string}>()["key"]);
+  response = await general.multipartEcho(appwrite.Payload.fromString("Hello, World!"));
+  console.log(response['responseBody'].toString());
+
+  response = await general.multipartEcho(appwrite.Payload.fromJson({ key: "myStringValue" }));
+  console.log(response['responseBody'].toJson<{key: string}>()["key"]);
 
   // Query helper tests
   console.log(Query.equal("released", [true]));
