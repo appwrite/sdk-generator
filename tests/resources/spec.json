@@ -2100,7 +2100,7 @@
           "x-example": null
         },
         "responseBody": {
-          "type": "payload",
+          "type": "string",
           "description": "Sample file param",
           "default": null,
           "x-example": null

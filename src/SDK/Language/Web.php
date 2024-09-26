@@ -196,6 +196,9 @@ class Web extends JS
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
+        if ($parameter['name'] === 'responseBody') {
+            return 'Payload';
+        }
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
