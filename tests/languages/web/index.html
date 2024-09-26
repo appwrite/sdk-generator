@@ -139,8 +139,10 @@
       const binary = await response["responseBody"].toBinary();
       console.log(md5(binary));
 
-      response = await general.multipartJson();
+      response = await general.multipartEcho(Payload.fromString('Hello, World!')); 
       console.log(await response.responseBody.toString());
+
+      response = await general.multipartEcho(Payload.fromJson({ "key": "myStringValue" }));
       console.log((await response.responseBody.toJson())['key']);
 
       // Query helper tests

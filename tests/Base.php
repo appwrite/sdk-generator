@@ -77,8 +77,13 @@ abstract class Base extends TestCase
     protected const MULTIPART_RESPONSES = [
         'abc',
         'd80e7e6999a3eb2ae0d631a96fe135a4',
-        '{"key": "stringPayloadValue", "key2": "stringPayloadValue2"}',
-        'stringPayloadValue',
+        'Hello, World!',
+        'myStringValue',
+        
+    ];
+
+    protected const MULTIPART_RESPONSE_FILE = [
+        'd80e7e6999a3eb2ae0d631a96fe135a4'
     ];
 
     protected const QUERY_HELPER_RESPONSES = [

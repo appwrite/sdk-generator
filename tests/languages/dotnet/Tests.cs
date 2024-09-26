@@ -122,17 +122,23 @@ namespace AppwriteTests
             );
             TestContext.WriteLine(url);
             // Multipart tests
-            var response = await general.MultipartCompiled();
-            var res = (response as Dictionary<string, object>);
-            TestContext.WriteLine(res["x"]);
-            var pl = res["responseBody"] as Payload;
+            mock = await general.MultipartCompiled();
+            var response = (mock as Dictionary<string, object>);
+            TestContext.WriteLine(reponse["x"]);
+            var payload = response["responseBody"] as Payload;
             byte[] hash;
             using (var md5 = System.Security.Cryptography.MD5.Create())
             {
-                md5.TransformFinalBlock(pl.ToBinary(), 0, pl.ToBinary().Length);
+                md5.TransformFinalBlock(pl.ToBinary(), 0, payload.ToBinary().Length);
                 hash = md5.Hash;
             }
             TestContext.WriteLine(BitConverter.ToString(hash).Replace("-", "").ToLower());
+
+            mock = await general.MultipartJson();
+            response = (mock as Dictionary<string, object>);
+            payload = response["responseBody"] as Payload;
+            TestContext.WriteLine(payload.ToString());
+
 
             // Query helper tests
             TestContext.WriteLine(Query.Equal("released", new List<bool> { true }));

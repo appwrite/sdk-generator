@@ -410,28 +410,25 @@ App::get('/v1/mock/tests/general/multipart')
         ]);
     });
 
-App::get('/v1/mock/tests/general/multipart-json')
+App::get('/v1/mock/tests/general/multipart-echo')
     ->desc('Multipart')
     ->groups(['mock'])
     ->label('scope', 'public')
     ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
     ->label('sdk.namespace', 'general')
-    ->label('sdk.method', 'multipartJson')
+    ->label('sdk.method', 'multipartEcho')
     ->label('sdk.description', 'Mock a multipart request.')
     ->label('sdk.response.code', Response::STATUS_CODE_OK)
     ->label('sdk.response.type', Response::CONTENT_TYPE_MULTIPART)
     ->label('sdk.response.model', Response::MODEL_MULTIPART)
     ->label('sdk.mock', true)
+    ->param('body', '', new Text(100), 'Sample string param', false, [], true)
     ->inject('response')
-    ->action(function (Response $response) {
+    ->action(function (string $body, Response $response) {
+        var_dump($body);
 
         $response->multipart([
-            'x' => 'abc',
-            'y' => 123,
-            'responseBody' => [
-                'key' => 'stringPayloadValue',
-                'key2' => 'stringPayloadValue2',
-            ],
+            'responseBody' => $body
         ]);
     });
 

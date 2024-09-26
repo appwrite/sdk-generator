@@ -1663,10 +1663,10 @@
         ]
       }
     },
-    "\/mock\/tests\/general\/multipart-json": {
+    "\/mock\/tests\/general\/multipart-echo": {
       "get": {
-        "summary": "MultipartJson",
-        "operationId": "generalMultipartJson",
+        "summary": "MultipartEcho",
+        "operationId": "generalMultipartEcho",
         "produces": [
           "multipart\/form-data"
         ],
@@ -1682,8 +1682,17 @@
             }
           }
         },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Sample file param",
+            "required": true,
+            "type": "payload",
+            "in": "formData"
+          }    
+        ],
         "x-appwrite": {
-          "method": "multipartJson",
+          "method": "multipartEcho",
           "weight": 278,
           "cookies": false,
           "type": "",
