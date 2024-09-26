@@ -120,10 +120,9 @@ void main() async {
   final hash = md5.convert(responseMultipart.responseBody.toBinary()).toString();
   print(hash);
 
-  MultipartJson responseMultipartJson;
-  responseMultipartJson = await general.multipartJson();
-  print(responseMultipartJson.responseBody.toString());
-  print(responseMultipartJson.responseBody.toJson()['key']);
+  responseMultipart = await general.multipartJson();
+  print(responseMultipart.responseBody.toString());
+  print(responseMultipart.responseBody.toJson()['key']);
 
   // Query helper tests
   print(Query.equal('released', [true]));
