@@ -157,6 +157,11 @@ async function start() {
   response = await general.multipartEcho(appwrite.Payload.fromJson({ key: "myStringValue" }));
   console.log(response['responseBody'].toJson<{key: string}>()["key"]);
 
+  response = await general.multipartEcho(await appwrite.Payload.fromFile("./tests/resources/file.png"));
+  await response['responseBody'].toFile("./tests/resources/file_copy.png");
+  const fileBuffer = await Deno.readFile("./tests/resources/file_copy.png");
+  console.log(createHash("md5").update(fileBuffer).toString('hex'));
+
   // Query helper tests
   console.log(Query.equal("released", [true]));
   console.log(Query.equal("title", ["Spiderman", "Dr. Strange"]));

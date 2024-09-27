@@ -25,7 +25,6 @@
     {% endfor %}
 {% endapply %}
 {% endmacro %}
-import { basename } from "https://deno.land/std@0.122.0/path/mod.ts";
 import { Service } from '../service.ts';
 import { Params, Client } from '../client.ts';
 import { Payload } from '../payload.ts';
@@ -63,20 +62,20 @@ export class {{ service.name | caseUcfirst }} extends Service {
      {
         super(client);
      }
-
     {%~ for method in service.methods %}
-    {%- set generics = _self.get_generics(spec.definitions[method.responseModel], spec, true, true) %}
-    {%- set generics_return = _self.get_generics_return(spec.definitions[method.responseModel], spec) %}
+
+    {%~ set generics = _self.get_generics(spec.definitions[method.responseModel], spec, true, true) %}
+    {%~ set generics_return = _self.get_generics_return(spec.definitions[method.responseModel], spec) %}
     /**
      * {{ method.title }}
      *
     {%~ if method.description %}
      * {{ method.description}}
      *
-    {%- endif %}
+    {%~ endif %}
     {%~ for parameter in method.parameters.all%}
      * @param {{ '{' }}{{ parameter | typeName }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
-    {%- endfor %}
+    {%~ endfor %}
      * @throws {AppwriteException}
      * @returns {Promise}
      */
@@ -103,7 +102,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
             payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}{% if method.consumes[0] == "multipart/form-data" and ( parameter.type != "string" and parameter.type != "array" and parameter.type != "file" ) %}.toString(){% endif %};
         }
         {%~ endfor %}
-        {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if 'multipart/form-data' in method.consumes and method.type == "upload" %}
         {%~ for parameter in method.parameters.all %}
         {%~ if parameter.type == 'file' %}
 
@@ -237,7 +236,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
             'json'
             {%~ endif %}
         );
-        {%- endif %}
+        {%~ endif %}
     }
-    {%- endfor %}
+    {%~ endfor %}
 }

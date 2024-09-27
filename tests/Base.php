@@ -208,6 +208,14 @@ abstract class Base extends TestCase
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
 
         /**
+         * Delete file_copy.png if exists.
+         * Used for testing file download.
+         */
+        if (file_exists(__DIR__ . '/resources/file_copy.png')) {
+            unlink(__DIR__ . '/resources/file_copy.png');
+        }
+
+        /**
          * Build SDK
          */
         foreach ($this->build as $command) {
