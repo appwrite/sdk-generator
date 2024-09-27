@@ -231,7 +231,7 @@ module {{ spec.title | caseUcfirst }}
                 return fetch(method, uri, headers, {}, response_type, limit - 1)
             end
 
-            if response.content_type == 'application/json'
+            if response.content_type.start_with?('application/json')
                 begin
                     result = JSON.parse(response.body)
                 rescue JSON::ParserError => e
@@ -253,7 +253,7 @@ module {{ spec.title | caseUcfirst }}
                 raise {{spec.title | caseUcfirst}}::Exception.new(response.body, response.code, response)
             end
 
-            if response.content_type == 'multipart/form-data'
+            if response.content_type.start_with?('multipart/form-data')
                 multipart = MultipartParser.new(response.body, response['content-type'])
                 result = multipart.to_hash
 

@@ -437,8 +437,22 @@ App::post('/v1/mock/tests/general/multipart-echo')
     ->label('sdk.mock', true)
     ->param('body', '', new File(), 'Sample file param', false, [], true)
     ->inject('response')
-    ->action(function (string $body, Response $response) {
+    ->inject('request')
+    ->action(function (string $body, Response $response, Request $request) {
+        if (empty($body)) {
+            $file = $request->getFiles('body');
 
+            if (empty($file)) {
+                $file = $request->getFiles(0);
+            }
+
+            if (isset($file['tmp_name'])) {
+                $body = \file_get_contents($file['tmp_name']);
+            } else {
+                $body = '';
+            }
+        }
+    
         $response->multipart([
             'responseBody' => $body
         ]);
