@@ -233,9 +233,16 @@ abstract class Base extends TestCase
         foreach ($this->expectedOutput as $index => $expected) {
             // HACK: Swift does not guarantee the order of the JSON parameters
             if (\str_starts_with($expected, '{')) {
+                $expectedJson = \json_decode($expected, true);
+                $this->assertNotNull($expectedJson, 'Failed to decode expected JSON output: ' . $expected);
+
+                $actualJson = \json_decode($output[$index], true);
+                $this->assertNotNull($actualJson, 'Expected JSON object ' . $expected . ' does not match received JSON object ' . $output[$index]);
+
                 $this->assertEquals(
-                    \json_decode($expected, true),
-                    \json_decode($output[$index], true)
+                    $expectedJson,
+                    $actualJson,
+                    'Expected JSON object ' . $expected . ' does not match received JSON object ' . $output[$index]
                 );
             } elseif ($expected == 'unique()') {
                 $this->assertNotEmpty($output[$index]);
