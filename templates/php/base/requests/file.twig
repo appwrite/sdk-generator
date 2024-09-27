@@ -1,43 +1,23 @@
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
-        $size = 0;
-        $postedName = null;
-        if(empty(${{ parameter.name | caseCamel }}->getPath() ?? null)) {
-            $size = strlen(${{ parameter.name | caseCamel }}->getData());
-            $postedName = ${{ parameter.name | caseCamel }}->getFilename();
-            if ($size <= Client::CHUNK_SIZE) {
-                $apiParams['{{ parameter.name | caseCamel }}'] = new \CURLFile('data://text/plain;base64,' . base64_encode(${{ parameter.name | caseCamel }}->getData()), null, $postedName);
-                return $this->client->call(Client::METHOD_POST, $apiPath, [
-    {% for param in method.parameters.header %}
-                    '{{ param.name }}' => ${{ param.name | caseCamel }},
-    {% endfor %}
-    {% for key, header in method.headers %}
-                    '{{ key }}' => '{{ header }}',
-    {% endfor %}
-                    ], $apiParams);
-            }
-        } else {
-            $size = filesize(${{ parameter.name | caseCamel }}->getPath());
-            $postedName = ${{ parameter.name | caseCamel }}->getFilename() ?? basename(${{ parameter.name | caseCamel }}->getPath());
-            //send single file if size is less than or equal to 5MB
-            if ($size <= Client::CHUNK_SIZE) {
-                $apiParams['{{ parameter.name | caseCamel }}'] = new \CURLFile(${{ parameter.name | caseCamel }}->getPath(), null, $postedName);
-                return $this->client->call(Client::METHOD_{{ method.method | caseUpper }}, $apiPath, [
-    {% for param in method.parameters.header %}
-                    '{{ param.name }}' => ${{ param.name | caseCamel }},
-    {% endfor %}
-    {% for key, header in method.headers %}
-                    '{{ key }}' => '{{ header }}',
-    {% endfor %}
-                    ], $apiParams);
-            }
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.type == 'file' %}
+        $size = ${{ parameter.name | caseCamel }}->size;
+
+        if ($size <= Client::CHUNK_SIZE) {
+            return $this->client->call(Client::METHOD_POST, $apiPath, [
+                {%~ for param in method.parameters.header %}
+                '{{ param.name }}' => ${{ param.name | caseCamel }},
+                {%~ endfor %}
+                {%~ for key, header in method.headers %}
+                '{{ key }}' => '{{ header }}',
+                {%~ endfor %}
+            ], $apiParams);
         }
 
         $id = '';
         $counter = 0;
 
-{% for parameter in method.parameters.all %}
-{% if parameter.isUploadID %}
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.isUploadID %}
         if(${{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
                 $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . ${{ parameter.name }});
@@ -45,26 +25,20 @@
             } catch(\Exception $e) {
             }
         }
-{% endif %}
-{% endfor %}
+        {%~ endif %}
+        {%~ endfor %}
 
         $apiHeaders = ['content-type' => 'multipart/form-data'];
-        $handle = null;
-
-        if(!empty(${{parameter.name}}->getPath())) {
-            $handle = @fopen(${{parameter.name}}->getPath(), "rb");
-        }
 
         $start = $counter * Client::CHUNK_SIZE;
         while ($start < $size) {
-            $chunk = '';
-            if(!empty($handle)) {
-                fseek($handle, $start);
-                $chunk = @fread($handle, Client::CHUNK_SIZE);
-            } else {
-                $chunk = substr(${{parameter.name}}->getData(), $start, Client::CHUNK_SIZE);
-            }
-            $apiParams['{{ parameter.name }}'] = new \CURLFile('data://text/plain;base64,' . base64_encode($chunk), null, $postedName);
+            
+            $apiParams['{{ parameter.name }}'] = Payload::fromBinary(
+                ${{ parameter.name | caseCamel | escapeKeyword }}->toBinary($start, Client::CHUNK_SIZE),
+                ${{ parameter.name | caseCamel | escapeKeyword }}->filename,
+                ${{ parameter.name | caseCamel | escapeKeyword }}->mimeType
+            );
+
             $apiHeaders['content-range'] = 'bytes ' . ($counter * Client::CHUNK_SIZE) . '-' . min(((($counter * Client::CHUNK_SIZE) + Client::CHUNK_SIZE) - 1), $size - 1) . '/' . $size;
             if(!empty($id)) {
                 $apiHeaders['x-{{spec.title | caseLower }}-id'] = $id;
@@ -85,9 +59,6 @@
                 ]);
             }
         }
-        if(!empty($handle)) {
-            @fclose($handle);
-        }
         return $response;
-{% endif %}
-{% endfor %}
+        {%~ endif %}
+        {%~ endfor %}

@@ -237,10 +237,31 @@ class Client
         foreach($data as $key => $value) {
             $finalKey = $prefix ? "{$prefix}[{$key}]" : $key;
 
-            if (is_array($value)) {
-                $output += $this->flatten($value, $finalKey); // @todo: handle name collision here if needed
-            }
-            else {
+            if ($value instanceof Payload) {
+                if ($value->filename) {
+                    if (class_exists('\CURLStringFile')) {
+                        // Use CURLStringFile for in-memory data (PHP 8.1+)
+                        $output[$finalKey] = new \CURLStringFile(
+                            $value->toBinary(),
+                            $value->filename,
+                            $value->mimeType
+                        );
+                    } else {
+                        // For PHP versions < 8.1, write data to a temporary file
+                        $tmpfname = tempnam(sys_get_temp_dir(), 'upload');
+                        file_put_contents($tmpfname, $value->toBinary());
+                        $output[$finalKey] = new \CURLFile(
+                            $tmpfname,
+                            $value->mimeType,
+                            $value->filename
+                        );
+                    }
+                } else {
+                    $output[$finalKey] = $value->toBinary();
+                }
+            } else if (is_array($value)) {
+                $output += $this->flatten($value, $finalKey);
+            } else {
                 $output[$finalKey] = $value;
             }
         }

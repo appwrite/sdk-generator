@@ -325,6 +325,18 @@ App::post('/v1/mock/tests/general/upload')
 
         $chunkSize = 5 * 1024 * 1024; // 5MB
 
+        if ($x != 'string') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong string value: ' . $x . ', expected: string');
+        }
+
+        if ($y !== 123) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong numeric value: ' . $y . ', expected: 123');
+        }
+
+        if ($z[0] !== 'string in array' || \count($z) !== 1) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong array value: ' . \json_encode($z) . ', expected: ["string in array"]');
+        }
+
         if (!empty($contentRange)) {
             $start = $request->getContentRangeStart();
             $end = $request->getContentRangeEnd();
@@ -373,15 +385,16 @@ App::post('/v1/mock/tests/general/upload')
             $file['size'] = (\is_array($file['size'])) ? $file['size'][0] : $file['size'];
 
             if ($file['name'] !== 'file.png') {
-                throw new Exception(Exception::GENERAL_MOCK, 'Wrong file name');
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong file name: ' . $file['name'] . ', expected: file.png');
             }
 
             if ($file['size'] !== 38756) {
-                throw new Exception(Exception::GENERAL_MOCK, 'Wrong file size');
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong file size: ' . $file['size'] . ', expected: 38756');
             }
 
-            if (\md5(\file_get_contents($file['tmp_name'])) !== 'd80e7e6999a3eb2ae0d631a96fe135a4') {
-                throw new Exception(Exception::GENERAL_MOCK, 'Wrong file uploaded');
+            $hash = \md5(\file_get_contents($file['tmp_name']));
+            if ($hash !== 'd80e7e6999a3eb2ae0d631a96fe135a4') {
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong file uploaded: ' . $hash . ', expected: d80e7e6999a3eb2ae0d631a96fe135a4');
             }
         }
     });
