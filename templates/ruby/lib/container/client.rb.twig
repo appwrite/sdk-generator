@@ -16,22 +16,20 @@ module {{ spec.title | caseUcfirst }}
                 'x-sdk-platform'=> '{{ sdk.platform }}',
                 'x-sdk-language'=> '{{ language.name | caseLower }}',
                 'x-sdk-version'=> '{{ sdk.version }}'{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
-                
-{% for key,header in spec.global.defaultHeaders %}
+                {%~ for key,header in spec.global.defaultHeaders %}
                 '{{key}}' => '{{header}}'{% if not loop.last %},{% endif %}
-{% endfor %}
-
+                {%~ endfor %}
             }
             @endpoint = '{{spec.endpoint}}'
         end
 
-{% for header in spec.global.headers %}
+        {%~ for header in spec.global.headers %}
         # Set {{header.key | caseUcfirst}}
         #
-{% if header.description %}
+        {%~ if header.description %}
         # {{header.description}}
         #
-{% endif %}
+        {%- endif %}
         # @param [String] value The value to set for the {{ header.key }} header
         #
         # @return [self]
@@ -41,7 +39,7 @@ module {{ spec.title | caseUcfirst }}
             self
         end
 
-{% endfor %}
+        {%~ endfor %}
         # Set endpoint.
         #
         # @param [String] endpoint The endpoint to set
@@ -63,7 +61,6 @@ module {{ spec.title | caseUcfirst }}
 
             self
         end
-
 
         # Add Header
         #
