@@ -237,12 +237,11 @@ abstract class Base extends TestCase
                 $this->assertNotNull($expectedJson, 'Failed to decode expected JSON output: ' . $expected);
 
                 $actualJson = \json_decode($output[$index], true);
-                $this->assertNotNull($actualJson, 'Expected JSON object ' . $expected . ' does not match received JSON object ' . $output[$index]);
+                $this->assertNotNull($actualJson, 'Expected JSON object: ' . $expected . ', does not match received JSON object: ' . $output[$index]);
 
                 $this->assertEquals(
                     $expectedJson,
                     $actualJson,
-                    'Expected JSON object ' . $expected . ' does not match received JSON object ' . $output[$index]
                 );
             } elseif ($expected == 'unique()') {
                 $this->assertNotEmpty($output[$index]);
