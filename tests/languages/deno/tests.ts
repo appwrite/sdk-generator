@@ -159,8 +159,8 @@ async function start() {
 
   response = await general.multipartEcho(await appwrite.Payload.fromFile("./tests/resources/file.png"));
   await response['responseBody'].toFile("./tests/resources/file_copy.png");
-  const fileBuffer = await Deno.readFile("./tests/resources/file_copy.png");
-  console.log(createHash("md5").update(fileBuffer).toString('hex'));
+  const binary = await Deno.readFile("./tests/resources/file_copy.png");
+  console.log(createHash("md5").update(binary).toString('hex'));
 
   // Query helper tests
   console.log(Query.equal("released", [true]));
