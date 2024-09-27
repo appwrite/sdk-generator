@@ -123,9 +123,16 @@ echo "{$response['x']}\n";
 $hash = md5($response['responseBody']->toBinary());
 echo "{$hash}\n";
 
-$response = $general->multipartJson();
+$response = $general->multipartEcho(Payload::fromString('Hello, World!'));
 echo "{$response['responseBody']->toString()}\n";
+
+$response = $general->multipartEcho(Payload::fromJson(['key' => 'myStringValue']));
 echo "{$response['responseBody']->toJson()['key']}\n";
+
+$response = $general->multipartEcho(Payload::fromFile(__DIR__ . '/../../resources/file.png'));
+$response['responseBody']->toFile(__DIR__ . '/../../resources/file_copy.png');
+$hash = md5_file(__DIR__ . '/../../resources/file_copy.png');
+echo "{$hash}\n";
 
 // Query helper tests
 echo Query::equal('released', [true]) . "\n";
