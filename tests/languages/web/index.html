@@ -140,10 +140,10 @@
       console.log(md5(binary));
 
       response = await general.multipartEcho(Payload.fromString('Hello, World!')); 
-      console.log(await response.responseBody.toString());
+      console.log(await response["responseBody"].toString());
 
       response = await general.multipartEcho(Payload.fromJson({ "key": "myStringValue" }));
-      console.log((await response.responseBody.toJson())['key']);
+      console.log((await response["responseBody"].toJson())['key']);
 
       // Query helper tests
       console.log(Query.equal("released", [true]));

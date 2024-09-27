@@ -79,7 +79,7 @@ abstract class Base extends TestCase
         'd80e7e6999a3eb2ae0d631a96fe135a4',
         'Hello, World!',
         'myStringValue',
-        
+
     ];
 
     protected const MULTIPART_RESPONSE_FILE = [
