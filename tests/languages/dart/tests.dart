@@ -117,12 +117,21 @@ void main() async {
   Multipart responseMultipart;
   responseMultipart = await general.multipart();
   print(responseMultipart.x);
-  final hash = md5.convert(responseMultipart.responseBody.toBinary()).toString();
+  var hash = md5.convert(responseMultipart.responseBody.toBinary()).toString();
   print(hash);
 
-  responseMultipart = await general.multipartJson();
+  responseMultipart = await general.multipartEcho(body: Payload.fromString("Hello, World!"));
   print(responseMultipart.responseBody.toString());
+
+  responseMultipart = await general.multipartEcho(body: Payload.fromJson({"key": "myStringValue"}));
   print(responseMultipart.responseBody.toJson()['key']);
+
+  responseMultipart = await general.multipartEcho(body: Payload.fromFile(path: '../../resources/file.png', filename: 'file.png'));
+  responseMultipart.responseBody.toFile('../../resources/file_copy.png');
+  resource = File.fromUri(Uri.parse('../../resources/file_copy.png'));
+  bytes = await resource.readAsBytes();
+  hash = md5.convert(bytes).toString();
+  print(hash);
 
   // Query helper tests
   print(Query.equal('released', [true]));
