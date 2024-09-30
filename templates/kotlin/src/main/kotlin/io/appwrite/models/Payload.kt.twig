@@ -39,6 +39,8 @@ class Payload private constructor() {
     }
 
     fun toFile(path: String): File {
+        Files.createDirectories(Paths.get(path).parent);
+
         val file = File(path)
         file.appendBytes(toBinary())
         return file
