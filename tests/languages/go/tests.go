@@ -202,6 +202,55 @@ func testMultipart(client client.Client){
 
     fmt.Println(data["x"])
     fmt.Println(fmt.Sprintf("%x",md5.Sum([]byte(data["responseBody"]))))
+
+	stringPayload := payload.NewPayloadFromString("Hello, World!")
+	mp, er := g.MultipartEcho(stringPayload)
+
+	if er != nil { return }
+
+	np = *mp
+	bytesValue, ok = np.([]byte)
+	if  !ok { return }
+
+	data, err =parse(bytesValue)
+	if err != nil { return }
+
+	responseBody := data["responseBody"] as payload.Payload
+	fmt.Println(responseBody.ToString())
+
+	jsonPayload := payload.NewPayloadFromJSON(map[string]interface{}{"key": "myStringValue"})
+	mp, er = g.MultipartEcho(jsonPayload)
+
+	if er != nil { return }
+
+	np = *mp
+	bytesValue, ok = np.([]byte)
+	if  !ok { return }
+
+	data, err =parse(bytesValue)
+	if err != nil { return }
+
+	responseBody = data["responseBody"] as payload.Payload
+	fmt.Println(responseBody.ToJson()["key"])
+
+	filePayload := payload.NewPayloadFromFile("tests/resources/file.png", "file.png")
+	mp, er = g.MultipartEcho(filePayload)
+
+	if er != nil { return }
+
+	np = *mp
+	bytesValue, ok = np.([]byte)
+	if  !ok { return }
+
+	data, err =parse(bytesValue)
+	if err != nil { return }
+
+	responseBody = data["responseBody"] as payload.Payload
+	responseBody.ToFile("tests/resources/file_copy.png")
+
+	file, err := ioutil.ReadFile("tests/resources/file_copy.png")
+	if err != nil { return }
+	fmt.Println(fmt.Sprintf("%x",md5.Sum(file)))
 }
 
 func testQueries() {
