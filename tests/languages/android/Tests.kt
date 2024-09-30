@@ -171,17 +171,14 @@ class ServiceTest {
 
             // Multipart tests
             val multipart = general.multipartCompiled()
-
             writeToFile((multipart as Map<String, Any>)["x"] as String)
             writeToFile(md5(((multipart as Map<String, Any>)["responseBody"] as Payload).toBinary()))
 
             var multipartEcho = general.multipartEcho(Payload.fromString("Hello, World!"))
-
-            writeToFile(((multipart as Map<String, Any>)["responseBody"] as Payload).toString())
+            writeToFile(multipart.responseBody.toString())
 
             multipartEcho = general.multipartEcho(Payload.fromJson(mapOf("key" to "myStringValue")))
-
-            writeToFile(((multipart as Map<String, Any>)["responseBody"] as Payload).toJson()["key"] as String)
+            writeToFile(multipart.responseBody.toJson()["key"] as String)
 
             // Query helper tests
             writeToFile(Query.equal("released", listOf(true)))

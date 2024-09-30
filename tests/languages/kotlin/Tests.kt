@@ -136,18 +136,18 @@ class ServiceTest {
             writeToFile(url)
 
             // Multipart tests
-            var mp = general.multipartCompiled()
-            writeToFile((mp as Map<String, Any>)["x"] as String)
-            writeToFile(md5(((mp as Map<String, Any>)["responseBody"] as Payload).toBinary()))
+            var responseMultipart = general.multipartCompiled()
+            writeToFile((responseMultipart as Map<String, Any>)["x"] as String)
+            writeToFile(md5(((responseMultipart as Map<String, Any>)["responseBody"] as Payload).toBinary()))
 
-            mp = general.multipartEcho(Payload.fromString("Hello, World!"))
-            writeToFile(((mp as Map<String, Any>)["responseBody"] as Payload).toString())
-        
-            mp = general.multipartEcho(Payload.fromJson(mapOf("key" to "myStringValue")))
-            writeToFile(((mp as Map<String, Any>)["responseBody"] as Payload).toJson()["key"] as String)
+            var responseEcho = general.multipartEcho(Payload.fromString("Hello, World!"))
+            writeToFile(responseEcho.responseBody.toString())
+            
+            responseEcho = general.multipartEcho(Payload.fromJson(mapOf("key" to "myStringValue")))
+            writeToFile(responseEcho.responseBody.toJson()["key"] as String)
 
-            mp = general.multipartEcho(Payload.fromFile("../../resources/file.png"))
-            ((mp as Map<String, Any>)["responseBody"] as Payload).toFile("../../resources/tmp/file_copy.png")
+            responseEcho = general.multipartEcho(Payload.fromFile("../../resources/file.png"))
+            responseEcho.responseBody.toFile("../../resources/tmp/file_copy.png")
             writeToFile(md5(File("../../resources/tmp/file_copy.png").readBytes()))
 
             // Query helper tests
