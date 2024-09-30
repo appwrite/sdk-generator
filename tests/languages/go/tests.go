@@ -187,70 +187,151 @@ func testLargeUpload(client client.Client, stringInArray []string) {
 	fmt.Printf("%s\n", response.Result)
 }
 
-func testMultipart(client client.Client){
-    g := general.New(client)
-    mp, err := g.MultipartCompiled()
+func testMultipart(client client.Client) {
+	g := general.New(client)
+	mp, err := g.MultipartCompiled()
+	if err != nil {
+		return
+	}
 
-    if err != nil { return }
+	bytesValue, ok := (*mp).([]byte)
+	if !ok {
+		return
+	}
 
-    np := *mp
-    bytesValue, ok := np.([]byte)
-    if  !ok { return }
+	data, err := parse(bytesValue)
+	if err != nil {
+		return
+	}
 
-    data, err :=parse(bytesValue)
-    if err != nil { return }
+	fmt.Println(data["x"])
 
-    fmt.Println(data["x"])
-    fmt.Println(fmt.Sprintf("%x",md5.Sum([]byte(data["responseBody"]))))
+	responseBodyInterface, exists := data["responseBody"]
+	if !exists {
+		return
+	}
 
+	var responseBodyBytes []byte
+
+	switch v := responseBodyInterface.(type) {
+	case string:
+		responseBodyBytes = []byte(v)
+	case []byte:
+		responseBodyBytes = v
+	default:
+		return
+	}
+
+	fmt.Printf("%x\n", md5.Sum(responseBodyBytes))
+
+	// String payload
 	stringPayload := payload.NewPayloadFromString("Hello, World!")
 	mp, er := g.MultipartEcho(stringPayload)
+	if er != nil {
+		return
+	}
 
-	if er != nil { return }
+	bytesValue, ok = (*mp).([]byte)
+	if !ok {
+		return
+	}
 
-	np = *mp
-	bytesValue, ok = np.([]byte)
-	if  !ok { return }
+	data, err = parse(bytesValue)
+	if err != nil {
+		return
+	}
 
-	data, err =parse(bytesValue)
-	if err != nil { return }
+	responseBodyInterface, exists = data["responseBody"]
+	if !exists {
+		return
+	}
 
-	responseBody := data["responseBody"] as payload.Payload
-	fmt.Println(responseBody.ToString())
+	switch v := responseBodyInterface.(type) {
+	case string:
+		fmt.Println(v)
+	case []byte:
+		fmt.Println(string(v))
+	default:
+		return
+	}
 
-	jsonPayload := payload.NewPayloadFromJSON(map[string]interface{}{"key": "myStringValue"})
+	// JSON payload
+	jsonPayload := payload.NewPayloadFromJson(map[string]interface{}{"key": "myStringValue"}, "")
 	mp, er = g.MultipartEcho(jsonPayload)
+	if er != nil {
+		return
+	}
 
-	if er != nil { return }
+	bytesValue, ok = (*mp).([]byte)
+	if !ok {
+		return
+	}
 
-	np = *mp
-	bytesValue, ok = np.([]byte)
-	if  !ok { return }
+	data, err = parse(bytesValue)
+	if err != nil {
+		return
+	}
 
-	data, err =parse(bytesValue)
-	if err != nil { return }
+	responseBodyInterface, exists = data["responseBody"]
+	if !exists {
+		return
+	}
 
-	responseBody = data["responseBody"] as payload.Payload
-	fmt.Println(responseBody.ToJson()["key"])
+	var responsePayload *payload.Payload
 
+	switch v := responseBodyInterface.(type) {
+	case string:
+		responsePayload = payload.NewPayloadFromString(v)
+	case []byte:
+		responsePayload = payload.NewPayloadFromBinary(v, "")
+	default:
+		return
+	}
+
+	fmt.Println(responsePayload.ToJson()["key"])
+
+	// File payload
 	filePayload := payload.NewPayloadFromFile("tests/resources/file.png", "file.png")
 	mp, er = g.MultipartEcho(filePayload)
+	if er != nil {
+		return
+	}
 
-	if er != nil { return }
+	bytesValue, ok = (*mp).([]byte)
+	if !ok {
+		return
+	}
 
-	np = *mp
-	bytesValue, ok = np.([]byte)
-	if  !ok { return }
+	data, err = parse(bytesValue)
+	if err != nil {
+		return
+	}
 
-	data, err =parse(bytesValue)
-	if err != nil { return }
+	responseBodyInterface, exists = data["responseBody"]
+	if !exists {
+		return
+	}
 
-	responseBody = data["responseBody"] as payload.Payload
-	responseBody.ToFile("tests/resources/file_copy.png")
+	switch v := responseBodyInterface.(type) {
+	case string:
+		responsePayload = payload.NewPayloadFromString(v)
+	case []byte:
+		responsePayload = payload.NewPayloadFromBinary(v, "")
+	default:
+		return
+	}
 
-	file, err := ioutil.ReadFile("tests/resources/file_copy.png")
-	if err != nil { return }
-	fmt.Println(fmt.Sprintf("%x",md5.Sum(file)))
+	err = responsePayload.ToFile("tests/resources/file_copy.png")
+	if err != nil {
+		return
+	}
+
+	file, err := os.ReadFile("tests/resources/file_copy.png")
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("%x\n", md5.Sum(file))
 }
 
 func testQueries() {
