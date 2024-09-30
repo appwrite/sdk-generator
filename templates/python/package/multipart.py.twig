@@ -1,6 +1,7 @@
 from email.parser import BytesParser
 from email.policy import default
 from .payload import Payload
+import json
 
 class MultipartParser:
     def __init__(self, multipart_bytes, content_type):
@@ -38,7 +39,7 @@ class MultipartParser:
                 result[name] = Payload.from_binary(part["contents"])
             elif name == "responseHeaders":
                 headers_str = part["contents"].decode('utf-8', errors='replace')
-                result[name] = dict(line.split(": ", 1) for line in headers_str.split("\r\n") if line)
+                result[name] = json.loads(headers_str)
             elif name == "responseStatusCode":
                 result[name] = int(part["contents"])
             elif name == "duration":
