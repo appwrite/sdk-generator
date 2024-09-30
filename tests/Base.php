@@ -208,11 +208,11 @@ abstract class Base extends TestCase
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
 
         /**
-         * Delete file_copy.png if exists.
+         * Delete /resources/tmp if exists.
          * Used for testing file download.
          */
-        if (file_exists(__DIR__ . '/resources/file_copy.png')) {
-            unlink(__DIR__ . '/resources/file_copy.png');
+        if (is_dir(__DIR__ . '/resources/tmp')) {
+            $this->rmdirRecursive(__DIR__ . '/resources/tmp');
         }
 
         /**

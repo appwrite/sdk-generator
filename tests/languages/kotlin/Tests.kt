@@ -147,8 +147,8 @@ class ServiceTest {
             writeToFile(((mp as Map<String, Any>)["responseBody"] as Payload).toJson()["key"] as String)
 
             mp = general.multipartEcho(Payload.fromFile("../../resources/file.png"))
-            ((mp as Map<String, Any>)["responseBody"] as Payload).toFile("../../resources/file_copy.png")
-            writeToFile(md5(File("../../resources/file_copy.png").readBytes()))
+            ((mp as Map<String, Any>)["responseBody"] as Payload).toFile("../../resources/tmp/file_copy.png")
+            writeToFile(md5(File("../../resources/tmp/file_copy.png").readBytes()))
 
             // Query helper tests
             writeToFile(Query.equal("released", listOf(true)))

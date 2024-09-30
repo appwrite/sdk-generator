@@ -321,12 +321,12 @@ func testMultipart(client client.Client) {
 		return
 	}
 
-	err = responsePayload.ToFile("tests/resources/file_copy.png")
+	err = responsePayload.ToFile("tests/resources/tmp/file_copy.png")
 	if err != nil {
 		return
 	}
 
-	file, err := os.ReadFile("tests/resources/file_copy.png")
+	file, err := os.ReadFile("tests/resources/tmp/file_copy.png")
 	if err != nil {
 		return
 	}

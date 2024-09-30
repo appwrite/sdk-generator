@@ -132,8 +132,8 @@ echo "{$response['responseBody']->toJson()['key']}\n";
 
 // TODO: Fix, outputs incorrect hash
 // $response = $general->multipartEcho(Payload::fromFile(__DIR__ . '/../../resources/file.png'));
-// $response['responseBody']->toFile(__DIR__ . '/../../resources/file_copy.png');
-// $hash = md5_file(__DIR__ . '/../../resources/file_copy.png');
+// $response['responseBody']->toFile(__DIR__ . '/../../resources/tmp/file_copy.png');
+// $hash = md5_file(__DIR__ . '/../../resources/tmp/file_copy.png');
 // echo "{$hash}\n";
 
 // Query helper tests

@@ -145,8 +145,8 @@ end
 begin
     response = general.multipart_echo(body: Payload.from_file('./tests/resources/file.png'))
    
-    response.response_body.to_file('./tests/resources/file_copy.png')
-    puts Digest::MD5.hexdigest(IO.read('./tests/resources/file_copy.png'))
+    response.response_body.to_file('./tests/resources/tmp/file_copy.png')
+    puts Digest::MD5.hexdigest(IO.read('./tests/resources/tmp/file_copy.png'))
 rescue => e
     puts e
 end

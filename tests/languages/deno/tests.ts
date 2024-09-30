@@ -158,8 +158,8 @@ async function start() {
   console.log(response['responseBody'].toJson<{key: string}>()["key"]);
 
   response = await general.multipartEcho(await appwrite.Payload.fromFile("./tests/resources/file.png"));
-  await response['responseBody'].toFile("./tests/resources/file_copy.png");
-  binary = await Deno.readFile("./tests/resources/file_copy.png");
+  await response['responseBody'].toFile("./tests/resources/tmp/file_copy.png");
+  binary = await Deno.readFile("./tests/resources/tmp/file_copy.png");
   console.log(createHash("md5").update(binary).toString('hex'));
 
   // Query helper tests

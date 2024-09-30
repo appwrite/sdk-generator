@@ -115,7 +115,7 @@ response = general.multipart_echo(Payload.from_json({"key": "myStringValue"}))
 print(response['responseBody'].to_json()['key'])
 
 response = general.multipart_echo(Payload.from_file('./tests/resources/file.png'))
-response['responseBody'].to_file('./tests/resources/file_copy.png')
+response['responseBody'].to_file('./tests/resources/tmp/file_copy.png')
 print(md5(open('./tests/resources/file.png', 'rb').read()).hexdigest())
 
 # Query helper tests
