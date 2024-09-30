@@ -46,6 +46,8 @@ class Payload:
         return json.loads(self.to_string())
 
     def to_file(self, path: str) -> None:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+
         with open(path, 'wb') as f:
             return f.write(self.to_binary())
 

@@ -46,6 +46,7 @@ module Appwrite
     # @param [String] path 
     # @return [void]
     def to_file(path)
+      FileUtils.mkdir_p(File.dirname(path))
       File.open(path, 'wb') { |f| f.write(to_binary()) }
     end
 
