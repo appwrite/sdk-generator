@@ -148,7 +148,7 @@ async function start() {
   response = await general.multipart();
   console.log(response.x);
 
-  const binary = await response['responseBody'].toBinary();
+  let binary = await response['responseBody'].toBinary();
   console.log(createHash("md5").update(binary).toString('hex'));
 
   response = await general.multipartEcho(appwrite.Payload.fromString("Hello, World!"));
@@ -159,7 +159,7 @@ async function start() {
 
   response = await general.multipartEcho(await appwrite.Payload.fromFile("./tests/resources/file.png"));
   await response['responseBody'].toFile("./tests/resources/file_copy.png");
-  const binary = await Deno.readFile("./tests/resources/file_copy.png");
+  binary = await Deno.readFile("./tests/resources/file_copy.png");
   console.log(createHash("md5").update(binary).toString('hex'));
 
   // Query helper tests
