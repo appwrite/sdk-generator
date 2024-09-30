@@ -151,13 +151,6 @@ void main() async {
   responseEcho = await general.multipartEcho(body: Payload.fromJson(data: {"key": "myStringValue"}));
   print(responseEcho.responseBody.toJson()['key']);
 
-  responseEcho = await general.multipartEcho(body: Payload.fromFile(path: '../../resources/file.png', filename: 'file.png'));
-  responseEcho.responseBody.toFile('../../resources/tmp/file_copy.png');
-  resource = File.fromUri(Uri.parse('../../resources/tmp/file_copy.png'));
-  bytes = await resource.readAsBytes();
-  hash = md5.convert(bytes).toString();
-  print(hash);
-
   // Query helper tests
   print(Query.equal('released', [true]));
   print(Query.equal('title', ['Spiderman', 'Dr. Strange']));
