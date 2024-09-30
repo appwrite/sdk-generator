@@ -120,14 +120,14 @@ void main() async {
   var hash = md5.convert(responseMultipart.responseBody.toBinary()).toString();
   print(hash);
 
-  responseMultipart = await general.multipartEcho(body: Payload.fromString("Hello, World!"));
-  print(responseMultipart.responseBody.toString());
+  MultipartEcho responseEcho = await general.multipartEcho(body: Payload.fromString(string: "Hello, World!"));
+  print(responseEcho.responseBody.toString());
 
-  responseMultipart = await general.multipartEcho(body: Payload.fromJson({"key": "myStringValue"}));
-  print(responseMultipart.responseBody.toJson()['key']);
+  responseEcho = await general.multipartEcho(body: Payload.fromJson(data: {"key": "myStringValue"}));
+  print(responseEcho.responseBody.toJson()['key']);
 
-  responseMultipart = await general.multipartEcho(body: Payload.fromFile(path: '../../resources/file.png', filename: 'file.png'));
-  responseMultipart.responseBody.toFile('../../resources/file_copy.png');
+  responseEcho = await general.multipartEcho(body: Payload.fromFile(path: '../../resources/file.png', filename: 'file.png'));
+  responseEcho.responseBody.toFile('../../resources/file_copy.png');
   resource = File.fromUri(Uri.parse('../../resources/file_copy.png'));
   bytes = await resource.readAsBytes();
   hash = md5.convert(bytes).toString();
