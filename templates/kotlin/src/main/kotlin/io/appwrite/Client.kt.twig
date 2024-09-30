@@ -241,7 +241,6 @@ class Client @JvmOverloads constructor(
                             )
                         }
                     }
-
                     it.value is Payload -> {
                         val payload = it.value as Payload
                         if (payload.sourceType == "path") {
@@ -250,7 +249,6 @@ class Client @JvmOverloads constructor(
                             builder.addFormDataPart(it.key, payload.toString())
                         }
                     }
-
                     else -> {
                         builder.addFormDataPart(it.key, it.value.toString())
                     }
