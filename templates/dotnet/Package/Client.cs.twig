@@ -383,7 +383,7 @@ namespace {{ spec.title | caseUcfirst }}
                 // Make a request to check if a file already exists
                 var current = await Call<Dictionary<string, object?>>(
                     method: "GET",
-                    path: "$path/${params[idParamName]}",
+                    path,
                     headers,
                     parameters = new Dictionary<string, object?>()
                 );
