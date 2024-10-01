@@ -1,6 +1,6 @@
 import { {{ spec.title | caseUcfirst}}Exception } from './exception.ts';
 import { Payload } from './payload.ts';
-import * as multipart from './multipart.ts';
+import { getBoundary, parse as parseMultipart } from './multipart.ts';
 
 export interface Params {
     [key: string]: any;
@@ -128,12 +128,12 @@ export class Client {
         }
 
         if (response.headers.get('content-type')?.includes('multipart/form-data')) {
-            const boundary = multipart.getBoundary(
+            const boundary = getBoundary(
                 response.headers.get("content-type") || ""
             );
             
             const body = new Uint8Array(await response.arrayBuffer());
-            const parts = multipart.parse(body, boundary);
+            const parts = parseMultipart(body, boundary);
             const partsObject: { [key: string]: any } = {};
 
             for (const part of parts) {

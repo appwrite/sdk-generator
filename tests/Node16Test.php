@@ -12,7 +12,7 @@ class Node16Test extends Base
     protected string $language = 'node';
     protected string $class = 'Appwrite\SDK\Language\Node';
     protected array $build = [
-        'cp tests/languages/node/test.js tests/sdks/node/test.js',
+        'cp -R tests/languages/node/* tests/sdks/node/',
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:16-alpine npm install',
         'docker run --rm -v $(pwd):/app -w /app/tests/sdks/node node:16-alpine npm run build'
     ];
