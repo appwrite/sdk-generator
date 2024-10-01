@@ -1614,10 +1614,10 @@
         ]
       }
     },
-    "\/mock\/tests\/general\/multipartcomplied": {
+    "\/mock\/tests\/general\/multipart-compiled": {
       "get": {
-        "summary": "MultipartComplied",
-        "operationId": "generalMultipartComplied",
+        "summary": "MultipartCompiled",
+        "operationId": "generalMultipartCompiled",
         "consumes": [
           "application\/json"
         ],
