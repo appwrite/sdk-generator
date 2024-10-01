@@ -515,6 +515,9 @@ class Dart extends Language
                 return implode("\n", $value);
             }, ['is_safe' => ['html']]),
             new TwigFilter('caseEnumKey', function (string $value) {
+                if (ctype_upper($value)) {
+                    return \strtolower($value);
+                }
                 return $this->toCamelCase($value);
             }),
         ];
