@@ -1684,7 +1684,7 @@
           "200": {
             "description": "Multipart echo",
             "schema": {
-              "$ref": "#\/definitions\/multipart-echo"
+              "$ref": "#\/definitions\/multipartEcho"
             }
           }
         },
@@ -2176,7 +2176,7 @@
         "responseBody"
       ]
     },
-    "multipart-echo": {
+    "multipartEcho": {
       "description": "Multipart echo",
       "type": "object",
       "properties": {
