@@ -380,15 +380,22 @@ namespace {{ spec.title | caseUcfirst }}
 
             if (!string.IsNullOrEmpty(idParamName) && (string)parameters[idParamName] != "unique()")
             {
+                try
+                {
                 // Make a request to check if a file already exists
                 var current = await Call<Dictionary<string, object?>>(
                     method: "GET",
-                    path,
-                    headers,
-                    parameters = new Dictionary<string, object?>()
+                    path: $"{path}/{parameters[idParamName]}",
+                    new Dictionary<string, string> { { "content-type", "application/json" } },
+                    parameters: new Dictionary<string, object?>()
                 );
                 var chunksUploaded = (long)current["chunksUploaded"];
                 offset = chunksUploaded * ChunkSize;
+            }
+                catch (Exception ex)
+                {
+                    // ignored as it mostly means file not found
+                }
             }
 
             while (offset < size)
