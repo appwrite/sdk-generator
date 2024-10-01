@@ -189,7 +189,7 @@ func testLargeUpload(client client.Client, stringInArray []string) {
 
 func testMultipart(client client.Client){
     g := general.New(client)
-    mp, err := g.MultipartComplied()
+    mp, err := g.MultipartCompiled()
 
     if err != nil { return }
 
