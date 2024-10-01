@@ -175,10 +175,10 @@ class ServiceTest {
             writeToFile(md5(((multipart as Map<String, Any>)["responseBody"] as Payload).toBinary()))
 
             var multipartEcho = general.multipartEcho(Payload.fromString("Hello, World!"))
-            writeToFile(multipart.responseBody.toString())
+            writeToFile(((multipart as Map<String, Any>)["responseBody"] as Payload).toString())
 
             multipartEcho = general.multipartEcho(Payload.fromJson(mapOf("key" to "myStringValue")))
-            writeToFile(multipart.responseBody.toJson()["key"] as String)
+            writeToFile(((multipart as Map<String, Any>)["responseBody"] as Payload).toJson()["key"] as String)
 
             // Query helper tests
             writeToFile(Query.equal("released", listOf(true)))
