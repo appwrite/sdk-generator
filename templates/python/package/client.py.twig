@@ -74,9 +74,9 @@ class Client:
                 if isinstance(data[key], Payload):
                     if data[key].filename:
                         files[key] = (data[key].filename, data[key].to_binary())
+                        del data[key]
                     else:
-                        data[key] = data[key].to_binary()
-                    del data[key]
+                        data[key] = data[key].to_string()  
             data = self.flatten(data, stringify=stringify)
 
         response = None

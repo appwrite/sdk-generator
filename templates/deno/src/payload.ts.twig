@@ -1,4 +1,4 @@
-import { basename } from "https://deno.land/std@0.224.0/path/mod.ts";
+import { basename, dirname } from "https://deno.land/std@0.224.0/path/mod.ts";
 
 export class Payload {
   private data: Uint8Array;
@@ -30,6 +30,7 @@ export class Payload {
   }
 
   public async toFile(path: string): Promise<void> {
+    await Deno.mkdir(dirname(path), { recursive: true });
     await Deno.writeFile(path, this.data);
   }
 

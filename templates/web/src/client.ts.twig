@@ -573,7 +573,11 @@ class Client {
 
                     for (const [name, value] of Object.entries(params)) {
                         if (value instanceof Payload) {
-                            formData.append(name, await value.toFile(), value.filename);
+                            if (value.filename) {
+                                formData.append(name, await value.toFile(), value.filename);
+                            } else {
+                                formData.append(name, await value.toString());
+                            }
                         } else if (Array.isArray(value)) {
                             for (const nestedValue of value) {
                                 formData.append(`${name}[]`, nestedValue);

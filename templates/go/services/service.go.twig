@@ -95,7 +95,7 @@ func (srv *{{ service.name | caseUcfirst }}) {{ method.name | caseUcfirst }}({{ 
 	path := "{{ method.path }}"
 {% endif %}
 {{include('go/base/params.twig')}}
-{% if 'multipart/form-data' in method.consumes and method.name | lower != "createexecution" %}
+{% if 'multipart/form-data' in method.consumes and method.type == "upload" %}
 {{ include('go/base/requests/file.twig') }}
 {% else %}
 {{ include('go/base/requests/api.twig') }}

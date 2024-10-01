@@ -214,6 +214,8 @@ class Ruby extends Language
             self::TYPE_STRING => 'String',
             self::TYPE_ARRAY => 'Array',
             self::TYPE_OBJECT => 'Hash',
+            self::TYPE_FILE => 'Payload',
+            self::TYPE_PAYLOAD => 'Payload',
             self::TYPE_BOOLEAN => '',
             default => $parameter['type'],
         };

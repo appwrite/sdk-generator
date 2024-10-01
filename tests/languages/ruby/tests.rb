@@ -126,6 +126,31 @@ rescue => e
     puts e
 end
 
+begin
+    response = general.multipart_echo(body: Payload.from_string('Hello, World!'))
+   
+    puts response.response_body.to_string
+rescue => e
+    puts e
+end
+
+begin
+    response = general.multipart_echo(body: Payload.from_json({"key": "myStringValue"}))
+   
+    puts response.response_body.to_json()["key"]
+rescue => e
+    puts e
+end
+
+begin
+    response = general.multipart_echo(body: Payload.from_file('./tests/resources/file.png'))
+   
+    response.response_body.to_file('./tests/tmp/file_copy.png')
+    puts Digest::MD5.hexdigest(IO.read('./tests/tmp/file_copy.png'))
+rescue => e
+    puts e
+end
+
 # Query helper tests
 puts Query.equal('released', [true])
 puts Query.equal('title', ['Spiderman', 'Dr. Strange'])

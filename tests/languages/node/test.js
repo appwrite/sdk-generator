@@ -116,6 +116,18 @@ async function start() {
     )
     console.log(url)
 
+    // Multipart
+    response = await general.multipart();
+    console.log(response.x); // should be abc
+    const responseBodyBinary = response.responseBody.toBinary();
+    console.log(crypto.createHash('md5').update(responseBodyBinary).digest('hex')); // should be d80e7e6999a3eb2ae0d631a96fe135a4
+
+    response = await general.multipartEcho(Payload.fromString('Hello, World!')); 
+    console.log(response.responseBody.toString());
+
+    response = await general.multipartEcho(Payload.fromJson({ "key": "myStringValue" }));
+    console.log(response.responseBody.toJson()['key']);
+
     // Query helper tests
     console.log(Query.equal("released", [true]));
     console.log(Query.equal("title", ["Spiderman", "Dr. Strange"]));
@@ -166,12 +178,6 @@ async function start() {
 
     response = await general.headers();
     console.log(response.result);
-
-    response = await general.multipart();
-    console.log(response.x); // should be abc
-    const responseBodyBinary = response.responseBody.toBinary();
-    const hash = crypto.createHash('md5').update(responseBodyBinary).digest('hex');
-    console.log(hash); // should be d80e7e6999a3eb2ae0d631a96fe135a4
 }
 
 start().catch((err) => {

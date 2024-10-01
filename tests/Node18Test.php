@@ -27,6 +27,7 @@ class Node18Test extends Base
         ...Base::ENUM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::OAUTH_RESPONSES,
+        ...Base::MULTIPART_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES

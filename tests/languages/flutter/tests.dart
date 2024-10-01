@@ -142,8 +142,14 @@ void main() async {
   Multipart responseMultipart;
   responseMultipart = await general.multipart();
   print(responseMultipart.x);
-  final hash = md5.convert(responseMultipart.responseBody.toBinary()).toString();
+  var hash = md5.convert(responseMultipart.responseBody.toBinary()).toString();
   print(hash);
+
+  MultipartEcho responseEcho = await general.multipartEcho(body: Payload.fromString(string: "Hello, World!"));
+  print(responseEcho.responseBody.toString());
+
+  responseEcho = await general.multipartEcho(body: Payload.fromJson(data: {"key": "myStringValue"}));
+  print(responseEcho.responseBody.toJson()['key']);
 
   // Query helper tests
   print(Query.equal('released', [true]));

@@ -100,3 +100,23 @@ jobs:
 
       - name: Lint
         run: composer lint
+
+  specs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: curl
+
+      - name: Install
+        run: composer install
+
+      - name: Validate specs
+        run: composer test tests/SpecsTest.php
+      

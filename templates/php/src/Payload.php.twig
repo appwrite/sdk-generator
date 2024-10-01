@@ -3,63 +3,58 @@ namespace {{ spec.title | caseUcfirst }};
 
 class Payload {
     private ?string $data;
-    private ?string $filename;
     private ?string $path;
 
-    public function __construct(){}
-
-    public function getData(): ?string
+    public function __construct(
+        public int $size = 0, 
+        public ?string $filename = null,
+        public ?string $mimeType = null
+    )
     {
-        return $this->data;
-    }
-
-    public function getPath(): ?string
-    {
-        return $this->path;
-    }
-
-    public function getFilename(): ?string
-    {
-        return $this->filename;
     }
 
     public static function fromFile(string $path, ?string $filename = null): self
     {
-        $instance = new Payload();
+        if (!file_exists($path)) {
+            throw new \Exception('File not found at path: ' . $path);
+        }
+        if ($filename === null) {
+            $filename = basename($path);
+        }
+        $mimeType = mime_content_type($path);
+        $instance = new Payload(filesize($path), $filename, $mimeType);
         $instance->path = $path;
         $instance->data = null;
-        $instance->filename = $filename;
         return $instance;
     }
 
-    public static function fromBinary(string $data, ?string $filename = null): self
+    public static function fromBinary(string $data, ?string $filename = null, ?string $mimeType = null): self
     {
-        $instance = new Payload();
+        $instance = new Payload(strlen($data), $filename, $mimeType);
         $instance->path = null;
         $instance->data = $data;
-        $instance->filename = $filename;
         return $instance;
     }
 
     public static function fromJson(array $data): self
     {
-        $instance = new Payload();
-        $instance->path = null;
-        $instance->data = json_encode($data);
-        return $instance;
+        $data = json_encode($data);
+        return self::fromString($data);
     }
 
     public static function fromString(string $data): self
     {
-        $instance = new Payload();
-        $instance->path = null;
-        $instance->data = $data;
-        return $instance;
+        return self::fromBinary($data);
     }
 
-    public function toBinary(): string
+    public function toBinary(?int $offset = 0, ?int $length = null): string
     {
-        return $this->data;
+        $length = $length ?? ($this->size - $offset);
+        if ($this->data) {
+            return substr($this->data, $offset, $length);
+        } else {
+            return file_get_contents($this->path, false, null, $offset, $length);
+        }
     }
 
     public function toJson(): mixed

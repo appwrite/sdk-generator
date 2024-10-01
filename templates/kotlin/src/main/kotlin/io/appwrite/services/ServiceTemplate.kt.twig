@@ -54,11 +54,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 
         val apiParams = mutableMapOf<String, Any?>(
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
-            {%~ if parameter.type == 'payload' %}
-            "{{ parameter.name }}" to ({{ parameter.name | caseCamel }}?.toBinary() ?: ""),
-            {%~ else %}
             "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
-            {%~ endif %}
         {%~ endfor %}
         )
         val apiHeaders = mutableMapOf<String, String>(

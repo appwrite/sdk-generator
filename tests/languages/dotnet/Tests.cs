@@ -121,18 +121,29 @@ namespace AppwriteTests
                 failure: "https://localhost"
             );
             TestContext.WriteLine(url);
+            
             // Multipart tests
-            var response = await general.MultipartCompiled();
-            var res = (response as Dictionary<string, object>);
+            var multipart = await general.MultipartCompiled();
+            var res = (mock as Dictionary<string, object>);
             TestContext.WriteLine(res["x"]);
-            var pl = res["responseBody"] as Payload;
+            var payload = res["responseBody"] as Payload;
             byte[] hash;
             using (var md5 = System.Security.Cryptography.MD5.Create())
             {
-                md5.TransformFinalBlock(pl.ToBinary(), 0, pl.ToBinary().Length);
+                md5.TransformFinalBlock(payload.ToBinary(), 0, payload.ToBinary().Length);
                 hash = md5.Hash;
             }
             TestContext.WriteLine(BitConverter.ToString(hash).Replace("-", "").ToLower());
+
+            var multipartEcho = await general.MultipartEcho(body: Payload.FromString("Hello, World!");
+            res = (multipartEcho as Dictionary<string, object>);
+            payload = res["responseBody"] as Payload;
+            TestContext.WriteLine(payload.ToString());
+
+            multipartEcho = await general.MultipartEcho(body: Payload.FromJson(new Dictionary<string, object> { { "key", "myStringValue" } }));
+            res = (multipartEcho as Dictionary<string, object>);
+            payload = res["responseBody"] as Payload;
+            TestContext.WriteLine(payload.ToJson()["key"]);
 
             // Query helper tests
             TestContext.WriteLine(Query.Equal("released", new List<bool> { true }));

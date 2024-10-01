@@ -325,6 +325,18 @@ App::post('/v1/mock/tests/general/upload')
 
         $chunkSize = 5 * 1024 * 1024; // 5MB
 
+        if ($x != 'string') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong string value: ' . $x . ', expected: string');
+        }
+
+        if ($y !== 123) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong numeric value: ' . $y . ', expected: 123');
+        }
+
+        if ($z[0] !== 'string in array' || \count($z) !== 1) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong array value: ' . \json_encode($z) . ', expected: ["string in array"]');
+        }
+
         if (!empty($contentRange)) {
             $start = $request->getContentRangeStart();
             $end = $request->getContentRangeEnd();
@@ -373,15 +385,16 @@ App::post('/v1/mock/tests/general/upload')
             $file['size'] = (\is_array($file['size'])) ? $file['size'][0] : $file['size'];
 
             if ($file['name'] !== 'file.png') {
-                throw new Exception(Exception::GENERAL_MOCK, 'Wrong file name');
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong file name: ' . $file['name'] . ', expected: file.png');
             }
 
             if ($file['size'] !== 38756) {
-                throw new Exception(Exception::GENERAL_MOCK, 'Wrong file size');
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong file size: ' . $file['size'] . ', expected: 38756');
             }
 
-            if (\md5(\file_get_contents($file['tmp_name'])) !== 'd80e7e6999a3eb2ae0d631a96fe135a4') {
-                throw new Exception(Exception::GENERAL_MOCK, 'Wrong file uploaded');
+            $hash = \md5(\file_get_contents($file['tmp_name']));
+            if ($hash !== 'd80e7e6999a3eb2ae0d631a96fe135a4') {
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong file uploaded: ' . $hash . ', expected: d80e7e6999a3eb2ae0d631a96fe135a4');
             }
         }
     });
@@ -407,6 +420,41 @@ App::get('/v1/mock/tests/general/multipart')
             'x' => 'abc',
             'y' => 123,
             'responseBody' => $file,
+        ]);
+    });
+
+App::post('/v1/mock/tests/general/multipart-echo')
+    ->desc('Multipart echo')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'multipartEcho')
+    ->label('sdk.description', 'Echo a multipart request.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_MULTIPART)
+    ->label('sdk.response.model', Response::MODEL_MULTIPART)
+    ->label('sdk.mock', true)
+    ->param('body', '', new File(), 'Sample file param', false, [], true)
+    ->inject('response')
+    ->inject('request')
+    ->action(function (string $body, Response $response, Request $request) {
+        if (empty($body)) {
+            $file = $request->getFiles('body');
+
+            if (empty($file)) {
+                $file = $request->getFiles(0);
+            }
+
+            if (isset($file['tmp_name'])) {
+                $body = \file_get_contents($file['tmp_name']);
+            } else {
+                $body = '';
+            }
+        }
+    
+        $response->multipart([
+            'responseBody' => $body
         ]);
     });
 

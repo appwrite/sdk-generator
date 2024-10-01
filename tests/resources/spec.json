@@ -1666,6 +1666,70 @@
         ]
       }
     },
+    "\/mock\/tests\/general\/multipart-echo": {
+      "post": {
+        "summary": "MultipartEcho",
+        "operationId": "generalMultipartEcho",
+        "consumes": [
+          "multipart\/form-data"
+        ],
+        "produces": [
+          "multipart\/form-data"
+        ],
+        "tags": [
+          "general"
+        ],
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "Multipart echo",
+            "schema": {
+              "$ref": "#\/definitions\/multipartEcho"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Sample file param",
+            "required": true,
+            "type": "payload",
+            "in": "formData"
+          }    
+        ],
+        "x-appwrite": {
+          "method": "multipartEcho",
+          "weight": 278,
+          "cookies": false,
+          "type": "",
+          "demo": "general\/multipart.md",
+          "edit": "https:\/\/github.com\/appwrite\/appwrite\/edit\/masterMock a multipart request.",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server",
+            "server"
+          ],
+          "packaging": false,
+          "offline-model": "",
+          "offline-key": "",
+          "offline-response-key": "$id",
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/redirect\/done": {
       "get": {
         "summary": "Redirected",
@@ -2109,6 +2173,21 @@
       "required": [
         "x",
         "y",
+        "responseBody"
+      ]
+    },
+    "multipartEcho": {
+      "description": "Multipart echo",
+      "type": "object",
+      "properties": {
+        "responseBody": {
+          "type": "payload",
+          "description": "Sample file param",
+          "default": null,
+          "x-example": null
+        }
+      },
+      "required": [
         "responseBody"
       ]
     },

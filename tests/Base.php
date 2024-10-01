@@ -76,7 +76,14 @@ abstract class Base extends TestCase
 
     protected const MULTIPART_RESPONSES = [
         'abc',
-        'd80e7e6999a3eb2ae0d631a96fe135a4' #
+        'd80e7e6999a3eb2ae0d631a96fe135a4',
+        'Hello, World!',
+        'myStringValue',
+
+    ];
+
+    protected const MULTIPART_RESPONSE_FILE = [
+        'd80e7e6999a3eb2ae0d631a96fe135a4'
     ];
 
     protected const QUERY_HELPER_RESPONSES = [
@@ -201,6 +208,14 @@ abstract class Base extends TestCase
         $sdk->generate(__DIR__ . '/sdks/' . $this->language);
 
         /**
+         * Delete /resources/tmp if exists.
+         * Used for testing file download.
+         */
+        if (is_dir(__DIR__ . '/resources/tmp')) {
+            $this->rmdirRecursive(__DIR__ . '/resources/tmp');
+        }
+
+        /**
          * Build SDK
          */
         foreach ($this->build as $command) {
@@ -226,9 +241,15 @@ abstract class Base extends TestCase
         foreach ($this->expectedOutput as $index => $expected) {
             // HACK: Swift does not guarantee the order of the JSON parameters
             if (\str_starts_with($expected, '{')) {
+                $expectedJson = \json_decode($expected, true);
+                $this->assertNotNull($expectedJson, 'Failed to decode expected JSON output: ' . $expected);
+
+                $actualJson = \json_decode($output[$index], true);
+                $this->assertNotNull($actualJson, 'Expected JSON object: ' . $expected . ', does not match received JSON object: ' . $output[$index]);
+
                 $this->assertEquals(
-                    \json_decode($expected, true),
-                    \json_decode($output[$index], true)
+                    $expectedJson,
+                    $actualJson,
                 );
             } elseif ($expected == 'unique()') {
                 $this->assertNotEmpty($output[$index]);

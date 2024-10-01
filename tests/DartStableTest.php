@@ -27,6 +27,7 @@ class DartStableTest extends Base
         ...Base::EXCEPTION_RESPONSES,
         ...Base::OAUTH_RESPONSES,
         ...Base::MULTIPART_RESPONSES,
+        ...Base::MULTIPART_RESPONSE_FILE,
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES

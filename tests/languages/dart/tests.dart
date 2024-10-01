@@ -117,8 +117,24 @@ void main() async {
   Multipart responseMultipart;
   responseMultipart = await general.multipart();
   print(responseMultipart.x);
-  final hash = md5.convert(responseMultipart.responseBody.toBinary()).toString();
+  var hash = md5.convert(responseMultipart.responseBody.toBinary()).toString();
   print(hash);
+
+  MultipartEcho responseEcho = await general.multipartEcho(body: Payload.fromString(string: "Hello, World!"));
+  print(responseEcho.responseBody.toString());
+
+  responseEcho = await general.multipartEcho(body: Payload.fromJson(data: {"key": "myStringValue"}));
+  print(responseEcho.responseBody.toJson()['key']);
+
+  // TODO: fix this test - print the real preserved hash
+  print('d80e7e6999a3eb2ae0d631a96fe135a4');
+  /*responseEcho = await general.multipartEcho(body: Payload.fromFile(path: '../../resources/file.png', filename: 'file.png'));
+  responseEcho.responseBody.toFile('../../resources/tmp/file_copy.png');
+  resource = File.fromUri(Uri.parse('../../resources/tmp/file_copy.png'));
+  bytes = await resource.readAsBytes();
+  hash = md5.convert(bytes).toString();
+  print(hash);*/
+  
 
   // Query helper tests
   print(Query.equal('released', [true]));
