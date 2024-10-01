@@ -170,7 +170,7 @@ class ServiceTest {
             general.empty()
 
             // Multipart tests
-            val mp = general.multipartComplied()
+            val mp = general.multipartCompiled()
 
             writeToFile((mp as Map<String, Any>)["x"] as String)
             writeToFile(md5(((mp as Map<String, Any>)["responseBody"] as Payload).toBinary()))
