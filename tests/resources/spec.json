@@ -1618,6 +1618,9 @@
       "get": {
         "summary": "MultipartCompiled",
         "operationId": "generalMultipartCompiled",
+        "consumes": [
+          "application\/json"
+        ],
         "produces": [
           "multipart\/form-data"
         ],

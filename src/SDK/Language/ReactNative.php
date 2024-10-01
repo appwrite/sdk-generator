@@ -2,8 +2,6 @@
 
 namespace Appwrite\SDK\Language;
 
-use Twig\TwigFilter;
-
 class ReactNative extends Web
 {
     /**
@@ -64,6 +62,16 @@ class ReactNative extends Web
                 'scope'         => 'default',
                 'destination'   => 'src/query.ts',
                 'template'      => 'react-native/src/query.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/payload.ts',
+                'template'      => 'react-native/src/payload.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/multipart.ts',
+                'template'      => 'react-native/src/multipart.ts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -145,8 +153,9 @@ class ReactNative extends Web
                     return $this->getTypeName($parameter['array']) . '[]';
                 }
                 return 'string[]';
+            case self::TYPE_PAYLOAD:
             case self::TYPE_FILE:
-                return '{name: string, type: string, size: number, uri: string}';
+                return 'Payload';
         }
 
         return $parameter['type'];
@@ -179,6 +188,7 @@ class ReactNative extends Web
                 case self::TYPE_OBJECT:
                     $output .= '{}';
                     break;
+                case self::TYPE_PAYLOAD:
                 case self::TYPE_FILE:
                     $output .= "await pickSingle()";
                     break;
@@ -197,6 +207,7 @@ class ReactNative extends Web
                 case self::TYPE_STRING:
                     $output .= "'{$example}'";
                     break;
+                case self::TYPE_PAYLOAD:
                 case self::TYPE_FILE:
                     $output .= "await pickSingle()";
                     break;
