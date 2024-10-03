@@ -102,7 +102,7 @@ jobs:
       - name: Lint
         run: composer lint
 
-  max-lines:
+  max-line-length:
     runs-on: ubuntu-latest
 
     steps:
@@ -110,7 +110,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Make script executable
-        run: chmod +x ./.github/scripts/max-lines.sh
+        run: chmod +x ./.github/scripts/max-line-length.sh
       
       - name: Check max lines
-        run: ./.github/scripts/max-lines.sh . 1200 "*.twig"
+        run: ./.github/scripts/max-line-length.sh . 1200 "*.twig"
