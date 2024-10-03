@@ -101,3 +101,16 @@ jobs:
 
       - name: Lint
         run: composer lint
+
+  max-lines:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Make script executable
+        run: chmod +x ./.github/scripts/max-lines.sh
+      
+      - name: Check max lines
+        run: ./.github/scripts/max-lines.sh . 1200 "*.twig"
