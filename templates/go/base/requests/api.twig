@@ -2,14 +2,29 @@
 	if err != nil {
 		return nil, err
 	}
-	var parsed {{ method | returnType(spec, spec.title | caseLower) }}
 	if strings.HasPrefix(resp.Type, "application/json") {
-		err = json.Unmarshal([]byte(resp.Result.(string)), &parsed)
+		bytes := []byte(resp.Result.(string))
+
+{%~ if method | returnType(spec, spec.title | caseLower) != 'interface{}' and method | returnType(spec, spec.title | caseLower) != '[]byte' and method | returnType(spec, spec.title | caseLower) != 'bool' %}
+		parsed := {{ method | returnType(spec, spec.title | caseLower) }}{}.New(bytes)
+
+		err = json.Unmarshal(bytes, parsed)
+		if err != nil {
+			return nil, err
+		}
+
+		return parsed, nil
+{%~ else %}
+		var parsed {{ method | returnType(spec, spec.title | caseLower) }}
+
+		err = json.Unmarshal(bytes, &parsed)
 		if err != nil {
 			return nil, err
 		}
 		return &parsed, nil
+{%~ endif %}
 	}
+	var parsed {{ method | returnType(spec, spec.title | caseLower) }}
 	parsed, ok := resp.Result.({{ method | returnType(spec, spec.title | caseLower) }})
 	if !ok {
 		return nil, errors.New("unexpected response type")

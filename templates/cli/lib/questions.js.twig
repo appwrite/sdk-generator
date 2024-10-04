@@ -189,11 +189,11 @@ const questionsInitProject = [
         message: "Choose your {{ spec.title|caseUcfirst }} project.",
         choices: async (answers) => {
             const queries = [
-                JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization.id] }),
-                JSON.stringify({ method: 'orderDesc', attribute: 'Id' })
+                JSON.stringify({ method: 'equal', attribute: 'teamId', values: [answers.organization] }),
+                JSON.stringify({ method: 'orderDesc', attribute: '$id' })
             ]
 
-            const { projects } = await paginate(projectsList, { parseOutput: false, queries, }, 100, 'projects');
+            const { projects } = await paginate(projectsList, { parseOutput: false }, 100, 'projects', queries);
 
             let choices = projects.map((project) => {
                 return {
@@ -247,11 +247,10 @@ const questionsPullFunctions = [
             if (functions.length === 0) {
                 throw "We couldn't find any functions in your {{ spec.title|caseUcfirst }} project";
             }
-
             return functions.map(func => {
                 return {
                     name: `${func.name} (${func.$id})`,
-                    value: func
+                    value: { ...func }
                 }
             });
         }
@@ -262,7 +261,7 @@ const questionsPullFunctionsCode = [
     {
         type: "confirm",
         name: "override",
-        message: "Do you want to pull source code of active deployment?"
+        message: "Do you want to pull source code of the latest deployment?"
     },
 ];
 
@@ -302,22 +301,7 @@ const questionsCreateFunction = [
             })
             return choices;
         },
-    },
-    {
-        type: "list",
-        name: "template",
-        message: "How would you like to start your function code?",
-        choices: [
-            {
-                name: `Start from scratch ${chalk.blackBright(`(starter)`)}`,
-                value: "starter"
-            },
-            {
-                name: "Pick a template",
-                value: "custom"
-            }
-        ]
-    },
+    }
 ];
 
 const questionsCreateFunctionSelectTemplate = (templates) => {
@@ -634,12 +618,10 @@ const questionsPushFunctions = [
         name: "functions",
         message: "Which functions would you like to push?",
         validate: (value) => validateRequired('function', value),
+        when: () => localConfig.getFunctions().length > 0,
         choices: () => {
             let functions = localConfig.getFunctions();
             checkDeployConditions(localConfig)
-            if (functions.length === 0) {
-                throw new Error("No functions found Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
-            }
             let choices = functions.map((func, idx) => {
                 return {
                     name: `${func.name} (${func.$id})`,
@@ -649,11 +631,6 @@ const questionsPushFunctions = [
             return choices;
         }
     },
-    {
-        type: "input",
-        name: "override",
-        message: 'Are you sure you want to override this function\'s variables? This can lead to loss of secrets! Type "YES" to confirm.'
-    },
 ]
 
 const questionsPushCollections = [
@@ -662,13 +639,11 @@ const questionsPushCollections = [
         name: "collections",
         message: "Which collections would you like to push?",
         validate: (value) => validateRequired('collection', value),
+        when: () => localConfig.getCollections().length > 0,
         choices: () => {
             let collections = localConfig.getCollections();
             checkDeployConditions(localConfig)
 
-            if (collections.length === 0) {
-                throw new Error("No collections found in the current directory. Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
-            }
             return collections.map(collection => {
                 return {
                     name: `${collection.name} (${collection['databaseId']} - ${collection['$id']})`,
@@ -676,13 +651,24 @@ const questionsPushCollections = [
                 }
             });
         }
-    },
+    }
+];
+
+const questionPushChanges = [
     {
         type: "input",
         name: "changes",
-        message: `Would you like to apply these changes? Type "YES" to confirm.`
+        message: `Are you sure you want to apply these changes? (YES/NO)`
     }
-]
+];
+
+const questionPushChangesConfirmation = [
+    {
+        type: "input",
+        name: "changes",
+        message: `Please type 'YES' or 'NO':`
+    }
+];
 
 const questionsPushBuckets = [
     {
@@ -690,12 +676,11 @@ const questionsPushBuckets = [
         name: "buckets",
         message: "Which buckets would you like to push?",
         validate: (value) => validateRequired('bucket', value),
+        when: () => localConfig.getBuckets().length > 0,
         choices: () => {
             let buckets = localConfig.getBuckets();
             checkDeployConditions(localConfig)
-            if (buckets.length === 0) {
-                throw new Error("No buckets found in the current directory. Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
-            }
+
             return buckets.map(bucket => {
                 return {
                     name: `${bucket.name} (${bucket['$id']})`,
@@ -711,11 +696,11 @@ const questionsPushMessagingTopics = [
         type: "checkbox",
         name: "topics",
         message: "Which messaging topic would you like to push?",
+        validate: (value) => validateRequired('topics', value),
+        when: () => localConfig.getMessagingTopics().length > 0,
         choices: () => {
             let topics = localConfig.getMessagingTopics();
-            if (topics.length === 0) {
-                throw new Error("No topics found in the current directory. Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
-            }
+
             return topics.map(topic => {
                 return {
                     name: `${topic.name} (${topic['$id']})`,
@@ -723,11 +708,6 @@ const questionsPushMessagingTopics = [
                 }
             });
         }
-    },
-    {
-        type: "input",
-        name: "override",
-        message: 'Would you like to override existing topics? This can lead to loss of data! Type "YES" to confirm.'
     }
 ]
 
@@ -752,12 +732,11 @@ const questionsPushTeams = [
         name: "teams",
         message: "Which teams would you like to push?",
         validate: (value) => validateRequired('team', value),
+        when: () => localConfig.getTeams().length > 0,
         choices: () => {
             let teams = localConfig.getTeams();
             checkDeployConditions(localConfig);
-            if (teams.length === 0) {
-                throw new Error("No teams found in the current directory. Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
-            }
+
             return teams.map(team => {
                 return {
                     name: `${team.name} (${team['$id']})`,
@@ -866,5 +845,7 @@ module.exports = {
     questionsRunFunctions,
     questionGetEndpoint,
     questionsInitResources,
-    questionsCreateTeam
+    questionsCreateTeam,
+    questionPushChanges,
+    questionPushChangesConfirmation
 };

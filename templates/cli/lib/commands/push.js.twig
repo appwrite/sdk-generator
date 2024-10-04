@@ -2,13 +2,13 @@ const chalk = require('chalk');
 const inquirer = require("inquirer");
 const JSONbig = require("json-bigint")({ storeAsString: false });
 const { Command } = require("commander");
-const { localConfig, globalConfig, KeyAttributes } = require("../config");
+const { localConfig, globalConfig, KeysAttributes, KeysFunction, whitelistKeys, KeysTopics, KeysStorage, KeysTeams, KeysCollection } = require("../config");
 const { Spinner, SPINNER_ARC, SPINNER_DOTS } = require('../spinner');
 const { paginate } = require('../paginate');
-const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionsConfirmPushCollections, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
-const { cliConfig, actionRunner, success, warn, log, error, commandDescriptions, drawTable } = require("../parser");
+const { questionsPushBuckets, questionsPushTeams, questionsPushFunctions, questionsGetEntrypoint, questionsPushCollections, questionPushChanges, questionPushChangesConfirmation, questionsPushMessagingTopics, questionsPushResources } = require("../questions");
+const { cliConfig, actionRunner, success, warn, log, hint, error, commandDescriptions, drawTable } = require("../parser");
 const { proxyListRules } = require('./proxy');
-const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsUpdateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
+const { functionsGet, functionsCreate, functionsUpdate, functionsCreateDeployment, functionsGetDeployment, functionsListVariables, functionsDeleteVariable, functionsCreateVariable } = require('./functions');
 const {
     databasesGet,
     databasesCreate,
@@ -54,6 +54,7 @@ const {
     teamsCreate
 } = require("./teams");
 const {
+    projectsGet,
     projectsUpdate,
     projectsUpdateServiceStatus,
     projectsUpdateAuthStatus,
@@ -63,6 +64,8 @@ const {
     projectsUpdateAuthPasswordDictionary,
     projectsUpdateAuthPasswordHistory,
     projectsUpdatePersonalDataCheck,
+    projectsUpdateSessionAlerts,
+    projectsUpdateMockNumbers,
 } = require("./projects");
 const { checkDeployConditions } = require('../utils');
 
@@ -339,6 +342,114 @@ const awaitPools = {
     },
 }
 
+const getConfirmation = async () => {
+    if (cliConfig.force) {
+        return true;
+    }
+
+    async function fixConfirmation() {
+        const answers = await inquirer.prompt(questionPushChangesConfirmation);
+        if (answers.changes !== 'YES' && answers.changes !== 'NO') {
+            return await fixConfirmation();
+        }
+
+        return answers.changes;
+    }
+
+    let answers = await inquirer.prompt(questionPushChanges);
+
+    if (answers.changes !== 'YES' && answers.changes !== 'NO') {
+        answers.changes = await fixConfirmation();
+    }
+
+    if (answers.changes === 'YES') {
+        return true;
+    }
+
+    warn('Skipping push action. Changes were not applied.');
+    return false;
+
+};
+const isEmpty = (value) => (value === null || value === undefined || (typeof value === "string" && value.trim().length === 0) || (Array.isArray(value) && value.length === 0));
+
+const approveChanges = async (resource, resourceGetFunction, keys, resourceName, resourcePlural, skipKeys = [], secondId = '', secondResourceName = '') => {
+    log('Checking for changes ...');
+    const changes = [];
+
+    await Promise.all(resource.map(async (localResource) => {
+        try {
+            const options = {
+                [resourceName]: localResource['$id'],
+                parseOutput: false,
+            };
+
+            if (secondId !== '' && secondResourceName !== '') {
+                options[secondResourceName] = localResource[secondId]
+            }
+
+            const remoteResource = await resourceGetFunction(options);
+
+            for (let [key, value] of Object.entries(whitelistKeys(remoteResource, keys))) {
+                if (skipKeys.includes(key)) {
+                    continue;
+                }
+
+                if (isEmpty(value) && isEmpty(localResource[key])) {
+                    continue;
+                }
+
+                if (Array.isArray(value) && Array.isArray(localResource[key])) {
+                    if (JSON.stringify(value) !== JSON.stringify(localResource[key])) {
+                        changes.push({
+                            id: localResource['$id'],
+                            key,
+                            remote: chalk.red(value.join('\n')),
+                            local: chalk.green(localResource[key].join('\n'))
+                        })
+                    }
+                } else if (value !== localResource[key]) {
+                    changes.push({
+                        id: localResource['$id'],
+                        key,
+                        remote: chalk.red(value),
+                        local: chalk.green(localResource[key])
+                    })
+                }
+            }
+        } catch (e) {
+            if (Number(e.code) !== 404) {
+                throw e;
+            }
+        }
+    }));
+
+    if (changes.length === 0) {
+        return true;
+    }
+
+    drawTable(changes);
+    if ((await getConfirmation()) === true) {
+        return true;
+    }
+
+    success(`Successfully pushed 0 ${resourcePlural}.`);
+    return false;
+}
+
+const getObjectChanges = (remote, local, index, what) => {
+    const changes = [];
+
+    if (remote[index] && local[index]) {
+        for (let [service, status] of Object.entries(remote[index])) {
+            if (status !== local[index][service]) {
+                changes.push({ group: what, setting: service, remote: chalk.red(status), local: chalk.green(local[index][service]) })
+            }
+        }
+    }
+
+    return changes;
+}
+
 const createAttribute = async (databaseId, collectionId, attribute) => {
     switch (attribute.type) {
         case 'string':
@@ -593,6 +704,24 @@ const deleteAttribute = async (collection, attribute, isIndex = false) => {
     });
 }
 
+const compareAttribute = (remote, local, reason, key) => {
+    if (isEmpty(remote) && isEmpty(local)) {
+        return reason;
+    }
+
+    if (Array.isArray(remote) && Array.isArray(local)) {
+        if (JSON.stringify(remote) !== JSON.stringify(local)) {
+            const bol = reason === '' ? '' : '\n';
+            reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
+        }
+    } else if (remote !== local) {
+        const bol = reason === '' ? '' : '\n';
+        reason += `${bol}${key} changed from ${chalk.red(remote)} to ${chalk.green(local)}`;
+    }
+
+    return reason
+}
+
 
 /**
  * Check if attribute non-changeable fields has been changed
@@ -614,17 +743,13 @@ const checkAttributeChanges = (remote, local, collection, recraeting = true) => 
     let attribute = remote;
 
     for (let key of Object.keys(remote)) {
-        if (!KeyAttributes.has(key)) {
+        if (!KeysAttributes.has(key)) {
             continue;
         }
 
         if (changeableKeys.includes(key)) {
             if (!recraeting) {
-                if (remote[key] !== local[key]) {
-                    const bol = reason === '' ? '' : '\n';
-                    reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
-                    attribute = local;
-                }
+                reason += compareAttribute(remote[key], local[key], reason, key)
             }
             continue;
         }
@@ -633,15 +758,7 @@ const checkAttributeChanges = (remote, local, collection, recraeting = true) => 
             continue;
         }
 
-        if (Array.isArray(remote[key]) && Array.isArray(local[key])) {
-            if (JSON.stringify(remote[key]) !== JSON.stringify(local[key])) {
-                const bol = reason === '' ? '' : '\n';
-                reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
-            }
-        } else if (remote[key] !== local[key]) {
-            const bol = reason === '' ? '' : '\n';
-            reason += `${bol}${key} changed from ${chalk.red(remote[key])} to ${chalk.green(local[key])}`;
-        }
+        reason += compareAttribute(remote[key], local[key], reason, key)
     }
 
     return reason === '' ? undefined : { key: keyName, attribute, reason, action };
@@ -658,7 +775,7 @@ const generateChangesObject = (attribute, collection, isAdding) => {
     return {
         key: `${chalk.yellow(attribute.key)} in ${collection.name} (${collection['$id']})`,
         attribute: attribute,
-        reason: isAdding ? 'Field doesn\'t exist on the remote server' : 'Field doesn\'t exist in appwrite.json file',
+        reason: isAdding ? 'Field isn\'t present on the remote server' : 'Field isn\'t present on the appwrite.json file',
         action: isAdding ? chalk.green('adding') : chalk.red('deleting')
     };
 
@@ -698,9 +815,7 @@ const attributesToCreate = async (remoteAttributes, localAttributes, collection,
             log(`Attribute recreation will cause ${chalk.red('loss of data')}`);
         }
 
-        const answers = await inquirer.prompt(questionsPushCollections[1]);
-
-        if (answers.changes.toLowerCase() !== 'yes') {
+        if ((await getConfirmation()) !== true) {
             return changedAttributes;
         }
     }
@@ -805,6 +920,32 @@ const pushSettings = async () => {
     checkDeployConditions(localConfig);
 
     try {
+        let response = await projectsGet({
+            parseOutput: false,
+            projectId: localConfig.getProject().projectId
+        });
+
+        const remoteSettings = localConfig.createSettingsObject(response ?? {});
+        const localSettings = localConfig.getProject().projectSettings ?? {};
+
+        log('Checking for changes ...');
+        const changes = [];
+
+        changes.push(...(getObjectChanges(remoteSettings, localSettings, 'services', 'Service')));
+        changes.push(...(getObjectChanges(remoteSettings['auth'] ?? {}, localSettings['auth'] ?? {}, 'methods', 'Auth method')));
+        changes.push(...(getObjectChanges(remoteSettings['auth'] ?? {}, localSettings['auth'] ?? {}, 'security', 'Auth security')));
+
+        if (changes.length > 0) {
+            drawTable(changes);
+            if ((await getConfirmation()) !== true) {
+                success(`Successfully pushed 0 project settings.`);
+                return;
+            }
+        }
+    } catch (e) {
+    }
+
+    try {
         log("Pushing project settings ...");
 
         const projectId = localConfig.getProject().projectId;
@@ -841,6 +982,8 @@ const pushSettings = async () => {
                 await projectsUpdateAuthPasswordDictionary({ projectId, enabled: settings.auth.security.passwordDictionary, parseOutput: false });
                 await projectsUpdateAuthPasswordHistory({ projectId, limit: settings.auth.security.passwordHistory, parseOutput: false });
                 await projectsUpdatePersonalDataCheck({ projectId, enabled: settings.auth.security.personalDataCheck, parseOutput: false });
+                await projectsUpdateSessionAlerts({ projectId, alerts: settings.auth.security.sessionAlerts, parseOutput: false });
+                await projectsUpdateMockNumbers({ projectId, numbers: settings.auth.security.mockNumbers, parseOutput: false });
             }
 
             if (settings.auth.methods) {
@@ -863,7 +1006,9 @@ const pushSettings = async () => {
     }
 }
 
-const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero: false }) => {
+const pushFunction = async ({ functionId, async, code, withVariables } = { returnOnZero: false }) => {
+    process.chdir(localConfig.configDirectoryPath)
+
     const functionIds = [];
 
     if (functionId) {
@@ -871,11 +1016,6 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
     } else if (cliConfig.all) {
         checkDeployConditions(localConfig);
         const functions = localConfig.getFunctions();
-        if (functions.length === 0) {
-            log("No functions found.");
-            hint("Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
-            return;
-        }
         functionIds.push(...functions.map((func) => {
             return func.$id;
         }));
@@ -883,7 +1023,15 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
 
     if (functionIds.length <= 0) {
         const answers = await inquirer.prompt(questionsPushFunctions[0]);
-        functionIds.push(...answers.functions);
+        if (answers.functions) {
+            functionIds.push(...answers.functions);
+        }
+    }
+
+    if (functionIds.length === 0) {
+        log("No functions found.");
+        hint("Use 'appwrite pull functions' to synchronize existing one, or use 'appwrite init function' to create a new one.");
+        return;
     }
 
     let functions = functionIds.map((id) => {
@@ -909,12 +1057,17 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
         }
     }
 
+    if (!(await approveChanges(functions, functionsGet, KeysFunction, 'functionId', 'functions', ['vars']))) {
+        return;
+    }
+
     log('Pushing functions ...');
 
     Spinner.start(false);
     let successfullyPushed = 0;
     let successfullyDeployed = 0;
     const failedDeployments = [];
+    const errors = [];
 
     await Promise.all(functions.map(async (func) => {
         let response = {};
@@ -951,11 +1104,6 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                 entrypoint: func.entrypoint,
                 commands: func.commands,
                 scopes: func.scopes,
-                providerRepositoryId: func.providerRepositoryId ?? "",
-                installationId: func.installationId ?? '',
-                providerBranch: func.providerBranch ?? '',
-                providerRootDirectory: func.providerRootDirectory ?? '',
-                providerSilentMode: func.providerSilentMode ?? false,
                 vars: JSON.stringify(response.vars),
                 parseOutput: false
             });
@@ -964,6 +1112,7 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
             if (Number(e.code) === 404) {
                 functionExists = false;
             } else {
+                errors.push(e);
                 updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
                 return;
             }
@@ -991,9 +1140,51 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
 
                 updaterRow.update({ status: 'Created' });
             } catch (e) {
+                errors.push(e)
                 updaterRow.fail({ errorMessage: e.message ?? 'General error occurs please try again' });
                 return;
             }
+        }
+
+        if (withVariables) {
+            updaterRow.update({ status: 'Updating variables' }).replaceSpinner(SPINNER_ARC);
+
+            const { variables } = await paginate(functionsListVariables, {
+                functionId: func['$id'],
+                parseOutput: false
+            }, 100, 'variables');
+
+            await Promise.all(variables.map(async variable => {
+                await functionsDeleteVariable({
+                    functionId: func['$id'],
+                    variableId: variable['$id'],
+                    parseOutput: false
+                });
+            }));
+
+            let result = await awaitPools.wipeVariables(func['$id']);
+            if (!result) {
+                updaterRow.fail({ errorMessage: `Variable deletion timed out.` })
+                return;
+            }
+
+            // Deploy local variables
+            await Promise.all((func['vars'] ?? []).map(async variable => {
+                await functionsCreateVariable({
+                    functionId: func['$id'],
+                    key: variable['key'],
+                    value: variable['value'],
+                    parseOutput: false
+                });
+            }));
+        }
+
+        if (code === false) {
+            successfullyPushed++;
+            successfullyDeployed++;
+            updaterRow.update({ status: 'Pushed' });
+            updaterRow.stopSpinner();
+            return;
         }
 
         try {
@@ -1011,6 +1202,8 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
             deploymentCreated = true;
             successfullyPushed++;
         } catch (e) {
+            errors.push(e);
+
             switch (e.code) {
                 case 'ENOENT':
                     updaterRow.fail({ errorMessage: 'Not found in the current directory. Skipping...' })
@@ -1068,6 +1261,7 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
                     await new Promise(resolve => setTimeout(resolve, POLL_DEBOUNCE * 1.5));
                 }
             } catch (e) {
+                errors.push(e);
                 updaterRow.fail({ errorMessage: e.message ?? 'Unknown error occurred. Please try again' })
             }
         }
@@ -1087,13 +1281,19 @@ const pushFunction = async ({ functionId, async, returnOnZero } = { returnOnZero
     if (!async) {
         if (successfullyPushed === 0) {
             error('No functions were pushed.');
-        } else if (successfullyDeployed != successfullyPushed) {
+        } else if (successfullyDeployed !== successfullyPushed) {
             warn(`Successfully pushed ${successfullyDeployed} of ${successfullyPushed} functions`)
         } else {
             success(`Successfully pushed ${successfullyPushed} functions.`);
         }
     } else {
         success(`Successfully pushed ${successfullyPushed} functions.`);
+    }
+
+    if (cliConfig.verbose) {
+        errors.forEach(e => {
+            console.error(e);
+        })
     }
 }
 
@@ -1106,26 +1306,28 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (localConfig.getCollections().length === 0) {
-            log("No collections found.");
-            hint("Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
-            return;
-        }
         collections.push(...localConfig.getCollections());
     } else {
-        const answers = await inquirer.prompt(questionsPushCollections[0])
-        const configCollections = new Map();
-        localConfig.getCollections().forEach((c) => {
-            configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
-        });
-        answers.collections.forEach((a) => {
-            const collection = configCollections.get(a);
-            collections.push(collection);
-        })
+        const answers = await inquirer.prompt(questionsPushCollections)
+        if (answers.collections) {
+            const configCollections = new Map();
+            localConfig.getCollections().forEach((c) => {
+                configCollections.set(`${c['databaseId']}|${c['$id']}`, c);
+            });
+            answers.collections.forEach((a) => {
+                const collection = configCollections.get(a);
+                collections.push(collection);
+            })
+        }
     }
-    const databases = Array.from(new Set(collections.map(collection => collection['databaseId'])));
 
-    log('Checking for changes ...');
+    if (collections.length === 0) {
+        log("No collections found.");
+        hint("Use 'appwrite pull collections' to synchronize existing one, or use 'appwrite init collection' to create a new one.");
+        return;
+    }
+
+    const databases = Array.from(new Set(collections.map(collection => collection['databaseId'])));
 
     // Parallel db actions
     await Promise.all(databases.map(async (databaseId) => {
@@ -1157,6 +1359,10 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
         }
     }));
 
+
+    if (!(await approveChanges(collections, databasesGetCollection, KeysCollection, 'collectionId', 'collections', ['attributes', 'indexes'], 'databaseId', 'databaseId',))) {
+        return;
+    }
     // Parallel collection actions
     await Promise.all(collections.map(async (collection) => {
         try {
@@ -1197,7 +1403,7 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
             }
         }
     }))
-
+    let numberOfCollections = 0;
     // Serialize attribute actions
     for (let collection of collections) {
         let attributes = collection.attributes;
@@ -1226,9 +1432,11 @@ const pushCollection = async ({ returnOnZero, attempts } = { returnOnZero: false
         } catch (e) {
             throw e;
         }
-
-        success(`Pushed ${collection.name} ( ${collection['$id']} )`);
+        numberOfCollections++;
+        success(`Successfully pushed ${collection.name} ( ${collection['$id']} )`);
     }
+
+    success(`Successfully pushed ${numberOfCollections} collections`);
 }
 
 const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
@@ -1239,17 +1447,20 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (configBuckets.length === 0) {
-            log("No buckets found.");
-            hint("Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
-            return;
-        }
         bucketIds.push(...configBuckets.map((b) => b.$id));
     }
 
     if (bucketIds.length === 0) {
         const answers = await inquirer.prompt(questionsPushBuckets[0])
-        bucketIds.push(...answers.buckets);
+        if (answers.buckets) {
+            bucketIds.push(...answers.buckets);
+        }
+    }
+
+    if (bucketIds.length === 0) {
+        log("No buckets found.");
+        hint("Use 'appwrite pull buckets' to synchronize existing one, or use 'appwrite init bucket' to create a new one.");
+        return;
     }
 
     let buckets = [];
@@ -1257,6 +1468,10 @@ const pushBucket = async ({ returnOnZero } = { returnOnZero: false }) => {
     for (const bucketId of bucketIds) {
         const idBuckets = configBuckets.filter((b) => b.$id === bucketId);
         buckets.push(...idBuckets);
+    }
+
+    if (!(await approveChanges(buckets, storageGetBucket, KeysStorage, 'bucketId', 'buckets'))) {
+        return;
     }
 
     log('Pushing buckets ...');
@@ -1317,16 +1532,20 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (configTeams.length === 0) {
-            log("No teams found.");
-            hint("Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
-        }
         teamIds.push(...configTeams.map((t) => t.$id));
     }
 
     if (teamIds.length === 0) {
         const answers = await inquirer.prompt(questionsPushTeams[0])
-        teamIds.push(...answers.teams);
+        if (answers.teams) {
+            teamIds.push(...answers.teams);
+        }
+    }
+
+    if (teamIds.length === 0) {
+        log("No teams found.");
+        hint("Use 'appwrite pull teams' to synchronize existing one, or use 'appwrite init team' to create a new one.");
+        return;
     }
 
     let teams = [];
@@ -1335,6 +1554,11 @@ const pushTeam = async ({ returnOnZero } = { returnOnZero: false }) => {
         const idTeams = configTeams.filter((t) => t.$id === teamId);
         teams.push(...idTeams);
     }
+
+    if (!(await approveChanges(teams, teamsGet, KeysTeams, 'teamId', 'teams'))) {
+        return;
+    }
+
 
     log('Pushing teams ...');
 
@@ -1375,20 +1599,23 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
 
     let topicsIds = [];
     const configTopics = localConfig.getMessagingTopics();
-    let overrideExisting = cliConfig.force;
 
     if (cliConfig.all) {
         checkDeployConditions(localConfig);
-        if (configTopics.length === 0) {
-            log("No topics found.");
-            hint("Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
-        }
         topicsIds.push(...configTopics.map((b) => b.$id));
     }
 
     if (topicsIds.length === 0) {
         const answers = await inquirer.prompt(questionsPushMessagingTopics[0])
-        topicsIds.push(...answers.topics);
+        if (answers.topics) {
+            topicsIds.push(...answers.topics);
+        }
+    }
+
+    if (topicsIds.length === 0) {
+        log("No topics found.");
+        hint("Use 'appwrite pull topics' to synchronize existing one, or use 'appwrite init topic' to create a new one.");
+        return;
     }
 
     let topics = [];
@@ -1398,11 +1625,8 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
         topics.push(...idTopic);
     }
 
-    if (!cliConfig.force) {
-        const answers = await inquirer.prompt(questionsPushMessagingTopics[1])
-        if (answers.override.toLowerCase() === "yes") {
-            overrideExisting = true;
-        }
+    if (!(await approveChanges(topics, messagingGetTopic, KeysTopics, 'topicId', 'topics'))) {
+        return;
     }
 
     log('Pushing topics ...');
@@ -1416,11 +1640,6 @@ const pushMessagingTopic = async ({ returnOnZero } = { returnOnZero: false }) =>
                 parseOutput: false
             })
             log(`Topic ${topic.name} ( ${topic['$id']} ) already exists.`);
-
-            if (!overrideExisting) {
-                log(`Skipping ${topic.name} ( ${topic['$id']} )`);
-                continue;
-            }
 
             await messagingUpdateTopic({
                 topicId: topic['$id'],
@@ -1470,8 +1689,10 @@ push
     .command("function")
     .alias("functions")
     .description("Push functions in the current directory.")
-    .option(`-f, --functionId <functionId>`, `Function ID`)
+    .option(`-f, --function-id <function-id>`, `ID of function to run`)
     .option(`-A, --async`, `Don't wait for functions deployments status`)
+    .option("--no-code", "Don't push the function's code")
+    .option("--with-variables", `Push function variables.`)
     .action(actionRunner(pushFunction));
 
 push
@@ -1500,9 +1721,9 @@ push
     .action(actionRunner(pushMessagingTopic));
 
 const deploy = new Command("deploy")
-    .description(commandDescriptions['push'])
+    .description('Removed. Use appwrite push instead')
     .action(actionRunner(async () => {
-        warn("Did you mean to run 'appwrite push' command?");
+        warn("appwrite deploy has been removed. Please use 'appwrite push' instead");
     }));
 
 module.exports = {

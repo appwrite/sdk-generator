@@ -1,7 +1,7 @@
 const { exec, execSync } = require("child_process");
 
 execSync(
-  "node index client --endpoint 'http://mockapi/v1' --projectId console --key=35y3h5h345 --selfSigned true",
+  "node index client --endpoint 'http://mockapi/v1' --project-id console --key=35y3h5h345 --self-signed true",
   { stdio: "inherit" }
 );
 

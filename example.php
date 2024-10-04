@@ -69,7 +69,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -94,7 +94,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -118,7 +118,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -141,7 +141,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -186,7 +186,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -209,7 +209,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -232,7 +232,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -260,7 +260,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -287,7 +287,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -314,7 +314,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -339,7 +339,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -364,7 +364,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -388,7 +388,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
@@ -412,7 +412,7 @@ try {
         ->setTwitter('appwrite_io')
         ->setDiscord('564160730845151244', 'https://appwrite.io/discord')
         ->setDefaultHeaders([
-            'X-Appwrite-Response-Format' => '1.5.0',
+            'X-Appwrite-Response-Format' => '1.6.0',
         ])
     ;
 
