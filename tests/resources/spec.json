@@ -1301,7 +1301,8 @@
                   "enum": [
                     "first",
                     "second",
-                    "third"
+                    "third",
+                    "FOURTH"
                   ],
                   "x-enum-name": null,
                   "x-enum-keys": []

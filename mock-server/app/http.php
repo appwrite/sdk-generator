@@ -498,7 +498,7 @@ App::post('/v1/mock/tests/general/enum')
     ->label('sdk.method', 'enum')
     ->label('sdk.description', 'Mock an enum parameter.')
     ->label('sdk.mock', true)
-    ->param('mockType', '', new WhiteList(['first', 'second', 'third']), 'Sample enum param')
+    ->param('mockType', '', new WhiteList(['first', 'second', 'third', 'FOURTH']), 'Sample enum param')
     ->action(function (string $mockType) {
     });
 
