@@ -70,7 +70,7 @@ App::get('/v1/health/version')
 // Mock Routes
 App::get('/v1/ping')
     ->desc('Get version')
-    ->groups(['api'])
+    ->groups(['mock'])
     ->label('scope', 'public')
     ->label('sdk.response.code', Response::STATUS_CODE_OK)
     ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
