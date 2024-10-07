@@ -74,9 +74,10 @@ App::get('/v1/ping')
     ->label('scope', 'public')
     ->label('sdk.response.code', Response::STATUS_CODE_OK)
     ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
-    ->inject('response')
-    ->param('projectId', '', new Text(256), 'Project ID')
-    ->action(function () {
+    ->inject('request')
+    ->action(function (Request $request) {
+        $projectId = $request->getHeader('x-appwrite-project', '');
+
         if (empty($projectId)) {
             throw new Exception(Exception::GENERAL_MOCK, 'Missing project ID');
         }
