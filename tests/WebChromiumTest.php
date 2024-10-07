@@ -21,6 +21,7 @@ class WebChromiumTest extends Base
         'docker run --network="mockapi" --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/sdks/web mcr.microsoft.com/playwright:v1.15.0-focal node tests.js';
 
     protected array $expectedOutput = [
+        ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,

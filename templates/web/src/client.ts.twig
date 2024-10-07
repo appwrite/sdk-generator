@@ -634,6 +634,10 @@ class Client {
         return response;
     }
 
+    async ping(): Promise<string> {
+        return this.call('GET', new URL('/ping', this.config.endpoint), {}, {}, 'json');
+    }
+
     async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}, responseType = 'json'): Promise<any> {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
 

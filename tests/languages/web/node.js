@@ -5,9 +5,15 @@ async function start() {
 
     console.log('\nTest Started');
     const client = new Client();
+    client.setProject('123456');
     const foo = new Foo(client);
     const bar = new Bar(client);
     const general = new General(client);
+
+    // Ping
+    response = await client.ping();
+    console.log(response.result);
+
     // Foo
     response = await foo.get('string', 123, ['string in array']);
     console.log(response.result);
