@@ -240,6 +240,12 @@ class Client {
         return response;
     }
 
+    async ping(): Promise<{ pingCount: number, pingedAt: Date }> {
+        return this.call('GET', new URL('/ping', this.config.endpoint), {}, {
+            'projectId': this.config.projectId,
+        }, 'json');
+    }
+
     async redirect(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<string> {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
         

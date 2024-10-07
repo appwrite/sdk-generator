@@ -16,6 +16,10 @@ error_reporting(E_ALL);
 
 abstract class Base extends TestCase
 {
+    protected const PING_RESPONSE = [
+        'GET:/v1/mock/tests/ping:passed',
+    ];
+
     protected const FOO_RESPONSES = [
         'GET:/v1/mock/tests/foo:passed',
         'POST:/v1/mock/tests/foo:passed',

@@ -68,6 +68,24 @@ App::get('/v1/health/version')
     });
 
 // Mock Routes
+App::get('/v1/ping')
+    ->desc('Get version')
+    ->groups(['api'])
+    ->label('scope', 'public')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->inject('response')
+    ->param('projectId', '', new Text(256), 'Project ID')
+    ->action(function () {
+        if (empty($projectId)) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Missing project ID');
+        }
+
+        if ($projectId !== '123456') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Invalid project ID');
+        }
+    });
+
 App::get('/v1/mock/tests/foo')
     ->desc('Get Foo')
     ->groups(['mock'])
