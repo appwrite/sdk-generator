@@ -287,7 +287,6 @@ open class Client {
         var request = HTTPClientRequest(url: endPoint + path + queryParameters)
         request.method = .RAW(value: method)
 
-
         for (key, value) in self.headers.merging(headers, uniquingKeysWith: { $1 }) {
             request.headers.add(name: key, value: value)
         }
@@ -327,6 +326,19 @@ open class Client {
             }
         }
 
+        if let contentType = response.headers["content-type"].first, contentType.contains("multipart/form-data") {
+            let data = try await response.body.collect(upTo: Int.max)
+            let body = String(buffer: data)
+            let lines = body.components(separatedBy: .newlines)
+
+            if let boundaryLine = lines.first(where: { $0.hasPrefix("--") }) {
+                let boundary = boundaryLine.trimmingCharacters(in: .whitespacesAndNewlines)
+                let dict = parseFormData(with: boundary, for: body)
+
+                return converter?(dict) ?? dict as! T
+            }
+        }
+
         switch response.status.code {
         case 0..<400:
             switch T.self {
@@ -350,7 +362,6 @@ open class Client {
 
             do {
                 let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-
                 message = dict?["message"] as? String ?? response.status.reasonPhrase
                 type = dict?["type"] as? String ?? ""
             } catch {
@@ -374,21 +385,12 @@ open class Client {
         converter: ((Any) -> T)? = nil,
         onProgress: ((UploadProgress) -> Void)? = nil
     ) async throws -> T {
-        let input = params[paramName] as! InputFile
-
-        switch(input.sourceType) {
-        case "path":
-            input.data = ByteBuffer(data: try! Data(contentsOf: URL(fileURLWithPath: input.path)))
-        case "data":
-            input.data = ByteBuffer(data: input.data as! Data)
-        default:
-            break
-        }
-
-        let size = (input.data as! ByteBuffer).readableBytes
+        let payload = params[paramName] as! Payload
+        let buffer = try payload.toBinary()
+        let size = buffer.readableBytes
 
         if size < Client.chunkSize {
-            params[paramName] = input
+            params[paramName] = payload
             return try await call(
                 method: "POST",
                 path: path,
@@ -419,10 +421,14 @@ open class Client {
         }
 
         while offset < size {
-            let slice = (input.data as! ByteBuffer).getSlice(at: offset, length: Client.chunkSize)
-                ?? (input.data as! ByteBuffer).getSlice(at: offset, length: Int(size - offset))
+            let slice = buffer.getSlice(at: offset, length: Client.chunkSize)
+                ?? buffer.getSlice(at: offset, length: Int(size - offset))
 
-            params[paramName] = InputFile.fromBuffer(slice!, filename: input.filename, mimeType: input.mimeType)
+            params[paramName] = Payload.fromBinary(
+                slice!,
+                filename: payload.filename ?? ""
+            )
+
             headers["content-range"] = "bytes \(offset)-\(min((offset + Client.chunkSize) - 1, size - 1))/\(size)"
 
             result = try await call(
@@ -495,61 +501,121 @@ open class Client {
         with params: [String: Any?] = [:],
         chunked: Bool = false
     ) {
-        func addPart(name: String, value: Any) {
-            bodyBuffer.writeString(DASHDASH)
-            bodyBuffer.writeString(Client.boundary)
-            bodyBuffer.writeString(CRLF)
-            bodyBuffer.writeString("Content-Disposition: form-data; name=\"\(name)\"")
+        func addPart(name: String, value: Any, body: inout ByteBuffer) {
+            body.writeString(DASHDASH)
+            body.writeString(Client.boundary)
+            body.writeString(CRLF)
+            body.writeString("Content-Disposition: form-data; name=\"\(name)\"")
 
-            if let file = value as? InputFile {
-                bodyBuffer.writeString("; filename=\"\(file.filename)\"")
-                bodyBuffer.writeString(CRLF)
-                bodyBuffer.writeString("Content-Length: \(bodyBuffer.readableBytes)")
-                bodyBuffer.writeString(CRLF+CRLF)
-
-                var buffer = file.data! as! ByteBuffer
-
-                bodyBuffer.writeBuffer(&buffer)
-                bodyBuffer.writeString(CRLF)
-                return
+            switch value {
+            case is Payload:
+                let payload = value as! Payload
+                var buffer = payload.data! as! ByteBuffer
+                body.writeString("; filename=\"\(payload.filename!)\"")
+                body.writeString(CRLF)
+                body.writeString("Content-Length: \(buffer.readableBytes)")
+                body.writeString(CRLF+CRLF)
+                body.writeBuffer(&buffer)
+                body.writeString(CRLF)
+            case is ByteBuffer:
+                var buffer = value as! ByteBuffer
+                body.writeString(CRLF)
+                body.writeString("Content-Length: \(buffer.readableBytes)")
+                body.writeString(CRLF+CRLF)
+                body.writeBuffer(&buffer)
+                body.writeString(CRLF)
+            default:
+                let string = String(describing: value)
+                body.writeString(CRLF)
+                body.writeString("Content-Length: \(string.count)")
+                body.writeString(CRLF+CRLF)
+                body.writeString(string)
+                body.writeString(CRLF)
             }
-
-            let string = String(describing: value)
-            bodyBuffer.writeString(CRLF)
-            bodyBuffer.writeString("Content-Length: \(string.count)")
-            bodyBuffer.writeString(CRLF+CRLF)
-            bodyBuffer.writeString(string)
-            bodyBuffer.writeString(CRLF)
         }
 
-        var bodyBuffer = ByteBuffer()
+        var body = ByteBuffer()
 
         for (key, value) in params {
-            switch key {
-            case "file":
-                addPart(name: key, value: value!)
-            default:
-                if let list = value as? [Any] {
-                    for listValue in list {
-                        addPart(name: "\(key)[]", value: listValue)
+            if let list = value as? [Any] {
+                for listValue in list {
+                    addPart(name: "\(key)[]", value: listValue, body: &body)
+                }
+                continue
+            }
+            addPart(name: key, value: value!, body: &body)
+        }
+
+        body.writeString(DASHDASH)
+        body.writeString(Client.boundary)
+        body.writeString(DASHDASH)
+        body.writeString(CRLF)
+
+        request.headers.remove(name: "content-type")
+
+        if !chunked {
+            request.headers.add(name: "Content-Length", value: body.readableBytes.description)
+        }
+
+        request.headers.add(name: "Content-Type", value: "multipart/form-data; boundary=\"\(Client.boundary)\"")
+        request.body = .bytes(body)
+    }
+
+    private func parseFormData(with boundary: String, for body: String) -> [String: Any] {
+        var data: [String: Any] = [:]
+
+        for part in body.components(separatedBy: boundary) {
+            var lines = part.components(separatedBy: CRLF).filter { !$0.isEmpty }
+
+            guard let disposition = lines.first(where: { $0.contains("Content-Disposition: form-data;") }) else {
+                continue;
+            }
+
+            // Find part name
+            if let nameStart = disposition.range(of: "name=\""),
+               let nameEnd = disposition.range(of: "\"", range: nameStart.upperBound..<disposition.endIndex) {
+                let name = String(disposition[nameStart.upperBound..<nameEnd.lowerBound])
+
+                // Remove disposition
+                lines.removeFirst()
+
+                if lines.first == "Content-Type: application/json" {
+                    // Remove content type
+                    lines.removeFirst()
+
+                    if let json = lines.joined().data(using: .utf8),
+                       let map = try? JSONSerialization.jsonObject(with: json, options: []) {
+
+                        if let pairs = map as? [[String: String]], pairs.allSatisfy({ $0.keys.contains("name") && $0.keys.contains("value") }) {
+                            // Extract if all entries have "name" and "value"
+                            let headers = Dictionary(uniqueKeysWithValues: pairs.map { ($0["name"]!, $0["value"]!) })
+
+                            data[name] = headers
+                        } else {
+                            // Otherwise add the raw values
+                            data[name] = map
+                        }
                     }
+
                     continue
                 }
-                addPart(name: key, value: value!)
+
+                data[name] = lines.joined(separator: CRLF)
             }
         }
 
-        bodyBuffer.writeString(DASHDASH)
-        bodyBuffer.writeString(Client.boundary)
-        bodyBuffer.writeString(DASHDASH)
-        bodyBuffer.writeString(CRLF)
-
-        request.headers.remove(name: "content-type")
-        if !chunked {
-            request.headers.add(name: "Content-Length", value: bodyBuffer.readableBytes.description)
+        // Convert specific fields to their appropriate types if present
+        if let responseStatusCode = data["responseStatusCode"] as? String {
+            data["responseStatusCode"] = Int(responseStatusCode)
         }
-        request.headers.add(name: "Content-Type", value: "multipart/form-data;boundary=\"\(Client.boundary)\"")
-        request.body = .bytes(bodyBuffer)
+        if let duration = data["duration"] as? String {
+            data["duration"] = Float(duration)
+        }
+        if let responseBody = data["responseBody"] as? String {
+            data["responseBody"] = Payload.fromString(responseBody)
+        }
+
+        return data
     }
 
     private func addUserAgentHeader() {

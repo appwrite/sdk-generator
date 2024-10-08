@@ -12,7 +12,6 @@ class Payload private constructor() {
     lateinit var filename: String
     lateinit var sourceType: String
     lateinit var data: Any
-    var mimeType: String? = null
 
     override fun toString(): String {
         if (sourceType != "bytes") {
@@ -64,9 +63,6 @@ class Payload private constructor() {
         fun fromFileObject(file: File, name: String = "") = Payload().apply {
             path = file.canonicalPath
             filename = if (name != "") name else file.name
-            mimeType = Files.probeContentType(Paths.get(file.canonicalPath))
-                ?: URLConnection.guessContentTypeFromName(filename)
-                        ?: ""
             sourceType = "file"
         }
     }

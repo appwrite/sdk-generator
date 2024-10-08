@@ -16,14 +16,15 @@ let package = Package(
             targets: [
                 "{{spec.title | caseUcfirst}}",
                 "{{spec.title | caseUcfirst}}Enums",
-                "{{spec.title | caseUcfirst}}Models",
-                "JSONCodable"
+                "{{spec.title | caseUcfirst}}Extensions",
+                "{{spec.title | caseUcfirst}}Models"
             ]
         ),
     ],
     dependencies: [
         .package(url: "https://github.com/swift-server/async-http-client.git", from: "1.19.0"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.58.0"),
+        .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "4.0.0"),
     ],
     targets: [
         .target(
@@ -31,20 +32,21 @@ let package = Package(
             dependencies: [
                 .product(name: "AsyncHTTPClient", package: "async-http-client"),
                 .product(name: "NIOWebSocket", package: "swift-nio"),
+                .product(name: "Crypto", package: "swift-crypto"),
                 {%~ if spec.definitions is not empty %}
                 "{{spec.title | caseUcfirst}}Models",
                 {%~ endif %}
                 {%~ if spec.enums is not empty %}
                 "{{spec.title | caseUcfirst}}Enums",
                 {%~ endif %}
-                "JSONCodable"
+                "{{spec.title | caseUcfirst}}Extensions"
             ]
         ),
         {%~ if spec.definitions is not empty %}
         .target(
             name: "{{spec.title | caseUcfirst}}Models",
             dependencies: [
-                "JSONCodable"
+                "{{spec.title | caseUcfirst}}Extensions"
             ]
         ),
         {%~ endif %}
@@ -54,7 +56,10 @@ let package = Package(
         ),
         {%~ endif %}
         .target(
-            name: "JSONCodable"
+            name: "{{spec.title | caseUcfirst}}Extensions",
+            dependencies: [
+                .product(name: "AsyncHTTPClient", package: "async-http-client"),
+            ]
         ),
         .testTarget(
             name: "{{spec.title | caseUcfirst}}Tests",

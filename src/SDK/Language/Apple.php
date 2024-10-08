@@ -47,13 +47,13 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/{{ spec.title | caseUcfirst}}Error.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ spec.title | caseUcfirst}}Error.swift',
                 'template'      => '/swift/Sources/Models/Error.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/InputFile.swift',
-                'template'      => 'swift/Sources/Models/InputFile.swift.twig',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/Payload.swift',
+                'template'      => 'swift/Sources/Models/Payload.swift.twig',
             ],
             [
                 'scope'         => 'default',
@@ -77,28 +77,23 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/UploadProgress.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/UploadProgress.swift',
                 'template'      => 'swift/Sources/Models/UploadProgress.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/JSONCodable/Codable+JSON.swift',
-                'template'      => 'swift/Sources/JSONCodable/Codable+JSON.swift.twig',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Extensions/Codable+JSON.swift',
+                'template'      => 'swift/Sources/Extensions/Codable+JSON.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Cookie+Codable.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Extensions/Cookie+Codable.swift',
                 'template'      => 'swift/Sources/Extensions/Cookie+Codable.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/HTTPClientRequest+Cookies.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Extensions/HTTPClientRequest+Cookies.swift',
                 'template'      => 'swift/Sources/Extensions/HTTPClientRequest+Cookies.swift.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/String+MimeTypes.swift',
-                'template'      => 'swift/Sources/Extensions/String+MimeTypes.swift.twig',
             ],
             [
                 'scope'         => 'default',
@@ -213,7 +208,7 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/RealtimeModels.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/RealtimeModels.swift',
                 'template'      => '/swift/Sources/Models/RealtimeModels.swift.twig',
             ],
             [
@@ -486,11 +481,11 @@ class Apple extends Swift
         ];
     }
 
-    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
+    protected function getReturnType(array $method, array $spec, string $generic = 'T'): string
     {
         if ($method['type'] === 'webAuth') {
             return 'Bool';
         }
-        return parent::getReturnType($method, $spec, $namespace, $generic);
+        return parent::getReturnType($method, $spec, $generic);
     }
 }

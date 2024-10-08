@@ -108,10 +108,9 @@ extension ExampleView {
             let mime = "image/png"
             #endif
 
-            let file = InputFile.fromData(
+            let file = Payload.fromData(
                 image.data,
-                filename: fileName,
-                mimeType: mime
+                filename: fileName
             )
 
             do {

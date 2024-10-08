@@ -144,13 +144,13 @@ class Swift extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/{{ spec.title | caseUcfirst}}Error.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/{{ spec.title | caseUcfirst}}Error.swift',
                 'template'      => '/swift/Sources/Models/Error.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/InputFile.swift',
-                'template'      => 'swift/Sources/Models/InputFile.swift.twig',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/Payload.swift',
+                'template'      => 'swift/Sources/Models/Payload.swift.twig',
             ],
             [
                 'scope'         => 'default',
@@ -174,28 +174,23 @@ class Swift extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Models/UploadProgress.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Models/UploadProgress.swift',
                 'template'      => 'swift/Sources/Models/UploadProgress.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/JSONCodable/Codable+JSON.swift',
-                'template'      => 'swift/Sources/JSONCodable/Codable+JSON.swift.twig',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Extensions/Codable+JSON.swift',
+                'template'      => 'swift/Sources/Extensions/Codable+JSON.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/Cookie+Codable.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Extensions/Cookie+Codable.swift',
                 'template'      => 'swift/Sources/Extensions/Cookie+Codable.swift.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/HTTPClientRequest+Cookies.swift',
+                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}Extensions/HTTPClientRequest+Cookies.swift',
                 'template'      => 'swift/Sources/Extensions/HTTPClientRequest+Cookies.swift.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => '/Sources/{{ spec.title | caseUcfirst}}/Extensions/String+MimeTypes.swift',
-                'template'      => 'swift/Sources/Extensions/String+MimeTypes.swift.twig',
             ],
             [
                 'scope'         => 'default',
@@ -311,7 +306,8 @@ class Swift extends Language
             self::TYPE_INTEGER => 'Int',
             self::TYPE_NUMBER => 'Double',
             self::TYPE_STRING => 'String',
-            self::TYPE_FILE => 'InputFile',
+            self::TYPE_FILE,
+            self::TYPE_PAYLOAD => 'Payload',
             self::TYPE_BOOLEAN => 'Bool',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? '[' . $this->getTypeName($parameter['array']) . ']'
@@ -397,7 +393,10 @@ class Swift extends Language
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
                 case self::TYPE_FILE:
-                    $output .= 'InputFile.fromPath("file.png")';
+                    $output .= 'Payload.fromFile("/path/to/file.png")';
+                    break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.fromString("<BODY>")'; // TODO: Update to fromJson()
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:

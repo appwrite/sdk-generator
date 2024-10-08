@@ -2,21 +2,21 @@
 
 namespace Tests;
 
-class Swift56Test extends Base
+class AppleSwift510Test extends Base
 {
     protected string $sdkName = 'swift';
-    protected string $sdkPlatform = 'server';
-    protected string $sdkLanguage = 'swift';
+    protected string $sdkPlatform = 'client';
+    protected string $sdkLanguage = 'apple';
     protected string $version = '0.0.1';
 
-    protected string $language = 'swift';
-    protected string $class = 'Appwrite\SDK\Language\Swift';
+    protected string $language = 'apple';
+    protected string $class = 'Appwrite\SDK\Language\Apple';
     protected array $build = [
-        'mkdir -p tests/sdks/swift/Tests/AppwriteTests',
-        'cp tests/languages/swift/Tests.swift tests/sdks/swift/Tests/AppwriteTests/Tests.swift',
+        'mkdir -p tests/sdks/apple/Tests/AppwriteTests',
+        'cp tests/languages/apple/Tests.swift tests/sdks/apple/Tests/AppwriteTests/Tests.swift',
     ];
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/swift swift:5.6-focal swift test';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/apple swift:5.10-jammy swift test';
 
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
@@ -25,7 +25,8 @@ class Swift56Test extends Base
         ...Base::UPLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
-        ...Base::OAUTH_RESPONSES,
+        ...Base::REALTIME_RESPONSES,
+        ...Base::COOKIE_RESPONSES,
         ...Base::MULTIPART_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,

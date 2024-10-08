@@ -306,8 +306,9 @@ App::post('/v1/mock/tests/general/upload')
     ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
     ->label('sdk.namespace', 'general')
     ->label('sdk.method', 'upload')
+    ->label('sdk.methodType', 'upload')
     ->label('sdk.description', 'Mock a file upload request.')
-    ->label('sdk.request.type', 'multipart/form-data')
+    ->label('sdk.request.type', Response::CONTENT_TYPE_MULTIPART)
     ->label('sdk.response.code', Response::STATUS_CODE_OK)
     ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
     ->label('sdk.response.model', Response::MODEL_MOCK)
@@ -319,6 +320,7 @@ App::post('/v1/mock/tests/general/upload')
     ->inject('request')
     ->inject('response')
     ->action(function (string $x, int $y, array $z, mixed $file, Request $request, Response $response) {
+
         $file = $request->getFiles('file');
 
         $contentRange = $request->getHeader('content-range');

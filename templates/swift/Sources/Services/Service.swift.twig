@@ -1,8 +1,8 @@
 import AsyncHTTPClient
 import Foundation
 import NIO
-import JSONCodable
 import {{spec.title | caseUcfirst}}Enums
+import {{spec.title | caseUcfirst}}Extensions
 import {{spec.title | caseUcfirst}}Models
 
 /// {{ service.description }}
@@ -30,7 +30,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         {%~ if method.responseModel | hasGenericType(spec) %}
         nestedType: T.Type
         {%~ endif %}
-        {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if 'multipart/form-data' in method.consumes and method.type == 'upload' %}
         onProgress: ((UploadProgress) -> Void)? = nil
         {%~ endif %}
     ) async throws -> {{ method | returnType(spec) | raw }} {
@@ -38,10 +38,13 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         {%~ if method.headers | length <= 0 %}
         let apiHeaders: [String: String] = [:]
         {%~ else %}
-        {% if 'multipart/form-data' in method.consumes -%} var
+        {% if 'multipart/form-data' in method.consumes and method.type == 'upload' -%} var
         {%- else -%} let
         {%- endif %} apiHeaders: [String: String] = [
         {%~ for key, header in method.headers %}
+        {%~ if 'multipart/form-data' in method.produces %}
+            "accept": "multipart/form-data",
+        {%~ endif %}
             "{{ key }}": "{{ header }}"{% if not loop.last %},{% endif %}
 
         {%~ endfor %}
@@ -63,7 +66,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         }
 
         {%~ endif %}
-        {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if 'multipart/form-data' in method.consumes and method.type == 'upload' %}
         {{~ include('swift/base/requests/file.twig') }}
         {%~ else %}
         {{~ include('swift/base/requests/api.twig') }}
@@ -90,7 +93,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
         {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter | typeName(spec) | raw }}{% if not parameter.required or parameter.nullable %}? = nil{% endif %}{% if not loop.last or 'multipart/form-data' in method.consumes %},{% endif %}
 
         {%~ endfor %}
-        {%~ if 'multipart/form-data' in method.consumes %}
+        {%~ if 'multipart/form-data' in method.consumes and method.type == 'upload' %}
         onProgress: ((UploadProgress) -> Void)? = nil
         {%~ endif %}
     ) async throws -> {{ method | returnType(spec, '[String: AnyCodable]') | raw }} {
@@ -99,7 +102,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
             {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter.name | caseCamel | escapeSwiftKeyword }},
             {%~ endfor %}
             nestedType: [String: AnyCodable].self
-            {%~ if 'multipart/form-data' in method.consumes %}
+            {%~ if 'multipart/form-data' in method.consumes and method.type == 'upload' %}
             onProgress: onProgress
             {%~ endif %}
         )

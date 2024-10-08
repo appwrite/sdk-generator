@@ -3,7 +3,7 @@ import Foundation
 public class RealtimeSubscription {
     private var close: () async throws -> Void
 
-    init(close: @escaping () async throws-> Void) {
+    public init(close: @escaping () async throws-> Void) {
         self.close = close
     }
 
@@ -16,7 +16,7 @@ public class RealtimeCallback {
     public let channels: Set<String>
     public let callback: (RealtimeResponseEvent) -> Void
 
-    init(
+    public init(
         for channels: Set<String>,
         with callback: @escaping (RealtimeResponseEvent) -> Void
     ) {
@@ -31,7 +31,7 @@ public class RealtimeResponseEvent {
     public let timestamp: String?
     public var payload: [String: Any]?
 
-    init(
+    public init(
         events: [String],
         channels: [String],
         timestamp: String,

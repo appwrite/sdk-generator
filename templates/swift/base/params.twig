@@ -6,11 +6,15 @@
         {%~ if method.parameters.query | merge(method.parameters.body) | length <= 0 %}
         let apiParams: [String: Any] = [:]
         {%~ else %}
-        {% if 'multipart/form-data' in method.consumes -%} var
+        {% if 'multipart/form-data' in method.consumes and method.type == 'upload' -%} var
         {%- else -%} let
         {%- endif %} apiParams: [String: Any?] = [
         {%~ for parameter in method.parameters.query | merge(method.parameters.body) %}
+            {%~ if parameter.type == 'payload' %}
+            "{{ parameter.name }}": try? {{ parameter.name | caseCamel | escapeSwiftKeyword }}?.toBinary(){% if not loop.last or (method.type == 'location' or method.type == 'webAuth' and method.auth | length > 0) %},{% endif %}
+            {%~ else %}
             "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if not loop.last or (method.type == 'location' or method.type == 'webAuth' and method.auth | length > 0) %},{% endif %}
+            {%~ endif %}
 
         {%~ endfor %}
         {%~ if method.type == 'location' or method.type == 'webAuth' %}

@@ -349,7 +349,7 @@ class Client @JvmOverloads constructor(
         if (size < CHUNK_SIZE) {
             val data = when(input.sourceType) {
                 "file", "path" -> File(input.path).asRequestBody()
-                "bytes" -> input.toBinary().toRequestBody(input.mimeType?.toMediaType())
+                "bytes" -> input.toBinary().toRequestBody()
                 else -> throw UnsupportedOperationException()
             }
             params[paramName] = MultipartBody.Part.createFormData(

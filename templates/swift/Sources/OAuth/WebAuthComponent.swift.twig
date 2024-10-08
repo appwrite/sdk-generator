@@ -1,10 +1,10 @@
 import AsyncHTTPClient
 import Foundation
 import NIO
-
 #if canImport(SwiftUI)
 import SwiftUI
 #endif
+import {{ spec.title | caseUcfirst }}Models
 
 ///
 /// Used to authenticate with external OAuth2 providers. Launches browser windows and handles

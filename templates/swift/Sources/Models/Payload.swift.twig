@@ -1,0 +1,105 @@
+import Foundation
+import NIO
+import NIOFoundationCompat
+import {{ spec.title | caseUcfirst }}Extensions
+
+open class Payload {
+
+    enum Error: Swift.Error {
+        case invalidType(String)
+    }
+
+    public var path: String? = nil
+    public var filename: String? = nil
+    public var data: Any? = nil
+
+    internal init() {}
+
+    public static func fromFile(_ path: String, filename: String? = "") throws -> Payload {
+        let instance = Payload()
+        instance.path = path
+        instance.filename = filename
+        if instance.filename == "" {
+            instance.filename = URL(fileURLWithPath: path, isDirectory: false).lastPathComponent
+        }
+        instance.data = ByteBuffer(data: try Data(contentsOf: URL(fileURLWithPath: path)))
+        return instance
+    }
+
+    public static func fromData(_ data: Data, filename: String? = "") -> Payload {
+        let instance = Payload()
+        instance.filename = filename
+        instance.data = data
+        return instance
+    }
+
+    public static func fromBinary(_ buffer: ByteBuffer, filename: String? = "") -> Payload {
+        let instance = Payload()
+        instance.filename = filename
+        instance.data = buffer
+        return instance
+    }
+
+    public static func fromString(_ data: String, filename: String? = "") -> Payload {
+        let instance = Payload()
+        instance.filename = filename
+        instance.data = data
+        return instance
+    }
+
+    public static func fromJson(_ data: [String: Any?], filename: String? = "") throws -> Payload {
+        let instance = Payload()
+        let string = try JSONSerialization.data(withJSONObject: data)
+        let json = String(data: string, encoding: .utf8)
+        instance.data = json
+        return instance
+    }
+
+    public func toString() throws -> String {
+        return try convertDataTo(String.self)
+    }
+
+    public func toData() throws -> Data {
+        return try convertDataTo(Data.self)
+    }
+
+    public func toBinary() throws -> ByteBuffer {
+        return try convertDataTo(ByteBuffer.self)
+    }
+
+    public func toJson() throws -> [String: Any?] {
+        guard let stringData = try? toData() else {
+            throw Error.invalidType("Payload can not be converted to a map")
+        }
+        return try JSONSerialization.jsonObject(with: stringData) as! [String: Any?]
+    }
+
+    private func convertDataTo<T>(_ type: T.Type) throws -> T {
+        guard let data = self.data else {
+            throw Error.invalidType("Payload can not be converted to \(T.self)")
+        }
+
+        switch (T.self, data) {
+        case (is String.Type, let data as String):
+            return data as! T
+        case (is String.Type, let data as Data):
+            return String(data: data, encoding: .utf8) as! T
+        case (is String.Type, let data as ByteBuffer):
+            return String(buffer: data) as! T
+        case (is Data.Type, let data as String):
+            return data.data(using: .utf8)! as! T
+        case (is Data.Type, let data as Data):
+            return data as! T
+        case (is Data.Type, let data as ByteBuffer):
+            return Data(buffer: data) as! T
+        case (is ByteBuffer.Type, let data as String):
+            return ByteBuffer(string: data) as! T
+        case (is ByteBuffer.Type, let data as Data):
+            return ByteBuffer(data: data) as! T
+        case (is ByteBuffer.Type, let data as ByteBuffer):
+            return data as! T
+        default:
+            throw Error.invalidType("Payload can not be converted to \(T.self)")
+        }
+    }
+}
