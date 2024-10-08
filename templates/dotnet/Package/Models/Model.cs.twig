@@ -67,10 +67,10 @@ namespace {{ spec.title | caseUcfirst }}.Models
                                 ({{ property | typeName }}{% if not property.required %}?{% endif %})map["{{ property.name }}"]
                             {%- else %}
                                 map
-                                {%- if not property.required %}
+                                {%- if not property.required -%}
                                     .TryGetValue("{{ property.name }}", out var {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}) ?
                                     {{ property.name | caseCamel | escapeKeyword | removeDollarSign }}?.ToString() : null
-                                {%- else %}
+                                {%- else -%}
                                     ["{{ property.name }}"]{% if not property.required %}?{% endif %}.ToString()
                                 {%- endif %}
                             {%- endif %}
