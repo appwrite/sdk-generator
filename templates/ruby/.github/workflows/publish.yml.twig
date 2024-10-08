@@ -19,8 +19,10 @@ jobs:
 
       - name: Set up RubyGems
         run: |
-          cat "---\n:rubygems_api_key: {{ '${{ secrets.RUBYGEMS_TOKEN }}' }}\n" > ~/.gem/credentials
+          echo -e "---\n:rubygems_api_key: $RUBYGEMS_TOKEN\n" > ~/.gem/credentials
           chmod 0600 ~/.gem/credentials
+        env:
+          RUBYGEMS_TOKEN: ${{ secrets.RUBYGEMS_TOKEN }}
 
       - name: Build gem
         run: gem build {{ spec.title | caseLower }}.gemspec
