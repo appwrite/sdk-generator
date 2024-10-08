@@ -14,7 +14,7 @@ const DEFAULT_ENDPOINT = 'https://cloud.appwrite.io/v1';
 const loginCommand = async ({ email, password, endpoint, mfa, code }) => {
     const oldCurrent = globalConfig.getCurrentSession();
 
-    const configEndpoint = endpoint ?? globalConfig.getEndpoint() ?? DEFAULT_ENDPOINT;
+    const configEndpoint = (endpoint ?? globalConfig.getEndpoint()) || DEFAULT_ENDPOINT;
 
     if (globalConfig.getCurrentSession() !== '') {
         log('You are currently signed in as ' + globalConfig.getEmail());
