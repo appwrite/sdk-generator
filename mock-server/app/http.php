@@ -68,6 +68,25 @@ App::get('/v1/health/version')
     });
 
 // Mock Routes
+App::get('/v1/ping')
+    ->desc('Get version')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->inject('request')
+    ->action(function (Request $request) {
+        $projectId = $request->getHeader('x-appwrite-project', '');
+
+        if (empty($projectId)) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Missing project ID');
+        }
+
+        if ($projectId !== '123456') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Invalid project ID');
+        }
+    });
+
 App::get('/v1/mock/tests/foo')
     ->desc('Get Foo')
     ->groups(['mock'])
