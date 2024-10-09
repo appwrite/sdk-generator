@@ -94,7 +94,7 @@ const getInstallCommand = (runtime) => {
         case 'dart':
             return 'dart pub get';
         case 'deno':
-            return "deno install";
+            return "deno cache src/main.ts";
         case 'node':
             return 'npm install';
         case 'bun':

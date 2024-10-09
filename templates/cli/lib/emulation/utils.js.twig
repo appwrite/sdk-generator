@@ -50,7 +50,7 @@ const systemTools = {
     },
     'deno': {
         isCompiled: false,
-        startCommand: "deno start",
+        startCommand: "deno run --allow-run --allow-net --allow-write --allow-read --allow-env src/server.ts",
         dependencyFiles: [ ]
     },
     'dart': {
