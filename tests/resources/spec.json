@@ -2290,7 +2290,8 @@
         "responseBody": {
           "type": "payload",
           "description": "HTTP response body. This will return empty unless execution is created as synchronous.",
-          "x-example": ""
+          "default": null,
+          "x-example": null
         },
         "responseHeaders": {
           "type": "array",
