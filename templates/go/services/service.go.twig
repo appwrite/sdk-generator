@@ -1,8 +1,12 @@
 {%- set requireModelsPkg = false -%}
 {%- set requirePayloadPkg = false -%}
+{%- set requireAdditonalLibraries = false -%}
 {%- for method in service.methods -%}
 {%- if (method | returnType(spec, spec.title | caseLower)) starts with "models" -%}
 		{%- set requireModelsPkg = true -%}
+{%- endif -%}
+{% if 'multipart/form-data' in method.consumes and method.type != "upload" %}
+	{%- set requireAdditonalLibraries = true -%}
 {%- endif -%}
 {% for parameter in method.parameters.all %}
 	{%- if (parameter | typeName) ends with "Payload"  -%}
@@ -21,6 +25,12 @@ import (
 {% endif %}
 {% if requirePayloadPkg %}
 	"github.com/{{sdk.gitUserName}}/sdk-for-go/payload"
+{% endif %}
+{% if requireAdditonalLibraries %}
+	"os"
+	"regexp"
+	"strconv"
+	"bytes"
 {% endif %}
 	"strings"
 )

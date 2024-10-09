@@ -7,7 +7,19 @@
 	params := map[string]interface{}{}
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
+	{%~ if parameter.type == "payload" %}
+	if Body.Path != "" {
+		file, err := os.ReadFile(Body.Path)
+		if err != nil {
+			return nil, err
+		}
+		params["body"] = string(file)
+	} else {
+		params["body"] = string(Body.Data)
+	}
+	{%~ else %}
 	params["{{ parameter.name }}"] = {{ parameter.name | caseUcfirst }}
+	{%~ endif %}
 {% else %}
 	if options.enabledSetters["{{ parameter.name | caseUcfirst}}"] {
 	{%~ if parameter.type == "payload" %}

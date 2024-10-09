@@ -17,7 +17,9 @@
   },
   "host": "mockapi",
   "basePath": "/v1",
-  "schemes": ["http"],
+  "schemes": [
+    "http"
+  ],
   "consumes": [
     "application/json",
     "multipart/form-data"
@@ -1684,7 +1686,7 @@
           "200": {
             "description": "Multipart echo",
             "schema": {
-              "$ref": "#\/definitions\/multipartEcho"
+              "$ref": "#\/definitions\/execution"
             }
           }
         },
@@ -1695,7 +1697,7 @@
             "required": true,
             "type": "payload",
             "in": "formData"
-          }    
+          }
         ],
         "x-appwrite": {
           "method": "multipartEcho",
@@ -2190,6 +2192,142 @@
       "required": [
         "responseBody"
       ]
+    },
+    "headers": {
+      "description": "Multipart response headers",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Header name",
+          "default": null,
+          "x-example": null
+        },
+        "value": {
+          "type": "string",
+          "description": "Header value",
+          "default": null,
+          "x-example": null
+        }
+      },
+      "required": [
+        "responseBody"
+      ]
+    },
+    "execution": {
+      "description": "Multipart Execution response",
+      "type": "object",
+      "properties": {
+        "$id": {
+          "type": "string",
+          "description": "Execution ID.",
+          "x-example": "5e5ea5c16897e"
+        },
+        "$createdAt": {
+          "type": "string",
+          "description": "Execution creation date in ISO 8601 format.",
+          "x-example": "2020-10-15T06:38:00.000+00:00"
+        },
+        "$updatedAt": {
+          "type": "string",
+          "description": "Execution upate date in ISO 8601 format.",
+          "x-example": "2020-10-15T06:38:00.000+00:00"
+        },
+        "$permissions": {
+          "type": "array",
+          "description": "Execution roles.",
+          "items": {
+            "type": "string"
+          },
+          "x-example": [
+            "any"
+          ]
+        },
+        "functionId": {
+          "type": "string",
+          "description": "Function ID.",
+          "x-example": "5e5ea6g16897e"
+        },
+        "trigger": {
+          "type": "string",
+          "description": "The trigger that caused the function to execute. Possible values can be: `http`, `schedule`, or `event`.",
+          "x-example": "http"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the function execution. Possible values can be: `waiting`, `processing`, `completed`, or `failed`.",
+          "x-example": "processing"
+        },
+        "requestMethod": {
+          "type": "string",
+          "description": "HTTP request method type.",
+          "x-example": "GET"
+        },
+        "requestPath": {
+          "type": "string",
+          "description": "HTTP request path and query.",
+          "x-example": "\/articles?id=5"
+        },
+        "requestHeaders": {
+          "type": "array",
+          "description": "HTTP response headers as a key-value object. This will return only whitelisted headers. All headers are returned if execution is created as synchronous.",
+          "items": {
+            "type": "object",
+            "$ref": "#\/definitions\/headers"
+          },
+          "x-example": [
+            {
+              "Content-Type": "application\/json"
+            }
+          ]
+        },
+        "responseStatusCode": {
+          "type": "integer",
+          "description": "HTTP response status code.",
+          "x-example": 200,
+          "format": "int32"
+        },
+        "responseBody": {
+          "type": "payload",
+          "description": "HTTP response body. This will return empty unless execution is created as synchronous.",
+          "x-example": ""
+        },
+        "responseHeaders": {
+          "type": "array",
+          "description": "HTTP response headers as a key-value object. This will return only whitelisted headers. All headers are returned if execution is created as synchronous.",
+          "items": {
+            "type": "object",
+            "$ref": "#\/definitions\/headers"
+          },
+          "x-example": [
+            {
+              "Content-Type": "application\/json"
+            }
+          ]
+        },
+        "logs": {
+          "type": "string",
+          "description": "Function logs. Includes the last 4,000 characters. This will return an empty string unless the response is returned using an API key or as part of a webhook payload.",
+          "x-example": ""
+        },
+        "errors": {
+          "type": "string",
+          "description": "Function errors. Includes the last 4,000 characters. This will return an empty string unless the response is returned using an API key or as part of a webhook payload.",
+          "x-example": ""
+        },
+        "duration": {
+          "type": "number",
+          "description": "Function execution duration in seconds.",
+          "x-example": 0.4,
+          "format": "double"
+        },
+        "scheduledAt": {
+          "type": "string",
+          "description": "The scheduled time for execution. If left empty, execution will be queued immediately.",
+          "x-example": "2020-10-15T06:38:00.000+00:00",
+          "x-nullable": true
+        }
+      }
     },
     "mock": {
       "description": "Mock",
