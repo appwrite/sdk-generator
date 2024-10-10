@@ -118,6 +118,9 @@ class Tests: XCTestCase {
         mock = try await general.xenum(mockType: .first)
         print(mock.result)
 
+        mock = try await general.xenum(mockType: .fourth)
+        print(mock.result)
+
         do {
             try await general.error400()
         } catch {

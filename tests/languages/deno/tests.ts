@@ -115,6 +115,10 @@ async function start() {
   // @ts-ignore
   console.log(response.result);
 
+  response = await general.enum(appwrite.MockType.Fourth);
+  // @ts-ignore
+  console.log(response.result);
+
   try {
     response = await general.error400();
   } catch (error) {

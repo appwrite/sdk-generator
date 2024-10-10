@@ -84,6 +84,9 @@ namespace AppwriteTests
             mock = await general.Enum(MockType.First);
             TestContext.WriteLine(mock.Result);
 
+            mock = await general.Enum(MockType.Fourth);
+            TestContext.WriteLine(mock.Result);
+
             try
             {
                 await general.Error400();

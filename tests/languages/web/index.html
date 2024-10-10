@@ -20,6 +20,7 @@
     document.getElementById("start").addEventListener("click", async () => {
       let response;
       let responseRealtime = "Realtime failed!";
+
       // Init SDK
       const {
         Client,
@@ -39,8 +40,14 @@
       const bar = new Bar(client);
       const general = new General(client);
 
-      client.setProject("console");
-      client.setEndpointRealtime("ws://demo.appwrite.io/v1");
+      // Ping
+      client.setProject('123456');
+      response = await client.ping();
+      console.log(response.result);
+
+      // Realtime setup
+      client.setProject('console');
+      client.setEndpointRealtime('ws://demo.appwrite.io/v1');
 
       client.subscribe("tests", (event) => {
         responseRealtime = event.payload.response;
@@ -104,10 +111,13 @@
       response = await general.enum(MockType.First);
       console.log(response.result);
 
+      response = await general.enum(MockType.Fourth);
+      console.log(response.result);
+
       try {
-        response = await general.empty();
+          response = await general.empty();
       } catch (error) {
-        console.log(error);
+          console.log(error);
       }
 
       try {

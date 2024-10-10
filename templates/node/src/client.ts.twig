@@ -253,6 +253,10 @@ class Client {
         return response;
     }
 
+    async ping(): Promise<string> {
+        return this.call('GET', new URL(this.config.endpoint + '/ping'));
+    }
+
     async redirect(method: string, url: URL, headers: Headers = {}, params: Params = {}): Promise<string> {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
         

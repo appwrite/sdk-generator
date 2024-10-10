@@ -78,6 +78,9 @@ void main() async {
   response = await general.xenum(mockType: MockType.first);
   print(response.result);
 
+  response = await general.xenum(mockType: MockType.fourth);
+  print(response.result);
+
   try {
     await general.error400();
   } on AppwriteException catch (e) {
