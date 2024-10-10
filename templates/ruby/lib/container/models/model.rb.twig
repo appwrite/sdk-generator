@@ -18,14 +18,14 @@ module {{ spec.title | caseUcfirst }}
                 {%~ endfor %}
                 {%~ if definition.additionalProperties %}
                 data:
-                {%- endif %}
+                {%~ endif %}
             )
                 {%~ for property in definition.properties %}
                 @{{ property.name | caseSnake | escapeKeyword }} = {{ property.name | caseSnake | escapeKeyword }}
                 {%~ endfor %}
                 {%~ if definition.additionalProperties %}
                 @data = data
-                {%- endif %}
+                {%~ endif %}
             end
 
             def self.from(map:)
@@ -36,7 +36,7 @@ module {{ spec.title | caseUcfirst }}
                     {%~ endfor %}
                     {%~ if definition.additionalProperties %}
                     data: map
-                    {%- endif %}
+                    {%~ endif %}
                 )
             end
 
@@ -48,7 +48,7 @@ module {{ spec.title | caseUcfirst }}
                     {%~ endfor %}
                     {%~ if definition.additionalProperties %}
                     "data": @data
-                    {%- endif %}
+                    {%~ endif %}
                 }
             end
             {%~ if definition.additionalProperties %}
