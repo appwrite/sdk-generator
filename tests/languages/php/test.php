@@ -89,6 +89,9 @@ echo "{$response['result']}\n";
 $response = $general->enum(MockType::FIRST());
 echo "{$response['result']}\n";
 
+$response = $general->enum(MockType::FOURTH());
+echo "{$response['result']}\n";
+
 try {
     $response = $general->error400();
 } catch (AppwriteException $e) {
