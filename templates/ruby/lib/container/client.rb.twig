@@ -16,9 +16,9 @@ module {{ spec.title | caseUcfirst }}
                 'x-sdk-platform'=> '{{ sdk.platform }}',
                 'x-sdk-language'=> '{{ language.name | caseLower }}',
                 'x-sdk-version'=> '{{ sdk.version }}'{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
-                {%~ for key,header in spec.global.defaultHeaders %}
-                '{{key}}' => '{{header}}'{% if not loop.last %},{% endif %}
-                {%~ endfor %}
+                {%~ for key, header in spec.global.defaultHeaders ~%}
+                '{{key | caseLower }}' => '{{header}}'{% if not loop.last %},{% endif %}
+                {%~ endfor ~%}
             }
             @endpoint = '{{spec.endpoint}}'
         end
