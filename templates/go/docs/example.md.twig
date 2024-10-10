@@ -8,27 +8,26 @@ package main
 
 import (
     "fmt"
-    "github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/client"
-    "github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/{{ service.name | caseLower }}"
-{% if requireFilesPkg %}
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/appwrite"
+{% if requireFilesPkg or method.name | caseLower == "createexecution" %}
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/payload"
 {% endif %}
 )
 
 func main() {
-    client := client.NewClient()
-
+	client := appwrite.NewClient(
 {% if method.auth|length > 0 %}
-    client.SetEndpoint("https://cloud.appwrite.io/v1") // Your API Endpoint
+        appwrite.WithEndpoint("https://cloud.appwrite.io/v1"), // Your API Endpoint
 {% for node in method.auth %}
 {% for key,header in node|keys %}
-    client.Set{{header}}("{{node[header]['x-appwrite']['demo'] | raw }}") // {{node[header].description}}
+        appwrite.With{{header}}("{{node[header]['x-{{ spec.title | caseLower }}']['demo']}}"), // {{node[header].description}}
 {% endfor %}
 {% endfor %}
+    )
 
 {% endif %}
-    service := {{ service.name | caseLower }}.New{{ service.name | caseUcfirst }}(client)
-    response, error := service.{{ method.name | caseUcfirst }}(
+    {{service.name}} := appwrite.New{{ service.name | caseUcfirst }}(client)
+    response, error := {{service.name}}.{{ method.name | caseUcfirst }}(
 {% for parameter in method.parameters.all %}
 {% if parameter.required %}
         {{ parameter | paramExample }},

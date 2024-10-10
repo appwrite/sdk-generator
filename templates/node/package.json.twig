@@ -19,16 +19,6 @@
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
       }
-    },
-    "./file": {
-      "import": {
-        "types": "./dist/inputFile.d.mts",
-        "default": "./dist/inputFile.mjs"
-      },
-      "require": {
-        "types": "./dist/inputFile.d.ts",
-        "default": "./dist/inputFile.js"
-      }
     }
   },
   "files": [
@@ -48,6 +38,7 @@
     "typescript": "5.4.2"
   },
   "dependencies": {
-    "node-fetch-native-with-agent": "1.7.2"
+    "node-fetch-native-with-agent": "1.7.2",
+    "parse-multipart-data": "^1.5.0"
   }
 }

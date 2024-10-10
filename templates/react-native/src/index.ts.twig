@@ -2,12 +2,13 @@ export { Client, {{spec.title | caseUcfirst}}Exception } from './client';
 {% for service in spec.services %}
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseDash}}';
 {% endfor %}
-export type { Models, Payload, RealtimeResponseEvent, UploadProgress } from './client';
+export type { Models, Params, RealtimeResponseEvent, UploadProgress } from './client';
 export type { QueryTypes, QueryTypesList } from './query';
 export { Query } from './query';
 export { Permission } from './permission';
 export { Role } from './role';
 export { ID } from './id';
+export { Payload } from './payload';
 {% for enum in spec.enums %}
 export { {{ enum.name | caseUcfirst  }} } from './enums/{{enum.name | caseDash}}';
 {% endfor %}

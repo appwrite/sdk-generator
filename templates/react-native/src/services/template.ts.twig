@@ -1,26 +1,27 @@
 import { Service } from '../service';
-import { {{ spec.title | caseUcfirst}}Exception, Client } from '../client';
+import { {{ spec.title | caseUcfirst }}Exception, Client } from '../client';
+import { Payload } from '../payload';
 import type { Models } from '../models';
-import type { UploadProgress, Payload } from '../client';
+import type { UploadProgress, Params } from '../client';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 
 {% set added = [] %}
-{% for method in service.methods %}
-{% for parameter in method.parameters.all %}
-{% if parameter.enumValues is not empty %}
-{% if parameter.enumName is not empty %}
-{% set name = parameter.enumName %}
-{% else %}
-{% set name = parameter.name %}
-{% endif %}
-{% if name not in added %}
+{%~ for method in service.methods %}
+    {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.enumValues is not empty %}
+            {%~ if parameter.enumName is not empty %}
+                {% set name = parameter.enumName %}
+            {% else %}
+                {% set name = parameter.name %}
+            {%- endif %}
+            {%~ if name not in added -%}
 import { {{ name | caseUcfirst }} } from '../enums/{{ name | caseDash }}';
-{% set added = added|merge([name]) %}
-{% endif %}
-{% endif %}
-{% endfor %}
-{% endfor %}
+                {%~ set added = added|merge([name]) -%}
+            {%- endif %}
+        {%- endif %}
+    {%- endfor %}
+{%- endfor %}
 
 export class {{ service.name | caseUcfirst }} extends Service {
 
@@ -28,96 +29,88 @@ export class {{ service.name | caseUcfirst }} extends Service {
      {
         super(client);
      }
-{% for method in service.methods %}
+    {%~ for method in service.methods %}
 
     /**
      * {{ method.title }}
      *
-{% if method.description %}
-{{ method.description|comment2 }}
-{% endif %}
+    {%~ if method.description %}
+     * {{ method.description }}
+    {%~ endif %}
      *
-{% for parameter in method.parameters.all %}
+    {%~ for parameter in method.parameters.all %}
      * @param {{ '{' }}{{ parameter | getPropertyType(method) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }}
-{% endfor %}
-     * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
+    {%~ endfor %}
+     * @throws {{ '{' }}{{ spec.title | caseUcfirst }}Exception}
      * @returns {% if method.type == 'webAuth' %}{void|string}{% elseif method.type == 'location' %}{URL}{% else %}{Promise}{% endif %}
 
     */
-    {% if method.type != 'location' and method.type != 'webAuth'%}async {% endif %}{{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): {{ method | getReturn(spec) | raw }} {
-{% for parameter in method.parameters.all %}
-{% if parameter.required %}
+    {% if method.type != 'location' and method.type != 'webAuth'%}async {% endif %}{{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({%~ for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{%~ if not parameter.required or parameter.nullable %}?{%- endif %}: {{ parameter | getPropertyType(method) | raw }}{%~ if not loop.last %}, {%- endif %}{%- endfor %}{%~ if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{%- endif %}): {{ method | getReturn(spec) | raw }} {
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.required %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} === 'undefined') {
             throw new {{spec.title | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel | escapeKeyword }}"');
         }
 
-{% endif %}
-{% endfor %}
-        const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-        const payload: Payload = {};
+        {%~ endif %}
+        {%~ endfor %}
+        const apiPath = '{{ method.path }}'{%~ for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){%- endfor %};
+        const params: Params = {};
 
-{% for parameter in method.parameters.query %}
+        {%~ for parameter in method.parameters.query %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            params['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
 
-{% endfor %}
-{% for parameter in method.parameters.body %}
+        {%~ endfor %}
+        {%~ for parameter in method.parameters.body %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
-            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            params['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
         }
 
-{% endfor %}
+        {%~ endfor %}
         const uri = new URL(this.client.config.endpoint + apiPath);
-{% if method.type == 'location' or method.type == 'webAuth' %}
-{% if method.auth|length > 0 %}
-{% for node in method.auth %}
-{% for key,header in node|keys %}
-        payload['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
 
-{% endfor %}
-{% endfor %}
-{% endif %}
+        {%~ if method.type == 'location' or method.type == 'webAuth' %}
+        {%~ if method.auth|length > 0 %}
+        {%~ for node in method.auth %}
+        {%~ for key,header in node|keys %}
+        params['{{header|caseLower}}'] = this.client.config.{{header|caseLower}};
+        {%~ endfor %}
+        {%~ endfor %}
+        {%~ endif %}
 
-        for (const [key, value] of Object.entries(Service.flatten(payload))) {
+        for (const [key, value] of Object.entries(Service.flatten(params))) {
             uri.searchParams.append(key, value);
         }
-{% endif %}
-{% if method.type == 'webAuth' %}
+        {%~ endif %}
+        {%~ if method.type == 'webAuth' or method.type == 'location' %}
         return uri;
-{% elseif method.type == 'location' %}
-        return uri;
-{% else %}
-{% if 'multipart/form-data' in method.consumes %}
-{% for parameter in method.parameters.all %}
-{% if parameter.type == 'file' %}
+        {%~ else %}
+        const apiHeaders: { [header: string]: string } = {
+            {%~ for parameter in method.parameters.header %}
+            '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
+            {%- endfor %}
+            {%~ for key, header in method.headers %}
+            '{{ key }}': '{{ header }}',
+            {%~ endfor %}
+        }
+
+        {%~ if 'multipart/form-data' in method.consumes and method.type == 'upload' %}
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.type == 'file' %}
 
         const size = {{ parameter.name | caseCamel | escapeKeyword }}.size;
 
         if (size <= Service.CHUNK_SIZE) {
-            return await this.client.call('{{ method.method | caseLower }}', uri, {
-{% for parameter in method.parameters.header %}
-                '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
-                '{{ key }}': '{{ header }}',
-{% endfor %}
-            }, payload);
-        }
-
-        const apiHeaders: { [header: string]: string } = {
-{% for parameter in method.parameters.header %}
-            '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
-            '{{ key }}': '{{ header }}',
-{% endfor %}
+            params['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}.toFileObject();
+            return await this.client.call('{{ method.method | caseLower }}', uri, apiHeaders, params);
         }
 
         let offset = 0;
         let response = undefined;
-{% for parameter in method.parameters.all %}
-{% if parameter.isUploadID %}
+        {%~ for parameter in method.parameters.all %}
+        {%~ if parameter.isUploadID %}
         if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
             try {
                 response = await this.client.call('GET', new URL(this.client.config.endpoint + apiPath + '/' + {{ parameter.name }}), apiHeaders);
@@ -125,8 +118,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
             } catch(e) {
             }
         }
-{% endif %}
-{% endfor %}
+        {%~ endif %}
+        {%~ endfor %}
 
         let timestamp = new Date().getTime();
         while (offset < size) {
@@ -137,20 +130,22 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 apiHeaders['x-{{spec.title | caseLower }}-id'] = response.$id;
             }
 
-            let chunk = await FileSystem.readAsStringAsync({{ parameter.name | caseCamel | escapeKeyword }}.uri, {
-                encoding: FileSystem.EncodingType.Base64,
-                position: offset,
-                length: Service.CHUNK_SIZE
-            });
-            var path = `data:${{'{'}}{{ parameter.name | caseCamel | escapeKeyword }}.type{{'}'}};base64,${{'{'}}chunk{{'}'}}`;
+            let chunkBuffer = {{ parameter.name | caseCamel | escapeKeyword }}.toBinary(offset, end - offset + 1);
+            let chunk = btoa(String.fromCharCode(...chunkBuffer));
+
+            var path = `data:${{ parameter.name | caseCamel | escapeKeyword }}.type};base64,${chunk}`;
             if (Platform.OS.toLowerCase() === 'android') {
                 path = FileSystem.cacheDirectory + '/tmp_chunk_' + timestamp;
                 await FileSystem.writeAsStringAsync(path, chunk, {encoding: FileSystem.EncodingType.Base64});
             }
 
-            payload['{{ parameter.name }}'] = {{ '{' }} uri: path, name: {{ parameter.name | caseCamel | escapeKeyword }}.name, type: {{ parameter.name | caseCamel | escapeKeyword }}.type {{ '}' }};
+            params['{{ parameter.name }}'] = {
+                uri: path,
+                name: {{ parameter.name | caseCamel | escapeKeyword }}.filename,
+                type: {{ parameter.name | caseCamel | escapeKeyword }}.type
+            };
 
-            response = await this.client.call('{{ method.method | caseLower }}', uri, apiHeaders, payload);
+            response = await this.client.call('{{ method.method | caseLower }}', uri, apiHeaders, params);
 
             if (onProgress) {
                 onProgress({
@@ -164,19 +159,12 @@ export class {{ service.name | caseUcfirst }} extends Service {
             offset += Service.CHUNK_SIZE;
         }
         return response;
-{% endif %}
-{% endfor %}
-{% else %}
-        return await this.client.call('{{ method.method | caseLower }}', uri, {
-{% for parameter in method.parameters.header %}
-            '{{ parameter.name | caseCamel | escapeKeyword }}': this.client.${{ parameter.name | caseCamel | escapeKeyword }},
-{% endfor %}
-{% for key, header in method.headers %}
-            '{{ key }}': '{{ header }}',
-{% endfor %}
-        }, payload);
-{% endif %}
-{% endif %}
+        {%~ endif %}
+        {%~ endfor %}
+        {%~ else %}
+        return await this.client.call('{{ method.method | caseLower }}', uri, apiHeaders, params);
+        {%~ endif %}
+        {%~ endif %}
     }
-{% endfor %}
+    {%~ endfor %}
 };

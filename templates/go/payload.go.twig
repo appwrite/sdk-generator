@@ -1,0 +1,66 @@
+package payload
+
+import (
+	"os"
+	"encoding/json"
+)
+
+type Payload struct {
+	Name string
+	Path string
+	Data []byte
+}
+
+func (p *Payload) ToBinary() []byte {
+	return p.Data
+}
+
+func (p *Payload) ToFile(path string) error {
+	return os.WriteFile(path, p.ToBinary(), 0755)
+}
+
+func (p *Payload) ToString() string {
+	return string(p.ToBinary())
+}
+
+func (p *Payload) ToJson() map[string]any {
+	var data map[string]any
+
+	_ = json.Unmarshal(p.ToBinary(), &data)
+
+	return data
+}
+
+func NewPayloadFromFile(path string, name string) *Payload {
+	return &Payload{
+		Name: name,
+		Path: path,
+		Data: nil,
+	}
+}
+
+func NewPayloadFromBinary(data []byte, name string) *Payload {
+	return &Payload{
+		Name: name,
+		Data: data,
+	}
+}
+
+func NewPayloadFromJson(data any, name string) *Payload {
+	marshaled, err := json.Marshal(data)
+
+	if err != nil {
+		marshaled = nil
+	}
+
+	return &Payload{
+		Name: name,
+		Data: marshaled,
+	}
+}
+
+func NewPayloadFromString(data string) *Payload {
+	return &Payload{
+		Data: []byte(data),
+	}
+}

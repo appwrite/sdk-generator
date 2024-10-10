@@ -154,8 +154,13 @@ class Ruby extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/{{ spec.title | caseDash }}/input_file.rb',
-                'template'      => 'ruby/lib/container/input_file.rb.twig',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/payload.rb',
+                'template'      => 'ruby/lib/container/payload.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.title | caseDash }}/multipart.rb',
+                'template'      => 'ruby/lib/container/multipart.rb.twig',
             ],
             [
                 'scope'         => 'default',
@@ -209,6 +214,8 @@ class Ruby extends Language
             self::TYPE_STRING => 'String',
             self::TYPE_ARRAY => 'Array',
             self::TYPE_OBJECT => 'Hash',
+            self::TYPE_FILE => 'Payload',
+            self::TYPE_PAYLOAD => 'Payload',
             self::TYPE_BOOLEAN => '',
             default => $parameter['type'],
         };
@@ -294,8 +301,11 @@ class Ruby extends Language
                 case self::TYPE_OBJECT:
                     $output .= '{}';
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= "Payload.from_json({ \"x\": \"y\" })";
+                    break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.from_path('dir/file.png')";
+                    $output .= "Payload.from_file('/path/to/file.png')";
                     break;
             }
         } else {
@@ -314,8 +324,11 @@ class Ruby extends Language
                 case self::TYPE_STRING:
                     $output .= "'{$example}'";
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= "Payload.from_json({ \"x\": \"y\" })";
+                    break;
                 case self::TYPE_FILE:
-                    $output .= "InputFile.from_path('dir/file.png')";
+                    $output .= "Payload.from_file('/path/to/file.png')";
                     break;
             }
         }

@@ -1,6 +1,8 @@
 services:
   mockapi:
     container_name: mockapi
+    ports:
+      - 3175:80
     build:
       context: .
       args:

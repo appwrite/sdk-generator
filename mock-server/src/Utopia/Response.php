@@ -2,14 +2,17 @@
 
 namespace Utopia\MockServer\Utopia;
 
-use Utopia\Swoole\Response as SwooleResponse;
+use Utopia\MockServer\Utopia\BodyMultipart;
+use Swoole\Http\Response as SwooleResponse;
+use Utopia\CLI\Console;
 use Utopia\Database\Document;
+use Utopia\Swoole\Response as UtopiaResponse;
 
 /**
  * @method int getStatusCode()
  * @method Response setStatusCode(int $code = 200)
  */
-class Response extends SwooleResponse
+class Response extends UtopiaResponse
 {
     // General
     public const MODEL_NONE = 'none';
@@ -21,6 +24,7 @@ class Response extends SwooleResponse
     public const MODEL_METRIC_LIST = 'metricList';
     public const MODEL_ERROR_DEV = 'errorDev';
     public const MODEL_BASE_LIST = 'baseList';
+    public const MODEL_MULTIPART = 'multipart';
 
     // Mock
     public const MODEL_MOCK = 'mock';
@@ -39,6 +43,7 @@ class Response extends SwooleResponse
      */
     public function __construct(SwooleResponse $response)
     {
+        parent::__construct($response);
     }
 
     /**
@@ -46,6 +51,7 @@ class Response extends SwooleResponse
      */
     public const CONTENT_TYPE_YAML = 'application/x-yaml';
     public const CONTENT_TYPE_NULL = 'null';
+    public const CONTENT_TYPE_MULTIPART = 'multipart/form-data';
 
     /**
      * List of defined output objects
@@ -91,6 +97,18 @@ class Response extends SwooleResponse
         return $this->models;
     }
 
+    public function multipart(array $data): void
+    {
+        $multipart = new BodyMultipart();
+        foreach ($data as $key => $value) {
+            $multipart->setPart($key, $value);
+        }
+
+        $this
+            ->setContentType($multipart->exportHeader())
+            ->send($multipart->exportBody());
+    }
+
     /**
      * Validate response objects and outputs
      *  the response according to given format type
@@ -118,6 +136,10 @@ class Response extends SwooleResponse
             case self::CONTENT_TYPE_NULL:
                 break;
 
+            case self::CONTENT_TYPE_MULTIPART:
+                $this->multipart(!empty($output) ? $output : new \stdClass());
+                break;
+
             default:
                 if ($model === self::MODEL_NONE) {
                     $this->noContent();
@@ -127,6 +149,8 @@ class Response extends SwooleResponse
                 break;
         }
     }
+
+
 
     /**
      * Generate valid response object from document data

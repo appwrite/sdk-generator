@@ -10,7 +10,8 @@
         "utopia-php/framework": "0.33.*",
         "utopia-php/database": "0.48.*",
         "utopia-php/cli": "0.16.*",
-        "utopia-php/swoole": "0.8.*"
+        "utopia-php/swoole": "0.8.*",
+        "utopia-php/fetch": "0.2.*"
     },
     "require-dev": {
         "swoole/ide-helper": "5.1.2"
