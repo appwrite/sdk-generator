@@ -101,11 +101,11 @@ abstract class Language
 
         // Remove accents and other residual non-ASCII characters
         $str = \preg_replace('/\p{M}/u', '', $str);
-    
+
         // Insert spaces before uppercase letters where appropriate
         $str = \preg_replace('/(?<=[a-z0-9])(?=[A-Z])/', ' ', $str);
         $str = \preg_replace('/(?<=[A-Z])(?=[A-Z][a-z])/', ' ', $str);
-    
+
         // Replace any sequence of non-alphanumeric characters with a space
         $str = \preg_replace('/[^a-zA-Z0-9]+/', ' ', $str);
         $str = \trim($str);
