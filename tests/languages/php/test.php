@@ -2,7 +2,7 @@
 
 include __DIR__ . '/../../sdks/php/src/Appwrite/Client.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Service.php';
-include __DIR__ . '/../../sdks/php/src/Appwrite/InputFile.php';
+include __DIR__ . '/../../sdks/php/src/Appwrite/Payload.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Query.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Permission.php';
 include __DIR__ . '/../../sdks/php/src/Appwrite/Role.php';
@@ -15,7 +15,7 @@ include __DIR__ . '/../../sdks/php/src/Appwrite/Services/General.php';
 
 use Appwrite\AppwriteException;
 use Appwrite\Client;
-use Appwrite\InputFile;
+use Appwrite\Payload;
 use Appwrite\Query;
 use Appwrite\Permission;
 use Appwrite\Role;
@@ -73,17 +73,18 @@ $response = $general->redirect();
 echo "{$response['result']}\n";
 
 $data = file_get_contents(__DIR__ . '/../../resources/file.png');
-$response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'image/png', 'file.png'));
+
+$response = $general->upload('string', 123, ['string in array'], Payload::fromBinary($data, 'file.png', 'image/png'));
 echo "{$response['result']}\n";
 
 $data = file_get_contents(__DIR__ . '/../../resources/large_file.mp4');
-$response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'video/mp4', 'large_file.mp4'));
+$response = $general->upload('string', 123, ['string in array'], Payload::fromBinary($data, 'large_file.mp4', 'video/mp4'));
 echo "{$response['result']}\n";
 
-$response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../resources/file.png'));
+$response = $general->upload('string', 123, ['string in array'], Payload::fromFile(__DIR__ . '/../../resources/file.png'));
 echo "{$response['result']}\n";
 
-$response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../resources/large_file.mp4'));
+$response = $general->upload('string', 123, ['string in array'], Payload::fromFile(__DIR__ . '/../../resources/large_file.mp4'));
 echo "{$response['result']}\n";
 
 $response = $general->enum(MockType::FIRST());
@@ -121,6 +122,23 @@ $url = $general->oauth2(
 );
 echo $url . "\n";
 
+$response = $general->multipart();
+echo "{$response['x']}\n";
+$hash = md5($response['responseBody']->toBinary());
+echo "{$hash}\n";
+
+$response = $general->multipartEcho(Payload::fromString('Hello, World!'));
+echo "{$response['responseBody']->toString()}\n";
+
+$response = $general->multipartEcho(Payload::fromJson(['key' => 'myStringValue']));
+echo "{$response['responseBody']->toJson()['key']}\n";
+
+// TODO: Fix, outputs incorrect hash
+// $response = $general->multipartEcho(Payload::fromFile(__DIR__ . '/../../resources/file.png'));
+// $response['responseBody']->toFile(__DIR__ . '/../../resources/tmp/file_copy.png');
+// $hash = md5_file(__DIR__ . '/../../resources/tmp/file_copy.png');
+// echo "{$hash}\n";
+
 // Query helper tests
 echo Query::equal('released', [true]) . "\n";
 echo Query::equal('title', ['Spiderman', 'Dr. Strange']) . "\n";
@@ -145,13 +163,13 @@ echo Query::offset(20) . "\n";
 echo Query::contains('title', ['Spider']) . "\n";
 echo Query::contains('labels', ['first']) . "\n";
 echo Query::or([
-    Query::equal('released', [true]),
-    Query::lessThan('releasedYear', 1990)
-]) . "\n";
+        Query::equal('released', [true]),
+        Query::lessThan('releasedYear', 1990)
+    ]) . "\n";
 echo Query::and([
-    Query::equal('released', [false]),
-    Query::greaterThan('releasedYear', 2015)
-]) . "\n";
+        Query::equal('released', [false]),
+        Query::greaterThan('releasedYear', 2015)
+    ]) . "\n";
 
 // Permission & Role helper tests
 echo Permission::read(Role::any()) . "\n";

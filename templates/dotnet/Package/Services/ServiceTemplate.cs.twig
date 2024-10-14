@@ -37,6 +37,28 @@ namespace {{ spec.title | caseUcfirst }}.Services
             {{~ include('dotnet/base/params.twig') }}
 
             {%~ if method.responseModel %}
+            {%~ if 'multipart/form-data' in method.consumes and method.type != "upload" %}
+            static Models.Execution Convert(Dictionary<string, object> it) =>
+                new Execution(
+                    id: it["$id"].ToString(),
+                    createdAt: it["$createdAt"].ToString(),
+                    updatedAt: it["$updatedAt"].ToString(),
+                    permissions: it["$permissions"] as List<object>,
+                    functionId: it["functionId"].ToString(),
+                    trigger: it["trigger"].ToString(),
+                    status: it["status"].ToString(),
+                    requestMethod: it["requestMethod"].ToString(),
+                    requestPath: it["requestPath"].ToString(),
+                    requestHeaders: it["requestHeaders"] as List<Headers>,
+                    responseStatusCode: System.Convert.ToInt64(it["responseStatusCode"]),
+                    responseBody: it["responseBody"] as Payload,
+                    responseHeaders: it["responseHeaders"] as List<Headers>,
+                    logs: it["logs"].ToString(),
+                    errors: it["errors"].ToString(),
+                    duration: System.Convert.ToDouble(it["duration"]),
+                    scheduledAt: it.TryGetValue("scheduledAt", out var scheduledAt) ? scheduledAt.ToString() : null
+                );
+            {%~ else %}
             static {{ utils.resultType(spec.title, method) }} Convert(Dictionary<string, object> it) =>
             {%~ if method.responseModel == 'any' %}
                 it;
@@ -44,12 +66,13 @@ namespace {{ spec.title | caseUcfirst }}.Services
                 {{ utils.resultType(spec.title, method) }}.From(map: it);
             {%~ endif %}
             {%~ endif %}
+            {%~ endif %}
 
             {%~ if method.type == 'location' %}
             {{~ include('dotnet/base/requests/location.twig') }}
             {%~ elseif method.type == 'webAuth' %}
             {{~ include('dotnet/base/requests/oauth.twig') }}
-            {%~ elseif 'multipart/form-data' in method.consumes %}
+            {%~ elseif 'multipart/form-data' in method.consumes and method.type == "upload" %}
             {{~ include('dotnet/base/requests/file.twig') }}
             {%~ else %}
             {{~ include('dotnet/base/requests/api.twig')}}

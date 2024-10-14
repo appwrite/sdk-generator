@@ -1,8 +1,8 @@
 <?php
 
 use {{ spec.title | caseUcfirst }}\Client;
-{% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
-use {{ spec.title | caseUcfirst }}\InputFile;
+{% if method.parameters.all | filter((param) => param.type == 'file' or param.type == 'payload') | length > 0 %}
+use {{ spec.title | caseUcfirst }}\Payload;
 {% endif %}
 use {{ spec.title | caseUcfirst }}\Services\{{ service.name | caseUcfirst }};
 {% set added = [] %}

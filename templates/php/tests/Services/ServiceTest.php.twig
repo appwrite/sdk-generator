@@ -3,7 +3,7 @@
 namespace Appwrite\Services;
 
 use Appwrite\Client;
-use Appwrite\InputFile;
+use Appwrite\Payload;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 
@@ -34,7 +34,7 @@ final class {{service.name | caseUcfirst}}Test extends TestCase {
             ->andReturn($data);
 
         $response = $this->{{service.name | caseCamel}}->{{method.name | caseCamel}}({%~ for parameter in method.parameters.all | filter((param) => param.required) ~%}
-            {% if parameter.type == 'object' %}array(){% elseif parameter.type == 'array' %}array(){% elseif parameter.type == 'file' %}InputFile::withData('', "image/png"){% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'string' %}"{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}"{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%}{% if not loop.last %},{% endif %}{%~ endfor ~%}
+            {% if parameter.type == 'object' %}array(){% elseif parameter.type == 'array' %}array(){% elseif parameter.type == 'file' %}Payload::fromBinary('', "image/png"){% elseif parameter.type == 'boolean' %}true{% elseif parameter.type == 'string' %}"{% if parameter.example is not empty %}{{parameter.example | escapeDollarSign}}{% endif %}"{% elseif parameter.type == 'integer' and parameter['x-example'] is empty %}1{% elseif parameter.type == 'number' and parameter['x-example'] is empty %}1.0{% else %}{{parameter.example}}{%~ endif ~%}{% if not loop.last %},{% endif %}{%~ endfor ~%}
         );
 
         $this->assertSame($data, $response);

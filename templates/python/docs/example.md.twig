@@ -1,6 +1,6 @@
 from {{ spec.title | caseSnake }}.client import Client
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
-from {{ spec.title | caseSnake }}.input_file import InputFile
+from {{ spec.title | caseSnake }}.payload import Payload
 {% endif %}
 {% set added = [] %}
 {% for parameter in method.parameters.all %}

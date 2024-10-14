@@ -92,8 +92,8 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'lib/src/input_file.dart',
-                'template'      => 'dart/lib/src/input_file.dart.twig',
+                'destination'   => 'lib/payload.dart',
+                'template'      => 'dart/lib/payload.dart.twig',
             ],
             [
                 'scope'         => 'default',
@@ -143,12 +143,12 @@ class Flutter extends Dart
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/client_mixin.dart',
-                'template'      => 'flutter/lib/src/client_mixin.dart.twig',
+                'template'      => 'dart/lib/src/client_mixin.dart.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/client_stub.dart',
-                'template'      => 'flutter/lib/src/client_stub.dart.twig',
+                'template'      => 'dart/lib/src/client_stub.dart.twig',
             ],
             [
                 'scope'         => 'default',
@@ -218,12 +218,12 @@ class Flutter extends Dart
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/client_io.dart',
-                'template'      => 'flutter/lib/client_io.dart.twig',
+                'template'      => 'dart/lib/client_io.dart.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/client_browser.dart',
-                'template'      => 'flutter/lib/client_browser.dart.twig',
+                'template'      => 'dart/lib/client_browser.dart.twig',
             ],
             [
                 'scope'         => 'default',
@@ -312,8 +312,8 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/test/src/input_file_test.dart',
-                'template'      => 'dart/test/src/input_file_test.dart.twig',
+                'destination'   => '/test/src/payload_test.dart',
+                'template'      => 'dart/test/src/payload_test.dart.twig',
             ],
             [
                 'scope'         => 'default',
