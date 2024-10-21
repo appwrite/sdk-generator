@@ -476,12 +476,7 @@ open class Client {
                 || param is [Bool: Any] {
                 encodedParams[key] = param
             } else {
-                let value = try! (param as! Encodable).toJson()
-
-                let range = value.index(value.startIndex, offsetBy: 1)..<value.index(value.endIndex, offsetBy: -1)
-                let substring = value[range]
-
-                encodedParams[key] = substring
+                encodedParams[key] = try (param as! Encodable).toJson()
             }
         }
 
