@@ -54,8 +54,7 @@ abstract class Base extends TestCase
     ];
 
     protected const ENUM_RESPONSES = [
-        'POST:/v1/mock/tests/general/enum:passed', // first enum
-        'POST:/v1/mock/tests/general/enum:passed', // fourth enum
+        'POST:/v1/mock/tests/general/enum:passed',
     ];
 
     protected const UPLOAD_RESPONSE = [

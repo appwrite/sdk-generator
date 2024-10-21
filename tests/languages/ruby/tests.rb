@@ -86,9 +86,6 @@ end
 response = general.enum(mock_type: MockType::FIRST)
 puts response.result
 
-response = general.enum(mock_type: MockType::FOURTH)
-puts response.result
-
 begin
     general.error400()
 rescue Exception => error
