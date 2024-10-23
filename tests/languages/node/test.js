@@ -88,9 +88,6 @@ async function start() {
     response = await general.enum(MockType.First);
     console.log(response.result);
 
-    response = await general.enum(MockType.Fourth);
-    console.log(response.result);
-
     try {
         response = await general.error400();
     } catch(error) {
