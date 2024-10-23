@@ -319,8 +319,8 @@ class Swift extends Language
             self::TYPE_BOOLEAN => 'Bool',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? '[' . $this->getTypeName($parameter['array']) . ']'
-                : '[Any]',
-            self::TYPE_OBJECT => 'Any',
+                : '[AnyCodable]',
+            self::TYPE_OBJECT => '[String: AnyCodable]',
             default => $parameter['type'],
         };
     }
