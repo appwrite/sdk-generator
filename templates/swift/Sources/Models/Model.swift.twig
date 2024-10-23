@@ -3,9 +3,9 @@ import JSONCodable
 
 /// {{ definition.description }}
 {% if definition.properties | length == 0 and not definition.additionalProperties %}
-public class {{ definition | modelType(spec) | raw }} {}
+open class {{ definition | modelType(spec) | raw }}: Codable {}
 {% else %}
-public class {{ definition | modelType(spec) | raw }} {
+open class {{ definition | modelType(spec) | raw }}: Codable {
 
     enum CodingKeys: String, CodingKey {
         {%~ for property in definition.properties %}
