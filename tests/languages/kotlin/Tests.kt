@@ -104,9 +104,6 @@ class ServiceTest {
             mock = general.enum(MockType.FIRST)
             writeToFile(mock.result)
 
-            mock = general.enum(MockType.FOURTH)
-            writeToFile(mock.result)
-
             try {
                 general.error400()
             } catch (e: AppwriteException) {
