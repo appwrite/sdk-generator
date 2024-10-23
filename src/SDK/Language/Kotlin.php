@@ -112,6 +112,9 @@ class Kotlin extends Language
         if (!empty($parameter['enumValues'])) {
             return 'io.appwrite.enums.' . \ucfirst($parameter['name']);
         }
+        if (isset($parameter['items'])) {
+            $parameter['array'] = $parameter['items'];
+        }
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'Long',
             self::TYPE_NUMBER => 'Double',
