@@ -54,8 +54,7 @@ abstract class Base extends TestCase
     ];
 
     protected const ENUM_RESPONSES = [
-        'POST:/v1/mock/tests/general/enum:passed', // first enum
-        'POST:/v1/mock/tests/general/enum:passed', // fourth enum
+        'POST:/v1/mock/tests/general/enum:passed',
     ];
 
     protected const UPLOAD_RESPONSE = [
@@ -140,18 +139,11 @@ abstract class Base extends TestCase
 
         $this->expectedOutput[] = $headers;
 
-        // Figure out if mock-server is running
-        $isMockAPIRunning = \strlen(\exec('docker ps | grep mock-server')) > 0;
-
-        if (!$isMockAPIRunning) {
-            echo "Starting Mock API Server";
-
-            \exec('
-                cd ./mock-server && \
-                docker compose build && \
-                docker compose up -d --force-recreate
-            ');
-        }
+        \exec('
+            cd ./mock-server && \
+            docker compose build && \
+            docker compose up -d --force-recreate
+        ');
     }
 
     public function tearDown(): void

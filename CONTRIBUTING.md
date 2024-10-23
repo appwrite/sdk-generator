@@ -262,8 +262,8 @@ docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/d
   * **description** -> Description of Appwrite SDK
   * **namespace** -> SDK Namespace
   * **version** -> SDK Version
-  * **endpoint** -> Default Endpoint (example: "https://cloud.appwrite.io/v1")
-  * **host** -> Default Host (example: "cloud.appwrite.io")
+  * **endpoint** -> Default Endpoint (example: "https://appwrite.io/v1")
+  * **host** -> Default Host (example: "appwrite.io")
   * **basePath** -> Default Path to API (example: "/v1")
   * **licenseName** -> Name of license for SDK
   * **licenseURL** -> URL to SDK license

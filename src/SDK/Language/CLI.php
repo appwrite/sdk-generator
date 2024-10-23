@@ -287,6 +287,10 @@ class CLI extends Node
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
+        if (isset($parameter['items'])) {
+            // Map definition nested type to parameter nested type
+            $parameter['array'] = $parameter['items'];
+        }
         return match ($parameter['type']) {
             self::TYPE_INTEGER,
             self::TYPE_NUMBER => 'number',

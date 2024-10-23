@@ -140,6 +140,9 @@ class Deno extends JS
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
+        if (isset($parameter['items'])) {
+            $parameter['array'] = $parameter['items'];
+        }
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'number',
             self::TYPE_STRING => 'string',
