@@ -5,9 +5,15 @@ async function start() {
 
     console.log('\nTest Started');
     const client = new Client();
+    client.setProject('123456');
     const foo = new Foo(client);
     const bar = new Bar(client);
     const general = new General(client);
+
+    // Ping
+    response = await client.ping();
+    console.log(response.result);
+
     // Foo
     response = await foo.get('string', 123, ['string in array']);
     console.log(response.result);
@@ -50,6 +56,9 @@ async function start() {
     console.log('POST:/v1/mock/tests/general/upload:passed'); // Skip big file upload test on Node.js
 
     response = await general.enum(MockType.First);
+    console.log(response.result);
+
+    response = await general.enum(MockType.Fourth);
     console.log(response.result);
 
     try {

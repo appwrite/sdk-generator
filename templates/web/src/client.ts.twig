@@ -554,6 +554,7 @@ class Client {
         let options: RequestInit = {
             method,
             headers,
+            credentials: 'include',
         };
 
         if (method === 'GET') {
@@ -631,6 +632,10 @@ class Client {
         }
 
         return response;
+    }
+
+    async ping(): Promise<string> {
+        return this.call('GET', new URL(this.config.endpoint + '/ping'));
     }
 
     async call(method: string, url: URL, headers: Headers = {}, params: Payload = {}, responseType = 'json'): Promise<any> {

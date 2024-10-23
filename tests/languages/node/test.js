@@ -18,6 +18,7 @@ async function start() {
     // Init SDK
     const client = new Client()
         .addHeader("Origin", "http://localhost")
+        .setProject('123456')
         .setSelfSigned(true);
 
     const foo = new Foo(client);
@@ -27,6 +28,11 @@ async function start() {
     client.addHeader('Origin', 'http://localhost');
 
     console.log('\nTest Started');
+
+    // Ping
+
+    response = await client.ping();
+    console.log(response.result);
 
     // Foo
 
@@ -80,6 +86,9 @@ async function start() {
     console.log(response.result);
 
     response = await general.enum(MockType.First);
+    console.log(response.result);
+
+    response = await general.enum(MockType.Fourth);
     console.log(response.result);
 
     try {
