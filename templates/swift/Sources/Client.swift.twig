@@ -480,7 +480,7 @@ open class Client {
                 encodedParams[key] = param
             } else if let encodable = param as? Encodable {
                 encodedParams[key] = try encodable.toJson()
-            } else {
+            } else if let param = param {
                 encodedParams[key] = String(describing: param)
             }
         }
