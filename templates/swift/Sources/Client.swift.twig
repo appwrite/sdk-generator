@@ -465,18 +465,23 @@ open class Client {
             if param is String
                 || param is Int
                 || param is Float
+                || param is Double
                 || param is Bool
                 || param is [String]
                 || param is [Int]
                 || param is [Float]
+                || param is [Double]
                 || param is [Bool]
                 || param is [String: Any]
                 || param is [Int: Any]
                 || param is [Float: Any]
+                || param is [Double: Any]
                 || param is [Bool: Any] {
                 encodedParams[key] = param
+            } else if let encodable = param as? Encodable {
+                encodedParams[key] = try encodable.toJson()
             } else {
-                encodedParams[key] = try (param as! Encodable).toJson()
+                encodedParams[key] = String(describing: param)
             }
         }
 
