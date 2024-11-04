@@ -320,7 +320,7 @@ class Swift extends Language
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? '[' . $this->getTypeName($parameter['array']) . ']'
                 : '[AnyCodable]',
-            self::TYPE_OBJECT => $isProperty ? '[String: AnyCodable]': 'Any',
+            self::TYPE_OBJECT => $isProperty ? '[String: AnyCodable]' : 'Any',
             default => $parameter['type'],
         };
     }
