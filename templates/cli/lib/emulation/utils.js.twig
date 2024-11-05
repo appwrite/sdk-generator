@@ -25,67 +25,67 @@ const runtimeNames = {
 const systemTools = {
     'node': {
         isCompiled: false,
-        startCommand: "node src/server.js",
+        startCommand: "sh helpers/server.sh",
         dependencyFiles: [ "package.json", "package-lock.json" ]
     },
     'php': {
         isCompiled: false,
-        startCommand: "php src/server.php",
+        startCommand: "sh helpers/server.sh",
         dependencyFiles: [ "composer.json", "composer.lock" ]
     },
     'ruby': {
         isCompiled: false,
-        startCommand: "bundle exec puma -b tcp://0.0.0.0:3000 -e production",
+        startCommand: "sh helpers/server.sh",
         dependencyFiles: [ "Gemfile", "Gemfile.lock" ]
     },
     'python': {
         isCompiled: false,
-        startCommand: "python3 src/server.py",
+        startCommand: "sh helpers/server.sh",
         dependencyFiles: [ "requirements.txt", "requirements.lock" ]
     },
     'python-ml': {
         isCompiled: false,
-        startCommand: "python3 src/server.py",
+        startCommand: "sh helpers/server.sh",
         dependencyFiles: [ "requirements.txt", "requirements.lock" ]
     },
     'deno': {
         isCompiled: false,
-        startCommand: "deno run --allow-run --allow-net --allow-write --allow-read --allow-env src/server.ts",
+        startCommand: "sh helpers/server.sh",
         dependencyFiles: [ ]
     },
     'dart': {
         isCompiled: true,
-        startCommand: "src/function/server",
+        startCommand: "sh helpers/server.sh",
         dependencyFiles: [ ]
     },
     'dotnet': {
         isCompiled: true,
-        startCommand: "dotnet src/function/DotNetRuntime.dll",
+        startCommand: "sh helpers/server.sh",
         dependencyFiles: [ ]
     },
     'java': {
         isCompiled: true,
-        startCommand: "java -jar src/function/java-runtime-1.0.0.jar",
+        startCommand: "sh helpers/server.sh",
         dependencyFiles: [ ]
     },
     'swift': {
         isCompiled: true,
-        startCommand: "src/function/Runtime serve --env production --hostname 0.0.0.0 --port 3000",
+        startCommand: "sh helpers/server.sh",
         dependencyFiles: [ ]
     },
     'kotlin': {
         isCompiled: true,
-        startCommand: "java -jar src/function/kotlin-runtime-1.0.0.jar",
+        startCommand: "sh helpers/server.sh",
         dependencyFiles: [ ]
     },
     'bun': {
         isCompiled: false,
-        startCommand: "bun src/server.ts",
+        startCommand: "sh helpers/server.sh",
         dependencyFiles: [ "package.json", "package-lock.json", "bun.lockb" ]
     },
     'go': {
         isCompiled: true,
-        startCommand: "src/function/server",
+        startCommand: "sh helpers/server.sh",
         dependencyFiles: [ ]
     },
 };
