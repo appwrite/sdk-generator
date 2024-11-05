@@ -1,4 +1,5 @@
-import { {{ spec.title | caseUcfirst}}Exception, Client, type Payload, UploadProgress } from '../client';
+import { {{ spec.title | caseUcfirst}}Exception, Client, type Params, UploadProgress } from '../client';
+import { Payload } from '../payload';
 import type { Models } from '../models';
 {% set added = [] %}
 {% for method in service.methods %}
@@ -47,7 +48,7 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endif %}
         {%~ endfor %}
         const apiPath = '{{ method.path }}'{% for parameter in method.parameters.path %}.replace('{{ '{' }}{{ parameter.name | caseCamel | escapeKeyword }}{{ '}' }}', {{ parameter.name | caseCamel | escapeKeyword }}){% endfor %};
-        const payload: Payload = {};
+        const payload: Params = {};
         {%~ for parameter in method.parameters.query %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
             payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
@@ -55,7 +56,11 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endfor %}
         {%~ for parameter in method.parameters.body %}
         if (typeof {{ parameter.name | caseCamel | escapeKeyword }} !== 'undefined') {
+            {%~ if parameter.type == 'payload' %}
+            payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }}.toBinary();
+            {%~ else %}
             payload['{{ parameter.name }}'] = {{ parameter.name | caseCamel | escapeKeyword }};
+            {%~ endif %}
         }
         {%~ endfor %}
         const uri = new URL(this.client.config.endpoint + apiPath);
@@ -76,7 +81,7 @@ export class {{ service.name | caseUcfirst }} {
             apiHeaders,
             payload
         );
-        {%~ elseif 'multipart/form-data' in method.consumes %}
+        {%~ elseif 'multipart/form-data' in method.consumes and method.type == "upload" %}
         return await this.client.chunkedUpload(
             '{{ method.method | caseLower }}',
             uri,

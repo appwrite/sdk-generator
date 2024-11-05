@@ -11,6 +11,7 @@ abstract class Language
     public const TYPE_ARRAY = 'array';
     public const TYPE_OBJECT = 'object';
     public const TYPE_FILE = 'file';
+    public const TYPE_PAYLOAD = 'payload';
 
     /**
      * @var array
@@ -93,12 +94,7 @@ abstract class Language
         return [];
     }
 
-    protected function toPascalCase(string $value): string
-    {
-        return \ucfirst($this->toCamelCase($value));
-    }
-
-    protected function toCamelCase($str): string
+    protected function toPascalCase($str): string
     {
         // Normalize the string to decompose accented characters
         $str = \Normalizer::normalize($str, \Normalizer::FORM_D);
@@ -106,14 +102,23 @@ abstract class Language
         // Remove accents and other residual non-ASCII characters
         $str = \preg_replace('/\p{M}/u', '', $str);
 
+        // Insert spaces before uppercase letters where appropriate
+        $str = \preg_replace('/(?<=[a-z0-9])(?=[A-Z])/', ' ', $str);
+        $str = \preg_replace('/(?<=[A-Z])(?=[A-Z][a-z])/', ' ', $str);
+
+        // Replace any sequence of non-alphanumeric characters with a space
         $str = \preg_replace('/[^a-zA-Z0-9]+/', ' ', $str);
         $str = \trim($str);
         $str = strtolower($str);
-        $str = \ucwords($str);
-        $str = \str_replace(' ', '', $str);
-        $str = \lcfirst($str);
 
-        return $str;
+        // Uppercase the first letter of each word, then remove spaces
+        $str = \ucwords($str);
+        return \str_replace(' ', '', $str);
+    }
+
+    protected function toCamelCase($str): string
+    {
+        return \lcfirst($this->toPascalCase($str));
     }
 
     protected function toSnakeCase($str): string

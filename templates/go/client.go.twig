@@ -19,7 +19,7 @@ import (
 	"time"
 	"runtime"
 
-	"github.com/{{sdk.gitUserName}}/sdk-for-go/file"
+	"github.com/{{sdk.gitUserName}}/sdk-for-go/payload"
 )
 
 const (
@@ -122,7 +122,7 @@ func (client *Client) AddHeader(key string, value string) {
 	client.Headers[key] = value
 }
 
-func isFileUpload(headers map[string]interface{}) bool {
+func isMultipart(headers map[string]interface{}) bool {
 	contentType, ok := headers["content-type"].(string)
 	if ok {
 		return strings.Contains(strings.ToLower(contentType), "multipart/form-data")
@@ -131,13 +131,13 @@ func isFileUpload(headers map[string]interface{}) bool {
 }
 
 func (client *Client) FileUpload(url string, headers map[string]interface{}, params map[string]interface{}, paramName string, uploadId string) (*ClientResponse, error) {
-	inputFile, ok := params[paramName].(file.InputFile)
+	payload, ok := params[paramName].(*payload.Payload)
 	if !ok {
-		msg := fmt.Sprintf("invalid input file. params[%s] must be of type file.InputFile", paramName)
+		msg := fmt.Sprintf("invalid input file. params[%s] must be of type payload.Payload", paramName)
 		return nil, errors.New(msg)
 	}
 
-	file, err := os.Open(inputFile.Path)
+	file, err := os.Open(payload.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 		return nil, err
 	}
 
-	inputFile.Data = make([]byte, client.ChunkSize)
+	payload.Data = make([]byte, client.ChunkSize)
 
 	var result *ClientResponse
 
@@ -168,12 +168,12 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 		if uploadId != "" && uploadId != "unique()" {
 			headers["x-appwrite-id"] = uploadId
 		}
-		inputFile.Data = make([]byte, fileInfo.Size())
-		_, err := file.Read(inputFile.Data)
+		payload.Data = make([]byte, fileInfo.Size())
+		_, err := file.Read(payload.Data)
 		if err != nil && err != io.EOF {
 			return nil, err
 		}
-		params[paramName] = inputFile
+		params[paramName] = payload
 
 		result, err = client.Call("POST", url, headers, params)
 		if err != nil {
@@ -196,13 +196,13 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 		offset := int64(i) * chunkSize
 		if i == numChunks-1 {
 			chunkSize = fileInfo.Size() - offset
-			inputFile.Data = make([]byte, chunkSize)
+			payload.Data = make([]byte, chunkSize)
 		}
-		_, err := file.ReadAt(inputFile.Data, offset)
+		_, err := file.ReadAt(payload.Data, offset)
 		if err != nil && err != io.EOF {
 			return nil, err
 		}
-		params[paramName] = inputFile
+		params[paramName] = payload
 		if uploadId != "" && uploadId != "unique()" {
 			headers["x-appwrite-id"] = uploadId
 		}
@@ -248,18 +248,19 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 	isGet := strings.ToUpper(method) == "GET"
 	isPost := strings.ToUpper(method) == "POST"
 	isJsonRequest := headers["content-type"] == "application/json"
-	isFileUpload := isFileUpload(headers)
+	isMultipart := isMultipart(headers)
 
 	var req *http.Request
 	var err error
-	if isFileUpload {
+	if isMultipart {
+		headers["accept"] = "multipart/form-data"
 		if !isPost {
 			return nil, errors.New("fileupload needs POST Request")
 		}
 		var body bytes.Buffer
 		writer := multipart.NewWriter(&body)
 		for key, val := range params {
-			if file, ok := val.(file.InputFile); ok {
+			if file, ok := val.(*payload.Payload); ok {
 				fileName := file.Name
 				fileData := file.Data
 				fw, err := writer.CreateFormFile(key, fileName)

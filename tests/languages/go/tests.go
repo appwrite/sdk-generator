@@ -4,14 +4,18 @@ import (
 	"fmt"
 	"path"
 	"time"
-
+	"errors"
+	"regexp"
+	"strings"
+	"crypto/md5"
 	"github.com/repoowner/sdk-for-go/appwrite"
 	"github.com/repoowner/sdk-for-go/client"
-	"github.com/repoowner/sdk-for-go/file"
+	"github.com/repoowner/sdk-for-go/payload"
 	"github.com/repoowner/sdk-for-go/id"
 	"github.com/repoowner/sdk-for-go/permission"
 	"github.com/repoowner/sdk-for-go/query"
 	"github.com/repoowner/sdk-for-go/role"
+	"github.com/repoowner/sdk-for-go/general"
 )
 
 func main() {
@@ -130,6 +134,9 @@ func testGeneralService(client client.Client, stringInArray []string) {
 
 	general.Empty()
 
+    // Test Multipart
+    testMultipart(client)
+
 	// Test Queries
 	testQueries()
 
@@ -150,7 +157,7 @@ func testGeneralService(client client.Client, stringInArray []string) {
 func testGeneralUpload(client client.Client, stringInArray []string) {
 	general := appwrite.NewGeneral(client)
 	uploadFile := path.Join("/app", "tests/resources/file.png")
-	inputFile := file.NewInputFile(uploadFile, "file.png")
+	inputFile := payload.NewPayloadFromFile(uploadFile, "file.png")
 
 	response, err := general.Upload("string", 123, stringInArray, inputFile)
 	if err != nil {
@@ -171,13 +178,160 @@ func testGeneralDownload(client client.Client) {
 func testLargeUpload(client client.Client, stringInArray []string) {
 	general := appwrite.NewGeneral(client)
 	uploadFile := path.Join("/app", "tests/resources/large_file.mp4")
-	inputFile := file.NewInputFile(uploadFile, "large_file.mp4")
+	inputFile := payload.NewPayloadFromFile(uploadFile, "large_file.mp4")
 
 	response, err := general.Upload("string", 123, stringInArray, inputFile)
 	if err != nil {
 		fmt.Printf("general.Upload => error %v\n", err)
 	}
 	fmt.Printf("%s\n", response.Result)
+}
+
+func testMultipart(client client.Client) {
+	g := general.New(client)
+	mp, err := g.MultipartCompiled()
+	if err != nil {
+		return
+	}
+
+	bytesValue, ok := (*mp).([]byte)
+	if !ok {
+		return
+	}
+
+	data, err := parse(bytesValue)
+	if err != nil {
+		return
+	}
+
+	fmt.Println(data["x"])
+
+	responseBodyInterface, exists := data["responseBody"]
+	if !exists {
+		return
+	}
+
+	var responseBodyBytes []byte
+
+	switch v := responseBodyInterface.(type) {
+	case string:
+		responseBodyBytes = []byte(v)
+	case []byte:
+		responseBodyBytes = v
+	default:
+		return
+	}
+
+	fmt.Printf("%x\n", md5.Sum(responseBodyBytes))
+
+	// String payload
+	stringPayload := payload.NewPayloadFromString("Hello, World!")
+	mp, er := g.MultipartEcho(stringPayload)
+	if er != nil {
+		return
+	}
+
+	bytesValue, ok = (*mp).([]byte)
+	if !ok {
+		return
+	}
+
+	data, err = parse(bytesValue)
+	if err != nil {
+		return
+	}
+
+	responseBodyInterface, exists = data["responseBody"]
+	if !exists {
+		return
+	}
+
+	switch v := responseBodyInterface.(type) {
+	case string:
+		fmt.Println(v)
+	case []byte:
+		fmt.Println(string(v))
+	default:
+		return
+	}
+
+	// JSON payload
+	jsonPayload := payload.NewPayloadFromJson(map[string]interface{}{"key": "myStringValue"}, "")
+	mp, er = g.MultipartEcho(jsonPayload)
+	if er != nil {
+		return
+	}
+
+	bytesValue, ok = (*mp).([]byte)
+	if !ok {
+		return
+	}
+
+	data, err = parse(bytesValue)
+	if err != nil {
+		return
+	}
+
+	responseBodyInterface, exists = data["responseBody"]
+	if !exists {
+		return
+	}
+
+	var responsePayload *payload.Payload
+
+	switch v := responseBodyInterface.(type) {
+	case string:
+		responsePayload = payload.NewPayloadFromString(v)
+	case []byte:
+		responsePayload = payload.NewPayloadFromBinary(v, "")
+	default:
+		return
+	}
+
+	fmt.Println(responsePayload.ToJson()["key"])
+
+	// File payload
+	filePayload := payload.NewPayloadFromFile("tests/resources/file.png", "file.png")
+	mp, er = g.MultipartEcho(filePayload)
+	if er != nil {
+		return
+	}
+
+	bytesValue, ok = (*mp).([]byte)
+	if !ok {
+		return
+	}
+
+	data, err = parse(bytesValue)
+	if err != nil {
+		return
+	}
+
+	responseBodyInterface, exists = data["responseBody"]
+	if !exists {
+		return
+	}
+
+	switch v := responseBodyInterface.(type) {
+	case string:
+		responsePayload = payload.NewPayloadFromString(v)
+	case []byte:
+		responsePayload = payload.NewPayloadFromBinary(v, "")
+	default:
+		return
+	}
+
+	err = responsePayload.ToFile("tests/tmp/file_copy.png")
+	if err != nil {
+		return
+	}
+
+	file, err := os.ReadFile("tests/tmp/file_copy.png")
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("%x\n", md5.Sum(file))
 }
 
 func testQueries() {
@@ -230,3 +384,58 @@ func testIdHelpers() {
 	fmt.Println(id.Unique())
 	fmt.Println(id.Custom("custom_id"))
 }
+
+
+func parse(bytesData []byte) (map[string]string, error) {
+
+	responseData := string(bytesData)
+
+	matches := regexp.MustCompile("(-+\\w+)--").FindStringSubmatch(responseData)
+
+	if len(matches) != 2 {
+		return nil, errors.New("unexpected response type")
+	}
+
+	parts := strings.Split(responseData, matches[1])
+
+	if len(parts) == 0 {
+		return nil, errors.New("unexpected response type")
+	}
+	execution := make(map[string]string, 10)
+
+	for _, part := range parts {
+		cleanPart := strings.TrimSpace(part)
+		partName := regexp.MustCompile("name=\"?(\\w+)").FindStringSubmatch(cleanPart)
+
+		if len(partName) != 2 {
+			continue
+		}
+
+		name := strings.TrimSpace(partName[1])
+		lines := strings.Split(cleanPart, "\r\n")
+
+	Inner:
+		for i, line := range lines[1:] {
+			if line == "" {
+				continue
+			}
+
+			if line == "Content-Type: application/json" {
+				for _, line := range lines[i:] {
+					if line == "" {
+						continue
+					}
+
+					execution[name] = line
+				}
+				continue Inner
+			}
+
+			execution[name] += line + "\r\n"
+		}
+        execution[name] = strings.TrimSuffix(execution[name],"\r\n")
+	}
+
+	return execution, nil
+}
+

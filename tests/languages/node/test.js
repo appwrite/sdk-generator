@@ -9,8 +9,11 @@ const {
     Bar,
     General
 } = require('./dist/index.js');
-const { InputFile } = require('./dist/inputFile.js');
+const { Payload } = require('./dist/payload.js');
 const { readFile } = require('fs/promises');
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 async function start() {
     let response;
@@ -71,18 +74,20 @@ async function start() {
     response = await general.redirect();
     console.log(response.result);
 
-    response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../resources/file.png', 'file.png'));
+    let buffer = fs.readFileSync(path.join(__dirname, '/../../resources/file.png'));
+    response = await general.upload('string', 123, ['string in array'], Payload.fromBinary(buffer, 'file.png'));
     console.log(response.result);
 
-    response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../resources/large_file.mp4', 'large_file.mp4'));
+    buffer = fs.readFileSync(path.join(__dirname, '/../../resources/large_file.mp4'));
+    response = await general.upload('string', 123, ['string in array'], Payload.fromBinary(buffer, 'large_file.mp4'));
     console.log(response.result);
 
     const smallBuffer = await readFile('./tests/resources/file.png');
-    response = await general.upload('string', 123, ['string in array'], InputFile.fromBuffer(smallBuffer, 'file.png'))
+    response = await general.upload('string', 123, ['string in array'], Payload.fromBinary(smallBuffer, 'file.png'))
     console.log(response.result);
 
     const largeBuffer = await readFile('./tests/resources/large_file.mp4');
-    response = await general.upload('string', 123, ['string in array'], InputFile.fromBuffer(largeBuffer, 'large_file.mp4'))
+    response = await general.upload('string', 123, ['string in array'], Payload.fromBinary(largeBuffer, 'large_file.mp4'))
     console.log(response.result);
 
     response = await general.enum(MockType.First);
@@ -119,6 +124,18 @@ async function start() {
         'https://localhost'
     )
     console.log(url)
+
+    // Multipart
+    response = await general.multipart();
+    console.log(response.x); // should be abc
+    const responseBodyBinary = response.responseBody.toBinary();
+    console.log(crypto.createHash('md5').update(responseBodyBinary).digest('hex')); // should be d80e7e6999a3eb2ae0d631a96fe135a4
+
+    response = await general.multipartEcho(Payload.fromString('Hello, World!')); 
+    console.log(response.responseBody.toString());
+
+    response = await general.multipartEcho(Payload.fromJson({ "key": "myStringValue" }));
+    console.log(response.responseBody.toJson()['key']);
 
     // Query helper tests
     console.log(Query.equal("released", [true]));

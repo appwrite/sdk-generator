@@ -171,7 +171,8 @@ class DotNet extends Language
             self::TYPE_NUMBER => 'double',
             self::TYPE_STRING => 'string',
             self::TYPE_BOOLEAN => 'bool',
-            self::TYPE_FILE => 'InputFile',
+            self::TYPE_FILE => 'Payload',
+            self::TYPE_PAYLOAD => 'Payload',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? 'List<' . $this->getTypeName($parameter['array']) . '>'
                 : 'List<object>',
@@ -242,8 +243,11 @@ class DotNet extends Language
 
         if (empty($example) && $example !== 0 && $example !== false) {
             switch ($type) {
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.fromJson(new KeyValuePair<string, string>("x", "y"))';
+                    break;
                 case self::TYPE_FILE:
-                    $output .= 'InputFile.FromPath("./path-to-files/image.jpg")';
+                    $output .= 'Payload.FromFile("/path/to/file.png")';
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -286,8 +290,14 @@ class DotNet extends Language
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
                     break;
+                case self::TYPE_PAYLOAD:
+                    $output .= 'Payload.fromJson(new KeyValuePair<string, string>("x", "y"))';
+                    break;
+                case self::TYPE_FILE:
+                    $output .= 'Payload.FromFile("/path/to/file.png")';
+                    break;
                 case self::TYPE_STRING:
-                    $output .= "\"{$example}\"";
+                    $output .= '"{$example}"';
                     break;
             }
         }
@@ -393,8 +403,8 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '{{ spec.title | caseUcfirst }}/Models/InputFile.cs',
-                'template'      => 'dotnet/Package/Models/InputFile.cs.twig',
+                'destination'   => '{{ spec.title | caseUcfirst }}/Models/Payload.cs',
+                'template'      => 'dotnet/Package/Models/Payload.cs.twig',
             ],
             [
                 'scope'         => 'default',
