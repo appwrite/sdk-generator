@@ -141,6 +141,10 @@ class Go extends Language
         if (str_contains($parameter['description'] ?? '', 'Collection attributes') || str_contains($parameter['description'] ?? '', 'List of attributes')) {
             return '[]map[string]any';
         }
+        if (isset($parameter['items'])) {
+            // Map definition nested type to parameter nested type
+            $parameter['array'] = $parameter['items'];
+        }
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'int',
             self::TYPE_NUMBER => 'float64',
