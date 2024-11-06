@@ -108,7 +108,6 @@ abstract class Language
 
         $str = \preg_replace('/[^a-zA-Z0-9]+/', ' ', $str);
         $str = \trim($str);
-        $str = strtolower($str);
         $str = \ucwords($str);
         $str = \str_replace(' ', '', $str);
         $str = \lcfirst($str);

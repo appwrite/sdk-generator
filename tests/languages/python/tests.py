@@ -78,9 +78,6 @@ print(response['result'])
 response = general.enum(MockType.FIRST)
 print(response['result'])
 
-response = general.enum(MockType.FOURTH)
-print(response['result'])
-
 try:
     response = general.error400()
 except AppwriteException as e:
