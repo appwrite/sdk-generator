@@ -19,9 +19,9 @@ type Headers = {
  */
 type RealtimeResponse = {
     /**
-     * Type of the response: 'error', 'event', 'connected', or 'response'.
+     * Type of the response: 'error', 'event', 'connected', 'pong', or 'response'.
      */
-    type: 'error' | 'event' | 'connected' | 'response';
+    type: 'error' | 'event' | 'connected' | 'response' | 'pong';
 
     /**
      * Data associated with the response based on the response type.
@@ -139,9 +139,14 @@ type Realtime = {
     socket?: WebSocket;
 
     /**
-     * Timeout duration for communication operations.
+     * Timeout for reconnect operations.
      */
-    timeout?: number;
+    timeout?: ReturnType<typeof setTimeout>;
+
+    /**
+     * Heartbeat interval for the realtime connection.
+    */
+    heartbeat?: ReturnType<typeof setTimeout>;
 
     /**
      * URL for establishing the WebSocket connection.
@@ -195,6 +200,11 @@ type Realtime = {
      * Function to create a new WebSocket instance.
      */
     createSocket: () => void;
+
+    /**
+     * Function to create a new heartbeat interval.
+     */
+    createHeartbeat: () => void;
 
     /**
      * Function to clean up resources associated with specified channels.
@@ -359,6 +369,7 @@ class Client {
     private realtime: Realtime = {
         socket: undefined,
         timeout: undefined,
+        heartbeat: undefined,
         url: '',
         channels: new Set(),
         subscriptions: new Map(),
@@ -383,6 +394,17 @@ class Client {
                 default:
                     return 60_000;
             }
+        },
+        createHeartbeat: () => {
+            if (this.realtime.heartbeat) {
+                clearTimeout(this.realtime.heartbeat);
+            }
+
+            this.realtime.heartbeat = window?.setInterval(() => {
+                this.realtime.socket?.send(JSON.stringify({
+                    type: 'ping'
+                }));
+            }, 20_000);
         },
         createSocket: () => {
             if (this.realtime.channels.size < 1) {
@@ -417,6 +439,7 @@ class Client {
                 this.realtime.socket.addEventListener('message', this.realtime.onMessage);
                 this.realtime.socket.addEventListener('open', _event => {
                     this.realtime.reconnectAttempts = 0;
+                    this.realtime.createHeartbeat();
                 });
                 this.realtime.socket.addEventListener('close', event => {
                     if (
@@ -497,10 +520,10 @@ class Client {
 
     /**
      * Subscribes to {{spec.title | caseUcfirst}} events and passes you the payload in realtime.
-     * 
-     * @param {string|string[]} channels 
+     *
+     * @param {string|string[]} channels
      * Channel to subscribe - pass a single channel as a string or multiple with an array of strings.
-     * 
+     *
      * Possible channels are:
      * - account
      * - collections
@@ -628,7 +651,7 @@ class Client {
 
     async redirect(method: string, url: URL, headers: Headers = {}, params: Payload = {}): Promise<string> {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
-        
+
         const response = await fetch(uri, {
             ...options,
             redirect: 'manual'
