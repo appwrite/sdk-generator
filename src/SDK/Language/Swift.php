@@ -299,7 +299,7 @@ class Swift extends Language
      * @param array $parameter
      * @return string
      */
-    public function getTypeName(array $parameter, array $spec = []): string
+    public function getTypeName(array $parameter, array $spec = [], bool $isProperty = false): string
     {
         if (isset($parameter['enumName'])) {
             return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['enumName']);
@@ -319,8 +319,8 @@ class Swift extends Language
             self::TYPE_BOOLEAN => 'Bool',
             self::TYPE_ARRAY => (!empty(($parameter['array'] ?? [])['type']) && !\is_array($parameter['array']['type']))
                 ? '[' . $this->getTypeName($parameter['array']) . ']'
-                : '[Any]',
-            self::TYPE_OBJECT => 'Any',
+                : '[AnyCodable]',
+            self::TYPE_OBJECT => $isProperty ? '[String: AnyCodable]' : 'Any',
             default => $parameter['type'],
         };
     }
@@ -527,7 +527,7 @@ class Swift extends Language
                 $type = '[' . $type . ']';
             }
         } else {
-            $type = $this->getTypeName($property);
+            $type = $this->getTypeName($property, isProperty: true);
         }
 
         return $type;
