@@ -120,6 +120,11 @@ class Web extends JS
                 'destination'   => 'src/enums/{{ enum.name | caseDash }}.ts',
                 'template'      => 'web/src/enums/enum.ts.twig',
             ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/helper/json.ts',
+                'template'      => 'web/src/helper/json.ts.twig',
+            ],
         ];
     }
 
