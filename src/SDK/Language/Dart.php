@@ -133,6 +133,10 @@ class Dart extends Language
         if (!empty($parameter['enumValues'])) {
             return 'enums.' . \ucfirst($parameter['name']);
         }
+        if (isset($parameter['items'])) {
+            // Map definition nested type to parameter nested type
+            $parameter['array'] = $parameter['items'];
+        }
         switch ($parameter['type'] ?? '') {
             case self::TYPE_INTEGER:
                 return 'int';

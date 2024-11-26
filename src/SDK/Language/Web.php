@@ -185,6 +185,10 @@ class Web extends JS
         if (!empty($parameter['enumValues'])) {
             return \ucfirst($parameter['name']);
         }
+        if (isset($parameter['items'])) {
+            // Map definition nested type to parameter nested type
+            $parameter['array'] = $parameter['items'];
+        }
         switch ($parameter['type']) {
             case self::TYPE_INTEGER:
             case self::TYPE_NUMBER:
@@ -252,9 +256,11 @@ class Web extends JS
     public function getReturn(array $method, array $spec): string
     {
         if ($method['type'] === 'webAuth') {
-            return 'void | URL';
-        } elseif ($method['type'] === 'location') {
-            return 'URL';
+            return 'Promise<void | string>';
+        }
+
+        if ($method['type'] === 'location') {
+            return 'string';
         }
 
         if (array_key_exists('responseModel', $method) && !empty($method['responseModel']) && $method['responseModel'] !== 'any') {

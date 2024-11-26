@@ -22,6 +22,7 @@ class WebNodeTest extends Base
         'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/sdks/web node:18-alpine node node.js';
 
     protected array $expectedOutput = [
+        ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,

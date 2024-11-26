@@ -1,13 +1,12 @@
 import Foundation
 
-public enum {{ enum.name | caseUcfirst | overrideIdentifier }}: String, Codable {
+public enum {{ enum.name | caseUcfirst | overrideIdentifier }}: String, CustomStringConvertible {
     {%~ for value in enum.enum %}
     {%~ set key = enum.keys is empty ? value : enum.keys[loop.index0] %}
     case {{ key | caseEnumKey | escapeSwiftKeyword }} = "{{ value }}"
     {%~ endfor %}
 
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(rawValue)
+    public var description: String {
+        return rawValue
     }
 }

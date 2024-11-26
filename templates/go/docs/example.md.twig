@@ -22,7 +22,7 @@ func main() {
     client.SetEndpoint("https://cloud.appwrite.io/v1") // Your API Endpoint
 {% for node in method.auth %}
 {% for key,header in node|keys %}
-    client.Set{{header}}("{{node[header]['x-{{ spec.title | caseLower }}']['demo']}}") // {{node[header].description}}
+    client.Set{{header}}("{{node[header]['x-appwrite']['demo'] | raw }}") // {{node[header].description}}
 {% endfor %}
 {% endfor %}
 
