@@ -1,3 +1,5 @@
+import JsonBigInt from './helper/json';
+
 type QueryTypesSingle = string | number | boolean;
 export type QueryTypesList = string[] | number[] | boolean[] | Query[];
 export type QueryTypes = QueryTypesSingle | QueryTypesList;
@@ -41,7 +43,7 @@ export class Query {
    * @returns {string}
    */
   toString(): string {
-    return JSON.stringify({
+    return JsonBigInt.stringify({
       method: this.method,
       attribute: this.attribute,
       values: this.values,
@@ -248,7 +250,7 @@ export class Query {
    * @returns {string}
    */
   static or = (queries: string[]) =>
-    new Query("or", undefined, queries.map((query) => JSON.parse(query))).toString();
+    new Query("or", undefined, queries.map((query) => JsonBigInt.parse(query))).toString();
 
   /**
    * Combine multiple queries using logical AND operator.
@@ -257,5 +259,5 @@ export class Query {
    * @returns {string}
    */
   static and = (queries: string[]) =>
-    new Query("and", undefined, queries.map((query) => JSON.parse(query))).toString();
+    new Query("and", undefined, queries.map((query) => JsonBigInt.parse(query))).toString();
 }
