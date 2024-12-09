@@ -2,8 +2,8 @@ import AsyncHTTPClient
 import Foundation
 import NIO
 
-#if canImport(SwiftUI)
-import SwiftUI
+#if canImport(AuthenticationServices)
+import AuthenticationServices
 #endif
 
 ///
@@ -13,12 +13,10 @@ import SwiftUI
 @available(iOS 14.0, macOS 11.0, tvOS 14.0, watchOS 7.0, visionOS 1.0, *)
 public class WebAuthComponent {
 
-#if canImport(SwiftUI)
-    @Environment(\.openURL)
-    private static var openURL
-#endif
-
     private static var callbacks = [String: (Result<String, {{ spec.title | caseUcfirst}}Error>) -> Void]()
+    #if canImport(AuthenticationServices)
+    private static var currentAuthSession: ASWebAuthenticationSession?
+    #endif
 
     ///
     /// Authenticate Session with OAuth2
@@ -41,9 +39,29 @@ public class WebAuthComponent {
     ) {
         callbacks[callbackScheme] = onComplete
 
-    #if canImport(SwiftUI)
-        openURL(url)
-    #endif
+        #if canImport(AuthenticationServices)
+        currentAuthSession = ASWebAuthenticationSession(
+                url: url,
+                callbackURLScheme: callbackScheme
+            ) { callbackURL, error in
+                if let error = error {
+                    cleanUp()
+                } else if let callbackURL = callbackURL {
+                    // handle cookies here itself!
+                    WebAuthComponent.handleIncomingCookie(from: callbackURL)
+                    cleanUp()
+                }
+            }
+
+        if let session = currentAuthSession {
+            /// Indicates that the session should be a private session.
+            session.prefersEphemeralWebBrowserSession = true
+            session.presentationContextProvider = PresentationContextProvider.shared
+            session.start()
+        } else {
+            print("Failed to create ASWebAuthenticationSession")
+        }
+        #endif
     }
 
     ///
@@ -130,5 +148,20 @@ public class WebAuthComponent {
         callbacks.forEach { (_, callback) in
             callback(.failure({{ spec.title | caseUcfirst}}Error(message: "User cancelled login.")))
         }
+
+        #if canImport(AuthenticationServices)
+        currentAuthSession = nil
+        #endif
     }
 }
+
+#if canImport(AuthenticationServices)
+/// Presentation context for the ASWebAuthenticationSession.
+class PresentationContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
+    static let shared = PresentationContextProvider()
+
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        return ASPresentationAnchor()
+    }
+}
+#endif
