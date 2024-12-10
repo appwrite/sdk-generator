@@ -14,7 +14,7 @@ open class Realtime : Service {
     private var socketClient: WebSocketClient? = nil
     private var activeChannels = Set<String>()
     private var activeSubscriptions = [Int: RealtimeCallback]()
-    private var heartbeatTask: Task<Void, Error>? = nil
+    private var heartbeatTask: Task<Void, Swift.Error>? = nil
 
     let connectSync = DispatchQueue(label: "ConnectSync")
 
@@ -30,8 +30,8 @@ open class Realtime : Service {
                 while !Task.isCancelled {
                     if let client = socketClient, client.isConnected {
                         let pingMessage = ["type": "ping"]
-                        if let jsonData = try JSONSerialization.data(withJSONObject: pingMessage),
-                        let jsonString = String(data: jsonData, encoding: .utf8) {
+                        let jsonData = try JSONSerialization.data(withJSONObject: pingMessage)
+                        if let jsonString = String(data: jsonData, encoding: .utf8) {
                             client.send(text: jsonString)
                         }
                     }
