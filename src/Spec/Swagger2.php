@@ -125,6 +125,156 @@ class Swagger2 extends Spec
         return $list;
     }
 
+    protected function convertMethod(string $methodName, string $pathName, array $method): array
+    {
+        $security = $this->getAttribute('securityDefinitions', []);
+        $methodAuth = $method['x-appwrite']['auth'] ?? [];
+        $methodSecurity = $method['security'][0] ?? [];
+
+        foreach ($methodAuth as $i => $node) {
+            $methodAuth[$i] = (array_key_exists($i, $security)) ? $security[$i] : [];
+        }
+        foreach ($methodSecurity as $i => $node) {
+            $methodSecurity[$i] = (array_key_exists($i, $security)) ? $security[$i] : [];
+        }
+
+        $responses = $method['responses'];
+        $responseModel = '';
+        $emptyResponse = true;
+        foreach ($responses as $code => $desc) {
+            if ($code != '204') {
+                $emptyResponse = false;
+            }
+            if (isset($desc['schema']) && isset($desc['schema']['$ref'])) {
+                $responseModel = $desc['schema']['$ref'];
+                if (!empty($responseModel)) {
+                    $responseModel = str_replace('#/definitions/', '', $responseModel);
+                }
+            }
+        }
+
+        $output = [
+            'method' => $methodName,
+            'path' => $pathName,
+            'fullPath' => parse_url($this->getEndpoint(), PHP_URL_PATH) . $pathName,
+            'name' => $method['x-appwrite']['method'] ?? ($method['operationId'] ?? ''),
+            'packaging' => $method['x-appwrite']['packaging'] ?? false,
+            'title' => $method['summary'] ?? '',
+            'description' => $method['description'] ?? '',
+            'auth' => [$methodAuth] ?? [],
+            'security' => [$methodSecurity] ?? [],
+            'consumes' => $method['consumes'] ?? [],
+            'cookies' => $method['x-appwrite']['cookies'] ?? false,
+            'type' => $method['x-appwrite']['type'] ?? false,
+            'headers' => [],
+            'parameters' => [
+                'all' => [],
+                'headers' => [],
+                'path' => [],
+                'query' => [],
+                'body' => [],
+            ],
+            'emptyResponse' => $emptyResponse,
+            'responseModel' => $responseModel,
+        ];
+
+        if ($output['type'] == 'graphql') {
+            $output['headers']['x-sdk-graphql'] = "true";
+        }
+
+        if (isset($method['consumes']) && is_array($method['consumes'])) {
+            foreach ($method['consumes'] as $consume) {
+                $output['headers']['content-type'] = $consume;
+            }
+        }
+
+        $method['parameters'] = (isset($method['parameters']) && is_array($method['parameters'])) ? $method['parameters'] : [];
+
+        foreach ($method['parameters'] as $parameter) {
+            $param = [
+                'name' => $parameter['name'] ?? null,
+                'type' => $parameter['type'] ?? null,
+                'class' => $parameter['x-class'] ?? null,
+                'description' => $parameter['description'] ?? '',
+                'required' => $parameter['required'] ?? false,
+                'nullable' => $parameter['x-nullable'] ?? false,
+                'default' => $parameter['default'] ?? null,
+                'example' => $parameter['x-example'] ?? null,
+                'isUploadID' => $parameter['x-upload-id'] ?? false,
+                'array' => [
+                    'type' => $parameter['items']['type'] ?? '',
+                ],
+            ];
+
+            if ($param['type'] === 'object' && is_array($param['default'])) {
+                $param['default'] = (empty($param['default'])) ? new stdClass() : $param['default'];
+            }
+
+            $param['default'] = (is_array($param['default']) || $param['default'] instanceof stdClass) ? json_encode($param['default']) : $param['default'];
+            if (isset($parameter['enum'])) {
+                $param['enumValues'] = $parameter['enum'];
+                $param['enumName'] = $parameter['x-enum-name'];
+                $param['enumKeys'] = $parameter['x-enum-keys'];
+            }
+
+            switch ($parameter['in']) {
+                case 'header':
+                    $output['parameters']['header'][] = $param;
+                    break;
+                case 'path':
+                    $output['parameters']['path'][] = $param;
+                    break;
+                case 'query':
+                    $output['parameters']['query'][] = $param;
+                    break;
+                case 'formData':
+                    $output['parameters']['body'][] = $param;
+                    break;
+                case 'body':
+                    $bodyProperties = $parameter['schema']['properties'] ?? [];
+                    $bodyRequired = $parameter['schema']['required'] ?? [];
+
+                    foreach ($bodyProperties as $key => $value) {
+                        $temp = $param;
+                        $temp['name'] = $key;
+                        $temp['type'] = $value['type'] ?? null;
+                        $temp['description'] = $value['description'] ?? '';
+                        $temp['required'] = (in_array($key, $bodyRequired));
+                        $temp['example'] = $value['x-example'] ?? null;
+                        $temp['isUploadID'] = $value['x-upload-id'] ?? false;
+                        $temp['nullable'] = $value['x-nullable'] ?? false;
+                        $temp['array'] = [
+                            'type' => $value['items']['type'] ?? '',
+                        ];
+                        if ($value['type'] === 'object' && is_array($value['default'])) {
+                            $value['default'] = (empty($value['default'])) ? new stdClass() : $value['default'];
+                        }
+
+                        if (isset($value['enum'])) {
+                            $temp['enumValues'] = $value['enum'];
+                            $temp['enumName'] = $value['x-enum-name'];
+                            $temp['enumKeys'] = $value['x-enum-keys'];
+                        }
+
+                        $temp['default'] = (is_array($value['default']) || $value['default'] instanceof stdClass) ? json_encode($value['default']) : $value['default'];
+
+                        $output['parameters']['body'][] = $temp;
+                        $output['parameters']['all'][] = $temp;
+                    }
+
+                    continue 2;
+            }
+
+            $output['parameters']['all'][] = $param;
+        }
+
+        usort($output['parameters']['all'], function ($a, $b) {
+            return $b['required'] - $a['required'];
+        });
+
+        return $output;
+    }
+
     /**
      * @param string $service
      * @return array
@@ -141,148 +291,71 @@ class Swagger2 extends Spec
                 $methodSecurity = $method['security'][0] ?? [];
 
                 if (isset($method['tags']) && is_array($method['tags']) && in_array($service, $method['tags'])) {
-                    foreach ($methodAuth as $i => $node) {
-                        $methodAuth[$i] = (array_key_exists($i, $security)) ? $security[$i] : [];
-                    }
-                    foreach ($methodSecurity as $i => $node) {
-                        $methodSecurity[$i] = (array_key_exists($i, $security)) ? $security[$i] : [];
-                    }
+                                    // Handle method multiplexing
+                    if (!empty($method['x-appwrite']['multiplex'] ?? [])) {
+                        foreach ($method['x-appwrite']['multiplex'] as $methodName => $multiplex) {
+                            $multiplexMethod = $method;
+                            $multiplexMethod['x-appwrite']['method'] = $methodName;
 
-                    $responses = $method['responses'];
-                    $responseModel = '';
-                    $emptyResponse = true;
-                    foreach ($responses as $code => $desc) {
-                        if ($code != '204') {
-                            $emptyResponse = false;
-                        }
-                        if (isset($desc['schema']) && isset($desc['schema']['$ref'])) {
-                            $responseModel = $desc['schema']['$ref'];
-                            if (!empty($responseModel)) {
-                                $responseModel = str_replace('#/definitions/', '', $responseModel);
+                            // Update Response
+                            $responses = $multiplexMethod['responses'];
+                            $convertedResponse = [];
+
+                            foreach ($responses as $code => $desc) {
+                                if (isset($desc['schema']) && isset($desc['schema']['x-oneOf'])) {
+                                    foreach ($desc['schema']['x-oneOf'] as $oneOf) {
+                                        if (isset($oneOf['$ref']) && str_ends_with($oneOf['$ref'], $multiplex['response'])) {
+                                            $convertedResponse[$code] = [
+                                            'description' => $desc['description'],
+                                            'schema' => $oneOf,
+                                            ];
+                                        }
+                                    }
+                                }
                             }
-                        }
-                    }
 
-                    $output = [
-                        'method' => $methodName,
-                        'path' => $pathName,
-                        'fullPath' => parse_url($this->getEndpoint(), PHP_URL_PATH) . $pathName,
-                        'name' => $method['x-appwrite']['method'] ?? ($method['operationId'] ?? ''),
-                        'packaging' => $method['x-appwrite']['packaging'] ?? false,
-                        'title' => $method['summary'] ?? '',
-                        'description' => $method['description'] ?? '',
-                        'auth' => [$methodAuth] ?? [],
-                        'security' => [$methodSecurity] ?? [],
-                        'consumes' => $method['consumes'] ?? [],
-                        'cookies' => $method['x-appwrite']['cookies'] ?? false,
-                        'type' => $method['x-appwrite']['type'] ?? false,
-                        'headers' => [],
-                        'parameters' => [
-                            'all' => [],
-                            'headers' => [],
-                            'path' => [],
-                            'query' => [],
-                            'body' => [],
-                        ],
-                        'emptyResponse' => $emptyResponse,
-                        'responseModel' => $responseModel,
-                    ];
+                            $multiplexMethod['responses'] = $convertedResponse;
 
-                    if ($output['type'] == 'graphql') {
-                        $output['headers']['x-sdk-graphql'] = "true";
-                    }
+                            // Remove non-whitelisted parameters on body parameters, also set required.
+                            $handleParams = function (&$params) use ($multiplex) {
+                                if (isset($multiplex['parameters'])) {
+                                    foreach ($params as $key => $param) {
+                                        if (!empty($param['in']) && $param['in'] === 'body') {
+                                            if (!empty($param['schema']['properties'])) {
+                                                $whitelistedParams = $multiplex['parameters'] ?? [];
 
-                    if (isset($method['consumes']) && is_array($method['consumes'])) {
-                        foreach ($method['consumes'] as $consume) {
-                            $output['headers']['content-type'] = $consume;
-                        }
-                    }
+                                                foreach ($param['schema']['properties'] as $paramName => $value) {
+                                                    if (!in_array($paramName, $whitelistedParams)) {
+                                                        unset($param['schema']['properties'][$paramName]);
+                                                    }
+                                                }
 
-                    $method['parameters'] = (isset($method['parameters']) && is_array($method['parameters'])) ? $method['parameters'] : [];
-
-                    foreach ($method['parameters'] as $parameter) {
-                        $param = [
-                            'name' => $parameter['name'] ?? null,
-                            'type' => $parameter['type'] ?? null,
-                            'class' => $parameter['x-class'] ?? null,
-                            'description' => $parameter['description'] ?? '',
-                            'required' => $parameter['required'] ?? false,
-                            'nullable' => $parameter['x-nullable'] ?? false,
-                            'default' => $parameter['default'] ?? null,
-                            'example' => $parameter['x-example'] ?? null,
-                            'isUploadID' => $parameter['x-upload-id'] ?? false,
-                            'array' => [
-                                'type' => $parameter['items']['type'] ?? '',
-                            ],
-                        ];
-
-                        if ($param['type'] === 'object' && is_array($param['default'])) {
-                            $param['default'] = (empty($param['default'])) ? new stdClass() : $param['default'];
-                        }
-
-                        $param['default'] = (is_array($param['default']) || $param['default'] instanceof stdClass) ? json_encode($param['default']) : $param['default'];
-                        if (isset($parameter['enum'])) {
-                            $param['enumValues'] = $parameter['enum'];
-                            $param['enumName'] = $parameter['x-enum-name'];
-                            $param['enumKeys'] = $parameter['x-enum-keys'];
-                        }
-
-                        switch ($parameter['in']) {
-                            case 'header':
-                                $output['parameters']['header'][] = $param;
-                                break;
-                            case 'path':
-                                $output['parameters']['path'][] = $param;
-                                break;
-                            case 'query':
-                                $output['parameters']['query'][] = $param;
-                                break;
-                            case 'formData':
-                                $output['parameters']['body'][] = $param;
-                                break;
-                            case 'body':
-                                $bodyProperties = $parameter['schema']['properties'] ?? [];
-                                $bodyRequired = $parameter['schema']['required'] ?? [];
-
-                                foreach ($bodyProperties as $key => $value) {
-                                    $temp = $param;
-                                    $temp['name'] = $key;
-                                    $temp['type'] = $value['type'] ?? null;
-                                    $temp['description'] = $value['description'] ?? '';
-                                    $temp['required'] = (in_array($key, $bodyRequired));
-                                    $temp['example'] = $value['x-example'] ?? null;
-                                    $temp['isUploadID'] = $value['x-upload-id'] ?? false;
-                                    $temp['nullable'] = $value['x-nullable'] ?? false;
-                                    $temp['array'] = [
-                                        'type' => $value['items']['type'] ?? '',
-                                    ];
-                                    if ($value['type'] === 'object' && is_array($value['default'])) {
-                                        $value['default'] = (empty($value['default'])) ? new stdClass() : $value['default'];
+                                                $param['schema']['required'] = $multiplex['required'] ?? [];
+                                                $params[$key] = $param;
+                                            }
+                                        }
                                     }
-
-                                    if (isset($value['enum'])) {
-                                        $temp['enumValues'] = $value['enum'];
-                                        $temp['enumName'] = $value['x-enum-name'];
-                                        $temp['enumKeys'] = $value['x-enum-keys'];
-                                    }
-
-                                    $temp['default'] = (is_array($value['default']) || $value['default'] instanceof stdClass) ? json_encode($value['default']) : $value['default'];
-
-                                    $output['parameters']['body'][] = $temp;
-                                    $output['parameters']['all'][] = $temp;
                                 }
 
-                                continue 2;
+                                return;
+                            };
+
+                            $handleParams($multiplexMethod['parameters']);
+
+                        // Overwrite description and name if multiplex has one
+                            if (!empty($multiplex['name'])) {
+                                $multiplexMethod['summary'] = $multiplex['name'];
+                            }
+
+                            if (!empty($multiplex['description'])) {
+                                $multiplexMethod['description'] = $multiplex['description'];
+                            }
+
+                            $list[] = $this->convertMethod($methodName, $pathName, $multiplexMethod);
                         }
-
-                        $output['parameters']['all'][] = $param;
+                        continue;
                     }
-
-                    usort($output['parameters']['all'], function ($a, $b) {
-                        return $b['required'] - $a['required'];
-                    });
-
-                    $list[] = $output;
+                    $list[] = $this->convertMethod($methodName, $pathName, $method);
                 }
             }
         }
