@@ -29,11 +29,7 @@ open class Realtime : Service {
             do {
                 while !Task.isCancelled {
                     if let client = socketClient, client.isConnected {
-                        let pingMessage = ["type": "ping"]
-                        let jsonData = try JSONSerialization.data(withJSONObject: pingMessage)
-                        if let jsonString = String(data: jsonData, encoding: .utf8) {
-                            client.send(text: jsonString)
-                        }
+                        client.send(text: #"{"type": "ping"}"#)
                     }
                     try await Task.sleep(nanoseconds: HEARTBEAT_INTERVAL)
                 }
