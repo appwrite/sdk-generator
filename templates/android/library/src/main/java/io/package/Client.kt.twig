@@ -60,7 +60,7 @@ class Client @JvmOverloads constructor(
     internal lateinit var http: OkHttpClient
 
     internal val headers: MutableMap<String, String>
-    
+
     val config: MutableMap<String, String>
 
     internal val cookieJar = ListenableCookieJar(CookieManager(
@@ -87,14 +87,14 @@ class Client @JvmOverloads constructor(
             "x-sdk-platform" to "{{ sdk.platform }}",
             "x-sdk-language" to "{{ language.name | caseLower }}",
             "x-sdk-version" to "{{ sdk.version }}"{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
-            
+
 {% for key,header in spec.global.defaultHeaders %}
             "{{ key | caseLower }}" to "{{ header }}"{% if not loop.last %},{% endif %}
 {% endfor %}
 
         )
         config = mutableMapOf()
-        
+
         setSelfSigned(selfSigned)
     }
 
@@ -119,10 +119,10 @@ class Client @JvmOverloads constructor(
 {% endfor %}
     /**
      * Set self Signed
-     * 
+     *
      * @param status
      *
-     * @return this     
+     * @return this
      */
     fun setSelfSigned(status: Boolean): Client {
         selfSigned = status
@@ -171,10 +171,10 @@ class Client @JvmOverloads constructor(
 
     /**
      * Set endpoint and realtime endpoint.
-     * 
+     *
      * @param endpoint
      *
-     * @return this     
+     * @return this
      */
     fun setEndpoint(endpoint: String): Client {
         this.endpoint = endpoint
@@ -200,11 +200,11 @@ class Client @JvmOverloads constructor(
 
     /**
      * Add Header
-     * 
+     *
      * @param key
      * @param value
      *
-     * @return this     
+     * @return this
      */
     fun addHeader(key: String, value: String): Client {
         headers[key] = value
@@ -213,19 +213,19 @@ class Client @JvmOverloads constructor(
 
     /**
      * Send the HTTP request
-     * 
+     *
      * @param method
      * @param path
      * @param headers
      * @param params
      *
-     * @return [T]    
+     * @return [T]
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun <T> call(
-        method: String, 
-        path: String, 
-        headers:  Map<String, String> = mapOf(), 
+        method: String,
+        path: String,
+        headers:  Map<String, String> = mapOf(),
         params: Map<String, Any?> = mapOf(),
         responseType: Class<T>,
         converter: ((Any) -> T)? = null
@@ -364,16 +364,22 @@ class Client @JvmOverloads constructor(
         var result: Map<*, *>? = null
 
         if (idParamName?.isNotEmpty() == true && params[idParamName] != "unique()") {
-            // Make a request to check if a file already exists
-            val current = call(
-                method = "GET",
-                path = "$path/${params[idParamName]}",
-                headers = headers,
-                params = emptyMap(),
-                responseType = Map::class.java,
-            )
-            val chunksUploaded = current["chunksUploaded"] as Long
-            offset = chunksUploaded * CHUNK_SIZE
+            try {
+                // Make a request to check if a file already exists
+                val current = call(
+                    method = "GET",
+                    path = "$path/${params[idParamName]}",
+                    headers = headers,
+                    params = emptyMap(),
+                    responseType = Map::class.java,
+                )
+                val chunksUploaded = current["chunksUploaded"] as Long
+                offset = chunksUploaded * CHUNK_SIZE
+            } catch (e: Exception) {
+                if (e.message != null && !e.message!!.contains("file could not be found")) {
+                    throw e
+                }
+            }
         }
 
         while (offset < size) {
@@ -460,14 +466,14 @@ class Client @JvmOverloads constructor(
                         .charStream()
                         .buffered()
                         .use(BufferedReader::readText)
-                        
+
                     val error = if (response.headers["content-type"]?.contains("application/json") == true) {
                         val map = body.fromJson<Map<String, Any>>()
 
                         {{ spec.title | caseUcfirst }}Exception(
-                            map["message"] as? String ?: "", 
+                            map["message"] as? String ?: "",
                             (map["code"] as Number).toInt(),
-                            map["type"] as? String ?: "", 
+                            map["type"] as? String ?: "",
                             body
                         )
                     } else {

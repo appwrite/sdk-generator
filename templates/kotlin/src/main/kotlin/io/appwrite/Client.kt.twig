@@ -172,7 +172,7 @@ class Client @JvmOverloads constructor(
 
     /**
      * Prepare the HTTP request
-     * 
+     *
      * @param method
      * @param path
      * @param headers
@@ -267,7 +267,7 @@ class Client @JvmOverloads constructor(
      * @param headers
      * @param params
      *
-     * @return [T]    
+     * @return [T]
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun <T> call(
@@ -290,7 +290,7 @@ class Client @JvmOverloads constructor(
      * @param headers
      * @param params
      *
-     * @return [T]    
+     * @return [T]
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun redirect(
@@ -363,16 +363,22 @@ class Client @JvmOverloads constructor(
         var result: Map<*, *>? = null
 
         if (idParamName?.isNotEmpty() == true && params[idParamName] != "unique()") {
-            // Make a request to check if a file already exists
-            val current = call(
-                method = "GET",
-                path = "$path/${params[idParamName]}",
-                headers = headers,
-                params = emptyMap(),
-                responseType = Map::class.java,
-            )
-            val chunksUploaded = current["chunksUploaded"] as Long
-            offset = chunksUploaded * CHUNK_SIZE
+            try {
+                // Make a request to check if a file already exists
+                val current = call(
+                    method = "GET",
+                    path = "$path/${params[idParamName]}",
+                    headers = headers,
+                    params = emptyMap(),
+                    responseType = Map::class.java,
+                )
+                val chunksUploaded = current["chunksUploaded"] as Long
+                offset = chunksUploaded * CHUNK_SIZE
+            } catch (e: Exception) {
+                if (e.message != null && !e.message!!.contains("file could not be found")) {
+                    throw e
+                }
+            }
         }
 
         while (offset < size) {
@@ -429,7 +435,7 @@ class Client @JvmOverloads constructor(
         return converter(result as Map<String, Any>)
     }
 
-    /** 
+    /**
      * Await Redirect
      *
      * @param request
@@ -456,14 +462,14 @@ class Client @JvmOverloads constructor(
                         .charStream()
                         .buffered()
                         .use(BufferedReader::readText)
-                        
+
                     val error = if (response.headers["content-type"]?.contains("application/json") == true) {
                         val map = body.fromJson<Map<String, Any>>()
 
                         {{ spec.title | caseUcfirst }}Exception(
-                            map["message"] as? String ?: "", 
+                            map["message"] as? String ?: "",
                             (map["code"] as Number).toInt(),
-                            map["type"] as? String ?: "", 
+                            map["type"] as? String ?: "",
                             body
                         )
                     } else {
@@ -507,14 +513,14 @@ class Client @JvmOverloads constructor(
                         .charStream()
                         .buffered()
                         .use(BufferedReader::readText)
-                        
+
                     val error = if (response.headers["content-type"]?.contains("application/json") == true) {
                         val map = body.fromJson<Map<String, Any>>()
 
                         {{ spec.title | caseUcfirst }}Exception(
-                            map["message"] as? String ?: "", 
+                            map["message"] as? String ?: "",
                             (map["code"] as Number).toInt(),
-                            map["type"] as? String ?: "", 
+                            map["type"] as? String ?: "",
                             body
                         )
                     } else {
