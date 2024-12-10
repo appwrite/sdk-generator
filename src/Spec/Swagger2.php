@@ -282,16 +282,12 @@ class Swagger2 extends Spec
     public function getMethods($service)
     {
         $list = [];
-        $security = $this->getAttribute('securityDefinitions', []);
         $paths = $this->getAttribute('paths', []);
 
         foreach ($paths as $pathName => $path) {
             foreach ($path as $methodName => $method) {
-                $methodAuth = $method['x-appwrite']['auth'] ?? [];
-                $methodSecurity = $method['security'][0] ?? [];
-
                 if (isset($method['tags']) && is_array($method['tags']) && in_array($service, $method['tags'])) {
-                                    // Handle method multiplexing
+                    // Handle method multiplexing
                     if (!empty($method['x-appwrite']['multiplex'] ?? [])) {
                         foreach ($method['x-appwrite']['multiplex'] as $methodName => $multiplex) {
                             $multiplexMethod = $method;
@@ -302,15 +298,19 @@ class Swagger2 extends Spec
                             $convertedResponse = [];
 
                             foreach ($responses as $code => $desc) {
-                                if (isset($desc['schema']) && isset($desc['schema']['x-oneOf'])) {
-                                    foreach ($desc['schema']['x-oneOf'] as $oneOf) {
-                                        if (isset($oneOf['$ref']) && str_ends_with($oneOf['$ref'], $multiplex['response'])) {
-                                            $convertedResponse[$code] = [
-                                            'description' => $desc['description'],
-                                            'schema' => $oneOf,
-                                            ];
-                                        }
+                                if (!isset($desc['schema']) || !isset($desc['schema']['x-oneOf'])) {
+                                    continue;
+                                }
+
+                                foreach ($desc['schema']['x-oneOf'] as $oneOf) {
+                                    if (!isset($oneOf['$ref']) || !str_ends_with($oneOf['$ref'], $multiplex['response'])) {
+                                        continue;
                                     }
+
+                                    $convertedResponse[$code] = [
+                                        'description' => $desc['description'],
+                                        'schema' => $oneOf,
+                                    ];
                                 }
                             }
 
@@ -320,20 +320,20 @@ class Swagger2 extends Spec
                             $handleParams = function (&$params) use ($multiplex) {
                                 if (isset($multiplex['parameters'])) {
                                     foreach ($params as $key => $param) {
-                                        if (!empty($param['in']) && $param['in'] === 'body') {
-                                            if (!empty($param['schema']['properties'])) {
-                                                $whitelistedParams = $multiplex['parameters'] ?? [];
+                                        if (empty($param['in']) || $param['in'] !== 'body' || empty($param['schema']['properties'])) {
+                                            continue;
+                                        }
 
-                                                foreach ($param['schema']['properties'] as $paramName => $value) {
-                                                    if (!in_array($paramName, $whitelistedParams)) {
-                                                        unset($param['schema']['properties'][$paramName]);
-                                                    }
-                                                }
+                                        $whitelistedParams = $multiplex['parameters'] ?? [];
 
-                                                $param['schema']['required'] = $multiplex['required'] ?? [];
-                                                $params[$key] = $param;
+                                        foreach ($param['schema']['properties'] as $paramName => $value) {
+                                            if (!in_array($paramName, $whitelistedParams)) {
+                                                unset($param['schema']['properties'][$paramName]);
                                             }
                                         }
+
+                                        $param['schema']['required'] = $multiplex['required'] ?? [];
+                                        $params[$key] = $param;
                                     }
                                 }
 
@@ -342,7 +342,7 @@ class Swagger2 extends Spec
 
                             $handleParams($multiplexMethod['parameters']);
 
-                        // Overwrite description and name if multiplex has one
+                            // Overwrite description and name if multiplex has one
                             if (!empty($multiplex['name'])) {
                                 $multiplexMethod['summary'] = $multiplex['name'];
                             }
