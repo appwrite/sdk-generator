@@ -35,7 +35,7 @@
 
             // Realtime setup
             client.setProject('console');
-            client.setEndpointRealtime('ws://demo.appwrite.io/v1');
+            client.setEndpointRealtime('ws://cloud.appwrite.io/v1');
 
             client.subscribe('tests', event => {
                 responseRealtime = event.payload.response;
