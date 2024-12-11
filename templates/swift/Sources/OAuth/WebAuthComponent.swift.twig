@@ -161,6 +161,12 @@ class PresentationContextProvider: NSObject, ASWebAuthenticationPresentationCont
     static let shared = PresentationContextProvider()
 
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            if let mainWindow = windowScene.windows.first {
+                return mainWindow
+            }
+        }
+
         return ASPresentationAnchor()
     }
 }
