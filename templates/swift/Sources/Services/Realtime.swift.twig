@@ -7,11 +7,14 @@ open class Realtime : Service {
 
     private let TYPE_ERROR = "error"
     private let TYPE_EVENT = "event"
+    private let TYPE_PONG = "pong"
     private let DEBOUNCE_NANOS = 1_000_000
+    private let HEARTBEAT_INTERVAL: UInt64 = 20_000_000_000 // 20 seconds in nanoseconds
 
     private var socketClient: WebSocketClient? = nil
     private var activeChannels = Set<String>()
     private var activeSubscriptions = [Int: RealtimeCallback]()
+    private var heartbeatTask: Task<Void, Swift.Error>? = nil
 
     let connectSync = DispatchQueue(label: "ConnectSync")
 
@@ -19,6 +22,29 @@ open class Realtime : Service {
     private var reconnectAttempts = 0
     private var subscriptionsCounter = 0
     private var reconnect = true
+
+    private func startHeartbeat() {
+        stopHeartbeat()
+        heartbeatTask = Task {
+            do {
+                while !Task.isCancelled {
+                    if let client = socketClient, client.isConnected {
+                        client.send(text: #"{"type": "ping"}"#)
+                    }
+                    try await Task.sleep(nanoseconds: HEARTBEAT_INTERVAL)
+                }
+            } catch {
+                if !Task.isCancelled {
+                    print("Heartbeat task failed: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
+    private func stopHeartbeat() {
+        heartbeatTask?.cancel()
+        heartbeatTask = nil
+    }
 
     private func createSocket() async throws {
         guard activeChannels.count > 0 else {
@@ -50,6 +76,8 @@ open class Realtime : Service {
     }
 
     private func closeSocket() async throws {
+        stopHeartbeat()
+        
         guard let client = socketClient,
               let group = client.threadGroup else {
             return
@@ -163,6 +191,7 @@ extension Realtime: WebSocketClientDelegate {
 
     public func onOpen(channel: Channel) {
         self.reconnectAttempts = 0
+        startHeartbeat()
     }
 
     public func onMessage(text: String) {
@@ -172,6 +201,7 @@ extension Realtime: WebSocketClientDelegate {
                 switch type {
                 case TYPE_ERROR: try! handleResponseError(from: json)
                 case TYPE_EVENT: handleResponseEvent(from: json)
+                case TYPE_PONG: break  // Handle pong response if needed
                 default: break
                 }
             }
@@ -179,6 +209,8 @@ extension Realtime: WebSocketClientDelegate {
     }
 
     public func onClose(channel: Channel, data: Data) async throws {
+        stopHeartbeat()
+        
         if (!reconnect) {
             reconnect = true
             return
@@ -196,6 +228,7 @@ extension Realtime: WebSocketClientDelegate {
     }
 
     public func onError(error: Swift.Error?, status: HTTPResponseStatus?) {
+        stopHeartbeat()
         print(error?.localizedDescription ?? "Unknown error")
     }
 
