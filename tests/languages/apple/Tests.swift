@@ -25,12 +25,10 @@ class Tests: XCTestCase {
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
 
-        var mock: Mock
-
         // Ping pong test
         let ping = try await client.ping()
-        mock = Mock.from(json: ping)!
-        print(mock.result)
+        let pingResult = parse(from: ping)!
+        print(pingResult)
 
         // reset configs
         client.setProject("console")
@@ -48,7 +46,9 @@ class Tests: XCTestCase {
             realtimeResponse = message.payload!["response"] as! String
             expectation.fulfill()
         }
-        
+
+        var mock: Mock
+
         // Foo Tests
         mock = try await foo.get(x: "string", y: 123, z: ["string in array"])
         print(mock.result)
@@ -205,5 +205,14 @@ class Tests: XCTestCase {
 
         mock = try await general.headers()
         print(mock.result)
+    }
+
+    func parse(from json: String) -> String? {
+        if let data = json.data(using: .utf8),
+           let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+           let result = jsonObject["result"] as? String {
+            return result
+        }
+        return nil
     }
 }
