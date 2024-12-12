@@ -21,10 +21,20 @@ class Tests: XCTestCase {
 
     func test() async throws {
         let client = Client()
-            .setEndpointRealtime("ws://cloud.appwrite.io/v1")
-            .setProject("console")
+            .setProject("123456")
             .addHeader(key: "Origin", value: "http://localhost")
             .setSelfSigned()
+
+        var mock: Mock
+
+        // Ping pong test
+        let ping = try await client.ping()
+        mock = Mock.from(json: ping)!
+        print(mock.result)
+
+        // reset configs
+        client.setProject("console")
+            .setEndpointRealtime("ws://cloud.appwrite.io/v1")
 
         let foo = Foo(client)
         let bar = Bar(client)
@@ -39,8 +49,6 @@ class Tests: XCTestCase {
             expectation.fulfill()
         }
         
-        var mock: Mock
-
         // Foo Tests
         mock = try await foo.get(x: "string", y: 123, z: ["string in array"])
         print(mock.result)
