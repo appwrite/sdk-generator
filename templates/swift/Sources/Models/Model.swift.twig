@@ -58,21 +58,5 @@ public class {{ definition | modelType(spec) | raw }} {
             {%~ endif %}
         )
     }
-
-    public static func from(json: String) -> {{ definition.name | caseUcfirst }}? {
-        guard let data = json.data(using: .utf8) else {
-            return nil
-        }
-
-        do {
-            if let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                return {{ definition.name | caseUcfirst }}.from(map: jsonObject)
-            } else {
-                return nil
-            }
-        } catch {
-            return nil
-        }
-    }
 }
 {% endif %}
