@@ -29,6 +29,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.json.JSONObject
 import org.robolectric.annotation.Config
 import java.io.File
 import java.io.IOException
@@ -61,10 +62,20 @@ class ServiceTest {
     @Throws(IOException::class)
     fun test() {
         val client = Client(ApplicationProvider.getApplicationContext())
-            .setEndpointRealtime("wss://cloud.appwrite.io/v1")
-            .setProject("console")
+            .setProject("123456")
             .addHeader("Origin", "http://localhost")
             .setSelfSigned(true)
+
+        runBlocking {
+            val ping = client.ping()
+            val pingResponse = parse(ping)
+            writeToFile(pingResponse)
+        }
+
+        // reset configs
+        client.setProject("console")
+            .setEndpointRealtime("wss://cloud.appwrite.io/v1")
+
         val foo = Foo(client)
         val bar = Bar(client)
         val general = General(client)
@@ -219,4 +230,11 @@ class ServiceTest {
         File("result.txt").appendText(text)
     }
 
+    private fun parse(json: String): String? {
+        return try {
+            JSONObject(json).getString("result")
+        } catch (exception: Exception) {
+            null
+        }
+    }
 }
