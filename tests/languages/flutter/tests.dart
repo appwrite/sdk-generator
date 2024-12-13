@@ -25,27 +25,32 @@ void main() async {
       .addHeader("Origin", "http://localhost")
       .setSelfSigned();
 
-  final ping = await client.ping();
-  final pingResponse = parse(ping)!;
-  print(pingResponse);
-
-  // reset configs
-  client.setProject('console');
-  client.setEndPointRealtime(
-      "wss://cloud.appwrite.io/v1");
-
   Foo foo = Foo(client);
   Bar bar = Bar(client);
   General general = General(client);
 
+  client.setSelfSigned();
+  client.setProject('console');
+  client.setEndPointRealtime(
+      "wss://cloud.appwrite.io/v1");
+
   Realtime realtime = Realtime(client);
-   final rtsub = realtime.subscribe(["tests"]);
+  final rtsub = realtime.subscribe(["tests"]);
 
   await Future.delayed(Duration(seconds: 5));
   client.addHeader('Origin', 'http://localhost');
-  // Foo Tests
   print('\nTest Started');
 
+  // Ping pong tests
+  client.setProject('123456');
+  final ping = await client.ping();
+  final pingResponse = parse(ping)!;
+  print(pingResponse);
+
+  // reset project.
+  client.setProject('console');
+
+  // Foo Tests
   Mock response;
   response = await foo.get(x: 'string', y: 123, z: ['string in array']);
   print(response.result);

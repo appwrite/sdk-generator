@@ -101,7 +101,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
   @override
   Future<String> ping() async {
     final String apiPath = '/ping';
-    final response = await call(HttpMethod.get, responseType: ResponseType.plain);
+    final response = await call(HttpMethod.get, path: apiPath, responseType: ResponseType.plain);
 
     return response.data;
   }
