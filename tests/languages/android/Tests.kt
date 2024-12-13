@@ -29,7 +29,6 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.json.JSONObject
 import org.robolectric.annotation.Config
 import java.io.File
 import java.io.IOException
@@ -232,7 +231,7 @@ class ServiceTest {
 
     private fun parse(json: String): String? {
         return try {
-            JSONObject(json).getString("result")
+            json.fromJson<Map<String, Any>>()["result"] as? String
         } catch (exception: Exception) {
             null
         }
