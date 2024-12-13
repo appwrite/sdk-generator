@@ -129,6 +129,8 @@ type RealtimeRequestAuthenticate = {
     session: string;
 }
 
+type TimeoutHandle = ReturnType<typeof setTimeout> | number;
+
 /**
  * Realtime interface representing the structure of a realtime communication object.
  */
@@ -141,12 +143,12 @@ type Realtime = {
     /**
      * Timeout for reconnect operations.
      */
-    timeout?: ReturnType<typeof setTimeout>;
+    timeout?: TimeoutHandle;
 
     /**
      * Heartbeat interval for the realtime connection.
     */
-    heartbeat?: ReturnType<typeof setTimeout>;
+    heartbeat?: TimeoutHandle;
 
     /**
      * URL for establishing the WebSocket connection.
