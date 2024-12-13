@@ -4,6 +4,7 @@ import '../lib/enums.dart';
 import '../lib/src/input_file.dart';
 
 import 'dart:io';
+import 'dart:convert';
 
 void main() async {
   Client client = Client().setSelfSigned();
@@ -15,7 +16,16 @@ void main() async {
   client.setSelfSigned();
 
   print('\nTest Started');
-  
+
+  // Ping pong test
+  client.setProject('123456');
+  final ping = await client.ping();
+  final pingResponse = parse(ping)!;
+  print(pingResponse);
+
+  // reset project.
+  client.setProject('console');
+
   // Foo Tests
   Mock response;
   response = await foo.get(x: 'string', y: 123, z: ['string in array']);
@@ -163,4 +173,12 @@ void main() async {
 
   response = await general.headers();
   print(response.result);
+}
+
+String? parse(String json) {
+  try {
+    return jsonDecode(json)['result'] as String?;
+  } catch (_) {
+    return null;
+  }
 }
