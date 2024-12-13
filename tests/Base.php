@@ -16,6 +16,10 @@ error_reporting(E_ALL);
 
 abstract class Base extends TestCase
 {
+    protected const PING_RESPONSE = [
+        'GET:/v1/ping:passed',
+    ];
+
     protected const FOO_RESPONSES = [
         'GET:/v1/mock/tests/foo:passed',
         'POST:/v1/mock/tests/foo:passed',
@@ -135,18 +139,11 @@ abstract class Base extends TestCase
 
         $this->expectedOutput[] = $headers;
 
-        // Figure out if mock-server is running
-        $isMockAPIRunning = \strlen(\exec('docker ps | grep mock-server')) > 0;
-
-        if (!$isMockAPIRunning) {
-            echo "Starting Mock API Server";
-
-            \exec('
-                cd ./mock-server && \
-                docker compose build && \
-                docker compose up -d --force-recreate
-            ');
-        }
+        \exec('
+            cd ./mock-server && \
+            docker compose build && \
+            docker compose up -d --force-recreate
+        ');
     }
 
     public function tearDown(): void

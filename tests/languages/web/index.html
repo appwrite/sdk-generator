@@ -19,6 +19,7 @@
         document.getElementById("start").addEventListener("click", async () => {
             let response;
             let responseRealtime = 'Realtime failed!';
+
             // Init SDK
             const { Client, Foo, Bar, General, Query, Permission, Role, ID, MockType } = Appwrite;
             const client = new Client();
@@ -27,8 +28,14 @@
             const bar = new Bar(client);
             const general = new General(client);
 
+            // Ping
+            client.setProject('123456');
+            response = await client.ping();
+            console.log(response.result);
+
+            // Realtime setup
             client.setProject('console');
-            client.setEndpointRealtime('ws://demo.appwrite.io/v1');
+            client.setEndpointRealtime('ws://cloud.appwrite.io/v1');
 
             client.subscribe('tests', event => {
                 responseRealtime = event.payload.response;

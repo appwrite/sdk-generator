@@ -307,6 +307,10 @@ class Swift extends Language
         if (!empty($parameter['enumValues'])) {
             return ($spec['title'] ?? '') . 'Enums.' . \ucfirst($parameter['name']);
         }
+        if (isset($parameter['items'])) {
+            // Map definition nested type to parameter nested type
+            $parameter['array'] = $parameter['items'];
+        }
         return match ($parameter['type']) {
             self::TYPE_INTEGER => 'Int',
             self::TYPE_NUMBER => 'Double',
@@ -524,10 +528,6 @@ class Swift extends Language
             }
         } else {
             $type = $this->getTypeName($property);
-        }
-
-        if (!$property['required']) {
-            $type .= '?';
         }
 
         return $type;

@@ -29,6 +29,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     private companion object {
         private const val TYPE_ERROR = "error"
         private const val TYPE_EVENT = "event"
+        private const val TYPE_PONG = "pong"
+        private const val HEARTBEAT_INTERVAL = 20_000L // 20 seconds
 
         private const val DEBOUNCE_MILLIS = 1L
 
@@ -40,6 +42,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         private var reconnectAttempts = 0
         private var subscriptionsCounter = 0
         private var reconnect = true
+        private var heartbeatJob: Job? = null
     }
 
     private fun createSocket() {
@@ -80,7 +83,23 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     }
 
     private fun closeSocket() {
+        stopHeartbeat()
         socket?.close(RealtimeCode.POLICY_VIOLATION.value, null)
+    }
+
+    private fun startHeartbeat() {
+        stopHeartbeat()
+        heartbeatJob = launch {
+            while (isActive) {
+                delay(HEARTBEAT_INTERVAL)
+                socket?.send("""{"type":"ping"}""")
+            }
+        }
+    }
+
+    private fun stopHeartbeat() {
+        heartbeatJob?.cancel()
+        heartbeatJob = null
     }
 
     private fun getTimeout() = when {
@@ -145,6 +164,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         override fun onOpen(webSocket: WebSocket, response: Response) {
             super.onOpen(webSocket, response)
             reconnectAttempts = 0
+            startHeartbeat()
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
@@ -181,6 +201,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
             super.onClosing(webSocket, code, reason)
+            stopHeartbeat()
             if (!reconnect || code == RealtimeCode.POLICY_VIOLATION.value) {
                 reconnect = true
                 return
@@ -203,6 +224,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             super.onFailure(webSocket, t, response)
+            stopHeartbeat()
             t.printStackTrace()
         }
     }

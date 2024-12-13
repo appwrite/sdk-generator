@@ -94,7 +94,7 @@ const getInstallCommand = (runtime) => {
         case 'dart':
             return 'dart pub get';
         case 'deno':
-            return "deno install";
+            return "deno cache src/main.ts";
         case 'node':
             return 'npm install';
         case 'bun':
@@ -261,7 +261,7 @@ const questionsPullFunctionsCode = [
     {
         type: "confirm",
         name: "override",
-        message: "Do you want to pull source code of active deployment?"
+        message: "Do you want to pull source code of the latest deployment?"
     },
 ];
 
