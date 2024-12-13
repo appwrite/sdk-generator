@@ -7,6 +7,7 @@ import '../lib/models.dart';
 import '../lib/enums.dart';
 import '../lib/src/input_file.dart';
 import 'dart:io';
+import 'dart:convert';
 
 class FakePathProvider extends PathProviderPlatform {
   @override
@@ -20,16 +21,22 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   PathProviderPlatform.instance = FakePathProvider();
   Client client = Client()
+      .setProject('123456')
       .addHeader("Origin", "http://localhost")
       .setSelfSigned();
-  Foo foo = Foo(client);
-  Bar bar = Bar(client);
-  General general = General(client);
 
-  client.setSelfSigned();
+  final ping = await client.ping();
+  final pingResponse = parse(ping)!;
+  print(pingResponse);
+
+  // reset configs
   client.setProject('console');
   client.setEndPointRealtime(
       "wss://cloud.appwrite.io/v1");
+
+  Foo foo = Foo(client);
+  Bar bar = Bar(client);
+  General general = General(client);
 
   Realtime realtime = Realtime(client);
    final rtsub = realtime.subscribe(["tests"]);
@@ -188,4 +195,12 @@ void main() async {
 
   response = await general.headers();
   print(response.result);
+}
+
+String? parse(String json) {
+  try {
+    return jsonDecode(json)['result'] as String?;
+  } catch (_) {
+    return null;
+  }
 }

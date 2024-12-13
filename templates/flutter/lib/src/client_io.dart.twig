@@ -130,6 +130,14 @@ class ClientIO extends ClientBase with ClientMixin {
     return this;
   }
 
+  @override
+  Future<String> ping() async {
+    final String apiPath = '/ping';
+    final response = await call(HttpMethod.get, responseType: ResponseType.plain);
+
+    return response.data;
+  }
+
   Future init() async {
     if(_initProgress) return;
     _initProgress = true;
