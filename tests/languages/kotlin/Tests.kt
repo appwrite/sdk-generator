@@ -19,6 +19,7 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.Response
 import org.junit.Before
 import org.junit.Test
+import org.json.JSONObject
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -38,8 +39,19 @@ class ServiceTest {
     @Throws(IOException::class)
     fun test() {
         val client = Client()
+            .setProject("123456")
             .addHeader("Origin", "http://localhost")
             .setSelfSigned(true)
+
+        runBlocking {
+            val ping = client.ping()
+            val pingResponse = parse(ping)
+            writeToFile(pingResponse)
+        }
+
+        // reset project
+        client.setProject("123456")
+
         val foo = Foo(client)
         val bar = Bar(client)
         val general = General(client)
@@ -185,4 +197,11 @@ class ServiceTest {
         File("result.txt").appendText(text)
     }
 
+    private fun parse(json: String): String? {
+        return try {
+            JSONObject(json).getString("result")
+        } catch (exception: Exception) {
+            null
+        }
+    }
 }
