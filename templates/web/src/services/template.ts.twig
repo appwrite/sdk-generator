@@ -38,6 +38,9 @@ export class {{ service.name | caseUcfirst }} {
     {%~ endfor %}
      * @throws {{ '{' }}{{ spec.title | caseUcfirst}}Exception}
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
+    {%~ if method.name == 'createOAuth2Session' %}
+     * @deprecated This method is deprecated and will be removed in a future version. Use createOAuthToken instead.
+    {%~ endif %}
      */
     {% if method.type != 'location' %}async {% endif %}{{ method.name | caseCamel }}{{ method.responseModel | getGenerics(spec) | raw }}({% for parameter in method.parameters.all %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or parameter.nullable %}?{% endif %}: {{ parameter | getPropertyType(method) | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in method.consumes %}, onProgress = (progress: UploadProgress) => {}{% endif %}): {{ method | getReturn(spec) | raw }} {
         {%~ for parameter in method.parameters.all %}
