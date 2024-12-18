@@ -39,8 +39,12 @@ class {{ definition.name | caseUcfirst | overrideIdentifier }} implements Model 
                 {%- if property.type == "string" -%}
                     {%- if not property.required %}?{% endif %}.toString()
                 {%- endif -%}
-                {%- if property.type == "array" -%}
-                    {% if property.required %} ?? []{% endif %}
+                {%- if property.type == 'array' -%}
+                    {%- if property.sub_schema -%}
+                        List<{{property.sub_schema | caseUcfirst | overrideIdentifier}}>.from(map['{{property.name | escapeDollarSign }}'].map((p) => {{property.sub_schema | caseUcfirst | overrideIdentifier}}.fromMap(p)))
+                    {%- else -%}
+                        List<{{ property | typeNameInner }}>.from(map['{{property.name | escapeDollarSign }}']?.map((x) => x{% if property.items.type == "string" %}.toString(){% endif %}) ?? [])
+                    {%- endif -%}
                 {%- endif -%}
             {%- endif -%},
 {% endfor %}
