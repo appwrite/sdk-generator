@@ -288,7 +288,6 @@ open class Client {
         case 0..<400:
             if response.headers["Set-Cookie"].count > 0 {
                 let domain = URL(string: request.url)!.host!
-                let existing = UserDefaults.standard.stringArray(forKey: domain)
                 let new = response.headers["Set-Cookie"]
 
                 UserDefaults.standard.set(new, forKey: domain)
