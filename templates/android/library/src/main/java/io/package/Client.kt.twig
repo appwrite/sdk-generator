@@ -212,6 +212,25 @@ class Client @JvmOverloads constructor(
     }
 
     /**
+     * Sends a "ping" request to Appwrite to verify connectivity.
+     *
+     * @return String
+     */
+    suspend fun ping(): String {
+        val apiPath = "/ping"
+        val apiParams = mutableMapOf<String, Any?>()
+        val apiHeaders = mutableMapOf("content-type" to "application/json")
+
+        return call(
+            "GET",
+            apiPath,
+            apiHeaders,
+            apiParams,
+            responseType = String::class.java
+        )
+    }
+
+    /**
      * Send the HTTP request
      * 
      * @param method
@@ -487,6 +506,14 @@ class Client @JvmOverloads constructor(
                 when {
                     responseType == Boolean::class.java -> {
                         it.resume(true as T)
+                        return
+                    }
+                    responseType == String::class.java -> {
+                        val body = response.body!!
+                            .charStream()
+                            .buffered()
+                            .use(BufferedReader::readText)
+                        it.resume(body as T)
                         return
                     }
                     responseType == ByteArray::class.java -> {
