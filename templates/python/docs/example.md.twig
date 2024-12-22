@@ -1,4 +1,5 @@
 from {{ spec.title | caseSnake }}.client import Client
+from {{ spec.title | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
 {% if method.parameters.all | filter((param) => param.type == 'file') | length > 0 %}
 from {{ spec.title | caseSnake }}.input_file import InputFile
 {% endif %}
