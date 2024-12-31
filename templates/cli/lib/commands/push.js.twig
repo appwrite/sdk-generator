@@ -1134,6 +1134,7 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                     logging: func.logging,
                     entrypoint: func.entrypoint,
                     commands: func.commands,
+                    scopes: func.scopes,
                     vars: JSON.stringify(func.vars),
                     parseOutput: false
                 });

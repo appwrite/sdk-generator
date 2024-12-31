@@ -29,7 +29,7 @@ void main() async {
   client.setSelfSigned();
   client.setProject('console');
   client.setEndPointRealtime(
-      "wss://demo.appwrite.io/v1"); // change this later to appwrite.io
+      "wss://cloud.appwrite.io/v1");
 
   Realtime realtime = Realtime(client);
    final rtsub = realtime.subscribe(["tests"]);
