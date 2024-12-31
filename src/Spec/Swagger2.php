@@ -289,9 +289,9 @@ class Swagger2 extends Spec
                 if (isset($method['tags']) && is_array($method['tags']) && in_array($service, $method['tags'])) {
                     // Handle method multiplexing
                     if (!empty($method['x-appwrite']['multiplex'] ?? [])) {
-                        foreach ($method['x-appwrite']['multiplex'] as $methodName => $multiplex) {
+                        foreach ($method['x-appwrite']['multiplex'] as $multiplex) {
                             $multiplexMethod = $method;
-                            $multiplexMethod['x-appwrite']['method'] = $methodName;
+                            $multiplexMethod['x-appwrite']['method'] = $multiplex['name'];
 
                             // Update Response
                             $responses = $multiplexMethod['responses'];
