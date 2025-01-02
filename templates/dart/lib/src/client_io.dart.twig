@@ -90,14 +90,6 @@ class ClientIO extends ClientBase with ClientMixin {
   }
 
   @override
-  Future<String> ping() async {
-    final String apiPath = '/ping';
-    final response = await call(HttpMethod.get, path: apiPath, responseType: ResponseType.plain);
-
-    return response.data;
-  }
-
-  @override
   Future<Response> chunkedUpload({
     required String path,
     required Map<String, dynamic> params,
