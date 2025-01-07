@@ -1126,6 +1126,7 @@ const pushFunction = async ({ functionId, async, code, withVariables } = { retur
                     functionId: func.$id,
                     name: func.name,
                     runtime: func.runtime,
+                    specification: func.specification,
                     execute: func.execute,
                     events: func.events,
                     schedule: func.schedule,
