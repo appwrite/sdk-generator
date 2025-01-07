@@ -3,7 +3,7 @@ const Client = require("./client");
 const { localConfig, globalConfig } = require('./config');
 const { projectsList } = require('./commands/projects');
 const { teamsList } = require('./commands/teams');
-const { functionsListRuntimes, functionsList } = require('./commands/functions');
+const { functionsListRuntimes, functionsListSpecifications, functionsList } = require('./commands/functions');
 const { accountListMfaFactors } = require("./commands/account");
 const { sdkForConsole } = require("./sdks");
 const { validateRequired } = require("./validations");
@@ -297,6 +297,25 @@ const questionsCreateFunction = [
                         ignore: getIgnores(runtime['$id']),
                         commands: getInstallCommand(runtime['$id'])
                     },
+                }
+            })
+            return choices;
+        },
+    },
+    {
+        type: "list",
+        name: "specification",
+        message: "What specification would you like to use?",
+        choices: async () => {
+            let response = await functionsListSpecifications({
+                parseOutput: false
+            })
+            let specifications = response["specifications"]
+            let choices = specifications.map((spec, idx) => {
+                return {
+                    name: `${spec.cpus} CPU, ${spec.memory}MB RAM`,
+                    value: spec.slug,
+                    disabled: spec.enabled === false ? 'Upgrade to use' : false
                 }
             })
             return choices;
