@@ -1,0 +1,28 @@
+package {{ sdk.namespace | caseDot }}.models
+
+import com.google.gson.annotations.SerializedName
+import io.appwrite.extensions.jsonCast
+
+/**
+ * {{ definition.description }}
+ */
+ @Serializable
+{% if definition.properties | length != 0 or definition.additionalProperties %}data {% endif %}class {{ definition | modelType(spec) | raw }}(
+    {%~ for property in definition.properties %}
+    /**
+     * {{ property.description }}
+     */
+    @SerialName("{{ property.name | escapeKeyword | escapeDollarSign}}")
+    {% if property.required -%} val
+    {%- else -%} var
+    {%- endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }},
+
+    {%~ endfor %}
+    {%~ if definition.additionalProperties %}
+    /**
+     * Additional properties
+     */
+    @SerialName("data")
+    val data: T
+    {%~ endif %}
+)

@@ -1,0 +1,212 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompileCommon
+
+plugins {
+    alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.kotlinx.serialization)
+    id("org.jetbrains.kotlinx.atomicfu") version "0.26.0"
+    id("maven-publish")
+    id("signing")
+}
+
+
+group = "io.appwrite"
+version = "0.2.0"
+
+ext {
+    set("PUBLISH_GROUP_ID", "{{ sdk.namespace | caseDot }}")
+    set("PUBLISH_ARTIFACT_ID", "{{ sdk.gitRepoName | caseDash }}")
+    set("PUBLISH_VERSION", System.getenv("SDK_VERSION"))
+    set("POM_URL", "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}")
+    set("POM_SCM_URL", "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}")
+    set("POM_ISSUE_URL", "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}/issues")
+    set("POM_DESCRIPTION", "{{ sdk.description }}")
+    set("POM_LICENSE_URL", "https://opensource.org/licenses/GPL-3.0")
+    set("POM_LICENSE_NAME", "GPL-3.0")
+    set("POM_DEVELOPER_ID", "{{ sdk.gitUserName }}")
+    set("POM_DEVELOPER_NAME", "{{ spec.contactName }}")
+    set("POM_DEVELOPER_EMAIL", "{{ spec.contactEmail }}")
+    set("GITHUB_SCM_CONNECTION", "scm:git:git://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}.git")
+}
+
+version = project.ext["PUBLISH_VERSION"].toString()
+group = project.ext["PUBLISH_GROUP_ID"].toString()
+
+kotlin {
+    jvm()
+
+    androidTarget {
+        publishLibraryVariants("release", "debug")
+        compilations.all {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    jvmTarget.set(JvmTarget.JVM_1_8)
+                }
+            }
+        }
+    }
+
+    metadata {
+        compilations.all {
+            val compilationName = name
+            compileTaskProvider.configure {
+                if (this is KotlinCompileCommon) {
+                    moduleName = "${project.group}:${project.name}_$compilationName"
+                }
+            }
+        }
+    }
+
+    targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget> {
+        binaries.all {
+            // Configure native binary compilation
+            freeCompilerArgs += listOf(
+                "-Xexport-kdoc",
+                "-Xallocator=mimalloc",
+                "-Xadd-light-debug=enable",
+                "-Xruntime-logs=warning"
+            )
+        }
+    }
+
+    listOf(
+        iosX64(),
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach {
+        it.binaries.framework {
+            baseName = "shared"
+            isStatic = true
+            binaryOption("bundleId", "io.appwrite.shared")
+        }
+        it.withSourcesJar(publish = false)
+    }
+
+    sourceSets {
+        jvmMain.dependencies {
+            implementation(libs.ktor.client.java)
+        }
+        commonMain.dependencies {
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.kotlin.reflect)
+            implementation(libs.ktor.client.core)
+            api(libs.kotlinx.serialization.json)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.client.websockets)
+            api(libs.ktor.serialization.kotlinx.json)
+            api(libs.napier)
+        }
+
+        androidMain.dependencies {
+            implementation(libs.androidx.core.ktx)
+            implementation(libs.androidx.appcompat)
+            implementation(libs.androidx.browser.v170)
+            implementation(libs.androidx.lifecycle.livedata.ktx)
+            implementation(libs.androidx.lifecycle.viewmodel.ktx)
+            implementation(libs.androidx.navigation.fragment.ktx)
+            implementation(libs.androidx.navigation.ui.ktx)
+            implementation(libs.kotlinx.coroutines.android)
+            implementation(libs.firebase.messaging)
+            implementation(libs.ktor.client.okhttp)
+            implementation(libs.gson)
+            implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.6.0"))
+        }
+
+        iosMain.dependencies {
+            implementation(libs.jetbrains.kotlinx.coroutines.core)
+            implementation(libs.ktor.client.darwin)
+        }
+
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+        }
+
+        androidUnitTest.dependencies {
+            implementation(libs.junit)
+        }
+
+        androidInstrumentedTest.dependencies {
+            implementation(libs.androidx.junit)
+            implementation(libs.androidx.espresso.core)
+        }
+    }
+}
+
+publishing {
+    publications.withType<MavenPublication> {
+        artifactId = project.ext["PUBLISH_ARTIFACT_ID"].toString()
+
+        pom {
+            name.set(project.ext["PUBLISH_ARTIFACT_ID"].toString())
+            description.set(project.ext["POM_DESCRIPTION"].toString())
+            url.set(project.ext["POM_URL"].toString())
+
+            licenses {
+                license {
+                    name.set(project.ext["POM_LICENSE_NAME"].toString())
+                    url.set(project.ext["POM_LICENSE_URL"].toString())
+                }
+            }
+
+            developers {
+                developer {
+                    id.set(project.ext["POM_DEVELOPER_ID"].toString())
+                    name.set(project.ext["POM_DEVELOPER_NAME"].toString())
+                    email.set(project.ext["POM_DEVELOPER_EMAIL"].toString())
+                }
+            }
+
+            scm {
+                connection.set(project.ext["GITHUB_SCM_CONNECTION"].toString())
+                url.set(project.ext["POM_SCM_URL"].toString())
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "sonatype"
+            url = uri(
+            if (version.toString().endsWith("SNAPSHOT")) {
+                "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+            } else {
+                "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+            }
+            )
+            credentials {
+                username = System.getenv("OSSRH_USERNAME")
+                password = System.getenv("OSSRH_PASSWORD")
+            }
+        }
+    }
+}
+
+signing {
+    val signingKeyId = System.getenv("SIGNING_KEY_ID")
+    val signingPassword = System.getenv("SIGNING_PASSWORD")
+    val signingSecretKeyRingFile = System.getenv("SIGNING_SECRET_KEY_RING_FILE")
+    useInMemoryPgpKeys(signingKeyId, File(signingSecretKeyRingFile).readText(), signingPassword)
+    sign(publishing.publications)
+}
+
+
+android {
+    namespace = "io.appwrite"
+    compileSdk = 35
+    defaultConfig {
+        minSdk = 21
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+}
+dependencies {
+    implementation(libs.androidx.activity.ktx)
+    implementation(libs.androidx.browser)
+    implementation(libs.androidx.espresso.core)
+    implementation(libs.firebase.crashlytics.buildtools)
+}
