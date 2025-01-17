@@ -447,7 +447,7 @@ class Kotlin extends Language
         ];
     }
 
-    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
+    protected function getReturnType(array $method, array $spec, string $namespace, bool $withGeneric = true, string $generic = 'T'): string
     {
         if ($method['type'] === 'webAuth') {
             return 'String';
@@ -466,7 +466,7 @@ class Kotlin extends Language
 
         $ret = $this->toPascalCase($method['responseModel']);
 
-        if ($this->hasGenericType($method['responseModel'], $spec)) {
+        if ($this->hasGenericType($method['responseModel'], $spec) && $withGeneric) {
             $ret .= '<' . $generic . '>';
         }
 

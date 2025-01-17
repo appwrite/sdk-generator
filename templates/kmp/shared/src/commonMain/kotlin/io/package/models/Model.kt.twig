@@ -1,13 +1,16 @@
 package {{ sdk.namespace | caseDot }}.models
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import io.appwrite.extensions.jsonCast
 
 /**
  * {{ definition.description }}
  */
- @Serializable
-{% if definition.properties | length != 0 or definition.additionalProperties %}data {% endif %}class {{ definition | modelType(spec) | raw }}(
+{% if definition.properties | length != 0 or definition.additionalProperties %}
+@Serializable
+data {% endif %}class {{ definition | modelType(spec) | raw }}(
+    {%~ if definition.properties is defined %}
     {%~ for property in definition.properties %}
     /**
      * {{ property.description }}
@@ -18,6 +21,7 @@ import io.appwrite.extensions.jsonCast
     {%- endif %} {{ property.name | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }},
 
     {%~ endfor %}
+    {%~ endif %}
     {%~ if definition.additionalProperties %}
     /**
      * Additional properties

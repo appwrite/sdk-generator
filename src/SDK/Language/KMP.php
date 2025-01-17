@@ -12,12 +12,12 @@ class KMP extends Kotlin
         return 'KMP';
     }
 
-    protected function getReturnType(array $method, array $spec, string $namespace, string $generic = 'T'): string
+    protected function getReturnType(array $method, array $spec, string $namespace, bool $withGeneric = true, string $generic = 'T'): string
     {
         if ($method['type'] === 'webAuth') {
             return 'Bool';
         }
-        return parent::getReturnType($method, $spec, $namespace, $generic);
+        return parent::getReturnType($method, $spec, $namespace, $withGeneric, $generic);
     }
 
     public function getFiles(): array
@@ -196,8 +196,8 @@ class KMP extends Kotlin
                 'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/models/InputFile.kt.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/models/Model.kt',
+                'scope'         => 'definition',
+                'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/models//models/{{ definition.name | caseUcfirst }}.kt',
                 'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/models/Model.kt.twig',
             ],
             [
@@ -235,8 +235,8 @@ class KMP extends Kotlin
                 'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/services/Realtime.kt.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/services/Service.kt',
+                'scope'         => 'service',
+                'destination'   => 'shared/src/commonMain/kotlin/{{ sdk.namespace | caseSlash }}/services/{{service.name | caseUcfirst}}.kt',
                 'template'      => '/kmp/shared/src/commonMain/kotlin/io/package/services/Service.kt.twig',
             ],
 
