@@ -7,7 +7,6 @@ open class Realtime : Service {
 
     private let TYPE_ERROR = "error"
     private let TYPE_EVENT = "event"
-    private let TYPE_PONG = "pong"
     private let DEBOUNCE_NANOS = 1_000_000
     private let HEARTBEAT_INTERVAL: UInt64 = 20_000_000_000 // 20 seconds in nanoseconds
 
@@ -201,7 +200,6 @@ extension Realtime: WebSocketClientDelegate {
                 switch type {
                 case TYPE_ERROR: try! handleResponseError(from: json)
                 case TYPE_EVENT: handleResponseEvent(from: json)
-                case TYPE_PONG: break  // Handle pong response if needed
                 default: break
                 }
             }

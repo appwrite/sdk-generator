@@ -98,9 +98,6 @@ mixin RealtimeMixin {
             }
             _startHeartbeat(); // Start heartbeat after successful connection
             break;
-          case 'pong':
-            debugPrint('Received heartbeat response from realtime server');
-            break;
           case 'event':
             final message = RealtimeMessage.fromMap(data.data);
             for (var subscription in _subscriptions.values) {

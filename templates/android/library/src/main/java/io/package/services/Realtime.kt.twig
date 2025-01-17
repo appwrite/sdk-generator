@@ -29,7 +29,6 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
     private companion object {
         private const val TYPE_ERROR = "error"
         private const val TYPE_EVENT = "event"
-        private const val TYPE_PONG = "pong"
         private const val HEARTBEAT_INTERVAL = 20_000L // 20 seconds
 
         private const val DEBOUNCE_MILLIS = 1L
