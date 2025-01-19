@@ -485,6 +485,7 @@ class Client {
                         }
                         break;
                     case 'event':
+                        if (!message.data) return;
                         let data = <RealtimeResponseEvent<unknown>>message.data;
                         if (data?.channels) {
                             const isSubscribed = data.channels.some(channel => this.realtime.channels.has(channel));
@@ -496,6 +497,8 @@ class Client {
                             })
                         }
                         break;
+                    case 'pong':
+                        break; // Handle pong response if needed
                     case 'error':
                         throw message.data;
                     default:

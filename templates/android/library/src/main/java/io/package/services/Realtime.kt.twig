@@ -174,7 +174,8 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
                 val message = text.fromJson<RealtimeResponse>()
                 when (message.type) {
                     TYPE_ERROR -> handleResponseError(message)
-                    TYPE_EVENT -> handleResponseEvent(message)
+                    TYPE_EVENT -> message.data?.let {handleResponseEvent(message)}
+                    TYPE_PONG -> {}
                 }
             }
         }
