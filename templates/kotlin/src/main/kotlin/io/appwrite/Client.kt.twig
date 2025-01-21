@@ -191,7 +191,7 @@ class Client @JvmOverloads constructor(
 
     /**
      * Prepare the HTTP request
-     * 
+     *
      * @param method
      * @param path
      * @param headers
@@ -286,7 +286,7 @@ class Client @JvmOverloads constructor(
      * @param headers
      * @param params
      *
-     * @return [T]    
+     * @return [T]
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun <T> call(
@@ -309,7 +309,7 @@ class Client @JvmOverloads constructor(
      * @param headers
      * @param params
      *
-     * @return [T]    
+     * @return [T]
      */
     @Throws({{ spec.title | caseUcfirst }}Exception::class)
     suspend fun redirect(
@@ -381,7 +381,7 @@ class Client @JvmOverloads constructor(
         var offset = 0L
         var result: Map<*, *>? = null
 
-        if (idParamName?.isNotEmpty() == true && params[idParamName] != "unique()") {
+        if (idParamName?.isNotEmpty() == true) {
             // Make a request to check if a file already exists
             val current = call(
                 method = "GET",
@@ -448,7 +448,7 @@ class Client @JvmOverloads constructor(
         return converter(result as Map<String, Any>)
     }
 
-    /** 
+    /**
      * Await Redirect
      *
      * @param request
@@ -475,14 +475,14 @@ class Client @JvmOverloads constructor(
                         .charStream()
                         .buffered()
                         .use(BufferedReader::readText)
-                        
+
                     val error = if (response.headers["content-type"]?.contains("application/json") == true) {
                         val map = body.fromJson<Map<String, Any>>()
 
                         {{ spec.title | caseUcfirst }}Exception(
-                            map["message"] as? String ?: "", 
+                            map["message"] as? String ?: "",
                             (map["code"] as Number).toInt(),
-                            map["type"] as? String ?: "", 
+                            map["type"] as? String ?: "",
                             body
                         )
                     } else {
@@ -526,14 +526,14 @@ class Client @JvmOverloads constructor(
                         .charStream()
                         .buffered()
                         .use(BufferedReader::readText)
-                        
+
                     val error = if (response.headers["content-type"]?.contains("application/json") == true) {
                         val map = body.fromJson<Map<String, Any>>()
 
                         {{ spec.title | caseUcfirst }}Exception(
-                            map["message"] as? String ?: "", 
+                            map["message"] as? String ?: "",
                             (map["code"] as Number).toInt(),
-                            map["type"] as? String ?: "", 
+                            map["type"] as? String ?: "",
                             body
                         )
                     } else {

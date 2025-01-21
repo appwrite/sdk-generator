@@ -157,7 +157,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 		numChunks++
 	}
 	var currentChunk int64 = 0
-	if uploadId != "" && uploadId != "unique()" {
+	if uploadId != "" {
 		resp, err := client.Call("GET", url+"/"+uploadId, nil, nil)
 		if err == nil {
 			currentChunk = int64(resp.Result.(map[string]interface{})["chunksUploaded"].(float64))
@@ -165,7 +165,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 	}
 
 	if fileInfo.Size() <= client.ChunkSize {
-		if uploadId != "" && uploadId != "unique()" {
+		if uploadId != "" {
 			headers["x-appwrite-id"] = uploadId
 		}
 		inputFile.Data = make([]byte, fileInfo.Size())
@@ -203,7 +203,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 			return nil, err
 		}
 		params[paramName] = inputFile
-		if uploadId != "" && uploadId != "unique()" {
+		if uploadId != "" {
 			headers["x-appwrite-id"] = uploadId
 		}
 		totalSize := fileInfo.Size()
