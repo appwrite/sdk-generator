@@ -290,17 +290,17 @@ class Swagger2 extends Spec
                     continue;
                 }
 
-                if (empty($method['x-appwrite']['multiplex'] ?? [])) {
+                if (empty($method['x-appwrite']['additional-methods'] ?? [])) {
                     $list[] = $this->parseMethod($methodName, $pathName, $method);
                     continue;
                 }
 
-                foreach ($method['x-appwrite']['multiplex'] as $multiplex) {
-                    $multiplexMethod = $method;
-                    $multiplexMethod['x-appwrite']['method'] = $multiplex['name'];
+                foreach ($method['x-appwrite']['additional-methods'] as $additionalMethod) {
+                    $duplicatedMethod = $method;
+                    $duplicatedMethod['x-appwrite']['method'] = $additionalMethod['name'];
 
                     // Update Response
-                    $responses = $multiplexMethod['responses'];
+                    $responses = $duplicatedMethod['responses'];
                     $convertedResponse = [];
 
                     foreach ($responses as $code => $desc) {
@@ -309,7 +309,7 @@ class Swagger2 extends Spec
                         }
 
                         foreach ($desc['schema']['x-oneOf'] as $oneOf) {
-                            if (!isset($oneOf['$ref']) || !str_ends_with($oneOf['$ref'], $multiplex['response'])) {
+                            if (!isset($oneOf['$ref']) || !str_ends_with($oneOf['$ref'], $additionalMethod['response'])) {
                                 continue;
                             }
 
@@ -320,17 +320,17 @@ class Swagger2 extends Spec
                         }
                     }
 
-                    $multiplexMethod['responses'] = $convertedResponse;
+                    $duplicatedMethod['responses'] = $convertedResponse;
 
                     // Remove non-whitelisted parameters on body parameters, also set required.
-                    $handleParams = function (&$params) use ($multiplex) {
-                        if (isset($multiplex['parameters'])) {
+                    $handleParams = function (&$params) use ($additionalMethod) {
+                        if (isset($additionalMethod['parameters'])) {
                             foreach ($params as $key => $param) {
                                 if (empty($param['in']) || $param['in'] !== 'body' || empty($param['schema']['properties'])) {
                                     continue;
                                 }
 
-                                $whitelistedParams = $multiplex['parameters'] ?? [];
+                                $whitelistedParams = $additionalMethod['parameters'] ?? [];
 
                                 foreach ($param['schema']['properties'] as $paramName => $value) {
                                     if (!in_array($paramName, $whitelistedParams)) {
@@ -338,7 +338,7 @@ class Swagger2 extends Spec
                                     }
                                 }
 
-                                $param['schema']['required'] = $multiplex['required'] ?? [];
+                                $param['schema']['required'] = $additionalMethod['required'] ?? [];
                                 $params[$key] = $param;
                             }
                         }
@@ -346,18 +346,18 @@ class Swagger2 extends Spec
                         return;
                     };
 
-                    $handleParams($multiplexMethod['parameters']);
+                    $handleParams($duplicatedMethod['parameters']);
 
                     // Overwrite description and name if multiplex has one
-                    if (!empty($multiplex['name'])) {
-                        $multiplexMethod['summary'] = $multiplex['name'];
+                    if (!empty($additionalMethod['name'])) {
+                        $duplicatedMethod['summary'] = $additionalMethod['name'];
                     }
 
-                    if (!empty($multiplex['description'])) {
-                        $multiplexMethod['description'] = $multiplex['description'];
+                    if (!empty($additionalMethod['description'])) {
+                        $duplicatedMethod['description'] = $additionalMethod['description'];
                     }
 
-                    $list[] = $this->parseMethod($methodName, $pathName, $multiplexMethod);
+                    $list[] = $this->parseMethod($methodName, $pathName, $duplicatedMethod);
                 }
             }
         }
