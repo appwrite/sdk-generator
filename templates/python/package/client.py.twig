@@ -166,7 +166,7 @@ class Client:
                 if offset + self._chunk_size < size:
                     end = offset + self._chunk_size
                 else:
-                    end = size - offset
+                    end = size
                 input_file.data = input[offset:end]
 
             params[param_name] = input_file
