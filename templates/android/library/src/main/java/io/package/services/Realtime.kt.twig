@@ -181,11 +181,11 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         private fun handleResponseError(message: RealtimeResponse) {
-            throw message.data.jsonCast<{{ spec.title | caseUcfirst }}Exception>()
+            throw message.data?.jsonCast<{{ spec.title | caseUcfirst }}Exception>() ?: RuntimeException("data is not present")
         }
 
         private suspend fun handleResponseEvent(message: RealtimeResponse) {
-            val event = message.data.jsonCast<RealtimeResponseEvent<Any>>()
+            val event = message.data?.jsonCast<RealtimeResponseEvent<Any>>() ?: return
             if (event.channels.isEmpty()) {
                 return
             }
