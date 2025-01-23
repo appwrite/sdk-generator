@@ -125,7 +125,7 @@ class Swagger2 extends Spec
         return $list;
     }
 
-    protected function convertMethod(string $methodName, string $pathName, array $method): array
+    protected function parseMethod(string $methodName, string $pathName, array $method): array
     {
         $security = $this->getAttribute('securityDefinitions', []);
         $methodAuth = $method['x-appwrite']['auth'] ?? [];
@@ -286,76 +286,78 @@ class Swagger2 extends Spec
 
         foreach ($paths as $pathName => $path) {
             foreach ($path as $methodName => $method) {
-                if (isset($method['tags']) && is_array($method['tags']) && in_array($service, $method['tags'])) {
-                    // Handle method multiplexing
-                    if (!empty($method['x-appwrite']['multiplex'] ?? [])) {
-                        foreach ($method['x-appwrite']['multiplex'] as $multiplex) {
-                            $multiplexMethod = $method;
-                            $multiplexMethod['x-appwrite']['method'] = $multiplex['name'];
+                if (!(isset($method['tags']) && is_array($method['tags']) && in_array($service, $method['tags']))) {
+                    continue;
+                }
 
-                            // Update Response
-                            $responses = $multiplexMethod['responses'];
-                            $convertedResponse = [];
+                if (empty($method['x-appwrite']['multiplex'] ?? [])) {
+                    $list[] = $this->parseMethod($methodName, $pathName, $method);
+                    continue;
+                }
 
-                            foreach ($responses as $code => $desc) {
-                                if (!isset($desc['schema']) || !isset($desc['schema']['x-oneOf'])) {
+                foreach ($method['x-appwrite']['multiplex'] as $multiplex) {
+                    $multiplexMethod = $method;
+                    $multiplexMethod['x-appwrite']['method'] = $multiplex['name'];
+
+                    // Update Response
+                    $responses = $multiplexMethod['responses'];
+                    $convertedResponse = [];
+
+                    foreach ($responses as $code => $desc) {
+                        if (!isset($desc['schema']) || !isset($desc['schema']['x-oneOf'])) {
+                            continue;
+                        }
+
+                        foreach ($desc['schema']['x-oneOf'] as $oneOf) {
+                            if (!isset($oneOf['$ref']) || !str_ends_with($oneOf['$ref'], $multiplex['response'])) {
+                                continue;
+                            }
+
+                            $convertedResponse[$code] = [
+                                'description' => $desc['description'],
+                                'schema' => $oneOf,
+                            ];
+                        }
+                    }
+
+                    $multiplexMethod['responses'] = $convertedResponse;
+
+                    // Remove non-whitelisted parameters on body parameters, also set required.
+                    $handleParams = function (&$params) use ($multiplex) {
+                        if (isset($multiplex['parameters'])) {
+                            foreach ($params as $key => $param) {
+                                if (empty($param['in']) || $param['in'] !== 'body' || empty($param['schema']['properties'])) {
                                     continue;
                                 }
 
-                                foreach ($desc['schema']['x-oneOf'] as $oneOf) {
-                                    if (!isset($oneOf['$ref']) || !str_ends_with($oneOf['$ref'], $multiplex['response'])) {
-                                        continue;
-                                    }
+                                $whitelistedParams = $multiplex['parameters'] ?? [];
 
-                                    $convertedResponse[$code] = [
-                                        'description' => $desc['description'],
-                                        'schema' => $oneOf,
-                                    ];
-                                }
-                            }
-
-                            $multiplexMethod['responses'] = $convertedResponse;
-
-                            // Remove non-whitelisted parameters on body parameters, also set required.
-                            $handleParams = function (&$params) use ($multiplex) {
-                                if (isset($multiplex['parameters'])) {
-                                    foreach ($params as $key => $param) {
-                                        if (empty($param['in']) || $param['in'] !== 'body' || empty($param['schema']['properties'])) {
-                                            continue;
-                                        }
-
-                                        $whitelistedParams = $multiplex['parameters'] ?? [];
-
-                                        foreach ($param['schema']['properties'] as $paramName => $value) {
-                                            if (!in_array($paramName, $whitelistedParams)) {
-                                                unset($param['schema']['properties'][$paramName]);
-                                            }
-                                        }
-
-                                        $param['schema']['required'] = $multiplex['required'] ?? [];
-                                        $params[$key] = $param;
+                                foreach ($param['schema']['properties'] as $paramName => $value) {
+                                    if (!in_array($paramName, $whitelistedParams)) {
+                                        unset($param['schema']['properties'][$paramName]);
                                     }
                                 }
 
-                                return;
-                            };
-
-                            $handleParams($multiplexMethod['parameters']);
-
-                            // Overwrite description and name if multiplex has one
-                            if (!empty($multiplex['name'])) {
-                                $multiplexMethod['summary'] = $multiplex['name'];
+                                $param['schema']['required'] = $multiplex['required'] ?? [];
+                                $params[$key] = $param;
                             }
-
-                            if (!empty($multiplex['description'])) {
-                                $multiplexMethod['description'] = $multiplex['description'];
-                            }
-
-                            $list[] = $this->convertMethod($methodName, $pathName, $multiplexMethod);
                         }
-                        continue;
+
+                        return;
+                    };
+
+                    $handleParams($multiplexMethod['parameters']);
+
+                    // Overwrite description and name if multiplex has one
+                    if (!empty($multiplex['name'])) {
+                        $multiplexMethod['summary'] = $multiplex['name'];
                     }
-                    $list[] = $this->convertMethod($methodName, $pathName, $method);
+
+                    if (!empty($multiplex['description'])) {
+                        $multiplexMethod['description'] = $multiplex['description'];
+                    }
+
+                    $list[] = $this->parseMethod($methodName, $pathName, $multiplexMethod);
                 }
             }
         }
