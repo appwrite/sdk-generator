@@ -486,16 +486,18 @@ class Client {
                         break;
                     case 'event':
                         if (!message.data) return;
-                        let data = <RealtimeResponseEvent<unknown>>message.data;
-                        if (data?.channels) {
-                            const isSubscribed = data.channels.some(channel => this.realtime.channels.has(channel));
-                            if (!isSubscribed) return;
-                            this.realtime.subscriptions.forEach(subscription => {
-                                if (data.channels.some(channel => subscription.channels.includes(channel))) {
-                                    setTimeout(() => subscription.callback(data));
-                                }
-                            })
-                        }
+
+                        const data = message.data as RealtimeResponseEvent<unknown>;
+                        if (!data?.channels) return;
+
+                        const isSubscribed = data.channels.some(channel => this.realtime.channels.has(channel));
+                        if (!isSubscribed) return;
+
+                        this.realtime.subscriptions.forEach(subscription => {
+                            if (data.channels.some(channel => subscription.channels.includes(channel))) {
+                                setTimeout(() => subscription.callback(data));
+                            }
+                        });
                         break;
                     case 'pong':
                         break; // Handle pong response if needed
