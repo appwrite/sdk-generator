@@ -97,10 +97,6 @@ export class {{ service.name | caseUcfirst }} {
         {%~ endfor %}
         {%~ endfor %}
 
-        for (const [key, value] of Object.entries(Client.flatten(payload))) {
-            uri.searchParams.append(key, value);
-        }
-
         return uri.toString();
         {%~ elseif 'multipart/form-data' in method.consumes %}
         return await this.client.chunkedUpload(
