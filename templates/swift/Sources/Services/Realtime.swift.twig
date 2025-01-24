@@ -200,7 +200,7 @@ extension Realtime: WebSocketClientDelegate {
             if let type = json["type"] as? String {
                 switch type {
                 case TYPE_ERROR: try! handleResponseError(from: json)
-                case TYPE_EVENT: if json["data"] != nil {handleResponseEvent(from: json)}
+                case TYPE_EVENT: handleResponseEvent(from: json)
                 case TYPE_PONG: break  // Handle pong response if needed
                 default: break
                 }
