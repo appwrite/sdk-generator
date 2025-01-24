@@ -16,7 +16,7 @@ module {{ spec.title | caseUcfirst }}
                 'x-sdk-platform'=> '{{ sdk.platform }}',
                 'x-sdk-language'=> '{{ language.name | caseLower }}',
                 'x-sdk-version'=> '{{ sdk.version }}'{% if spec.global.defaultHeaders | length > 0 %},{% endif %}
-                
+
 {% for key,header in spec.global.defaultHeaders %}
                 '{{key}}' => '{{header}}'{% if not loop.last %},{% endif %}
 {% endfor %}
@@ -49,7 +49,7 @@ module {{ spec.title | caseUcfirst }}
         # @return [self]
         def set_endpoint(endpoint)
             @endpoint = endpoint
-            
+
             self
         end
 
@@ -133,15 +133,19 @@ module {{ spec.title | caseUcfirst }}
             offset = 0
             id_param_name = id_param_name.to_sym if id_param_name
             if id_param_name&.empty? == false && params[id_param_name] != "unique()"
+                begin
                 # Make a request to check if a file already exists
-                current = call(
-                    method: "GET",
-                    path: "#{path}/#{params[id_param_name]}",
-                    headers: headers,
-                    params: {}
-                )
-                chunks_uploaded = current['chunksUploaded'].to_i
-                offset = chunks_uploaded * @chunk_size
+                    current = call(
+                        method: "GET",
+                        path: "#{path}/#{params[id_param_name]}",
+                        headers: headers,
+                        params: {}
+                    )
+                    chunks_uploaded = current['chunksUploaded'].to_i
+                    offset = chunks_uploaded * @chunk_size
+                rescue => error
+                    raise {{spec.title | caseUcfirst}}::Exception.new(error.message) unless error.message.downcase.include?("file could not be found")
+                end
             end
 
             while offset < size
@@ -202,7 +206,7 @@ module {{ spec.title | caseUcfirst }}
             @http = Net::HTTP.new(uri.host, uri.port) unless defined? @http
             @http.use_ssl = !@self_signed
             payload = ''
-            
+
             headers = @headers.merge(headers)
 
             params.compact!
@@ -237,7 +241,7 @@ module {{ spec.title | caseUcfirst }}
             if response_type == "location"
                 return location
             end
-            
+
             # Handle Redirects
             if (response.class == Net::HTTPRedirection || response.class == Net::HTTPMovedPermanently)
                 uri = URI.parse(uri.scheme + "://" + uri.host + "" + location)
@@ -272,7 +276,7 @@ module {{ spec.title | caseUcfirst }}
 
             return response
         end
-        
+
         def encode_form_data(value, key=nil)
             case value
             when Hash
@@ -304,13 +308,13 @@ module {{ spec.title | caseUcfirst }}
             when Hash  then value.map { |k,v| encode(v, append_key(key,k)) }.join('&')
             when Array then value.map { |v| encode(v, "#{key}[]") }.join('&')
             when nil   then ''
-            else            
-            "#{key}=#{CGI.escape(value.to_s)}" 
+            else
+            "#{key}=#{CGI.escape(value.to_s)}"
             end
         end
 
         def append_key(root_key, key)
             root_key.nil? ? key : "#{root_key}[#{key.to_s}]"
         end
-    end 
+    end
 end
