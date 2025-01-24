@@ -118,12 +118,10 @@ export class {{ service.name | caseUcfirst }} extends Service {
         let response = undefined;
 {% for parameter in method.parameters.all %}
 {% if parameter.isUploadID %}
-        if({{ parameter.name | caseCamel | escapeKeyword }} != 'unique()') {
-            try {
-                response = await this.client.call('GET', new URL(this.client.config.endpoint + apiPath + '/' + {{ parameter.name }}), apiHeaders);
-                offset = response.chunksUploaded * Service.CHUNK_SIZE;
-            } catch(e) {
-            }
+        try {
+            response = await this.client.call('GET', new URL(this.client.config.endpoint + apiPath + '/' + {{ parameter.name }}), apiHeaders);
+            offset = response.chunksUploaded * Service.CHUNK_SIZE;
+        } catch(e) {
         }
 {% endif %}
 {% endfor %}
