@@ -290,12 +290,12 @@ class Swagger2 extends Spec
                     continue;
                 }
 
-                if (empty($method['x-appwrite']['additional-methods'] ?? [])) {
+                if (empty($method['x-appwrite']['methods'] ?? [])) {
                     $list[] = $this->parseMethod($methodName, $pathName, $method);
                     continue;
                 }
 
-                foreach ($method['x-appwrite']['additional-methods'] as $additionalMethod) {
+                foreach ($method['x-appwrite']['methods'] as $additionalMethod) {
                     $duplicatedMethod = $method;
                     $duplicatedMethod['x-appwrite']['method'] = $additionalMethod['name'];
 
@@ -348,7 +348,7 @@ class Swagger2 extends Spec
 
                     $handleParams($duplicatedMethod['parameters']);
 
-                    // Overwrite description and name if multiplex has one
+                    // Overwrite description and name if method has one
                     if (!empty($additionalMethod['name'])) {
                         $duplicatedMethod['summary'] = $additionalMethod['name'];
                     }
