@@ -17,7 +17,7 @@ data class RealtimeCallback(
 
 open class RealtimeResponse(
     val type: String,
-    val data: Any
+    val data: Any?
 )
 
 data class RealtimeResponseEvent<T>(
