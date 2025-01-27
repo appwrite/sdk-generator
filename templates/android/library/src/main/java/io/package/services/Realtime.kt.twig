@@ -181,7 +181,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         private fun handleResponseError(message: RealtimeResponse) {
-            throw message.data?.jsonCast<{{ spec.title | caseUcfirst }}Exception>() ?: RuntimeException("data is not present")
+            throw message.data?.jsonCast<{{ spec.title | caseUcfirst }}Exception>() ?: RuntimeException("Data is not present")
         }
 
         private suspend fun handleResponseEvent(message: RealtimeResponse) {
