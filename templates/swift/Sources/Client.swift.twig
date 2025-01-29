@@ -272,21 +272,24 @@ open class Client {
             var message = ""
             var data = try await response.body.collect(upTo: Int.max)
             var type = ""
+            var responseString = ""
 
             do {
                 let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
 
                 message = dict?["message"] as? String ?? response.status.reasonPhrase
                 type = dict?["type"] as? String ?? ""
+                responseString = String(decoding: data.readableBytesView, as: UTF8.self)
             } catch {
                 message =  data.readString(length: data.readableBytes)!
+                responseString = message
             }
 
             throw {{ spec.title | caseUcfirst }}Error(
                 message: message,
                 code: Int(response.status.code),
                 type: type,
-                response: String(decoding: data.readableBytesView, as: UTF8.self)
+                response: responseString
             )
         }
 
@@ -370,21 +373,24 @@ open class Client {
         default:
             var message = ""
             var type = ""
+            var responseString = ""
 
             do {
                 let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any]
 
                 message = dict?["message"] as? String ?? response.status.reasonPhrase
                 type = dict?["type"] as? String ?? ""
+                responseString = String(decoding: data.readableBytesView, as: UTF8.self)
             } catch {
                 message =  data.readString(length: data.readableBytes)!
+                responseString = message
             }
 
             throw {{ spec.title | caseUcfirst }}Error(
                 message: message,
                 code: Int(response.status.code),
                 type: type,
-                response: String(decoding: data.readableBytesView, as: UTF8.self)
+                response: responseString
             )
         }
     }
