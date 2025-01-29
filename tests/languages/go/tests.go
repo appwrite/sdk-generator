@@ -116,16 +116,19 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	_, err = general.Error400()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
+		fmt.Printf("%s\n", err.GetResponse())
 	}
 
 	_, err = general.Error500()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
+		fmt.Printf("%s\n", err.GetResponse())
 	}
 
 	_, err = general.Error502()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
+		fmt.Printf("%s\n", err.GetResponse())
 	}
 
 	general.Empty()
