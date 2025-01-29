@@ -669,9 +669,9 @@ class Client {
         const { uri, options } = this.prepareRequest(method, url, headers, params);
 
         let data: any = null;
+        let text: string = '';
 
         const response = await fetch(uri, options);
-        const text = await response.text();
 
         const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
         if (warnings) {
@@ -680,9 +680,11 @@ class Client {
 
         if (response.headers.get('content-type')?.includes('application/json')) {
             data = await response.json();
+            text = JSON.stringify(data);
         } else if (responseType === 'arrayBuffer') {
             data = await response.arrayBuffer();
         } else {
+            text = await response.text();
             data = {
                 message: text
             };

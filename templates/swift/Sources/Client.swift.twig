@@ -286,7 +286,7 @@ open class Client {
                 message: message,
                 code: Int(response.status.code),
                 type: type,
-                data
+                response: String(decoding: data.readableBytesView, as: UTF8.self)
             )
         }
 
@@ -384,7 +384,7 @@ open class Client {
                 message: message,
                 code: Int(response.status.code),
                 type: type,
-                data
+                response: String(decoding: data.readableBytesView, as: UTF8.self)
             )
         }
     }

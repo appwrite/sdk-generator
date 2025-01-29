@@ -242,7 +242,9 @@ namespace {{ spec.title | caseUcfirst }}
 
                 if (contentType.Contains("application/json")) {
                     message = JObject.Parse(text)["message"]!.ToString();
-                    type = JObject.Parse(text)["type"]!.ToString();
+                    type = JObject.Parse(text)["type"]?.ToString() ?? string.Empty;
+                } else {
+                    message = text;
                 }
 
                 throw new {{spec.title | caseUcfirst}}Exception(message, code, type, text);
@@ -294,8 +296,10 @@ namespace {{ spec.title | caseUcfirst }}
                 var type = "";
 
                 if (isJson) {
-                    message = JObject.Parse(message)["message"]!.ToString();
-                    type = JObject.Parse(message)["type"]!.ToString();
+                    message = JObject.Parse(text)["message"]!.ToString();
+                    type = JObject.Parse(text)["type"]?.ToString() ?? string.Empty;
+                } else {
+                    message = text;
                 }
 
                 throw new {{spec.title | caseUcfirst}}Exception(message, code, type, text);
