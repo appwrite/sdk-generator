@@ -285,7 +285,8 @@ open class Client {
             throw {{ spec.title | caseUcfirst }}Error(
                 message: message,
                 code: Int(response.status.code),
-                type: type
+                type: type,
+                data
             )
         }
 
@@ -382,7 +383,8 @@ open class Client {
             throw {{ spec.title | caseUcfirst }}Error(
                 message: message,
                 code: Int(response.status.code),
-                type: type
+                type: type,
+                data
             )
         }
     }

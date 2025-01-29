@@ -252,7 +252,7 @@ module {{ spec.title | caseUcfirst }}
                 end
 
                 if response.code.to_i >= 400
-                    raise {{spec.title | caseUcfirst}}::Exception.new(result['message'], result['status'], result['type'], result)
+                    raise {{spec.title | caseUcfirst}}::Exception.new(result['message'], result['status'], result['type'], response)
                 end
 
                 unless response_type.respond_to?("from")

@@ -81,7 +81,7 @@ class ClientMixin {
           response['message'],
           response['code'],
           response['type'],
-          response,
+          res.body,
         );
       } else {
         throw {{spec.title | caseUcfirst}}Exception(res.body);

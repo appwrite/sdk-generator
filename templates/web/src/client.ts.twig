@@ -671,6 +671,7 @@ class Client {
         let data: any = null;
 
         const response = await fetch(uri, options);
+        const text = await response.text();
 
         const warnings = response.headers.get('x-{{ spec.title | lower }}-warning');
         if (warnings) {
@@ -683,12 +684,12 @@ class Client {
             data = await response.arrayBuffer();
         } else {
             data = {
-                message: await response.text()
+                message: text
             };
         }
 
         if (400 <= response.status) {
-            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, data);
+            throw new {{spec.title | caseUcfirst}}Exception(data?.message, response.status, data?.type, text);
         }
 
         const cookieFallback = response.headers.get('X-Fallback-Cookies');

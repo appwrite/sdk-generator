@@ -109,7 +109,7 @@ class Client:
             if response != None:
                 content_type = response.headers['Content-Type']
                 if content_type.startswith('application/json'):
-                    raise {{spec.title | caseUcfirst}}Exception(response.json()['message'], response.status_code, response.json().get('type'), response.json())
+                    raise {{spec.title | caseUcfirst}}Exception(response.json()['message'], response.status_code, response.json().get('type'), response.text)
                 else:
                     raise {{spec.title | caseUcfirst}}Exception(response.text, response.status_code)
             else:
